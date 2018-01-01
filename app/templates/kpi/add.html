@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Add KPI{% endblock %}
+{% block page_content %}
+<div class="columns">
+    <div class="column is-one-third">
+        <div class="card">
+            <div class="card-content">
+                <div class="field">
+                    <label class="label">ชื่อตัวชี้วัด</label>
+                    <div class="control">
+                        <input class="input" type="text" placeholder="Enter KPI name"/>
+                    </div>
+                    <p class="help">ตัวอย่าง จำนวนบัณฑิตที่สอบผ่านใบประกอบวิชาชีพ</p>
+                </div>
+                <div class="field">
+                    <label class="label">เลขอ้างอิงตัวชี้วัด</label>
+                    <div class="control">
+                        <input class="input" type="text" placeholder="Enter KPI ref. no."/>
+                    </div>
+                    <p class="help">ตัวอย่าง 1.2</p>
+                </div>
+                <div class="field">
+                    <label class="label">เป้าประสงค์ของตัวชี้วัด</label>
+                    <div class="control">
+                        <textarea class="textarea" type="text" placeholder="Enter KPI intent"></textarea>
+                    </div>
+                    <p class="help">อธิบายผลลัพธ์ที่เชื่อมโยงกับตัวชี้วัด</p>
+                </div>
+                <div class="field">
+                    <label class="label">ความถี่ในการเก็บข้อมูลตัวชี้วัด</label>
+                    <div class="control">
+                        <input class="input" type="text" placeholder="Enter KPI frequency" />
+                    </div>
+                    <p class="help">ความถี่นับเป็นจำนวนวัน</p>
+                </div>
+                <div class="field">
+                    <label class="label">หน่วยของข้อมูล</label>
+                    <div class="control">
+                        <input class="input" type="text" placeholder="Enter KPI frequency" />
+                    </div>
+                    <p class="help">ร้อยละ ชั่วโมง จำนวนนับเป็นต้น</p>
+                </div>
+                <div class="field">
+                    <label class="label">แหล่งของข้อมูล</label>
+                    <div class="control">
+                        <textarea class="textarea" type="text" placeholder="Enter KPI data sources"></textarea>
+                    </div>
+                    <p class="help">ร้อยละ ชั่วโมง จำนวนนับเป็นต้น</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="column is-one-third">
+        <div class="card">
+            <div class="card-content">
+                <div class="field">
+                    <label class="label">ความพร้อมใช้ของข้อมูล (availability)</label>
+                    <div class="control">
+                        <textarea class="textarea" type="text" placeholder="Enter KPI data availability"></textarea>
+                    </div>
+                    <p class="help">เช่น เก็บโดยอัตโนมัติ หรือ ต้องใช้กระบวนการที่ซับซ้อน เป็นตัน</p>
+                </div>
+                <div class="field">
+                    <label class="label">เจ้าของตัวชี้วัด</label>
+                    <div class="control">
+                        <input class="input" type="text" placeholder="Enter KPI owner" />
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">นิยาม สูตรการคิดตัวชี้วัด</label>
+                    <div class="control">
+                        <input class="input" type="text" placeholder="Enter KPI definition" />
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">สมมติฐาน</label>
+                    <div class="control">
+                        <textarea class="textarea" type="text" placeholder="Enter KPI assumption"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="column is-one-third">
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-title">KPI Targets</div>
+            </div>
+            <div class="card-content">
+                <div class="field">
+                    <label class="label">เป้าหมาย</label>
+                    <div class="control">
+                        <input class="input" type="text" placeholder="Enter KPI target"></input>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">หลักการ ที่มาของเป้าหมาย</label>
+                    <div class="control">
+                        <textarea class="textarea" type="text" placeholder="Enter KPI rationale"></textarea>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">ผู้รับผิดชอบในการทำให้บรรลุเป้าหมาย</label>
+                    <div class="control">
+                        <input class="input" type="text" placeholder="Enter KPI target accountable"></input>
+                    </div>
+                    <p class="help">หากมีหลายคนคั่นด้วย "," เช่น likit.pre,lertyot.tre</p>
+                </div>
+                <div class="field">
+                    <label class="label">ผู้ประสานงานในการติดตามเป้าหมาย และรายงาน</label>
+                    <div class="control">
+                        <input class="input" type="text" placeholder="Enter KPI target tracking and reporting"></input>
+                    </div>
+                    <p class="help">หากมีหลายคนคั่นด้วย "," เช่น likit.pre,lertyot.tre</p>
+                </div>
+                <div class="field">
+                    <label class="label">ผู้รับผิดชอบในการตั้งเป้าหมาย</label>
+                    <div class="control">
+                        <input class="input" type="text" placeholder="Enter KPI target setting"></input>
+                    </div>
+                    <p class="help">หากมีหลายคนคั่นด้วย "," เช่น likit.pre,lertyot.tre</p>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-title">Reporting the KPI</div>
+            </div>
+            <div class="card-content">
+                <div class="field">
+                    <label class="label">ผู้รับผิดชอบในการรายงานตัวชี้วัด</label>
+                    <div class="control">
+                        <input class="input" type="text" placeholder="Enter a person accountable"></input>
+                    </div>
+                    <p class="help">หากมีหลายคนคั่นด้วย "," เช่น likit.pre,lertyot.tre</p>
+                </div>
+                <div class="field">
+                    <label class="label">ผู้ประสานงานในการรายงานตัวชี้วัด</label>
+                    <div class="control">
+                        <input class="input" type="text" placeholder="Enter a person responsible"></input>
+                    </div>
+                    <p class="help">หากมีหลายคนคั่นด้วย "," เช่น likit.pre,lertyot.tre</p>
+                </div>
+                <div class="field">
+                    <label class="label">ที่ปรึกษา</label>
+                    <div class="control">
+                        <input class="input" type="text" placeholder="Enter a person consulted"></input>
+                    </div>
+                    <p class="help">หากมีหลายคนคั่นด้วย "," เช่น likit.pre,lertyot.tre</p>
+                </div>
+                <div class="field">
+                    <label class="label">ผู้รับรายงาน</label>
+                    <div class="control">
+                        <input class="input" type="text" placeholder="Enter a person informed"></input>
+                    </div>
+                    <p class="help">หากมีหลายคนคั่นด้วย "," เช่น likit.pre,lertyot.tre</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

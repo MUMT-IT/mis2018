@@ -6,6 +6,12 @@ from ..models import strategies
 from .. import meta, connect
 
 
+@kpi.route('/add/')
+def add():
+    return render_template('/kpi/add.html')
+
+
+
 @kpi.route('/list/')
 def get_kpis():
     return jsonify(strategies)
