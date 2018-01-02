@@ -1,4 +1,6 @@
+from datetime import datetime
 from sqlalchemy.sql import select
+from flask import request
 from flask import jsonify, render_template
 
 from . import kpibp as kpi
@@ -68,3 +70,10 @@ def test_db():
     s = select([users.c.name])
     data = [rec['name'] for rec in connect.execute(s)]
     return jsonify(data)
+
+
+@kpi.route('/api/', methods=['POST'])
+def add_kpi_json():
+    new_kpi = request.get_json()
+    new_kpi['created_at'] = datetime.now()
+    return jsonify(new_kpi)
