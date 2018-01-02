@@ -82,24 +82,62 @@
     <h1 class="title">รายการตัวชี้วัด</h1>
     <div data-bind="if: currentStrategy() && currentTactic && currentTheme && currentActivity">
         <table class="table">
-            <tr><td>ยุทธ์ศาสตร์ที่</td><td data-bind="text: currentStrategy().refno"></td><td data-bind="text: currentStrategy().content"></td></tr>
-            <tr><td>แผนกลยุทธ์ที่</td><td data-bind="text: currentTactic().refno"></td><td data-bind="text: currentTactic().content"></td></tr>
-            <tr><td>มาตรการที่</td><td data-bind="text: currentTheme().refno"></td><td data-bind="text: currentTheme().content"></td></tr>
-            <tr><td>กิจกรรมที่</td><td data-bind="text: currentActivity().refno"></td><td data-bind="text: currentActivity().content"></td></tr>
+            <tr><td class="notification is-light has-text-weight-bold">ยุทธ์ศาสตร์ที่</td><td data-bind="text: currentStrategy().refno"></td><td data-bind="text: currentStrategy().content"></td></tr>
+            <tr><td class="notification is-light has-text-weight-bold">แผนกลยุทธ์ที่</td><td data-bind="text: currentTactic().refno"></td><td data-bind="text: currentTactic().content"></td></tr>
+            <tr><td class="notification is-light has-text-weight-bold">มาตรการที่</td><td data-bind="text: currentTheme().refno"></td><td data-bind="text: currentTheme().content"></td></tr>
+            <tr><td class="notification is-light has-text-weight-bold">กิจกรรมที่</td><td data-bind="text: currentActivity().refno"></td><td data-bind="text: currentActivity().content"></td></tr>
         </table>
     </div> 
-    <table class="table">
+    <div class="box">
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label">เพิ่มตัวชี้วัด</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control is-expanded">
+                        <input type="text" class="input" placeholder="ชื่อตัวชี้วัด"
+                            data-bind="value: insKpiName"/>
+                    </div>
+                </div>
+                <div class="field has-addons">
+                    <div class="control">
+                        <input type="text" class="input" placeholder="เพิ่มโดย"
+                            data-bind="value: insKpiCreatedBy">
+                    </div>
+                    <p class="button is-static">@mahidol.ac.th</p>
+                </div>
+                <div class="field">
+                    <a class="button is-link is-rounded" data-bind="click: addKpi">
+                        <span class="icon">
+                            <i class="fa fa-plus"></i>
+                        </span><span>Add</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <table class="table is-striped">
         <thead>
             <tr>
                 <th>ลำดับที่</th>
                 <th>ชื่อตัวชี้วัด</th>
                 <th>เพิ่มเมื่อ</th>
+                <th>เพิ่มโดย</th>
                 <th>ผู้รับผิดชอบ</th>
                 <th>ความถี่ในการเก็บข้อมูล</th>
                 <th></th>
             </tr>
         </thead>
-        <tbody>
+        <tbody data-bind="foreach: {data: kpis, as: 'kpi'}">
+            <tr>
+                <td data-bind="text: kpi.id"></td>
+                <td data-bind="text: kpi.name"></td>
+                <td data-bind="text: kpi.created_at"></td>
+                <td data-bind="text: kpi.created_by"></td>
+                <td data-bind="text: kpi.responsible"></td>
+                <td data-bind="text: kpi.frequency"></td>
+            </tr>
         </tbody>
     </table>
 </section>
@@ -152,6 +190,77 @@
         }
         self.setCurrentActivity = function(activity) {
             self.currentActivity(activity);
+            self.kpis([]);
+            $.each(self.allKpis(), function(idx, kpi) {
+                if (kpi.activity_id===activity.id &&
+                    kpi.theme_id===self.currentTheme().id &&
+                    kpi.tactic_id===self.currentTactic().id &&
+                    kpi.strategy_id===self.currentStrategy().id
+                    ) {
+                        self.kpis.push(kpi);
+                    }
+            });
+        }
+        self.kpis = ko.observableArray();
+        self.allKpis = ko.observableArray([
+            {
+                'id': 1,
+                'strategy_id': 1,
+                'tactic_id': 1,
+                'theme_id': 1,
+                'activity_id': 1,
+                'name': 'Kpi 1',
+                'created_at': '12/13/2017',
+                'responsible': '',
+                'created_by': 'likit.pre',
+                'frequency': 90
+            },
+            {
+                'id': 2,
+                'strategy_id': 1,
+                'tactic_id': 1,
+                'theme_id': 1,
+                'activity_id': 2,
+                'name': 'Kpi 2',
+                'created_at': '12/13/2017',
+                'responsible': '',
+                'created_by': 'likit.pre',
+                'frequency': 90
+            }
+        ]);
+        self.allKpis.subscribe(function(changes) {
+            self.kpis([]);
+            $.each(self.allKpis(), function(idx, kpi) {
+                if (kpi.activity_id===self.currentActivity().id &&
+                    kpi.theme_id===self.currentTheme().id &&
+                    kpi.tactic_id===self.currentTactic().id &&
+                    kpi.strategy_id===self.currentStrategy().id
+                    ) {
+                        self.kpis.push(kpi);
+                    }
+            });
+        }, null, 'arrayChange');
+        self.insKpiName = ko.observable();
+        self.insKpiCreatedBy = ko.observable();
+        self.addKpi = function() {
+            var newKpi = {
+                'strategy_id': self.currentStrategy().id,
+                'tactic_id': self.currentTactic().id,
+                'theme_id': self.currentTheme().id,
+                'activity_id': self.currentActivity().id,
+                'name': self.insKpiName(),
+                'created_by': self.insKpiCreatedBy(),
+            };
+            $.ajax({
+                url: "{{ url_for('kpi.add_kpi_json') }}",
+                dataType: 'json',
+                type: 'post',
+                contentType: 'application/json',
+                data: JSON.stringify(newKpi),
+                success: function(data, textStatus) {
+                    self.allKpis.push(data);
+                }
+            });
         }
     }
     var vm = new viewModel();
@@ -159,5 +268,6 @@
     vm.loadTactics(vm.currentStrategy());
     vm.loadThemes(vm.currentTactic());
     vm.loadActivities(vm.currentTheme());
+    vm.setCurrentActivity(vm.activities()[0]);
 </script>
 {% endblock %}
