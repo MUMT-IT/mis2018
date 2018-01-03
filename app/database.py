@@ -10,7 +10,7 @@ def create_db():
             )
 
     kpis = Table('kpis', meta,
-            Column('id', Integer, primary_key=True),
+            Column('id', Integer, primary_key=True, autoincrement=True),
             Column('owned_by', Integer, ForeignKey('orgs.id')),
             Column('created_by', String),
             Column('created_at', DateTime, server_default=func.now()),
@@ -42,7 +42,7 @@ def create_db():
             )
 
     orgs = Table('orgs', meta,
-            Column('id', Integer, primary_key=True),
+            Column('id', Integer, primary_key=True, autoincrement=True),
             Column('name', String, nullable=False),
             Column('head', String),
             Column('parent', Integer, ForeignKey('orgs.id')),
@@ -50,7 +50,7 @@ def create_db():
             )
 
     strategies = Table('strategies', meta,
-            Column('id', Integer, primary_key=True),
+            Column('id', Integer, primary_key=True, autoincrement=True),
             Column('refno', String, nullable=False),
             Column('created_at', DateTime, server_default=func.now()),
             Column('content', String, nullable=False),
@@ -58,7 +58,7 @@ def create_db():
             )
 
     strategy_tactics = Table('strategy_tactics', meta,
-            Column('id', Integer, primary_key=True),
+            Column('id', Integer, primary_key=True, autoincrement=True),
             Column('refno', String, nullable=False),
             Column('created_at', DateTime, server_default=func.now()),
             Column('content', String, nullable=False),
@@ -66,7 +66,7 @@ def create_db():
             )
 
     strategy_themes = Table('strategy_themes', meta,
-            Column('id', Integer, primary_key=True),
+            Column('id', Integer, primary_key=True, autoincrement=True),
             Column('refno', String, nullable=False),
             Column('created_at', DateTime, server_default=func.now()),
             Column('content', String, nullable=False),
@@ -74,7 +74,7 @@ def create_db():
             )
 
     strategy_activities = Table('strategy_activities', meta,
-            Column('id', Integer, primary_key=True),
+            Column('id', Integer, primary_key=True, autoincrement=True),
             Column('refno', String, nullable=False),
             Column('created_at', DateTime, server_default=func.now()),
             Column('content', String, nullable=False),
@@ -92,8 +92,7 @@ def load_orgs():
         idx, d = row
         parent = None if pd.isna(d['parent']) else int(d['parent'])
         head = None if pd.isna(d['head']) else d['head']
-        ins = orgs.insert().values(id=int(d['id']), name=d['name'],
-                head=head, parent=parent)
+        ins = orgs.insert().values(name=d['name'], head=head, parent=parent)
         result = connect.execute(ins)
         print(result.inserted_primary_key)
 
@@ -105,7 +104,7 @@ def load_strategy():
     strategies = meta.tables['strategies']
     for idx, rec in data.iterrows():
         ins = strategies.insert().values(
-                id=int(rec['id']), refno=str(int(rec['id'])),
+                refno=str(int(rec['id'])),
                 owner=int(rec['owner_id']), content=rec['content'])
         result = connect.execute(ins)
         print(result.inserted_primary_key)
@@ -117,7 +116,7 @@ def load_tactics():
     strategy_tactics = meta.tables['strategy_tactics']
     for idx, rec in data.iterrows():
         ins = strategy_tactics.insert().values(
-                id=int(rec['tactic_id']), refno=str(int(rec['tactic_refno'])),
+                refno=str(int(rec['tactic_refno'])),
                 parent=int(rec['strategy_id']), content=rec['tactic_content'])
         result = connect.execute(ins)
         print(result.inserted_primary_key)
@@ -129,7 +128,7 @@ def load_themes():
     strategy_themes = meta.tables['strategy_themes']
     for idx, rec in data.iterrows():
         ins = strategy_themes.insert().values(
-                id=int(rec['theme_id']), refno=str(int(rec['theme_refno'])),
+                refno=str(int(rec['theme_refno'])),
                 parent=int(rec['tactic_id']), content=rec['theme_content'])
         result = connect.execute(ins)
         print(result.inserted_primary_key)
@@ -141,7 +140,7 @@ def load_activities():
     strategy_activities = meta.tables['strategy_activities']
     for idx, rec in data.iterrows():
         ins = strategy_activities.insert().values(
-                id=int(rec['activity_id']), refno=str(int(rec['activity_refno'])),
+                refno=str(int(rec['activity_refno'])),
                 parent=int(rec['theme_id']), content=rec['activity_content'])
         result = connect.execute(ins)
         print(result.inserted_primary_key)
