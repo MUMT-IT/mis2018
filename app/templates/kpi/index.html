@@ -3,6 +3,7 @@
 {% block page_content %}
 <section class="section">
 <h1 class="title">ระบบฐานข้อมูลตัวชี้วัด</h1>
+<h1 class="subtitle is-5">{{ org_name }}</h1>
 <div class="columns">
     <div class="column is-one-fourth">
         <nav class="panel">
@@ -11,13 +12,8 @@
             </div>
             <div data-bind="foreach: {data: strategies, as: 'st'}">
                 <a class="panel-block">
-                    <span class="panel-icon" data-bind="visible: $parent.currentStrategy().id===st.id">
-                        <i class="fa fa-check-circle"></i>
-                    </span>
-                    <span class="panel-icon" data-bind="visible: $parent.currentStrategy().id!==st.id">
-                        <i class="fa fa-circle-o"></i>
-                    </span>
-                    <span data-bind="text: st.refno + '. ' + st.content, click: $parent.loadTactics"></span>
+                    <span 
+                        data-bind="css: {'is-success': st.id===$parent.currentStrategy().id, 'notification': true}, text: st.refno + '. ' + st.content, click: function(st) { $parent.currentStrategy(st); }"></span>
                 </a>
             </div>
         </nav>
@@ -29,13 +25,7 @@
             </div>
             <div data-bind="foreach: {data: tactics, as: 'tc'}">
                 <a class="panel-block">
-                    <span class="panel-icon" data-bind="visible: $parent.currentTactic().id===tc.id">
-                        <i class="fa fa-check-circle"></i>
-                    </span>
-                    <span class="panel-icon" data-bind="visible: $parent.currentTactic().id!==tc.id">
-                        <i class="fa fa-circle-o"></i>
-                    </span>
-                    <span data-bind="text: tc.refno + '. ' + tc.content, click: $parent.loadThemes"></span>
+                    <span data-bind="css: {'notification': $parent.currentTactic().id==tc.id, 'is-success': true}, text: tc.refno + '. ' + tc.content, click: function(tc) { $parent.currentTactic(tc); }"></span>
                 </a>
             </div>
         </nav>
@@ -47,13 +37,7 @@
             </div>
             <div data-bind="foreach: {data: themes, as: 'th'}">
                 <a class="panel-block">
-                    <span class="panel-icon" data-bind="visible: $parent.currentTheme().id===th.id">
-                        <i class="fa fa-check-circle"></i>
-                    </span>
-                    <span class="panel-icon" data-bind="visible: $parent.currentTheme().id!==th.id">
-                        <i class="fa fa-circle-o"></i>
-                    </span>
-                    <span data-bind="text: th.refno + '. ' + th.content, click: $parent.loadActivities"></span>
+                    <span data-bind="css: {'notification': $parent.currentTheme().id==th.id, 'is-success': true}, text: th.refno + '. ' + th.content, click: function(th) { $parent.currentTheme(th); }"></span>
                 </a>
             </div>
         </nav>
@@ -65,13 +49,7 @@
             </div>
             <div data-bind="foreach: {data: activities, as: 'ac'}">
                 <a class="panel-block">
-                    <span class="panel-icon" data-bind="visible: $parent.currentActivity().id===ac.id">
-                        <i class="fa fa-check-circle"></i>
-                    </span>
-                    <span class="panel-icon" data-bind="visible: $parent.currentActivity().id!==ac.id">
-                        <i class="fa fa-circle-o"></i>
-                    </span>
-                    <span data-bind="text: ac.refno + '. ' + ac.content, click: $parent.setCurrentActivity"></span>
+                    <span data-bind="css: {'notification': $parent.currentActivity().id==ac.id, 'is-success': true}, text: ac.refno + '. ' + ac.content, click: $parent.setCurrentActivity"></span>
                 </a>
             </div>
         </nav>
@@ -80,7 +58,7 @@
 </section>
 <section class="section">
     <h1 class="title">รายการตัวชี้วัด</h1>
-    <div data-bind="if: currentStrategy() && currentTactic && currentTheme && currentActivity">
+    <div data-bind="if: currentStrategy() && currentTactic() && currentTheme() && currentActivity()">
         <table class="table">
             <tr><td class="notification is-light has-text-weight-bold">ยุทธ์ศาสตร์ที่</td><td data-bind="text: currentStrategy().refno"></td><td data-bind="text: currentStrategy().content"></td></tr>
             <tr><td class="notification is-light has-text-weight-bold">แผนกลยุทธ์ที่</td><td data-bind="text: currentTactic().refno"></td><td data-bind="text: currentTactic().content"></td></tr>
@@ -150,44 +128,55 @@
         self.strategies = {{ strategies|tojson|safe }};
         self.currentStrategy = ko.observable(self.strategies[0]);
         self.allTactics = {{ tactics|tojson|safe }};
-        self.currentTactic = ko.observable(self.allTactics[0]);
         self.allThemes = {{ themes|tojson|safe }};
-        self.themes = ko.observableArray();
-        self.tactics = ko.observableArray();
         self.allActivities = {{ activities|tojson|safe }};
-        self.activities = ko.observableArray();
-        self.currentTheme = ko.observable(self.allThemes[0]);
-        self.currentActivity = ko.observable(self.allActivities[0]);
-        self.loadTactics = function(strategy) {
-            self.themes([]);  // clear themes
-            self.activities([]);  // clear activities
-            self.currentStrategy(strategy);
-            self.tactics([]);
+
+        self.currentTactic = ko.observable();
+        self.currentTheme = ko.observable();
+        self.currentActivity = ko.observable();
+
+        self.tactics = ko.computed(function() {
+            var tmp = [];
             $.each(self.allTactics, function(idx, item) {
-                if (item.strategy === strategy.id) {
-                    self.tactics.push(item)
+                if (item.strategy === self.currentStrategy().id) {
+                    tmp.push(item)
                 }
             });
-        }
-        self.loadThemes = function(tactic) {
-            self.activities([]);  // clear activities
-            self.currentTactic(tactic);
-            self.themes([]);
+            if (tmp.length === 0) {
+                self.currentTactic({'id': 0})
+            } else {
+                self.currentTactic(tmp[0]);
+            }
+            return tmp;
+        });
+        self.themes = ko.computed(function() {
+            var tmp = [];
             $.each(self.allThemes, function(idx, item) {
-                if (item.tactic === tactic.id) {
-                    self.themes.push(item)
+                if (item.tactic === self.currentTactic().id) {
+                    tmp.push(item)
                 }
             });
-        }
-        self.loadActivities = function(theme) {
-            self.currentTheme(theme);
-            self.activities([]);
+            if (tmp.length === 0) {
+                self.currentTheme({'id': 0});
+            } else {
+                self.currentTheme(tmp[0]);
+            }
+            return tmp;
+        });
+        self.activities = ko.computed(function() {
+            var tmp = [];
             $.each(self.allActivities, function(idx, item) {
-                if (item.theme === theme.id) {
-                    self.activities.push(item)
+                if (item.theme === self.currentTheme().id) {
+                    tmp.push(item)
                 }
             });
-        }
+            if (tmp.length === 0) {
+                self.currentActivity({'id': 0});
+            } else {
+                self.currentActivity(tmp[0]);
+            }
+            return tmp;
+        });
         self.setCurrentActivity = function(activity) {
             self.currentActivity(activity);
             self.kpis([]);
@@ -265,9 +254,6 @@
     }
     var vm = new viewModel();
     ko.applyBindings(vm);
-    vm.loadTactics(vm.currentStrategy());
-    vm.loadThemes(vm.currentTactic());
-    vm.loadActivities(vm.currentTheme());
     vm.setCurrentActivity(vm.activities()[0]);
 </script>
 {% endblock %}
