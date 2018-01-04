@@ -1,0 +1,6 @@
+mis2018:
+  build: .
+  ports:
+    - "5000:5000"
+  volumes:
+    - ./:/home/mis2018
