@@ -1,22 +1,32 @@
 from flask import Flask
 from sqlalchemy import create_engine, MetaData
-engine = create_engine('postgres+psycopg2://postgres:genius01@localhost:5444/test')
-meta = MetaData(bind=engine, reflect=True)
-connect = engine.connect()
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from config import config
 
-app = Flask(__name__)
+db = SQLAlchemy()
+migrate = Migrate()
 
+def create_app(config_name='default'):
+    app = Flask(__name__)
+    app.config.from_object(config[config_name])
+    db.init_app(app)
+    migrate.init_app(app, db)
+    return app
+
+import os
+config_name = os.environ.get('FLASK_CONFIG', 'default')
+app = create_app(config_name)
+
+'''
 from kpi import kpibp as kpi_blueprint
 app.register_blueprint(kpi_blueprint, url_prefix='/kpi')
+'''
 
+from studs import studbp as stud_blueprint
+app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
-from database import *
-
-@app.cli.command()
-def initdb():
-    """Initialize the database"""
-    create_db()
-
+from models import Student, Class
 
 @app.cli.command()
 def populatedb():
