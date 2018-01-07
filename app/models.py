@@ -9,6 +9,8 @@ class Student(db.Model):
     th_last_name = db.Column('th_last_name', db.String(), nullable=False)
     en_first_name = db.Column('en_first_name', db.String())
     en_last_name = db.Column('en_last_name', db.String())
+    class_check_ins = db.relationship('StudentCheckInRecord',
+                        backref=db.backref('student'))
 
 
 class Class(db.Model):
@@ -27,3 +29,12 @@ class ClassCheckIn(db.Model):
     class_id = db.Column('class_id', db.ForeignKey('classes.id'))
     deadline = db.Column('deadline', db.String())
     late_mins = db.Column('late_mins', db.Integer())
+
+
+class StudentCheckInRecord(db.Model):
+    __tablename__ = 'student_check_in_records'
+    id = db.Column('id', db.Integer(), primary_key=True)
+    stud_id = db.Column('stud_id', db.ForeignKey('students.id'))
+    classchk_id = db.Column('classchk_id', db.Integer(),
+                    db.ForeignKey('class_check_in.id'), nullable=False)
+    check_in_time = db.Column('checkin', db.DateTime(), nullable=False)
