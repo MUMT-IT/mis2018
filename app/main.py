@@ -1,3 +1,4 @@
+# -*- coding:utf-8 -*-
 from flask import Flask
 from sqlalchemy import create_engine, MetaData
 from flask_sqlalchemy import SQLAlchemy
@@ -26,7 +27,7 @@ app.register_blueprint(kpi_blueprint, url_prefix='/kpi')
 from studs import studbp as stud_blueprint
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
-from models import Student, Class
+from models import Student, Class, ClassCheckIn
 
 @app.cli.command()
 def populatedb():
@@ -42,6 +43,25 @@ from database import load_students
 @app.cli.command()
 def populate_students():
     load_students()
+
+@app.cli.command()
+def populate_classes():
+    klass = Class(refno='MTID101',
+                th_class_name=u'การเรียนรู้เพื่อการเปลี่ยงแปลงสำหรับ MT',
+                en_class_name='Transformative learning for MT',
+                academic_year='2560')
+    db.session.add(klass)
+    db.session.commit()
+
+@app.cli.command()
+def populate_checkin():
+    class_checkin = ClassCheckIn(
+                        class_id=1,
+                        deadline='10:00:00',
+                        late_mins=15,
+                    )
+    db.session.add(class_checkin)
+    db.session.commit()
 
 
 if __name__ == '__main__':
