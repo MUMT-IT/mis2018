@@ -1,7 +1,7 @@
 FROM python:2
 
-WORKDIR /usr/src/app
+WORKDIR /usr/src/
 COPY app /usr/src/app
-RUN pip install -r requirements.txt
+RUN pip install -r app/requirements.txt
 
-CMD ["python", "main.py"]
+CMD ["gunicorn", "--bind", "0.0.0.0:5000", "app.main:app"]
