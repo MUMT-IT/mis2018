@@ -1,6 +1,30 @@
-mis2018:
-  build: .
-  ports:
-    - "5000:5000"
-  volumes:
-    - ./:/home/mis2018
+version: "3.4"
+services:
+  web:
+    build: .
+    depends_on:
+      - pg
+    ports:
+      - "5550:5000"
+    volumes:
+      - type: bind
+        source: ./app
+        target: /usr/src/app"
+
+  pg:
+    image: postgres
+    environment:
+      - POSTGRES_PASSWORD=genius01
+    volumes:
+      - mumtmis-data:/var/lib/postgresql/data
+    ports:
+      - "5444:5432"
+
+volumes:
+  mumtmis-data:
+    external: true
+
+networks:
+  default:
+    external:
+      name: mumtmis
