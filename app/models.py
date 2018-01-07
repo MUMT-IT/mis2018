@@ -2,8 +2,9 @@ from main import db
 
 class Student(db.Model):
     __tablename__ = 'students'
-    id = db.Column('id', db.Integer(), primary_key=True)
+    id = db.Column('id', db.String(), primary_key=True)
     refno = db.Column('refno', db.Integer(), nullable=False)
+    title = db.Column('title', db.String())
     th_first_name = db.Column('th_first_name', db.String(), nullable=False)
     th_last_name = db.Column('th_last_name', db.String(), nullable=False)
     en_first_name = db.Column('en_first_name', db.String())
