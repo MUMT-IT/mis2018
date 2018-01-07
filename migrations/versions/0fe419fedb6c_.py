@@ -1,4 +1,4 @@
-"""empty message
+"""Added Students and Classes models
 
 Revision ID: 0fe419fedb6c
 Revises: 02f1ed0bb4ff

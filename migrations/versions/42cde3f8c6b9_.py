@@ -1,4 +1,4 @@
-"""empty message
+"""Empty init
 
 Revision ID: 42cde3f8c6b9
 Revises: 
