@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Students Check In{% endblock %}
+{% block page_content %}
+<section class="section">
+    <h1>Class: {{ klass['title'] }}</h1>
+    <h2>Student: {{ student['name'] }}</h2>
+    <h3>Check In: {{ student['checkin'].strftime('%d/%m/%Y %H:%M:%S') }}</h3>
+</section>
+{% endblock %}
