@@ -1,4 +1,5 @@
 import datetime
+import pytz
 from flask import render_template
 from ..models import Student, ClassCheckIn, StudentCheckInRecord, Class
 from ..main import db
@@ -17,6 +18,7 @@ def checkin(class_id, stud_id):
     if not class_id or not stud_id:
         return render_template(student={})
     else:
+        tz = pytz.timezone('Asia/Bangkok')
         fmt = '%Y-%m-%d %H:%M:%S'
         class_checkin = ClassCheckIn.query.filter_by(class_id=class_id).first()
         today = datetime.datetime.today().date()
@@ -25,7 +27,7 @@ def checkin(class_id, stud_id):
         deadline = datetime.datetime.strptime(deadline_str, fmt)
         student = Student.query.get(stud_id)
         klass = Class.query.get(class_id)
-        checkin = datetime.datetime.now()
+        checkin = datetime.datetime.now(tz=tz)
         delta = checkin - deadline
         elapsed_mins = delta.total_seconds() / 60.0
         if elapsed_mins < 0:
