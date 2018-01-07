@@ -1,20 +1,19 @@
-strategies = [
-    {
-        'title': 'Strategy 1',
-        'description': 'The first strategy.',
-        'created_at': '2017/12/31',
-        'created_by': 'username'
-    },
-    {
-        'title': 'Strategy 2',
-        'description': 'The second strategy.',
-        'created_at': '2017/12/31',
-        'created_by': 'username'
-    },
-    {
-        'title': 'Strategy 3',
-        'description': 'The third strategy.',
-        'created_at': '2017/12/31',
-        'created_by': 'username'
-    },
-]
+from main import db
+
+class Student(db.Model):
+    __tablename__ = 'students'
+    id = db.Column('id', db.Integer(), primary_key=True)
+    refno = db.Column('refno', db.Integer(), nullable=False)
+    th_first_name = db.Column('th_first_name', db.String(), nullable=False)
+    th_last_name = db.Column('th_last_name', db.String(), nullable=False)
+    en_first_name = db.Column('en_first_name', db.String())
+    en_last_name = db.Column('en_last_name', db.String())
+
+
+class Class(db.Model):
+    __tablename__ = 'classes'
+    id = db.Column('id', db.Integer(), primary_key=True)
+    refno = db.Column('refno', db.String(), nullable=False)
+    th_class_name = db.Column('th_class_name', db.String(), nullable=False)
+    en_class_name = db.Column('en_class_name', db.String(), nullable=False)
+    academic_year = db.Column('academic_year', db.String(4), nullable=False)
