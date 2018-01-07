@@ -38,3 +38,5 @@ class StudentCheckInRecord(db.Model):
     classchk_id = db.Column('classchk_id', db.Integer(),
                     db.ForeignKey('class_check_in.id'), nullable=False)
     check_in_time = db.Column('checkin', db.DateTime(), nullable=False)
+    check_in_status = db.Column('status', db.String())
+    elapsed_mins = db.Column('elapsed_mins', db.Integer())
