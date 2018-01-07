@@ -21,7 +21,7 @@ def checkin(class_id, stud_id):
         tz = pytz.timezone('Asia/Bangkok')
         fmt = '%Y-%m-%d %H:%M:%S'
         class_checkin = ClassCheckIn.query.filter_by(class_id=class_id).first()
-        today = datetime.datetime.today().date()
+        today = datetime.datetime.now(tz=tz).date()
         deadline_str = '{0}-{1:02}-{2:02}'.format(today.year, today.month, today.day)
         deadline_str += ' ' + class_checkin.deadline
         deadline = tz.localize(datetime.datetime.strptime(deadline_str, fmt))
