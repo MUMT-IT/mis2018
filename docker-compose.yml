@@ -5,7 +5,9 @@ services:
     depends_on:
       - pg
     ports:
-      - "5550:5000"
+      - "5000:5000"
+    environment:
+      - FLASK_CONFIG=production
     volumes:
       - type: bind
         source: ./app
