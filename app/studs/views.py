@@ -24,7 +24,7 @@ def checkin(class_id, stud_id):
         today = datetime.datetime.today().date()
         deadline_str = '{0}-{1:02}-{2:02}'.format(today.year, today.month, today.day)
         deadline_str += ' ' + class_checkin.deadline
-        deadline = datetime.datetime.strptime(deadline_str, fmt)
+        deadline = tz.localize(datetime.datetime.strptime(deadline_str, fmt))
         student = Student.query.get(stud_id)
         klass = Class.query.get(class_id)
         checkin = datetime.datetime.now(tz=tz)
