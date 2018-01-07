@@ -49,4 +49,5 @@ def checkin(class_id, stud_id):
                 student=student,
                 klass=klass,
                 checkin=checkin,
+                deadline=deadline,
                 status=status)

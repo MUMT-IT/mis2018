@@ -6,6 +6,7 @@
     <h1 class="title is-4">{{ klass['refno'] + ' : ' + klass['th_class_name'] }}</h1>
     <h2 class="subtitle">Student: {{ student['title'] + ' ' + student['th_first_name'] + ' ' + student['th_last_name'] }}</h2>
     <h3 class="notification {{ status }}">Check In: {{ checkin.strftime('%d/%m/%Y %H:%M:%S') }}</h3>
+    <h3>deadline: {{ deadline.strftime('%d/%m/%Y %H:%M:%S') }}</h3>
 </section>
 {% endblock %}
 {% block scripts %}
