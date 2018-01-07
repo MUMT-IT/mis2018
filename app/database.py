@@ -1,7 +1,7 @@
-from datetime import datetime
-from sqlalchemy import Table, Column, Integer, String, ForeignKey, DateTime, Boolean
-from sqlalchemy.sql import func
-from main import meta, connect, engine
+# from datetime import datetime
+# from sqlalchemy import Table, Column, Integer, String, ForeignKey, DateTime, Boolean
+# from sqlalchemy.sql import func
+# from main import meta, connect, engine
 
 def create_db():
     users = Table('users', meta,
@@ -151,3 +151,20 @@ def load_activities():
                 parent=int(rec['theme_id']), content=rec['activity_content'])
         result = connect.execute(ins)
         print(result.inserted_primary_key)
+
+
+from main import db
+from models import Student
+from pandas import read_excel
+def load_students():
+    data = read_excel('studentListClassOf2560.xlsx', header=None,
+        names=['refno', 'uid', 'title', 'firstname', 'lastname'])
+    for _, row in data.iterrows():
+        student = Student(refno=row['refno'],
+                            th_first_name=row['firstname'],
+                            th_last_name=row['lastname'],
+                            id=row['uid'],
+                            title=row['title']
+                            )
+        db.session.add(student)
+    db.session.commit()
