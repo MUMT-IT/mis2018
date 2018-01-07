@@ -1,7 +1,7 @@
 from datetime import datetime
 from sqlalchemy import Table, Column, Integer, String, ForeignKey, DateTime, Boolean
 from sqlalchemy.sql import func
-from . import meta, connect, engine
+from main import meta, connect, engine
 
 def create_db():
     users = Table('users', meta,
@@ -11,7 +11,10 @@ def create_db():
 
     kpis = Table('kpis', meta,
             Column('id', Integer, primary_key=True, autoincrement=True),
-            Column('owned_by', Integer, ForeignKey('orgs.id')),
+            Column('strategy_id', Integer, ForeignKey('strategies.id')),
+            Column('tactic_id', Integer, ForeignKey('strategy_tactics.id')),
+            Column('theme_id', Integer, ForeignKey('strategy_themes.id')),
+            Column('activity_id', Integer, ForeignKey('strategy_activities.id')),
             Column('created_by', String),
             Column('created_at', DateTime, server_default=func.now()),
             Column('name', String, nullable=False),
@@ -54,7 +57,8 @@ def create_db():
             Column('refno', String, nullable=False),
             Column('created_at', DateTime, server_default=func.now()),
             Column('content', String, nullable=False),
-            Column('owner', Integer, ForeignKey('orgs.id'), nullable=False)
+            Column('owner', Integer, ForeignKey('orgs.id'), nullable=False),
+            extend_existing=True
             )
 
     strategy_tactics = Table('strategy_tactics', meta,
@@ -62,7 +66,8 @@ def create_db():
             Column('refno', String, nullable=False),
             Column('created_at', DateTime, server_default=func.now()),
             Column('content', String, nullable=False),
-            Column('parent', Integer, ForeignKey('strategies.id'), nullable=False)
+            Column('parent', Integer, ForeignKey('strategies.id'), nullable=False),
+            extend_existing=True
             )
 
     strategy_themes = Table('strategy_themes', meta,
@@ -70,7 +75,8 @@ def create_db():
             Column('refno', String, nullable=False),
             Column('created_at', DateTime, server_default=func.now()),
             Column('content', String, nullable=False),
-            Column('parent', Integer, ForeignKey('strategy_tactics.id'), nullable=False)
+            Column('parent', Integer, ForeignKey('strategy_tactics.id'), nullable=False),
+            extend_existing=True
             )
 
     strategy_activities = Table('strategy_activities', meta,
@@ -78,7 +84,8 @@ def create_db():
             Column('refno', String, nullable=False),
             Column('created_at', DateTime, server_default=func.now()),
             Column('content', String, nullable=False),
-            Column('parent', Integer, ForeignKey('strategy_themes.id'), nullable=False)
+            Column('parent', Integer, ForeignKey('strategy_themes.id'), nullable=False),
+            extend_existing=True
             )
 
     meta.create_all(engine)
