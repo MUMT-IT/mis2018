@@ -20,7 +20,7 @@ services:
     volumes:
       - mumtmis-data:/var/lib/postgresql/data
     ports:
-      - "5444:5432"
+      - "5443:5432"
 
 volumes:
   mumtmis-data:

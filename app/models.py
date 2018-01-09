@@ -1,5 +1,9 @@
 from main import db
 
+class User(db.Model):
+    id = db.Column('id', db.Integer(), primary_key=True)
+    email = db.Column('email', db.String(), nullable=False)
+
 class Student(db.Model):
     __tablename__ = 'students'
     id = db.Column('id', db.String(), primary_key=True)
