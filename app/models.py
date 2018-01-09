@@ -5,6 +5,7 @@ class User(db.Model):
     __tablename__ = 'users'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     email = db.Column('email', db.String(), nullable=False)
+    username = db.Column('username', db.String(), nullable=False, unique=True)
 
 
 class Org(db.Model):
@@ -82,7 +83,7 @@ class KPI(db.Model):
     available = db.Column('available', db.Boolean())
     availability = db.Column('availability', db.String())
     formula = db.Column('formula', db.String())
-    keeper = db.Column('keeper', db.Integer(), db.ForeignKey('users.id'))
+    keeper = db.Column('keeper', db.String(), db.ForeignKey('users.username'))
     note = db.Column('note', db.String())
     target = db.Column('target', db.String())
     target_source = db.Column('target_source', db.String())
