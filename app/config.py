@@ -9,7 +9,7 @@ class Config:
 
 class DevelopmentConfig(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = 'postgres+psycopg2://postgres:genius01@localhost:5444/mumtmis_dev'
+    SQLALCHEMY_DATABASE_URI = 'postgres+psycopg2://postgres:genius01@localhost:5443/mumtmis_dev'
 
 
 class ProductionConfig(Config):
