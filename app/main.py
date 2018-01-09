@@ -19,10 +19,8 @@ import os
 config_name = os.environ.get('FLASK_CONFIG', 'default')
 app = create_app(config_name)
 
-'''
 from kpi import kpibp as kpi_blueprint
 app.register_blueprint(kpi_blueprint, url_prefix='/kpi')
-'''
 
 from studs import studbp as stud_blueprint
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
