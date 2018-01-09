@@ -21,6 +21,7 @@ def upgrade():
     op.create_table('user',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('email', sa.String(), nullable=False),
+    sa.Column('username', sa.String(), nullable=False, unique=True),
     sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###
