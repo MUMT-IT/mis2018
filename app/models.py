@@ -13,9 +13,10 @@ class Org(db.Model):
     name = db.Column('name', db.String(), nullable=False)
     head = db.Column('head', db.String())
     parent_id = db.Column('parent_id', db.Integer, db.ForeignKey('orgs.id'))
-    children = db.relationship('Org', backref=db.backref('parent'))
+    children = db.relationship('Org',
+                    backref=db.backref('parent', remote_side=[id]))
     strategies = db.relationship('Strategy',
-                    backref=db.backref('org', lazy='dynamic'))
+                    backref=db.backref('org'))
 
 
 class Strategy(db.Model):
@@ -28,7 +29,7 @@ class Strategy(db.Model):
     org_id = db.Column('org_id', db.Integer(),
                 db.ForeignKey('orgs.id'), nullable=False)
     tactics = db.relationship('StrategyTactic',
-                backref=db.backref('strategy', lazy='dynamic'))
+                backref=db.backref('strategy'))
 
 
 class StrategyTactic(db.Model):
@@ -40,7 +41,7 @@ class StrategyTactic(db.Model):
     strategy_id = db.Column('strategy_id', db.Integer(),
                     db.ForeignKey('strategies.id'), nullable=False)
     themes = db.relationship('StrategyTheme',
-                    backref=db.backref('tactic', lazy='dynamic'))
+                    backref=db.backref('tactic'))
 
 
 class StrategyTheme(db.Model):
@@ -49,8 +50,10 @@ class StrategyTheme(db.Model):
     refno = db.Column('refno', db.String(), nullable=False)
     created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
     content = db.Column('content', db.String(), nullable=False)
-    tactic_id = db.Column('parent', db.Integer(),
+    tactic_id = db.Column('tactic_id', db.Integer(),
                     db.ForeignKey('strategy_tactics.id'), nullable=False)
+    activities = db.relationship('StrategyActivity',
+                    backref=db.backref('theme'))
 
 
 class StrategyActivity(db.Model):
@@ -62,17 +65,12 @@ class StrategyActivity(db.Model):
     theme_id = db.Column('theme_id', db.Integer(),
                             db.ForeignKey('strategy_themes.id'))
     kpis = db.relationship('KPI',
-                backref=db.backref('strategy_activity', lazy='dynamic'))
+                backref=db.backref('strategy_activity'))
 
 
 class KPI(db.Model):
     __tablename__ = 'kpis'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    strategy_id = db.Column('strategy_id', db.Integer(), db.ForeignKey('strategies.id'))
-    tactic_id = db.Column('tactic_id', db.Integer(), db.ForeignKey('strategy_tactics.id'))
-    theme_id = db.Column('theme_id', db.Integer(), db.ForeignKey('strategy_themes.id'))
-    activity_id = db.Column('activity_id', db.Integer(),
-                    db.ForeignKey('strategy_activities.id'))
     created_by = db.Column('created_by', db.String())
     created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
     name = db.Column('name', db.String, nullable=False)
