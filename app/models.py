@@ -1,9 +1,106 @@
 from main import db
+from sqlalchemy.sql import func
 
 class User(db.Model):
     __tablename__ = 'users'
-    id = db.Column('id', db.Integer(), primary_key=True)
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     email = db.Column('email', db.String(), nullable=False)
+
+
+class Org(db.Model):
+    __tablename__ = 'orgs'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    name = db.Column('name', db.String(), nullable=False)
+    head = db.Column('head', db.String())
+    parent_id = db.Column('parent_id', db.Integer, db.ForeignKey('orgs.id'))
+    children = db.relationship('Org', backref=db.backref('parent'))
+    strategies = db.relationship('Strategy',
+                    backref=db.backref('org', lazy='dynamic'))
+
+
+class Strategy(db.Model):
+    __tablename__ = 'strategies'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    refno = db.Column('refno', db.String(), nullable=False)
+    created_at = db.Column('created_at', db.DateTime(),
+                    server_default=func.now())
+    content = db.Column('content', db.String(), nullable=False)
+    org_id = db.Column('org_id', db.Integer(),
+                db.ForeignKey('orgs.id'), nullable=False)
+    tactics = db.relationship('StrategyTactic',
+                backref=db.backref('strategy', lazy='dynamic'))
+
+
+class StrategyTactic(db.Model):
+    __tablename__ = 'strategy_tactics'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    refno = db.Column('refno', db.String(), nullable=False)
+    created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
+    content = db.Column('content', db.String(), nullable=False)
+    strategy_id = db.Column('strategy_id', db.Integer(),
+                    db.ForeignKey('strategies.id'), nullable=False)
+    themes = db.relationship('StrategyTheme',
+                    backref=db.backref('tactic', lazy='dynamic'))
+
+
+class StrategyTheme(db.Model):
+    __tablename__ = 'strategy_themes'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    refno = db.Column('refno', db.String(), nullable=False)
+    created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
+    content = db.Column('content', db.String(), nullable=False)
+    tactic_id = db.Column('parent', db.Integer(),
+                    db.ForeignKey('strategy_tactics.id'), nullable=False)
+
+
+class StrategyActivity(db.Model):
+    __tablename__ = 'strategy_activities'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    refno = db.Column('refno', db.String(), nullable=False)
+    created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
+    content = db.Column('content', db.String, nullable=False)
+    theme_id = db.Column('theme_id', db.Integer(),
+                            db.ForeignKey('strategy_themes.id'))
+    kpis = db.relationship('KPI',
+                backref=db.backref('strategy_activity', lazy='dynamic'))
+
+
+class KPI(db.Model):
+    __tablename__ = 'kpis'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    strategy_id = db.Column('strategy_id', db.Integer(), db.ForeignKey('strategies.id'))
+    tactic_id = db.Column('tactic_id', db.Integer(), db.ForeignKey('strategy_tactics.id'))
+    theme_id = db.Column('theme_id', db.Integer(), db.ForeignKey('strategy_themes.id'))
+    activity_id = db.Column('activity_id', db.Integer(),
+                    db.ForeignKey('strategy_activities.id'))
+    created_by = db.Column('created_by', db.String())
+    created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
+    name = db.Column('name', db.String, nullable=False)
+    refno = db.Column('refno', db.String())
+    intent = db.Column('intent', db.String())
+    frequency = db.Column('frequency', db.Integer())
+    unit = db.Column('unit', db.String())
+    source = db.Column('source', db.String())
+    available = db.Column('available', db.Boolean())
+    availability = db.Column('availability', db.String())
+    formula = db.Column('formula', db.String())
+    keeper = db.Column('keeper', db.Integer(), db.ForeignKey('users.id'))
+    note = db.Column('note', db.String())
+    target = db.Column('target', db.String())
+    target_source = db.Column('target_source', db.String())
+    target_setter = db.Column('target_setter', db.String())
+    target_reporter = db.Column('target_reporter', db.String())
+    target_account = db.Column('target_account', db.String())
+    reporter = db.Column('reporter', db.String())
+    consult = db.Column('consult', db.String())
+    account = db.Column('account', db.String())
+    informed = db.Column('informed', db.String())
+    pfm_account = db.Column('pfm_account', db.String())
+    pfm_responsible = db.Column('pfm_resposible', db.String())
+    pfm_consult = db.Column('pfm_consult', db.String())
+    pfm_informed = db.Column('pfm_informed', db.String())
+    strategy_activity_id = db.Column('strategy_activity_id',
+                            db.ForeignKey('strategy_activities.id'))
 
 
 class Student(db.Model):
