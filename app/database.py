@@ -1,7 +1,8 @@
 from datetime import datetime
 from sqlalchemy.sql import func
 from main import db
-from models import Org
+from models import (Org, Strategy, StrategyTactic,
+                        StrategyTheme, StrategyActivity)
 
 def load_orgs():
     import pandas as pd
@@ -23,49 +24,44 @@ def load_strategy():
     import pandas as pd
     data  = pd.read_excel('kpi.xlsx', header=None,
                 names=['id', 'content', 'owner_id'], sheet_name='strategy_list')
-    strategies = meta.tables['strategies']
     for idx, rec in data.iterrows():
-        ins = strategies.insert().values(
-                refno=str(int(rec['id'])),
-                owner=int(rec['owner_id']), content=rec['content'])
-        result = connect.execute(ins)
-        print(result.inserted_primary_key)
+        org = Org.query.get(rec['owner_id'])
+        s = Strategy(refno=str(rec['id']), org=org, content=rec['content'])
+        db.session.add(s)
+    db.session.commit()
 
 
 def load_tactics():
     import pandas as pd
     data = pd.read_excel('kpi.xlsx', header=0, sheet_name='tactic')
-    strategy_tactics = meta.tables['strategy_tactics']
     for idx, rec in data.iterrows():
-        ins = strategy_tactics.insert().values(
-                refno=str(int(rec['tactic_refno'])),
-                parent=int(rec['strategy_id']), content=rec['tactic_content'])
-        result = connect.execute(ins)
-        print(result.inserted_primary_key)
+        s = Strategy.query.get(rec['strategy_id'])
+        t = StrategyTactic(refno=str(int(rec['tactic_refno'])),
+                        strategy=s, content=rec['tactic_content'])
+        db.session.add(t)
+    db.session.commit()
 
 
 def load_themes():
     import pandas as pd
     data = pd.read_excel('kpi.xlsx', header=0, sheet_name='theme')
-    strategy_themes = meta.tables['strategy_themes']
     for idx, rec in data.iterrows():
-        ins = strategy_themes.insert().values(
-                refno=str(int(rec['theme_refno'])),
-                parent=int(rec['tactic_id']), content=rec['theme_content'])
-        result = connect.execute(ins)
-        print(result.inserted_primary_key)
+        tactic = StrategyTactic.query.get(rec['tactic_id'])
+        theme = StrategyTheme(refno=str(rec['theme_refno']),
+                    tactic=tactic, content=rec['theme_content'])
+        db.session.add(theme)
+    db.session.commit()
 
 
 def load_activities():
     import pandas as pd
     data = pd.read_excel('kpi.xlsx', header=0, sheet_name='activity')
-    strategy_activities = meta.tables['strategy_activities']
     for idx, rec in data.iterrows():
-        ins = strategy_activities.insert().values(
-                refno=str(int(rec['activity_refno'])),
-                parent=int(rec['theme_id']), content=rec['activity_content'])
-        result = connect.execute(ins)
-        print(result.inserted_primary_key)
+        theme = StrategyTheme.query.get(rec['theme_id'])
+        activity = StrategyActivity(refno=str(rec['activity_refno']),
+                    theme=theme, content=rec['activity_content'])
+        db.session.add(activity)
+    db.session.commit()
 
 
 from main import db
