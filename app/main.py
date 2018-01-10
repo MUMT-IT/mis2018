@@ -26,14 +26,15 @@ from studs import studbp as stud_blueprint
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
 from models import Student, Class, ClassCheckIn
+import database
 
 @app.cli.command()
 def populatedb():
-    load_orgs()
-    load_strategy()
-    load_tactics()
-    load_themes()
-    load_activities()
+    # database.load_orgs()
+    # database.load_strategy()
+    # database.load_tactics()
+    # database.load_themes()
+    database.load_activities()
 
 
 from database import load_students
