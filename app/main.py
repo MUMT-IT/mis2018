@@ -25,6 +25,9 @@ app.register_blueprint(kpi_blueprint, url_prefix='/kpi')
 from studs import studbp as stud_blueprint
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
+from food import foodbp as food_blueprint
+app.register_blueprint(food_blueprint, url_prefix='/food')
+
 from models import Student, Class, ClassCheckIn
 import database
 
