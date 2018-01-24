@@ -1,5 +1,6 @@
 from ..main import db
 from sqlalchemy.sql import func
+from datetime import datetime
 
 
 person_and_farm = db.Table('food_person_and_farm',
@@ -18,6 +19,8 @@ class Person(db.Model):
                     secondary=person_and_farm,
                     backref=db.backref('owners', lazy='dynamic'),
                     lazy='dynamic')
+    created_at = db.Column(db.DateTime(), default=datetime.utcnow)
+
     def __str__(self):
         return u'<{}>: {} {}'.format(self.id, self.firstname, self.lastname)
 
@@ -31,6 +34,8 @@ class Farm(db.Model):
             db.Float(asdecimal=True), nullable=True)
     estimated_owned_size = db.Column(
             db.Float(asdecimal=True), nullable=True)
+    village = db.Column(db.String(), nullable=True)
+    street = db.Column(db.String(), nullable=True)
     agritype = db.Column('agritype', db.Integer(),
             db.ForeignKey('food_agritype.id'))
     province = db.Column('province_id', db.Integer(),
