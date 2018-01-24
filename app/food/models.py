@@ -13,6 +13,7 @@ class Person(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     firstname = db.Column(db.String(200), nullable=False)
     lastname = db.Column(db.String(200), nullable=False)
+    pid = db.Column(db.String(13), nullable=True)
     farms = db.relationship('Farm',
                     secondary=person_and_farm,
                     backref=db.backref('owners', lazy='dynamic'),
