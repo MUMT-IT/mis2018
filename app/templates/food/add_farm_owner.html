@@ -3,9 +3,19 @@
 {% block page_content %}
 <section class="section">
 <h1 class="title">เพิ่มข้อมูลเจ้าของแปลงเกษตร</h1>
-<form method='post'>
+
+{% if errors %}
+<div class="notification is-danger">
+  <button class="delete"></button>
+  {% for error in errors %}
+  <p>{{ error }}</p>
+  {% endfor %}
+</div>
+{% endif %}
+
 <div class="columns">
   <div class="column is-two-thirds">
+    <form method="post">
     <div class="field is-horizontal">
 
       <div class="field-label is-normal">
@@ -13,9 +23,10 @@
       </div>
       <div class="field-body">
         <div class="field">
-          <div class="control is-expanded">
-            <input class="input" type="text" size="13" maxlength="13"
-              placeholder="รหัสบัตรประชาชน 13 หลัก">
+          <div class="control">
+            <input class="input" name='pid' type="text"
+                      width="13" maxlength="13"
+                      placeholder="รหัสบัตรประชาชน 13 หลัก">
           </div>
           <p
               class="help">หมายเลขบัตรจะนำไปจับคู่กับข้อมูลในแบบสอบถามสำหรับข้อมูลอื่นๆ</p>
@@ -30,10 +41,10 @@
       <div class="field-body">
         <div class="field is-grouped is-expanded">
           <div class="control">
-            <input class="input" type="text" placeholder="ชื่อ">
+            <input class="input" name="firstname" type="text" placeholder="ชื่อ">
           </div>
           <div class="control">
-            <input class="input" type="text" placeholder="นามสกุล">
+            <input class="input" name="lastname" type="text" placeholder="นามสกุล">
           </div>
         </div> <!-- field -->
       </div> <!-- field-body -->
@@ -53,7 +64,7 @@
         </div>
       </div>
     </div>
-
+    </form>
   </div> <!-- column -->
 </div> <!-- columns -->
 </section>
