@@ -28,3 +28,18 @@ class Farm(db.Model):
             db.Float(asdecimal=True), nullable=True)
     estimated_owned_size = db.Column(
             db.Float(asdecimal=True), nullable=True)
+    agritype = db.Column('agritype', db.Integer(),
+            db.ForeignKey('food_agritype.id'))
+    province = db.Column('province_id', db.Integer(),
+            db.ForeignKey('provinces.id'))
+    district = db.Column('district_id', db.Integer(),
+            db.ForeignKey('districts.id'))
+    subdistrict = db.Column('subdistrict_id', db.Integer(),
+            db.ForeignKey('subdistricts.id'))
+
+
+class AgriType(db.Model):
+    __tablename__ = 'food_agritype'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(80), nullable=False)
+    desc = db.Column(db.String(), nullable=True)
