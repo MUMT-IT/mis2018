@@ -79,3 +79,52 @@ def load_students():
                             )
         db.session.add(student)
     db.session.commit()
+
+
+from models import Province, District, Subdistrict
+def load_provinces():
+    data = read_excel('data/tambon.xlsx')
+    data['changwat'] = \
+        data['CHANGWAT_T'].str.split('.').str.get(1).str.lstrip()
+    added_ps = set()
+    for _, row in data[['changwat', 'CH_ID']].iterrows():
+        if str(row['CH_ID']) not in added_ps:
+            p = Province(code=str(row['CH_ID']),
+                        name=unicode(row['changwat']))
+            db.session.add(p)
+            added_ps.add(str(row['CH_ID']))
+    db.session.commit()
+
+
+def load_districts():
+    data = read_excel('data/tambon.xlsx')
+    data['amphoe'] = \
+        data['AMPHOE_T'].str.split('.').str.get(1).str.lstrip()
+    added_items = set()
+    for _, row in data[['amphoe', 'AM_ID', 'CH_ID']].iterrows():
+        if str(row['AM_ID']) not in added_items:
+            p = Province.query.filter(
+                    Province.code==str(row['CH_ID'])).first()
+            d = District(code=str(row['AM_ID']),
+                    name=row['amphoe'])
+            db.session.add(d)
+            added_items.add(str(row['AM_ID']))
+            p.districts.append(d)
+            db.session.commit()
+
+
+def load_subdistricts():
+    data = read_excel('data/tambon.xlsx')
+    data['tambon'] = \
+        data['TAMBON_T'].str.split('.').str.get(1).str.lstrip()
+    added_items = set()
+    for _, row in data[['tambon', 'TA_ID', 'AM_ID']].iterrows():
+        if str(row['TA_ID']) not in added_items:
+            a = District.query.filter(
+                    District.code==str(row['AM_ID'])).first()
+            d = Subdistrict(code=str(row['TA_ID']),
+                    name=row['tambon'])
+            db.session.add(d)
+            added_items.add(str(row['TA_ID']))
+            a.subdistricts.append(d)
+            db.session.commit()

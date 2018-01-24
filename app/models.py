@@ -142,3 +142,32 @@ class StudentCheckInRecord(db.Model):
     check_in_time = db.Column('checkin', db.DateTime(), nullable=False)
     check_in_status = db.Column('status', db.String())
     elapsed_mins = db.Column('elapsed_mins', db.Integer())
+
+
+class Province(db.Model):
+    __tablename__ = 'provinces'
+    id = db.Column('id', db.Integer(), primary_key=True)
+    code = db.Column('code', db.String(), nullable=False)
+    name = db.Column('name', db.String(40), nullable=False)
+    districts = db.relationship("District",
+                        backref=db.backref('parent'))
+
+
+class District(db.Model):
+    __tablename__ = 'districts'
+    id = db.Column('id', db.Integer(), primary_key=True)
+    name = db.Column('name', db.String(40), nullable=False)
+    code = db.Column('code', db.String(), nullable=False)
+    province_id = db.Column(db.Integer(),
+                        db.ForeignKey('provinces.id'))
+    subdistricts = db.relationship('Subdistrict',
+                        backref=db.backref('district'))
+
+
+class Subdistrict(db.Model):
+    __tablename__ = 'subdistricts'
+    id = db.Column('id', db.Integer(), primary_key=True)
+    name = db.Column('name', db.String(80), nullable=False)
+    code = db.Column('code', db.String(), nullable=False)
+    district_id = db.Column(db.Integer(),
+                        db.ForeignKey('districts.id'))

@@ -65,6 +65,22 @@ def populate_checkin():
     db.session.add(class_checkin)
     db.session.commit()
 
+from database import load_provinces, load_districts, load_subdistricts
+@app.cli.command()
+def populate_provinces():
+    load_provinces()
+
+
+@app.cli.command()
+def populate_districts():
+    load_districts()
+
+
+@app.cli.command()
+def populate_subdistricts():
+    load_subdistricts()
+
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host="0.0.0.0")

@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Add New Farm Information{% endblock %}
+{% block page_content %}
+<section class="section">
+<h1 class="title">เพิ่มข้อมูลแปลงเกษตร</h1>
+<div class="columns">
+  <div class="column is-two-thirds">
+    <div class="field is-horizontal">
+      <div class="field-label is-normal">
+        <label class="label">บ้านเลขที่</label>
+      </div>
+      <div class="field-body">
+        <div class="field">
+          <div class="control is-expanded">
+            <input class="input" type="text" placeholder="">
+          </div>
+          <p class="help">อาจจะไม่ใช่ที่อยู่เดียวกันกับเจ้าของแปลง</p>
+        </div> <!-- field -->
+      </div> <!-- field-body -->
+    </div> <!-- field-horizontal -->
+    <div class="field is-horizontal">
+      <div class="field-label">
+        <label class="label">หมู่</label>
+      </div>
+      <div class="field-body">
+        <div class="field">
+          <div class="control">
+            <input class="input" type="text" placeholder="">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="field is-horizontal">
+      <div class="field-label is-normal">
+          <label class="label">จังหวัด</label>
+      </div>
+      <div class="field-body">
+        <div class="field is-grouped">
+          <div class="control is-expanded">
+            <div class="select">
+                <select data-bind="options: provinces,
+                                    optionsText: 'name',
+                                    optionsValue: 'id',
+                                    value: province,
+                                    optionsCaption: 'โปรดเลือกจังหวัด..'">
+                </select>
+            </div>
+          </div>
+          <div class="control is-expanded">
+            <div class="select">
+              <select data-bind="options: local_districts,
+                                  optionsText: 'name',
+                                  optionsValue: 'id',
+                                  value: district,
+                                  optionsCaption: 'โปรดเลือกอำเภอ..'">
+              </select>
+            </div>
+          </div>
+          <div class="control is-expanded">
+            <div class="select">
+              <select data-bind="options: local_subdistricts,
+                                  optionsText: 'name',
+                                  optionsValue: 'id',
+                                  value: subdistrict,
+                                  optionsCaption: 'โปรดเลือกตำบล..'">
+              </select>
+            </div>
+          </div>
+        </div> <!-- field -->
+      </div> <!-- field-body -->
+    </div> <!-- field-horizontal -->
+    <div class="field is-horizontal">
+      <div class="field-label">
+        <label class="label">รูปแบบการเกษตร</label>
+      </div>
+      <div class="field-body">
+        <div class="field">
+          <div class="control">
+            <div class="select">
+              <select data-bind="options: agritypes,
+                                  optionsText: 'name',
+                                  optionsValue: 'id',
+                                  value: agritype,
+                                  optionsCaption: 'โปรดเลือกชนิดของการเกษตร..'">
+              </select>
+            </div>
+          </div>
+        </div> <!-- field -->
+      </div> <!-- field-body -->
+    </div> <!-- field-horizontal -->
+
+  </div> <!-- column -->
+</div> <!-- columns -->
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+  var viewModel = function() {
+    var self = this;
+    self.agritypes = {{ agritypes|tojson|safe }};
+    self.provinces = {{ provinces|tojson|safe }};
+    self.districts = {{ districts|tojson|safe }};
+    self.subdistricts = {{ subdistricts|tojson|safe }};
+    self.agritype = ko.observable();
+    self.province = ko.observable(self.provinces[16].id);
+    self.district = ko.observable();
+    self.subdistrict = ko.observable();
+    self.local_districts = ko.computed(function() {
+        var tmp = [];
+        $.each(self.districts, function(idx, d) {
+            if (d.province_id === self.province()) {
+                tmp.push(d);
+            }
+        });
+        return tmp;
+    });
+    self.local_subdistricts = ko.computed(function() {
+        var tmp = [];
+        $.each(self.subdistricts, function(idx, d) {
+            if (d.district_id === self.district()) {
+                tmp.push(d);
+            }
+        });
+        return tmp;
+    });
+  }
+  var vm = new viewModel();
+  ko.applyBindings(vm);
+</script>
+{% endblock %}
