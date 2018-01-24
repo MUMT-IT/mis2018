@@ -18,6 +18,8 @@ class Person(db.Model):
                     secondary=person_and_farm,
                     backref=db.backref('owners', lazy='dynamic'),
                     lazy='dynamic')
+    def __str__(self):
+        return u'<{}>: {} {}'.format(self.id, self.firstname, self.lastname)
 
 
 class Farm(db.Model):
