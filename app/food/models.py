@@ -36,14 +36,19 @@ class Farm(db.Model):
             db.Float(asdecimal=True), nullable=True)
     village = db.Column(db.String(), nullable=True)
     street = db.Column(db.String(), nullable=True)
-    agritype = db.Column('agritype', db.Integer(),
+    agritype_id = db.Column('agritype', db.Integer(),
             db.ForeignKey('food_agritype.id'))
-    province = db.Column('province_id', db.Integer(),
+    province_id = db.Column('province_id', db.Integer(),
             db.ForeignKey('provinces.id'))
-    district = db.Column('district_id', db.Integer(),
+    district_id = db.Column('district_id', db.Integer(),
             db.ForeignKey('districts.id'))
-    subdistrict = db.Column('subdistrict_id', db.Integer(),
+    subdistrict_id = db.Column('subdistrict_id', db.Integer(),
             db.ForeignKey('subdistricts.id'))
+    created_at = db.Column(db.DateTime(), default=datetime.utcnow)
+
+    def ref_id(self):
+        return u'{:04}-{:02}-{:02}-{:02}'.format(self.id,self.province_id,
+                self.district_id, self.subdistrict_id)
 
 
 class AgriType(db.Model):
