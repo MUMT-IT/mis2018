@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Add New Farm Information{% endblock %}
+{% block page_content %}
+<section class="section">
+<h1 class="title">รายชื่อเจ้าของแปลงเกษตร</h1>
+<div class="columns">
+  <table class="table is-striped">
+    <thead>
+      <tr>
+        <th>ลำดับ</th>
+        <th>ชื่อ นามสกุล</th>
+        <th>รหัสบัตรประชาชน</th>
+        <th>จำนวนแปลงเกษตร</th>
+        <th></th>
+      </tr>
+    </thead>
+  {% for owner in owners %}
+    <tbody>
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ owner.firstname + ' ' + owner.lastname }}</td>
+        <td>{{ owner.pid[:7] + 'XXXXXX' }}</td>
+        <td>{{ owner.farms.count() }}</td>
+        <td>
+          <span class="icon">
+            <i class="fa fa-list-ol"></i>
+          </span>
+          <span class="icon">
+            <a href="{{ url_for('food.add_farm', owner_id=owner.id) }}">
+              <i class="fa fa-plus"></i>
+            </a>
+          </span>
+        </td>
+      </tr>
+    </tbody>
+  {% endfor %}
+  </table>
+</div>
+</section>
+{% endblock %}
