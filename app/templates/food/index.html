@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Add New Farm Information{% endblock %}
+{% block page_content %}
+<section class="section">
+  <h1 class="title">โครงการเกษตรอาหารปลอดภัย คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
+  <ul>
+    <li>
+      <a href="{{ url_for('food.add_farm_owner') }}">
+      <span class="icon">
+        <i class="fa fa-arrow-circle-right"></i>
+      </span>
+        เพิ่มรายชื่อเจ้าของแปลงเกษตร
+      </a>
+    </li>
+    <li>
+      <a href="{{ url_for('food.list_owners') }}">
+      <span class="icon">
+        <i class="fa fa-arrow-circle-right"></i>
+      </span>
+        รายชื่อเจ้าของแปลงเกษตร
+      </a>
+    </li>
+  </ul>
+</section>
+{% endblock %}

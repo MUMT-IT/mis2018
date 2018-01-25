@@ -5,6 +5,10 @@ from models import Person, Farm, AgriType
 from ..models import Province, District, Subdistrict
 from ..main import db
 
+@food.route('/')
+def index():
+    return render_template('food/index.html')
+
 
 @food.route('/farm/add/', methods=['POST', 'GET'])
 def add_farm():
@@ -142,6 +146,7 @@ def list_owned_farm(owner_id):
     farms = []
     for farm in owner.farms:
         farms.append({
+            'id': farm.id,
             'ref_id': farm.ref_id(),
             'street': farm.street,
             'total_size': farm.estimated_total_size,
