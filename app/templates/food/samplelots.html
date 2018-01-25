@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Sample Lots List{% endblock %}
+{% block page_content %}
+<section class="section">
+<h1 class="title">รายการล็อตสิ่งส่งตรวจ</h1>
+<div class="columns">
+  <table class="table is-striped">
+    <thead>
+      <tr>
+        <th>ลำดับ</th>
+        <th>รหัสล็อต</th>
+        <th>รหัสแปลง</th>
+        <th>วันที่เก็บผลผลิต</th>
+        <th>วันที่ลงทะเบียน</th>
+        <th>รายการสิ่งส่งตรวจ</th>
+        <th>เพิ่มรายการ</th>
+      </tr>
+    </thead>
+  {% for lot in farm.sample_lots %}
+    <tbody>
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ '{:04}'.format(lot.id) }}</td>
+        <td>{{ farm.ref_id() }}</td>
+        <td>{{ lot.collected_at }}</td>
+        <td>{{ lot.registered_at }}</td>
+        <td>
+          <a href="{{ url_for('food.list_samples', farm_id=farm.id, lot_id=lot.id) }}">
+          <span class="icon">
+              <i class="fa fa-list-ol"></i>
+          </span>
+          </a>
+        </td>
+        <td>
+          <a href="{{ url_for('food.add_sample', farm_id=farm.id, lot_id=lot.id) }}">
+          <span class="icon">
+              <i class="fa fa-plus"></i>
+          </span>
+          </a>
+        </td>
+      </tr>
+    </tbody>
+  {% endfor %}
+  </table>
+</div>
+</section>
+<section>
+  <div class="container">
+    <a href="{{ url_for('food.index') }}"><< หน้าหลัก</a>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Add New Sample Lot{% endblock %}
+{% block page_content %}
+<section class="section">
+  <h1 class="title">เพิ่มล็อตการตรวจสิ่งส่งตรวจ</h1>
+  <h3 class="subtitle">รหัสแปลงเกษตร : {{ farm.ref_id() }}</h3>
+  {% if errors %}
+  <div class="notification is-danger">
+    <button class="delete"></button>
+    {% for error in errors %}
+    <p>{{ error }}</p>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <div class="columns">
+    <form method="post">
+    <div class="column is-two-thirds">
+      <div class="control">
+        <input class="input" type="hidden" name="owner_id" value="{{ farm.id }}">
+      </div>
+      <div class="field is-horizontal">
+        <div class="field-label">
+          <label>วันที่เก็บผลผลิต</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <input class="input" type="date" name="collected_date" required>
+            </div>
+          </div>
+        </div>
+      </div> <!-- horizontal -->
+      <div class="field is-horizontal">
+        <div class="field-label">
+        </div>
+        <div class="field-body">
+          <div class="field is-grouped">
+            <div class="control">
+              <input class="button is-primary" type="submit" value="Submit">
+            </div>
+            <div class="control">
+              <input class="button is-danger" type="reset" value="Reset">
+            </div>
+          </div>
+        </div>
+      </div> <!-- horizontal -->
+    </div> <!-- column -->
+  </div> <!-- columns -->
+</section>
+{% endblock %}

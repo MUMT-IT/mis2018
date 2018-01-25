@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Add New Sample{% endblock %}
+{% block page_content %}
+<section class="section">
+  <h1 class="title">เพิ่มสิ่งส่งตรวจ</h1>
+  <h3 class="subtitle">รหัสแปลงเกษตร : {{ farm.ref_id() }}</h3>
+  <h3 class="subtitle">รหัสล็อต : {{ '{:04}'.format(lot.id) }}</h3>
+  {% if errors %}
+  <div class="notification is-danger">
+    <button class="delete"></button>
+    {% for error in errors %}
+    <p>{{ error }}</p>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <div class="columns">
+    <form method="post">
+    <div class="column is-two-thirds">
+      <div class="control">
+        <input class="input" type="hidden" name="owner_id" value="{{ farm.id }}">
+      </div>
+      <div class="field is-horizontal">
+        <div class="field-label">
+          <label>ชนิดของผลผลิต</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="select">
+                <select name="produce" data-bind="options: produces,
+                                    optionsText: 'name',
+                                    optionsValue: 'id',
+                                    value: produce,
+                                    optionsCaption: 'โปรดเลือกผลผลิต..'" required>
+                </select>
+            </div>
+          </div>
+        </div>
+      </div> <!-- horizontal -->
+      <div class="field is-horizontal">
+        <div class="field-label">
+        </div>
+        <div class="field-body">
+          <div class="field is-grouped">
+            <div class="control">
+              <input class="button is-primary" type="submit" value="Add">
+            </div>
+            <div class="control">
+              <input class="button is-danger" type="reset" value="Reset">
+            </div>
+          </div>
+        </div>
+      </div> <!-- horizontal -->
+    </div> <!-- column -->
+  </div> <!-- columns -->
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+  var viewModel = function() {
+    var self = this;
+    self.produce = ko.observable();
+    self.produces = {{ produces|tojson|safe }};
+  }
+  var vm = new viewModel();
+  ko.applyBindings(vm);
+</script>
+{% endblock %}
