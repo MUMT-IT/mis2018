@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from flask import render_template, request, redirect, url_for
 from . import foodbp as food
-from models import Person, Farm, AgriType
+from models import Person, Farm, AgriType, SampleLot, Produce, Sample
 from ..models import Province, District, Subdistrict
 from ..main import db
 
@@ -54,7 +54,7 @@ def add_farm():
             db.session.add(farm)
             owner.farms.append(farm)
             db.session.commit()
-            return 'hello, world'
+            return redirect(url_for('food.index'))
 
     owner_id = request.args.get('owner_id', None)
     if not owner_id:
@@ -133,6 +133,53 @@ def add_farm_owner():
     return render_template('food/add_farm_owner.html', errors=errors)
 
 
+@food.route('/farm/<int:farm_id>/samplelot/', methods=['POST', 'GET'])
+def add_samplelot(farm_id):
+    errors = []
+    if request.method == 'POST':
+        collected_date = request.form.get('collected_date', '')
+        if not collected_date:
+            errors.append(u'โปรดกรอกข้อมูลวันที่เก็บผลผลิต')
+        else:
+            lot = SampleLot(
+                    collected_at=collected_date,
+                    farm_id=farm_id)
+            db.session.add(lot)
+            db.session.commit()
+            return redirect(url_for('food.index'))
+
+    farm = Farm.query.get(farm_id)
+    return render_template('food/add_samplelot.html',
+                    farm=farm, errors=errors)
+
+
+@food.route('/farm/<int:farm_id>/tests/lots/<int:lot_id>/add/', methods=['POST', 'GET'])
+def add_sample(farm_id, lot_id):
+    errors = []
+    if request.method == 'POST':
+        produce_id = request.form.get('produce', '')
+        if not produce_id:
+            errors.append(u'กรุณาเลือกชนิดของผลผลิต')
+        else:
+            sample = Sample(produce_id=produce_id, lot_id=lot_id)
+            db.session.add(sample)
+            db.session.commit()
+            return redirect(url_for('food.index'))
+
+    farm = Farm.query.get(farm_id)
+    lot = SampleLot.query.get(lot_id)
+    produces = []
+    for p in  Produce.query.all():
+        produces.append({
+            'id': p.id,
+            'name': p.name
+        })
+
+    return render_template('food/add_sample.html',
+                farm=farm, lot=lot, produces=produces)
+
+
+
 @food.route('/farm/owner/')
 def list_owners():
     owners = db.session.query(Person).order_by(Person.created_at)
@@ -157,21 +204,57 @@ def list_owned_farm(owner_id):
     return render_template('food/farms.html', owner=owner, farms=farms)
 
 
-@food.route('/farm/tests/pesticides/<int:farm_id>/')
-def add_pesticide_results(farm_id):
+@food.route('/farm/<int:farm_id>/tests/lots/')
+def list_sample_lots(farm_id):
     farm = Farm.query.get(farm_id)
-    return render_template('food/pest_results.html', farm=farm)
+    return render_template('food/samplelots.html', farm=farm)
 
 
-@food.route('/farm/tests/parasites/<int:farm_id>/')
-def add_parasite_results(farm_id):
-    return render_template('food/parasit_results.html')
+@food.route('/farm/<int:farm_id>/tests/lots/<int:lot_id>/samples/')
+def list_samples(farm_id, lot_id):
+    farm = Farm.query.get(farm_id)
+    lot = SampleLot.query.get(lot_id)
+    samples = []
+    for s in lot.samples:
+        produce = Produce.query.get(s.produce_id)
+        samples.append({
+            'id': s.id,
+            'produce': produce.name
+        })
+    return render_template('food/samples.html',
+            farm=farm, lot=lot, samples=samples)
 
 
-@food.route('/farm/tests/bacteria/<int:farm_id>/')
-def add_bacteria_results(farm_id):
-    return render_template('food/bact_results.html')
+@food.route('/farm/<int:farm_id>/lots/<int:lot_id>/samples/<int:sample_id>/tests/pesticides/add/')
+def add_pesticide_results(farm_id, lot_id, sample_id):
+    farm = Farm.query.get(farm_id)
+    lot = SampleLot.query.get(lot_id)
+    sample = Sample.query.get(sample_id)
+    return render_template('food/pest_results.html', farm=farm, lot=lot,
+            sample=sample)
 
-@food.route('/farm/tests/toxicology/<int:farm_id>/')
-def add_toxicology_results(farm_id):
-    return render_template('food/toxico_results.html')
+
+@food.route('/farm/<int:farm_id>/lots/<int:lot_id>/samples/<int:sample_id>/tests/parasites/add/')
+def add_parasite_results(farm_id, lot_id, sample_id):
+    farm = Farm.query.get(farm_id)
+    lot = SampleLot.query.get(lot_id)
+    sample = Sample.query.get(sample_id)
+    return render_template('food/parasit_results.html', farm=farm, lot=lot,
+            sample=sample)
+
+
+@food.route('/farm/<int:farm_id>/lots/<int:lot_id>/samples/<int:sample_id>/tests/bacteria/add/')
+def add_bacteria_results(farm_id, lot_id, sample_id):
+    farm = Farm.query.get(farm_id)
+    lot = SampleLot.query.get(lot_id)
+    sample = Sample.query.get(sample_id)
+    return render_template('food/bact_results.html', farm=farm, lot=lot,
+            sample=sample)
+
+@food.route('/farm/<int:farm_id>/lots/<int:lot_id>/samples/<int:sample_id>/tests/toxicology/add/')
+def add_toxicology_results(farm_id, lot_id, sample_id):
+    farm = Farm.query.get(farm_id)
+    lot = SampleLot.query.get(lot_id)
+    sample = Sample.query.get(sample_id)
+    return render_template('food/toxico_results.html', farm=farm, lot=lot,
+            sample=sample)
