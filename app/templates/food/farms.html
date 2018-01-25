@@ -14,8 +14,8 @@
         <th>ตำบล</th>
         <th>อำเภอ</th>
         <th>จังหวัด</th>
-        <th>รายการผลการทดสอบ</th>
-        <th>เพิ่มผลการทดสอบ</th>
+        <th>รายการสิ่งส่งตรวจ</th>
+        <th>เพิ่มสิ่งส่งตรวจ</th>
       </tr>
     <tbody>
       {% for farm in farms %}
@@ -28,12 +28,14 @@
         <td>{{ farm.district }}</td>
         <td>{{ farm.province }}</td>
         <td>
+          <a href="{{ url_for('food.list_sample_lots', farm_id=farm.id) }}">
           <span class="icon">
             <i class="fa fa-list-ol"></i>
           </span>
+          </a>
         </td>
         <td>
-          <a href="{{ url_for('food.add_pesticide_results', farm_id=farm.id) }}">
+          <a href="{{ url_for('food.add_samplelot', farm_id=farm.id) }}">
           <span class="icon">
             <i class="fa fa-plus"></i>
           </span>
