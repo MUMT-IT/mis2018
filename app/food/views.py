@@ -38,14 +38,14 @@ def add_farm():
         if not errors:
             owner = Person.query.get(int(owner_id))
             farm = Farm(street=street_addr,
-                    province=int(province_id),
-                    district=int(district_id),
-                    subdistrict=int(subdistrict_id),
+                    province_id=int(province_id),
+                    district_id=int(district_id),
+                    subdistrict_id=int(subdistrict_id),
                     village=village,
                     estimated_total_size=float(total_size),
                     estimated_leased_size=float(total_leased_size),
                     estimated_owned_size=float(total_owned_size),
-                    agritype=int(agritype_id),
+                    agritype_id=int(agritype_id),
                     )
             db.session.add(farm)
             owner.farms.append(farm)
@@ -129,8 +129,24 @@ def add_farm_owner():
     return render_template('food/add_farm_owner.html', errors=errors)
 
 
-@food.route('/owner/')
+@food.route('/farm/owner/')
 def list_owners():
     owners = db.session.query(Person).order_by(Person.created_at)
     return render_template('food/owners.html',
             owners=owners)
+
+
+@food.route('/farm/owned/<int:owner_id>/')
+def list_owned_farm(owner_id):
+    owner = Person.query.get(owner_id)
+    farms = []
+    for farm in owner.farms:
+        farms.append({
+            'ref_id': farm.ref_id(),
+            'street': farm.street,
+            'total_size': farm.estimated_total_size,
+            'province': Province.query.get(farm.province_id).name,
+            'district': District.query.get(farm.district_id).name,
+            'subdistrict': Subdistrict.query.get(farm.subdistrict_id).name,
+            })
+    return render_template('food/farms.html', owner=owner, farms=farms)
