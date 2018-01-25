@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Add New Farm Information{% endblock %}
+{% block page_content %}
+<section class="section">
+  <h1 class="title">ข้อมูลแปลงเกษตร</h1>
+  <h3 class="subtitle">เจ้าของแปลง : {{ owner.firstname + ' ' +  owner.lastname }}</h3>
+  <table class="table is-striped">
+    <thead>
+      <tr>
+        <th>ลำดับที่</th>
+        <th>รหัสแปลง</th>
+        <th>ขนาดโดยรวม</th>
+        <th>บ้านเลขที่</th>
+        <th>ตำบล</th>
+        <th>อำเภอ</th>
+        <th>จังหวัด</th>
+      </tr>
+    <tbody>
+      {% for farm in farms %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td>{{ farm.ref_id }}</td>
+        <td>{{ '{:.2f}'.format(farm.total_size) }}</td>
+        <td>{{ farm.street }}</td>
+        <td>{{ farm.subdistrict }}</td>
+        <td>{{ farm.district }}</td>
+        <td>{{ farm.province }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

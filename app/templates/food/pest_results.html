@@ -1,0 +1,52 @@
+{% extends "food/results.html" %}
+{% block title %}Add Pesticides Results{% endblock %}
+{% block result_page %}
+<section>
+  <div class="columns">
+    <div class="column">
+      <form method="post">
+      <div class="field is-horizontal">
+        <div class="field-label">
+          <label>Test 1</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <input class="input">
+            </div>
+          </div>
+        </div> <!-- body -->
+      </div> <!-- horizontal -->
+
+      <div class="field is-horizontal">
+        <div class="field-label">
+          <label>Test 2</label>
+        </div>
+        <div class="field-body">
+          <div class="field">
+            <div class="control">
+              <input class="input">
+            </div>
+          </div>
+        </div> <!-- body -->
+      </div> <!-- horizontal -->
+
+      <div class="field is-horizontal">
+        <div class="field-label">
+        </div>
+        <div class="field-body">
+          <div class="field is-grouped">
+            <div class="control">
+              <input class="button is-primary" type="submit" value="Submit">
+            </div>
+            <div class="control">
+              <input class="button is-danger" type="reset" value="Reset">
+            </div>
+          </div>
+        </div> <!-- body -->
+      </div> <!-- horizontal -->
+      </form>
+    </div> <!-- column -->
+  </div> <!-- columns -->
+</section>
+{% endblock %}

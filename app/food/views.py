@@ -150,3 +150,23 @@ def list_owned_farm(owner_id):
             'subdistrict': Subdistrict.query.get(farm.subdistrict_id).name,
             })
     return render_template('food/farms.html', owner=owner, farms=farms)
+
+
+@food.route('/farm/tests/pesticides/<int:farm_id>/')
+def add_pesticide_results(farm_id):
+    farm = Farm.query.get(farm_id)
+    return render_template('food/pest_results.html', farm=farm)
+
+
+@food.route('/farm/tests/parasites/<int:farm_id>/')
+def add_parasite_results(farm_id):
+    return render_template('food/parasit_results.html')
+
+
+@food.route('/farm/tests/bacteria/<int:farm_id>/')
+def add_bacteria_results(farm_id):
+    return render_template('food/bact_results.html')
+
+@food.route('/farm/tests/toxicology/<int:farm_id>/')
+def add_toxicology_results(farm_id):
+    return render_template('food/toxico_results.html')
