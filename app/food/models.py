@@ -45,6 +45,7 @@ class Farm(db.Model):
     subdistrict_id = db.Column('subdistrict_id', db.Integer(),
             db.ForeignKey('subdistricts.id'))
     created_at = db.Column(db.DateTime(), default=datetime.utcnow)
+    sample_lots = db.relationship('SampleLot', backref=db.backref('farm'))
 
     def ref_id(self):
         return u'{:04}-{:02}-{:02}-{:02}'.format(self.id,self.province_id,
@@ -56,3 +57,29 @@ class AgriType(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(80), nullable=False)
     desc = db.Column(db.String(), nullable=True)
+
+
+class SampleLot(db.Model):
+    __tablename__ = 'food_sample_lots'
+    id = db.Column(db.Integer(), primary_key=True)
+    collected_at = db.Column('collected_at', db.DateTime())
+    registered_at = db.Column('registered_at',
+                        db.DateTime(), default=datetime.utcnow)
+    farm_id = db.Column('farm_id',
+                db.Integer(), db.ForeignKey('food_farms.id'))
+    samples = db.relationship('Sample', backref=db.backref('lot'))
+
+
+class Sample(db.Model):
+    __tablename__ = 'food_samples'
+    id = db.Column(db.Integer(), primary_key=True)
+    lot_id = db.Column('lot_id',
+                db.Integer(), db.ForeignKey('food_sample_lots.id'))
+    produce_id = db.Column('produce_id',
+                db.Integer(), db.ForeignKey('food_produces.id'))
+
+
+class Produce(db.Model):
+    __tablename__ = 'food_produces'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(), nullable=False)
