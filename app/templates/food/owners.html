@@ -23,7 +23,9 @@
         <td>{{ owner.farms.count() }}</td>
         <td>
           <span class="icon">
-            <i class="fa fa-list-ol"></i>
+            <a href="{{ url_for('food.list_owned_farm', owner_id=owner.id) }}">
+              <i class="fa fa-list-ol"></i>
+            </a>
           </span>
           <span class="icon">
             <a href="{{ url_for('food.add_farm', owner_id=owner.id) }}">
