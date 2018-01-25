@@ -3,8 +3,21 @@
 {% block page_content %}
 <section class="section">
 <h1 class="title">เพิ่มข้อมูลแปลงเกษตร</h1>
+<h3 class="subtitle">เจ้าของแปลง : {{ owner.firstname + ' ' +  owner.lastname }}</h3>
+{% if errors %}
+<div class="notification is-danger">
+  <button class="delete"></button>
+  {% for error in errors %}
+  <p>{{ error }}</p>
+  {% endfor %}
+</div>
+{% endif %}
 <div class="columns">
+  <form method="post">
   <div class="column is-two-thirds">
+    <div class="control">
+      <input class="input" type="hidden" name="owner_id" value="{{ owner.id }}">
+    </div>
     <div class="field is-horizontal">
       <div class="field-label is-normal">
         <label class="label">บ้านเลขที่</label>
@@ -12,7 +25,8 @@
       <div class="field-body">
         <div class="field">
           <div class="control is-expanded">
-            <input class="input" type="text" placeholder="">
+            <input class="input" name="street_address" type="text"
+            placeholder="" required>
           </div>
           <p class="help">อาจจะไม่ใช่ที่อยู่เดียวกันกับเจ้าของแปลง</p>
         </div> <!-- field -->
@@ -25,7 +39,8 @@
       <div class="field-body">
         <div class="field">
           <div class="control">
-            <input class="input" type="text" placeholder="">
+            <input class="input" name="village" type="text" placeholder=""
+            required>
           </div>
         </div>
       </div>
@@ -39,31 +54,31 @@
         <div class="field is-grouped">
           <div class="control is-expanded">
             <div class="select">
-                <select data-bind="options: provinces,
+                <select name="province" data-bind="options: provinces,
                                     optionsText: 'name',
                                     optionsValue: 'id',
                                     value: province,
-                                    optionsCaption: 'โปรดเลือกจังหวัด..'">
+                                    optionsCaption: 'โปรดเลือกจังหวัด..'" required>
                 </select>
             </div>
           </div>
           <div class="control is-expanded">
             <div class="select">
-              <select data-bind="options: local_districts,
+              <select name="district" data-bind="options: local_districts,
                                   optionsText: 'name',
                                   optionsValue: 'id',
                                   value: district,
-                                  optionsCaption: 'โปรดเลือกอำเภอ..'">
+                                  optionsCaption: 'โปรดเลือกอำเภอ..'" required>
               </select>
             </div>
           </div>
           <div class="control is-expanded">
             <div class="select">
-              <select data-bind="options: local_subdistricts,
+              <select name="subdistrict" data-bind="options: local_subdistricts,
                                   optionsText: 'name',
                                   optionsValue: 'id',
                                   value: subdistrict,
-                                  optionsCaption: 'โปรดเลือกตำบล..'">
+                                  optionsCaption: 'โปรดเลือกตำบล..'" required>
               </select>
             </div>
           </div>
@@ -79,11 +94,12 @@
         <div class="field">
           <div class="control">
             <div class="select">
-              <select data-bind="options: agritypes,
+              <select name="agritype" data-bind="options: agritypes,
                                   optionsText: 'name',
                                   optionsValue: 'id',
                                   value: agritype,
-                                  optionsCaption: 'โปรดเลือกชนิดของการเกษตร..'">
+                                  optionsCaption: 'โปรดเลือกชนิดของการเกษตร..'"
+                                  required>
               </select>
             </div>
           </div>
@@ -98,8 +114,10 @@
       <div class="field-body">
         <div class="field">
           <div class="control">
-            <input class="input" type="number">
+            <input class="input" name="total_size" type="number" step="any"
+            required>
           </div>
+          <p class="help">ตัวอย่าง 10.3 เท่ากับ 10 ไร่ 3 งาน</p>
         </div> <!-- field -->
       </div> <!-- field-body -->
     </div> <!-- field-horizontal -->
@@ -111,8 +129,10 @@
       <div class="field-body">
         <div class="field">
           <div class="control">
-            <input class="input" type="number">
+            <input class="input" name="total_owned_size" type="number"
+            step="any">
           </div>
+          <p class="help">*optional</p>
         </div> <!-- field -->
       </div> <!-- field-body -->
     </div> <!-- field-horizontal -->
@@ -124,13 +144,31 @@
       <div class="field-body">
         <div class="field">
           <div class="control">
-            <input class="input" type="number">
+            <input class="input" name="total_leased_size" type="number"
+            step="any">
+          </div>
+          <p class="help">*optional</p>
+        </div> <!-- field -->
+      </div> <!-- field-body -->
+    </div> <!-- field-horizontal -->
+
+    <div class="field is-horizontal">
+      <div class="field-label">
+      </div>
+      <div class="field-body">
+        <div class="field is-grouped">
+          <div class="control">
+            <input class="button is-primary" type="submit" value="Submit">
+          </div>
+          <div class="control">
+            <input class="button is-danger" type="reset" value="Reset">
           </div>
         </div> <!-- field -->
       </div> <!-- field-body -->
     </div> <!-- field-horizontal -->
 
   </div> <!-- column -->
+  </form>
 </div> <!-- columns -->
 </section>
 {% endblock %}
