@@ -1,0 +1,457 @@
+{% extends "base.html" %}
+{% block page_content %}
+<section class="section">
+    <h1 class="title is-4">กำหนดยุทธศาสตร์</h1>
+    <div data-bind="if: ownerName()">
+        <h1 class="title is-5" data-bind="text: 'หน่วยงาน: ' + ownerName()"></h1>
+        <table class="table is-striped">
+            <thead>
+                <tr>
+                    <th>เลขอ้างอิง</th>
+                    <th>ยุทธศาสตร์</th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: {data: fltOrgStrategies, as: 'st'}">
+                <tr>
+                    <td data-bind="text: st.refno"></td>
+                    <td data-bind="text: st.content"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="box">
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label">หน่วยงาน</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control is-expanded">
+                        <div class="select">
+                            <select data-bind="options: depts,
+                                                optionsText: 'name',
+                                                optionsValue: 'id',
+                                                value: owner,
+                                                optionsCaption: 'โปรดเลือก..'">
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label">ยุทธศาสตร์</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control is-expanded">
+                        <input type="text" class="input" data-bind="value: stContent"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label">เลขอ้างอิง</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control is-expanded">
+                        <input type="text" class="input" data-bind="value: stRefno"/>
+                    </div>
+                    <p class="help">สำหรับอ้างอิงในเอกสาร เช่น 1,2,3</p>
+                </div>
+            </div>
+        </div>
+        <div class="field">
+            <a class="button is-link is-rounded" data-bind="click: addStrategy">
+                <span class="icon">
+                    <i class="fa fa-plus"></i>
+                </span><span>Add</span>
+            </a>
+        </div>
+    </div>
+</section>
+<section class="section">
+    <h1 class="title is-4">กำหนดกลยุทธ์</h1>
+    <div data-bind="if: selectedStrategy()">
+        <h1 class="title is-5" data-bind="text: 'เพื่อ' + strategyName()"></h1>
+        <table class="table is-striped">
+            <thead>
+                <tr>
+                    <th>เลขอ้างอิง</th>
+                    <th>กลยุทธ์</th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: {data: fltTactics, as: 'tc'}">
+                <tr>
+                    <td data-bind="text: tc.refno"></td>
+                    <td data-bind="text: tc.content"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="box">
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label">ยุทธศาสตร์</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control is-expanded">
+                        <div class="select">
+                            <select data-bind="options: fltOrgStrategies,
+                                                optionsText: 'content',
+                                                optionsValue: 'id',
+                                                value: selectedStrategy,
+                                                optionsCaption: 'โปรดเลือก..'">
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label">กลยุทธ์</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control is-expanded">
+                        <input type="text" class="input" data-bind="value: tcContent"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label">เลขอ้างอิง</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control is-expanded">
+                        <input type="text" class="input" data-bind="value: tcRefno"/>
+                    </div>
+                    <p class="help">สำหรับอ้างอิงในเอกสาร เช่น 1,2,3</p>
+                </div>
+            </div>
+        </div>
+        <div class="field">
+            <a class="button is-link is-rounded" data-bind="click: addTactic">
+                <span class="icon">
+                    <i class="fa fa-plus"></i>
+                </span><span>Add</span>
+            </a>
+        </div>
+    </div>
+</section>
+<section class="section">
+    <h1 class="title is-4">กำหนดมาตรการ</h1>
+    <div data-bind="if: selectedTactic()">
+        <h1 class="title is-5" data-bind="text: 'เพื่อ' + tacticName()"></h1>
+        <table class="table is-striped">
+            <thead>
+                <tr>
+                    <th>เลขอ้างอิง</th>
+                    <th>มาตรการ</th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: {data: fltThemes, as: 'th'}">
+                <tr>
+                    <td data-bind="text: th.refno"></td>
+                    <td data-bind="text: th.content"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="box">
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label">กลยุทธ์</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control is-expanded">
+                        <div class="select">
+                            <select data-bind="options: fltTactics,
+                                                optionsText: 'content',
+                                                optionsValue: 'id',
+                                                value: selectedTactic,
+                                                optionsCaption: 'โปรดเลือก..'">
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label">มาตรการ</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control is-expanded">
+                        <input type="text" class="input" data-bind="value: thContent"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label">เลขอ้างอิง</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control is-expanded">
+                        <input type="text" class="input" data-bind="value: thRefno"/>
+                    </div>
+                    <p class="help">สำหรับอ้างอิงในเอกสาร เช่น 1,2,3</p>
+                </div>
+            </div>
+        </div>
+        <div class="field">
+            <a class="button is-link is-rounded" data-bind="click: addTheme">
+                <span class="icon">
+                    <i class="fa fa-plus"></i>
+                </span><span>Add</span>
+            </a>
+        </div>
+    </div>
+</section>
+<section class="section">
+    <h1 class="title is-4">กำหนดกิจกรรม/โครงการ</h1>
+    <div data-bind="if: selectedTheme()">
+        <h1 class="title is-5" data-bind="text: 'เพื่อ' + themeName()"></h1>
+        <table class="table is-striped">
+            <thead>
+                <tr>
+                    <th>เลขอ้างอิง</th>
+                    <th>กิจกรรม/โครงการ</th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: {data: fltActivities, as: 'ac'}">
+                <tr>
+                    <td data-bind="text: ac.refno"></td>
+                    <td data-bind="text: ac.content"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="box">
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label">มาตรการ</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control is-expanded">
+                        <div class="select">
+                            <select data-bind="options: fltThemes,
+                                                optionsText: 'content',
+                                                optionsValue: 'id',
+                                                value: selectedTheme,
+                                                optionsCaption: 'โปรดเลือก..'">
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label">กิจกรรม/โครงการ</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control is-expanded">
+                        <input type="text" class="input" data-bind="value: acContent"/>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label">เลขอ้างอิง</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control is-expanded">
+                        <input type="text" class="input" data-bind="value: acRefno"/>
+                    </div>
+                    <p class="help">สำหรับอ้างอิงในเอกสาร เช่น 1,2,3</p>
+                </div>
+            </div>
+        </div>
+        <div class="field">
+            <a class="button is-link is-rounded" data-bind="click: addActivity">
+                <span class="icon">
+                    <i class="fa fa-plus"></i>
+                </span><span>Add</span>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var viewModel = function() {
+        var self = this;
+        self.depts = {{ orgs|tojson|safe }};
+        self.orgStrategies = ko.observableArray({{ strategies|tojson|safe }});
+        self.fltOrgStrategies = ko.observableArray();
+        self.stContent = ko.observable();
+        self.stRefno = ko.observable();
+        self.owner = ko.observable();
+        self.ownerName = ko.observable();
+        self.fltOrgStrategies = ko.computed(function() {
+            var tmp = [];
+            $.each(self.orgStrategies(), function(idx, st) {
+                if (st.owner === self.owner()) {
+                    tmp.push(st);
+                }
+            });
+            var owner = ko.utils.arrayFirst(self.depts, function(item) {
+                            return item.id === self.owner();
+                            });
+            var ownerName = owner ? owner.name : '';
+            self.ownerName(ownerName);
+            return tmp;
+        });
+        self.addStrategy = function() {
+            var newStrategy = {
+                'content': self.stContent(),
+                'refno': self.stRefno(),
+                'owner': self.owner(),
+            };
+            $.ajax({
+                url: "{{ url_for('kpi.add_strategy_json') }}",
+                dataType: 'json',
+                type: 'post',
+                contentType: 'application/json',
+                data: JSON.stringify(newStrategy),
+                success: function(data, textStatus) {
+                    self.orgStrategies.push(data);
+                    self.stContent('');
+                    self.stRefno('');
+                }
+            });
+        }
+        self.tcContent = ko.observable();
+        self.tcRefno = ko.observable();
+        self.selectedStrategy = ko.observable();
+        self.strategyName = ko.observable();
+        self.allTactics = ko.observableArray({{ tactics|tojson|safe }});
+        self.fltTactics = ko.computed(function() {
+            var tmp = [];
+            $.each(self.allTactics(), function(idx, tc) {
+                if (tc.parent === self.selectedStrategy()) {
+                    tmp.push(tc);
+                }
+            });
+            var strategy = ko.utils.arrayFirst(self.fltOrgStrategies(), function(item) {
+                            return item.id === self.selectedStrategy();
+                            });
+            self.strategyName(strategy ? strategy.content : '');
+            return tmp;
+        });
+        self.addTactic = function() {
+            var newTactic = {
+                'content': self.tcContent(),
+                'refno': self.tcRefno(),
+                'parent': self.selectedStrategy(),
+            };
+            $.ajax({
+                url: "{{ url_for('kpi.add_tactic_json') }}",
+                dataType: 'json',
+                type: 'post',
+                contentType: 'application/json',
+                data: JSON.stringify(newTactic),
+                success: function(data, textStatus) {
+                    self.allTactics.push(data);
+                    self.tcContent('');
+                    self.tcRefno('');
+                }
+            });
+        }
+        self.selectedTactic = ko.observable();
+        self.tacticName = ko.observable();
+        self.allThemes = ko.observableArray({{ themes|tojson|safe }});
+        self.fltThemes = ko.computed(function() {
+            var tmp = [];
+            $.each(self.allThemes(), function(idx, th) {
+                if (th.parent === self.selectedTactic()) {
+                    tmp.push(th);
+                }
+            });
+            var tactic = ko.utils.arrayFirst(self.fltTactics(), function(item) {
+                            return item.id === self.selectedTactic();
+                            });
+            self.tacticName(tactic ? tactic.content : '');
+            return tmp;
+        });
+        self.thContent = ko.observable();
+        self.thRefno = ko.observable();
+        self.addTheme = function() {
+            var newTheme = {
+                'content': self.thContent(),
+                'refno': self.thRefno(),
+                'parent': self.selectedTactic(),
+            };
+            $.ajax({
+                url: "{{ url_for('kpi.add_theme_json') }}",
+                dataType: 'json',
+                type: 'post',
+                contentType: 'application/json',
+                data: JSON.stringify(newTheme),
+                success: function(data, textStatus) {
+                    self.allThemes.push(data);
+                    self.thContent('');
+                    self.thRefno('');
+                }
+            });
+        }
+        self.selectedTheme = ko.observable();
+        self.themeName = ko.observable();
+        self.allActivities = ko.observableArray({{ activities|tojson|safe }});
+        self.fltActivities = ko.computed(function() {
+            var tmp = [];
+            $.each(self.allActivities(), function(idx, ac) {
+                if (ac.parent === self.selectedTheme()) {
+                    tmp.push(ac);
+                }
+            });
+            var theme = ko.utils.arrayFirst(self.fltThemes(), function(item) {
+                            return item.id === self.selectedTheme();
+                            });
+            self.themeName(theme ? theme.content : '');
+            return tmp;
+        });
+        self.acContent = ko.observable();
+        self.acRefno = ko.observable();
+        self.selectedActivity = ko.observable();
+        self.addActivity = function() {
+            var newActivity = {
+                'content': self.acContent(),
+                'refno': self.acRefno(),
+                'parent': self.selectedTheme(),
+            };
+            $.ajax({
+                url: "{{ url_for('kpi.add_activity_json') }}",
+                dataType: 'json',
+                type: 'post',
+                contentType: 'application/json',
+                data: JSON.stringify(newActivity),
+                success: function(data, textStatus) {
+                    self.allActivities.push(data);
+                    self.acContent('');
+                    self.acRefno('');
+                }
+            });
+        }
+    }
+    var vm = new viewModel();
+    ko.applyBindings(vm);
+</script>
+{% endblock %}

@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Add KPI{% endblock %}
 {% block page_content %}
+<section class="section">
+<h1 class="title">ข้อมูลตัวชี้วัด</h1>
 <div class="columns">
     <div class="column is-one-third">
         <div class="card">
@@ -8,35 +10,28 @@
                 <div class="field">
                     <label class="label">ชื่อตัวชี้วัด</label>
                     <div class="control">
-                        <input class="input" type="text" placeholder="Enter KPI name"/>
+                        <input class="input" type="text" data-bind="value: kpiName()" placeholder="Enter KPI name"/>
                     </div>
                     <p class="help">ตัวอย่าง จำนวนบัณฑิตที่สอบผ่านใบประกอบวิชาชีพ</p>
                 </div>
                 <div class="field">
                     <label class="label">เลขอ้างอิงตัวชี้วัด</label>
                     <div class="control">
-                        <input class="input" type="text" placeholder="Enter KPI ref. no."/>
+                        <input class="input" type="text" data-bind="value: refNo()" placeholder="Enter KPI ref. no."/>
                     </div>
                     <p class="help">ตัวอย่าง 1.2</p>
                 </div>
                 <div class="field">
-                    <label class="label">เป้าประสงค์ของตัวชี้วัด</label>
-                    <div class="control">
-                        <textarea class="textarea" type="text" placeholder="Enter KPI intent"></textarea>
-                    </div>
-                    <p class="help">อธิบายผลลัพธ์ที่เชื่อมโยงกับตัวชี้วัด</p>
-                </div>
-                <div class="field">
                     <label class="label">ความถี่ในการเก็บข้อมูลตัวชี้วัด</label>
                     <div class="control">
-                        <input class="input" type="text" placeholder="Enter KPI frequency" />
+                        <input class="input" type="text" data-bind="value: frequency()" placeholder="Enter KPI frequency" />
                     </div>
                     <p class="help">ความถี่นับเป็นจำนวนวัน</p>
                 </div>
                 <div class="field">
                     <label class="label">หน่วยของข้อมูล</label>
                     <div class="control">
-                        <input class="input" type="text" placeholder="Enter KPI frequency" />
+                        <input class="input" type="text" data-bind="value: unit()" placeholder="Enter KPI unit" />
                     </div>
                     <p class="help">ร้อยละ ชั่วโมง จำนวนนับเป็นต้น</p>
                 </div>
@@ -59,12 +54,6 @@
                         <textarea class="textarea" type="text" placeholder="Enter KPI data availability"></textarea>
                     </div>
                     <p class="help">เช่น เก็บโดยอัตโนมัติ หรือ ต้องใช้กระบวนการที่ซับซ้อน เป็นตัน</p>
-                </div>
-                <div class="field">
-                    <label class="label">เจ้าของตัวชี้วัด</label>
-                    <div class="control">
-                        <input class="input" type="text" placeholder="Enter KPI owner" />
-                    </div>
                 </div>
                 <div class="field">
                     <label class="label">นิยาม สูตรการคิดตัวชี้วัด</label>
@@ -159,4 +148,22 @@
         </div>
     </div>
 </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{super()}}
+<script>
+    var viewModel = function() {
+        var self = this;
+        self.kpi = {{ kpi|tojson|safe }};
+        console.log(self.kpi);
+        self.kpiName = ko.observable(self.kpi['name']);
+        self.refNo = ko.observable(self.kpi['refno']);
+        self.frequency = ko.observable(self.kpi['frequency']);
+        self.unit = ko.observable(self.kpi['unit']);
+    };
+    var vm = new viewModel();
+    ko.applyBindings(vm);
+</script>
+</section>
 {% endblock %}

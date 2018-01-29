@@ -47,47 +47,37 @@ def get_kpis():
 
 @kpi.route('/<int:org_id>')
 def index(org_id=1): 
-    strategy_table = meta.tables['strategies']
-    tactic_table = meta.tables['strategy_tactics']
-    theme_table = meta.tables['strategy_themes']
-    activity_table = meta.tables['strategy_activities']
-    orgs = meta.tables['orgs']
-    kpi_table = meta.tables['kpis']
-    s = select([orgs.c.id, orgs.c.name]).where(orgs.c.id==org_id)
-    org_name = connect.execute(s).fetchone().name
-    orgs_choices = [{'id': o.id, 'name': o.name} for o in connect.execute(select([orgs]))]
+    org = db.session.query(Org).get(org_id)
+    orgs_choices = [{'id': o.id, 'name': o.name} for o in db.session.query(Org)]
 
-    s = select([strategy_table.c.id,
-                strategy_table.c.refno, strategy_table.c.content]).where(strategy_table.c.owner==org_id)
-    strategies = [
-        {'id': st.id, 'refno': st.refno, 'content': st.content} for st in connect.execute(s)
-    ]
-    s = select([tactic_table.c.id, tactic_table.c.refno,
-                    tactic_table.c.content, tactic_table.c.parent])
-    tactics = [
-        {'id': tc.id, 'refno': tc.refno, 'content': tc.content, 'strategy': tc.parent}\
-        for tc in connect.execute(s)
-    ]
-    s = select([theme_table.c.id, theme_table.c.refno,
-                    theme_table.c.content, theme_table.c.parent])
-    themes = [
-        {'id': th.id, 'refno': th.refno, 'content': th.content, 'tactic': th.parent}\
-        for th in connect.execute(s)
-    ]
-    s = select([activity_table.c.id, activity_table.c.refno,
-                    activity_table.c.content, activity_table.c.parent])
-    activities = [
-        {'id': ac.id, 'refno': ac.refno, 'content': ac.content, 'theme': ac.parent}\
-        for ac in connect.execute(s)
-    ]
-    kpis = [dict(k) for k in connect.execute(select([kpi_table]))]
+    strategies = []
+    for st in db.session.query(Strategy)\
+            .filter_by(org_id=org.id):
+        strategies.append({'id': st.id, 'refno': st.refno, 'content': st.content})
+
+    tactics = []
+    for tc in db.session.query(StrategyTactic):
+        tactics.append({'id': tc.id, 'refno': tc.refno,
+                        'content': tc.content, 'strategy': tc.strategy_id})
+
+    themes = []
+    for th in db.session.query(StrategyTheme):
+        themes.append({'id': th.id, 'refno': th.refno,
+                'content': th.content, 'tactic': th.tactic_id})
+
+    activities = []
+    for ac in db.session.query(StrategyActivity):
+        activities.append({'id': ac.id, 'refno': ac.refno,
+                            'content': ac.content, 'theme': ac.theme_id})
+
+    kpis = [dict(k) for k in db.session.query(KPI)]
     return render_template('/kpi/index.html',
                 strategies=strategies,
                 tactics=tactics,
                 themes=themes,
                 activities=activities,
-                org_id=org_id,
-                org_name=org_name,
+                org_id=org.id,
+                org_name=org.name,
                 orgs=orgs_choices,
                 kpis=kpis)
 
