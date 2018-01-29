@@ -9,6 +9,12 @@ from ..models import (Org, KPI, Strategy, StrategyTactic,
                         StrategyTheme, StrategyActivity)
 
 
+@kpi.route('/')
+def main():
+    orgs = db.session.query(Org)
+    return render_template('kpi/main.html', orgs=orgs)
+
+
 @kpi.route('/strategy/')
 def add_strategy():
     orgs_choices = [{'id': o.id, 'name': o.name} for o in \
@@ -46,7 +52,7 @@ def get_kpis():
 
 
 @kpi.route('/<int:org_id>')
-def index(org_id=1): 
+def strategy_index(org_id=1): 
     org = db.session.query(Org).get(org_id)
     orgs_choices = [{'id': o.id, 'name': o.name} for o in db.session.query(Org)]
 
@@ -71,7 +77,7 @@ def index(org_id=1):
                             'content': ac.content, 'theme': ac.theme_id})
 
     kpis = [dict(k) for k in db.session.query(KPI)]
-    return render_template('/kpi/index.html',
+    return render_template('/kpi/strategy_index.html',
                 strategies=strategies,
                 tactics=tactics,
                 themes=themes,
