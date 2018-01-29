@@ -13,16 +13,16 @@ from ..models import (Org, KPI, Strategy, StrategyTactic,
 def add_strategy():
     orgs_choices = [{'id': o.id, 'name': o.name} for o in \
                     db.session.query(Org.id, Org.name)]
-    all_strategies = [dict(id=st.id, refno=st.refno, owner=st.org_id,
+    all_strategies = [dict(id=st.id, refno=st.refno, org_id=st.org_id,
                         content=st.content, created_at=st.created_at)\
                         for st in db.session.query(Strategy)]
-    all_tactics = [dict(id=tc.id, refno=tc.refno, parent=tc.strategy_id,
+    all_tactics = [dict(id=tc.id, refno=tc.refno, strategy_id=tc.strategy_id,
                         content=tc.content, created_at=tc.created_at)\
                         for tc in db.session.query(StrategyTactic)]
-    all_themes = [dict(id=th.id, refno=th.refno, parent=th.tactic_id,
+    all_themes = [dict(id=th.id, refno=th.refno, tactic_id=th.tactic_id,
                         content=th.content, created_at=th.created_at)\
                         for th in db.session.query(StrategyTheme)]
-    all_activities = [dict(id=ac.id, refno=ac.refno, parent=ac.theme_id,
+    all_activities = [dict(id=ac.id, refno=ac.refno, theme_id=ac.theme_id,
                         content=ac.content, created_at=ac.created_at)\
                         for ac in db.session.query(StrategyActivity)]
     return render_template('/kpi/add_strategy.html',
@@ -109,74 +109,67 @@ def add_kpi_json():
 @kpi.route('/api/strategy', methods=['POST'])
 def add_strategy_json():
     new_str = request.get_json()
-    strategies = meta.tables['strategies']
-    ins = strategies.insert().values(
-        refno=new_str['refno'],
-        content=new_str['content'],
-        owner=int(new_str['owner']),
-    )
-    result = connect.execute(ins)
-    st = connect.execute(select([strategies]).where(
-            strategies.c.id==result.inserted_primary_key[0])).fetchone()
-    return jsonify(dict(id=st.id,
-                    refno=st.refno,
-                    created_at=st.created_at,
-                    owner=st.owner,
-                    content=st.content))
+    strategy = Strategy(refno=new_str['refno'],
+                    content=new_str['content'],
+                    org_id=int(new_str['org_id']))
+    db.session.add(strategy)
+    db.session.commit()
+
+    return jsonify(dict(id=strategy.id,
+                    refno=strategy.refno,
+                    created_at=strategy.created_at,
+                    org_id=strategy.org_id,
+                    content=strategy.content))
 
 
 @kpi.route('/api/tactic', methods=['POST'])
 def add_tactic_json():
     new_tc = request.get_json()
-    tactic_tb = meta.tables['strategy_tactics']
-    ins = tactic_tb.insert().values(
+    tactic = StrategyTactic(
         refno=new_tc['refno'],
         content=new_tc['content'],
-        parent=int(new_tc['parent']),
-    )
-    result = connect.execute(ins)
-    tc = connect.execute(select([tactic_tb]).where(
-            tactic_tb.c.id==result.inserted_primary_key[0])).fetchone()
-    return jsonify(dict(id=tc.id,
-                    refno=tc.refno,
-                    created_at=tc.created_at,
-                    parent=tc.parent,
-                    content=tc.content))
+        strategy_id=int(new_tc['strategy_id']),
+        )
+    db.session.add(tactic)
+    db.session.commit()
+
+    return jsonify(dict(id=tactic.id,
+                    refno=tactic.refno,
+                    created_at=tactic.created_at,
+                    strategy_id=tactic.strategy_id,
+                    content=tactic.content))
 
 
 @kpi.route('/api/theme', methods=['POST'])
 def add_theme_json():
     new_th = request.get_json()
-    theme_tb = meta.tables['strategy_themes']
-    ins = theme_tb.insert().values(
+    theme = StrategyTheme(
         refno=new_th['refno'],
         content=new_th['content'],
-        parent=int(new_th['parent']),
+        tactic_id=int(new_th['tactic_id']),
     )
-    result = connect.execute(ins)
-    th = connect.execute(select([theme_tb]).where(
-            theme_tb.c.id==result.inserted_primary_key[0])).fetchone()
-    return jsonify(dict(id=th.id,
-                    refno=th.refno,
-                    created_at=th.created_at,
-                    parent=th.parent,
-                    content=th.content))
+    db.session.add(theme)
+    db.session.commit()
+
+    return jsonify(dict(id=theme.id,
+                    refno=theme.refno,
+                    created_at=theme.created_at,
+                    tactic_id=theme.tactic_id,
+                    content=theme.content))
 
 
 @kpi.route('/api/activity', methods=['POST'])
 def add_activity_json():
     new_ac = request.get_json()
-    activity_tb = meta.tables['strategy_activities']
-    ins = activity_tb.insert().values(
+    activity = StrategyActivity(
         refno=new_ac['refno'],
         content=new_ac['content'],
-        parent=int(new_ac['parent']),
-    )
-    result = connect.execute(ins)
-    ac = connect.execute(select([activity_tb]).where(
-            activity_tb.c.id==result.inserted_primary_key[0])).fetchone()
-    return jsonify(dict(id=ac.id,
-                    refno=ac.refno,
-                    created_at=ac.created_at,
-                    parent=ac.parent,
-                    content=ac.content))
+        theme_id=int(new_ac['theme_id']),
+        )
+    db.session.add(activity)
+    db.session.commit()
+    return jsonify(dict(id=activity.id,
+                    refno=activity.refno,
+                    created_at=activity.created_at,
+                    theme_id=activity.theme_id,
+                    content=activity.content))

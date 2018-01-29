@@ -3,8 +3,8 @@
 {% block page_content %}
 <section class="section">
     <h1 class="title is-4">กำหนดยุทธศาสตร์</h1>
-    <div data-bind="if: ownerName()">
-        <h1 class="title is-5" data-bind="text: 'หน่วยงาน: ' + ownerName()"></h1>
+    <div data-bind="if: orgName()">
+        <h1 class="title is-5" data-bind="text: 'หน่วยงาน: ' + orgName()"></h1>
         <table class="table is-striped">
             <thead>
                 <tr>
@@ -32,7 +32,7 @@
                             <select data-bind="options: depts,
                                                 optionsText: 'name',
                                                 optionsValue: 'id',
-                                                value: owner,
+                                                value: org_id,
                                                 optionsCaption: 'โปรดเลือก..'">
                             </select>
                         </div>
@@ -304,27 +304,27 @@
         self.fltOrgStrategies = ko.observableArray();
         self.stContent = ko.observable();
         self.stRefno = ko.observable();
-        self.owner = ko.observable();
-        self.ownerName = ko.observable();
+        self.org_id = ko.observable();
+        self.orgName = ko.observable();
         self.fltOrgStrategies = ko.computed(function() {
             var tmp = [];
             $.each(self.orgStrategies(), function(idx, st) {
-                if (st.owner === self.owner()) {
+                if (st.org_id === self.org_id()) {
                     tmp.push(st);
                 }
             });
-            var owner = ko.utils.arrayFirst(self.depts, function(item) {
-                            return item.id === self.owner();
+            var org = ko.utils.arrayFirst(self.depts, function(item) {
+                            return item.id === self.org_id();
                             });
-            var ownerName = owner ? owner.name : '';
-            self.ownerName(ownerName);
+            var orgName = org ? org.name : '';
+            self.orgName(orgName);
             return tmp;
         });
         self.addStrategy = function() {
             var newStrategy = {
                 'content': self.stContent(),
                 'refno': self.stRefno(),
-                'owner': self.owner(),
+                'org_id': self.org_id(),
             };
             $.ajax({
                 url: "{{ url_for('kpi.add_strategy_json') }}",
@@ -347,7 +347,7 @@
         self.fltTactics = ko.computed(function() {
             var tmp = [];
             $.each(self.allTactics(), function(idx, tc) {
-                if (tc.parent === self.selectedStrategy()) {
+                if (tc.strategy_id === self.selectedStrategy()) {
                     tmp.push(tc);
                 }
             });
@@ -361,7 +361,7 @@
             var newTactic = {
                 'content': self.tcContent(),
                 'refno': self.tcRefno(),
-                'parent': self.selectedStrategy(),
+                'strategy_id': self.selectedStrategy(),
             };
             $.ajax({
                 url: "{{ url_for('kpi.add_tactic_json') }}",
@@ -382,7 +382,7 @@
         self.fltThemes = ko.computed(function() {
             var tmp = [];
             $.each(self.allThemes(), function(idx, th) {
-                if (th.parent === self.selectedTactic()) {
+                if (th.tactic_id === self.selectedTactic()) {
                     tmp.push(th);
                 }
             });
@@ -398,7 +398,7 @@
             var newTheme = {
                 'content': self.thContent(),
                 'refno': self.thRefno(),
-                'parent': self.selectedTactic(),
+                'tactic_id': self.selectedTactic(),
             };
             $.ajax({
                 url: "{{ url_for('kpi.add_theme_json') }}",
@@ -419,7 +419,7 @@
         self.fltActivities = ko.computed(function() {
             var tmp = [];
             $.each(self.allActivities(), function(idx, ac) {
-                if (ac.parent === self.selectedTheme()) {
+                if (ac.theme_id === self.selectedTheme()) {
                     tmp.push(ac);
                 }
             });
@@ -436,7 +436,7 @@
             var newActivity = {
                 'content': self.acContent(),
                 'refno': self.acRefno(),
-                'parent': self.selectedTheme(),
+                'theme_id': self.selectedTheme(),
             };
             $.ajax({
                 url: "{{ url_for('kpi.add_activity_json') }}",
