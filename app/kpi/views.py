@@ -4,51 +4,39 @@ from flask import request
 from flask import jsonify, render_template
 
 from . import kpibp as kpi
-from ..models import strategies
-from .. import meta, connect
-
+from ..main import db
+from ..models import (Org, KPI, Strategy, StrategyTactic,
+                        StrategyTheme, StrategyActivity)
 
 
 @kpi.route('/strategy/')
 def add_strategy():
-    orgs = meta.tables['orgs']
-    s = select([orgs.c.id, orgs.c.name])
-    orgs_choices = [{'id': o.id, 'name': o.name} for o in connect.execute(s)]
-    strategy_tb = meta.tables['strategies']
-    all_strategies = [dict(id=st.id, refno=st.refno, owner=st.owner,
+    orgs_choices = [{'id': o.id, 'name': o.name} for o in \
+                    db.session.query(Org.id, Org.name)]
+    all_strategies = [dict(id=st.id, refno=st.refno, owner=st.org_id,
                         content=st.content, created_at=st.created_at)\
-                        for st in connect.execute(select([strategy_tb]))]
-    tactic_tb = meta.tables['strategy_tactics']
-    all_tactics = [dict(id=tc.id, refno=tc.refno, parent=tc.parent,
+                        for st in db.session.query(Strategy)]
+    all_tactics = [dict(id=tc.id, refno=tc.refno, parent=tc.strategy_id,
                         content=tc.content, created_at=tc.created_at)\
-                        for tc in connect.execute(select([tactic_tb]))]
-    theme_tb = meta.tables['strategy_themes']
-    all_themes = [dict(id=th.id, refno=th.refno, parent=th.parent,
+                        for tc in db.session.query(StrategyTactic)]
+    all_themes = [dict(id=th.id, refno=th.refno, parent=th.tactic_id,
                         content=th.content, created_at=th.created_at)\
-                        for th in connect.execute(select([theme_tb]))]
-    activity_tb = meta.tables['strategy_activities']
-    all_activities = [dict(id=ac.id, refno=ac.refno, parent=ac.parent,
+                        for th in db.session.query(StrategyTheme)]
+    all_activities = [dict(id=ac.id, refno=ac.refno, parent=ac.theme_id,
                         content=ac.content, created_at=ac.created_at)\
-                        for ac in connect.execute(select([activity_tb]))]
+                        for ac in db.session.query(StrategyActivity)]
     return render_template('/kpi/add_strategy.html',
                 orgs=orgs_choices, strategies=all_strategies,
                 tactics=all_tactics, themes=all_themes,
                 activities=all_activities)
 
 
-@kpi.route('/add/')
-def add():
-    orgs = meta.tables['orgs']
-    s = select([orgs.c.id, orgs.c.name])
-    orgs_choices = [o for o in connect.execute(s)]
-    strategies = meta.tables['strategies']
-    s = select([strategies.c.id, strategies.c.content])
-    strategies = [{'id': st.id, 'content': st.content}
-                    for st in connect.execute(s)]
-    print(strategies)
-    return render_template('/kpi/add.html',
-            orgs_choices=orgs_choices,
-            strategies=strategies)
+@kpi.route('/edit/<int:kpi_id>')
+def edit(kpi_id):
+    kpi = KPI.query.filter_by(id=kpi_id)
+    if not kpi:
+        return '<h1>No kpi found</h1>'
+    return render_template('/kpi/add.html', kpi=dict(kpi))
 
 
 
@@ -64,8 +52,10 @@ def index(org_id=1):
     theme_table = meta.tables['strategy_themes']
     activity_table = meta.tables['strategy_activities']
     orgs = meta.tables['orgs']
+    kpi_table = meta.tables['kpis']
     s = select([orgs.c.id, orgs.c.name]).where(orgs.c.id==org_id)
     org_name = connect.execute(s).fetchone().name
+    orgs_choices = [{'id': o.id, 'name': o.name} for o in connect.execute(select([orgs]))]
 
     s = select([strategy_table.c.id,
                 strategy_table.c.refno, strategy_table.c.content]).where(strategy_table.c.owner==org_id)
@@ -90,12 +80,16 @@ def index(org_id=1):
         {'id': ac.id, 'refno': ac.refno, 'content': ac.content, 'theme': ac.parent}\
         for ac in connect.execute(s)
     ]
+    kpis = [dict(k) for k in connect.execute(select([kpi_table]))]
     return render_template('/kpi/index.html',
                 strategies=strategies,
                 tactics=tactics,
                 themes=themes,
                 activities=activities,
-                org_name=org_name)
+                org_id=org_id,
+                org_name=org_name,
+                orgs=orgs_choices,
+                kpis=kpis)
 
 
 @kpi.route('/db')
@@ -108,9 +102,18 @@ def test_db():
 
 @kpi.route('/api/', methods=['POST'])
 def add_kpi_json():
-    new_kpi = request.get_json()
-    new_kpi['created_at'] = datetime.now()
-    return jsonify(new_kpi)
+    kpi = request.get_json()
+    kpi_tb = meta.tables['kpis']
+    strategy_table = meta.tables['strategies']
+    ins = kpi_tb.insert().values(strategy_id=kpi['strategy_id'],
+            tactic_id=kpi['tactic_id'],
+            theme_id=kpi['theme_id'],
+            activity_id=kpi['activity_id'],
+            name=kpi['name'],
+            created_by=kpi['created_by'])
+    result = connect.execute(ins)
+    k = connect.execute(select([kpi_tb]).where(kpi_tb.c.id==result.inserted_primary_key[0])).fetchone()
+    return jsonify(dict(k))
 
 
 @kpi.route('/api/strategy', methods=['POST'])
