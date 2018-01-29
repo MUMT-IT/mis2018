@@ -1,4 +1,4 @@
-from main import db
+from main import db, ma
 from sqlalchemy.sql import func
 
 class User(db.Model):
@@ -171,3 +171,8 @@ class Subdistrict(db.Model):
     code = db.Column('code', db.String(), nullable=False)
     district_id = db.Column(db.Integer(),
                         db.ForeignKey('districts.id'))
+
+
+class KPISchema(ma.ModelSchema):
+    class Meta:
+        model = KPI
