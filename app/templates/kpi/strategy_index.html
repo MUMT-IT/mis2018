@@ -212,11 +212,7 @@
         self.kpis = ko.computed(function() {
             var tmp = [];
             $.each(self.allKpis(), function(idx, kpi) {
-                if (kpi.activity_id===self.currentActivity().id &&
-                    kpi.theme_id===self.currentTheme().id &&
-                    kpi.tactic_id===self.currentTactic().id &&
-                    kpi.strategy_id===self.currentStrategy().id
-                    ) {
+                if (kpi.activity_id===self.currentActivity().id) {
                         tmp.push(kpi);
                     }
             });
