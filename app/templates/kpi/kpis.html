@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}KPI Index Page{% endblock %}
+{% include "kpi/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <nav class="panel">
+        <p class="panel-heading">
+            ตัวชี้วัด
+        </p>
+        {% for org in orgs %}
+        <a class="panel-block" href="">
+            <span class="panel-icon">
+            <i class="fa fa-address-book"></i>
+            </span>
+            {{ kpi.name }}
+        </a>
+        {% endfor %}
+    </nav>
+</section>
+{% endblock %}
