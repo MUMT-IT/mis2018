@@ -48,7 +48,8 @@ def edit(kpi_id):
 
 @kpi.route('/list/')
 def get_kpis():
-    return jsonify(strategies)
+    kpis = db.session.query(KPI)
+    return render_template('kpi/kpis.html', kpis=kpis)
 
 
 @kpi.route('/<int:org_id>')
