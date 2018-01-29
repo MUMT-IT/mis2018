@@ -6,7 +6,7 @@ from flask import jsonify, render_template
 from . import kpibp as kpi
 from ..main import db
 from ..models import (Org, KPI, Strategy, StrategyTactic,
-                        StrategyTheme, StrategyActivity)
+                        StrategyTheme, StrategyActivity, KPISchema)
 
 
 @kpi.route('/')
@@ -42,7 +42,9 @@ def edit(kpi_id):
     kpi = KPI.query.filter_by(id=kpi_id)
     if not kpi:
         return '<h1>No kpi found</h1>'
-    return render_template('/kpi/add.html', kpi=dict(kpi))
+    kpi_schema = KPISchema()
+    return render_template('/kpi/add.html',
+                kpi=kpi_schema.dump(kpi).data)
 
 
 
@@ -77,7 +79,8 @@ def strategy_index(org_id=1):
         activities.append({'id': ac.id, 'refno': ac.refno,
                             'content': ac.content, 'theme': ac.theme_id})
 
-    kpis = [dict(k) for k in db.session.query(KPI)]
+    kpi_schema = KPISchema()
+    kpis = [kpi_schema.dump(k).data for k in db.session.query(KPI)]
     return render_template('/kpi/strategy_index.html',
                 strategies=strategies,
                 tactics=tactics,
@@ -100,17 +103,12 @@ def test_db():
 @kpi.route('/api/', methods=['POST'])
 def add_kpi_json():
     kpi = request.get_json()
-    kpi_tb = meta.tables['kpis']
-    strategy_table = meta.tables['strategies']
-    ins = kpi_tb.insert().values(strategy_id=kpi['strategy_id'],
-            tactic_id=kpi['tactic_id'],
-            theme_id=kpi['theme_id'],
-            activity_id=kpi['activity_id'],
-            name=kpi['name'],
-            created_by=kpi['created_by'])
-    result = connect.execute(ins)
-    k = connect.execute(select([kpi_tb]).where(kpi_tb.c.id==result.inserted_primary_key[0])).fetchone()
-    return jsonify(dict(k))
+    strategy_activity = db.session.query(StrategyActivity).get(kpi['activity_id'])
+    newkpi = KPI(name=kpi['name'], created_by=kpi['created_by'])
+    strategy_activity.kpis.append(newkpi)
+    db.session.add(strategy_activity)
+    db.session.commit()
+    return jsonify(newkpi.__dict__)
 
 
 @kpi.route('/api/strategy', methods=['POST'])
