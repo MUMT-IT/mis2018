@@ -60,7 +60,7 @@
             </div>
             <div data-bind="foreach: {data: activities, as: 'ac'}">
                 <a class="panel-block">
-                    <span data-bind="css: {'notification': $parent.currentActivity().id==ac.id, 'is-success': true}, text: ac.refno + '. ' + ac.content, click: $parent.setCurrentActivity"></span>
+                    <span data-bind="css: {'notification': $parent.currentActivity().id==ac.id, 'is-success': true}, text: ac.refno + '. ' + ac.content, click: function(ac) { $parent.currentActivity(ac); }"></span>
                 </a>
             </div>
         </nav>
@@ -126,7 +126,11 @@
                 <td data-bind="text: kpi.created_by"></td>
                 <td data-bind="text: kpi.responsible"></td>
                 <td data-bind="text: kpi.frequency"></td>
-                <td><span class="icon"><i class="fa fa-pencil"></i></span></td>
+                <td>
+                    <a data-bind="{'attr': {'href': $SCRIPT_ROOT + '/kpi/edit/' + kpi.id}}">
+                        <span class="icon"><i class="fa fa-pencil"></i></span>
+                    </a>
+                </td>
             </tr>
         </tbody>
     </table>
@@ -135,6 +139,7 @@
 {% block scripts %}
 {{ super() }}
 <script>
+    $SCRIPT_ROOT = {{ request.script_root|tojson|safe }};
     var viewModel = function() {
         var self = this;
         self.orgs = ko.observable({{ orgs|tojson|safe }});
@@ -144,6 +149,7 @@
         self.allTactics = {{ tactics|tojson|safe }};
         self.allThemes = {{ themes|tojson|safe }};
         self.allActivities = {{ activities|tojson|safe }};
+        self.allKpis = {{ kpis|tojson|safe }};
 
         self.currentTactic = ko.observable();
         self.currentTheme = ko.observable();
@@ -194,30 +200,16 @@
             }
             return tmp;
         });
-        self.setCurrentActivity = function(activity) {
-            self.currentActivity(activity);
-            self.kpis([]);
-            $.each(self.allKpis(), function(idx, kpi) {
-                if (kpi.activity_id===activity.id &&
-                    kpi.theme_id===self.currentTheme().id &&
-                    kpi.tactic_id===self.currentTactic().id &&
-                    kpi.strategy_id===self.currentStrategy().id
-                    ) {
-                        self.kpis.push(kpi);
-                    }
-            });
-        }
-        self.kpis = ko.observableArray();
-        self.allKpis = ko.observableArray({{ kpis|tojson|safe }});
         self.kpis = ko.computed(function() {
             var tmp = [];
-            $.each(self.allKpis(), function(idx, kpi) {
-                if (kpi.activity_id===self.currentActivity().id) {
+            $.each(self.allKpis, function(idx, kpi) {
+                console.log(kpi.strategy_activity, self.currentActivity().id)
+                if (kpi.strategy_activity===self.currentActivity().id) {
                         tmp.push(kpi);
                     }
             });
             return tmp;
-        })
+        });
         self.insKpiName = ko.observable();
         self.insKpiCreatedBy = ko.observable();
         self.addKpi = function() {
@@ -254,6 +246,5 @@
     }
     var vm = new viewModel();
     ko.applyBindings(vm);
-    vm.setCurrentActivity(vm.activities()[0]);
 </script>
 {% endblock %}
