@@ -11,14 +11,14 @@
                 <div class="field">
                     <label class="label">ชื่อตัวชี้วัด</label>
                     <div class="control">
-                        <input class="input" type="text" data-bind="value: kpiName()" placeholder="Enter KPI name"/>
+                        <input class="input" type="text" data-bind="value: name()" placeholder="Enter KPI name"/>
                     </div>
                     <p class="help">ตัวอย่าง จำนวนบัณฑิตที่สอบผ่านใบประกอบวิชาชีพ</p>
                 </div>
                 <div class="field">
                     <label class="label">เลขอ้างอิงตัวชี้วัด</label>
                     <div class="control">
-                        <input class="input" type="text" data-bind="value: refNo()" placeholder="Enter KPI ref. no."/>
+                        <input class="input" type="text" data-bind="value: refno()" placeholder="Enter KPI ref. no."/>
                     </div>
                     <p class="help">ตัวอย่าง 1.2</p>
                 </div>
@@ -154,16 +154,17 @@
 {% block scripts %}
 {{super()}}
 <script>
+    /*
     var viewModel = function() {
         var self = this;
         self.kpi = {{ kpi|tojson|safe }};
-        console.log(self.kpi);
         self.kpiName = ko.observable(self.kpi.name);
         self.refNo = ko.observable(self.kpi.refno);
         self.frequency = ko.observable(self.kpi.frequency);
         self.unit = ko.observable(self.kpi.unit);
     };
-    var vm = new viewModel();
+    */
+    var vm = ko.mapping.fromJS({{ kpi|tojson|safe }});
     ko.applyBindings(vm);
 </script>
 </section>
