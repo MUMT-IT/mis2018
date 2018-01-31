@@ -1,5 +1,6 @@
 {% extends "base.html" %}
-{% block title %}Add KPI{% endblock %}
+{% block title %}Add/Edit KPI{% endblock %}
+{% include "kpi/nav.html" %}
 {% block page_content %}
 <section class="section">
 <h1 class="title">ข้อมูลตัวชี้วัด</h1>
@@ -157,10 +158,10 @@
         var self = this;
         self.kpi = {{ kpi|tojson|safe }};
         console.log(self.kpi);
-        self.kpiName = ko.observable(self.kpi['name']);
-        self.refNo = ko.observable(self.kpi['refno']);
-        self.frequency = ko.observable(self.kpi['frequency']);
-        self.unit = ko.observable(self.kpi['unit']);
+        self.kpiName = ko.observable(self.kpi.name);
+        self.refNo = ko.observable(self.kpi.refno);
+        self.frequency = ko.observable(self.kpi.frequency);
+        self.unit = ko.observable(self.kpi.unit);
     };
     var vm = new viewModel();
     ko.applyBindings(vm);
