@@ -66,7 +66,7 @@ class StrategyActivity(db.Model):
     theme_id = db.Column('theme_id', db.Integer(),
                             db.ForeignKey('strategy_themes.id'))
     kpis = db.relationship('KPI',
-                backref=db.backref('strategy_activity'))
+            backref=db.backref('strategy_activity'))
 
 
 class KPI(db.Model):
