@@ -39,7 +39,7 @@ def add_strategy():
 
 @kpi.route('/edit/<int:kpi_id>')
 def edit(kpi_id):
-    kpi = KPI.query.filter_by(id=kpi_id)
+    kpi = KPI.query.get(kpi_id)
     if not kpi:
         return '<h1>No kpi found</h1>'
     kpi_schema = KPISchema()
