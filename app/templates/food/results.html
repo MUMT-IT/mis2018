@@ -3,9 +3,9 @@
 {% block page_content %}
   <section class="section">
     <h1 class="title">รายงานผลการทดสอบ</h1>
-    <p>รหัสแปลงเกษตร: {{ farm.ref_id() }}</p>
-    <p>รหัสล็อต {{ '{:04}'.format(lot.id) }}</p>
-    <p>รหัสตัวอย่าง {{ '{:04}'.format(sample.id) }}</p>
+    <p>รหัสแปลงเกษตร: <strong>{{ farm.ref_id() }}</strong></p>
+    <p>รหัสล็อต: <strong>{{ '{:04}'.format(lot.id) }}</strong></p>
+    <p>รหัสตัวอย่าง: <strong>{{ '{:04}'.format(sample.id) }}</strong></p>
     <div class="tabs">
       <ul>
         <li class="is-active">
