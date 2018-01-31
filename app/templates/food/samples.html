@@ -8,8 +8,8 @@
     <thead>
       <tr>
         <th>ลำดับ</th>
-        <th>รหัสล็อต</th>
         <th>รหัสแปลง</th>
+        <th>รหัสล็อต</th>
         <th>รหัสตัวอย่าง</th>
         <th>ผลผลิต</th>
         <th>วันที่เก็บผลผลิต</th>
@@ -22,8 +22,8 @@
     <tbody>
       <tr>
         <td>{{ loop.index }}</td>
-        <td>{{ '{:04}'.format(lot.id) }}</td>
         <td>{{ farm.ref_id() }}</td>
+        <td>{{ '{:04}'.format(lot.id) }}</td>
         <td>{{ '{:04}'.format(sample.id) }}</td>
         <td>{{ sample.produce }}</td>
         <td>{{ lot.collected_at }}</td>
