@@ -11,61 +11,77 @@
                 <div class="field">
                     <label class="label">ชื่อตัวชี้วัด</label>
                     <div class="control">
-                        <input class="input" type="text" data-bind="value: name()" placeholder="Enter KPI name"/>
+                        <input class="input" type="text" data-bind="value: name" placeholder="Enter KPI name"/>
                     </div>
                     <p class="help">ตัวอย่าง จำนวนบัณฑิตที่สอบผ่านใบประกอบวิชาชีพ</p>
                 </div>
                 <div class="field">
                     <label class="label">เลขอ้างอิงตัวชี้วัด</label>
                     <div class="control">
-                        <input class="input" type="text" data-bind="value: refno()" placeholder="Enter KPI ref. no."/>
+                        <input class="input" type="text" data-bind="value: refno" placeholder="Enter KPI ref. no."/>
                     </div>
                     <p class="help">ตัวอย่าง 1.2</p>
                 </div>
                 <div class="field">
                     <label class="label">ความถี่ในการเก็บข้อมูลตัวชี้วัด</label>
                     <div class="control">
-                        <input class="input" type="text" data-bind="value: frequency()" placeholder="Enter KPI frequency" />
+                        <input class="input" type="text" data-bind="value: frequency" placeholder="Enter KPI frequency" />
                     </div>
                     <p class="help">ความถี่นับเป็นจำนวนวัน</p>
                 </div>
                 <div class="field">
                     <label class="label">หน่วยของข้อมูล</label>
                     <div class="control">
-                        <input class="input" type="text" data-bind="value: unit()" placeholder="Enter KPI unit" />
+                        <input class="input" type="text" data-bind="value: unit" placeholder="Enter KPI unit" />
                     </div>
                     <p class="help">ร้อยละ ชั่วโมง จำนวนนับเป็นต้น</p>
                 </div>
                 <div class="field">
                     <label class="label">แหล่งของข้อมูล</label>
                     <div class="control">
-                        <textarea class="textarea" type="text" placeholder="Enter KPI data sources"></textarea>
+                        <textarea class="textarea" type="text" data-bind="value: source"
+                            placeholder="Enter KPI data sources"></textarea>
                     </div>
                     <p class="help">ร้อยละ ชั่วโมง จำนวนนับเป็นต้น</p>
                 </div>
             </div>
         </div>
-    </div>
-    <div class="column is-one-third">
         <div class="card">
             <div class="card-content">
                 <div class="field">
+                    <label class="label">ข้อมูลพร้อมใช้งานหรือไม่</label>
+                    <div class="control">
+                        <label class="radio">
+                            <input type="radio" name="available" data-bind="checked: available" value="yes">
+                            Yes
+                        </label>
+                        <label class="radio">
+                            <input type="radio" name="available" data-bind="checked: available" value="no">
+                            No
+                        </label>
+                    </div>
+                </div>
+
+                <div class="field">
                     <label class="label">ความพร้อมใช้ของข้อมูล (availability)</label>
                     <div class="control">
-                        <textarea class="textarea" type="text" placeholder="Enter KPI data availability"></textarea>
+                        <textarea class="textarea" type="text" data-bind="value: availability"
+                                  placeholder="Enter KPI data availability"></textarea>
                     </div>
                     <p class="help">เช่น เก็บโดยอัตโนมัติ หรือ ต้องใช้กระบวนการที่ซับซ้อน เป็นตัน</p>
                 </div>
                 <div class="field">
                     <label class="label">นิยาม สูตรการคิดตัวชี้วัด</label>
                     <div class="control">
-                        <input class="input" type="text" placeholder="Enter KPI definition" />
+                        <input class="input" type="text" data-bind="value: formula"
+                               placeholder="Enter KPI definition" />
                     </div>
                 </div>
                 <div class="field">
-                    <label class="label">สมมติฐาน</label>
+                    <label class="label">หมายเหตุหรือสมมติฐาน</label>
                     <div class="control">
-                        <textarea class="textarea" type="text" placeholder="Enter KPI assumption"></textarea>
+                        <textarea class="textarea" type="text" data-bind="value: note"
+                                  placeholder="Enter KPI note or assumption"></textarea>
                     </div>
                 </div>
             </div>
@@ -80,38 +96,45 @@
                 <div class="field">
                     <label class="label">เป้าหมาย</label>
                     <div class="control">
-                        <input class="input" type="text" placeholder="Enter KPI target"></input>
+                        <input class="input" type="text" data-bind="value: target"
+                               placeholder="Enter KPI target"></input>
                     </div>
                 </div>
                 <div class="field">
                     <label class="label">หลักการ ที่มาของเป้าหมาย</label>
                     <div class="control">
-                        <textarea class="textarea" type="text" placeholder="Enter KPI rationale"></textarea>
+                        <textarea class="textarea" type="text" data-bind="value: target_source"
+                                  placeholder="Enter KPI rationale"></textarea>
                     </div>
                 </div>
                 <div class="field">
                     <label class="label">ผู้รับผิดชอบในการทำให้บรรลุเป้าหมาย</label>
                     <div class="control">
-                        <input class="input" type="text" placeholder="Enter KPI target accountable"></input>
+                        <input class="input" type="text" data-bind="value: target_account"
+                               placeholder="Enter KPI target accountable"></input>
                     </div>
                     <p class="help">หากมีหลายคนคั่นด้วย "," เช่น likit.pre,lertyot.tre</p>
                 </div>
                 <div class="field">
                     <label class="label">ผู้ประสานงานในการติดตามเป้าหมาย และรายงาน</label>
                     <div class="control">
-                        <input class="input" type="text" placeholder="Enter KPI target tracking and reporting"></input>
+                        <input class="input" type="text" data-bind="value: target_reporter"
+                               placeholder="Enter KPI target tracking and reporting"></input>
                     </div>
                     <p class="help">หากมีหลายคนคั่นด้วย "," เช่น likit.pre,lertyot.tre</p>
                 </div>
                 <div class="field">
                     <label class="label">ผู้รับผิดชอบในการตั้งเป้าหมาย</label>
                     <div class="control">
-                        <input class="input" type="text" placeholder="Enter KPI target setting"></input>
+                        <input class="input" type="text" data-bind="value: target_setter"
+                               placeholder="Enter KPI target setting"></input>
                     </div>
                     <p class="help">หากมีหลายคนคั่นด้วย "," เช่น likit.pre,lertyot.tre</p>
                 </div>
             </div>
         </div>
+    </div>
+    <div class="column is-one-third">
         <div class="card">
             <div class="card-header">
                 <div class="card-header-title">Reporting the KPI</div>
@@ -120,30 +143,92 @@
                 <div class="field">
                     <label class="label">ผู้รับผิดชอบในการรายงานตัวชี้วัด</label>
                     <div class="control">
-                        <input class="input" type="text" placeholder="Enter a person accountable"></input>
+                        <input class="input" type="text" data-bind="value: account"
+                            placeholder="Enter a person accountable"></input>
                     </div>
                     <p class="help">หากมีหลายคนคั่นด้วย "," เช่น likit.pre,lertyot.tre</p>
                 </div>
                 <div class="field">
                     <label class="label">ผู้ประสานงานในการรายงานตัวชี้วัด</label>
                     <div class="control">
-                        <input class="input" type="text" placeholder="Enter a person responsible"></input>
+                        <input class="input" type="text" data-bind="value: reporter"
+                            placeholder="Enter a person responsible"></input>
                     </div>
                     <p class="help">หากมีหลายคนคั่นด้วย "," เช่น likit.pre,lertyot.tre</p>
                 </div>
                 <div class="field">
                     <label class="label">ที่ปรึกษา</label>
                     <div class="control">
-                        <input class="input" type="text" placeholder="Enter a person consulted"></input>
+                        <input class="input" type="text" data-bind="value: consult"
+                            placeholder="Enter a person consultant"></input>
                     </div>
                     <p class="help">หากมีหลายคนคั่นด้วย "," เช่น likit.pre,lertyot.tre</p>
                 </div>
                 <div class="field">
                     <label class="label">ผู้รับรายงาน</label>
                     <div class="control">
-                        <input class="input" type="text" placeholder="Enter a person informed"></input>
+                        <input class="input" type="text" data-bind="value: informed"
+                            placeholder="Enter a person informed"></input>
                     </div>
                     <p class="help">หากมีหลายคนคั่นด้วย "," เช่น likit.pre,lertyot.tre</p>
+                </div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-header-title">KPI Performance</div>
+            </div>
+            <div class="card-content">
+                <div class="field">
+                    <label class="label">ผู้รับผิดชอบประสิทธิภาพตัวชี้วัด</label>
+                    <div class="control">
+                        <input class="input" type="text" data-bind="value: pfm_account"
+                               placeholder="Enter KPI performance accountable"></input>
+                    </div>
+                </div>
+            </div>
+            <div class="card-content">
+                <div class="field">
+                    <label class="label">ผู้ประสานงานประสิทธิภาพตัวชี้วัด</label>
+                    <div class="control">
+                        <input class="input" type="text" data-bind="value: pfm_responsible"
+                               placeholder="Enter KPI performance responsible"></input>
+                    </div>
+                </div>
+            </div>
+            <div class="card-content">
+                <div class="field">
+                    <label class="label">ที่ปรึกษาด้านประสิทธิภาพตัวชี้วัด</label>
+                    <div class="control">
+                        <input class="input" type="text" data-bind="value: pfm_consult"
+                               placeholder="Enter KPI performance consultant"></input>
+                    </div>
+                </div>
+            </div>
+            <div class="card-content">
+                <div class="field">
+                    <label class="label">ผู้รับรายงานประสิทธิภาพตัวชี้วัด</label>
+                    <div class="control">
+                        <input class="input" type="text" data-bind="value: pfm_informed"
+                               placeholder="Enter an informed person"></input>
+                    </div>
+                </div>
+            </div>
+            <div class="card-content">
+                <div class="field">
+                    <div class="control">
+                        <label class="label">แก้ไขโดย</label>
+                        <input class="input" id="updater" required pattern="\w+\.\w{3}"></input>
+                        <p class="help is-danger" id="updater-help">กรุณากรอกข้อมูลผู้แก้ไข</p>
+                    </div>
+                </div>
+                <div class="field is-grouped">
+                    <div class="control">
+                        <button class="button is-link" id="submit_button">Submit</button>
+                    </div>
+                    <div class="control">
+                        <button class="button is-text">Cancel</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -153,19 +238,25 @@
 {% endblock %}
 {% block scripts %}
 {{super()}}
-<script>
-    /*
-    var viewModel = function() {
-        var self = this;
-        self.kpi = {{ kpi|tojson|safe }};
-        self.kpiName = ko.observable(self.kpi.name);
-        self.refNo = ko.observable(self.kpi.refno);
-        self.frequency = ko.observable(self.kpi.frequency);
-        self.unit = ko.observable(self.kpi.unit);
-    };
-    */
+<script type="text/javascript">
     var vm = ko.mapping.fromJS({{ kpi|tojson|safe }});
     ko.applyBindings(vm);
+    var updater = document.getElementById('updater');
+    $("#updater-help").hide();
+    $("#submit_button").click(function() {
+        if (!updater.checkValidity()) {
+            $("#updater-help").show();
+        }
+        $.ajax({
+            url: "{{ url_for('kpi.edit_kpi_json') }}",
+            dataType: 'json',
+            type: 'post',
+            contentType: 'application/json',
+            data: JSON.stringify(ko.mapping.toJS(vm)),
+            success: function(data, textStatus) {
+            }
+        });
+    });
 </script>
 </section>
 {% endblock %}
