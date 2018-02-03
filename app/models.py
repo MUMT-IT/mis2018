@@ -75,6 +75,7 @@ class KPI(db.Model):
     created_by = db.Column('created_by', db.String())
     created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
     updated_at = db.Column('updated_at', db.DateTime(), server_default=func.now())
+    updated_by = db.Column('updated_by', db.String())
     name = db.Column('name', db.String, nullable=False)
     refno = db.Column('refno', db.String())
     intent = db.Column('intent', db.String())
