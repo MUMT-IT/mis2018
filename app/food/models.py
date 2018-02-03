@@ -82,15 +82,11 @@ class Produce(db.Model):
     __tablename__ = 'food_produces'
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(), nullable=False)
-    produce_breed_id = db.Column('produce_breed_id',
-                                 db.Integer(),
-                                 db.ForeignKey('food_produce_breeds.id'))
-    breed = db.relationship('ProduceBreed',
-                            backref=db.backref('produce'),
-                            uselist=False)
+    breeds = db.relationship('ProduceBreed', backref=db.backref('produce'))
 
 
 class ProduceBreed(db.Model):
     __tablename__ = 'food_produce_breeds'
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(), nullable=False)
+    produce_id = db.Column('produce_id', db.ForeignKey('food_produces.id'))
