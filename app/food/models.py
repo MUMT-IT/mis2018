@@ -50,7 +50,7 @@ class Farm(db.Model):
                                db.ForeignKey('subdistricts.id'))
     created_at = db.Column(db.DateTime(), default=datetime.utcnow)
     sample_lots = db.relationship('SampleLot', backref=db.backref('farm'))
-    produce = db.relationship('Produce', secondary=produce_and_farm,
+    produce = db.relationship('GrownProduce', secondary=produce_and_farm,
                               backref=db.backref('farms'))
 
     def ref_id(self):
@@ -90,6 +90,8 @@ class Produce(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(), nullable=False)
     breeds = db.relationship('ProduceBreed', backref=db.backref('produce'))
+    grown_produces = db.relationship('GrownProduce',
+                                     backref=db.backref('produce'))
 
 
 class ProduceBreed(db.Model):
@@ -97,6 +99,8 @@ class ProduceBreed(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(), nullable=False)
     produce_id = db.Column('produce_id', db.ForeignKey('food_produces.id'))
+    grown_produces = db.relationship('GrownProduce',
+                                     backref=db.backref('breed'))
 
 
 class GrownProduce(db.Model):
