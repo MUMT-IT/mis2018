@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Add New Farm Information{% endblock %}
+{% include "food/nav.html" %}
 {% block page_content %}
 <section class="section">
   <h1 class="title">ข้อมูลแปลงเกษตร</h1>
@@ -37,9 +38,7 @@
         </td>
         <td>
           <a href="{{ url_for('food.list_sample_lots', farm_id=farm.id) }}">
-          <span class="icon">
-            <i class="fa fa-list-ol"></i>
-          </span>
+              {{ farm.sample_lots|length }}
           </a>
         </td>
         <td>
@@ -54,10 +53,5 @@
       {% endfor %}
     </tbody>
   </table>
-</section>
-<section>
-  <div class="container">
-    <a href="{{ url_for('food.index') }}">กลับหน้าหลัก</a>
-  </div>
 </section>
 {% endblock %}

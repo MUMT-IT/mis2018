@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Sample Lots List{% endblock %}
+{% include "food/nav.html" %}
 {% block page_content %}
 <section class="section">
 <h1 class="title">รายการล็อตสิ่งส่งตรวจ</h1>
@@ -43,10 +44,5 @@
   {% endfor %}
   </table>
 </div>
-</section>
-<section>
-  <div class="container">
-    <a href="{{ url_for('food.index') }}"><< หน้าหลัก</a>
-  </div>
 </section>
 {% endblock %}

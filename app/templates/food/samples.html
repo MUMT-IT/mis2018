@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Sample List{% endblock %}
+{% include "food/nav.html" %}
 {% block page_content %}
 <section class="section">
 <h1 class="title">รายการสิ่งส่งตรวจ</h1>
@@ -48,7 +49,11 @@
 </section>
 <section>
   <div class="container">
-    <a href="{{ url_for('food.list_sample_lots', farm_id=farm.id) }}"><< หน้าก่อนนี้</a>
+    <a href="{{ url_for('food.list_sample_lots', farm_id=farm.id) }}">
+      <span class="icon">
+        <i class="fa fa-chevron-left"></i>
+      </span> หน้าก่อนนี้
+    </a>
   </div>
 </section>
 {% endblock %}

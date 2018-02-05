@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Add New Farm Information{% endblock %}
+{% include "food/nav.html" %}
 {% block page_content %}
 <section class="section">
-  <h1 class="title">โครงการเกษตรอาหารปลอดภัย คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
   <ul>
     <li>
       <a href="{{ url_for('food.add_farm_owner') }}">
