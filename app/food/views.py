@@ -204,6 +204,20 @@ def list_owned_farm(owner_id):
     return render_template('food/farms.html', owner=owner, farms=farms)
 
 
+@food.route('/farm/<int:farm_id>/info/')
+def display_farm_info(farm_id):
+    farm = Farm.query.get(farm_id)
+    province = Province.query.get(farm.province_id)
+    district = District.query.get(farm.district_id)
+    subdistrict = Subdistrict.query.get(farm.subdistrict_id)
+    return render_template('food/farm_info.html',
+                           farm=farm,
+                           subdistrict=subdistrict,
+                           district=district,
+                           province=province
+                           )
+
+
 @food.route('/farm/<int:farm_id>/tests/lots/')
 def list_sample_lots(farm_id):
     farm = Farm.query.get(farm_id)
