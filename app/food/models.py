@@ -7,6 +7,11 @@ person_and_farm = db.Table('food_person_and_farm',
                            db.Column('farm_id', db.Integer(), db.ForeignKey('food_farms.id'))
                            )
 
+produce_and_farm = db.Table('food_produce_and_farm',
+                            db.Column('farm_id', db.Integer(), db.ForeignKey('food_farms.id')),
+                            db.Column('produce_id', db.Integer(), db.ForeignKey('food_produces.id'))
+                            )
+
 
 class Person(db.Model):
     __tablename__ = 'food_persons'
@@ -45,6 +50,8 @@ class Farm(db.Model):
                                db.ForeignKey('subdistricts.id'))
     created_at = db.Column(db.DateTime(), default=datetime.utcnow)
     sample_lots = db.relationship('SampleLot', backref=db.backref('farm'))
+    produce = db.relationship('Produce', secondary=produce_and_farm,
+                              backref=db.backref('farms'))
 
     def ref_id(self):
         return u'{:04}-{:02}-{:02}-{:02}'.format(self.id, self.province_id,
