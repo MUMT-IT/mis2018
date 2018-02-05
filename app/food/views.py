@@ -8,7 +8,21 @@ from ..main import db
 
 @food.route('/')
 def index():
-    return render_template('food/index.html')
+    farms = []
+    for farm in db.session.query(Farm).order_by(db.desc(Farm.created_at))[:10]:
+        subdistrict = Subdistrict.query.get(farm.subdistrict_id).name
+        district = District.query.get(farm.district_id).name
+        province = Province.query.get(farm.province_id).name
+        farms.append({
+            'id': farm.id,
+            'ref_id': farm.ref_id(),
+            'sample_lots': farm.sample_lots,
+            'street': farm.street,
+            'subdistrict': subdistrict,
+            'district': district,
+            'province': province
+        })
+    return render_template('food/index.html', farms=farms)
 
 
 @food.route('/farm/add/', methods=['POST', 'GET'])
