@@ -328,8 +328,13 @@ def add_toxicology_results(farm_id, lot_id, sample_id):
                            sample=sample)
 
 
-@food.route('/farm/produce/')
+@food.route('/farm/produce/', methods=['POST', 'GET'])
 def list_produce():
+    if request.method == 'POST':
+        produce = request.form.get('produce')
+        if produce:
+            db.session.add(Produce(name=produce))
+            db.session.commit()
     all_produce = Produce.query.all()
     return render_template('food/list_produce.html',
                            all_produce=all_produce)

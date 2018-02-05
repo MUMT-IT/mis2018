@@ -38,5 +38,15 @@
         </tr>
         {% endfor %}
     </table>
+    <form method="post">
+        <div class="field is-grouped">
+            <div class="control">
+                <input class="input" type="text" name="produce" placeholder="รายการใหม่" required>
+            </div>
+            <div class="control">
+                <button class="button is-primary" type="submit" value="submit">เพิ่มรายการ</button>
+            </div>
+        </div>
+    </form>
 </section>
 {% endblock %}
