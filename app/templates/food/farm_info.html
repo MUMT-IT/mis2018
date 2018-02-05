@@ -20,25 +20,17 @@
                 <th>No.</th>
                 <th>ชนิด</th>
                 <th>สายพันธุ์</th>
+                <th>พื้นที่เพาะปลูก</th>
             </tr>
         </thead>
         <tbody>
-        {% for produce in farm.produce %}
-            {% if produce.breeds %}
-            {% for breed in produce.breeds %}
+        {% for grown_produce in farm.produce %}
             <tr>
                 <td>{{ loop.index }}</td>
-                <td>{{ produce.name }}</td>
-                <td>{{ breed.name }}</td>
+                <td>{{ grown_produce.produce.name }}</td>
+                <td>{{ grown_produce.breed.name }}</td>
+                <td>{{ grown_produce.estimated_area }}</td>
             </tr>
-            {% endfor %}
-            {% else %}
-            <tr>
-                <td>{{ loop.index }}</td>
-                <td>{{ produce.name }}</td>
-                <td>-</td>
-            </tr>
-            {% endif %}
         {% endfor %}
         </tbody>
     </table>
