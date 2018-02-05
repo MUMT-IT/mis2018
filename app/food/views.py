@@ -250,6 +250,7 @@ def list_owned_farm(owner_id):
             'ref_id': farm.ref_id(),
             'street': farm.street,
             'total_size': farm.estimated_total_size,
+            'sample_lots': farm.sample_lots,
             'province': Province.query.get(farm.province_id).name,
             'district': District.query.get(farm.district_id).name,
             'subdistrict': Subdistrict.query.get(farm.subdistrict_id).name,
