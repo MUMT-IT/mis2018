@@ -14,7 +14,7 @@
 {% endif %}
 <div class="columns">
   <form method="post">
-  <div class="column is-two-thirds">
+  <div class="column">
     <div class="control">
       <input class="input" type="hidden" name="owner_id" value="{{ owner.id }}">
     </div>
@@ -53,7 +53,7 @@
       <div class="field-body">
         <div class="field is-grouped">
           <div class="control is-expanded">
-            <div class="select">
+            <div class="select is-rounded">
                 <select name="province" data-bind="options: provinces,
                                     optionsText: 'name',
                                     optionsValue: 'id',
@@ -63,7 +63,7 @@
             </div>
           </div>
           <div class="control is-expanded">
-            <div class="select">
+            <div class="select is-rounded">
               <select name="district" data-bind="options: local_districts,
                                   optionsText: 'name',
                                   optionsValue: 'id',
@@ -73,7 +73,7 @@
             </div>
           </div>
           <div class="control is-expanded">
-            <div class="select">
+            <div class="select is-rounded">
               <select name="subdistrict" data-bind="options: local_subdistricts,
                                   optionsText: 'name',
                                   optionsValue: 'id',
@@ -93,7 +93,7 @@
       <div class="field-body">
         <div class="field">
           <div class="control">
-            <div class="select">
+            <div class="select is-rounded">
               <select name="agritype" data-bind="options: agritypes,
                                   optionsText: 'name',
                                   optionsValue: 'id',
@@ -154,6 +154,32 @@
 
     <div class="field is-horizontal">
       <div class="field-label">
+        <label class="label">ผลผลิตทางการเกษตร</label>
+      </div>
+      <div class="field-body">
+        <div class="field">
+          <div class="control">
+              <div class="select is-multiple">
+                  <select multiple name="selected_produce">
+                    {% for prod in produce %}
+                    <option value="{{ prod['ref'] }}">{{ prod['name'] }} {% if prod['breed'] %} ({{ prod['breed'] }}) {% endif %}</option>
+                    {% endfor %}
+                  </select>
+              </div>
+          </div>
+        </div> <!-- field -->
+      </div> <!-- field-body -->
+    </div> <!-- field-horizontal -->
+    <div>
+      <table>
+        <tr>
+          <td></td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="field is-horizontal">
+      <div class="field-label">
       </div>
       <div class="field-body">
         <div class="field is-grouped">
@@ -166,6 +192,7 @@
         </div> <!-- field -->
       </div> <!-- field-body -->
     </div> <!-- field-horizontal -->
+
 
   </div> <!-- column -->
   </form>

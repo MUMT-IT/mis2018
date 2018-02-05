@@ -9,7 +9,7 @@ person_and_farm = db.Table('food_person_and_farm',
 
 produce_and_farm = db.Table('food_produce_and_farm',
                             db.Column('farm_id', db.Integer(), db.ForeignKey('food_farms.id')),
-                            db.Column('produce_id', db.Integer(), db.ForeignKey('food_produces.id'))
+                            db.Column('produce_id', db.Integer(), db.ForeignKey('food_grown_produces.id'))
                             )
 
 
@@ -97,3 +97,12 @@ class ProduceBreed(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(), nullable=False)
     produce_id = db.Column('produce_id', db.ForeignKey('food_produces.id'))
+
+
+class GrownProduce(db.Model):
+    __tablename__ = 'food_grown_produces'
+    id = db.Column(db.Integer(), primary_key=True)
+    produce_id = db.Column(db.Integer(), db.ForeignKey('food_produces.id'))
+    breed_id = db.Column(db.Integer(), db.ForeignKey('food_produce_breeds.id'))
+    farm_id = db.Column(db.Integer(), db.ForeignKey('food_farms.id'))
+    estimated_area = db.Column(db.Integer(), nullable=True)
