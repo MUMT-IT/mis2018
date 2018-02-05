@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from flask import render_template, request, redirect, url_for
 from . import foodbp as food
-from models import Person, Farm, AgriType, SampleLot, Produce, Sample
+from models import Person, Farm, AgriType, SampleLot, Produce, Sample, ProduceBreed, GrownProduce
 from ..models import Province, District, Subdistrict
 from ..main import db
 
@@ -15,16 +15,17 @@ def index():
 def add_farm():
     errors = []
     if request.method == 'POST':
-        street_addr = request.form.get('street_address', '')
-        village = request.form.get('village', '')
-        province_id = request.form.get('province', '')
-        district_id = request.form.get('district', '')
-        subdistrict_id = request.form.get('subdistrict', '')
-        owner_id = request.form.get('owner_id', '')
-        total_size = request.form.get('total_size', '')
-        total_owned_size = request.form.get('total_owned_size', '')
-        total_leased_size = request.form.get('total_leased_size', '')
-        agritype_id = request.form.get('agritype', '')
+        street_addr = request.form.get('street_address')
+        village = request.form.get('village')
+        province_id = request.form.get('province')
+        district_id = request.form.get('district')
+        subdistrict_id = request.form.get('subdistrict')
+        owner_id = request.form.get('owner_id')
+        total_size = request.form.get('total_size')
+        total_owned_size = request.form.get('total_owned_size')
+        total_leased_size = request.form.get('total_leased_size')
+        agritype_id = request.form.get('agritype')
+        produce = request.form.getlist('selected_produce')
 
         if not street_addr:
             errors.append(u'โปรดระบุที่อยู่ของแปลงเกษตร')
@@ -52,6 +53,16 @@ def add_farm():
                         estimated_owned_size=float(total_owned_size),
                         agritype_id=int(agritype_id),
                         )
+            for prod in produce:
+                prod_id, bred_id = map(int, prod.split(','))
+                p = Produce.query.get(prod_id)
+                b = ProduceBreed.query.get(bred_id)
+                if p and b:
+                    gp = GrownProduce(produce=p, breed=b)
+                elif p:
+                    gp = GrownProduce(produce=p, breed=b)
+                farm.produce.append(gp)
+
             db.session.add(farm)
             owner.farms.append(farm)
             db.session.commit()
@@ -98,13 +109,36 @@ def add_farm():
             'desc': ag.desc
         })
 
+    produce = []
+    for prod in Produce.query.all():
+        if prod.breeds:
+            for breed in prod.breeds:
+                produce.append({
+                    'id': prod.id,
+                    'name': prod.name,
+                    'breed': breed.name,
+                    'breed_id': breed.id,
+                    'ref': u'{},{}'.format(prod.id, breed.id)
+                })
+        else:
+            produce.append({
+                'id': prod.id,
+                'name': prod.name,
+                'breed': '',
+                'breed_id': 0,
+                'ref': u'{},0'.format(prod.id)
+            })
+
+    produce = sorted(produce, key=lambda x: x['name'])
+
     return render_template('food/add_farm.html',
                            provinces=provinces,
                            districts=districts,
                            subdistricts=subdistricts,
                            agritypes=agritypes,
                            owner=owner,
-                           errors=errors)
+                           errors=errors,
+                           produce=produce)
 
 
 @food.route('/farm/owner/add/', methods=['GET', 'POST'])
