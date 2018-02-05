@@ -81,8 +81,8 @@ class Sample(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     lot_id = db.Column('lot_id',
                        db.Integer(), db.ForeignKey('food_sample_lots.id'))
-    produce_id = db.Column('produce_id',
-                           db.Integer(), db.ForeignKey('food_produces.id'))
+    produce_id = db.Column('grown_produce_id',
+                           db.Integer(), db.ForeignKey('food_grown_produces.id'))
 
 
 class Produce(db.Model):
