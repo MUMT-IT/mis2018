@@ -108,5 +108,4 @@ class GrownProduce(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     produce_id = db.Column(db.Integer(), db.ForeignKey('food_produces.id'))
     breed_id = db.Column(db.Integer(), db.ForeignKey('food_produce_breeds.id'))
-    farm_id = db.Column(db.Integer(), db.ForeignKey('food_farms.id'))
     estimated_area = db.Column(db.Integer(), nullable=True)
