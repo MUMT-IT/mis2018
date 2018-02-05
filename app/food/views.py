@@ -5,6 +5,7 @@ from models import Person, Farm, AgriType, SampleLot, Produce, Sample
 from ..models import Province, District, Subdistrict
 from ..main import db
 
+
 @food.route('/')
 def index():
     return render_template('food/index.html')
@@ -42,15 +43,15 @@ def add_farm():
         if not errors:
             owner = Person.query.get(int(owner_id))
             farm = Farm(street=street_addr,
-                    province_id=int(province_id),
-                    district_id=int(district_id),
-                    subdistrict_id=int(subdistrict_id),
-                    village=village,
-                    estimated_total_size=float(total_size),
-                    estimated_leased_size=float(total_leased_size),
-                    estimated_owned_size=float(total_owned_size),
-                    agritype_id=int(agritype_id),
-                    )
+                        province_id=int(province_id),
+                        district_id=int(district_id),
+                        subdistrict_id=int(subdistrict_id),
+                        village=village,
+                        estimated_total_size=float(total_size),
+                        estimated_leased_size=float(total_leased_size),
+                        estimated_owned_size=float(total_owned_size),
+                        agritype_id=int(agritype_id),
+                        )
             db.session.add(farm)
             owner.farms.append(farm)
             db.session.commit()
@@ -70,7 +71,7 @@ def add_farm():
             'name': pv.name,
             'id': pv.id,
             'code': pv.code
-            })
+        })
 
     for ds in District.query.all():
         districts.append({
@@ -78,32 +79,32 @@ def add_farm():
             'id': ds.id,
             'code': ds.code,
             'province_id': ds.province_id
-            })
+        })
     for sd in Subdistrict.query.all():
         subdistricts.append({
             'name': sd.name,
             'id': sd.id,
             'code': sd.code,
             'district_id': sd.district_id
-            })
+        })
     provinces = sorted(provinces, key=lambda x: x['name'])
     districts = sorted(districts, key=lambda x: x['name'])
     subdistricts = sorted(subdistricts, key=lambda x: x['name'])
     agritypes = []
     for ag in AgriType.query.all():
         agritypes.append({
-        'name': ag.name,
-        'id': ag.id,
-        'desc': ag.desc
+            'name': ag.name,
+            'id': ag.id,
+            'desc': ag.desc
         })
 
     return render_template('food/add_farm.html',
-            provinces=provinces,
-            districts=districts,
-            subdistricts=subdistricts,
-            agritypes=agritypes,
-            owner=owner,
-            errors=errors)
+                           provinces=provinces,
+                           districts=districts,
+                           subdistricts=subdistricts,
+                           agritypes=agritypes,
+                           owner=owner,
+                           errors=errors)
 
 
 @food.route('/farm/owner/add/', methods=['GET', 'POST'])
@@ -142,15 +143,15 @@ def add_samplelot(farm_id):
             errors.append(u'โปรดกรอกข้อมูลวันที่เก็บผลผลิต')
         else:
             lot = SampleLot(
-                    collected_at=collected_date,
-                    farm_id=farm_id)
+                collected_at=collected_date,
+                farm_id=farm_id)
             db.session.add(lot)
             db.session.commit()
             return redirect(url_for('food.index'))
 
     farm = Farm.query.get(farm_id)
     return render_template('food/add_samplelot.html',
-                    farm=farm, errors=errors)
+                           farm=farm, errors=errors)
 
 
 @food.route('/farm/<int:farm_id>/tests/lots/<int:lot_id>/add/', methods=['POST', 'GET'])
@@ -169,22 +170,21 @@ def add_sample(farm_id, lot_id):
     farm = Farm.query.get(farm_id)
     lot = SampleLot.query.get(lot_id)
     produces = []
-    for p in  Produce.query.all():
+    for p in Produce.query.all():
         produces.append({
             'id': p.id,
             'name': p.name
         })
 
     return render_template('food/add_sample.html',
-                farm=farm, lot=lot, produces=produces)
-
+                           farm=farm, lot=lot, produces=produces)
 
 
 @food.route('/farm/owner/')
 def list_owners():
     owners = db.session.query(Person).order_by(Person.created_at)
     return render_template('food/owners.html',
-            owners=owners)
+                           owners=owners)
 
 
 @food.route('/farm/owned/<int:owner_id>/')
@@ -200,7 +200,7 @@ def list_owned_farm(owner_id):
             'province': Province.query.get(farm.province_id).name,
             'district': District.query.get(farm.district_id).name,
             'subdistrict': Subdistrict.query.get(farm.subdistrict_id).name,
-            })
+        })
     return render_template('food/farms.html', owner=owner, farms=farms)
 
 
@@ -222,7 +222,7 @@ def list_samples(farm_id, lot_id):
             'produce': produce.name
         })
     return render_template('food/samples.html',
-            farm=farm, lot=lot, samples=samples)
+                           farm=farm, lot=lot, samples=samples)
 
 
 @food.route('/farm/<int:farm_id>/lots/<int:lot_id>/samples/<int:sample_id>/tests/pesticides/add/')
@@ -231,7 +231,7 @@ def add_pesticide_results(farm_id, lot_id, sample_id):
     lot = SampleLot.query.get(lot_id)
     sample = Sample.query.get(sample_id)
     return render_template('food/pest_results.html', farm=farm, lot=lot,
-            sample=sample)
+                           sample=sample)
 
 
 @food.route('/farm/<int:farm_id>/lots/<int:lot_id>/samples/<int:sample_id>/tests/parasites/add/')
@@ -240,7 +240,7 @@ def add_parasite_results(farm_id, lot_id, sample_id):
     lot = SampleLot.query.get(lot_id)
     sample = Sample.query.get(sample_id)
     return render_template('food/parasit_results.html', farm=farm, lot=lot,
-            sample=sample)
+                           sample=sample)
 
 
 @food.route('/farm/<int:farm_id>/lots/<int:lot_id>/samples/<int:sample_id>/tests/bacteria/add/')
@@ -249,7 +249,8 @@ def add_bacteria_results(farm_id, lot_id, sample_id):
     lot = SampleLot.query.get(lot_id)
     sample = Sample.query.get(sample_id)
     return render_template('food/bact_results.html', farm=farm, lot=lot,
-            sample=sample)
+                           sample=sample)
+
 
 @food.route('/farm/<int:farm_id>/lots/<int:lot_id>/samples/<int:sample_id>/tests/toxicology/add/')
 def add_toxicology_results(farm_id, lot_id, sample_id):
@@ -257,7 +258,14 @@ def add_toxicology_results(farm_id, lot_id, sample_id):
     lot = SampleLot.query.get(lot_id)
     sample = Sample.query.get(sample_id)
     return render_template('food/toxico_results.html', farm=farm, lot=lot,
-            sample=sample)
+                           sample=sample)
+
+
+@food.route('/farm/produce/')
+def list_produce():
+    all_produce = Produce.query.all()
+    return render_template('food/list_produce.html',
+                           all_produce=all_produce)
 
 
 @food.route('/farm/produce/add', methods=['POST', 'GET'])
