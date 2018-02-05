@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Add New Sample{% endblock %}
+{% block page_content %}
+<section class="section">
+    <h1 class="title">เพิ่มสิ่งส่งตรวจ</h1>
+    {% for error in errors %}
+    <div class="notification is-danger">
+        <p>{{ error }}</p>
+    </div>
+    {% endfor %}
+    <div class="columns">
+        <div class="column is-one-third">
+            <form method="post">
+                <div class="field">
+                  <label class="label">ชนิดผักหรือผลไม้</label>
+                  <div class="control">
+                    <input class="input" type="text" required name="produce_name"
+                        placeholder="Generic name of vegetable or fruit">
+                  </div>
+                </div>
+                <div class="field is-grouped">
+                  <div class="control">
+                    <button class="button is-link" type="submit">Submit</button>
+                  </div>
+                  <div class="control">
+                    <button class="button is-danger" type="reset">Clear</button>
+                  </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

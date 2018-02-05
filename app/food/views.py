@@ -258,3 +258,20 @@ def add_toxicology_results(farm_id, lot_id, sample_id):
     sample = Sample.query.get(sample_id)
     return render_template('food/toxico_results.html', farm=farm, lot=lot,
             sample=sample)
+
+
+@food.route('/farm/produce/add', methods=['POST', 'GET'])
+def add_produce():
+    errors = []
+    if request.method == 'POST':
+        pname = request.form['produce_name']
+        produce = db.session.query(Produce).filter_by(name=pname).first()
+        if produce:
+            errors.append(u'{} มีในฐานข้อมูลแล้ว กรุณาเพิ่มรายการใหม่'.format(pname))
+            print(errors)
+        else:
+            new_produce = Produce(name=pname)
+            db.session.add(new_produce)
+            db.session.commit()
+            return redirect(url_for('food.index'))
+    return render_template('food/add_produce.html', errors=errors)
