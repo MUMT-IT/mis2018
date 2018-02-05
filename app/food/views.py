@@ -193,6 +193,11 @@ def add_samplelot(farm_id):
             lot = SampleLot(
                 collected_at=collected_date,
                 farm_id=farm_id)
+            farm = Farm.query.get(farm_id)
+            for grown_produce in farm.produce:
+                # automatically adds samples from all grown produce
+                sample = Sample(produce=grown_produce)
+                lot.samples.append(sample)
             db.session.add(lot)
             db.session.commit()
             return redirect(url_for('food.index'))

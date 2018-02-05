@@ -109,3 +109,4 @@ class GrownProduce(db.Model):
     produce_id = db.Column(db.Integer(), db.ForeignKey('food_produces.id'))
     breed_id = db.Column(db.Integer(), db.ForeignKey('food_produce_breeds.id'))
     estimated_area = db.Column(db.Integer(), nullable=True)
+    samples = db.relationship('Sample', backref=db.backref('produce'))
