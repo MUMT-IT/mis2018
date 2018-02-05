@@ -21,5 +21,54 @@
       </a>
     </li>
   </ul>
+  <br>
+  <hr>
+  <h1 class="title is-5">รายการแปลงเกษตรล่าสุด</h1>
+  <table class="table is-striped">
+    <thead>
+    <tr>
+      <th>ลำดับที่</th>
+      <th>รหัสแปลง</th>
+      <th>บ้านเลขที่</th>
+      <th>ตำบล</th>
+      <th>อำเภอ</th>
+      <th>จังหวัด</th>
+      <th>อื่นๆ</th>
+      <th>จำนวนล็อตสิ่งส่งตรวจ</th>
+      <th>เพิ่มสิ่งส่งตรวจใหม่</th>
+    </tr>
+    <tbody>
+    {% for farm in farms %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{{ farm.ref_id }}</td>
+      <td>{{ farm.street }}</td>
+      <td>{{ farm.subdistrict }}</td>
+      <td>{{ farm.district }}</td>
+      <td>{{ farm.province }}</td>
+      <td>
+        <a href="{{ url_for('food.display_farm_info', farm_id=farm.id) }}">
+          <span class="icon">
+            <i class="fa fa-info-circle"></i>
+          </span>
+        </a>
+      </td>
+      <td>
+        <a href="{{ url_for('food.list_sample_lots', farm_id=farm.id) }}">
+            {{ farm.sample_lots|length }}
+        </a>
+      </td>
+      <td>
+        <a href="{{ url_for('food.add_samplelot', farm_id=farm.id) }}">
+          <span class="icon">
+            <i class="fa fa-plus"></i>
+          </span>
+        </a>
+      </td>
+      <td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
 </section>
 {% endblock %}
