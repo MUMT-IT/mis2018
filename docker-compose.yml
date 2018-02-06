@@ -6,8 +6,10 @@ services:
       - pg
     ports:
       - "5000:5000"
+      - "80:5000"
     environment:
       - FLASK_CONFIG=production
+      - FLASK_APP=app/main.py
     volumes:
       - type: bind
         source: ./app
