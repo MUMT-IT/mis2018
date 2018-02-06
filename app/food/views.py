@@ -284,10 +284,10 @@ def list_samples(farm_id, lot_id):
     lot = SampleLot.query.get(lot_id)
     samples = []
     for s in lot.samples:
-        produce = Produce.query.get(s.produce_id)
+        grown_produce = GrownProduce.query.get(s.produce_id)
         samples.append({
             'id': s.id,
-            'produce': produce.name
+            'produce': grown_produce.produce.name
         })
     return render_template('food/samples.html',
                            farm=farm, lot=lot, samples=samples)
