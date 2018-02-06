@@ -215,8 +215,12 @@ def add_sample(farm_id, lot_id):
         if not produce_id:
             errors.append(u'กรุณาเลือกชนิดของผลผลิต')
         else:
-            sample = Sample(produce_id=produce_id, lot_id=lot_id)
-            db.session.add(sample)
+            lot = SampleLot.query.get(lot_id)
+            p = Produce.query.get(produce_id)
+            gp = GrownProduce(produce=p)
+            sample = Sample(produce=gp)
+            lot.samples.append(sample)
+            db.session.add(lot)
             db.session.commit()
             return redirect(url_for('food.index'))
 
