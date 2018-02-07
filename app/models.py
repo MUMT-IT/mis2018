@@ -141,7 +141,7 @@ class StudentCheckInRecord(db.Model):
     stud_id = db.Column('stud_id', db.ForeignKey('students.id'))
     classchk_id = db.Column('classchk_id', db.Integer(),
                     db.ForeignKey('class_check_in.id'), nullable=False)
-    check_in_time = db.Column('checkin', db.DateTime(), nullable=False)
+    check_in_time = db.Column('checkin', db.DateTime(timezone=True), nullable=False)
     check_in_status = db.Column('status', db.String())
     elapsed_mins = db.Column('elapsed_mins', db.Integer())
 
