@@ -9,6 +9,16 @@ from ..models import (Org, KPI, Strategy, StrategyTactic,
                       StrategyTheme, StrategyActivity, KPISchema)
 
 
+def convert_python_bool(data, key):
+    """Converts Python boolean to Javascript boolean"""
+
+    value = data.get(key, None)
+    if value is None:
+        return None
+    else:
+        return 'true' if value else 'false'
+
+
 @kpi.route('/')
 def main():
     orgs = db.session.query(Org)
@@ -37,14 +47,39 @@ def add_strategy():
                            activities=all_activities)
 
 
-@kpi.route('/edit/<int:kpi_id>')
+@kpi.route('/edit/<int:kpi_id>', methods=['POST', 'GET'])
 def edit(kpi_id):
+    if request.method == 'POST':
+        kpi_data = request.form
+        kpi = KPI.query.get(kpi_id)
+        for k in kpi_data:
+            if k == 'available':
+                available = kpi_data.get(k, None)
+                if available == 'true':
+                    setattr(kpi, k, True)
+                elif available == 'false':
+                    setattr(kpi, k, False)
+                else:
+                    setattr(kpi, k, None)
+                continue
+            if k == 'frequency':
+                frequency = kpi_data.get(k, None)
+                if frequency:
+                    setattr(kpi, k, int(frequency))
+                else:
+                    setattr(kpi, k, None)
+                continue
+            setattr(kpi, k, kpi_data.get(k, None))
+
+        kpi.updated_at = datetime.utcnow()
+
+        db.session.add(kpi)
+        db.session.commit()
+
     kpi = KPI.query.get(kpi_id)
     if not kpi:
         return '<h1>No kpi found</h1>'
-    kpi_schema = KPISchema()
-    return render_template('/kpi/add.html',
-                           kpi=kpi_schema.dump(kpi).data)
+    return render_template('/kpi/add.html', kpi=kpi)
 
 
 @kpi.route('/list/')
@@ -108,6 +143,25 @@ def add_kpi_json():
     db.session.add(strategy_activity)
     db.session.commit()
     return jsonify(newkpi.__dict__)
+
+
+@kpi.route('/api/edit', methods=['POST'])
+def edit_kpi_json():
+    kpi_data = request.get_json()
+    if not kpi_data['updated_by']:
+        # no updater specified
+        return jsonify({'response': {'status': 'error'}})
+
+    kpi_data.pop('created_by')
+    kpi_data.pop('strategy_activity')
+    kpi_data.pop('id')
+    k = KPI.query.get(kpi_data['id'])
+    for key, value in kpi_data.iteritems():
+        setattr(k, key, value)
+
+    # db.session.add(k)
+    # db.session.commit()
+    return jsonify({'response': {'status': 'success'}})
 
 
 @kpi.route('/api/strategy', methods=['POST'])

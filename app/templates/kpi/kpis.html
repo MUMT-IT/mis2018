@@ -7,13 +7,59 @@
         <p class="panel-heading">
             ตัวชี้วัด
         </p>
-        {% for org in orgs %}
-        <a class="panel-block" href="">
-            <span class="panel-icon">
-            <i class="fa fa-address-book"></i>
-            </span>
-            {{ kpi.name }}
-        </a>
+        {% for kpi in kpis %}
+        <div class="panel-block">
+            <table class="table is-striped">
+                <thead>
+                    <tr>
+                        <th>ตัวชี้วัด</th>
+                        <th>เป้าหมาย</th>
+                        <th>ความถี่ในการประเมิน</th>
+                        <th>ผู้รับผิดชอบ</th>
+                        <th>ที่ปรึกษา</th>
+                        <th>ผู้รายงาน</th>
+                        <th>ผู้รับรายงาน</th>
+                        <th>รายละเอียด</th>
+                        <th>ข้อมูลตัวชี้วัด</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            {{ kpi.name }}
+                        </td>
+                        <td>
+                            {{ kpi.target }}
+                        </td>
+                        <td>
+                            {{ kpi.frequency or 'ไม่ระบุ' }}
+                        </td>
+                        <td>
+                            {{ kpi.account or 'ไม่ระบุ' }}
+                        </td>
+                        <td>
+                            {{ kpi.consult or 'ไม่ระบุ' }}
+                        </td>
+                        <td>
+                            {{ kpi.reporter or 'ไม่ระบุ' }}
+                        </td>
+                        <td>
+                            {{ kpi.informed or 'ไม่ระบุ' }}
+                        </td>
+                        <td>
+                            <span class="panel-icon">
+                                <i class="fa fa-info-circle"></i>
+                            </span>
+                        </td>
+                        <td>
+                            <span class="panel-icon">
+                                <i class="fa fa-list-ol"></i>
+                            </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
         {% endfor %}
     </nav>
 </section>
