@@ -68,7 +68,7 @@ from main import db
 from models import Student
 from pandas import read_excel
 def load_students():
-    data = read_excel('studentListClassOf2560.xlsx', header=None,
+    data = read_excel('data/studentListClassOf2560.xlsx', header=None,
         names=['refno', 'uid', 'title', 'firstname', 'lastname'])
     for _, row in data.iterrows():
         student = Student(refno=row['refno'],
