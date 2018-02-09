@@ -149,7 +149,7 @@
         self.allTactics = {{ tactics|tojson|safe }};
         self.allThemes = {{ themes|tojson|safe }};
         self.allActivities = {{ activities|tojson|safe }};
-        self.allKpis = {{ kpis|tojson|safe }};
+        self.allKpis = ko.observableArray({{ kpis|tojson|safe }});
 
         self.currentTactic = ko.observable();
         self.currentTheme = ko.observable();
@@ -202,7 +202,7 @@
         });
         self.kpis = ko.computed(function() {
             var tmp = [];
-            $.each(self.allKpis, function(idx, kpi) {
+            $.each(self.allKpis(), function(idx, kpi) {
                 console.log(kpi.strategy_activity, self.currentActivity().id)
                 if (kpi.strategy_activity===self.currentActivity().id) {
                         tmp.push(kpi);
