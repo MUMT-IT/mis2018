@@ -40,7 +40,7 @@
     </table>
     </div>
     <div class="box">
-      <p class="has-text-centered notification is-link">
+      <p class="notification is-link">
         <span class="icon is-large">
           <i class="fa fa-bug fa-2x"></i>
         </span>    <strong>ผลการตรวจยาฆ่าแมลง {{ sample.pesticide_results|length }} ชนิด</strong>
@@ -79,6 +79,34 @@
         {% endfor %}
         </tbody>
       </table>
+      <p class="is-size-7">*<strong>ppb</strong> หมายถึงปริมาณของตัวถูกละลายในสารละลายพันล้านส่วน</p>
+    </div>
+    <div class="box">
+      <p class="notification is-link">
+        <span class="icon is-large">
+          <i class="fa fa-cubes fa-2x"></i>
+        </span>    <strong>ผลการตรวจโลหะหนัก</strong>
+      </p>
+      <hr>
+      ยังไม่มีผลการตรวจ
+    </div>
+    <div class="box">
+      <p class="notification is-link">
+        <span class="icon is-large">
+          <i class="fa fa-crosshairs fa-2x"></i>
+        </span>    <strong>ผลการตรวจเชื้อแบคทีเรียก่อโรค</strong>
+      </p>
+      <hr>
+      ยังไม่มีผลการตรวจ
+    </div>
+    <div class="box">
+      <p class="notification is-link">
+        <span class="icon is-large">
+          <i class="fa fa-crosshairs fa-2x"></i>
+        </span>    <strong>ผลการตรวจเชื้อปรสิตก่อโรค</strong>
+      </p>
+      <hr>
+      ยังไม่มีผลการตรวจ
     </div>
   </div>
 </section>
