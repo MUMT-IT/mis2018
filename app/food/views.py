@@ -304,11 +304,12 @@ def list_samples(farm_id, lot_id):
                            produces=produces)
 
 
-@food.route('/farm/<int:farm_id>/<int:sample_id>/tests')
+@food.route('/farm/<int:farm_id>/lot/<int:lot_id>/sample/<int:sample_id>/tests')
 def show_results(farm_id, lot_id, sample_id):
     farm = Farm.query.get(farm_id)
     sample = Sample.query.get(sample_id)
-    return render_template('food/results.html')
+    lot = SampleLot.query.get(lot_id)
+    return render_template('food/show_results.html', farm=farm, sample=sample, lot=lot)
 
 
 @food.route('/farm/<int:farm_id>/lots/<int:lot_id>/samples/<int:sample_id>/tests/pesticides/add/')

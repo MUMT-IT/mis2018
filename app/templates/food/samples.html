@@ -3,6 +3,7 @@
 {% include "food/nav.html" %}
 {% block page_content %}
 <section class="section">
+<div class="container">
 <h1 class="title">รายการสิ่งส่งตรวจ</h1>
 <div class="columns">
   <table class="table is-striped">
@@ -30,15 +31,17 @@
         <td>{{ lot.collected_at }}</td>
         <td>{{ lot.registered_at }}</td>
         <td>
-          <span class="icon">
-              <i class="fa fa-list-ol"></i>
-          </span>
+          <a href="{{ url_for('food.show_results', farm_id=farm.id, sample_id=sample.id, lot_id=lot.id) }}">
+            <span class="icon">
+                <i class="fa fa-list-ol"></i>
+            </span>
+          </a>
         </td>
         <td>
           <a href="{{ url_for('food.add_pesticide_results', farm_id=farm.id, lot_id=lot.id, sample_id=sample.id) }}">
-          <span class="icon">
-              <i class="fa fa-plus"></i>
-          </span>
+            <span class="icon">
+                <i class="fa fa-plus"></i>
+            </span>
           </a>
         </td>
       </tr>
@@ -46,6 +49,29 @@
   {% endfor %}
   </table>
 </div>
+</div>
+</section>
+<section>
+  <div class="container">
+      <hr>
+      <form method="post">
+          <label class="label">เพิ่มรายการผลผลิตที่นำมาทดสอบ</label>
+          <div class="field is-grouped">
+            <div class="control">
+              <div class="select">
+                <select name="produce">
+                  {% for produce in produces %}
+                  <option value={{produce.id}}>{{produce.name}}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="control">
+              <input class="button is-primary" type="submit" value="Add">
+            </div>
+          </div>
+      </form>
+  </div>
 </section>
 <section>
   <div class="container">
