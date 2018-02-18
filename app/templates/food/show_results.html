@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block title %}Add New Farm Information{% endblock %}
+{% block page_content %}
+<section class="section">
+  <div class="container">
+    <div class="box has-text-centered">
+      <article class="media">
+        <div class="media-left">
+          <figure class="image is-96x96">
+            <img src="{{ url_for('static', filename='img/MUlogo72dpi.jpg') }}">
+          </figure>
+        </div>
+        <div class="media-content">
+          <h1 class="title is-size-5">ผลการทดสอบทางห้องปฏิบัติการ</h1>
+          <h4 class="subtitle is-size-6">
+            โดยคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล
+          </h4>
+        </div>
+      </article>
+    </div>
+    <div class="box">
+    <table class="table">
+      <tbody>
+        <tr>
+          <td>รหัสแปลงเกษตร</td><td><strong>{{ farm.ref_id() }}</strong></td>
+        </tr>
+        <tr>
+          <td>เจ้าของแปลง</td><td><strong>{{ farm.get_owners()|join }}</strong></td>
+        </tr>
+        <tr>
+          <td>รหัสล็อต</td><td><strong>{{ '{:04}'.format(lot.id) }}</strong></td>
+        </tr>
+        <tr>
+          <td>รหัสตัวอย่าง</td><td><strong>{{ '{:04}'.format(sample.id) }}</strong></td>
+        </tr>
+        <tr>
+          <td>ผลผลิต</td><td><strong>{{ sample.produce.produce.name }}</strong></td>
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <div class="box">
+      <p class="has-text-centered notification is-link">
+        <span class="icon is-large">
+          <i class="fa fa-bug fa-2x"></i>
+        </span>    <strong>ผลการตรวจยาฆ่าแมลง {{ sample.pesticide_results|length }} ชนิด</strong>
+      </p>
+      <hr>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>ชื่อสาร</th>
+            <th>ปริมาณ</th>
+            <th>ปลอดภัย</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for pest_res in sample.pesticide_results %}
+        <tr>
+          <td>{{ pest_res.test.name }}</td>
+          <td>
+            {% if not pest_res.value %}
+            ตรวจไม่พบ
+            {% else %}
+            {{ pest_res.value }} {{ pest_res.test.unit }}
+            {% endif %}
+          </td>
+          <td>
+            {% if not pest_res.value or pest_res.value <= pest_res.test.cutoff %}
+            <span class="icon has-text-success">
+              <i class="fa fa-check"></i>
+            {% else %}
+            <span class="icon has-text-danger">
+              <i class="fa fa-times"></i>
+            {% endif %}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+{% endblock %}
