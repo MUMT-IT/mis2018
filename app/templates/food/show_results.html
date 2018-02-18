@@ -46,7 +46,7 @@
         </span>    <strong>ผลการตรวจยาฆ่าแมลง {{ sample.pesticide_results|length }} ชนิด</strong>
       </p>
       <hr>
-      <table class="table">
+      <table class="table is-narrow">
         <thead>
           <tr>
             <th>ชื่อสาร</th>
@@ -55,12 +55,12 @@
           </tr>
         </thead>
         <tbody>
-        {% for pest_res in sample.pesticide_results %}
+        {% for pest_res in sample.pesticide_results|sort(attribute='test.name') %}
         <tr>
           <td>{{ pest_res.test.name }}</td>
           <td>
             {% if not pest_res.value %}
-            ตรวจไม่พบ
+            ไม่พบ
             {% else %}
             {{ pest_res.value }} {{ pest_res.test.unit }}
             {% endif %}
