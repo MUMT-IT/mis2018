@@ -20,7 +20,8 @@ def index():
             'street': farm.street,
             'subdistrict': subdistrict,
             'district': district,
-            'province': province
+            'province': province,
+            'owners': farm.get_owners()
         })
     return render_template('food/index.html', farms=farms)
 
@@ -209,6 +210,8 @@ def add_samplelot(farm_id):
 
 @food.route('/farm/<int:farm_id>/tests/lots/<int:lot_id>/add/', methods=['POST', 'GET'])
 def add_sample(farm_id, lot_id):
+    """Add sample to the sample lot."""
+
     errors = []
     if request.method == 'POST':
         produce_id = request.form.get('produce', '')
@@ -222,7 +225,8 @@ def add_sample(farm_id, lot_id):
             lot.samples.append(sample)
             db.session.add(lot)
             db.session.commit()
-            return redirect(url_for('food.index'))
+            return redirect(url_for('food.list_samples',
+                            farm_id=farm_id, lot_id=lot_id))
 
     farm = Farm.query.get(farm_id)
     lot = SampleLot.query.get(lot_id)
@@ -286,6 +290,7 @@ def list_sample_lots(farm_id):
 def list_samples(farm_id, lot_id):
     farm = Farm.query.get(farm_id)
     lot = SampleLot.query.get(lot_id)
+    produces = Produce.query.all()
     samples = []
     for s in lot.samples:
         grown_produce = GrownProduce.query.get(s.produce_id)
@@ -294,7 +299,16 @@ def list_samples(farm_id, lot_id):
             'produce': grown_produce.produce.name
         })
     return render_template('food/samples.html',
-                           farm=farm, lot=lot, samples=samples)
+                           farm=farm, lot=lot,
+                           samples=samples,
+                           produces=produces)
+
+
+@food.route('/farm/<int:farm_id>/<int:sample_id>/tests')
+def show_results(farm_id, lot_id, sample_id):
+    farm = Farm.query.get(farm_id)
+    sample = Sample.query.get(sample_id)
+    return render_template('food/results.html')
 
 
 @food.route('/farm/<int:farm_id>/lots/<int:lot_id>/samples/<int:sample_id>/tests/pesticides/add/')
