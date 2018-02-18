@@ -57,6 +57,11 @@ class Farm(db.Model):
         return u'{:04}-{:02}-{:02}-{:02}'.format(self.id, self.province_id,
                                                  self.district_id, self.subdistrict_id)
 
+    def get_owners(self):
+        all_owners = [u'{} {}'.format(owner.firstname, owner.lastname)
+                      for owner in self.owners]
+        return all_owners
+
 
 class AgriType(db.Model):
     __tablename__ = 'food_agritype'
@@ -83,6 +88,7 @@ class Sample(db.Model):
                        db.Integer(), db.ForeignKey('food_sample_lots.id'))
     produce_id = db.Column('grown_produce_id',
                            db.Integer(), db.ForeignKey('food_grown_produces.id'))
+    pesticide_results = db.relationship('PesticideResult', backref=db.backref('sample'))
 
 
 class Produce(db.Model):
@@ -110,3 +116,20 @@ class GrownProduce(db.Model):
     breed_id = db.Column(db.Integer(), db.ForeignKey('food_produce_breeds.id'))
     estimated_area = db.Column(db.Integer(), nullable=True)
     samples = db.relationship('Sample', backref=db.backref('produce'))
+
+
+class PesticideTest(db.Model):
+    __tablename__ = 'food_pesticide_tests'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(), nullable=False)
+    unit = db.Column(db.String())
+    cutoff = db.Column(db.Float())
+    results = db.relationship('PesticideResult', backref=db.backref('test'))
+
+
+class PesticideResult(db.Model):
+    __tablename__ = 'food_pesticide_results'
+    id = db.Column(db.Integer(), primary_key=True)
+    test_id = db.Column(db.Integer, db.ForeignKey('food_pesticide_tests.id'))
+    sample_id = db.Column(db.Integer, db.ForeignKey('food_samples.id'))
+    value = db.Column(db.Float())
