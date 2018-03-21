@@ -5,3 +5,5 @@ __pycache__/
 .xlsx
 utils/
 data/
+backup/
+analysis/
