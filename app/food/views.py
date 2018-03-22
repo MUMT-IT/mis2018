@@ -2,7 +2,8 @@
 from flask import render_template, request, redirect, url_for, jsonify
 from . import foodbp as food
 from models import (Person, Farm, AgriType, SampleLot, Produce,
-                        Sample, ProduceBreed, GrownProduce, PesticideTest, PesticideResult)
+                        Sample, ProduceBreed, GrownProduce, PesticideTest, PesticideResult,
+                        ToxicoResult, ToxicoTest)
 from ..models import Province, District, Subdistrict
 from ..main import db
 
@@ -379,8 +380,41 @@ def add_toxicology_results(farm_id, lot_id, sample_id):
     farm = Farm.query.get(farm_id)
     lot = SampleLot.query.get(lot_id)
     sample = Sample.query.get(sample_id)
+    tox_tests = ToxicoTest.query.all()
+    result_dict = {}
+    for res in sample.toxico_results:
+        result_dict[res.test.id] = res.value
     return render_template('food/toxico_results.html', farm=farm, lot=lot,
-                           sample=sample)
+                        sample=sample, tox_tests=tox_tests, result_dict=result_dict)
+
+@food.route('/farm/results/heavymetals/', methods=['POST'])
+def add_toxico_results_from_form():
+    sample_id = request.form.get('sample_id', None)
+    farm_id = request.form.get('farm_id', None)
+    lot_id = request.form.get('lot_id', None)
+    if sample_id:
+        sample = Sample.query.get(sample_id)
+        test_results_dict = {}
+        for res in sample.toxico_results:
+            test_results_dict[res.test.id] = res
+        for pt in ToxicoTest.query.all():
+            test_value = request.form.get(str(pt.id), None)
+            if pt.id in test_results_dict:
+                res = test_results_dict[pt.id]
+                res.value = float(test_value) if test_value else None
+            else:
+                if test_value:
+                    toxico_test_result = ToxicoResult(sample_id=sample.id,
+                                        test_id=pt.id, value=float(test_value))
+                else:
+                    toxico_test_result = ToxicoResult(sample_id=sample.id,
+                                        test_id=pt.id, value=None)
+                sample.toxico_results.append(toxico_test_result)
+        db.session.add(sample)
+        db.session.commit()
+        return redirect(url_for("food.list_samples", farm_id=farm_id, lot_id=lot_id))
+    else:
+        return "<h3>An error has occurred. Please contact the system admin.</h3>"
 
 
 @food.route('/farm/produce/', methods=['POST', 'GET'])

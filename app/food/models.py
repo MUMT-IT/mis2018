@@ -89,6 +89,7 @@ class Sample(db.Model):
     produce_id = db.Column('grown_produce_id',
                            db.Integer(), db.ForeignKey('food_grown_produces.id'))
     pesticide_results = db.relationship('PesticideResult', backref=db.backref('sample'))
+    toxico_results = db.relationship('ToxicoResult', backref=db.backref('sample'))
 
 
 class Produce(db.Model):
@@ -131,5 +132,22 @@ class PesticideResult(db.Model):
     __tablename__ = 'food_pesticide_results'
     id = db.Column(db.Integer(), primary_key=True)
     test_id = db.Column(db.Integer, db.ForeignKey('food_pesticide_tests.id'))
+    sample_id = db.Column(db.Integer, db.ForeignKey('food_samples.id'))
+    value = db.Column(db.Float())
+
+
+class ToxicoTest(db.Model):
+    __tablename__ = 'food_toxico_tests'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(), nullable=False)
+    unit = db.Column(db.String())
+    cutoff = db.Column(db.Float())
+    results = db.relationship('ToxicoResult', backref=db.backref('test'))
+
+
+class ToxicoResult(db.Model):
+    __tablename__ = 'food_toxico_results'
+    id = db.Column(db.Integer(), primary_key=True)
+    test_id = db.Column(db.Integer, db.ForeignKey('food_toxico_tests.id'))
     sample_id = db.Column(db.Integer, db.ForeignKey('food_samples.id'))
     value = db.Column(db.Float())
