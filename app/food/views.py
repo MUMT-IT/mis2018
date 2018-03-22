@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-from flask import render_template, request, redirect, url_for
+from flask import render_template, request, redirect, url_for, jsonify
 from . import foodbp as food
-from models import Person, Farm, AgriType, SampleLot, Produce, Sample, ProduceBreed, GrownProduce
+from models import (Person, Farm, AgriType, SampleLot, Produce,
+                        Sample, ProduceBreed, GrownProduce, PesticideTest, PesticideResult)
 from ..models import Province, District, Subdistrict
 from ..main import db
 
@@ -317,8 +318,42 @@ def add_pesticide_results(farm_id, lot_id, sample_id):
     farm = Farm.query.get(farm_id)
     lot = SampleLot.query.get(lot_id)
     sample = Sample.query.get(sample_id)
+    pest_tests = PesticideTest.query.all()
+    result_dict = {}
+    for res in sample.pesticide_results:
+        result_dict[res.test.id] = res.value
     return render_template('food/pest_results.html', farm=farm, lot=lot,
-                           sample=sample)
+                        sample=sample, pest_tests=pest_tests, result_dict=result_dict)
+
+
+@food.route('/farm/results/pesticides/', methods=['POST'])
+def add_pesticide_results_from_form():
+    sample_id = request.form.get('sample_id', None)
+    farm_id = request.form.get('farm_id', None)
+    lot_id = request.form.get('lot_id', None)
+    if sample_id:
+        sample = Sample.query.get(sample_id)
+        test_results_dict = {}
+        for res in sample.pesticide_results:
+            test_results_dict[res.test.id] = res
+        for pt in PesticideTest.query.all():
+            test_value = request.form.get(str(pt.id), None)
+            if pt.id in test_results_dict:
+                res = test_results_dict[pt.id]
+                res.value = float(test_value) if test_value else None
+            else:
+                if test_value:
+                    pest_test_result = PesticideResult(sample_id=sample.id,
+                                        test_id=pt.id, value=float(test_value))
+                else:
+                    pest_test_result = PesticideResult(sample_id=sample.id,
+                                        test_id=pt.id, value=None)
+                sample.pesticide_results.append(pest_test_result)
+        db.session.add(sample)
+        db.session.commit()
+        return redirect(url_for("food.list_samples", farm_id=farm_id, lot_id=lot_id))
+    else:
+        return "<h3>An error has occurred. Please contact the system admin.</h3>"
 
 
 @food.route('/farm/<int:farm_id>/lots/<int:lot_id>/samples/<int:sample_id>/tests/parasites/add/')
