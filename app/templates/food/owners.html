@@ -5,7 +5,7 @@
 <section class="section">
 <h1 class="title">รายชื่อเจ้าของแปลงเกษตร</h1>
 <div class="columns">
-  <table class="table is-striped">
+  <table class="table is-striped" id="owners_table">
     <thead>
       <tr>
         <th>ลำดับ</th>
@@ -41,9 +41,12 @@
   </table>
 </div>
 </section>
-<section>
-  <div class="container">
-    <a href="{{ url_for('food.index') }}"><< หน้าหลัก</a>
-  </div>
-</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+  $(document).ready(function() {
+    $('#owners_table').DataTable();
+  });
+</script>
 {% endblock %}
