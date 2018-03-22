@@ -90,7 +90,39 @@
         <strong>ผลการตรวจโลหะหนัก</strong>
       </p>
       <br>
-      ยังไม่มีผลการตรวจ
+      <table class="table is-narrow is-striped">
+        <thead>
+          <tr>
+            <th>ชื่อสาร</th>
+            <th>ปริมาณ</th>
+            <th>ปลอดภัย</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for tox_res in sample.toxico_results|sort(attribute='test.name') %}
+        <tr>
+          <td>{{ tox_res.test.name }}</td>
+          <td>
+            {% if not tox_res.value %}
+            ไม่พบ
+            {% else %}
+            {{ tox_res.value }} {{ tox_res.test.unit }}
+            {% endif %}
+          </td>
+          <td>
+            {% if not tox_res.value or tox_res.value < tox_res.test.cutoff %}
+            <span class="icon has-text-success">
+              <i class="fa fa-check"></i>
+            {% else %}
+            <span class="icon has-text-danger">
+              <i class="fa fa-times"></i>
+            {% endif %}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
     </div>
     <div class="box has-text-centered">
       <p class="notification is-link button is-inverted is-rounded is-static">
