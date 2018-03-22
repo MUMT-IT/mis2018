@@ -129,7 +129,33 @@
         <strong>ผลการตรวจเชื้อแบคทีเรียก่อโรค</strong>
       </p>
       <br>
-      ยังไม่มีผลการตรวจ
+      <table class="table is-narrow is-striped">
+        <thead>
+          <tr>
+            <th>วิธี</th>
+            <th>การทดสอบ</th>
+            <th>ผล</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for bact_res in sample.bact_results|sort(attribute='test.name') %}
+        <tr>
+          <td>{{ bact_res.test.method }}</td>
+          <td>{{ bact_res.test.name}}&nbsp;({{ bact_res.test.unit }})</td>
+          <td>
+            {% if bact_res.value == 'ผ่าน' %}
+            <span class="icon has-text-success">
+              <i class="fa fa-check"></i>
+            {% else %}
+            <span class="icon has-text-danger">
+              <i class="fa fa-times"></i>
+            {% endif %}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
     </div>
     <div class="box has-text-centered">
       <p class="notification is-link is-rounded is-inverted button is-static">
