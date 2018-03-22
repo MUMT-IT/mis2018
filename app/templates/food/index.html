@@ -32,11 +32,12 @@
   <br>
   <hr>
   <h1 class="title is-5">รายการแปลงเกษตรล่าสุด</h1>
-  <table class="table is-striped">
+  <table class="table is-striped" id="farm_table">
     <thead>
     <tr>
       <th>ลำดับที่</th>
       <th>รหัสแปลง</th>
+      <th>เจ้าของแปลง</th>
       <th>บ้านเลขที่</th>
       <th>ตำบล</th>
       <th>อำเภอ</th>
@@ -45,11 +46,13 @@
       <th>จำนวนล็อตสิ่งส่งตรวจ</th>
       <th>เพิ่มสิ่งส่งตรวจใหม่</th>
     </tr>
+    </thead>
     <tbody>
     {% for farm in farms %}
     <tr>
       <td>{{ loop.index }}</td>
       <td>{{ farm.ref_id }}</td>
+      <td>{{ farm.owners|join(',') }}</td>
       <td>{{ farm.street }}</td>
       <td>{{ farm.subdistrict }}</td>
       <td>{{ farm.district }}</td>
@@ -73,10 +76,17 @@
           </span>
         </a>
       </td>
-      <td>
     </tr>
     {% endfor %}
     </tbody>
   </table>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+  $(document).ready(function() {
+    $('#farm_table').DataTable();
+  });
+</script>
 {% endblock %}
