@@ -3,7 +3,7 @@ from flask import render_template, request, redirect, url_for, jsonify
 from . import foodbp as food
 from models import (Person, Farm, AgriType, SampleLot, Produce,
                         Sample, ProduceBreed, GrownProduce, PesticideTest, PesticideResult,
-                        ToxicoResult, ToxicoTest)
+                        ToxicoResult, ToxicoTest, BactResult, BactTest)
 from ..models import Province, District, Subdistrict
 from ..main import db
 
@@ -371,8 +371,38 @@ def add_bacteria_results(farm_id, lot_id, sample_id):
     farm = Farm.query.get(farm_id)
     lot = SampleLot.query.get(lot_id)
     sample = Sample.query.get(sample_id)
+    bact_tests = BactTest.query.all()
+    result_dict = {}
+    for res in sample.bact_results:
+        result_dict[res.test.id] = res.value
     return render_template('food/bact_results.html', farm=farm, lot=lot,
-                           sample=sample)
+                           sample=sample, bact_tests=bact_tests, result_dict=result_dict)
+
+
+@food.route('/farm/results/bacteria/', methods=['POST'])
+def add_bact_results_from_form():
+    sample_id = request.form.get('sample_id', None)
+    farm_id = request.form.get('farm_id', None)
+    lot_id = request.form.get('lot_id', None)
+    if sample_id:
+        sample = Sample.query.get(sample_id)
+        test_results_dict = {}
+        for res in sample.bact_results:
+            test_results_dict[res.test.id] = res
+        for pt in BactTest.query.all():
+            test_value = request.form.get(str(pt.id), None)
+            if pt.id in test_results_dict:
+                res = test_results_dict[pt.id]
+                res.value = test_value if test_value else None
+            else:
+                bact_test_result = BactResult(sample_id=sample.id,
+                                    test_id=pt.id, value=test_value)
+                sample.bact_results.append(bact_test_result)
+        db.session.add(sample)
+        db.session.commit()
+        return redirect(url_for("food.list_samples", farm_id=farm_id, lot_id=lot_id))
+    else:
+        return "<h3>An error has occurred. Please contact the system admin.</h3>"
 
 
 @food.route('/farm/<int:farm_id>/lots/<int:lot_id>/samples/<int:sample_id>/tests/toxicology/add/')
