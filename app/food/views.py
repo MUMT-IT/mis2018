@@ -11,7 +11,7 @@ from ..main import db
 @food.route('/')
 def index():
     farms = []
-    for farm in db.session.query(Farm).order_by(db.desc(Farm.created_at))[:10]:
+    for farm in db.session.query(Farm).order_by(db.desc(Farm.created_at)):
         subdistrict = Subdistrict.query.get(farm.subdistrict_id).name
         district = District.query.get(farm.district_id).name
         province = Province.query.get(farm.province_id).name
