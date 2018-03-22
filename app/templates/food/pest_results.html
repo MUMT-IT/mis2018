@@ -24,6 +24,8 @@
     <div class="column">
       <form method="post" action="{{ url_for('food.add_pesticide_results_from_form') }}">
         <input type="hidden" name="sample_id" value="{{ sample.id }}">
+        <input type="hidden" name="farm_id" value="{{ farm.id }}">
+        <input type="hidden" name="lot_id" value="{{ lot.id }}">
         {% for test in pest_tests %}
         <div class="field is-horizontal">
           <div class="field-label">
