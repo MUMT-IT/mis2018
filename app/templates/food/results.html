@@ -2,10 +2,19 @@
 {% block title %}Add New Farm Information{% endblock %}
 {% block page_content %}
   <section class="section">
-    <h1 class="title">รายงานผลการทดสอบ</h1>
+    <div class="hero is-link is-bold">
+      <div class="hero-body">
+        <h1 class="title is-size-5">รายงานผลการทดสอบทางห้องปฏิบัติการ</h1>
+        <h4 class="is-size-7">
+          โดยคณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล
+        </h4>
+      </div>
+    </div>
     <p>รหัสแปลงเกษตร: <strong>{{ farm.ref_id() }}</strong></p>
+    <p>เจ้าของแปลง: <strong>{{ farm.get_owners()|join }}</strong></p>
     <p>รหัสล็อต: <strong>{{ '{:04}'.format(lot.id) }}</strong></p>
     <p>รหัสตัวอย่าง: <strong>{{ '{:04}'.format(sample.id) }}</strong></p>
+    <p>ผลผลิต: <strong>{{ sample.produce.produce.name }}</strong></p>
     <div class="tabs">
       <ul>
         <li class="is-active">
