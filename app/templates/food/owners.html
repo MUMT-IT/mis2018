@@ -15,8 +15,8 @@
         <th>เพิ่มแปลงเกษตร</th>
       </tr>
     </thead>
-  {% for owner in owners %}
     <tbody>
+    {% for owner in owners %}
       <tr>
         <td>{{ loop.index }}</td>
         <td>{{ owner.firstname + ' ' + owner.lastname }}</td>
@@ -36,8 +36,8 @@
           </span>
         </td>
       </tr>
+    {% endfor %}
     </tbody>
-  {% endfor %}
   </table>
 </div>
 </section>
