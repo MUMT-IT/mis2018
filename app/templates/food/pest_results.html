@@ -26,7 +26,7 @@
         <input type="hidden" name="sample_id" value="{{ sample.id }}">
         <input type="hidden" name="farm_id" value="{{ farm.id }}">
         <input type="hidden" name="lot_id" value="{{ lot.id }}">
-        {% for test in pest_tests %}
+        {% for test in pest_tests|sort(attribute='name')%}
         <div class="field is-horizontal">
           <div class="field-label">
             <label>{{ test.name }}</label>
