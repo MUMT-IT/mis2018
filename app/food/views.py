@@ -3,7 +3,8 @@ from flask import render_template, request, redirect, url_for, jsonify
 from . import foodbp as food
 from models import (Person, Farm, AgriType, SampleLot, Produce,
                         Sample, ProduceBreed, GrownProduce, PesticideTest, PesticideResult,
-                        ToxicoResult, ToxicoTest, BactResult, BactTest)
+                        ToxicoResult, ToxicoTest, BactResult, BactTest, HealthPerson,
+                        HealthServices)
 from ..models import Province, District, Subdistrict
 from ..main import db
 
@@ -474,3 +475,25 @@ def add_produce():
             db.session.commit()
             return redirect(url_for('food.index'))
     return render_template('food/add_produce.html', errors=errors)
+
+
+@food.route('/health/person/')
+def show_health_data():
+    firstname = request.args.get('firstname', '')
+    lastname = request.args.get('lastname', '')
+    person = db.session.query(HealthPerson).filter(
+                    HealthPerson.firstname==firstname,
+                    HealthPerson.lastname==lastname).first()
+    if person:
+        return render_template('food/health.html', person=person)
+    else:
+        return 'Person not found in the database.'
+
+
+@food.route('/health/person/lab/')
+def display_health_lab_results():
+    cmscode = request.args.get('cmscode', None)
+    serviceno = request.args.get('serviceno', None)
+    service = db.session.query(HealthServices).filter(HealthServices.serviceno==serviceno).first()
+    person = db.session.query(HealthPerson).filter(HealthPerson.cmscode==cmscode).first()
+    return render_template('food/health_lab.html', person=person, service=service)
