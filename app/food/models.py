@@ -214,3 +214,10 @@ class HealthTest(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     tcode = db.Column(db.String(), nullable=False)
     name = db.Column(db.String())
+
+
+class HealthLabResult(db.Model):
+    __tablename__ = 'food_health_lab_results'
+    id = db.Column(db.Integer(), primary_key=True)
+    serviceno = db.Column(db.String(), nullable=False)
+    data = db.Column(db.JSON)
