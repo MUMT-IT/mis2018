@@ -169,3 +169,48 @@ class BactResult(db.Model):
     test_id = db.Column(db.Integer, db.ForeignKey('food_bact_tests.id'))
     sample_id = db.Column(db.Integer, db.ForeignKey('food_samples.id'))
     value = db.Column(db.String())
+
+
+class HealthPerson(db.Model):
+    __tablename__ = 'food_health_person'
+    id = db.Column(db.Integer(), primary_key=True)
+    cmscode = db.Column(db.String(), nullable=False)
+    firstname = db.Column(db.String())
+    lastname = db.Column(db.String())
+    pid = db.Column(db.String(13))
+    sex = db.Column(db.String())
+    age = db.Column(db.Integer())
+    mobile = db.Column(db.String())
+    title = db.Column(db.String())
+    lab_results = db.relationship('HealthServices', backref=db.backref('person'))
+
+
+class HealthPhyexam(db.Model):
+    __tablename__ = 'food_health_phyexam'
+    id = db.Column(db.Integer(), primary_key=True)
+    cmscode = db.Column(db.String(), nullable=False)
+    serviceno = db.Column(db.String(), nullable=False)
+    servicedate = db.Column(db.DateTime())
+    weight = db.Column(db.Numeric())
+    height = db.Column(db.Numeric())
+    heartrate = db.Column(db.Integer())
+    systolic = db.Column(db.Integer())
+    diastolic = db.Column(db.Integer())
+
+
+class HealthServices(db.Model):
+    __tablename__ = 'food_health_services'
+    id = db.Column(db.Integer(), primary_key=True)
+    cmscode = db.Column(db.String(), nullable=False)
+    serviceno = db.Column(db.String(), nullable=False)
+    servicedate = db.Column(db.DateTime())
+    phyexam_id = db.Column(db.Integer, db.ForeignKey('food_health_phyexam.id'))
+    phyexam = db.relationship("HealthPhyexam", backref=db.backref("service", uselist=False))
+    health_person_id = db.Column(db.Integer, db.ForeignKey('food_health_person.id'))
+
+
+class HealthTest(db.Model):
+    __tablename__ = 'food_health_lab_tests'
+    id = db.Column(db.Integer(), primary_key=True)
+    tcode = db.Column(db.String(), nullable=False)
+    name = db.Column(db.String())
