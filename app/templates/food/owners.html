@@ -13,6 +13,7 @@
         <th>รหัสบัตรประชาชน</th>
         <th>จำนวนแปลงเกษตร</th>
         <th>เพิ่มแปลงเกษตร</th>
+        <th>ผลการตรวจสุขภาพ</th>
       </tr>
     </thead>
     <tbody>
@@ -32,6 +33,13 @@
           <span class="icon">
             <a href="{{ url_for('food.add_farm', owner_id=owner.id) }}">
               <i class="fa fa-plus"></i>
+            </a>
+          </span>
+        </td>
+        <td>
+          <span class="icon">
+            <a href="{{ url_for('food.show_health_data', firstname=owner.firstname, lastname=owner.lastname) }}"
+              <i class="fa fa-heartbeat"></i>
             </a>
           </span>
         </td>
