@@ -14,6 +14,7 @@
         <th>จำนวนแปลงเกษตร</th>
         <th>เพิ่มแปลงเกษตร</th>
         <th>ผลการตรวจสุขภาพ</th>
+        <th>ผลแบบสอบถาม</th>
       </tr>
     </thead>
     <tbody>
@@ -45,6 +46,13 @@
             {% else %}
               <i class="fa fa-heartbeat"></i>
             {% endif %}
+          </span>
+        </td>
+        <td>
+          <span class="icon">
+            <a href="{{ url_for('food.display_survey_results', firstname=owner.firstname, lastname=owner.lastname) }}"
+              <i class="fa fa-question-circle"></i>
+            </a>
           </span>
         </td>
       </tr>
