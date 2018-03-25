@@ -206,6 +206,8 @@ class HealthServices(db.Model):
     servicedate = db.Column(db.DateTime())
     phyexam_id = db.Column(db.Integer, db.ForeignKey('food_health_phyexam.id'))
     phyexam = db.relationship("HealthPhyexam", backref=db.backref("service", uselist=False))
+    labexam_id = db.Column(db.Integer, db.ForeignKey('food_health_lab_results.id'))
+    labexam = db.relationship("HealthLabResult", backref=db.backref("service", uselist=False))
     health_person_id = db.Column(db.Integer, db.ForeignKey('food_health_person.id'))
 
 
@@ -214,6 +216,7 @@ class HealthTest(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     tcode = db.Column(db.String(), nullable=False)
     name = db.Column(db.String())
+    unit = db.Column(db.String())
 
 
 class HealthLabResult(db.Model):
