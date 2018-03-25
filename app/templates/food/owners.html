@@ -38,9 +38,13 @@
         </td>
         <td>
           <span class="icon">
+            {% if owner.firstname + " " + owner.lastname in health_info %}
             <a href="{{ url_for('food.show_health_data', firstname=owner.firstname, lastname=owner.lastname) }}"
               <i class="fa fa-heartbeat"></i>
             </a>
+            {% else %}
+              <i class="fa fa-heartbeat"></i>
+            {% endif %}
           </span>
         </td>
       </tr>

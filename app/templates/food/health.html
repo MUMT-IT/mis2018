@@ -4,28 +4,36 @@
 {% block page_content %}
 <section class="section">
   <div class="container">
+    <nav class="breadcrumb" aria-label="breadcrumbs">
+        <ul>
+            <li><a href="{{ url_for('food.list_owners')}}">Farmers List</a></li>
+            <li class="is-active"><a href="#" aria-current="page">Health Information</a></li>
+        </ul>
+    </nav>
       <div class="box">
           <article class="media">
               <div class="media-content">
                   <div class="content">
                       <p>
-                          <strong>{{ person.title }}&nbsp;{{ person.firstname }}&nbsp;{{ person.lastname}}</strong>
+                          <strong class="title">{{ person.title }}&nbsp;{{ person.firstname }}&nbsp;{{ person.lastname}}</strong>
                           <br>
-                          <small>อายุ {{ person.age }}&nbsp;เพศ {{ person.sex }}</small>
+                          อายุ {{ person.age }}&nbsp;เพศ {{ genders[person.sex] }}
                       </p>
                   </div>
               </div>
           </article>
           <br><br>
-          <h3 class="subtitle">รายการตรวจร่างกาย</h3>
+          <h3 class="subtitle">รายการตรวจสุขภาพ</h3>
           <table class="table is-striped">
               <thead>
+                <th>ลำดับ</th>
                 <th>รหัสการตรวจ</th>
                 <th>วันที่ตรวจ</th>
               </thead>
               <tbody>
                 {% for ls in person.lab_results %}
                 <tr>
+                    <td>{{ loop.index }}</td>
                     <td><a href="{{ url_for('food.display_health_lab_results', cmscode=person.cmscode, serviceno=ls.serviceno) }}">{{ ls.serviceno }}</a></td>
                     <td>{{ ls.servicedate }}</td>
                 </tr>
