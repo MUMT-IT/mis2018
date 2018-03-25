@@ -247,8 +247,12 @@ def add_sample(farm_id, lot_id):
 @food.route('/farm/owner/')
 def list_owners():
     owners = db.session.query(Person).order_by(Person.created_at)
+    health_info = set()
+    for record in db.session.query(HealthPerson):
+        name = u'{} {}'.format(record.firstname, record.lastname)
+        health_info.add(name)
     return render_template('food/owners.html',
-                           owners=owners)
+                           owners=owners, health_info=health_info)
 
 
 @food.route('/farm/owned/<int:owner_id>/')
@@ -485,9 +489,10 @@ def show_health_data():
                     HealthPerson.firstname==firstname,
                     HealthPerson.lastname==lastname).first()
     if person:
-        return render_template('food/health.html', person=person)
+        return render_template('food/health.html',
+                    person=person, genders={u'1': u'ชาย', u'2': u'หญิง'})
     else:
-        return 'Person not found in the database.'
+        return 'Data not found.'
 
 
 @food.route('/health/person/lab/')
