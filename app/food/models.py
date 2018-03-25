@@ -224,3 +224,12 @@ class HealthLabResult(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     serviceno = db.Column(db.String(), nullable=False)
     data = db.Column(db.JSON)
+
+class SurveyResult(db.Model):
+    __tablename__ = 'food_survey_results'
+    id = db.Column(db.Integer(), primary_key=True)
+    pid = db.Column(db.String(13))
+    firstname = db.Column(db.String())
+    lastname = db.Column(db.String())
+    results = db.Column(db.JSON)
+    survey_datetime = db.Column(db.DateTime())
