@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% include "food/nav.html" %}
+{% block title %}Display Health Information{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('food.list_owners')}}">Farmers List</a></li>
+                <li class="is-active"><a href="#" aria-current="page">Survey Results</a></li>
+            </ul>
+        </nav>
+        <h1 class="title">ผลสำรวจจากแบบสอบถาม</h1>
+        <h2 class="title is-size-4">{{ survey.firstname }}&nbsp;{{ survey.lastname }}</h2>
+        <p>เมื่อวันที่ {{ survey.survey_datetime }}</p>
+        <table class="table is-striped">
+            <thead>
+                <tr>
+                    <th>ลำดับ</th>
+                    <th>คำถาม</th>
+                    <th>คำตอบ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for k,_ in questions %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ k }}</td>
+                    <td>{{ survey.results[k] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
