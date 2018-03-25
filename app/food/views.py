@@ -501,4 +501,5 @@ def display_health_lab_results():
     serviceno = request.args.get('serviceno', None)
     service = db.session.query(HealthServices).filter(HealthServices.serviceno==serviceno).first()
     person = db.session.query(HealthPerson).filter(HealthPerson.cmscode==cmscode).first()
-    return render_template('food/health_lab.html', person=person, service=service)
+    genders = {u'1': u'ชาย', u'2': u'หญิง'}
+    return render_template('food/health_lab.html', person=person, service=service,genders=genders)
