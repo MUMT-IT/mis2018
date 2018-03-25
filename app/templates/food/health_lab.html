@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% include "food/nav.html" %}
+{% block title %}Display Health Information{% endblock %}
+{% block page_content %}
+<section class="section">
+  <div class="container">
+    <nav class="breadcrumb" aria-label="breadcrumbs">
+        <ul>
+            <li><a href="{{ url_for('food.list_owners')}}">Farmers List</a></li>
+            <li><a href="#">Documentation</a></li>
+            <li><a href="{{ url_for('food.show_health_data', firstname=person.firstname, lastname=person.lastname)}}">Health Information</a></li>
+            <li class="is-active"><a href="#" aria-current="page">Results</a></li>
+        </ul>
+    </nav>
+      <div class="box">
+          <article class="media">
+              <div class="media-content">
+                  <div class="content">
+                      <p>
+                          <strong class="title">{{ person.title }}&nbsp;{{ person.firstname }}&nbsp;{{ person.lastname}}</strong>
+                          อายุ {{ person.age }}&nbsp;ปี&nbsp;เพศ {{ person.sex }}
+                      </p>
+                      <p>
+                          วันที่ตรวจ {{ service.servicedate }}
+                      </p>
+                      <p>
+                          รหัสการตรวจ {{ service.serviceno }}
+                      </p>
+                  </div>
+              </div>
+          </article>
+          <br><br>
+          <div class="columns">
+              <div class="column">
+                <h3 class="subtitle">รายการตรวจร่างกาย</h3>
+                <table class="table is-striped">
+                    <thead>
+                        <th></th>
+                        <th>ผลการวัด</th>
+                        <th>หน่วย</th>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>น้ำหนัก</td>
+                            <td>{{ service.phyexam.weight }}</td>
+                            <td>กก.</td>
+                        </tr>
+                        <tr>
+                            <td>ส่วนสูง</td>
+                            <td>{{ service.phyexam.height }}</td>
+                            <td>ซม.</td>
+                        </tr>
+                        <tr>
+                            <td>ความดัน</td>
+                            <td>{{ service.phyexam.systolic }}/{{ service.phyexam.diastolic }}</td>
+                            <td>มม.ปรอท</td>
+                        </tr>
+                        <tr>
+                            <td>ชีพจร</td>
+                            <td>{{ service.phyexam.heartrate }}</td>
+                            <td>ครั้ง/นาที</td>
+                        </tr>
+                    </tbody>
+                </table>
+              </div>
+              <div class="column">
+                <h3 class="subtitle">รายการตรวจทางห้องปฏิบัติการ</h3>
+                <table class="table is-striped">
+                    <thead>
+                        <tr>
+                            <th>ลำดับ</th>
+                            <th>รายการทดสอบ</th>
+                            <th>ผลการทดสอบ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for labtest, res in service.labexam.data.iteritems() %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ labtest }}</td>
+                            <td>{{ res }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+              </div>
+          </div>
+      </div>
+  </div>
+</section>
+{% endblock %}

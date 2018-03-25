@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% include "food/nav.html" %}
+{% block title %}Display Health Information{% endblock %}
+{% block page_content %}
+<section class="section">
+  <div class="container">
+      <div class="box">
+          <article class="media">
+              <div class="media-content">
+                  <div class="content">
+                      <p>
+                          <strong>{{ person.title }}&nbsp;{{ person.firstname }}&nbsp;{{ person.lastname}}</strong>
+                          <br>
+                          <small>อายุ {{ person.age }}&nbsp;เพศ {{ person.sex }}</small>
+                      </p>
+                  </div>
+              </div>
+          </article>
+          <br><br>
+          <h3 class="subtitle">รายการตรวจร่างกาย</h3>
+          <table class="table is-striped">
+              <thead>
+                <th>รหัสการตรวจ</th>
+                <th>วันที่ตรวจ</th>
+              </thead>
+              <tbody>
+                {% for ls in person.lab_results %}
+                <tr>
+                    <td><a href="{{ url_for('food.display_health_lab_results', cmscode=person.cmscode, serviceno=ls.serviceno) }}">{{ ls.serviceno }}</a></td>
+                    <td>{{ ls.servicedate }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+          </table>
+      </div>
+  </div>
+</section>
+{% endblock %}
