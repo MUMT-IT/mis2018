@@ -4,7 +4,7 @@ from . import foodbp as food
 from models import (Person, Farm, AgriType, SampleLot, Produce,
                         Sample, ProduceBreed, GrownProduce, PesticideTest, PesticideResult,
                         ToxicoResult, ToxicoTest, BactResult, BactTest, HealthPerson,
-                        HealthServices)
+                        HealthServices, SurveyResult)
 from ..models import Province, District, Subdistrict
 from ..main import db
 
@@ -503,3 +503,16 @@ def display_health_lab_results():
     person = db.session.query(HealthPerson).filter(HealthPerson.cmscode==cmscode).first()
     genders = {u'1': u'ชาย', u'2': u'หญิง'}
     return render_template('food/health_lab.html', person=person, service=service,genders=genders)
+
+
+@food.route('/survey/results/')
+def display_survey_results():
+    firstname = request.args.get('firstname', None)
+    lastname = request.args.get('lastname', None)
+    survey = SurveyResult.query.filter(SurveyResult.firstname==firstname, SurveyResult.lastname==lastname).first()
+    if survey:
+        questions = sorted(survey.questions.iteritems(), key=lambda x: x[1])
+        return render_template('food/show_survey_results.html',
+                        survey=survey, questions=questions)
+    else:
+        return 'Not survey data from this person yet.'
