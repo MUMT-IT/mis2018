@@ -231,5 +231,6 @@ class SurveyResult(db.Model):
     pid = db.Column(db.String(13))
     firstname = db.Column(db.String())
     lastname = db.Column(db.String())
+    questions = db.Column(db.JSON)
     results = db.Column(db.JSON)
     survey_datetime = db.Column(db.DateTime())
