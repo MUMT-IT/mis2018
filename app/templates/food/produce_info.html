@@ -5,7 +5,7 @@
 <section class="section">
   <div class="container">
     <h1 class="title is-size-4">แสดงข้อมูลแปลงเกษตรที่ปลูก {{ produce.name }}</h1>
-    <table class="table is-striped">
+    <table class="table is-striped" id="produce_table">
       <thead>
         <tr>
           <th></th>
@@ -37,4 +37,12 @@
     </table>
   </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+  $(document).ready(function() {
+    $('#produce_table').DataTable();
+  });
+</script>
 {% endblock %}

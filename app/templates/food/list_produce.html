@@ -3,51 +3,71 @@
 {% include "food/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <table class="table is-striped">
-        <tr>
-            <th>No.</th>
-            <th>ชื่อ</th>
-            <th>พันธุ์</th>
-            <th>เกี่ยวกับ</th>
-            <th>เพิ่มสายพันธุ์</th>
-        </tr>
-        {% for produce in all_produce %}
-        <tr>
-            <td>{{ loop.index }}</td>
-            <td><a href="{{ url_for('food.display_produce_info', produce_id=produce.id) }}">{{ produce.name }}</a></td>
-            <td>
-                <ul>
-                    {% for breed in produce.breeds %}
-                    <li>{{ breed.name }}</li>
-                    {% endfor %}
-                </ul>
-            </td>
-            <td>
-                <span class="icon">
-                    <a href="">
-                        <i class="fa fa-info-circle"></i>
-                    </a>
-                </span>
-            </td>
-            <td>
-                <span class="icon">
-                    <a href="">
-                        <i class="fa fa-plus"></i>
-                    </a>
-                </span>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
-    <form method="post">
-        <div class="field is-grouped">
-            <div class="control">
+    <div class="container">
+      <h1 class="title is-size-4">รายการผลผลิตทางการเกษตร</h1>
+      <h2 class="subtitle is-size-6">คลิกที่ชื่อผลผลิตเพื่อดูข้อมูลแปลงที่ปลูก</h2>
+      <div class="columns">
+        <div class="column is-half">
+          <form method="post">
+            <div class="field is-grouped">
+              <div class="control">
                 <input class="input" type="text" name="produce" placeholder="รายการใหม่" required>
-            </div>
-            <div class="control">
+              </div>
+              <div class="control">
                 <button class="button is-primary" type="submit" value="submit">เพิ่มรายการ</button>
+              </div>
             </div>
+          </form>
+          <table class="table is-striped" id="produce_table">
+            <thead>
+              <tr>
+                  <th>No.</th>
+                  <th>ชื่อ</th>
+                  <th>พันธุ์</th>
+                  <th>เกี่ยวกับ</th>
+                  <th>เพิ่มสายพันธุ์</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for produce in all_produce %}
+              <tr>
+                  <td>{{ loop.index }}</td>
+                  <td><a href="{{ url_for('food.display_produce_info', produce_id=produce.id) }}">{{ produce.name }}</a></td>
+                  <td>
+                      <ul>
+                          {% for breed in produce.breeds %}
+                          <li>{{ breed.name }}</li>
+                          {% endfor %}
+                      </ul>
+                  </td>
+                  <td>
+                      <span class="icon">
+                          <a href="">
+                              <i class="fa fa-info-circle"></i>
+                          </a>
+                      </span>
+                  </td>
+                  <td>
+                      <span class="icon">
+                          <a href="">
+                              <i class="fa fa-plus"></i>
+                          </a>
+                      </span>
+                  </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-    </form>
+      </div>
+    </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+  $(document).ready(function() {
+    $('#produce_table').DataTable();
+  });
+</script>
 {% endblock %}
