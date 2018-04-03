@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Produce List{% endblock %}
+{% include "food/nav.html" %}
+{% block page_content %}
+<section class="section">
+  <div class="container">
+    <h1 class="title is-size-4">แสดงข้อมูลแปลงเกษตรที่ปลูก {{ produce.name }}</h1>
+    <table class="table is-striped">
+      <thead>
+        <tr>
+          <th></th>
+          <th>รหัสแปลง</th>
+          <th>เจ้าของแปลง</th>
+          <th>ขนาดแปลงรวม</th>
+          <th>ขนาดแปลงที่ปลูก{{ produce.name }}</th>
+          <th>บ้านเลขที่</th>
+          <th>หมู่</th>
+          <th>ตำบล</th>
+          <th>จังหวัด</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for farm in farms %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ farm.ref_id }}</td>
+          <td>{{ ', '.join(farm.owners) }}</td>
+          <td>{{ '{:.2f}'.format(farm.total_size) }}</td>
+          <td>{{ '{:.2f}'.format(farm.total_produce_area_size) }}</td>
+          <td>{{ farm.street }}</td>
+          <td>{{ farm.subdistrict }}</td>
+          <td>{{ farm.district }}</td>
+          <td>{{ farm.province }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

@@ -464,6 +464,42 @@ def list_produce():
                            all_produce=all_produce)
 
 
+@food.route('/farm/produce/<int:produce_id>')
+def display_produce_info(produce_id=None):
+    if produce_id:
+        produce = Produce.query.get(produce_id)
+        farms = []
+        for grown_produce in produce.grown_produces:
+            farm = grown_produce.farms[0]
+            subdistrict = Subdistrict.query.get(farm.subdistrict_id).name
+            district = District.query.get(farm.district_id).name
+            province = Province.query.get(farm.province_id).name
+            estimated_area_size = float(grown_produce.estimated_area) if \
+                                    grown_produce.estimated_area is not None else 0
+            farms.append({
+                'id': farm.id,
+                'ref_id': farm.ref_id(),
+                'total_size': farm.estimated_total_size,
+                'total_produce_area_size': estimated_area_size,
+                'street': farm.street,
+                'subdistrict': subdistrict,
+                'district': district,
+                'province': province,
+                'owners': farm.get_owners()
+            })
+        if produce:
+            return render_template("food/produce_info.html",
+                                    produce=produce, farms=farms)
+    else:
+        return 'No produce ID specified.'
+
+
+@food.route('/farm/producer/', methods=['GET'])
+def list_farm_producer():
+    produce = request.form.get('produce', None)
+    if produce:
+        farms = db.session.add(Farm)
+
 @food.route('/farm/produce/add', methods=['POST', 'GET'])
 def add_produce():
     errors = []

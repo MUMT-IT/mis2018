@@ -50,6 +50,7 @@ class Farm(db.Model):
                                db.ForeignKey('subdistricts.id'))
     created_at = db.Column(db.DateTime(), default=datetime.utcnow)
     sample_lots = db.relationship('SampleLot', backref=db.backref('farm'))
+    # This should be one-to-many relationship instead of many-to-many
     produce = db.relationship('GrownProduce', secondary=produce_and_farm,
                               backref=db.backref('farms'))
 
