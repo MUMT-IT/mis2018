@@ -14,7 +14,7 @@
         {% for produce in all_produce %}
         <tr>
             <td>{{ loop.index }}</td>
-            <td>{{ produce.name }}</td>
+            <td><a href="{{ url_for('food.display_produce_info', produce_id=produce.id) }}">{{ produce.name }}</a></td>
             <td>
                 <ul>
                     {% for breed in produce.breeds %}
