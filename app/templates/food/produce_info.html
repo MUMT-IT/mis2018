@@ -35,6 +35,36 @@
       {% endfor %}
       </tbody>
     </table>
+    {% if not plant_counts.empty %}
+    <h1 class="title is-size-4">ข้อมูลสรุปแปลงเกษตรสำหรับ {{ produce.name }}</h1>
+    <p>*คลิกที่จังหวัดเพื่อกรองข้อมูล</p>
+    <table class="table is-striped" id="summary_table">
+      <thead>
+        <tr>
+          <th>จังหวัด</th>
+          <th>จำนวนแปลง</th>
+          <th>ขนาดแปลงรวม</th>
+          <th>ขนาดแปลงที่ปลูก{{ produce.name }}</th>
+          <th>คิดเป็นร้อยละ</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for province in plant_counts.keys() %}
+        <tr>
+          <td><a href="{{ url_for('food.display_produce_info', produce_id=produce.id, province=province) }}">{{ province }}</a></td>
+          <td>{{ plant_counts[province] }}</td>
+          <td>{{ '{:.2f}'.format(area_total[province]) }}</td>
+          <td>{{ prod_area_total[province] }}</td>
+          {% if area_total[province] > 0 %}
+          <td>{{ '{:.2f}'.format(100.0*prod_area_total[province]/area_total[province]|float) }}</td>
+          {% else %}
+          <td>NA</td>
+          {% endif %}
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
   </div>
 </section>
 {% endblock %}

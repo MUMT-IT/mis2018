@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from pandas import DataFrame, Series
 from flask import render_template, request, redirect, url_for, jsonify
 from . import foodbp as food
 from models import (Person, Farm, AgriType, SampleLot, Produce,
@@ -468,28 +469,45 @@ def list_produce():
 def display_produce_info(produce_id=None):
     if produce_id:
         produce = Produce.query.get(produce_id)
-        farms = []
-        for grown_produce in produce.grown_produces:
-            for farm in grown_produce.farms:
-                subdistrict = Subdistrict.query.get(farm.subdistrict_id).name
-                district = District.query.get(farm.district_id).name
-                province = Province.query.get(farm.province_id).name
-                estimated_area_size = float(grown_produce.estimated_area) if \
-                                        grown_produce.estimated_area is not None else 0
-                farms.append({
-                    'id': farm.id,
-                    'ref_id': farm.ref_id(),
-                    'total_size': farm.estimated_total_size,
-                    'total_produce_area_size': estimated_area_size,
-                    'street': farm.street,
-                    'subdistrict': subdistrict,
-                    'district': district,
-                    'province': province,
-                    'owners': farm.get_owners()
-                })
         if produce:
-            return render_template("food/produce_info.html",
-                                    produce=produce, farms=farms)
+            farms = []
+            province_flt = request.args.get('province', None)
+            for grown_produce in produce.grown_produces:
+                for farm in grown_produce.farms:
+                    subdistrict = Subdistrict.query.get(farm.subdistrict_id).name
+                    district = District.query.get(farm.district_id).name
+                    province = Province.query.get(farm.province_id).name
+                    estimated_area_size = float(grown_produce.estimated_area) if \
+                                            grown_produce.estimated_area is not None else 0
+                    if not province_flt or province_flt == province:
+                        farms.append({
+                            'id': farm.id,
+                            'ref_id': farm.ref_id(),
+                            'total_size': farm.estimated_total_size,
+                            'total_produce_area_size': estimated_area_size,
+                            'street': farm.street,
+                            'subdistrict': subdistrict,
+                            'district': district,
+                            'province': province,
+                            'owners': farm.get_owners()
+                        })
+            if farms:
+                data_farms = DataFrame(farms)
+                plant_counts = data_farms.groupby(['province'])['province'].count()
+                area_total = data_farms.groupby(['province'])['total_size'].sum()
+                prod_area_total = data_farms.groupby(['province'])['total_produce_area_size'].sum()
+                return render_template("food/produce_info.html",
+                                       produce=produce, farms=farms,
+                                       plant_counts=plant_counts,
+                                       area_total=area_total,
+                                       prod_area_total=prod_area_total)
+            else:
+                return render_template("food/produce_info.html",
+                                       produce=produce, farms=farms,
+                                       plant_counts=Series(),
+                                       area_total=Series(),
+                                       prod_area_total=Series())
+
     else:
         return 'No produce ID specified.'
 
