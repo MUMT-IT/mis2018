@@ -84,7 +84,16 @@ def edit(kpi_id):
 
 @kpi.route('/list/')
 def get_kpis():
-    kpis = db.session.query(KPI)
+    kpis = {}
+    orgs = Org.query.all()
+    for org in orgs:
+        kpis[org.name] = []
+        for strategy in org.strategies:
+            for tactic in strategy.tactics:
+                for theme in tactic.themes:
+                    for activity in theme.activities:
+                        for kpi in activity.kpis:
+                            kpis[org.name].append(kpi)
     return render_template('kpi/kpis.html', kpis=kpis)
 
 

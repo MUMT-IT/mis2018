@@ -5,13 +5,15 @@
 <section class="section">
     <nav class="panel">
         <p class="panel-heading">
-            ตัวชี้วัด
+            <strong>ตารางตัวชี้วัด</strong>
         </p>
-        {% for kpi in kpis %}
         <div class="panel-block">
-            <table class="table is-striped">
+            <table class="table is-narrow">
                 <thead>
                     <tr>
+                        <th>ลำดับที่</th>
+                        <th>มาตรการ</th>
+                        <th>กิจกรรม</th>
                         <th>ตัวชี้วัด</th>
                         <th>เป้าหมาย</th>
                         <th>ความถี่ในการประเมิน</th>
@@ -21,10 +23,24 @@
                         <th>ผู้รับรายงาน</th>
                         <th>รายละเอียด</th>
                         <th>ข้อมูลตัวชี้วัด</th>
+                        <th>ลบตัวชี้วัด</th>
                     </tr>
                 </thead>
                 <tbody>
+                {% for org in kpis.keys() %}
+                {% if kpis[org]|length > 0 %}
+                <tr>
+                    <td colspan="13" class="is-light"><strong>{{ org }}</strong></td>
+                </tr>
+                    {% for kpi in kpis[org] %}
                     <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>
+                            {{ kpi.strategy_activity.theme.content }}
+                        </td>
+                        <td>
+                            {{ kpi.strategy_activity.content }}
+                        </td>
                         <td>
                             {{ kpi.name }}
                         </td>
@@ -56,11 +72,18 @@
                                 <i class="fa fa-list-ol"></i>
                             </span>
                         </td>
+                        <td>
+                            <span class="panel-icon">
+                                <i class="fa fa-trash"></i>
+                            </span>
+                        </td>
                     </tr>
+                    {% endfor %}
+                {% endif %}
+                {% endfor %}
                 </tbody>
             </table>
         </div>
-        {% endfor %}
     </nav>
 </section>
 {% endblock %}
