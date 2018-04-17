@@ -326,6 +326,16 @@
                 'refno': self.stRefno(),
                 'org_id': self.org_id(),
             };
+            if(newStrategy.content === "" || typeof newStrategy.content === 'undefined') {
+                alert("กรุณาระบุยุทธศาสตร์");
+                return;
+            } else if (newStrategy.refno === "" || typeof newStrategy.refno === 'undefined') {
+                alert("กรุณาระบุเลขอ้างอิง")
+                return;
+            } else if (newStrategy.org_id === "" || typeof newStrategy.org_id === 'undefined') {
+                alert("กรุณาเลือกองค์กร")
+                return;
+            }
             $.ajax({
                 url: "{{ url_for('kpi.add_strategy_json') }}",
                 dataType: 'json',
@@ -363,6 +373,16 @@
                 'refno': self.tcRefno(),
                 'strategy_id': self.selectedStrategy(),
             };
+            if(newTactic.content === "" || typeof newTactic.content === 'undefined') {
+                alert("กรุณาระบุยุทธศาสตร์");
+                return;
+            } else if (newTactic.refno === "" || typeof newTactic.refno === 'undefined') {
+                alert("กรุณาระบุเลขอ้างอิง")
+                return;
+            } else if (newTactic.strategy_id === "" || typeof newTactic.strategy_id === 'undefined') {
+                alert("กรุณาเลือกยุทธศาสตร์")
+                return;
+            }
             $.ajax({
                 url: "{{ url_for('kpi.add_tactic_json') }}",
                 dataType: 'json',
@@ -400,6 +420,16 @@
                 'refno': self.thRefno(),
                 'tactic_id': self.selectedTactic(),
             };
+            if(newTheme.content === "" || typeof newTheme.content === 'undefined') {
+                alert("กรุณาระบุยุทธศาสตร์");
+                return;
+            } else if (newTheme.refno === "" || typeof newTheme.refno === 'undefined') {
+                alert("กรุณาระบุเลขอ้างอิง")
+                return;
+            } else if (newTheme.tactic_id === "" || typeof newTheme.tactic_id === 'undefined') {
+                alert("กรุณาเลือกแผนกลยุทธ์")
+                return;
+            }
             $.ajax({
                 url: "{{ url_for('kpi.add_theme_json') }}",
                 dataType: 'json',
@@ -438,6 +468,16 @@
                 'refno': self.acRefno(),
                 'theme_id': self.selectedTheme(),
             };
+            if(newActivity.content === "" || typeof newActivity.content === 'undefined') {
+                alert("กรุณาระบุยุทธศาสตร์");
+                return;
+            } else if (newActivity.refno === "" || typeof newActivity.refno === 'undefined') {
+                alert("กรุณาระบุเลขอ้างอิง")
+                return;
+            } else if (newActivity.theme_id === "" || typeof newActivity.theme_id === 'undefined') {
+                alert("กรุณาเลือกมาตรการ")
+                return;
+            }
             $.ajax({
                 url: "{{ url_for('kpi.add_activity_json') }}",
                 dataType: 'json',
