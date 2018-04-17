@@ -14,3 +14,18 @@ class StaffPersonalInfo(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     en_firstname = db.Column('en_firstname', db.String(), nullable=False)
     en_lastname = db.Column('en_lastname', db.String(), nullable=False)
+    highest_degree_id = db.Column('highest_degree_id', db.ForeignKey('staff_edu_degree.id'))
+    highest_degree = db.relationship('StaffEduDegree',
+                        backref=db.backref('staff_personal_info', uselist=False))
+
+
+class StaffEduDegree(db.Model):
+    __tablename__ = 'staff_edu_degree'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    level = db.Column('level', db.String(), nullable=False)
+    en_title = db.Column('en_title', db.String())
+    th_title = db.Column('th_title', db.String())
+    en_major = db.Column('en_major', db.String())
+    th_major = db.Column('th_major', db.String())
+    en_school = db.Column('en_school', db.String())
+    th_country = db.Column('th_country', db.String())
