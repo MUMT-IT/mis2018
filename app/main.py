@@ -31,6 +31,9 @@ app.register_blueprint(stud_blueprint, url_prefix='/stud')
 from food import foodbp as food_blueprint
 app.register_blueprint(food_blueprint, url_prefix='/food')
 
+from staff import staffbp as staff_blueprint
+app.register_blueprint(staff_blueprint, url_prefix='/staff')
+
 from models import Student, Class, ClassCheckIn
 import database
 
