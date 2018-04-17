@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <h1 class="title">Staff Info Page</h1>
+    <table class="table is-striped">
+        <thead>
+            <tr>
+                <th>Field</th>
+                <th>Data</th>
+            </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>Firstname</td>
+            <td>{{ person.personal_info.en_firstname }}</td>
+        </tr>
+        <tr>
+            <td>Lastname</td>
+            <td>{{ person.personal_info.en_lastname }}</td>
+        </tr>
+        <tr>
+            <td>Email</td>
+            <td>{{ person.email }}@mahidol.ac.th</td>
+        </tr>
+        <tr>
+            <td>Highest Degree</td>
+            <td>{{ person.personal_info.highest_degree.en_title }}</td>
+        </tr>
+        <tr>
+            <td>Major</td>
+            <td>{{ person.personal_info.highest_degree.en_major }}</td>
+        </tr>
+        </tbody>
+    </table>
+{% endblock %}

@@ -1,10 +1,18 @@
 from models import StaffAccount, StaffPersonalInfo
 from . import staffbp as staff
-from flask import jsonify
+from flask import jsonify, render_template
 
 @staff.route('/')
 def index():
     return '<h1>Staff page</h1><br>'
+
+
+@staff.route('/person/<int:account_id>')
+def show_person_info(account_id=None):
+    if account_id:
+        account = StaffAccount.query.get(account_id)
+        return render_template('staff/info.html', person=account)
+
 
 
 @staff.route('/api/list/')
