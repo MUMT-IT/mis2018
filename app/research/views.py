@@ -1,6 +1,6 @@
 import os
 import datetime
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 
 import requests
 from flask import request, render_template, jsonify
@@ -31,34 +31,38 @@ def download_scopus_pub_by_author(author, api_key, year):
             'view': 'COMPLETE', 'field': 'dc:title,dc:identifier,author'}
     url = 'http://api.elsevier.com/content/search/scopus'
 
-    authors_articles_sid = []
-    r = requests.get(url, params=params).json()
-    for article in r['search-results']['entry']:
-        if 'author' in article:
-            for au in article['author']:
-                try:
-                    if author.firstname.lower() == au['given-name'].lower():
-                        authors_articles_sid.append(
-                            article['dc:identifier'].replace('SCOPUS_ID:', ''))
-                except AttributeError:
-                    continue
+    print(query)
 
-        total_results = len(authors_articles_sid)
-        new_articles = []
-        if total_results > 0:
-            for scopus_id in authors_articles_sid:
-                existing_pub = db.session.query(ResearchPub).filter(ResearchPub.uid==scopus_id).first()
-                if existing_pub:
-                    continue
-                params = {'apiKey': api_key, 'query': query, 'httpAccept': 'application/json',
-                        'view': 'FULL'}
-                url = 'http://api.elsevier.com/content/abstract/scopus_id/' + scopus_id
-                r = requests.get(url, params=params).json()
-                rp = ResearchPub(author_id=author.email, uid=scopus_id, data=r, indexed_db='scopus')
-                db.session.add(rp)
-                db.session.commit()
-                new_articles.append(r)
-    return {'author': author, 'total': total_results, 'new_articles': new_articles}
+    authors_articles_sid = []
+    new_articles = []
+    r = requests.get(url, params=params).json()
+    if 'search-results' in r:
+        for article in r['search-results']['entry']:
+            if 'author' in article:
+                for au in article['author']:
+                    try:
+                        if author.firstname.lower() == au['given-name'].lower():
+                            authors_articles_sid.append(
+                                article['dc:identifier'].replace('SCOPUS_ID:', ''))
+                    except AttributeError:
+                        continue
+
+            if authors_articles_sid:
+                for scopus_id in authors_articles_sid:
+                    print('fetching data for {}...'.format(scopus_id))
+                    existing_pub = db.session.query(ResearchPub).filter(ResearchPub.uid==scopus_id).first()
+                    if existing_pub:
+                        print('\t{} exists..skipped!')
+                        continue
+                    params = {'apiKey': api_key, 'query': query, 'httpAccept': 'application/json',
+                            'view': 'FULL'}
+                    url = 'http://api.elsevier.com/content/abstract/scopus_id/' + scopus_id
+                    r = requests.get(url, params=params).json()
+                    rp = ResearchPub(author_id=author.email, uid=scopus_id, data=r, indexed_db='scopus')
+                    db.session.add(rp)
+                    db.session.commit()
+                    new_articles.append(r)
+    return {'author': author, 'total': len(authors_articles_sid), 'new_articles': new_articles}
 
 
 @research.route('/scopus/retrieve')
@@ -89,3 +93,35 @@ def retrieve_scopus_data():
         res = download_scopus_pub_by_author(author, api_key, year)
         results.append(res)
     return jsonify(results)
+
+
+@research.route('/scopus/pubs')
+def display_total_pubs():
+    pubs = []
+    years = defaultdict(int)
+    citation_years = defaultdict(int)
+    for pub in db.session.query(ResearchPub):
+        first_author = pub.data['abstracts-retrieval-response']['coredata']['dc:creator']['author'][0]
+        coverdate = pub.data['abstracts-retrieval-response']['coredata']['prism:coverDate']
+        citation = int(pub.data['abstracts-retrieval-response']['coredata']['citedby-count'])
+        coveryear = int(coverdate.split('-')[0])
+        years[coveryear] += 1
+        citation_years[coveryear] += int(citation)
+        authors = []
+        for author in pub.data['abstracts-retrieval-response']['authors']['author']:
+            authors.append({
+                'firstname': author.get('ce:given-name', ''),
+                'lastname': author.get('ce:surname', '')
+            })
+
+        title = pub.data['abstracts-retrieval-response']['coredata']['dc:title']
+        pub = {
+            'first_author': first_author,
+            'title': title,
+            'authors': authors,
+            'coveryear': coveryear,
+            'citation': citation,
+            }
+        pubs.append(pub)
+    return render_template('research/pubs.html', pubs=pubs,
+                years=years, citation_years=citation_years)

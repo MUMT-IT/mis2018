@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title is-size-5">ข้อมูลผลงานวิจัยในฐานข้อมูล SCOPUS</h1>
+        <hr>
+        <h1 class="title is-size-6">จำนวนผลงานวิจัยรายปี</h1>
+        <table class="table">
+            <tbody>
+                <tr>
+                    <td>ปี</td>
+                    {% for year in years %}
+                    <td>{{year}}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td>จำนวนเรื่อง</td>
+                    {% for year in years %}
+                    <td>{{years[year]}}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td>จำนวนครั้งที่ถูกอ้างอิง</td>
+                    {% for year in citation_years %}
+                    <td>{{citation_years[year]}}</td>
+                    {% endfor %}
+                </tr>
+            </tbody>
+        </table>
+        <hr>
+        <h1 class="title is-size-6">ผลงานวิจัยทั้งหมด</h1>
+        <table class="table" id="pubtable">
+            <thead>
+                <tr>
+                    <td>ชื่อแรก</td>
+                    <td>ชื่อเรื่อง</td>
+                    <td>ผู้ร่วมวิจัย</td>
+                    <td>ปีที่ตีพิมพ์</td>
+                    <td>จำนวนกครั้งที่ถูกอ้างอิง</td>
+                </tr>
+            </thead>
+            <tbody>
+                {% for pub in pubs %}
+                <tr>
+                    <td width="5%">{{pub.first_author['ce:given-name']}}, {{pub.first_author['ce:surname']}}</td>
+                    <td width="30%"><strong>{{pub.title}}</strong></td>
+                    <td width="30%">
+                        {% for author in pub.authors %}
+                        {{author.firstname}}, {{author.lastname}};
+                        {% endfor %}
+                    </td>
+                    <td width="5%">{{pub.coveryear}}</td>
+                    <td width="5%">{{pub.citation}}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function() {
+        $('#pubtable').DataTable();
+    });
+</script>
+{% endblock %}
