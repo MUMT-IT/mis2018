@@ -1,8 +1,17 @@
 {% extends "base.html" %}
 {% block page_content %}
 <section class="section">
+  <div class="container">
+    <h1 class="title is-size-5">ข้อมูลผลงานวิจัยในฐานข้อมูล SCOPUS</h1>
+    <div class="columns">
+      <div class="column">
+        <canvas id="yearly" class="box" height="90"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+<section class="section">
     <div class="container">
-        <h1 class="title is-size-5">ข้อมูลผลงานวิจัยในฐานข้อมูล SCOPUS</h1>
         <hr>
         <h1 class="title is-size-6">จำนวนผลงานวิจัยรายปี</h1>
         <table class="table">
@@ -63,6 +72,30 @@
 <script>
     $(document).ready(function() {
         $('#pubtable').DataTable();
+    });
+</script>
+<script>
+    var yearly_ctx = document.getElementById('yearly').getContext('2d');
+    var yearly_chart = $.getJSON("/research/api/scopus/pubs/yearly", function(data) {
+      return new Chart(yearly_ctx, {
+        type: 'line',
+        data: {
+          labels: data['labels'],
+          datasets: [{
+            label: 'Publication',
+            data: data['data']
+          }],
+        },
+        options: {
+          scales: {
+            yAxes: [{
+              ticks: {
+                beginAtZero: true
+              }
+            }]
+          }
+        }
+      });
     });
 </script>
 {% endblock %}
