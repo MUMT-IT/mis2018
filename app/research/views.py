@@ -84,9 +84,8 @@ def download_scopus_pub(api_key, year):
 
 @research.route('/scopus/retrieve')
 def retrieve_scopus_data():
-    authors = []
-
     year = request.args.get('year', None)
+
     if year is None:
         year = datetime.datetime.today().year
 
@@ -126,3 +125,21 @@ def display_total_pubs():
         pubs.append(pub)
     return render_template('research/pubs.html', pubs=pubs,
                 years=years, citation_years=citation_years)
+
+
+@research.route('/api/scopus/pubs/yearly')
+def display_yearly_pubs():
+    years = defaultdict(int)
+    citation_years = defaultdict(int)
+    for pub in db.session.query(ResearchPub):
+        coverdate = pub.data['abstracts-retrieval-response']['coredata']['prism:coverDate']
+        # citation = int(pub.data['abstracts-retrieval-response']['coredata']['citedby-count'])
+        coveryear = int(coverdate.split('-')[0])
+        years[coveryear] += 1
+        # citation_years[coveryear] += int(citation)
+    labels = []
+    data = []
+    for yr in sorted(years.keys()):
+        labels.append(str(yr))
+        data.append(years[yr])
+    return jsonify({'labels': labels, 'data': data})
