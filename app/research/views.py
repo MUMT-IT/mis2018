@@ -1,4 +1,5 @@
 import os
+import time
 import datetime
 from collections import namedtuple, defaultdict
 
@@ -6,7 +7,7 @@ import requests
 from flask import request, render_template, jsonify
 from . import researchbp as research
 from models import APIKey, ResearchPub
-from ..staff.models import StaffAccount
+from ..staff.models import StaffAccount, StaffPersonalInfo
 from ..main import db
 
 Author = namedtuple('Author', ['email', 'firstname', 'lastname'])
@@ -21,78 +22,78 @@ def get_key(service):
     api_key = db.session.query(APIKey).filter(APIKey.service==service).first().key
     return api_key
 
-def download_scopus_pub_by_author(author, api_key, year):
+def download_scopus_pub(api_key, year):
     # TODO: need to figure out the proxy IP and port
     # proxy_dict = {'http': 'http://{}:{}@proxy.mahidol/'.format(usr,pwd) }
 
-    query = 'AUTHLASTNAME("%s") AUTHFIRST("%s") DOCTYPE(ar) PUBYEAR AFT %d' \
-            % (author.lastname, author.firstname[0], year)
+    '''
+    query = 'AUTHLASTNAME("%s") AUTHFIRST("%s") DOCTYPE(ar) PUBYEAR = %d' \
+            % (author.lastname, author.firstname[0], int(year))
+    '''
+    query = 'AFFILORG("faculty of medical technology" "mahidol university") DOCTYPE(ar) PUBYEAR = %d' \
+            % (int(year))
     params = {'apiKey': api_key, 'query': query, 'httpAccept': 'application/json',
             'view': 'COMPLETE', 'field': 'dc:title,dc:identifier,author'}
     url = 'http://api.elsevier.com/content/search/scopus'
 
-    print(query)
-
-    authors_articles_sid = []
-    new_articles = []
+    article_ids = []
     r = requests.get(url, params=params).json()
     if 'search-results' in r:
         for article in r['search-results']['entry']:
-            if 'author' in article:
-                for au in article['author']:
-                    try:
-                        if author.firstname.lower() == au['given-name'].lower():
-                            authors_articles_sid.append(
-                                article['dc:identifier'].replace('SCOPUS_ID:', ''))
-                    except AttributeError:
-                        continue
+            try:
+                article_ids.append(article['dc:identifier'].replace('SCOPUS_ID:', ''))
+            except AttributeError:
+                continue
 
-            if authors_articles_sid:
-                for scopus_id in authors_articles_sid:
-                    print('fetching data for {}...'.format(scopus_id))
-                    existing_pub = db.session.query(ResearchPub).filter(ResearchPub.uid==scopus_id).first()
-                    if existing_pub:
-                        print('\t{} exists..skipped!')
-                        continue
-                    params = {'apiKey': api_key, 'query': query, 'httpAccept': 'application/json',
-                            'view': 'FULL'}
-                    url = 'http://api.elsevier.com/content/abstract/scopus_id/' + scopus_id
-                    r = requests.get(url, params=params).json()
-                    rp = ResearchPub(author_id=author.email, uid=scopus_id, data=r, indexed_db='scopus')
-                    db.session.add(rp)
-                    db.session.commit()
-                    new_articles.append(r)
-    return {'author': author, 'total': len(authors_articles_sid), 'new_articles': new_articles}
+        print('total article = {}'.format(len(article_ids)))
+        for n,scopus_id in enumerate(article_ids):
+            if (n > 0) and (n % 5 == 0):
+                print('sleeping...')
+                time.sleep(SLEEPTIME)
+            print('fetching data for {}...'.format(scopus_id))
+            params = {'apiKey': api_key, 'query': query, 'httpAccept': 'application/json',
+                    'view': 'FULL'}
+            url = 'http://api.elsevier.com/content/abstract/scopus_id/' + scopus_id
+            r = requests.get(url, params=params).json()
+            citation_count = int(r['abstracts-retrieval-response']['coredata']['citedby-count'])
+            existing_pub = db.session.query(ResearchPub).filter(ResearchPub.uid==scopus_id).first()
+            if existing_pub:
+                print('\t{} exists..updating a citation count..'.format(scopus_id))
+                existing_pub.citation_count = citation_count
+                db.session.add(existing_pub)
+                db.session.commit()
+                continue
+            rp = ResearchPub(uid=scopus_id, citation_count=citation_count, data=r, indexed_db='scopus')
+            db.session.add(rp)
+            db.session.commit()
+            for _author in r['abstracts-retrieval-response']['authors']['author']:
+                _firstname = _author.get('ce:given-name', '').title()
+                _lastname = _author.get('ce:surname', '').title()
+                _au = db.session.query(StaffPersonalInfo)\
+                    .filter(StaffPersonalInfo.en_firstname==_firstname,
+                            StaffPersonalInfo.en_lastname==_lastname).first()
+                if _au:
+                    author_account = _au.staff_account
+                    existing_pubs = set([p.uid for p in author_account.pubs])
+                    if rp.uid not in existing_pubs:
+                        author_account.pubs.append(rp)
+                        db.session.add(author_account)
+            db.session.commit()
+    return {'total': len(article_ids)}
 
 
 @research.route('/scopus/retrieve')
 def retrieve_scopus_data():
     authors = []
 
-    year = request.args.get('year', 2015)
+    year = request.args.get('year', None)
     if year is None:
         year = datetime.datetime.today().year
 
-    author_email = request.args.get('author_email', None)
-    if author_email is not None:
-        author = db.session.query(StaffAccount).filter(StaffAccount.email==author_email).first()
-        if not author:
-            return 'No author with the given email found in the database.'
-        firstname = author.personal_info.en_firstname.lower()
-        lastname = author.personal_info.en_lastname.lower()
-        authors.append(Author(author.email, firstname, lastname))
-    else:
-        for author in db.session.query(StaffAccount):
-            firstname = author.personal_info.en_firstname.lower()
-            lastname = author.personal_info.en_lastname.lower()
-            authors.append(Author(author.email, firstname, lastname))
     api_key = get_key('SCOPUS')
 
-    results = []
-    for author in authors:
-        res = download_scopus_pub_by_author(author, api_key, year)
-        results.append(res)
-    return jsonify(results)
+    res = download_scopus_pub(api_key, year)
+    return jsonify({'status': 'ok'})
 
 
 @research.route('/scopus/pubs')
