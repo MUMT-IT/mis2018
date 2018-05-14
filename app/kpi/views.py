@@ -2,8 +2,10 @@ from datetime import datetime
 from sqlalchemy.sql import select
 from flask import request
 from flask import jsonify, render_template
+import pandas as pd
 from pandas import DataFrame
 from collections import defaultdict
+from dateutil.relativedelta import relativedelta
 
 from . import kpibp as kpi
 from ..main import db, json_keyfile
@@ -282,3 +284,42 @@ def get_licenses_data(program):
 @kpi.route('/edu/licenses/')
 def show_licenses():
     return render_template('edu/licenses.html')
+
+
+@kpi.route('/api/edu/duration')
+def get_duration_data():
+    gc = get_credential(json_keyfile)
+    sheetkey = '1aZf6-072bIh33Tl5dSTVk8LQt8Yzkk_Fx7hYYgUBQas'
+    wks = gc.open_by_key(sheetkey).sheet1
+    df = DataFrame(wks.get_all_records())
+    start_date = df.columns[12]
+    end_date = df.columns[11]
+    df[start_date] = pd.to_datetime(df[start_date])
+    df[end_date] = pd.to_datetime(df[end_date])
+    df['totaldays'] = (df[end_date] - df[start_date]).dt.days
+    grouped = df.groupby([df.columns[14], df.columns[9], df.columns[6]]).mean()
+    data = []
+    for program in grouped.index.levels[0]:
+        for degree in grouped.index.levels[1]:
+            for year in grouped.index.levels[2]:
+                try:
+                    d = {
+                        'program': program,
+                        'degree': degree,
+                        'year': year,
+                        'avgdays': grouped.xs(program).xs(degree).xs(year)['totaldays']
+                    }
+                except KeyError:
+                    d = {
+                        'program': program,
+                        'degree': degree,
+                        'year': year,
+                        'avgdays': None
+                    }
+                data.append(d)
+    return jsonify(data)
+
+
+@kpi.route('/edu/duration/')
+def show_duration():
+    return render_template('edu/duration.html')

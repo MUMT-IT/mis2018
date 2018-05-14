@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Graduation Time{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">ระยะเวลาในการศึกษา</h1>
+        <table class="table is-striped">
+            <thead>
+                <th>Program</th>
+                <th>Degree</th>
+                <th>Graduate Year</th>
+                <th>Averaged Days</th>
+                <th>Averaged Years</th>
+            </thead>
+            <tbody data-bind="foreach: data">
+                <tr>
+                    <td data-bind="text: $data.program"></td>
+                    <td data-bind="text: $data.degree"></td>
+                    <td data-bind="text: $data.year"></td>
+                    <td data-bind="text: $data.avgdays ? $data.avgdays.toFixed(2) : 'NA'"></td>
+                    <td data-bind="text: $data.avgdays ? ($data.avgdays/365).toFixed(2) : 'NA'"></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var ViewModel = function() {
+        var self = this;
+        self.data = ko.observableArray([]);
+    }
+    var vm = new ViewModel();
+    ko.applyBindings(vm);
+
+    $.getJSON("{{ url_for('kpi.get_duration_data')}}", function(data) {
+        $.each(data, function(idx, d) {
+            vm.data.push(d);
+        });
+    });
+</script>
+{% endblock %}
