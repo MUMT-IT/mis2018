@@ -1,9 +1,10 @@
 from datetime import datetime
 from sqlalchemy.sql import select
 from flask import request
-from flask import jsonify, render_template
+from flask import jsonify, render_template, Response
 import pandas as pd
 from pandas import DataFrame
+import numpy as np
 from collections import defaultdict
 from dateutil.relativedelta import relativedelta
 
@@ -323,3 +324,78 @@ def get_duration_data():
 @kpi.route('/edu/duration/')
 def show_duration():
     return render_template('edu/duration.html')
+
+
+@kpi.route('/api/edu/evaluation')
+def get_evaluation_data():
+    sheets = [
+        {
+            'program': 'MT',
+            'year': 2556,
+            'sheetkey': '1g7cXTRWxKY0ZEolbHt2SWX-R9xvQUbp91-04I04kR3Y'
+        },
+        {
+            'program': 'MT',
+            'year': 2557,
+            'sheetkey': '18H3N82WY_gshdBMGo68i5_xrrcBaYidf6TPfKp9ApjU'
+        },
+        {
+            'program': 'RT',
+            'year': 2556,
+            'sheetkey': '1O9OV9ee4bNLb1l3HV7Xg6Ek4uePZg1uWTMa8UCgfGXc'
+        },
+        {
+            'program': 'RT',
+            'year': 2557,
+            'sheetkey': '1ce5mcOeIxdYVWbVJATKS7r3F1FvRQ2kX1dPVbC127ls'
+        }
+    ]
+
+    columns = {
+        'ethic': range(21,28),
+        'knowledge': range(28, 35),
+        'wisdom': range(35,40),
+        'relationship skill': range(40,46),
+        'analytical skill': range(46,51),
+        'professional skill': range(51,56)
+    }
+    gc = get_credential(json_keyfile)
+    data = []
+    for item in sheets:
+        bags = []
+        worksheet = gc.open_by_key(item['sheetkey'])
+        wks = worksheet.sheet1
+        values = wks.get_all_values()
+        df = DataFrame(values[1:], columns=values[0])
+        for topic in columns:
+            scores = []
+            for col in df.columns[columns[topic]]:
+                temp = []
+                for v in df[col]:
+                    try:
+                        v = float(v)
+                    except:
+                        continue
+                    else:
+                        temp.append(v)
+                if temp:
+                    scores.append(np.mean(temp))
+            avgscores = np.mean(scores)
+            if np.isnan(avgscores):
+                avgscores = None
+            bags.append({
+                'program': item['program'],
+                'topic': topic,
+                'score': avgscores
+            })
+        data.append({
+            'year': item['year'],
+            'program': item['program'],
+            'data': bags
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/evaluation')
+def show_evaluation():
+    return render_template('edu/evaluation.html')

@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% block title %}Graduation Time{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div>
+            <h1 class="title">ผลการประเมินจากผู้ใช้บัณฑิตระดับปริญญาตรี</h1>
+            <div class="field is-grouped is-grouped-multiline">
+                <div class="control">
+                    <div class="tags has-addons">
+                    <span class="tag is-dark">source</span>
+                    <span class="tag is-info">excel</span>
+                    </div>
+                </div>
+                <div class="control">
+                    <div class="tags has-addons">
+                    <span class="tag is-dark">latest</span>
+                    <span class="tag is-warning">no</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half">
+                <table class="table">
+                    <thead>
+                        <th>ปีการศึกษา</th>
+                        <th>สาขา</th>
+                        <th>หัวข้อ</th>
+                        <th>คะแนนเฉลี่ย</th>
+                    </thead>
+                    <tbody data-bind="foreach: data">
+                        <tr>
+                            <td data-bind="text: $data.year"></td>
+                            <td data-bind="text: $data.program"></td>
+                            <td data-bind="text: $data.topic"></td>
+                            <td data-bind="text: $data.score"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="column">
+                <h2 class="title is-size-4">สาขาเทคนิคการแพทย์</h2>
+                <canvas id="mtchart"></canvas>
+                <h2 class="title is-size-4">สาขารังสีเทคนิค</h2>
+                <canvas id="rtchart"></canvas>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var ViewModel = function() {
+        var self = this;
+        self.data = ko.observableArray([]);
+    }
+    var vm = new ViewModel();
+    ko.applyBindings(vm);
+
+    var years = [];
+    var programs = [];
+    var labels = [];
+    var mtdatasets = [];
+    var rtdatasets = [];
+    var mtctx = document.getElementById('mtchart').getContext('2d');
+    var rtctx = document.getElementById('rtchart').getContext('2d');
+
+    $.getJSON("{{ url_for('kpi.get_evaluation_data') }}", function(data) {
+        $.each(data, function(idx, d) {
+            years.push(d['year']);
+            programs.push(d['program']);
+            var labs = [];
+            var dat = [];
+            $.each(d['data'], function(x, v) {
+                labs.push(v['topic']);
+                dat.push(v['score']);
+                vm.data.push({
+                    'topic': v['topic'],
+                    'score': v['score'],
+                    'year': d['year'],
+                    'program': d['program']
+                });
+            });
+            labels.push(labs);
+            var colorR = Math.floor((Math.random() * 256));
+            var colorG = Math.floor((Math.random() * 256));
+            var colorB = Math.floor((Math.random() * 256));
+            var bgColor = "rgb(" + colorR + "," + colorG + "," + colorB + ")";
+            if (d['program'] === 'MT') {
+                mtdatasets.push({
+                    'data': dat,
+                    'label': d['year'],
+                    'backgroundColor': bgColor,
+                    'borderColor': bgColor,
+                    });
+            } else {
+                rtdatasets.push({
+                    'data': dat,
+                    'label': d['year'],
+                    'backgroundColor': bgColor,
+                    'borderColor': bgColor,
+                    });
+                }
+        });
+    }).done(function() {
+        var myChart = new Chart(mtctx, {
+            type: 'bar',
+            data: {
+                labels: labels[0],
+                borderWidth: 1,
+                datasets: mtdatasets,
+            },
+            options: {
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                }
+            }
+        });
+        var myChart2 = new Chart(rtctx, {
+            type: 'bar',
+            data: {
+                labels: labels[0],
+                borderWidth: 1,
+                datasets: rtdatasets,
+            },
+            options: {
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
