@@ -2,11 +2,24 @@ from datetime import datetime
 from sqlalchemy.sql import select
 from flask import request
 from flask import jsonify, render_template
+from pandas import DataFrame
+from collections import defaultdict
 
 from . import kpibp as kpi
-from ..main import db
+from ..main import db, json_keyfile
 from ..models import (Org, KPI, Strategy, StrategyTactic,
                       StrategyTheme, StrategyActivity, KPISchema)
+
+import gspread
+import sys
+from oauth2client.service_account import ServiceAccountCredentials
+
+scope = ['https://spreadsheets.google.com/feeds',
+        'https://www.googleapis.com/auth/drive']
+
+def get_credential(json_keyfile):
+    credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scope)
+    return gspread.authorize(credentials)
 
 
 def convert_python_bool(data, key):
@@ -241,3 +254,18 @@ def add_activity_json():
                         created_at=activity.created_at,
                         theme_id=activity.theme_id,
                         content=activity.content))
+
+@kpi.route('/api/education/licenses/<program>')
+def get_licenses_data(program):
+    if program == 'mt':
+        sheetkey = '1Dv9I96T0UUMROSx7hO9u_N7a3lzQ969LiVvL_kBMRqE'
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetkey).sheet1
+    df = DataFrame(wks.get_all_records())
+    years = defaultdict(dict)
+    grouped = df.groupby(['graduate', 'apply', 'result']).count()['id']
+    for year in grouped.index.levels[0]:
+        years[year]['total'] = grouped.xs(year).sum()
+        years[year]['applied'] = grouped.xs(year).xs('TRUE').sum()
+        years[year]['passed'] = grouped.xs(year).xs('TRUE').xs('TRUE').sum()
+    return jsonify(years)

@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
 from config import config
+import json
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -21,6 +22,9 @@ def create_app(config_name='default'):
 import os
 config_name = os.environ.get('FLASK_CONFIG', 'default')
 app = create_app(config_name)
+
+with app.open_resource(os.environ.get('JSON_KEYFILE')) as jk:
+    json_keyfile = json.load(jk)
 
 from kpi import kpibp as kpi_blueprint
 app.register_blueprint(kpi_blueprint, url_prefix='/kpi')
