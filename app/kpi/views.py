@@ -255,7 +255,7 @@ def add_activity_json():
                         theme_id=activity.theme_id,
                         content=activity.content))
 
-@kpi.route('/api/education/licenses/<program>')
+@kpi.route('/api/edu/licenses/<program>')
 def get_licenses_data(program):
     if program == 'mt':
         sheetkey = '1Dv9I96T0UUMROSx7hO9u_N7a3lzQ969LiVvL_kBMRqE'
@@ -277,3 +277,8 @@ def get_licenses_data(program):
         d['percent']['passed'] = d['count']['passed']/float(d['count']['applied'])*100.0
         data.append(d)
     return jsonify(data)
+
+
+@kpi.route('/edu/licenses/')
+def show_licenses():
+    return render_template('edu/licenses.html')
