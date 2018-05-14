@@ -259,13 +259,21 @@ def add_activity_json():
 def get_licenses_data(program):
     if program == 'mt':
         sheetkey = '1Dv9I96T0UUMROSx7hO9u_N7a3lzQ969LiVvL_kBMRqE'
+    elif program == 'rt':
+        sheetkey = '14iWhBvL2i-nkcB7U8TrfS7YUTErRq1aPtamT3lgePhY'
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetkey).sheet1
     df = DataFrame(wks.get_all_records())
-    years = defaultdict(dict)
+    data = []
     grouped = df.groupby(['graduate', 'apply', 'result']).count()['id']
     for year in grouped.index.levels[0]:
-        years[year]['total'] = grouped.xs(year).sum()
-        years[year]['applied'] = grouped.xs(year).xs('TRUE').sum()
-        years[year]['passed'] = grouped.xs(year).xs('TRUE').xs('TRUE').sum()
-    return jsonify(years)
+        d = {'year': year}
+        d['count'] = defaultdict(dict)
+        d['count']['total'] = grouped.xs(year).sum()
+        d['count']['applied'] = grouped.xs(year).xs('TRUE').sum()
+        d['count']['passed'] = grouped.xs(year).xs('TRUE').xs('TRUE').sum()
+        d['percent'] = defaultdict(dict)
+        d['percent']['applied'] = d['count']['applied']/float(d['count']['total'])*100.0
+        d['percent']['passed'] = d['count']['passed']/float(d['count']['applied'])*100.0
+        data.append(d)
+    return jsonify(data)
