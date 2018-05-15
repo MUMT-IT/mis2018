@@ -28,10 +28,10 @@ def download_scopus_pub(api_key, year):
     # proxy_dict = {'http': 'http://{}:{}@proxy.mahidol/'.format(usr,pwd) }
 
     '''
-    query = 'AUTHLASTNAME("%s") AUTHFIRST("%s") DOCTYPE(ar) PUBYEAR = %d' \
-            % (author.lastname, author.firstname[0], int(year))
-    '''
     query = 'AFFILORG("faculty of medical technology" "mahidol university") DOCTYPE(ar) PUBYEAR = %d' \
+            % (int(year))
+    '''
+    query = 'AFFILORG("faculty of medical technology" "mahidol university") PUBYEAR = %d' \
             % (int(year))
     params = {'apiKey': api_key, 'query': query, 'httpAccept': 'application/json',
             'view': 'COMPLETE', 'field': 'dc:title,dc:identifier,author'}
@@ -124,15 +124,19 @@ def retrieve_scopus_data():
 @research.route('/scopus/pubs')
 def display_total_pubs():
     pubs = []
-    years = defaultdict(int)
+    article_years = defaultdict(int)
     citation_years = defaultdict(int)
+    cum_citations = 0
+    cum_citation_years = defaultdict(int)
+    years = set()
     for pub in db.session.query(ResearchPub):
         first_author = pub.data['abstracts-retrieval-response']['coredata']['dc:creator']['author'][0]
         coverdate = pub.data['abstracts-retrieval-response']['coredata']['prism:coverDate']
         citation = int(pub.data['abstracts-retrieval-response']['coredata']['citedby-count'])
         coveryear = int(coverdate.split('-')[0])
-        years[coveryear] += 1
-        citation_years[coveryear] += int(citation)
+        years.add(coveryear)
+        article_years[coveryear] += 1
+        citation_years[coveryear] += citation
         authors = []
         for author in pub.data['abstracts-retrieval-response']['authors']['author']:
             authors.append({
@@ -149,8 +153,13 @@ def display_total_pubs():
             'citation': citation,
             }
         pubs.append(pub)
+    for year in sorted(years):
+        cum_citations += citation_years[year]
+        cum_citation_years[year] += cum_citations
+
     return render_template('research/pubs.html', pubs=pubs,
-                years=years, citation_years=citation_years)
+                years=sorted(years), citation_years=citation_years,
+                article_years=article_years, cum_citation_years=cum_citation_years)
 
 
 @research.route('/api/scopus/pubs/yearly')

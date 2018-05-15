@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% include "kpi/nav.html" %}
 {% block page_content %}
 <section class="section">
   <div class="container">
@@ -25,13 +26,19 @@
                 <tr>
                     <td>จำนวนเรื่อง</td>
                     {% for year in years %}
-                    <td>{{years[year]}}</td>
+                    <td>{{article_years[year]}}</td>
                     {% endfor %}
                 </tr>
                 <tr>
                     <td>จำนวนครั้งที่ถูกอ้างอิง</td>
-                    {% for year in citation_years %}
+                    {% for year in years %}
                     <td>{{citation_years[year]}}</td>
+                    {% endfor %}
+                </tr>
+                <tr>
+                    <td>จำนวนครั้งที่ถูกอ้างอิงสะสม</td>
+                    {% for year in years %}
+                    <td>{{cum_citation_years[year]}}</td>
                     {% endfor %}
                 </tr>
             </tbody>
@@ -83,7 +90,11 @@
           labels: data['labels'],
           datasets: [{
             label: 'Publication',
-            data: data['data']
+            data: data['data'],
+            pointRadius: 5,
+            borderWidth: 5,
+            borderColor: "rgba(0,128,0,0.9)",
+            pointBackgroundColor: "rgba(0,128,0,0.9)",
           }],
         },
         options: {
