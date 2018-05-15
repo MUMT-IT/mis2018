@@ -396,6 +396,78 @@ def get_evaluation_data():
     return jsonify(data)
 
 
+@kpi.route('/edu/evaluation/wrs')
+def show_wrs():
+    return render_template('edu/wrs.html')
+
+
+@kpi.route('/api/edu/evaluation/wrs')
+def get_wrs_data():
+    sheets = [
+        {
+            'program': 'MT',
+            'year': 2556,
+            'sheetkey': '1g7cXTRWxKY0ZEolbHt2SWX-R9xvQUbp91-04I04kR3Y'
+        },
+        {
+            'program': 'MT',
+            'year': 2557,
+            'sheetkey': '18H3N82WY_gshdBMGo68i5_xrrcBaYidf6TPfKp9ApjU'
+        },
+        {
+            'program': 'RT',
+            'year': 2556,
+            'sheetkey': '1O9OV9ee4bNLb1l3HV7Xg6Ek4uePZg1uWTMa8UCgfGXc'
+        },
+        {
+            'program': 'RT',
+            'year': 2557,
+            'sheetkey': '1ce5mcOeIxdYVWbVJATKS7r3F1FvRQ2kX1dPVbC127ls'
+        }
+    ]
+
+    columns = {
+        'knowledge': 64,
+        'professional skill': 65,
+        'analytical skill': 66,
+        'creativity': 67,
+        'team working': 68,
+        'social responsibility': 69
+    }
+    gc = get_credential(json_keyfile)
+    data = []
+    for item in sheets:
+        bags = []
+        worksheet = gc.open_by_key(item['sheetkey'])
+        wks = worksheet.sheet1
+        values = wks.get_all_values()
+        df = DataFrame(values[1:], columns=values[0])
+        for topic in columns:
+            col = df.columns[columns[topic]]
+            temp = []
+            for v in df[col]:
+                try:
+                    v = float(v)
+                except:
+                    continue
+                else:
+                    temp.append(v)
+            if temp:
+                avgscores = np.mean(temp)
+            if np.isnan(avgscores):
+                avgscores = None
+            bags.append({
+                'topic': topic,
+                'score': avgscores
+            })
+        data.append({
+            'year': item['year'],
+            'program': item['program'],
+            'data': bags
+        })
+    return jsonify(data)
+
+
 @kpi.route('/edu/evaluation')
 def show_evaluation():
     return render_template('edu/evaluation.html')

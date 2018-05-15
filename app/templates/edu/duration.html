@@ -1,9 +1,24 @@
 {% extends "base.html" %}
+{% include "kpi/nav.html" %}
 {% block title %}Graduation Time{% endblock %}
 {% block page_content %}
 <section class="section">
     <div class="container">
         <h1 class="title">ระยะเวลาในการศึกษา</h1>
+        <div class="field is-grouped is-grouped-multiline">
+            <div class="control">
+                <div class="tags has-addons">
+                <span class="tag is-dark">source</span>
+                <span class="tag is-info">excel</span>
+                </div>
+            </div>
+            <div class="control">
+                <div class="tags has-addons">
+                <span class="tag is-dark">latest</span>
+                <span class="tag is-success">yes</span>
+                </div>
+            </div>
+        </div>
         <table class="table is-striped">
             <thead>
                 <th>Program</th>
