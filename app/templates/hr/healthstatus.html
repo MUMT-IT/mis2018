@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% include "kpi/nav.html" %}
+{% block title %}Graduation Time{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">ตารางเปรียบเทียบผลการตรวจสุขภาพ</h1>
+        <table class="table">
+            <thead>
+                <th>ปี</th>
+                <th>มีภาวะอ้วน</th>
+                <th>มีภาวะอ้วนมาก</th>
+                <th>ความดันมากกว่า 140/90 mmHg</th>
+                <th>Glucose > 125 mg/dL</th>
+                <th>Cholesterol > 204 mg/dL</th>
+            </thead>
+            <tbody data-bind="foreach: {data: data, as: 'record'}">
+                <tr>
+                    <td data-bind="text: record.year"></td>
+                    <!-- ko foreach: record.data -->
+                    <td data-bind="text: $data.value"></td>
+                    <!-- /ko -->
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var ViewModel = function() {
+        var self = this;
+        self.data = ko.observableArray([]);
+    }
+    var vm = new ViewModel();
+    ko.applyBindings(vm);
+    $.getJSON("{{ url_for('kpi.get_healthstatus_data') }}", function(data) {
+        vm.data(data);
+    });
+</script>
+{% endblock %}

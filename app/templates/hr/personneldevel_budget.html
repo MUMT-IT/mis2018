@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% include "kpi/nav.html" %}
+{% block title %}Personnel Development Budget{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">งบประมาณในการพัฒนาบุคลากร</h1>
+        <div class="columns">
+            <div class="column">
+                <table class="table">
+                    <thead>
+                        <th>ปี</th>
+                        <th>กลุ่ม</th>
+                        <th>งบสำหรับพัฒนา</th>
+                        <th>งบสำหรับงานสัมมนา</th>
+                        <th>รวม</th>
+                    </thead>
+                    <tbody data-bind="foreach: {data: data, as: 'record'}">
+                        <tr>
+                            <td data-bind="text: record.year"></td>
+                            <!-- ko foreach: record.data -->
+                            <td data-bind="text: $data.value"></td>
+                            <!-- /ko -->
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="column">
+                <h3 class="subtitle">งบประมาณรวมต่อปี</h3>
+                <canvas id="chart"></canvas>
+                <br>
+                <h3 class="subtitle">งบประมาณต่อคนต่อปีแยกตามสายงาน</h3>
+                <canvas id="chart2"></canvas>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var ViewModel = function() {
+        var self = this;
+        self.data = ko.observableArray([]);
+    }
+    var vm = new ViewModel();
+    ko.applyBindings(vm);
+    var nets = [];
+    var academia_nets = [];
+    var support_nets = [];
+    var years = [];
+    var cursum;
+    var curgroup;
+    var bgColor;
+    $.getJSON("{{ url_for('kpi.get_personneldevel_budget_data') }}", function(data) {
+        vm.data(data);
+    }).done(function() {
+        var totalsum;
+        $.each(vm.data(), function(idx, d) {
+            if (years.indexOf(d.year) < 0) {
+                years.push(d.year);
+            }
+        });
+
+        $.each(years, function(_, yr) {
+            totalsum = 0;
+            $.each(vm.data(), function(_, d) {
+                $.each(d.data, function(_, item) {
+                    if(d.year === yr && item['topic'] === 'กลุ่ม') {
+                        curgroup = item['value'];
+                    }
+                    if(d.year === yr && item['topic'] === 'total') {
+                        totalsum = totalsum + parseFloat(item['value']);
+                        cursum = parseFloat(item['value']);
+                    }
+                });
+                if(curgroup === 'วิชาการ') {
+                    academia_nets.push(cursum);
+                } else if (curgroup === 'สนับสนุน') {
+                    support_nets.push(cursum);
+                }
+            });
+            nets.push(totalsum);
+        });
+        var colorR = Math.floor((Math.random() * 256));
+        var colorG = Math.floor((Math.random() * 256));
+        var colorB = Math.floor((Math.random() * 256));
+        bgColor = "rgb(" + colorR + "," + colorG + "," + colorB + ")";
+        var ctx = document.getElementById("chart").getContext('2d');
+        var myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: years,
+                borderWidth: 1,
+                datasets: [{
+                    data: nets,
+                    label: 'รวม',
+                    backgroundColor: bgColor,
+                }],
+            },
+            options: {
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                }
+            }
+        });
+    });
+    var headcount_academic = [];
+    var headcount_support = [];
+    var percapita_academic = [];
+    var percapita_support = [];
+    var percapita_years = [];
+    $.getJSON("{{ url_for('kpi.get_personneldevel_data') }}", function(data) {
+        $.each(years, function(_, yr){
+            $.each(data, function(idx, d) {
+                if(d.year === yr) {
+                    percapita_years.push(yr);
+                    $.each(d.data, function(x, item) {
+                        if(item['topic'] === 'จำนวนสายวิชาการ') {
+                            headcount_academic.push(item['value']);
+                        }
+                        if (item['topic'] === 'จำนวนสายสนับสนุน') {
+                            headcount_support.push(item['value']);
+                        }
+                    });
+                }
+            });
+        });
+    }).done(function() {
+        for(var i=0; i < headcount_academic.length; i++) {
+            percapita_academic.push(academia_nets[i]/headcount_academic[i]);
+            percapita_support.push(support_nets[i]/headcount_support[i]);
+        }
+        var ctx2 = document.getElementById("chart2").getContext('2d');
+        var myChart = new Chart(ctx2, {
+            type: 'line',
+            data: {
+                labels: percapita_years,
+                borderWidth: 1,
+                datasets: [{
+                    data: percapita_academic,
+                    label: 'วิชาการต่อคน',
+                    fill: false,
+                    pointRadius: 5,
+                    pointBackgroundColor: "rgba(0,128,0,0.9)",
+                    borderColor: "rgba(0,128,0,0.9)",
+                },
+                {
+                    data: percapita_support,
+                    label: 'สนับสนุนต่อคน',
+                    fill: false,
+                    pointRadius: 5,
+                    pointBackgroundColor: bgColor,
+                    borderColor: bgColor,
+                }],
+            },
+            options: {
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

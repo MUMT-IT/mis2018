@@ -471,3 +471,185 @@ def get_wrs_data():
 @kpi.route('/edu/evaluation')
 def show_evaluation():
     return render_template('edu/evaluation.html')
+
+
+@kpi.route('/api/hr/healthstatus')
+def get_healthstatus_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1IfLMh6367NCd3MKJ3Py_77DQ4iU_yC5czhm7Px8H5do').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/hr/healthstatus')
+def show_healthstatus():
+    return render_template('hr/healthstatus.html')
+
+
+@kpi.route('/api/hr/perkeval')
+def get_perkeval_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1U9hFIoWUm6b_FiyqBxP-aClJCYJDClqhwNmwBDThIIk').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/hr/perkeval')
+def show_perkeval():
+    return render_template('hr/perkeval.html')
+
+
+@kpi.route('/api/hr/firedrill')
+def get_firedrill_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1wMw3Mx6uHTVsoCsGpzdS5nT2qoMZSX6RIx3MOPXFq7o').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/hr/firedrill')
+def show_firedrill():
+    return render_template('hr/firedrill.html')
+
+
+@kpi.route('/api/hr/bottle')
+def get_bottle_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1lIuFvky6IPJXzEbZ7N-TKcW0v8-O6wV2ckKI0vz3li8').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/hr/bottle')
+def show_bottle():
+    return render_template('hr/bottle.html')
+
+
+@kpi.route('/api/hr/happinometer')
+def get_happinometer_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('10_rPtntPyv3qpPvjxkpymdMbjQn7-YusrALlUMqvUCY').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/hr/happinometer')
+def show_happinometer():
+    return render_template('hr/happinometer.html')
+
+
+@kpi.route('/api/hr/personneldevel')
+def get_personneldevel_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1N6sRAleoSqcijiq3dhOJhzFO0crcUiStI--MbRS_28I').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/hr/personneldevel')
+def show_personneldevel():
+    return render_template('hr/personneldevel.html')
+
+
+@kpi.route('/api/hr/personneldevel_budget')
+def get_personneldevel_budget_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1RYP1clCM6UBukfCpofR3dMPSZr6fM0qbusD4w14Al6U').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/hr/personneldevel_budget')
+def show_personneldevel_budget():
+    return render_template('hr/personneldevel_budget.html')

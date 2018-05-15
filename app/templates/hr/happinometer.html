@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% include "kpi/nav.html" %}
+{% block title %}Happinometer{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">Happinometer</h1>
+        <span class="icon">
+            <a href="https://docs.google.com/spreadsheets/d/10_rPtntPyv3qpPvjxkpymdMbjQn7-YusrALlUMqvUCY/edit#gid=0">
+                <p>ข้อมูล<i class="fas fa-external-link-alt"></i></p>
+            </a>
+        </span>
+        <table class="table">
+            <thead>
+                <th>ปี</th>
+                <th>กลุ่มบุคลากร</th>
+                <th>Happy body</th>
+                <th>Happy relax</th>
+                <th>Happy heart</th>
+                <th>Happy soul</th>
+                <th>Happy family</th>
+                <th>Happy society</th>
+                <th>Happy brain</th>
+                <th>Happy money</th>
+                <th>Happy worklife</th>
+                <th>Happy overall</th>
+            </thead>
+            <tbody data-bind="foreach: {data: data, as: 'record'}">
+                <tr>
+                    <td data-bind="text: record.year"></td>
+                    <!-- ko foreach: record.data -->
+                    <td data-bind="text: $data.value"></td>
+                    <!-- /ko -->
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var ViewModel = function() {
+        var self = this;
+        self.data = ko.observableArray([]);
+    }
+    var vm = new ViewModel();
+    ko.applyBindings(vm);
+    $.getJSON("{{ url_for('kpi.get_happinometer_data') }}", function(data) {
+        vm.data(data);
+    });
+</script>
+{% endblock %}
