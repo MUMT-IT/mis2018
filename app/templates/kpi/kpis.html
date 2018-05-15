@@ -68,16 +68,17 @@
                             </span>
                         </td>
                         <td>
+                            {% if kpi.source %}
                             <a href="{{ kpi.source }}">
-                                <span class="panel-icon">
-                                    <i class="fa fa-list-ol"></i>
+                                <span class="icon has-text-info">
+                                    <i class="fas fa-chart-line"></i>
                                 </span>
                             </a>
-                        </td>
-                        <td>
-                            <span class="panel-icon">
-                                <i class="fa fa-trash"></i>
-                            </span>
+                            {% else %}
+                                <span class="icon has-text-light">
+                                    <i class="fas fa-chart-line"></i>
+                                </span>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
