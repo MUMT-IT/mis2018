@@ -20,6 +20,8 @@ class ResearchPub(db.Model):
     uid = db.Column('uid', db.String())
     indexed_db = db.Column('indexed_db', db.String())
     data = db.Column('data', JSON)
+    pubyear = db.Column('pubyear', db.Integer)
+    pubmonth = db.Column('pubmonth', db.Integer)
     updated_at = db.Column('updated_at', db.DateTime, onupdate=func.now())
     created_at = db.Column('created_at', db.DateTime, default=func.now())
     citation_count = db.Column('citation_count', db.Integer, default=0)

@@ -1,6 +1,7 @@
 import os
 import time
 import datetime
+import pprint
 from collections import namedtuple, defaultdict
 
 import requests
@@ -36,50 +37,75 @@ def download_scopus_pub(api_key, year):
             'view': 'COMPLETE', 'field': 'dc:title,dc:identifier,author'}
     url = 'http://api.elsevier.com/content/search/scopus'
 
-    article_ids = []
     r = requests.get(url, params=params).json()
-    if 'search-results' in r:
-        for article in r['search-results']['entry']:
-            try:
-                article_ids.append(article['dc:identifier'].replace('SCOPUS_ID:', ''))
-            except AttributeError:
-                continue
+    total_results = int(r['search-results']['opensearch:totalResults'])
+    print('Total {} article(s) found.'.format(total_results))
+    page = 0
+    article_ids = []
+    for start in range(0, total_results+1, ITEM_PER_PAGE):
+        print('\tStarting at {}'.format(start))
+        print('\tDownloading set {}..'.format(page))
+        page += 1
+        params = {'apiKey': api_key,
+                    'query': query,
+                    'httpAccept': 'application/json',
+                    'view': 'COMPLETE',
+                    'field': 'dc:title,dc:identifier,author',
+                    'count': ITEM_PER_PAGE,
+                    'start': start
+                }
+        r = requests.get(url, params=params).json()
+        if 'search-results' in r:
+            for article in r['search-results']['entry']:
+                try:
+                    article_ids.append(article['dc:identifier'].replace('SCOPUS_ID:', ''))
+                except AttributeError:
+                    continue
 
-        print('total article = {}'.format(len(article_ids)))
-        for n,scopus_id in enumerate(article_ids):
-            if (n > 0) and (n % 5 == 0):
-                print('sleeping...')
-                time.sleep(SLEEPTIME)
-            print('fetching data for {}...'.format(scopus_id))
-            params = {'apiKey': api_key, 'query': query, 'httpAccept': 'application/json',
-                    'view': 'FULL'}
-            url = 'http://api.elsevier.com/content/abstract/scopus_id/' + scopus_id
-            r = requests.get(url, params=params).json()
-            citation_count = int(r['abstracts-retrieval-response']['coredata']['citedby-count'])
-            existing_pub = db.session.query(ResearchPub).filter(ResearchPub.uid==scopus_id).first()
-            if existing_pub:
-                print('\t{} exists..updating a citation count..'.format(scopus_id))
-                existing_pub.citation_count = citation_count
-                db.session.add(existing_pub)
-                db.session.commit()
-                continue
-            rp = ResearchPub(uid=scopus_id, citation_count=citation_count, data=r, indexed_db='scopus')
-            db.session.add(rp)
+    print('total article IDs = {}'.format(len(article_ids)))
+
+    for n,scopus_id in enumerate(article_ids, start=1):
+        if n % 10 == 0:
+            print('\t\ttaking a break...')
+            time.sleep(5)
+        print('\t\tfetching data for article no.{} ID: {}...'.format(n,scopus_id))
+        params = {'apiKey': api_key, 'query': query, 'httpAccept': 'application/json',
+                'view': 'FULL'}
+        url = 'http://api.elsevier.com/content/abstract/scopus_id/' + scopus_id
+        r = requests.get(url, params=params).json()
+        citation_count = int(r['abstracts-retrieval-response']['coredata']['citedby-count'])
+        existing_pub = db.session.query(ResearchPub).filter(ResearchPub.uid==scopus_id).first()
+        if existing_pub:
+            print('\t\t\t{} exists..updating a citation count..'.format(scopus_id))
+            existing_pub.citation_count = citation_count
+            db.session.add(existing_pub)
             db.session.commit()
-            for _author in r['abstracts-retrieval-response']['authors']['author']:
-                _firstname = _author.get('ce:given-name', '').title()
-                _lastname = _author.get('ce:surname', '').title()
-                _au = db.session.query(StaffPersonalInfo)\
-                    .filter(StaffPersonalInfo.en_firstname==_firstname,
-                            StaffPersonalInfo.en_lastname==_lastname).first()
-                if _au:
-                    author_account = _au.staff_account
-                    existing_pubs = set([p.uid for p in author_account.pubs])
-                    if rp.uid not in existing_pubs:
-                        author_account.pubs.append(rp)
-                        db.session.add(author_account)
-            db.session.commit()
-    return {'total': len(article_ids)}
+            continue
+        pubdate = r['abstracts-retrieval-response']['coredata']['prism:coverDate']
+        pubyear = int(pubdate.split('-')[0])
+        pubmonth = int(pubdate.split('-')[1])
+        rp = ResearchPub(uid=scopus_id,
+                            citation_count=citation_count,
+                            data=r,
+                            indexed_db='scopus',
+                            pubmonth=pubmonth,
+                            pubyear=pubyear)
+        db.session.add(rp)
+        db.session.commit()
+        for _author in r['abstracts-retrieval-response']['authors']['author']:
+            _firstname = _author.get('ce:given-name', '').title()
+            _lastname = _author.get('ce:surname', '').title()
+            _au = db.session.query(StaffPersonalInfo)\
+                .filter(StaffPersonalInfo.en_firstname==_firstname,
+                        StaffPersonalInfo.en_lastname==_lastname).first()
+            if _au:
+                author_account = _au.staff_account
+                existing_pubs = set([p.uid for p in author_account.pubs])
+                if rp.uid not in existing_pubs:
+                    author_account.pubs.append(rp)
+                    db.session.add(author_account)
+        db.session.commit()
+    return {'status': 'done'}
 
 
 @research.route('/scopus/retrieve')
