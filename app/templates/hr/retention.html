@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% include "kpi/nav.html" %}
+{% block title %}Personnel Retention Rate{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">อัตราการคงอยู่</h1>
+        <div class="columns">
+            <div class="column">
+                <table class="table">
+                    <thead>
+                        <th>ปี</th>
+                        <th>อัตราการคงอยู่</th>
+                        <th>อัตราการลาออก</th>
+                        <th>จำนวนบุคลากรต้นงบ</th>
+                        <th>จำนวนบุคลากรปลายงบ</th>
+                        <th>อัตราค่าเฉลี่ย</th>
+                    </thead>
+                    <tbody data-bind="foreach: {data: data, as: 'record'}">
+                        <tr>
+                            <td data-bind="text: record.year"></td>
+                            <!-- ko foreach: record.data -->
+                            <td data-bind="text: $data.value"></td>
+                            <!-- /ko -->
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="column">
+                <h3 class="subtitle">อัตราการคงอยู่</h3>
+                <canvas id="chart"></canvas>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var ViewModel = function() {
+        var self = this;
+        self.data = ko.observableArray([]);
+    }
+    var vm = new ViewModel();
+    ko.applyBindings(vm);
+    var years = [];
+    var rates = [];
+    $.getJSON("{{ url_for('kpi.get_retention_data') }}", function(data) {
+        vm.data(data);
+    }).done(function() {
+        $.each(vm.data(), function(_, dt) {
+            years.push(dt.year);
+            $.each(dt.data, function(_, item) {
+                if(item['topic'] === 'อัตราการคงอยู่') {
+                    rates.push(item['value']);
+                }
+            });
+        });
+        var colorR = Math.floor((Math.random() * 256));
+        var colorG = Math.floor((Math.random() * 256));
+        var colorB = Math.floor((Math.random() * 256));
+        bgColor = "rgb(" + colorR + "," + colorG + "," + colorB + ")";
+        var ctx = document.getElementById("chart").getContext('2d');
+        var myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: years,
+                borderWidth: 1,
+                datasets: [{
+                    data: rates,
+                    label: 'อัตรา',
+                    backgroundColor: bgColor,
+                }],
+            },
+            options: {
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: false
+                        }
+                    }]
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -653,3 +653,107 @@ def get_personneldevel_budget_data():
 @kpi.route('/hr/personneldevel_budget')
 def show_personneldevel_budget():
     return render_template('hr/personneldevel_budget.html')
+
+
+@kpi.route('/api/hr/retention')
+def get_retention_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('19odyyAEfO4qMvSVTcCHN9l1-Ax_535oSN4uukhaQ1fk').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/hr/retention')
+def show_retention_budget():
+    return render_template('hr/retention.html')
+
+
+@kpi.route('/api/hr/connection')
+def get_connection_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1CogXDN8CdYOWR7tdsOCxqCHaN-5M5lSlub_tF-DiSdA').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/hr/connection')
+def show_connection_budget():
+    return render_template('hr/connection.html')
+
+
+@kpi.route('/api/hr/environ')
+def get_environ_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1FfUEC_Nh5L2qBy7QXKxF8JwgMOjv1r0RZOd6rNykNi4').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/hr/environ')
+def show_environ_budget():
+    return render_template('hr/environ.html')
+
+
+@kpi.route('/api/hr/laws')
+def get_laws_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1UDCW_ZLgqVzSwgVWTtwq3j8m9lVOjbq2W3Ycls-b1XA').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/hr/laws')
+def show_laws():
+    return render_template('hr/laws.html')

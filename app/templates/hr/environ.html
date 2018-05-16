@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% include "kpi/nav.html" %}
+{% block title %}Work Environment{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">ผลการประเมินสภาพแวดล้อมในการทำงาน</h1>
+        <div class="columns">
+            <div class="column">
+                <table class="table">
+                    <thead>
+                        <th>ปี</th>
+                        <th>กลุ่ม</th>
+                        <th>ส่งเสริมสภาพแวดล้อมที่ดี การอนุรักษ์พลังงาน</th>
+                        <th>ความปลอดภัย</th>
+                        <th>ส่งเสริมสุขภาพที่ดี</th>
+                        <th>สวัสดิการสำหรับบุคลากร</th>
+                        <th>ความพอใจในภาพรวมต่อบรรยากาศสภาพแวดล้อม</th>
+                    </thead>
+                    <tbody data-bind="foreach: {data: data, as: 'record'}">
+                        <tr>
+                            <td data-bind="text: record.year"></td>
+                            <!-- ko foreach: record.data -->
+                            <td data-bind="text: $data.value"></td>
+                            <!-- /ko -->
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var ViewModel = function() {
+        var self = this;
+        self.data = ko.observableArray([]);
+    }
+    var vm = new ViewModel();
+    ko.applyBindings(vm);
+    var years = [];
+    var rates = [];
+    var aca_rates = [];
+    var sup_rates = [];
+    $.getJSON("{{ url_for('kpi.get_environ_data') }}", function(data) {
+        vm.data(data);
+    });
+</script>
+{% endblock %}
