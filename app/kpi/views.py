@@ -757,3 +757,81 @@ def get_laws_data():
 @kpi.route('/hr/laws')
 def show_laws():
     return render_template('hr/laws.html')
+
+
+@kpi.route('/api/hr/electricity')
+def get_electricity_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1y2OxWLdqZyJbueHvXryOq3ns_7vdCd4yv-CdMa1fIDU').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/hr/electricity')
+def show_electricity():
+    return render_template('hr/electricity.html')
+
+
+@kpi.route('/api/hr/awards')
+def get_awards_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1_0KbANJv5l2crAIJxejE7N44F2htyWQ9XayPnB6kIqg').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/hr/awards')
+def show_awards():
+    return render_template('hr/awards.html')
+
+
+@kpi.route('/api/service/eqamembers')
+def get_eqamembers_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1buFXMoOkfjQZnnJXWbAec0hX8aWkW-oOY-DW53puJVo').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/service/eqamembers')
+def show_eqamembers():
+    return render_template('service/eqamembers.html')
