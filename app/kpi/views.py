@@ -835,3 +835,29 @@ def get_eqamembers_data():
 @kpi.route('/service/eqamembers')
 def show_eqamembers():
     return render_template('service/eqamembers.html')
+
+
+@kpi.route('/api/service/eqasamples')
+def get_eqasamples_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1uSiEM5Wky-ezL3YnXUp-BT6JPAin8zRq-JK8DRW57no').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/service/eqasamples')
+def show_eqasamples():
+    return render_template('service/eqasamples.html')
