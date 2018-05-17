@@ -1019,6 +1019,84 @@ def show_labcustomer_relation():
     return render_template('service/labcustomer_relation.html')
 
 
+@kpi.route('/api/service/labregulars')
+def get_labregulars_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1TkjpzK3yeTytFZ4jQvGbQT2ftSAlnmi16b0ytV75nWU').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/service/labregulars')
+def show_labregulars():
+    return render_template('service/labregulars.html')
+
+
+@kpi.route('/api/service/labawareness')
+def get_labawareness_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1lCSR_dnfKah_taAxVNfkjVEmUPDrpQEgf36hfJ5eyc8').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/service/labawareness')
+def show_labawareness():
+    return render_template('service/labawareness.html')
+
+
+@kpi.route('/api/service/labmedia')
+def get_labmedia_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1J8XwgKWreRf3p7yfjVTdKDfFKPNLyb3uWA8CmjMXtg4').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/service/labmedia')
+def show_labmedia():
+    return render_template('service/labmedia.html')
+
+
 @kpi.route('/api/management/boardeval')
 def get_boardeval_data():
     gc = get_credential(json_keyfile)
