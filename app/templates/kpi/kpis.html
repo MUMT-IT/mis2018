@@ -10,6 +10,15 @@
         <div class="panel-block">
             <table class="table is-narrow">
                 <thead>
+                    <col width="5%">
+                    <col width="15%">
+                    <col width="25%">
+                    <col width="30%">
+                    <col width="5%">
+                    <col width="5%">
+                    <col width="5%">
+                    <col width="5%">
+                    <col width="5%">
                     <tr>
                         <th>ลำดับที่</th>
                         <th>มาตรการ</th>
@@ -18,9 +27,6 @@
                         <th>เป้าหมาย</th>
                         <th>ความถี่ในการประเมิน</th>
                         <th>ผู้รับผิดชอบ</th>
-                        <th>ที่ปรึกษา</th>
-                        <th>ผู้รายงาน</th>
-                        <th>ผู้รับรายงาน</th>
                         <th>รายละเอียด</th>
                         <th>ข้อมูลตัวชี้วัด</th>
                     </tr>
@@ -51,15 +57,6 @@
                         </td>
                         <td>
                             {{ kpi.account or 'ไม่ระบุ' }}
-                        </td>
-                        <td>
-                            {{ kpi.consult or 'ไม่ระบุ' }}
-                        </td>
-                        <td>
-                            {{ kpi.reporter or 'ไม่ระบุ' }}
-                        </td>
-                        <td>
-                            {{ kpi.informed or 'ไม่ระบุ' }}
                         </td>
                         <td>
                             <a href="{{ url_for('kpi.edit', kpi_id=kpi.id )}}">
