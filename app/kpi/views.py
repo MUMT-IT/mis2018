@@ -889,6 +889,32 @@ def show_eqasatisfaction():
     return render_template('service/eqasatisfaction.html')
 
 
+@kpi.route('/api/service/labqa')
+def get_labqa_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('11C8IGLnK8KB_lqxRCvP_yn66jiQ04ksCwwiqT2sK87c').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'lab': row['lab'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/service/labqa')
+def show_labqa():
+    return render_template('service/labqa.html')
+
+
 @kpi.route('/api/management/boardeval')
 def get_boardeval_data():
     gc = get_credential(json_keyfile)

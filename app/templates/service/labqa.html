@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% include "kpi/nav.html" %}
+{% block title %}Laboratory Quality Assurance{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">จำนวนการทดสอบที่ได้รับการรับรองคุณภาพตามมาตรฐาน ISO</h1>
+        <canvas id="chart"></canvas>
+        <table class="table">
+            <thead>
+                <th>ห้องปฏิบัติการ</th>
+                <!-- ko foreach: keys -->
+                <th data-bind="text: $data"></th>
+                <!-- /ko -->
+            </thead>
+            <tbody data-bind="foreach: {data: data, as: 'record'}">
+                <tr>
+                    <td data-bind="text: record.lab"></td>
+                    <!-- ko foreach: record.data -->
+                    <td data-bind="text: $data.value"></td>
+                    <!-- /ko -->
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var ViewModel = function() {
+        var self = this;
+        self.data = ko.observableArray([]);
+        self.keys = ko.observableArray([]);
+    }
+    var vm = new ViewModel();
+    ko.applyBindings(vm);
+    var datasets = [];
+    $.getJSON("{{ url_for('kpi.get_labqa_data') }}", function(data) {
+        vm.data(data);
+        $.each(data, function(idx, d) {
+            $.each(d['data'], function(_, item){
+                if(datasets[item.topic] === undefined) {
+                    datasets[item.topic] = [item.value];
+                } else {
+                    datasets[item.topic].push(item.value);
+                }
+            });
+        });
+        $.each(Object.keys(datasets), function(i, key) {
+            vm.keys.push(key);
+        });
+    }).done(function() {});
+</script>
+{% endblock %}
