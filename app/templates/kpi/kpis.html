@@ -23,7 +23,6 @@
                         <th>ผู้รับรายงาน</th>
                         <th>รายละเอียด</th>
                         <th>ข้อมูลตัวชี้วัด</th>
-                        <th>ลบตัวชี้วัด</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -63,9 +62,11 @@
                             {{ kpi.informed or 'ไม่ระบุ' }}
                         </td>
                         <td>
-                            <span class="panel-icon">
-                                <i class="fa fa-info-circle"></i>
-                            </span>
+                            <a href="{{ url_for('kpi.edit', kpi_id=kpi.id )}}">
+                                <span class="panel-icon">
+                                    <i class="fa fa-info-circle"></i>
+                                </span>
+                            </a>
                         </td>
                         <td>
                             {% if kpi.reportlink %}
