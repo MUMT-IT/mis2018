@@ -102,6 +102,7 @@ class KPI(db.Model):
     pfm_informed = db.Column('pfm_informed', db.String())
     strategy_activity_id = db.Column('strategy_activity_id',
                             db.ForeignKey('strategy_activities.id'))
+    reportlink = db.Column('reportlink', db.String())
 
 
 class Student(db.Model):
