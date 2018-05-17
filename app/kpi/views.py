@@ -1097,6 +1097,58 @@ def show_labmedia():
     return render_template('service/labmedia.html')
 
 
+@kpi.route('/api/service/labmarket_share')
+def get_labmarket_share_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1_TQb5YkYcGv230CnRiJ_-KYZYBFNr6TmKgbk6_aDCrA').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/service/labmarket_share')
+def show_labmarket_share():
+    return render_template('service/labmarket_share.html')
+
+
+@kpi.route('/api/management/governance')
+def get_governance_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1qZOhp8u5LBObm4V4MQc3IESOcBoPT4HOMc9TjexxZaU').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/management/governance')
+def show_governance():
+    return render_template('management/governance.html')
+
+
 @kpi.route('/api/management/boardeval')
 def get_boardeval_data():
     gc = get_credential(json_keyfile)
