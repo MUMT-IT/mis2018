@@ -6,10 +6,11 @@ from collections import namedtuple, defaultdict
 
 import requests
 from flask import request, render_template, jsonify
+from pandas import DataFrame
 from . import researchbp as research
 from models import APIKey, ResearchPub
 from ..staff.models import StaffAccount, StaffPersonalInfo
-from ..main import db
+from ..main import db, json_keyfile
 
 Author = namedtuple('Author', ['email', 'firstname', 'lastname'])
 
@@ -18,6 +19,17 @@ pwd = os.environ.get('PROXY_PASSWORD')
 
 ITEM_PER_PAGE = 25
 SLEEPTIME = 5
+
+import gspread
+import sys
+from oauth2client.service_account import ServiceAccountCredentials
+
+scope = ['https://spreadsheets.google.com/feeds',
+        'https://www.googleapis.com/auth/drive']
+
+def get_google_credential(json_keyfile):
+    credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scope)
+    return gspread.authorize(credentials)
 
 def get_key(service):
     api_key = db.session.query(APIKey).filter(APIKey.service==service).first().key
@@ -178,3 +190,28 @@ def display_yearly_pubs():
         labels.append(str(yr))
         data.append(years[yr])
     return jsonify({'labels': labels, 'data': data})
+
+@research.route('/api/funding')
+def get_funding_data():
+    gc = get_google_credential(json_keyfile)
+    sheet = gc.open_by_key('1RolhNZwWcj-GVd4SQhXA15i-OrpShpw01F3apaoq0nQ').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@research.route('/funding')
+def show_funding():
+    return render_template('research/funding.html')
