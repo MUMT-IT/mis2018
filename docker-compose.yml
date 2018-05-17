@@ -10,6 +10,7 @@ services:
     environment:
       - FLASK_CONFIG=production
       - FLASK_APP=app/main.py
+      - JSON_KEYFILE
     volumes:
       - type: bind
         source: ./app
