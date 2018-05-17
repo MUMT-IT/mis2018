@@ -11,4 +11,8 @@
 * Edit timezone issue, store UTC to the database and display time using local timezone using tzlocal.get_localzone() and datetime.astimezone(tz). Note, Postgres store timezone aware datetime in UTC (probably). Better check the timezone every time setting up the app on a new server to be certain.
 
 ## Food
-* Add a page for users to add produce and breeds.
+* <s>Add a page for users to add produce and breeds.</s>
+* Add owner's name on the index page
+* Complete farm info page
+* After adding new sample, users should be redirected to the sample list page
+
