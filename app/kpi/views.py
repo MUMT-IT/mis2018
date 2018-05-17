@@ -1226,6 +1226,475 @@ def get_it_data():
 def show_it():
     return render_template('management/it.html')
 
+
+@kpi.route('/api/edu/channel')
+def get_channel_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1bMQyohkuRr3lLVTdvbg90lXzqsYMoQbNtSZ6QssBzqY').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/channel')
+def show_channel():
+    return render_template('edu/channel.html')
+
+
+@kpi.route('/api/edu/recruitment')
+def get_recruitment_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('113U1wDDqhxjG0AIuQKOtbOANiI-cZSpm_JXKNVjTatE').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/recruitment')
+def show_recruitment():
+    return render_template('edu/recruitment.html')
+
+
+@kpi.route('/api/edu/mt_recognition')
+def get_mt_recognition_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1u_-4_0yaPoBaDpAh3c69cypm7GzTiQzUXC5dkq7l2MU').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/mt_recognition')
+def show_mt_recognition():
+    return render_template('edu/mt_recognition.html')
+
+
+@kpi.route('/api/edu/application_ratio')
+def get_application_ratio_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1gKIOrqAnRAqK_E661aTtvMnEUSiEWr8wokuSHOnczl0').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/application_ratio')
+def show_application_ratio():
+    return render_template('edu/application_ratio.html')
+
+
+@kpi.route('/api/edu/employer_satisfaction')
+def get_employer_satisfaction_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1YNks85qtUSYvn_6urR36ONKXU8Vxut_Vqie2oCV3E2A').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/employer_satisfaction')
+def show_employer_satisfaction():
+    return render_template('edu/employer_satisfaction.html')
+
+
+@kpi.route('/api/edu/graduation_rate')
+def get_graduation_rate_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1BpVYxgQ6rADEo9Om6rNsOOBBl34rUSp4k_egLBH0r3M').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/graduation_rate')
+def show_graduation_rate():
+    return render_template('edu/graduation_rate.html')
+
+
+@kpi.route('/api/edu/fclub')
+def get_fclub_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1PjbLjZFkHstBOA2AtgGo8QhLf4-EaShFcL1orE_rXrw').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/fclub')
+def show_fclub():
+    return render_template('edu/fclub.html')
+
+
+@kpi.route('/api/edu/market_share')
+def get_market_share_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1NIbyVXgfTKlihxxfF4vsNKU20v-EmXC8dzRSQOZbbr4').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/market_share')
+def show_market_share():
+    return render_template('edu/market_share.html')
+
+
+@kpi.route('/api/edu/ent_comp')
+def get_ent_comp_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1sDrJxBoraNbWYqdtiqQDnNlZHXv7yVVADw2iCb66JqQ').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/ent_comp')
+def show_ent_comp():
+    return render_template('edu/ent_comp.html')
+
+
+@kpi.route('/api/edu/env_course')
+def get_env_course_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1besmOStEJIe03jBFelDlCYV-lvM66fNU7mBxLE-eHQo').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/env_course')
+def show_env_course():
+    return render_template('edu/env_course.html')
+
+
+@kpi.route('/api/edu/customer_vmv')
+def get_customer_vmv_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1OgqhAVoqf28JOAFEFcrCoUFyAt0HbWQM-zzPqdP0-oA').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/customer_vmv')
+def show_customer_vmv():
+    return render_template('edu/customer_vmv.html')
+
+
+@kpi.route('/api/edu/faculty_bond')
+def get_faculty_bond_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1WUQelJaV3vlHX3oBqxa-vZbFB0B1JGyfGIH6A-t75cQ').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/faculty_bond')
+def show_faculty_bond():
+    return render_template('edu/faculty_bond.html')
+
+
+@kpi.route('/api/edu/newcomers')
+def get_newcomers_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1Hko59C27ukCh8eHk7SYlKNfUegCm5XRWFtzdG8yRL6A').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/newcomers')
+def show_newcomers():
+    return render_template('edu/newcomers.html')
+
+
+@kpi.route('/api/edu/gradstud_comp')
+def get_gradstud_comp_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1m_T5MxgMr5_VVNia-FeE6ughwg5Jb5Q2wa0qJbgtO8o').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/gradstud_comp')
+def show_gradstud_comp():
+    return render_template('edu/gradstud_comp.html')
+
+
+@kpi.route('/api/edu/scholarship')
+def get_scholarship_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1J9R0hYYe6SZ173qSjn_2CJWf-zaNapytypmyydZGR8o').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/scholarship')
+def show_scholarship():
+    return render_template('edu/scholarship.html')
+
+
+@kpi.route('/api/edu/scholarship_rate')
+def get_scholarship_rate_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1L4kkAEIpxcbXwsyyMqfAGOlXwt0PG5Su9kdPLxP5W4o').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/scholarship_rate')
+def show_scholarship_rate():
+    return render_template('edu/scholarship_rate.html')
+
+
+@kpi.route('/api/edu/grad_eval_internal')
+def get_grad_eval_internal_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1871BjZ2FiZE0gQmXtxEG4Von5b7E9gHq_qzfd5z7rXM').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/grad_eval_internal')
+def show_grad_eval_internal():
+    return render_template('edu/grad_eval_internal.html')
+
+
+@kpi.route('/api/edu/grad_eval_external')
+def get_grad_eval_external_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('15Wg6T4ZVrPFndJXfkj9Nck4bBuXmvuEkubW6dDvk4MU').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/edu/grad_eval_external')
+def show_grad_eval_external():
+    return render_template('edu/grad_eval_external.html')
+
+
 @kpi.route('/api/management/boardeval')
 def get_boardeval_data():
     gc = get_credential(json_keyfile)
