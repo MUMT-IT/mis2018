@@ -1149,6 +1149,83 @@ def show_governance():
     return render_template('management/governance.html')
 
 
+@kpi.route('/api/management/vmv')
+def get_vmv_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1AeA3_5NdzbIReFDKhG9oVUPxJ1h1FosczzZHYRTRF3w').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/management/vmv')
+def show_vmv():
+    return render_template('management/vmv.html')
+
+
+@kpi.route('/api/management/admin_process')
+def get_admin_process_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1B8d42jKLpfRGBJm8wWuT0vQ6W_VXm4rR4SofE7Uj-bc').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/management/admin_process')
+def show_admin_process():
+    return render_template('management/admin_process.html')
+
+
+@kpi.route('/api/management/it')
+def get_it_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1J6Qo2q7ncmwV01O3rUv9Mx_LHf_tQONFDean0dU-2xo').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/management/it')
+def show_it():
+    return render_template('management/it.html')
+
 @kpi.route('/api/management/boardeval')
 def get_boardeval_data():
     gc = get_credential(json_keyfile)
