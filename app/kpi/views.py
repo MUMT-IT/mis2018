@@ -967,6 +967,58 @@ def show_labvisitor():
     return render_template('service/labvisitor.html')
 
 
+@kpi.route('/api/service/labkpi')
+def get_labkpi_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1WVThT8oc7FlPMp59EzqaSs2jywZ4-WIdanWnAytIJE8').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/service/labkpi')
+def show_labkpi():
+    return render_template('service/labkpi.html')
+
+
+@kpi.route('/api/service/labcustomer_relation')
+def get_labcustomer_relation_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1LLIozfr_pziIWe6HO-ix4j-6oelunEpL3CO8suBaavc').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/service/labcustomer_relation')
+def show_labcustomer_relation():
+    return render_template('service/labcustomer_relation.html')
+
+
 @kpi.route('/api/management/boardeval')
 def get_boardeval_data():
     gc = get_credential(json_keyfile)

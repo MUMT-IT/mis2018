@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% include "kpi/nav.html" %}
+{% block title %}Lab Customer Relationship{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">การสร้างความผูกพันกับลูกค้าโดยให้บริการเสริมในการตรวจวิเคราะห์  โดยไม่คิดค่าใช้จ่าย</h1>
+        <canvas id="chart"></canvas>
+        <table class="table">
+            <thead>
+                <th>Year</th>
+                <!-- ko foreach: keys -->
+                <th data-bind="text: $data"></th>
+                <!-- /ko -->
+            </thead>
+            <tbody data-bind="foreach: {data: data, as: 'record'}">
+                <tr>
+                    <td data-bind="text: record.year"></td>
+                    <!-- ko foreach: record.data -->
+                    <td data-bind="text: $data.value"></td>
+                    <!-- /ko -->
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var ViewModel = function() {
+        var self = this;
+        self.data = ko.observableArray([]);
+        self.chartdata = ko.observableArray([]);
+        self.keys = ko.observableArray([]);
+    }
+    var vm = new ViewModel();
+    ko.applyBindings(vm);
+    var datasets = [];
+    var years = [];
+    $.getJSON("{{ url_for('kpi.get_labcustomer_relation_data') }}", function(data) {
+        var testname;
+        vm.data(data);
+        $.each(data, function(idx, d) {
+            if (years.indexOf(d.year) < 0) {
+                years.push(d.year)
+            }
+            $.each(d['data'], function(_, item) {
+                if(item.topic === 'การทดสอบ') {
+                    testname = item.value;
+                } else if (item.topic === 'มูลค่ารวม') {
+                    if(datasets[testname] === undefined) {
+                        datasets[testname] = [item.value];
+                    } else {
+                        datasets[testname].push(item.value);
+                    }
+                }
+            });
+        });
+        $.each(data[0]['data'], function(_, key) {
+            vm.keys.push(key.topic);
+        });
+    }).done(function() {
+        var colors = [];
+        for(var i=0; i < Object.keys(datasets).length; i++) {
+            var colorR = Math.floor((Math.random() * 256));
+            var colorG = Math.floor((Math.random() * 256));
+            var colorB = Math.floor((Math.random() * 256));
+            bgColor = "rgb(" + colorR + "," + colorG + "," + colorB + ")";
+            colors.push(bgColor);
+        }
+        $.each(Object.keys(datasets), function(i, key) {
+            vm.chartdata.push({
+                label: 'มูลค่า ' + key,
+                data: datasets[key],
+                backgroundColor: colors[i],
+            });
+        });
+        var ctx = document.getElementById("chart").getContext('2d');
+        var myChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: years,
+                borderWidth: 1,
+                datasets: vm.chartdata(),
+            },
+            options: {
+                scales: {
+                    yAxes: [{
+                        ticks: {
+                            beginAtZero: true
+                        }
+                    }]
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
