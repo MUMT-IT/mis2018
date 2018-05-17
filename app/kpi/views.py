@@ -861,3 +861,55 @@ def get_eqasamples_data():
 @kpi.route('/service/eqasamples')
 def show_eqasamples():
     return render_template('service/eqasamples.html')
+
+
+@kpi.route('/api/service/eqasatisfaction')
+def get_eqasatisfaction_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1rBIrsFtRiC1Jk-KQkAhFyCAAl-e4M_jFYqNCKAp3ePo').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/service/eqasatisfaction')
+def show_eqasatisfaction():
+    return render_template('service/eqasatisfaction.html')
+
+
+@kpi.route('/api/management/boardeval')
+def get_boardeval_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1bv-R4JIXUMJShS4JooQhe6749pVz0mY0z7yAk2NJ0fk').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/management/boardeval')
+def show_boardeval():
+    return render_template('management/boardeval.html')
