@@ -915,6 +915,32 @@ def show_labqa():
     return render_template('service/labqa.html')
 
 
+@kpi.route('/api/service/labcustomer')
+def get_labcustomer_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1z39CHLaVSne2oRFPQ2ivG1LRz6ilWeGcLB_1A6u__4I').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/service/labcustomer')
+def show_labcustomer():
+    return render_template('service/labcustomer.html')
+
+
 @kpi.route('/api/management/boardeval')
 def get_boardeval_data():
     gc = get_credential(json_keyfile)
