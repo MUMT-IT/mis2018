@@ -3,6 +3,31 @@
 {% include "kpi/nav.html" %}
 {% block page_content %}
 <section class="section">
+    <canvas id="chart"></canvas>
+    <div class="box">
+            <div class="field is-grouped is-grouped-multiline">
+                <div class="control">
+                <div class="tags has-addons">
+                    <span class="tag is-dark">Total</span>
+                    <span class="tag is-light">{{ total_kpis }}</span>
+                </div>
+                </div>
+
+                <div class="control">
+                <div class="tags has-addons">
+                    <span class="tag is-dark">With data</span>
+                    <span class="tag is-success">{{ total_kpis_with_data }} ({{ total_percents }})</span>
+                </div>
+                </div>
+
+                <div class="control">
+                <div class="tags has-addons">
+                    <span class="tag is-dark">Without data</span>
+                    <span class="tag is-warning">{{ total_kpis_without_data }}</span>
+                </div>
+                </div>
+            </div>
+    </div>
     <nav class="panel">
         <p class="panel-heading">
             <strong>ตารางตัวชี้วัด</strong>
@@ -87,4 +112,46 @@
         </div>
     </nav>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var datasets = {{datasets|tojson|safe}};
+    var labels = {{labels|tojson|safe}};
+    var colors = [];
+    var chartdata = [];
+    for(var i=0; i < Object.keys(datasets).length; i++) {
+        var colorR = Math.floor((Math.random() * 256));
+        var colorG = Math.floor((Math.random() * 256));
+        var colorB = Math.floor((Math.random() * 256));
+        bgColor = "rgb(" + colorR + "," + colorG + "," + colorB + ")";
+        colors.push(bgColor);
+    }
+    $.each(datasets, function(i, d) {
+        chartdata.push({
+            label: d.label,
+            data: d.data,
+            backgroundColor: colors[i],
+            borderColor: colors[i],
+        });
+    });
+    var ctx = document.getElementById("chart").getContext('2d');
+    var myChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            borderWidth: 1,
+            datasets: chartdata,
+        },
+        options: {
+            scales: {
+                yAxes: [{
+                    ticks: {
+                        beginAtZero: true
+                    }
+                }]
+            }
+        }
+    });
+</script>
 {% endblock %}

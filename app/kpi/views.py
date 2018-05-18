@@ -101,8 +101,15 @@ def edit(kpi_id):
 @kpi.route('/list/')
 def get_kpis():
     kpis = {}
+    kpi_withdata = defaultdict(int)
+    kpi_withoutdata = defaultdict(int)
+    total_kpis = 0
+    total_kpis_with_data = 0
+    total_kpis_without_data = 0
     orgs = Org.query.all()
+    labels = []
     for org in orgs:
+        labels.append(org.name)
         kpis[org.name] = []
         for strategy in org.strategies:
             for tactic in strategy.tactics:
@@ -110,7 +117,31 @@ def get_kpis():
                     for activity in theme.activities:
                         for kpi in activity.kpis:
                             kpis[org.name].append(kpi)
-    return render_template('kpi/kpis.html', kpis=kpis)
+                            total_kpis += 1
+                            if kpi.reportlink:
+                                total_kpis_with_data += 1
+                                kpi_withdata[org] += 1
+                            else:
+                                total_kpis_without_data += 1
+                                kpi_withoutdata[org] += 1
+    datasets = []
+    datasets.append({
+        'label': 'With data',
+        'data': [kpi_withdata[org] for org in labels]
+    })
+    datasets.append({
+        'label': 'Without data',
+        'data': [kpi_withoutdata[org] for org in labels]
+    })
+
+    return render_template('kpi/kpis.html',
+                            kpis=kpis,
+                            datasets=datasets,
+                            labels=labels,
+                            total_kpis=total_kpis,
+                            total_kpis_with_data=total_kpis_with_data,
+                            total_kpis_without_data=total_kpis_without_data,
+                            total_percents='%.2f%%' % (total_kpis_with_data/float(total_kpis)*100.0))
 
 
 @kpi.route('/<int:org_id>')
