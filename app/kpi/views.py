@@ -109,7 +109,6 @@ def get_kpis():
     orgs = Org.query.all()
     labels = []
     for org in orgs:
-        labels.append(org.name)
         kpis[org.name] = []
         for strategy in org.strategies:
             for tactic in strategy.tactics:
@@ -124,6 +123,10 @@ def get_kpis():
                             else:
                                 total_kpis_without_data += 1
                                 kpi_withoutdata[org.name] += 1
+    for orgname in kpis:
+        if kpis[orgname]:
+            labels.append(orgname)
+
     datasets = []
     datasets.append({
         'label': 'With data',
