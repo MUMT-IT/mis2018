@@ -215,3 +215,107 @@ def get_funding_data():
 @research.route('/funding')
 def show_funding():
     return render_template('research/funding.html')
+
+
+@research.route('/api/cost')
+def get_cost_data():
+    gc = get_google_credential(json_keyfile)
+    sheet = gc.open_by_key('1o_HMdBtUnZtGDZ4ZcybrzQantDa-NRxT-Txc_eDaQ9g').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@research.route('/cost')
+def show_cost():
+    return render_template('research/cost.html')
+
+
+@research.route('/api/scopus_cum')
+def get_scopus_cum_data():
+    gc = get_google_credential(json_keyfile)
+    sheet = gc.open_by_key('154-IDTfFSWxOnx61XIOYffp8YDbMw5I9dAiYD_hIMBM').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@research.route('/scopus_cum')
+def show_scopus_cum():
+    return render_template('research/scopus_cum.html')
+
+
+@research.route('/api/citation_cum')
+def get_citation_cum_data():
+    gc = get_google_credential(json_keyfile)
+    sheet = gc.open_by_key('196Fqeg7NUUYCLotWv7yrQrnqA8DzNn0Ts1EkB8U8Po0').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@research.route('/citation_cum')
+def show_citation_cum():
+    return render_template('research/citation_cum.html')
+
+
+@research.route('/api/datamining_cum')
+def get_datamining_cum_data():
+    gc = get_google_credential(json_keyfile)
+    sheet = gc.open_by_key('14E4G8N2uZmXiZvnZkWV7Sg1lGWE4E-HTHBV9yhzpPxk').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@research.route('/datamining_cum')
+def show_datamining_cum():
+    return render_template('research/datamining_cum.html')

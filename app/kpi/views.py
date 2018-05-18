@@ -811,6 +811,32 @@ def show_awards():
     return render_template('hr/awards.html')
 
 
+@kpi.route('/api/hr/r2r')
+def get_r2r_data():
+    gc = get_credential(json_keyfile)
+    sheet = gc.open_by_key('1c7eE-kMre6BeBac_JphTcJZtO4Qi9x6_UAAivtr2NNs').sheet1
+    values = sheet.get_all_values()
+    df = DataFrame(values[1:], columns=values[0])
+    data = []
+    for idx, row in df.iterrows():
+        pairs = []
+        for key in row[df.columns[1:]].keys():
+            pairs.append({
+                'topic': key,
+                'value': row[key]
+            })
+        data.append({
+            'year': row['year'],
+            'data': pairs
+        })
+    return jsonify(data)
+
+
+@kpi.route('/hr/r2r')
+def show_r2r():
+    return render_template('hr/r2r.html')
+
+
 @kpi.route('/api/service/eqamembers')
 def get_eqamembers_data():
     gc = get_credential(json_keyfile)
