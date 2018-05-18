@@ -120,10 +120,10 @@ def get_kpis():
                             total_kpis += 1
                             if kpi.reportlink:
                                 total_kpis_with_data += 1
-                                kpi_withdata[org] += 1
+                                kpi_withdata[org.name] += 1
                             else:
                                 total_kpis_without_data += 1
-                                kpi_withoutdata[org] += 1
+                                kpi_withoutdata[org.name] += 1
     datasets = []
     datasets.append({
         'label': 'With data',
