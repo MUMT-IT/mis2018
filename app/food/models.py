@@ -38,6 +38,8 @@ class Farm(db.Model):
         db.Float(asdecimal=True), nullable=True)
     estimated_owned_size = db.Column(
         db.Float(asdecimal=True), nullable=True)
+    latitude = db.Column(db.Float(asdecimal=True), nullable=True)
+    longitude = db.Column(db.Float(asdecimal=True), nullable=True)
     village = db.Column(db.String(), nullable=True)
     street = db.Column(db.String(), nullable=True)
     agritype_id = db.Column('agritype', db.Integer(),
