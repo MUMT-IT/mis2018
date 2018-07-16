@@ -45,6 +45,7 @@ class Farm(db.Model):
     buffer_id = db.Column('buffer_id', db.Integer(), db.ForeignKey('buffers.id'))
     buffer_detail_id = db.Column('buffer_detail_id', db.Integer(), db.ForeignKey('buffer_details.id'))
     pesticide_use_id = db.Column('pesticide_use_id', db.Integer(), db.ForeignKey('pesticide_uses.id'))
+    farm_to_market_id = db.Column('market_id', db.Integer(), db.ForeignKey('farm_to_markets.id'))
     village = db.Column(db.String(), nullable=True)
     street = db.Column(db.String(), nullable=True)
     agritype_id = db.Column('agritype', db.Integer(),
@@ -112,6 +113,28 @@ class PesticideUse(db.Model):
     desc = db.Column(db.String(80), nullable=False)
     last_use = db.Column(db.Date(), nullable=True)
     farms = db.relationship('Farm', backref='pesticide_use')
+
+
+class FarmToMarket(db.Model):
+    __tablename__ = 'farm_to_markets'
+    id = db.Column(db.Integer(), primary_key=True)
+    market_type_id = db.Column('market_id', db.Integer(), db.ForeignKey('market_types.id'))
+    market_detail_id = db.Column('market_detail_id', db.Integer(), db.ForeignKey('market_details.id'))
+    market_detail = db.relationship('MarketDetail', backref='farm_to_market', uselist=False)
+    farms = db.relationship('Farm', backref='farm_to_market')
+
+
+class MarketType(db.Model):
+    __tablename__ = 'market_types'
+    id = db.Column(db.Integer(), primary_key=True)
+    desc = db.Column(db.String(80), nullable=False)
+    farm_to_markets = db.relationship('FarmToMarket', backref='market_type')
+
+
+class MarketDetail(db.Model):
+    __tablename__ = 'market_details'
+    id = db.Column(db.Integer(), primary_key=True)
+    detail = db.Column(db.String(80), nullable=False)
 
 
 class SampleLot(db.Model):
