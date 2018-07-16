@@ -42,6 +42,8 @@ class Farm(db.Model):
     longitude = db.Column(db.Float(asdecimal=True), nullable=True)
     well_id = db.Column('well_type_id', db.Integer(), db.ForeignKey('well_types.id'))
     well_size_id = db.Column('well_size_id', db.Integer(), db.ForeignKey('well_sizes.id'))
+    buffer_id = db.Column('buffer_id', db.Integer(), db.ForeignKey('buffers.id'))
+    buffer_detail_id = db.Column('buffer_detail_id', db.Integer(), db.ForeignKey('buffer_details.id'))
     village = db.Column(db.String(), nullable=True)
     street = db.Column(db.String(), nullable=True)
     agritype_id = db.Column('agritype', db.Integer(),
@@ -87,6 +89,20 @@ class WellSize(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     desc = db.Column(db.String(80), nullable=False)
     farms = db.relationship('Farm', backref='well_size')
+
+
+class Buffer(db.Model):
+    __tablename__ = 'buffers'
+    id = db.Column(db.Integer(), primary_key=True)
+    desc = db.Column(db.String(80), nullable=False)
+    farms = db.relationship('Farm', backref='buffer')
+
+
+class BufferDetail(db.Model):
+    __tablename__ = 'buffer_details'
+    id = db.Column(db.Integer(), primary_key=True)
+    desc = db.Column(db.String(80), nullable=False)
+    farms = db.relationship('Farm', backref='buffer_detail')
 
 
 class SampleLot(db.Model):
