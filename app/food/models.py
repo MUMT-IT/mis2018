@@ -44,6 +44,7 @@ class Farm(db.Model):
     well_size_id = db.Column('well_size_id', db.Integer(), db.ForeignKey('well_sizes.id'))
     buffer_id = db.Column('buffer_id', db.Integer(), db.ForeignKey('buffers.id'))
     buffer_detail_id = db.Column('buffer_detail_id', db.Integer(), db.ForeignKey('buffer_details.id'))
+    pesticide_use_id = db.Column('pesticide_use_id', db.Integer(), db.ForeignKey('pesticide_uses.id'))
     village = db.Column(db.String(), nullable=True)
     street = db.Column(db.String(), nullable=True)
     agritype_id = db.Column('agritype', db.Integer(),
@@ -103,6 +104,14 @@ class BufferDetail(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     desc = db.Column(db.String(80), nullable=False)
     farms = db.relationship('Farm', backref='buffer_detail')
+
+
+class PesticideUse(db.Model):
+    __tablename__ = 'pesticide_uses'
+    id = db.Column(db.Integer(), primary_key=True)
+    desc = db.Column(db.String(80), nullable=False)
+    last_use = db.Column(db.Date(), nullable=True)
+    farms = db.relationship('Farm', backref='pesticide_use')
 
 
 class SampleLot(db.Model):
