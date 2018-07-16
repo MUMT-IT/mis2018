@@ -40,6 +40,8 @@ class Farm(db.Model):
         db.Float(asdecimal=True), nullable=True)
     latitude = db.Column(db.Float(asdecimal=True), nullable=True)
     longitude = db.Column(db.Float(asdecimal=True), nullable=True)
+    well_id = db.Column('well_type_id', db.Integer(), db.ForeignKey('well_types.id'))
+    well_size_id = db.Column('well_size_id', db.Integer(), db.ForeignKey('well_sizes.id'))
     village = db.Column(db.String(), nullable=True)
     street = db.Column(db.String(), nullable=True)
     agritype_id = db.Column('agritype', db.Integer(),
@@ -71,6 +73,20 @@ class AgriType(db.Model):
     id = db.Column(db.Integer(), primary_key=True)
     name = db.Column(db.String(80), nullable=False)
     desc = db.Column(db.String(), nullable=True)
+
+
+class WellType(db.Model):
+    __tablename__ = 'well_types'
+    id = db.Column(db.Integer(), primary_key=True)
+    desc = db.Column(db.String(80), nullable=False)
+    farms = db.relationship('Farm', backref='well_type')
+
+
+class WellSize(db.Model):
+    __tablename__ = 'well_sizes'
+    id = db.Column(db.Integer(), primary_key=True)
+    desc = db.Column(db.String(80), nullable=False)
+    farms = db.relationship('Farm', backref='well_size')
 
 
 class SampleLot(db.Model):
