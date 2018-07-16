@@ -300,6 +300,7 @@ def edit_farm_info(farm_id):
         estimated_leased_size = request.form.get('estimated_leased_size')
         pesticide_use = request.form.get('pesticide_use')
         pesticide_use_date = request.form.get('pesticide_use_date')
+        pesticide_use_date = None if pesticide_use_date == '' else pesticide_use_date
         latitude = request.form.get('latitude')
         longitude = request.form.get('longitude')
         if farm:
