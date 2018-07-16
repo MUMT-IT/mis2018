@@ -288,6 +288,13 @@ def display_farm_info(farm_id):
                            )
 
 
+@food.route('/farm/edit/<int:farm_id>')
+def edit_farm_info(farm_id):
+    farm = Farm.query.get(farm_id)
+    return render_template('food/edit_farm_info.html',
+                            farm=farm)
+
+
 @food.route('/farm/<int:farm_id>/tests/lots/')
 def list_sample_lots(farm_id):
     farm = Farm.query.get(farm_id)

@@ -4,6 +4,7 @@
 {% block page_content %}
 <section class="section">
     <h1 class="title">ข้อมูลแปลงเกษตร</h1>
+    <a href="{{ url_for('food.edit_farm_info', farm_id=farm.id) }}">แก้ไขข้อมูล</a>
     <h1 class="title is-5">เจ้าของแปลง</h1>
     {% for owner in farm.owners %}
     <ul>
