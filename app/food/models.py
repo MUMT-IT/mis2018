@@ -158,6 +158,7 @@ class Sample(db.Model):
     pesticide_results = db.relationship('PesticideResult', backref=db.backref('sample'))
     toxico_results = db.relationship('ToxicoResult', backref=db.backref('sample'))
     bact_results = db.relationship('BactResult', backref=db.backref('sample'))
+    parasite_results = db.relationship('ParasiteResult', backref=db.backref('sample'))
 
 
 class Produce(db.Model):
@@ -211,6 +212,23 @@ class ToxicoTest(db.Model):
     unit = db.Column(db.String())
     cutoff = db.Column(db.Float())
     results = db.relationship('ToxicoResult', backref=db.backref('test'))
+
+
+class ParasiteTest(db.Model):
+    __tablename__ = 'food_parasite_tests'
+    id = db.Column(db.Integer(), primary_key=True)
+    organism = db.Column(db.String(), nullable=False)
+    stage = db.Column(db.String())
+    results = db.relationship('ParasiteResult', backref=db.backref('test'))
+
+
+class ParasiteResult(db.Model):
+    __tablename__ = 'food_parasite_results'
+    id = db.Column(db.Integer(), primary_key=True)
+    test_id = db.Column(db.Integer, db.ForeignKey('food_parasite_tests.id'))
+    sample_id = db.Column(db.Integer, db.ForeignKey('food_samples.id'))
+    count = db.Column(db.Integer())
+    comment = db.Column(db.String(80))
 
 
 class ToxicoResult(db.Model):

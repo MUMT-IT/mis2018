@@ -5,7 +5,7 @@ from . import foodbp as food
 from models import (Person, Farm, AgriType, SampleLot, Produce,
                         Sample, ProduceBreed, GrownProduce, PesticideTest, PesticideResult,
                         ToxicoResult, ToxicoTest, BactResult, BactTest, HealthPerson,
-                        HealthServices, SurveyResult, PesticideUse)
+                        HealthServices, SurveyResult, PesticideUse, ParasiteTest, ParasiteResult)
 from ..models import Province, District, Subdistrict
 from ..main import db
 
@@ -401,8 +401,44 @@ def add_parasite_results(farm_id, lot_id, sample_id):
     farm = Farm.query.get(farm_id)
     lot = SampleLot.query.get(lot_id)
     sample = Sample.query.get(sample_id)
+    para_tests = ParasiteTest.query.all()
+    result_dict = {}
+    for res in sample.parasite_results:
+        result_dict[res.test.id] = {'count': res.count, 'comment': res.comment}
     return render_template('food/parasit_results.html', farm=farm, lot=lot,
-                           sample=sample)
+                           sample=sample, tests=para_tests, result_dict=result_dict)
+
+
+@food.route('/farm/results/parasites/', methods=['POST'])
+def add_parasite_results_from_form():
+    sample_id = request.form.get('sample_id', None)
+    farm_id = request.form.get('farm_id', None)
+    lot_id = request.form.get('lot_id', None)
+    if sample_id:
+        sample = Sample.query.get(sample_id)
+        test_results_dict = {}
+        for res in sample.parasite_results:
+            test_results_dict[res.test.id] = res
+        for pt in ParasiteTest.query.all():
+            test_count = request.form.get(str(pt.id)+'_count')
+            test_count = int(test_count) if test_count.isdigit() else 0
+            test_comment = request.form.get(str(pt.id)+'_comment', None)
+            if pt.id in test_results_dict:
+                res = test_results_dict[pt.id]
+                res.count = test_count
+                res.comment = test_comment
+                db.session.add(res)
+            else:
+                if test_count or test_comment:
+                    para_test_result = ParasiteResult(sample_id=sample.id,
+                                        test_id=pt.id, count=int(test_count),
+                                        comment=test_comment)
+                    sample.parasite_results.append(para_test_result)
+        db.session.add(sample)
+        db.session.commit()
+        return redirect(url_for("food.list_samples", farm_id=farm_id, lot_id=lot_id))
+    else:
+        return "<h3>An error has occurred. Please contact the system admin.</h3>"
 
 
 @food.route('/farm/<int:farm_id>/lots/<int:lot_id>/samples/<int:sample_id>/tests/bacteria/add/')
