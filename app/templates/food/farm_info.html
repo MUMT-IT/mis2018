@@ -14,6 +14,8 @@
     <br/>
     <h1 class="title is-5">ที่ตั้ง</h1>
     <p>{{ farm.street }} ตำบล {{ subdistrict.name }} อำเภอ {{ district.name }} จังหวัด {{ province.name }}</p>
+    <p>พิกัด GPS <strong>Lat: {{ farm.latitude }} Lng: {{ farm.longitude }}</strong></p>
+    <div id="map" style="width:600px;height:400px"></div>
     <br/>
     <h1 class="title is-5">ผลผลิตทางการเกษตร</h1>
     <table class="table is-striped">
@@ -37,4 +39,25 @@
         </tbody>
     </table>
 </section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    function myMap() {
+    var latLng = {lat:{{farm.latitude}}, lng:{{farm.longitude}}};
+    var mapOptions = {
+        center: latLng,
+        zoom: 17,
+        mapTypeId: google.maps.MapTypeId.HYBRID,
+    }
+    var map = new google.maps.Map(document.getElementById("map"), mapOptions);
+    var marker = new google.maps.Marker({
+          position: latLng,
+          map: map,
+          title: 'Farm'
+        });
+    }
+</script>
+<script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCkm1F3i2xLnD2qISqeDqS3CLperYwZGLM&callback=myMap"></script>
 {% endblock %}

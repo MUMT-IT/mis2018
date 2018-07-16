@@ -14,7 +14,7 @@ services:
     volumes:
       - type: bind
         source: ./app
-        target: /usr/src/app"
+        target: /usr/src/app
 
   pg:
     image: postgres
