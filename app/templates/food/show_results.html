@@ -162,7 +162,24 @@
         <strong>ผลการตรวจเชื้อปรสิตก่อโรค</strong>
       </p>
       <br>
-      ยังไม่มีผลการตรวจ
+      <table class="table is-narrow is-striped">
+        <thead>
+          <tr>
+            <th>ชนิดพยาธิ</th>
+            <th>จำนวนที่พบ</th>
+            <th>หมายเหตุ</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for par_res in sample.parasite_results|sort(attribute='test.id') %}
+        <tr>
+          <td>{{ par_res.test.organism }} {{ par_res.test.stage }}</td>
+          <td>{{ par_res.count }}</td>
+          <td>{{ par_res.comment}}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 </section>
