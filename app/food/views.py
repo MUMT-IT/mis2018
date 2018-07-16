@@ -5,7 +5,7 @@ from . import foodbp as food
 from models import (Person, Farm, AgriType, SampleLot, Produce,
                         Sample, ProduceBreed, GrownProduce, PesticideTest, PesticideResult,
                         ToxicoResult, ToxicoTest, BactResult, BactTest, HealthPerson,
-                        HealthServices, SurveyResult)
+                        HealthServices, SurveyResult, PesticideUse)
 from ..models import Province, District, Subdistrict
 from ..main import db
 
@@ -288,11 +288,37 @@ def display_farm_info(farm_id):
                            )
 
 
-@food.route('/farm/edit/<int:farm_id>')
+@food.route('/farm/edit/<int:farm_id>', methods=['GET', 'POST'])
 def edit_farm_info(farm_id):
-    farm = Farm.query.get(farm_id)
-    return render_template('food/edit_farm_info.html',
-                            farm=farm)
+    if request.method == 'GET':
+        farm = Farm.query.get(farm_id)
+    elif request.method == 'POST':
+        farm_id = request.form.get('farm_id')
+        farm = Farm.query.get(int(farm_id))
+        estimated_total_size = request.form.get('estimated_total_size')
+        estimated_owned_size = request.form.get('estimated_owned_size')
+        estimated_leased_size = request.form.get('estimated_leased_size')
+        pesticide_use = request.form.get('pesticide_use')
+        pesticide_use_date = request.form.get('pesticide_use_date')
+        latitude = request.form.get('latitude')
+        longitude = request.form.get('longitude')
+        if farm:
+            farm.estimated_total_size = estimated_total_size
+            farm.estimated_owned_size = estimated_owned_size
+            farm.estimated_leased_size = estimated_leased_size
+            farm.latitude = latitude
+            farm.longitude = longitude
+            if not farm.pesticide_use:
+                pesticide_use = PesticideUse(desc=pesticide_use, last_use=pesticide_use_date)
+                db.session.add(pesticide_use)
+                farm.pesticide_use = pesticide_use
+            else:
+                farm.pesticide_use.desc = pesticide_use
+                farm.pesticide_use.last_use = pesticide_use_date
+            db.session.add(farm)
+            db.session.commit()
+            return redirect(url_for('food.display_farm_info', farm_id=farm.id))
+    return render_template('food/edit_farm_info.html', farm=farm)
 
 
 @food.route('/farm/<int:farm_id>/tests/lots/')

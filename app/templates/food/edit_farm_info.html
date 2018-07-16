@@ -6,6 +6,9 @@
     <h1 class="title">แก้ไขข้อมูลแปลงเกษตร</h1>
     <form method="post">
     <div class="column">
+        <div class="control">
+        <input class="input" type="hidden" name="farm_id" value="{{ farm.id }}">
+        </div>
         <div class="field is-horizontal">
             <div class="field-label is-normal">
             <label class="label">พื้นที่ทำการเกษตรทั้งหมด</label>
@@ -96,6 +99,20 @@
                 </div>
             </div> <!-- field -->
             </div> <!-- field-body -->
+        </div> <!-- field-horizontal -->
+        <div class="field is-horizontal">
+        <div class="field-label">
+        </div>
+        <div class="field-body">
+            <div class="field is-grouped">
+            <div class="control">
+                <input class="button is-primary" type="submit" value="Submit">
+            </div>
+            <div class="control">
+                <input class="button is-danger" type="reset" value="Reset">
+            </div>
+            </div> <!-- field -->
+        </div> <!-- field-body -->
         </div> <!-- field-horizontal -->
     </div>
     </form>
