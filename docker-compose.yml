@@ -9,6 +9,8 @@ services:
       - "80:5000"
     environment:
       - FLASK_CONFIG=production
+      - FLASK_APP=app/main.py
+      - FLASK_DEBUG=1
       - JSON_KEYFILE
     volumes:
       - ./app:/mis2018/app
