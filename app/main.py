@@ -44,6 +44,9 @@ app.register_blueprint(research_blueprint, url_prefix='/research')
 from models import Student, Class, ClassCheckIn
 import database
 
+from lisedu import lisedu as lis_blueprint
+app.register_blueprint(lis_blueprint, url_prefix='/lis')
+
 @app.cli.command()
 def populatedb():
     # database.load_orgs()
