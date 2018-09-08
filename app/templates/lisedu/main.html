@@ -3,5 +3,31 @@
 {% include "lisedu/nav.html" %}
 
 {% block page_content %}
-<h1 class="title">Welcome to LIS Edu Program</h1>
+<section class="section">
+<div class="container">
+{% with messages = get_flashed_messages() %}
+    {% if messages %}
+        <div class="columns">
+        {% for msg in messages %}
+            <div class="column is-half notification {% if login %} is-success {% else %} is-danger {% endif %}">
+                <button class="delete"></button>
+                {{ msg }}
+            </div>
+        {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+<a href="{{ url_for('lisedu.student_login', personnel='student', user_id='6006078') }}">Login here</a>
+{% if user %}
+    <div class="columns">
+        <div class="column is-two-thirds">
+            <p class="notification is-light"><strong>Name</strong> {{ user.account.title }} {{ user.account.th_first_name }} {{ user.account.th_last_name }}</p>
+        </div>
+        <div class="column is-one-third">
+            <p class="notification is-light"><strong>HN</strong> {{ user.id }}</p>
+        </div>
+    </div>
+{% endif %}
+</div>
+</section>
 {% endblock %}

@@ -179,3 +179,17 @@ class Subdistrict(db.Model):
 class KPISchema(ma.ModelSchema):
     class Meta:
         model = KPI
+
+
+class HomeAddress(db.Model):
+    __tablename__ = 'addresses'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    village = db.Column(db.String(), nullable=True)
+    street = db.Column(db.String(), nullable=True)
+    province_id = db.Column('province_id', db.Integer(),
+                            db.ForeignKey('provinces.id'))
+    district_id = db.Column('district_id', db.Integer(),
+                            db.ForeignKey('districts.id'))
+    subdistrict_id = db.Column('subdistrict_id', db.Integer(),
+                               db.ForeignKey('subdistricts.id'))
+    postal_code = db.Column('postal_code', db.Integer())
