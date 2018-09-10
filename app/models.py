@@ -110,6 +110,7 @@ class Student(db.Model):
     id = db.Column('id', db.String(), primary_key=True)
     refno = db.Column('refno', db.Integer(), nullable=False)
     title = db.Column('title', db.String())
+    password = db.Column('password', db.String())
     th_first_name = db.Column('th_first_name', db.String(), nullable=False)
     th_last_name = db.Column('th_last_name', db.String(), nullable=False)
     en_first_name = db.Column('en_first_name', db.String())

@@ -49,6 +49,7 @@ import database
 
 from lisedu import lisedu as lis_blueprint
 app.register_blueprint(lis_blueprint, url_prefix='/lis')
+from lisedu.models import *
 
 @app.cli.command()
 def populatedb():
