@@ -1,6 +1,7 @@
 # -*- coding: utf8 -*-
 
 from . import roombp as room
+from .models import RoomResource
 from flask import render_template, jsonify
 
 import google.auth
@@ -50,3 +51,15 @@ def get_events():
 @room.route('/')
 def index():
     return render_template('scheduler/room_main.html')
+
+
+@room.route('/events/new')
+def new_event():
+    return render_template('scheduler/new_event.html')
+
+
+@room.route('/list')
+def room_list():
+    rooms = RoomResource.query.all()
+    return render_template('scheduler/room_list.html',
+                           rooms=rooms)

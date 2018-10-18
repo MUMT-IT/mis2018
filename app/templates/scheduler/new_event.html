@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Add New Event{% endblock %}
+{% include "kpi/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="columns">
+        <div class="column is-4 is-offset-4 has-text-centered">
+            <h1 class="title">New Reservation</h1>
+            <form>
+                <div class="field">
+                    <p class="control has-icons-right">
+                        <input class="input" type="text" placeholder="ค้นหาห้องหมายเลขห้อง">
+                        <span class="icon is-right">
+                            <i class="fas fa-search"></i>
+                        </span>
+                    </p>
+                </div>
+                <div class="field">
+                    <p class="control has-icons-right">
+                        <input class="input" type="text" placeholder="ค้นหาห้องตามจำนวนคน">
+                        <span class="icon is-right">
+                            <i class="fas fa-users"></i>
+                        </span>
+                    </p>
+                </div>
+                <button type="submit" class="button is-rounded is-success">
+                    <strong>Go</strong></button>
+            </form>
+            <p>
+                <a href="{{ url_for('room.room_list') }}">ดูรายการห้องทั้งหมด</a>
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

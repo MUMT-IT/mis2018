@@ -18,8 +18,8 @@
             <button id="next_btn" class="button is-rounded is-primary">
                 <i class="fas fa-chevron-right"></i>
             </button>
-            <button id="add_evt_btn" class="button is-rounded is-info">
-                <i class="far fa-calendar-plus"></i></button>
+            <a id="add_evt_btn" class="button is-rounded is-info" href="{{ url_for('room.new_event') }}">
+                <i class="far fa-calendar-plus"></i></a>
             <button id="" class="button is-rounded is-primary"><i class="fas fa-list-ol"></i></button>
         </div>
         <div id="room_calendar"></div>
