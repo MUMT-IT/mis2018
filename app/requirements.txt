@@ -6,6 +6,7 @@ backports-abc==0.5
 backports.functools-lru-cache==1.5
 backports.shutil-get-terminal-size==1.0.0
 bleach==2.1.3
+cachetools==2.1.0
 certifi==2018.4.16
 cffi==1.11.5
 chardet==3.0.4
@@ -24,8 +25,12 @@ flask-marshmallow==0.8.0
 Flask-Migrate==2.1.1
 Flask-Script==2.0.6
 Flask-SQLAlchemy==2.3.2
+Flask-WTF==0.14.2
 functools32==3.2.3.post2
 futures==3.2.0
+google-api-python-client==1.7.4
+google-auth==1.5.1
+google-auth-httplib2==0.0.3
 gspread==3.0.0
 gunicorn==19.7.1
 html5lib==1.0.1
@@ -95,6 +100,7 @@ testpath==0.3.1
 tornado==5.0.1
 traitlets==4.3.2
 tzlocal==1.5.1
+uritemplate==3.0.0
 urllib3==1.22
 wcwidth==0.1.7
 webencodings==0.5.1

@@ -2,7 +2,7 @@
 
 from . import roombp as room
 from .models import RoomResource
-from flask import render_template, jsonify
+from flask import render_template, jsonify, request
 
 import google.auth
 import dateutil.parser
@@ -58,8 +58,18 @@ def new_event():
     return render_template('scheduler/new_event.html')
 
 
-@room.route('/list')
+@room.route('/list', methods=['POST', 'GET'])
 def room_list():
-    rooms = RoomResource.query.all()
-    return render_template('scheduler/room_list.html',
-                           rooms=rooms)
+    if request.method=='GET':
+        rooms = RoomResource.query.all()
+    else:
+        room_number = request.form.get('room_number', None)
+        users = request.form.get('users', 0)
+        if room_number:
+            rooms = RoomResource.query.filter_by(number=room_number)
+        elif users > 0:
+            rooms = RoomResource.query.filter(RoomResource.occupancy>=users)
+        else:
+            rooms = []
+
+    return render_template('scheduler/room_list.html', rooms=rooms)

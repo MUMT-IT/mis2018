@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
 from flask_login import LoginManager
+from flask_wtf.csrf import CSRFProtect
 from config import config
 import json
 
@@ -12,6 +13,7 @@ db = SQLAlchemy()
 migrate = Migrate()
 ma = Marshmallow()
 login_manager = LoginManager()
+csrf = CSRFProtect()
 
 def create_app(config_name='default'):
     app = Flask(__name__)
@@ -20,6 +22,7 @@ def create_app(config_name='default'):
     ma.init_app(app)
     migrate.init_app(app, db)
     login_manager.init_app(app)
+    csrf.init_app(app)
     return app
 
 import os
