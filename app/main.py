@@ -43,6 +43,7 @@ app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
 from room_scheduler import roombp as room_blueprint
 app.register_blueprint(room_blueprint, url_prefix='/room')
+from room_scheduler.models import *
 
 from auth import authbp as auth_blueprint
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
