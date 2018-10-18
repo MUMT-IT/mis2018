@@ -41,6 +41,12 @@ app.register_blueprint(food_blueprint, url_prefix='/food')
 from staff import staffbp as staff_blueprint
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
+from room_scheduler import roombp as room_blueprint
+app.register_blueprint(room_blueprint, url_prefix='/room')
+
+from auth import authbp as auth_blueprint
+app.register_blueprint(auth_blueprint, url_prefix='/auth')
+
 from research import researchbp as research_blueprint
 app.register_blueprint(research_blueprint, url_prefix='/research')
 

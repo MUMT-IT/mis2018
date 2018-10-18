@@ -10,7 +10,8 @@ services:
     environment:
       - FLASK_CONFIG=production
       - FLASK_APP=app/main.py
-      - FLASK_DEBUG=1
+      - FLASK_DEBUG
+      - GOOGLE_APPLICATION_CREDENTIALS
       - JSON_KEYFILE
     volumes:
       - ./app:/mis2018/app
