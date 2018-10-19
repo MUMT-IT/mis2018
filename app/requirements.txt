@@ -18,7 +18,7 @@ decorator==4.2.1
 entrypoints==0.2.3
 enum34==1.1.6
 et-xmlfile==1.0.1
-Flask==0.12.2
+Flask==1.0.2
 Flask-Admin==1.5.1
 Flask-Login==0.4.1
 flask-marshmallow==0.8.0
@@ -104,7 +104,7 @@ uritemplate==3.0.0
 urllib3==1.22
 wcwidth==0.1.7
 webencodings==0.5.1
-Werkzeug==0.13
+Werkzeug==0.14.1
 wrapt==1.10.11
 WTForms==2.1
 xlrd==1.1.0
