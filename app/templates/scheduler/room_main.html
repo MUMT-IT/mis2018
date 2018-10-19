@@ -12,6 +12,15 @@
     <h2 class="subtitle">ระบบการจองห้องสำหรับการประชุมหรือการเรียนการสอน รุ่น 0.1</h2>
     <div class="box">
         <div class="has-text-centered">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <ul>
+                    {% for msg in messages %}
+                        <li>{{ msg }}</li>
+                    {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
             <button id="prev_btn" class="button is-rounded is-primary">
                 <i class="fas fa-chevron-left"></i>
             </button>

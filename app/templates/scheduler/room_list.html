@@ -14,6 +14,7 @@
             <th>เวลาทำการ</th>
             <th>วิทยาเขต</th>
             <th>ดูข้อมูลการจอง</th>
+            <th></th>
         </thead>
         <tbody>
         {% for room in rooms %}
@@ -29,6 +30,12 @@
                     <span class="icon is-medium">
                         <i class="fas fa-clipboard-list fa-lg"></i>
                     </span>
+                </td>
+                <td>
+                    <a href="{{ url_for('room.room_reserve', room_no=room.number) }}"
+                        class="button is-rounded is-info">
+                        <strong>จอง</strong>
+                    </a>
                 </td>
             </tr>
         {% endfor %}

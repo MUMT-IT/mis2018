@@ -44,10 +44,13 @@ class RoomEvent(db.Model):
     start = db.Column('start', db.DateTime(), nullable=False)
     end = db.Column('end', db.DateTime(), nullable=False)
     occupancy = db.Column('occupancy', db.Integer())
+    # number of sets of food/refreshment requested
     refreshment = db.Column('refreshment', db.Integer(), default=0)
-    request = db.Column('request', db.Text())
+    request = db.Column('request', db.Text()) # comma separated list of things
     approved = db.Column('approved', db.Boolean(), default=True)
     required_permission = db.Column('required_permission', db.Boolean(), default=False)
     created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(), server_default=None)
+    cancelled_at = db.Column('cancalled_at', db.DateTime(), server_default=None)
     created_by = db.Column('created_by', db.ForeignKey('staff_account.id'))
     approved_by = db.Column('approved_by', db.ForeignKey('staff_account.id'))

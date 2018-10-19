@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% block title %}Add New Event{% endblock %}
+{% include "kpi/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="columns">
+        <div class="column is-8 is-offset-2">
+            <div class="box">
+                <p>กรุณากรอกข้อมูลการจองห้องให้สมบูรณ์</p>
+                {% if room.required_permission %}
+                    <p class="has-text-danger">หมายเหตุ ท่านจะสามารถใช้ห้องนี้ได้หลังจากได้รับการอนุมัติแล้วเท่านั้น</p>
+                {% endif %}
+                <form method="post">
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ห้อง</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input is-danger is-static"
+                                        name="number" type="text" value="{{ room.number }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">จุดประสงค์</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input is-danger"
+                                        name="title" type="text" placeholder="ประชุม, การสอน ฯลฯ​">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ตั้งแต่วันที่</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input is-danger" type="date" name="startdate">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">เวลา</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="select is-danger">
+                                <select name="starttime">
+                                    {% for ts in timeslots %}
+                                        <option value="{{ ts }}">{{ ts }}</option>
+                                    {% endfor %}
+                                </select>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">สิ้นสุดวันที่</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input is-danger" type="date" name="enddate">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">เวลา</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="select is-danger">
+                                <select name="endtime">
+                                    {% for ts in timeslots %}
+                                    <option value="{{ ts }}">{{ ts }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">จำนวนผู้เข้าร่วม</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input is-danger" type="text"
+                                        value="1" name="participants">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">จำนวนอาหารว่าง</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input" type="text" value="0" name="food">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">อุปกรณ์เสริม</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input" type="text" name="request">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" class="button is-rounded is-success">
+                        <strong>Submit</strong>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

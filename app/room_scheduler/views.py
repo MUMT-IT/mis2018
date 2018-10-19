@@ -2,7 +2,8 @@
 
 from . import roombp as room
 from .models import RoomResource
-from flask import render_template, jsonify, request
+from flask import render_template, jsonify, request, flash, redirect, url_for
+from datetime import datetime
 
 import google.auth
 import dateutil.parser
@@ -73,3 +74,40 @@ def room_list():
             rooms = []
 
     return render_template('scheduler/room_list.html', rooms=rooms)
+
+
+@room.route('/reserve/<room_no>', methods=['GET', 'POST'])
+def room_reserve(room_no):
+    if request.method=='POST':
+        room_no = request.form.get('number', None)
+        startdate = request.form.get('startdate', None)
+        starttime = request.form.get('starttime', None)
+        enddate = request.form.get('enddate', None)
+        endtime = request.form.get('endtime', None)
+        if startdate and starttime:
+            startdatetime = datetime.strptime(
+                '{} {}'.format(startdate, starttime), '%Y-%m-%d %H:%M')
+        else:
+            startdatetime = None
+        if enddate and endtime:
+            enddatetime = datetime.strptime(
+                '{} {}'.format(enddate, endtime), '%Y-%m-%d %H:%M')
+        else:
+            enddatetime = None
+
+        if startdatetime and enddatetime:
+            timedelta = enddatetime - startdatetime
+            if timedelta.days < 0 or timedelta.seconds == 0:
+                flash('Date or time is invalid.')
+            else:
+                flash('Reservation has been made.')
+                return redirect(url_for('room.index'))
+    if room_no:
+        room = RoomResource.query.filter_by(number=room_no).first()
+        if room:
+            timeslots = []
+            for i in range(8,19):
+                for j in [0, 30]:
+                    timeslots.append('{:02}:{:02}'.format(i,j))
+            return render_template('scheduler/reserve_form.html',
+                                room=room, timeslots=timeslots)
