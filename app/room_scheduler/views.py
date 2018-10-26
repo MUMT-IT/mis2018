@@ -4,6 +4,7 @@ from . import roombp as room
 from .models import RoomResource
 from flask import render_template, jsonify, request, flash, redirect, url_for
 from datetime import datetime
+import pytz
 
 import google.auth
 import dateutil.parser
@@ -14,6 +15,7 @@ from ..main import json_keyfile
 
 @room.route('/api/events')
 def get_events():
+    tz = pytz.timezone('Asia/Bangkok')
     credentials, project_id = google.auth.default()
     scoped_credentials = credentials.with_scopes([
         'https://www.googleapis.com/auth/calendar',
@@ -30,17 +32,13 @@ def get_events():
         for event in response.get('items', []):
             # The event object is a dict object with a 'summary' key.
             start = event.get('start', None)
-            if start:
-                start_datetime = dateutil.parser.parse(start['dateTime'])
             end = event.get('end', None)
-            if end:
-                end_datetime = dateutil.parser.parse(end['dateTime'])
             evt = {
                 'location': event.get('location', None),
                 'title': event.get('summary', 'NO SUMMARY'),
                 'description': event.get('description', ''),
-                'start': start_datetime,
-                'end': end_datetime,
+                'start': start['dateTime'],
+                'end': end['dateTime'],
             }
             all_events.append(evt)
         # Get the next request object by passing the previous request object to
@@ -80,18 +78,25 @@ def room_list():
 def room_reserve(room_no):
     if request.method=='POST':
         room_no = request.form.get('number', None)
+        location = request.form.get('location', None)
+        desc = request.form.get('desc', None)
         startdate = request.form.get('startdate', None)
         starttime = request.form.get('starttime', None)
         enddate = request.form.get('enddate', None)
         endtime = request.form.get('endtime', None)
+        title = request.form.get('title', '')
+        room = RoomResource.query.filter_by(number=room_no).first()
+        tz = pytz.timezone('Asia/Bangkok')
         if startdate and starttime:
             startdatetime = datetime.strptime(
                 '{} {}'.format(startdate, starttime), '%Y-%m-%d %H:%M')
+            startdatetime = tz.localize(startdatetime, is_dst=None)
         else:
             startdatetime = None
         if enddate and endtime:
             enddatetime = datetime.strptime(
                 '{} {}'.format(enddate, endtime), '%Y-%m-%d %H:%M')
+            enddatetime = tz.localize(enddatetime, is_dst=None)
         else:
             enddatetime = None
 
@@ -100,7 +105,37 @@ def room_reserve(room_no):
             if timedelta.days < 0 or timedelta.seconds == 0:
                 flash('Date or time is invalid.')
             else:
-                flash('Reservation has been made.')
+                event = {
+                    'summary': title,
+                    'location': room_no,
+                    'sendUpdates': 'all',
+                    'status': 'tentative',
+                    'description': desc,
+                    'start': {
+                        'dateTime': startdatetime.isoformat(),
+                        'timeZone': 'Asia/Bangkok',
+                    },
+                    'end': {
+                        'dateTime': enddatetime.isoformat(),
+                        'timeZone': 'Asia/Bangkok',
+                    },
+                    'extendedProperties': {
+                        'private': {
+                            'room_no': room_no,
+                            'location': location,
+                        }
+                    }
+                }
+                credentials, project_id = google.auth.default()
+                scoped_credentials = credentials.with_scopes([
+                    'https://www.googleapis.com/auth/calendar',
+                    'https://www.googleapis.com/auth/calendar.events'
+                ])
+                calendar_service = build('calendar', 'v3', credentials=scoped_credentials)
+                event = calendar_service.events().insert(
+                    calendarId='9hur49up24fdcbicdbggvpu77k@group.calendar.google.com',
+                    body=event).execute()
+                flash('Reservation has been made. {}'.format(event.get('htmlLink')))
                 return redirect(url_for('room.index'))
     if room_no:
         room = RoomResource.query.filter_by(number=room_no).first()
