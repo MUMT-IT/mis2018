@@ -13,6 +13,24 @@ from oauth2client.service_account import ServiceAccountCredentials
 from ..main import json_keyfile
 
 
+@room.route('/api/rooms')
+def get_rooms():
+    rooms = RoomResource.query.all()
+    resources = []
+    for rm in rooms:
+        resources.append({
+            'id': rm.number,
+            'location': rm.location,
+            'title': rm.number,
+            'occupancy': rm.occupancy,
+            'businessHours': {
+                'start': rm.business_hour_start.strftime('%H:%M'),
+                'end': rm.business_hour_end.strftime('%H:%M'),
+            }
+        })
+    return jsonify(resources)
+
+
 @room.route('/api/events')
 def get_events():
     tz = pytz.timezone('Asia/Bangkok')
@@ -33,12 +51,15 @@ def get_events():
             # The event object is a dict object with a 'summary' key.
             start = event.get('start', None)
             end = event.get('end', None)
+            extended_properties = event.get('extendedProperties', {}).get('private', {})
+            room_no = extended_properties.get('room_no', '736')
             evt = {
                 'location': event.get('location', None),
                 'title': event.get('summary', 'NO SUMMARY'),
                 'description': event.get('description', ''),
                 'start': start['dateTime'],
                 'end': end['dateTime'],
+                'resourceId': room_no,
             }
             all_events.append(evt)
         # Get the next request object by passing the previous request object to
@@ -50,6 +71,11 @@ def get_events():
 @room.route('/')
 def index():
     return render_template('scheduler/room_main.html')
+
+
+@room.route('/events/<list_type>')
+def event_list(list_type='timelineDay'):
+    return render_template('scheduler/event_list.html', list_type=list_type)
 
 
 @room.route('/events/new')
