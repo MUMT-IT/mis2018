@@ -18,7 +18,7 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input is-danger is-static"
+                                    <input class="input is-static"
                                         name="number" type="text" value="{{ room.number }}">
                                 </div>
                             </div>
@@ -31,7 +31,7 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input is-danger is-static"
+                                    <input class="input is-static"
                                            name="location" type="text" value="{{ room.location }}">
                                 </div>
                             </div>
@@ -44,16 +44,15 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input is-danger" v-model="title"
+                                    <input class="input " v-model="title"
                                         name="title" type="text" placeholder="ประชุม, สอน ฯลฯ​">
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <b-field horizontal label="รหัส IO" type="is-danger" message="สามารถค้นหาด้วยชื่อโครงการฯ หน่วยงาน รหัส cost center พันธกิจ หรือรหัส IO">
+                    <b-field horizontal label="รหัส IO" message="สามารถค้นหาด้วยชื่อโครงการฯ หน่วยงาน รหัส cost center พันธกิจ หรือรหัส IO">
                         <b-autocomplete v-model="ioquery" :data="data" name="iocode"
-                                        placeholder="e.g 504080000004" field="id"
-                                        :loading="isFetching"
+                                        field="id" :loading="isFetching" icon="magnify"
                                         @keyup.native="getAsyncData"
                                         @select="option => iocode = option.id">
                             <template slot-scope="props">
@@ -79,7 +78,7 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input is-danger" type="date" name="startdate" v-model="startdate">
+                                    <input class="input" type="date" name="startdate" v-model="startdate" @change="checkDate()">
                                 </div>
                             </div>
                         </div>
@@ -89,7 +88,7 @@
                             <label class="label">เวลา</label>
                         </div>
                         <div class="field-body">
-                            <div class="select is-danger">
+                            <div class="select">
                                 <select name="starttime">
                                     {% for ts in timeslots %}
                                         <option value="{{ ts }}">{{ ts }}</option>
@@ -106,18 +105,17 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input is-danger" type="date" name="enddate" v-model="enddate">
+                                    <input class="input" type="date" name="enddate" v-model="enddate" @change="checkDate()">
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <b-notification type="is-warning" has-icon v-if="dateerror">วันสิ้นสุดต้องมาหลังวันเริ่มต้น</b-notification>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
                             <label class="label">เวลา</label>
                         </div>
                         <div class="field-body">
-                            <div class="select is-danger">
+                            <div class="select">
                                 <select name="endtime">
                                     {% for ts in timeslots %}
                                     <option value="{{ ts }}">{{ ts }}</option>
@@ -133,8 +131,8 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input is-danger" type="text"
-                                        v-model="participant" name="participants">
+                                    <input class="input" type="number"
+                                        v-model.number="participant" name="participants" @change="checkParticipant()">
                                 </div>
                             </div>
                         </div>
@@ -146,7 +144,7 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input" type="text" value="0" name="food">
+                                    <input class="input" type="number" v-model.number="food" @change="checkFood()" name="food">
                                 </div>
                             </div>
                         </div>
@@ -202,24 +200,58 @@
                 startdate: undefined,
                 enddate: undefined,
                 participant: 1,
-                dateerror: false
+                food: 0,
+            }
+        },
+        computed: {
+            datedelta: function() {
+                var self = this
+                if (self.startdate !== undefined && self.enddate !== undefined) {
+                    return new Date(self.enddate) - new Date(self.startdate)
+                } else {
+                    return 0
+                }
             }
         },
         methods: {
+            checkDate: function() {
+                var self = this
+                if (self.datedelta < 0) {
+                    self.$toast.open({
+                        duration: 2000,
+                        message: 'วันสิ้นสุดต้องมาหลังวันเริ่มต้น',
+                        position: 'is-bottom',
+                        type: 'is-danger'
+                    })
+                }
+            },
+            checkFood: function() {
+                var self = this
+                if (self.food > self.participant) {
+                    self.$toast.open({
+                        duration: 2000,
+                        message: 'จำนวนอาหารว่างมากกว่าจำนวนผู้ใช้ห้อง',
+                        position: 'is-bottom',
+                        type: 'is-warning'
+                    })
+                }
+            },
+            checkParticipant: function() {
+                var self = this
+                if (self.participant < 1) {
+                    self.$toast.open({
+                        duration: 2000,
+                        message: 'ผู้ใช้งานห้องต้องมีจำนวนอย่างน้อยหนึ่งคน',
+                        position: 'is-bottom',
+                        type: 'is-danger'
+                    })
+                }
+            },
             isNotReady: function() {
                 var self = this
-                var date_delta
-                if (self.startdate !== undefined && self.enddate !== undefined) {
-                    var _startdate = new Date(self.startdate)
-                    var _enddate = new Date(self.enddate)
-                    date_delta = _enddate - _startdate
-                    self.dateerror = (date_delta < 0) ? true : false
-                } else {
-                    date_delta = undefined
-                }
-                console.log(date_delta)
-                if(date_delta !== undefined && date_delta >=0 &&
-                    self.iocode !== '' && self.title !== '' && self.participant >= 1) {
+                if(self.datedelta >= 0 && self.iocode !== '' &&
+                    self.startdate !== undefined &&
+                    self.title !== '' && self.participant >= 1) {
                     return false
                 } else {
                     return true
