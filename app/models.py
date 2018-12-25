@@ -1,11 +1,21 @@
 from main import db, ma
 from sqlalchemy.sql import func
+from flask_login import UserMixin
+from .main import login_manager
 
-class User(db.Model):
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+
+class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     email = db.Column('email', db.String(), nullable=False)
     username = db.Column('username', db.String(), nullable=False, unique=True)
+
+    def __repr__(self):
+        return self.username
 
 
 class Org(db.Model):
@@ -18,6 +28,9 @@ class Org(db.Model):
                     backref=db.backref('parent', remote_side=[id]))
     strategies = db.relationship('Strategy',
                     backref=db.backref('org'))
+
+    def __repr__(self):
+        return self.name
 
 
 class Strategy(db.Model):
@@ -194,3 +207,38 @@ class HomeAddress(db.Model):
     subdistrict_id = db.Column('subdistrict_id', db.Integer(),
                                db.ForeignKey('subdistricts.id'))
     postal_code = db.Column('postal_code', db.Integer())
+
+
+class Mission(db.Model):
+    __tablename__ = 'missions'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    name = db.Column('name', db.String(), nullable=False)
+
+    def __repr__(self):
+        return u'{}:{}'.format(self.id, self.name)
+
+
+class CostCenter(db.Model):
+    __tablename__ = 'cost_centers'
+    id = db.Column('id', db.String(12), primary_key=True)
+
+    def __repr__(self):
+        return u'{}'.format(self.id)
+
+
+class IOCode(db.Model):
+    __tablename__ = 'iocodes'
+    id = db.Column('id', db.String(16), primary_key=True)
+    cost_center_id = db.Column('cost_center_id', db.String(),
+                        db.ForeignKey('cost_centers.id'), nullable=False)
+    cost_center = db.relationship('CostCenter', backref=db.backref('iocodes'))
+    mission_id = db.Column('mission_id', db.Integer(), db.ForeignKey('missions.id'), nullable=False)
+    mission = db.relationship('Mission', backref=db.backref('iocodes'))
+    org_id = db.Column('org_id', db.Integer(), db.ForeignKey('orgs.id'), nullable=False)
+    org = db.relationship('Org', backref=db.backref('iocodes'))
+    name = db.Column('name', db.String(255), nullable=False)
+
+    def __repr__(self):
+        return u'{}:{}'.format(self.id, self.name)
+
+

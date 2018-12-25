@@ -5,6 +5,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
 from flask_login import LoginManager
+from flask_admin import Admin
+from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from config import config
 import json
@@ -13,7 +15,9 @@ db = SQLAlchemy()
 migrate = Migrate()
 ma = Marshmallow()
 login_manager = LoginManager()
+login_manager.login_view = 'auth.login'
 csrf = CSRFProtect()
+admin = Admin()
 
 def create_app(config_name='default'):
     app = Flask(__name__)
@@ -23,6 +27,7 @@ def create_app(config_name='default'):
     migrate.init_app(app, db)
     login_manager.init_app(app)
     csrf.init_app(app)
+    admin.init_app(app)
     return app
 
 import os
@@ -48,14 +53,45 @@ from room_scheduler import roombp as room_blueprint
 app.register_blueprint(room_blueprint, url_prefix='/room')
 from room_scheduler.models import *
 
+from vehicle_scheduler import vehiclebp as vehicle_blueprint
+app.register_blueprint(vehicle_blueprint, url_prefix='/vehicle')
+from vehicle_scheduler.models import *
+
+admin.add_views(ModelView(RoomResource, db.session, category='Physicals'))
+admin.add_views(ModelView(RoomEvent, db.session, category='Physicals'))
+
+admin.add_view(ModelView(VehicleResource, db.session, category='Physicals'))
+admin.add_view(ModelView(VehicleAvailability, db.session, category='Physicals'))
+admin.add_view(ModelView(VehicleType, db.session, category='Physicals'))
+
 from auth import authbp as auth_blueprint
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
 from research import researchbp as research_blueprint
 app.register_blueprint(research_blueprint, url_prefix='/research')
 
-from models import Student, Class, ClassCheckIn
+from models import Student, Class, ClassCheckIn, User, Org, Mission, IOCode, CostCenter
 import database
+
+admin.add_view(ModelView(Org, db.session, category='Organization'))
+admin.add_view(ModelView(Mission, db.session, category='Organization'))
+
+
+class IOCodeAdminModel(ModelView):
+    can_create = True
+    form_columns = ('id', 'cost_center', 'mission', 'org', 'name')
+    column_list = ('id', 'cost_center', 'mission', 'org', 'name')
+
+admin.add_view(IOCodeAdminModel(IOCode, db.session, category='Finance'))
+
+class CostCenterAdminModel(ModelView):
+    can_create = True
+    form_columns = ('id',)
+    column_list = ('id',)
+
+admin.add_view(CostCenterAdminModel(CostCenter, db.session, category='Finance'))
+
+admin.add_view(ModelView(User, db.session))
 
 from lisedu import lisedu as lis_blueprint
 app.register_blueprint(lis_blueprint, url_prefix='/lis')
