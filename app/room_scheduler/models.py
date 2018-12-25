@@ -9,6 +9,9 @@ class RoomType(db.Model):
     type = db.Column('type', db.String(length=32))
     rooms = db.relationship('RoomResource', backref='type')
 
+    def __repr__(self):
+        return self.type
+
 
 class RoomAvailability(db.Model):
     __tablename__ = 'scheduler_room_avails'
@@ -16,6 +19,9 @@ class RoomAvailability(db.Model):
                    autoincrement=True)
     availability = db.Column('availability', db.String(length=32))
     rooms = db.relationship('RoomResource', backref='availability')
+
+    def __repr__(self):
+        return self.availability
 
 
 class RoomResource(db.Model):
