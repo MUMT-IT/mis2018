@@ -2,7 +2,7 @@
 {% block title %}Add New Event{% endblock %}
 {% include "scheduler/nav.html" %}
 {% block page_content %}
-<section class="section">
+<section class="section" id="app">
     <div class="columns">
         <div class="column is-8 is-offset-2">
             <div class="box">
@@ -44,12 +44,34 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input is-danger"
+                                    <input class="input is-danger" v-model="title"
                                         name="title" type="text" placeholder="ประชุม, สอน ฯลฯ​">
                                 </div>
                             </div>
                         </div>
                     </div>
+                    <b-field horizontal label="รหัส IO" type="is-danger" message="สามารถค้นหาด้วยชื่อโครงการฯ หน่วยงาน รหัส cost center พันธกิจ หรือรหัส IO">
+                        <b-autocomplete v-model="ioquery" :data="data" name="iocode"
+                                        placeholder="e.g 504080000004" field="id"
+                                        :loading="isFetching"
+                                        @keyup.native="getAsyncData"
+                                        @select="option => iocode = option.id">
+                            <template slot-scope="props">
+                                <div class="media">
+                                    <div class="media-content">
+                                        <%props.option.name%>
+                                        <br>
+                                        <small>
+                                            IO code: <%props.option.id%>,
+                                            Department: <%props.option.org%>,
+                                            Cost Center : <%props.option.costCenter%>,
+                                            Mission: <%props.option.mission%>
+                                        </small>
+                                    </div>
+                                </div>
+                            </template>
+                        </b-autocomplete>
+                    </b-field>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
                             <label class="label">ตั้งแต่วันที่</label>
@@ -57,7 +79,7 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input is-danger" type="date" name="startdate">
+                                    <input class="input is-danger" type="date" name="startdate" v-model="startdate">
                                 </div>
                             </div>
                         </div>
@@ -84,11 +106,12 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input is-danger" type="date" name="enddate">
+                                    <input class="input is-danger" type="date" name="enddate" v-model="enddate">
                                 </div>
                             </div>
                         </div>
                     </div>
+                    <b-notification type="is-warning" has-icon v-if="dateerror">วันสิ้นสุดต้องมาหลังวันเริ่มต้น</b-notification>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
                             <label class="label">เวลา</label>
@@ -111,7 +134,7 @@
                             <div class="field">
                                 <div class="control">
                                     <input class="input is-danger" type="text"
-                                        value="1" name="participants">
+                                        v-model="participant" name="participants">
                                 </div>
                             </div>
                         </div>
@@ -153,7 +176,7 @@
                         </div>
                     </div>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="button is-rounded is-success">
+                    <button type="submit" class="button is-rounded is-success" :disabled="isNotReady()">
                         <strong>Submit</strong>
                     </button>
                 </form>
@@ -161,4 +184,73 @@
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+{{super()}}
+<script type="text/javascript">
+    var vm = new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                data: [],
+                ioquery: '',
+                iocode: '',
+                isFetching: false,
+                title: '',
+                startdate: undefined,
+                enddate: undefined,
+                participant: 1,
+                dateerror: false
+            }
+        },
+        methods: {
+            isNotReady: function() {
+                var self = this
+                var date_delta
+                if (self.startdate !== undefined && self.enddate !== undefined) {
+                    var _startdate = new Date(self.startdate)
+                    var _enddate = new Date(self.enddate)
+                    date_delta = _enddate - _startdate
+                    self.dateerror = (date_delta < 0) ? true : false
+                } else {
+                    date_delta = undefined
+                }
+                console.log(date_delta)
+                if(date_delta !== undefined && date_delta >=0 &&
+                    self.iocode !== '' && self.title !== '' && self.participant >= 1) {
+                    return false
+                } else {
+                    return true
+                }
+            },
+            getAsyncData: function() {
+                var self = this
+                self.isFetching = true
+                axios.get('/room/api/iocodes').then(function(resp) {
+                    self.data = []
+                    resp.data.forEach(function(item) {
+                        if (item.id.indexOf(self.ioquery) !== -1) {
+                            self.data.push(item)
+                        }
+                        else if (item.name.indexOf(self.ioquery) !== -1) {
+                            self.data.push(item)
+                        }
+                        else if (item.costCenter.indexOf(self.ioquery) !== -1) {
+                            self.data.push(item)
+                        }
+                        else if (item.org.indexOf(self.ioquery) !== -1) {
+                            self.data.push(item)
+                        }
+                        else if (item.mission.indexOf(self.ioquery) !== -1) {
+                            self.data.push(item)
+                        }
+                    })
+                    self.isFetching = false
+                })
+            }
+        }
+    })
+</script>
 {% endblock %}

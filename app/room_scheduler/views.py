@@ -3,6 +3,7 @@
 from . import roombp as room
 from .models import RoomResource
 from flask import render_template, jsonify, request, flash, redirect, url_for
+from flask_login import login_required
 from datetime import datetime
 import pytz
 
@@ -11,6 +12,22 @@ import dateutil.parser
 from googleapiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
 from ..main import json_keyfile
+
+from ..models import IOCode, Mission, Org, CostCenter
+
+@room.route('/api/iocodes')
+def get_iocodes():
+    codes = []
+    for code in IOCode.query.all():
+        codes.append({
+            'id': code.id,
+            'costCenter': u'{}'.format(code.cost_center.id),
+            'name': u'{}'.format(code.name),
+            'org': u'{}'.format(code.org.name),
+            'mission': u'{}'.format(code.mission.name)
+        })
+
+    return jsonify(codes)
 
 
 @room.route('/api/rooms')
@@ -53,6 +70,7 @@ def get_events():
             end = event.get('end', None)
             extended_properties = event.get('extendedProperties', {}).get('private', {})
             room_no = extended_properties.get('room_no', '736')
+            status = event.get('status', 'confirmed')
             evt = {
                 'location': event.get('location', None),
                 'title': event.get('summary', 'NO SUMMARY'),
@@ -60,6 +78,8 @@ def get_events():
                 'start': start['dateTime'],
                 'end': end['dateTime'],
                 'resourceId': room_no,
+                'status': status,
+                'borderColor': '#2b8c36' if status=='confirmed' else '#f44242'
             }
             all_events.append(evt)
         # Get the next request object by passing the previous request object to
@@ -110,8 +130,8 @@ def room_reserve(room_no):
         starttime = request.form.get('starttime', None)
         enddate = request.form.get('enddate', None)
         endtime = request.form.get('endtime', None)
-        title = request.form.get('title', '')
-        room = RoomResource.query.filter_by(number=room_no).first()
+        title = request.form.get('title', ''),
+        iocode = request.form.get('iocode', None)
         tz = pytz.timezone('Asia/Bangkok')
         if startdate and starttime:
             startdatetime = datetime.strptime(
@@ -149,6 +169,7 @@ def room_reserve(room_no):
                         'private': {
                             'room_no': room_no,
                             'location': location,
+                            'iocode': iocode,
                         }
                     }
                 }
@@ -172,3 +193,4 @@ def room_reserve(room_no):
                     timeslots.append('{:02}:{:02}'.format(i,j))
             return render_template('scheduler/reserve_form.html',
                                 room=room, timeslots=timeslots)
+
