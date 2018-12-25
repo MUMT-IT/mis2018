@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Room Scheduler Page{% endblock %}
+{% block title %}Vehicle Scheduler Page{% endblock %}
 {% block head %}
 {{ super() }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
@@ -28,8 +28,8 @@
 {% include "scheduler/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <h1 class="title"><a href="{{ url_for('room.index') }}">Room Scheduler</a></h1>
-    <h2 class="subtitle">ระบบการจองห้องสำหรับการประชุมหรือการเรียนการสอน รุ่น 0.1</h2>
+    <h1 class="title"><a href="{{ url_for('vehicle.index') }}">Vehicle Manager</a></h1>
+    <h2 class="subtitle">ระบบบริหารจัดการยานพาหนะ รุ่น 0.1</h2>
     <div class="box">
         <div class="has-text-centered">
             {% with messages = get_flashed_messages() %}
@@ -41,13 +41,13 @@
             </ul>
             {% endif %}
             {% endwith %}
-            <a id="add_evt_btn" class="button is-rounded is-info" href="{{ url_for('room.new_event') }}">
+            <a id="add_evt_btn" class="button is-rounded is-info" href="{{ url_for('vehicle.new_event') }}">
                 <i class="far fa-calendar-plus"></i></a>
-            <a class="button is-rounded is-primary" href="{{ url_for('room.index') }}">
+            <a class="button is-rounded is-primary" href="{{ url_for('vehicle.index') }}">
                 <i class="far fa-calendar-alt"></i>
             </a>
-            <a class="button is-rounded is-primary" href="{{ url_for('room.event_list', list_type='timelineDay') }}"><i class="fas fa-list-ol"></i></a>
-            <a class="button is-rounded is-primary" href="{{ url_for('room.event_list', list_type='agendaWeek') }}">
+            <a class="button is-rounded is-primary" href="{{ url_for('vehicle.event_list', list_type='timelineDay') }}"><i class="fas fa-list-ol"></i></a>
+            <a class="button is-rounded is-primary" href="{{ url_for('vehicle.event_list', list_type='agendaWeek') }}">
                 <i class="far fa-eye"></i>
             </a>
         </div>
@@ -69,17 +69,17 @@
             header: {
                 left: 'title',
             },
-            events: '/room/api/events',
-            resources: '/room/api/rooms',
+            events: '/vehicle/api/events',
+            resources: '/vehicle/api/vehicles',
             eventLimit: true,
-            resourceLabelText: 'Room',
+            resourceLabelText: 'Vehicle',
             resourceGroupField: 'location',
             minTime: '08:00:00',
             maxTime: '20:00:00',
             resourceAreaWidth: '10%',
             resourceColumns: [
                 {
-                    labelText: 'Room',
+                    labelText: 'Vehicle',
                     field: 'title'
                 },
                 {

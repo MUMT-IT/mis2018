@@ -6,33 +6,35 @@
     <h1 class="title">รายการห้อง</h1>
     <table class="table">
         <thead>
-            <th>หมายเลขห้อง</th>
+            <th>หมายเลขทะเบียน</th>
+            <th>ยี่ห้อ</th>
+            <th>รุ่น</th>
             <th>จำนวนคนสูงสุด</th>
             <th>รายละเอียด</th>
             <th>ความพร้อมใช้</th>
             <th>ชนิดของห้อง</th>
             <th>เวลาทำการ</th>
-            <th>วิทยาเขต</th>
             <th>ดูข้อมูลการจอง</th>
             <th></th>
         </thead>
         <tbody>
-        {% for room in rooms %}
+        {% for vehicle in vehicles %}
             <tr>
-                <td>{{ room.number }}</td>
-                <td>{{ room.occupancy }}</td>
-                <td>{{ room.desc }}</td>
-                <td>{{ room.availability.availability }}</td>
-                <td>{{ room.type.type }}</td>
-                <td>{{ room.business_hour_start }}-{{ room.business_hour_end }}</td>
-                <td>{{ room.location }}</td>
+                <td>{{ vehicle.license }}</td>
+                <td>{{ vehicle.maker }}</td>
+                <td>{{ vehicle.model }}</td>
+                <td>{{ vehicle.occupancy }}</td>
+                <td>{{ vehicle.desc }}</td>
+                <td>{{ vehicle.availability.availability }}</td>
+                <td>{{ vehicle.type.type }}</td>
+                <td>{{ vehicle.business_hour_start }}-{{ vehicle.business_hour_end }}</td>
                 <td>
                     <span class="icon is-medium">
                         <i class="fas fa-clipboard-list fa-lg"></i>
                     </span>
                 </td>
                 <td>
-                    <a href="{{ url_for('room.room_reserve', room_no=room.number) }}"
+                    <a href="{{ url_for('vehicle.vehicle_reserve', license=vehicle.license) }}"
                         class="button is-rounded is-info">
                         <strong>จอง</strong>
                     </a>

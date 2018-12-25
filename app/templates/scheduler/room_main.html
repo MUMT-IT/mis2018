@@ -5,7 +5,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
 {% endblock head %}
-{% include "kpi/nav.html" %}
+{% include "scheduler/nav.html" %}
 {% block page_content %}
 <section class="section">
     <h1 class="title"><a href="{{ url_for('room.index') }}">Room Scheduler</a></h1>
@@ -46,13 +46,10 @@
                     left: 'title',
                 },
                 events: '/room/api/events',
-                eventLimit: true
-            });
-            $('#prev_btn').on('click', function() {
-                $('#room_calendar').fullCalendar('prev');
-            });
-            $('#next_btn').on('click', function() {
-                $('#room_calendar').fullCalendar('next');
+                eventLimit: true,
+                eventClick: function(calEvent, jsEvent, view) {
+                    alert(calEvent.title);
+                }
             });
         });
     </script>

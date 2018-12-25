@@ -6,11 +6,11 @@
     <div class="columns">
         <div class="column is-4 is-offset-4 has-text-centered">
             <h1 class="title">New Reservation</h1>
-            <form method="post" action="{{ url_for('room.room_list') }}">
+            <form method="post" action="{{ url_for('vehicle.vehicle_list') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="field">
                     <p class="control has-icons-right">
-                        <input class="input" type="text" name="room_number" placeholder="ค้นหาห้องหมายเลขห้อง">
+                        <input class="input" type="text" name="license" placeholder="ค้นหาห้องหมายเลขทะเบียน">
                         <span class="icon is-right">
                             <i class="fas fa-search"></i>
                         </span>
@@ -18,7 +18,7 @@
                 </div>
                 <div class="field">
                     <p class="control has-icons-right">
-                        <input class="input" type="text" name="users" placeholder="ค้นหาห้องตามจำนวนคน">
+                        <input class="input" type="text" name="occupancy" placeholder="ค้นหาห้องตามจำนวนคน">
                         <span class="icon is-right">
                             <i class="fas fa-users"></i>
                         </span>
@@ -28,7 +28,7 @@
                     <strong>Go</strong></button>
             </form>
             <p>
-                <a href="{{ url_for('room.room_list') }}">ดูรายการห้องทั้งหมด</a>
+                <a href="{{ url_for('vehicle.vehicle_list') }}">ดูรายการยานพาหนะทั้งหมด</a>
             </p>
         </div>
     </div>

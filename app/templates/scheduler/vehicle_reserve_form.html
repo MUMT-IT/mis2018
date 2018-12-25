@@ -6,34 +6,35 @@
     <div class="columns">
         <div class="column is-8 is-offset-2">
             <div class="box">
-                <p class="has-text-centered">กรุณากรอกข้อมูลการจองห้องให้สมบูรณ์</p>
-                {% if room.required_permission %}
-                    <p class="has-text-danger">หมายเหตุ ท่านจะสามารถใช้ห้องนี้ได้หลังจากได้รับการอนุมัติแล้วเท่านั้น</p>
+                <p class="has-text-centered">กรุณากรอกข้อมูลการจองให้สมบูรณ์</p>
+                {% if vehicle.required_permission %}
+                <p class="has-text-danger">หมายเหตุ ท่านจะสามารถใช้ห้องนี้ได้หลังจากได้รับการอนุมัติแล้วเท่านั้น</p>
                 {% endif %}
                 <form method="post">
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">ห้อง</label>
+                            <label class="label">หมายเลขทะเบียน</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
                                     <input class="input is-danger is-static"
-                                        name="number" type="text" value="{{ room.number }}">
+                                           name="license" type="text" value="{{ vehicle.license }}">
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">วิทยาเขต</label>
+                            <label class="label">หน่วยงาน</label>
                         </div>
                         <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input is-danger is-static"
-                                           name="location" type="text" value="{{ room.location }}">
-                                </div>
+                            <div class="select is-danger">
+                                <select name="org">
+                                    {% for org in orgs %}
+                                    <option value="{{ org.id }}">{{ org }}</option>
+                                    {% endfor %}
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -45,7 +46,20 @@
                             <div class="field">
                                 <div class="control">
                                     <input class="input is-danger"
-                                        name="title" type="text" placeholder="ประชุม, สอน ฯลฯ​">
+                                           name="title" type="text" placeholder="ประชุม, สอน ฯลฯ​">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">สถานที่</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input is-danger"
+                                           name="location" type="text" placeholder="สถานที่ปลายทาง">
                                 </div>
                             </div>
                         </div>
@@ -70,7 +84,7 @@
                             <div class="select is-danger">
                                 <select name="starttime">
                                     {% for ts in timeslots %}
-                                        <option value="{{ ts }}">{{ ts }}</option>
+                                    <option value="{{ ts }}">{{ ts }}</option>
                                     {% endfor %}
                                 </select>
                                 </select>
@@ -111,19 +125,19 @@
                             <div class="field">
                                 <div class="control">
                                     <input class="input is-danger" type="text"
-                                        value="1" name="participants">
+                                           value="1" name="participants">
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">จำนวนอาหารว่าง</label>
+                            <label class="label">ระยะทาง (km)</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input" type="text" value="0" name="food">
+                                    <input class="input" type="number" value="10" name="distance">
                                 </div>
                             </div>
                         </div>
