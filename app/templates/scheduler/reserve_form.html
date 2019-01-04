@@ -159,7 +159,7 @@
                                 <div class="control">
                                     <div class="tags has-addons">
                                         <span class="tag is-dark is-medium">{{ loop.index }}</span>
-                                        <span class="tag is-light is-medium">{{ item.name }}</span>
+                                        <span class="tag is-light is-medium">{{ item.th_name }}</span>
                                     </div>
                                 </div>
                                 {% endfor %}
@@ -168,7 +168,17 @@
                     </div>
                     <b-field horizontal label="อุปกรณ์เสริม" message="กด Spacebar เพื่อดูรายการทั้งหมด">
                         <b-taginput v-model="selected_equips" :data="filteredEquipments" autocomplete
-                                    field="name" icon="label" @typing="getFilteredEquipments">
+                                    field="th_name" icon="label" @typing="getFilteredEquipments"
+                                    type="is-warning">
+                            <template slot-scope="props">
+                                <p><%props.option.th_name%></p>
+                                <p>
+                                    <small><%props.option.en_name%></small>
+                                </p>
+                            </template>
+                            <template slot="empty">
+                                There are no items.
+                            </template>
                         </b-taginput>
                     </b-field>
                     <div class="field is-horizontal">
@@ -304,7 +314,9 @@
                     });
                 }
                 self.equipments.forEach(function (item) {
-                    if (item.name.toLowerCase().indexOf(itemquery.toLowerCase()) !== -1) {
+                    if (item.th_name.indexOf(itemquery) !== -1) {
+                        self.filteredEquipments.push(item)
+                    } else if (item.en_name.toLowerCase().indexOf(itemquery.toLowerCase()) !== -1) {
                         self.filteredEquipments.push(item)
                     }
                 });
