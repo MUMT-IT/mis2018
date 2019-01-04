@@ -181,6 +181,7 @@
                             </template>
                         </b-taginput>
                     </b-field>
+                    <input type="hidden" name="extra_items" v-model="extraItems">
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
                             <label class="label">รายละเอียดเพิ่มเติม</label>
@@ -234,6 +235,14 @@
                 } else {
                     return 0
                 }
+            },
+            extraItems: function() {
+                var self = this
+                var tl = ''
+                for (var i=0; i<self.selected_equips.length; i++) {
+                   tl = tl + self.selected_equips[i].th_name +  '|'
+                }
+                return tl
             }
         },
         methods: {
