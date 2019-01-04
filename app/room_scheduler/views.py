@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 
 from . import roombp as room
-from .models import RoomResource
+from .models import RoomResource, RoomEvent
 from flask import render_template, jsonify, request, flash, redirect, url_for
 from flask_login import login_required
 from datetime import datetime
@@ -11,7 +11,7 @@ import google.auth
 import dateutil.parser
 from googleapiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
-from ..main import json_keyfile
+from ..main import json_keyfile, db
 
 from ..models import IOCode, Mission, Org, CostCenter
 
@@ -120,8 +120,8 @@ def room_list():
     return render_template('scheduler/room_list.html', rooms=rooms)
 
 
-@room.route('/reserve/<room_no>', methods=['GET', 'POST'])
-def room_reserve(room_no):
+@room.route('/reserve/<room_id>', methods=['GET', 'POST'])
+def room_reserve(room_id):
     if request.method=='POST':
         room_no = request.form.get('number', None)
         location = request.form.get('location', None)
@@ -131,7 +131,16 @@ def room_reserve(room_no):
         enddate = request.form.get('enddate', None)
         endtime = request.form.get('endtime', None)
         title = request.form.get('title', ''),
-        iocode = request.form.get('iocode', None)
+        iocode_id = request.form.get('iocode', None)
+        food = request.form.get('food', 0)
+        participants = request.form.get('participants', 0)
+        extra_items = request.form.get('extra_items', '')
+        if extra_items:
+            extra_items = extra_items.split('|')[:-1]
+
+        room = RoomResource.query.get(room_id)
+        iocode = IOCode.query.get(iocode_id)
+
         tz = pytz.timezone('Asia/Bangkok')
         if startdate and starttime:
             startdatetime = datetime.strptime(
@@ -146,6 +155,39 @@ def room_reserve(room_no):
         else:
             enddatetime = None
 
+        if iocode and room and startdate \
+                and starttime and enddate and endtime:
+            approval_needed = True if room.availability_id==3 else False
+
+            new_event = RoomEvent(room_id=room.id, iocode_id=iocode.id,
+                                  start=startdatetime, end=enddatetime,
+                                  created_at=tz.localize(datetime.utcnow()),
+                                  title=title, extra_items=extra_items,
+                                  request=desc, refreshment=int(food),
+                                  occupancy=int(participants),
+                                  approved=approval_needed,
+                                  )
+
+            print(new_event.room_id,
+                  new_event.iocode_id,
+                  new_event.start,
+                  new_event.end,
+                  new_event.title,
+                  new_event.occupancy,
+                  new_event.refreshment,
+                  new_event.extra_items,
+                  new_event.approved,
+                  new_event.created_at)
+
+            db.session.add(new_event)
+            db.session.commit()
+
+            return 'New event added.'
+
+        return 'New event failed.'
+
+
+        '''
         if startdatetime and enddatetime:
             timedelta = enddatetime - startdatetime
             if timedelta.days < 0 or timedelta.seconds == 0:
@@ -184,8 +226,9 @@ def room_reserve(room_no):
                     body=event).execute()
                 flash('Reservation has been made. {}'.format(event.get('htmlLink')))
                 return redirect(url_for('room.index'))
-    if room_no:
-        room = RoomResource.query.filter_by(number=room_no).first()
+        '''
+    if room_id:
+        room = RoomResource.query.get(room_id)
         if room:
             timeslots = []
             for i in range(8,19):

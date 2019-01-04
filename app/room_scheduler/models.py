@@ -2,7 +2,6 @@ from app.main import db, ma
 from sqlalchemy.sql import func
 from ..asset.models import AssetItem
 
-
 class RoomType(db.Model):
     __tablename__ = 'scheduler_room_types'
     id = db.Column('id', db.Integer(), primary_key=True,
@@ -52,16 +51,21 @@ class RoomEvent(db.Model):
     room_id = db.Column('room_id', db.ForeignKey('scheduler_room_resources.id'),
                         nullable=False)
     title = db.Column('title', db.String(255), nullable=False)
-    start = db.Column('start', db.DateTime(), nullable=False)
-    end = db.Column('end', db.DateTime(), nullable=False)
+    start = db.Column('start', db.DateTime(timezone=True), nullable=False)
+    end = db.Column('end', db.DateTime(timezone=True), nullable=False)
+    iocode_id = db.Column('iocode_id', db.ForeignKey('iocodes.id'))
     occupancy = db.Column('occupancy', db.Integer())
     # number of sets of food/refreshment requested
     refreshment = db.Column('refreshment', db.Integer(), default=0)
     request = db.Column('request', db.Text()) # comma separated list of things
     approved = db.Column('approved', db.Boolean(), default=True)
-    required_permission = db.Column('required_permission', db.Boolean(), default=False)
-    created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
-    updated_at = db.Column('updated_at', db.DateTime(), server_default=None)
-    cancelled_at = db.Column('cancalled_at', db.DateTime(), server_default=None)
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     created_by = db.Column('created_by', db.ForeignKey('staff_account.id'))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), server_default=None)
+    updated_by = db.Column('updated_by', db.ForeignKey('staff_account.id'))
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True), server_default=None)
+    cancelled_by = db.Column('cancelled_by', db.ForeignKey('staff_account.id'))
     approved_by = db.Column('approved_by', db.ForeignKey('staff_account.id'))
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True), server_default=None)
+    extra_items = db.Column('extra_items', db.JSON)
+    note = db.Column('note', db.Text())
