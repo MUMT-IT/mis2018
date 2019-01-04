@@ -1,5 +1,6 @@
 from app.main import db, ma
 from sqlalchemy.sql import func
+from ..asset.models import AssetItem
 
 
 class RoomType(db.Model):
@@ -38,6 +39,10 @@ class RoomResource(db.Model):
                                 db.ForeignKey('scheduler_room_avails.id'))
     type_id = db.Column('type_id', db.ForeignKey('scheduler_room_types.id'))
     reservations = db.relationship('RoomEvent', backref='room')
+    equipments = db.relationship(AssetItem, backref=db.backref('room'))
+
+    def __repr__(self):
+        return u'Room: {}, ID: {}'.format(self.number, self.id)
 
 
 class RoomEvent(db.Model):

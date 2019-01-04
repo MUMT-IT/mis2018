@@ -76,6 +76,12 @@ import database
 admin.add_view(ModelView(Org, db.session, category='Organization'))
 admin.add_view(ModelView(Mission, db.session, category='Organization'))
 
+from asset import assetbp as asset_blueprint
+app.register_blueprint(asset_blueprint, url_prefix='/asset')
+
+from asset.models import *
+admin.add_view(ModelView(AssetItem, db.session, category='Asset'))
+
 
 class IOCodeAdminModel(ModelView):
     can_create = True

@@ -151,16 +151,26 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">อุปกรณ์เสริม</label>
+                            <label class="label">อุปกรณ์ประจำ</label>
                         </div>
                         <div class="field-body">
-                            <div class="field">
+                            <div class="field is-grouped is-grouped-multiline">
+                                {% for item in room.equipments %}
                                 <div class="control">
-                                    <input class="input" type="text" name="request">
+                                    <div class="tags has-addons">
+                                        <span class="tag is-dark is-medium">{{ loop.index }}</span>
+                                        <span class="tag is-light is-medium">{{ item.name }}</span>
+                                    </div>
                                 </div>
+                                {% endfor %}
                             </div>
                         </div>
                     </div>
+                    <b-field horizontal label="อุปกรณ์เสริม" message="กด Spacebar เพื่อดูรายการทั้งหมด">
+                        <b-taginput v-model="selected_equips" :data="filteredEquipments" autocomplete
+                                    field="name" icon="label" @typing="getFilteredEquipments">
+                        </b-taginput>
+                    </b-field>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
                             <label class="label">รายละเอียดเพิ่มเติม</label>
@@ -201,6 +211,9 @@
                 enddate: undefined,
                 participant: 1,
                 food: 0,
+                equipments: [],
+                filteredEquipments: [],
+                selected_equips : []
             }
         },
         computed: {
@@ -281,6 +294,20 @@
                     })
                     self.isFetching = false
                 })
+            },
+            getFilteredEquipments: function(itemquery) {
+                var self = this
+                self.filteredEquipments = []
+                if (self.equipments.length === 0) {
+                    axios.get('/asset/api/room/extra-items').then(function(resp) {
+                        self.equipments = resp.data;
+                    });
+                }
+                self.equipments.forEach(function (item) {
+                    if (item.name.toLowerCase().indexOf(itemquery.toLowerCase()) !== -1) {
+                        self.filteredEquipments.push(item)
+                    }
+                });
             }
         }
     })
