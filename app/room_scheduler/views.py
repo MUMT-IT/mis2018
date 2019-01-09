@@ -168,65 +168,51 @@ def room_reserve(room_id):
                                   approved=approval_needed,
                                   )
 
-            print(new_event.room_id,
-                  new_event.iocode_id,
-                  new_event.start,
-                  new_event.end,
-                  new_event.title,
-                  new_event.occupancy,
-                  new_event.refreshment,
-                  new_event.extra_items,
-                  new_event.approved,
-                  new_event.created_at)
-
             db.session.add(new_event)
             db.session.commit()
 
-            return 'New event added.'
-
-        return 'New event failed.'
-
-
-        '''
-        if startdatetime and enddatetime:
-            timedelta = enddatetime - startdatetime
-            if timedelta.days < 0 or timedelta.seconds == 0:
-                flash('Date or time is invalid.')
-            else:
-                event = {
-                    'summary': title,
-                    'location': room_no,
-                    'sendUpdates': 'all',
-                    'status': 'tentative',
-                    'description': desc,
-                    'start': {
-                        'dateTime': startdatetime.isoformat(),
-                        'timeZone': 'Asia/Bangkok',
-                    },
-                    'end': {
-                        'dateTime': enddatetime.isoformat(),
-                        'timeZone': 'Asia/Bangkok',
-                    },
-                    'extendedProperties': {
-                        'private': {
-                            'room_no': room_no,
-                            'location': location,
-                            'iocode': iocode,
+            if startdatetime and enddatetime:
+                timedelta = enddatetime - startdatetime
+                if timedelta.days < 0 or timedelta.seconds == 0:
+                    flash('Date or time is invalid.')
+                else:
+                    event = {
+                        'summary': title,
+                        'location': room_no,
+                        'sendUpdates': 'all',
+                        'status': 'tentative',
+                        'description': desc,
+                        'start': {
+                            'dateTime': startdatetime.isoformat(),
+                            'timeZone': 'Asia/Bangkok',
+                        },
+                        'end': {
+                            'dateTime': enddatetime.isoformat(),
+                            'timeZone': 'Asia/Bangkok',
+                        },
+                        'extendedProperties': {
+                            'private': {
+                                'room_no': room_no,
+                                'iocode': new_event.iocode_id,
+                                'occupancy': new_event.occupancy,
+                                'extra_items': new_event.extra_items,
+                                'approved': new_event.approved,
+                                'refreshment': new_event.refreshment,
+                            }
                         }
                     }
-                }
-                credentials, project_id = google.auth.default()
-                scoped_credentials = credentials.with_scopes([
-                    'https://www.googleapis.com/auth/calendar',
-                    'https://www.googleapis.com/auth/calendar.events'
-                ])
-                calendar_service = build('calendar', 'v3', credentials=scoped_credentials)
-                event = calendar_service.events().insert(
-                    calendarId='9hur49up24fdcbicdbggvpu77k@group.calendar.google.com',
-                    body=event).execute()
-                flash('Reservation has been made. {}'.format(event.get('htmlLink')))
-                return redirect(url_for('room.index'))
-        '''
+                    credentials, project_id = google.auth.default()
+                    scoped_credentials = credentials.with_scopes([
+                        'https://www.googleapis.com/auth/calendar',
+                        'https://www.googleapis.com/auth/calendar.events'
+                    ])
+                    calendar_service = build('calendar', 'v3', credentials=scoped_credentials)
+                    event = calendar_service.events().insert(
+                        calendarId='9hur49up24fdcbicdbggvpu77k@group.calendar.google.com',
+                        body=event).execute()
+                    flash('Reservation has been made. {}'.format(event.get('htmlLink')))
+                    return redirect(url_for('room.index'))
+
     if room_id:
         room = RoomResource.query.get(room_id)
         if room:
