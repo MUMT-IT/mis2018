@@ -2,9 +2,35 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>$Title$</title>
+    <title>Log In</title>
 </head>
 <body>
-$END$
+    <section>
+        <h1>Log In Page</h1>
+        <div>
+            {% for message in get_flashed_messages() %}
+                {{ message }}
+            {% endfor %}
+        </div>
+        <div>
+            {% if current_user.is_authenticated %}
+                {{ current_user.email }}
+            {% else %}
+                {{ current_user.username }}
+            {% endif %}
+        </div>
+        <div>
+            <form action="" method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                {{ form.email.label() }}
+                {{ form.email(placeholder='Enter your email here') }}
+                <br>
+                {{ form.remember_me.label() }}
+                {{ form.remember_me() }}
+                <br>
+                {{ form.submit() }}
+            </form>
+        </div>
+    </section>
 </body>
 </html>
