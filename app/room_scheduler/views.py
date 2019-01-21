@@ -79,7 +79,8 @@ def get_events():
                 'end': end['dateTime'],
                 'resourceId': room_no,
                 'status': status,
-                'borderColor': '#2b8c36' if status=='confirmed' else '#f44242'
+                'borderColor': '#2b8c36' if status=='confirmed' else '#f44242',
+                'id': extended_properties.get('event_id', None),
             }
             all_events.append(evt)
         # Get the next request object by passing the previous request object to
@@ -101,6 +102,16 @@ def event_list(list_type='timelineDay'):
 @room.route('/events/new')
 def new_event():
     return render_template('scheduler/new_event.html')
+
+
+@room.route('/events/<int:room_id>')
+def event_detail(room_id=None):
+    if room_id:
+        event = RoomEvent.query.get(room_id)
+        if event:
+            return u'{} {}'.format(event.id, event.title)
+    else:
+        return 'No room ID specified.'
 
 
 @room.route('/list', methods=['POST', 'GET'])
@@ -192,6 +203,7 @@ def room_reserve(room_id):
                         },
                         'extendedProperties': {
                             'private': {
+                                'event_id': new_event.id,
                                 'room_no': room_no,
                                 'iocode': new_event.iocode_id,
                                 'occupancy': new_event.occupancy,
