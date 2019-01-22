@@ -22,6 +22,8 @@ def get_class_list():
             'chkid': cls.id,
             'year': cls.class_.academic_year
         })
+
+    classes = sorted(classes, key=lambda x: x['year'], reverse=True)
     return jsonify(classes)
 
 
