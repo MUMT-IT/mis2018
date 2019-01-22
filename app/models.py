@@ -141,6 +141,9 @@ class Class(db.Model):
     academic_year = db.Column('academic_year', db.String(4), nullable=False)
     deadlines = db.relationship('ClassCheckIn', backref=db.backref('class'))
 
+    def __str__(self):
+        return self.refno
+
 
 class ClassCheckIn(db.Model):
     __tablename__ = 'class_check_in'
@@ -148,6 +151,10 @@ class ClassCheckIn(db.Model):
     class_id = db.Column('class_id', db.ForeignKey('classes.id'))
     deadline = db.Column('deadline', db.String())
     late_mins = db.Column('late_mins', db.Integer())
+    class_ = db.relationship('Class', backref=db.backref('chickin_info'))
+
+    def __str__(self):
+        return self.class_.refno
 
 
 class StudentCheckInRecord(db.Model):
