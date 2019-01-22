@@ -8,9 +8,8 @@ data = read_excel(sys.argv[1], header=None,
 
 students = []
 for _, student in data.iterrows():
-    url = 'http://mumt.in/stud/checkin/1/{}'.format(student['uid'])
-    qrcode = pyqrcode.create(url)
-    qrcode.png('qrimages/{}.png'.format(student['uid']), scale=3)
+    qrcode = pyqrcode.create(student['uid'])
+    qrcode.png('qrimages/{}.png'.format(student['uid']), scale=5)
     students.append(student)
 
 env = Environment(loader=FileSystemLoader('.'))
