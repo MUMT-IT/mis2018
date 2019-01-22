@@ -73,6 +73,10 @@ app.register_blueprint(research_blueprint, url_prefix='/research')
 from models import Student, Class, ClassCheckIn, User, Org, Mission, IOCode, CostCenter
 import database
 
+admin.add_view(ModelView(Student, db.session, category='Student Affairs'))
+admin.add_view(ModelView(ClassCheckIn, db.session, category='Student Affairs'))
+admin.add_view(ModelView(Class, db.session, category='Student Affairs'))
+
 admin.add_view(ModelView(Org, db.session, category='Organization'))
 admin.add_view(ModelView(Mission, db.session, category='Organization'))
 
