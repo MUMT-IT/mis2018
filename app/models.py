@@ -142,7 +142,7 @@ class Class(db.Model):
     deadlines = db.relationship('ClassCheckIn', backref=db.backref('class'))
 
     def __str__(self):
-        return self.refno
+        return u'{} : {}'.format(self.refno, self.academic_year)
 
 
 class ClassCheckIn(db.Model):
