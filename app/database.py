@@ -67,8 +67,8 @@ def load_activities():
 from main import db
 from models import Student
 from pandas import read_excel
-def load_students():
-    data = read_excel('data/studentListClassOf2560.xlsx', header=None,
+def load_students(excelfile):
+    data = read_excel(excelfile, header=None,
         names=['refno', 'uid', 'title', 'firstname', 'lastname'])
     for _, row in data.iterrows():
         student = Student(refno=row['refno'],

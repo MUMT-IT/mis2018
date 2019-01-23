@@ -1,4 +1,6 @@
 # -*- coding:utf-8 -*-
+import click
+from flask.cli import AppGroup
 from flask import Flask
 from sqlalchemy import create_engine, MetaData
 from flask_sqlalchemy import SQLAlchemy
@@ -18,6 +20,8 @@ login_manager = LoginManager()
 login_manager.login_view = 'auth.login'
 csrf = CSRFProtect()
 admin = Admin()
+
+dbutils = AppGroup('dbutils')
 
 def create_app(config_name='default'):
     app = Flask(__name__)
@@ -118,9 +122,12 @@ def populatedb():
 
 from database import load_students
 
-@app.cli.command()
-def populate_students():
-    load_students()
+@dbutils.command('import_student')
+@click.argument('excelfile')
+def import_students(excelfile):
+    load_students(excelfile)
+
+app.cli.add_command(dbutils)
 
 @app.cli.command()
 def populate_classes():
