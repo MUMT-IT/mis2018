@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Check Ins Analytics {{ klass.refno }}{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="box">
+            <p>รายวิชา <strong>{{ klass.refno }}</strong> {{ klass.th_class_name }} ({{ klass.en_class_name }})</p>
+        </div>
+        <table class="table">
+            <thead>
+                <th>Check In ID</th>
+                <th>Class ID</th>
+                <th>Deadline</th>
+                <th>Academic year</th>
+            </thead>
+            <tbody>
+            {% for chk in klass.deadlines %}
+                <tr>
+                    <td>{{ chk.id }}</td>
+                    <td>{{ klass.refno }}</td>
+                    <td>{{ chk.deadline }}</td>
+                    <td>{{ klass.academic_year }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </section>
+{% endblock %}

@@ -62,3 +62,11 @@ def checkin(class_id, stud_id):
         return jsonify({'checkedAt': checkin,
                             'chk_status': status,
                             'status': 'succeeded'})
+
+@stud.route('/analytics/checkins/<int:class_id>')
+def show_checkins_data(class_id):
+    klass = Class.query.get(class_id)
+    if klass is None:
+        return 'Class ID not specified.', 400
+
+    return render_template('studs/analytics/checkins.html', klass=klass)
