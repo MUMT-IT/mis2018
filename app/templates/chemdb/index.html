@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}Chemicals Database{% endblock %}
+{% include "chemdb/nav.html" %}
+{% block page_content %}
+    <section class="section">
+    <div class="container">
+        <h1 class="title">Chemicals</h1>
+        <table class="table is-striped" id="table">
+            <thead>
+                <th>No.</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Company Code</th>
+                <th>Vendor</th>
+                <th>CAS</th>
+                <th>Container Size</th>
+                <th>Container Unit</th>
+                <th>Expiration Date</th>
+                <th>Location</th>
+                <th>Contact Person</th>
+                <th>Email</th>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ item.desc|upper }}</td>
+                        <td>{{ item.desc|upper }}</td>
+                        <td>{{ item.company_code }}</td>
+                        <td>{{ item.vendor }}</td>
+                        <td>{{ item.cas }}</td>
+                        <td>{{ item.container_size }}</td>
+                        <td>{{ item.container_unit }}</td>
+                        <td>{{ item.expiration_date }}</td>
+                        <td>{{ item.location }}</td>
+                        {% if item.contact %}
+                            <td>{{ item.contact.personal_info.en_firstname }} {{ item.contact.personal_info.en_lastname }}</td>
+                            <td>{{ item.contact.email }}@mahidol.ac.th</td>
+                        {% else %}
+                            <td></td>
+                            <td></td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function() {
+            $('#table').DataTable();
+        });
+    </script>
+{% endblock %}
