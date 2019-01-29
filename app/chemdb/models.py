@@ -14,6 +14,7 @@ class ChemItem(db.Model):
     container_size = db.Column('container_size', db.Numeric())
     container_unit = db.Column('container_unit', db.String(8))
     quantity = db.Column('quantity', db.Integer())
+    unit_price = db.Column('unit_price', db.Numeric())
     expire_date = db.Column('expire_date', db.Date())
     created_at = db.Column('created_at', db.Date(), server_default=func.now())
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
