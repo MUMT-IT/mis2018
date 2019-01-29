@@ -53,6 +53,10 @@ app.register_blueprint(food_blueprint, url_prefix='/food')
 from staff import staffbp as staff_blueprint
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
+from staff.models import StaffAccount, StaffPersonalInfo
+admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
+admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
+
 from room_scheduler import roombp as room_blueprint
 app.register_blueprint(room_blueprint, url_prefix='/room')
 from room_scheduler.models import *
@@ -110,6 +114,10 @@ admin.add_view(ModelView(User, db.session))
 from lisedu import lisedu as lis_blueprint
 app.register_blueprint(lis_blueprint, url_prefix='/lis')
 from lisedu.models import *
+
+
+from chemdb import chemdbbp as chemdb_blueprint
+app.register_blueprint(chemdb_blueprint, url_prefix='/chemdb')
 
 @app.cli.command()
 def populatedb():

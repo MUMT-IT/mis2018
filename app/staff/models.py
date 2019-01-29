@@ -8,6 +8,10 @@ class StaffAccount(db.Model):
     email = db.Column('email', db.String(), unique=True)
     personal_info = db.relationship("StaffPersonalInfo", backref=db.backref("staff_account", uselist=False))
 
+    def __str__(self):
+        return u'{}'.format(self.email)
+
+
 
 class StaffPersonalInfo(db.Model):
     __tablename__ = 'staff_personal_info'
@@ -17,6 +21,8 @@ class StaffPersonalInfo(db.Model):
     highest_degree_id = db.Column('highest_degree_id', db.ForeignKey('staff_edu_degree.id'))
     highest_degree = db.relationship('StaffEduDegree',
                         backref=db.backref('staff_personal_info', uselist=False))
+    def __str__(self):
+        return u'{} {}'.format(self.en_firstname, self.en_lastname)
 
 
 class StaffEduDegree(db.Model):
