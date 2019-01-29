@@ -1,6 +1,9 @@
 from datetime import datetime
 from sqlalchemy.sql import func
 from main import db
+import pandas as pd
+from chemdb.models import ChemItem
+from staff.models import StaffAccount
 from models import (Org, Strategy, StrategyTactic,
                         StrategyTheme, StrategyActivity)
 
@@ -128,3 +131,37 @@ def load_subdistricts():
             added_items.add(str(row['TA_ID']))
             a.subdistricts.append(d)
             db.session.commit()
+
+
+def load_chem_items(excel_file):
+    if not excel_file:
+        return 'No Excel file specified.'
+
+    try:
+        df = pd.read_excel(excel_file)
+    except:
+        return 'Errors occured.'
+    else:
+        for ix, row in df.iterrows():
+            name = row['Name']
+            msds = row['MSDS']
+            cas = row['CAS']
+            company_code = row['Company Code']
+            container_size = row['Container size']
+            container_unit = row['Container unit']
+            vendor = row['Vendors']
+            location = row['Location']
+            citem = ChemItem(name=name, desc=name,
+                             msds=msds, cas=cas,
+                             company_code=company_code,
+                             container_size=container_size,
+                             container_unit=container_unit,
+                             vendor=vendor,
+                             location=location)
+            if (not pd.isna(row['e-mail'])) and ('_at_' in row['e-mail']):
+                email, address = row['e-mail'].split('_at_')
+                staff = StaffAccount.query.filter_by(email=email).first()
+                if staff and row['Name']:
+                    citem.contact = staff
+            db.session.add(citem)
+        db.session.commit()

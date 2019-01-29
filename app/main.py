@@ -2,7 +2,6 @@
 import click
 from flask.cli import AppGroup
 from flask import Flask
-from sqlalchemy import create_engine, MetaData
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
@@ -172,6 +171,10 @@ def populate_districts():
 def populate_subdistricts():
     load_subdistricts()
 
+@dbutils.command('import_chem_items')
+@click.argument('excel_file')
+def import_chem_items(excel_file):
+    database.load_chem_items(excel_file)
 
 
 if __name__ == '__main__':
