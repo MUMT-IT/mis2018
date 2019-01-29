@@ -1,11 +1,11 @@
 from ..main import db
 from ..staff.models import StaffAccount
 
-class Chemical(db.Model):
+class ChemItem(db.Model):
     __tablename__ = 'chemdb_items'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     name = db.Column('name', db.String(255))
-    desc = db.Column('name', db.String(255))
+    desc = db.Column('desc', db.String(255))
     msds = db.Column('msds', db.String(255))
     cas = db.Column('cas', db.String(255))
     company_code = db.Column('company_code', db.String(255))
