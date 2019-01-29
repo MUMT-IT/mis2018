@@ -117,6 +117,7 @@ from lisedu.models import *
 
 
 from chemdb import chemdbbp as chemdb_blueprint
+import chemdb.models
 app.register_blueprint(chemdb_blueprint, url_prefix='/chemdb')
 
 @app.cli.command()
