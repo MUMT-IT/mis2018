@@ -12,7 +12,7 @@ def index():
     print(stud.th_first_name)
     return '<h2>Welcome to Students Index Page.</h2>'
 
-@stud.route('/api/checkins/class')
+@stud.route('/api/v1.0/checkins/class')
 def get_class_list():
     class_checkin_list = ClassCheckIn.query.all()
     classes = []
@@ -20,14 +20,15 @@ def get_class_list():
         classes.append({
             'refno': cls.class_.refno,
             'chkid': cls.id,
-            'year': cls.class_.academic_year
+            'year': cls.class_.academic_year,
+            'th_name': cls.class_.th_class_name,
         })
 
     classes = sorted(classes, key=lambda x: x['year'], reverse=True)
     return jsonify(classes)
 
 
-@stud.route('/api/checkin/<int:class_id>/<stud_id>')
+@stud.route('/api/v1.0/checkin/<int:class_id>/<stud_id>')
 def checkin(class_id, stud_id):
     if not class_id or not stud_id:
         return jsonify({'status': 'failed'}), 400
