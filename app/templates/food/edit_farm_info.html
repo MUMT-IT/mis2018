@@ -2,119 +2,120 @@
 {% block title %}Add New Farm Information{% endblock %}
 {% include "food/nav.html" %}
 {% block page_content %}
-<section class="section">
-    <h1 class="title">แก้ไขข้อมูลแปลงเกษตร</h1>
-    <form method="post">
-    <div class="column">
-        <div class="control">
-        <input class="input" type="hidden" name="farm_id" value="{{ farm.id }}">
-        </div>
-        <div class="field is-horizontal">
-            <div class="field-label is-normal">
-            <label class="label">พื้นที่ทำการเกษตรทั้งหมด</label>
-            </div>
-            <div class="field-body">
-            <div class="field">
-                <div class="control is-expanded">
-                <input class="input" name="estimated_total_size" type="number"
-                    step="0.01" value="{{farm.estimated_total_size}}">
+    <section class="section">
+        <h1 class="title">แก้ไขข้อมูลแปลงเกษตร</h1>
+        <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div class="column">
+                <div class="control">
+                    <input class="input" type="hidden" name="farm_id" value="{{ farm.id }}">
                 </div>
-            </div> <!-- field -->
-            </div> <!-- field-body -->
-        </div> <!-- field-horizontal -->
-        <div class="field is-horizontal">
-            <div class="field-label is-normal">
-            <label class="label">พื้นที่ทำการเกษตรของตนเอง</label>
+                <div class="field is-horizontal">
+                    <div class="field-label is-normal">
+                        <label class="label">พื้นที่ทำการเกษตรทั้งหมด</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control is-expanded">
+                                <input class="input" name="estimated_total_size" type="number"
+                                       step="0.01" value="{{ farm.estimated_total_size }}">
+                            </div>
+                        </div> <!-- field -->
+                    </div> <!-- field-body -->
+                </div> <!-- field-horizontal -->
+                <div class="field is-horizontal">
+                    <div class="field-label is-normal">
+                        <label class="label">พื้นที่ทำการเกษตรของตนเอง</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control is-expanded">
+                                <input class="input" name="estimated_owned_size" type="number"
+                                       step="0.01" value="{{ farm.estimated_owned_size }}">
+                            </div>
+                        </div> <!-- field -->
+                    </div> <!-- field-body -->
+                </div> <!-- field-horizontal -->
+                <div class="field is-horizontal">
+                    <div class="field-label is-normal">
+                        <label class="label">พื้นที่ทำการเกษตรที่เช่า</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control is-expanded">
+                                <input class="input" name="estimated_leased_size" type="number"
+                                       step="0.01" value="{{ farm.estimated_leased_size }}">
+                            </div>
+                        </div> <!-- field -->
+                    </div> <!-- field-body -->
+                </div> <!-- field-horizontal -->
+                <div class="field is-horizontal">
+                    <div class="field-label is-normal">
+                        <label class="label">พิกัดละติจูด (แบบทศนิยม)</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control is-expanded">
+                                <input class="input" name="latitude" type="number"
+                                       step="0.00000001" value="{{ farm.latitude }}">
+                            </div>
+                        </div> <!-- field -->
+                    </div> <!-- field-body -->
+                </div> <!-- field-horizontal -->
+                <div class="field is-horizontal">
+                    <div class="field-label is-normal">
+                        <label class="label">พิกัดลองติจูด (แบบทศนิยม)</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control is-expanded">
+                                <input class="input" name="longitude" type="number"
+                                       step="0.00000001" value="{{ farm.longitude }}">
+                            </div>
+                        </div> <!-- field -->
+                    </div> <!-- field-body -->
+                </div> <!-- field-horizontal -->
+                <div class="field is-horizontal">
+                    <div class="field-label is-normal">
+                        <label class="label">การใช้สารเคมีฆ่าแมลง</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control is-expanded">
+                                <input class="input" name="pesticide_use" type="text"
+                                       value="{{ farm.pesticide_use.desc }}">
+                            </div>
+                        </div> <!-- field -->
+                    </div> <!-- field-body -->
+                </div> <!-- field-horizontal -->
+                <div class="field is-horizontal">
+                    <div class="field-label is-normal">
+                        <label class="label">วันที่ใช้ครั้งสุดท้าย</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control is-expanded">
+                                <input class="input" name="pesticide_use_date" type="date"
+                                       value="{{ farm.pesticide_use.last_use }}">
+                            </div>
+                        </div> <!-- field -->
+                    </div> <!-- field-body -->
+                </div> <!-- field-horizontal -->
+                <div class="field is-horizontal">
+                    <div class="field-label">
+                    </div>
+                    <div class="field-body">
+                        <div class="field is-grouped">
+                            <div class="control">
+                                <input class="button is-primary" type="submit" value="Submit">
+                            </div>
+                            <div class="control">
+                                <input class="button is-danger" type="reset" value="Reset">
+                            </div>
+                        </div> <!-- field -->
+                    </div> <!-- field-body -->
+                </div> <!-- field-horizontal -->
             </div>
-            <div class="field-body">
-            <div class="field">
-                <div class="control is-expanded">
-                <input class="input" name="estimated_owned_size" type="number"
-                    step="0.01" value="{{farm.estimated_owned_size}}">
-                </div>
-            </div> <!-- field -->
-            </div> <!-- field-body -->
-        </div> <!-- field-horizontal -->
-        <div class="field is-horizontal">
-            <div class="field-label is-normal">
-            <label class="label">พื้นที่ทำการเกษตรที่เช่า</label>
-            </div>
-            <div class="field-body">
-            <div class="field">
-                <div class="control is-expanded">
-                <input class="input" name="estimated_leased_size" type="number"
-                    step="0.01" value="{{farm.estimated_leased_size}}">
-                </div>
-            </div> <!-- field -->
-            </div> <!-- field-body -->
-        </div> <!-- field-horizontal -->
-        <div class="field is-horizontal">
-            <div class="field-label is-normal">
-            <label class="label">พิกัดละติจูด (แบบทศนิยม)</label>
-            </div>
-            <div class="field-body">
-            <div class="field">
-                <div class="control is-expanded">
-                <input class="input" name="latitude" type="number"
-                    step="0.00000001" value="{{farm.latitude}}">
-                </div>
-            </div> <!-- field -->
-            </div> <!-- field-body -->
-        </div> <!-- field-horizontal -->
-        <div class="field is-horizontal">
-            <div class="field-label is-normal">
-            <label class="label">พิกัดลองติจูด (แบบทศนิยม)</label>
-            </div>
-            <div class="field-body">
-            <div class="field">
-                <div class="control is-expanded">
-                <input class="input" name="longitude" type="number"
-                    step="0.00000001" value="{{farm.longitude}}">
-                </div>
-            </div> <!-- field -->
-            </div> <!-- field-body -->
-        </div> <!-- field-horizontal -->
-        <div class="field is-horizontal">
-            <div class="field-label is-normal">
-            <label class="label">การใช้สารเคมีฆ่าแมลง</label>
-            </div>
-            <div class="field-body">
-            <div class="field">
-                <div class="control is-expanded">
-                <input class="input" name="pesticide_use" type="text"
-                    value="{{farm.pesticide_use.desc}}">
-                </div>
-            </div> <!-- field -->
-            </div> <!-- field-body -->
-        </div> <!-- field-horizontal -->
-        <div class="field is-horizontal">
-            <div class="field-label is-normal">
-            <label class="label">วันที่ใช้ครั้งสุดท้าย</label>
-            </div>
-            <div class="field-body">
-            <div class="field">
-                <div class="control is-expanded">
-                <input class="input" name="pesticide_use_date" type="date"
-                    value="{{farm.pesticide_use.last_use}}">
-                </div>
-            </div> <!-- field -->
-            </div> <!-- field-body -->
-        </div> <!-- field-horizontal -->
-        <div class="field is-horizontal">
-        <div class="field-label">
-        </div>
-        <div class="field-body">
-            <div class="field is-grouped">
-            <div class="control">
-                <input class="button is-primary" type="submit" value="Submit">
-            </div>
-            <div class="control">
-                <input class="button is-danger" type="reset" value="Reset">
-            </div>
-            </div> <!-- field -->
-        </div> <!-- field-body -->
-        </div> <!-- field-horizontal -->
-    </div>
-    </form>
-</section>
+        </form>
+    </section>
 {% endblock %}

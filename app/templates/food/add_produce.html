@@ -12,6 +12,7 @@
     <div class="columns">
         <div class="column is-one-third">
             <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="field">
                   <label class="label">ชนิดผักหรือผลไม้</label>
                   <div class="control">

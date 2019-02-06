@@ -2,64 +2,66 @@
 {% block title %}Add New Farm Information{% endblock %}
 {% include "food/nav.html" %}
 {% block page_content %}
-<section class="section">
-  <h3 class="subtitle">เพิ่มผลการทดสอบ</h3>
-  <div class="tabs">
-    <ul>
-      <li class="is-active">
-        <a href="{{ url_for('food.add_pesticide_results', farm_id=farm.id,
+    <section class="section">
+        <h3 class="subtitle">เพิ่มผลการทดสอบ</h3>
+        <div class="tabs">
+            <ul>
+                <li class="is-active">
+                    <a href="{{ url_for('food.add_pesticide_results', farm_id=farm.id,
           lot_id=lot.id, sample_id=sample.id) }}">Pesticides</a></li>
-      <li class="">
-        <a href="{{ url_for('food.add_parasite_results', farm_id=farm.id,
+                <li class="">
+                    <a href="{{ url_for('food.add_parasite_results', farm_id=farm.id,
           lot_id=lot.id, sample_id=sample.id) }}">Parasitology</a></li>
-      <li class="">
-        <a href="{{ url_for('food.add_bacteria_results', farm_id=farm.id,
+                <li class="">
+                    <a href="{{ url_for('food.add_bacteria_results', farm_id=farm.id,
           lot_id=lot.id, sample_id=sample.id) }}">Bacteria</a></li>
-      <li class="">
-        <a href="{{ url_for('food.add_toxicology_results', farm_id=farm.id,
+                <li class="">
+                    <a href="{{ url_for('food.add_toxicology_results', farm_id=farm.id,
           lot_id=lot.id, sample_id=sample.id) }}">Toxicology</a></li>
-    </ul>
-  </div>
-  <div class="columns">
-    <div class="column">
-      <form method="post" action="{{ url_for('food.add_pesticide_results_from_form') }}">
-        <input type="hidden" name="sample_id" value="{{ sample.id }}">
-        <input type="hidden" name="farm_id" value="{{ farm.id }}">
-        <input type="hidden" name="lot_id" value="{{ lot.id }}">
-        {% for test in pest_tests|sort(attribute='name')%}
-        <div class="field is-horizontal">
-          <div class="field-label">
-            <label>{{ test.name }}</label>
-          </div>
-          <div class="field-body">
-            <div class="field has-addons">
-              <div class="control">
-                <input class="input" type="number" step="any" name="{{ test.id }}" value="{{ result_dict[test.id] }}">
-              </div>
-              <div class="control">
-                <a class="button">{{ test.unit }}</a>
-              </div>
-            </div>
-          </div> <!-- body -->
-        </div> <!-- horizontal -->
-        {% endfor %}
-
-      <div class="field is-horizontal">
-        <div class="field-label">
+            </ul>
         </div>
-        <div class="field-body">
-          <div class="field is-grouped">
-            <div class="control">
-              <input class="button is-primary" type="submit" value="Submit">
-            </div>
-            <div class="control">
-              <input class="button is-danger" type="reset" value="Reset">
-            </div>
-          </div>
-        </div> <!-- body -->
-      </div> <!-- horizontal -->
-      </form>
-    </div> <!-- column -->
-  </div> <!-- columns -->
-</section>
+        <div class="columns">
+            <div class="column">
+                <form method="post" action="{{ url_for('food.add_pesticide_results_from_form') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="sample_id" value="{{ sample.id }}">
+                    <input type="hidden" name="farm_id" value="{{ farm.id }}">
+                    <input type="hidden" name="lot_id" value="{{ lot.id }}">
+                    {% for test in pest_tests|sort(attribute='name') %}
+                        <div class="field is-horizontal">
+                            <div class="field-label">
+                                <label>{{ test.name }}</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field has-addons">
+                                    <div class="control">
+                                        <input class="input" type="number" step="any" name="{{ test.id }}"
+                                               value="{{ result_dict[test.id] }}">
+                                    </div>
+                                    <div class="control">
+                                        <a class="button">{{ test.unit }}</a>
+                                    </div>
+                                </div>
+                            </div> <!-- body -->
+                        </div> <!-- horizontal -->
+                    {% endfor %}
+
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                        </div>
+                        <div class="field-body">
+                            <div class="field is-grouped">
+                                <div class="control">
+                                    <input class="button is-primary" type="submit" value="Submit">
+                                </div>
+                                <div class="control">
+                                    <input class="button is-danger" type="reset" value="Reset">
+                                </div>
+                            </div>
+                        </div> <!-- body -->
+                    </div> <!-- horizontal -->
+                </form>
+            </div> <!-- column -->
+        </div> <!-- columns -->
+    </section>
 {% endblock %}
