@@ -131,6 +131,9 @@ class Student(db.Model):
     class_check_ins = db.relationship('StudentCheckInRecord',
                         backref=db.backref('student'))
 
+    def __str__(self):
+        return u'ID:{} {} {}'.format(self.id, self.th_first_name, self.th_last_name)
+
 
 class Class(db.Model):
     __tablename__ = 'classes'
@@ -151,7 +154,7 @@ class ClassCheckIn(db.Model):
     class_id = db.Column('class_id', db.ForeignKey('classes.id'))
     deadline = db.Column('deadline', db.String())
     late_mins = db.Column('late_mins', db.Integer())
-    class_ = db.relationship('Class', backref=db.backref('chickin_info'))
+    class_ = db.relationship('Class', backref=db.backref('checkin_info'))
 
     def __str__(self):
         return self.class_.refno
@@ -163,6 +166,7 @@ class StudentCheckInRecord(db.Model):
     stud_id = db.Column('stud_id', db.ForeignKey('students.id'))
     classchk_id = db.Column('classchk_id', db.Integer(),
                     db.ForeignKey('class_check_in.id'), nullable=False)
+    classchk = db.relationship('ClassCheckIn', backref=db.backref('student_records'))
     check_in_time = db.Column('checkin', db.DateTime(timezone=True), nullable=False)
     check_in_status = db.Column('status', db.String())
     elapsed_mins = db.Column('elapsed_mins', db.Integer())

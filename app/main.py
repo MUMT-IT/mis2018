@@ -48,6 +48,9 @@ app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
 from food import foodbp as food_blueprint
 app.register_blueprint(food_blueprint, url_prefix='/food')
+from food.models import Person, Farm
+admin.add_views(ModelView(Person, db.session, category='Food'))
+admin.add_views(ModelView(Farm, db.session, category='Food'))
 
 from staff import staffbp as staff_blueprint
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
@@ -79,12 +82,23 @@ app.register_blueprint(auth_blueprint, url_prefix='/auth')
 from research import researchbp as research_blueprint
 app.register_blueprint(research_blueprint, url_prefix='/research')
 
-from models import Student, Class, ClassCheckIn, User, Org, Mission, IOCode, CostCenter
+from models import (Student, Class, ClassCheckIn, User,
+                        Org, Mission, IOCode, CostCenter,
+                        StudentCheckInRecord)
 import database
+
+
+class StudentCheckInAdminModel(ModelView):
+    can_create = True
+    form_columns = ('id','classchk', 'check_in_time', 'check_in_status', 'elapsed_mins')
+    column_list = ('id','classchk', 'check_in_time', 'check_in_status', 'elapsed_mins')
+
 
 admin.add_view(ModelView(Student, db.session, category='Student Affairs'))
 admin.add_view(ModelView(ClassCheckIn, db.session, category='Student Affairs'))
 admin.add_view(ModelView(Class, db.session, category='Student Affairs'))
+admin.add_view(StudentCheckInAdminModel(
+    StudentCheckInRecord, db.session, category='Student Affairs'))
 
 admin.add_view(ModelView(Org, db.session, category='Organization'))
 admin.add_view(ModelView(Mission, db.session, category='Organization'))
