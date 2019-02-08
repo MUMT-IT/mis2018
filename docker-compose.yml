@@ -11,13 +11,15 @@ services:
       - web_variables.env
     environment:
       - FLASK_DEBUG
+      - POSTGRES_PASSWORD
     volumes:
       - ./app:/mis2018/app
+      - ./warehouse:/mis2018/warehouse
       - ./migrations:/mis2018/migrations
   pg:
     image: postgres
     environment:
-      - POSTGRES_PASSWORD=genius01
+      - POSTGRES_PASSWORD
     volumes:
       - ./pgdata:/var/lib/postgresql/data
     ports:
