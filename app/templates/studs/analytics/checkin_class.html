@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Check Ins Analytics {% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <h1 class="title">Checkins List</h1>
+            <table class="table">
+                <thead>
+                <th>Time</th>
+                <th></th>
+                </thead>
+                <tbody>
+                {% for rec in records %}
+                    <tr>
+                        <td>{{ chk.check_in_time }}</td>
+                        <td>
+                            <a href="#">
+                            <span class="icon">
+                                <i class="fas fa-chart-bar"></i>
+                            </span>
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+{% endblock %}
