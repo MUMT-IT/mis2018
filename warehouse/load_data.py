@@ -3,18 +3,38 @@ import sys
 from datetime import datetime
 
 from sqlalchemy import create_engine
+from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import sessionmaker
 from create_research_fund_tables import *
 from pandas import read_excel
 import numpy
+
+Base = automap_base()
 
 POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD')
 
 engine = create_engine('postgres+psycopg2://postgres:{}@pg/mumtdw'\
                        .format(POSTGRES_PASSWORD))
 
+mis_engine = create_engine('postgres+psycopg2://postgres:{}@pg/mumtmis_dev' \
+                       .format(POSTGRES_PASSWORD))
+
+Base.prepare(mis_engine, reflect=True)
+
 Session = sessionmaker(bind=engine)
 session = Session()
+
+MisSession = sessionmaker(bind=mis_engine)
+mis_session = MisSession()
+
+def test():
+    Staff = Base.classes.staff_account
+    s = mis_session.query(Staff).filter(Staff.email=='likit.pre').first()
+    print('{} {} {}'.format(
+        s.email,
+        s.staff_personal_info.en_firstname,
+        s.staff_personal_info.en_lastname,
+    ))
 
 
 def load_funding_resource(input_file, sheet_name=None):
@@ -163,6 +183,7 @@ def load_researcher(input_file, sheet_name=None):
 
 
 if __name__ == '__main__':
+    '''
     inputfile = sys.argv[1]
     sheetname = sys.argv[2]
 
@@ -170,3 +191,6 @@ if __name__ == '__main__':
     load_funding_agency(inputfile, sheetname)
     load_research_project(inputfile, sheetname)
     create_fact_table(inputfile, sheetname)
+    '''
+
+    test()
