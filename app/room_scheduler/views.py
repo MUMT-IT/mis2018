@@ -15,6 +15,8 @@ from ..main import json_keyfile, db
 
 from ..models import IOCode, Mission, Org, CostCenter
 
+CALENDAR_ID = '9hur49up24fdcbicdbggvpu77k@group.calendar.google.com'
+
 @room.route('/api/iocodes')
 def get_iocodes():
     codes = []
@@ -70,7 +72,7 @@ def get_events():
             end = event.get('end', None)
             extended_properties = event.get('extendedProperties', {}).get('private', {})
             room_no = extended_properties.get('room_no', '736')
-            status = event.get('status', 'confirmed')
+            status = event.get('status')
             evt = {
                 'location': event.get('location', None),
                 'title': event.get('summary', 'NO SUMMARY'),
@@ -79,7 +81,7 @@ def get_events():
                 'end': end['dateTime'],
                 'resourceId': room_no,
                 'status': status,
-                'borderColor': '#2b8c36' if status=='confirmed' else '#f44242',
+                'borderColor': '#24ef15' if status=='confirmed' else '#f44242',
                 'id': extended_properties.get('event_id', None),
             }
             all_events.append(evt)
@@ -104,12 +106,91 @@ def new_event():
     return render_template('scheduler/new_event.html')
 
 
-@room.route('/events/<int:room_id>')
-def event_detail(room_id=None):
-    if room_id:
-        event = RoomEvent.query.get(room_id)
+@room.route('/events/<int:event_id>', methods=['POST', 'GET'])
+def event_detail(event_id=None):
+    tz = pytz.timezone('Asia/Bangkok')
+    if request.method == 'POST':
+        event_id = request.form.get('event_id')
+        event = RoomEvent.query.get(int(event_id))
+        title = request.form.get('title', '')
+        startdate = request.form.get('startdate')
+        enddate = request.form.get('enddate')
+        starttime = request.form.get('starttime')
+        endtime = request.form.get('endtime')
+        desc = request.form.get('request', '')
+        occupancy = request.form.get('occupancy', 0)
+        refreshment = request.form.get('refreshment', 0)
+        approved = request.form.get('approved')
+        note = request.form.get('note', '')
+        if startdate and starttime:
+            startdatetime = datetime.strptime(
+                '{} {}'.format(startdate, starttime), '%Y-%m-%d %H:%M:%S')
+            startdatetime = tz.localize(startdatetime, is_dst=None)
+        else:
+            startdatetime = None
+        if enddate and endtime:
+            enddatetime = datetime.strptime(
+                '{} {}'.format(enddate, endtime), '%Y-%m-%d %H:%M:%S')
+            enddatetime = tz.localize(enddatetime, is_dst=None)
+        else:
+            enddatetime = None
+
+        event.start = startdatetime
+        event.end = enddatetime
+        event.occupancy = occupancy
+        event.refreshment = refreshment
+        event.note = note
+        event.updated_at=tz.localize(datetime.utcnow())
+        event.approved = True if approved=='yes' else False
+        db.session.add(event)
+        db.session.commit()
+
+        status = 'confirmed' if approved else 'tentative'
+
+        update_event = {
+            'summary': title if title else event.title,
+            'description': desc,
+            'status': status,
+            'start': {
+                'dateTime': startdatetime.isoformat(),
+                'timeZone': 'Asia/Bangkok',
+            },
+            'end': {
+                'dateTime': enddatetime.isoformat(),
+                'timeZone': 'Asia/Bangkok',
+            },
+            'extendedProperties': {
+                'private': {
+                    'event_id': event.id,
+                    'room_no': event.room.number,
+                    'iocode': event.iocode_id,
+                    'occupancy': occupancy,
+                    'extra_items': event.extra_items,
+                    'approved': approved,
+                    'refreshment': refreshment,
+                }
+            }
+        }
+        credentials, project_id = google.auth.default()
+        scoped_credentials = credentials.with_scopes([
+            'https://www.googleapis.com/auth/calendar',
+            'https://www.googleapis.com/auth/calendar.events'
+        ])
+        calendar_service = build('calendar', 'v3', credentials=scoped_credentials)
+        event_ = calendar_service.events().patch(
+            calendarId=event.google_calendar_id,
+            eventId=event.google_event_id, body=update_event).execute()
+        if event_:
+            flash('Reservation ID={} has been updated.'.format(event_.get('id')))
+
+        return redirect(url_for('room.index'))
+
+    if event_id:
+        event = RoomEvent.query.get(event_id)
         if event:
-            return u'{} {}'.format(event.id, event.title)
+            event.start = event.start.astimezone(tz)
+            event.end = event.end.astimezone(tz)
+            return render_template('scheduler/event_detail.html', event=event)
     else:
         return 'No room ID specified.'
 
@@ -220,9 +301,14 @@ def room_reserve(room_id):
                     ])
                     calendar_service = build('calendar', 'v3', credentials=scoped_credentials)
                     event = calendar_service.events().insert(
-                        calendarId='9hur49up24fdcbicdbggvpu77k@group.calendar.google.com',
+                        calendarId=CALENDAR_ID,
                         body=event).execute()
-                    flash('Reservation has been made. {}'.format(event.get('htmlLink')))
+                    if event:
+                        new_event.google_event_id = event.get('id')
+                        new_event.google_calendar_id = CALENDAR_ID
+                        db.session.add(new_event)
+                        db.session.commit()
+                        flash('Reservation has been made. {}'.format(event.get('id')))
                     return redirect(url_for('room.index'))
 
     if room_id:

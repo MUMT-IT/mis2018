@@ -69,3 +69,5 @@ class RoomEvent(db.Model):
     approved_at = db.Column('approved_at', db.DateTime(timezone=True), server_default=None)
     extra_items = db.Column('extra_items', db.JSON)
     note = db.Column('note', db.Text())
+    google_event_id = db.Column('google_event_id', db.String(64))
+    google_calendar_id = db.Column('google_calendar_id', db.String(255))

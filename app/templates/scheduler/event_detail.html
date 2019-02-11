@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Event Detail{% endblock %}
+{% include "scheduler/nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="columns">
+        <div class="container">
+            <h1 class="title is-size-4">รายละเอียดการจองห้อง</h1>
+            <h1 class="subtitle">หมายเลข {{ event.room.number }} ณ {{ event.room.location }}</h1>
+            <div class="card">
+                <div class="card-content">
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="event_id" value="{{ event.id }}">
+                    <table class="table">
+                        <col width="30%">
+                        <col width="70%">
+                        <tr>
+                            <td>รหัสการจอง</td><td>{{ event.id }}</td>
+                        </tr>
+                        <tr>
+                            <td>จุดประสงค์</td>
+                            <td>
+                                <div class="field">
+                                    <input type="text" name="title"
+                                        value="{{ event.title }}" class="input">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>วันและเวลาเริ่มต้น</td>
+                            <td>
+                                <div class="field is-horizontal">
+                                    <input class="input" type="date" name="startdate"
+                                        value="{{ event.start.date() }}">
+                                    &nbsp;
+                                    <input class="input" type="text" name="starttime"
+                                        value="{{ event.start.time() }}">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>วันและเวลาสิ้นสุด</td>
+                            <td>
+                                <div class="field is-horizontal">
+                                    <input class="input" type="date" name="enddate"
+                                        value="{{ event.end.date() }}">
+                                    &nbsp;
+                                    <input class="input" type="text" name="endtime"
+                                        value="{{ event.end.time() }}">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>จำนวนคน</td>
+                            <td>
+                                <div class="field">
+                                    <input type="number" class="input" name="occupancy"
+                                        value="{{ event.occupancy }}">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>จำนวนอาหารว่าง</td>
+                            <td>
+                                <div class="field">
+                                    <input type="number" class="input" name="refreshment"
+                                           value="{{ event.refreshment }}">
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>อุปกรณ์เสริม</td><td>{{ ','.join(event.extra_items) }}</td>
+                        </tr>
+                        <tr>
+                            <td>ความต้องการเพิ่มเติม</td><td>{{ event.request }}</td>
+                        </tr>
+                        <tr>
+                            <td>หมายเหตุ</td><td>
+                                <div class="field">
+                                    <input type="text" name="note"
+                                        class="input" value="{{ event.note }}">
+                                </div>
+                                </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <div class="field">
+                                    <label class="radio">
+                                        <input type="radio" name="approved" value="yes"
+                                               {% if event.approved %}
+                                               checked
+                                               {% endif %}
+                                        >
+                                        อนุมัติ
+                                    </label>
+                                    <label class="radio">
+                                        <input type="radio" name="approved" value="no"
+                                                {% if not event.approved %}
+                                               checked
+                                                {% endif %}
+                                        >
+                                        ไม่อนุมัติ
+                                    </label>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                <div class="field is-grouped">
+                    <div class="control">
+                        <button class="button is-link" type="submit">Submit</button>
+                    </div>
+                    <div class="control">
+                        <a class="button is-text" href="{{ url_for('room.index') }}">Cancel</a>
+                    </div>
+                </div>
+                </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -12,15 +12,17 @@
     <h2 class="subtitle">ระบบการจองห้องสำหรับการประชุมหรือการเรียนการสอน รุ่น 0.1</h2>
     <div class="box">
         <div class="has-text-centered">
+        <div id="app">
+            <div class="column is-half is-offset-one-quarter">
             {% with messages = get_flashed_messages() %}
                 {% if messages %}
-                    <ul>
                     {% for msg in messages %}
-                        <li>{{ msg }}</li>
+                        <b-notification auto-close type="is-warning">{{ msg }}</b-notification>
                     {% endfor %}
-                    </ul>
                 {% endif %}
             {% endwith %}
+            </div>
+        </div>
             <a id="add_evt_btn" class="button is-rounded is-info" href="{{ url_for('room.new_event') }}">
                 <i class="far fa-calendar-plus"></i></a>
             <a class="button is-rounded is-primary" href="{{ url_for('room.index') }}">
@@ -51,6 +53,11 @@
                     window.location = '/room/events/' + calEvent.id;
                 }
             });
+        });
+    </script>
+    <script>
+        new Vue({
+            el: '#app',
         });
     </script>
 {% endblock %}
