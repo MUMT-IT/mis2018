@@ -70,12 +70,15 @@
                 left: 'title',
             },
             events: '/room/api/events',
+            eventClick: function(calEvent, jsEvent, view) {
+                window.location = '/room/events/' + calEvent.id;
+            },
             resources: '/room/api/rooms',
             eventLimit: true,
             resourceLabelText: 'Room',
             resourceGroupField: 'location',
             minTime: '08:00:00',
-            maxTime: '20:00:00',
+            maxTime: '23:00:00',
             resourceAreaWidth: '10%',
             resourceColumns: [
                 {
