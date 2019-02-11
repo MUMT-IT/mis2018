@@ -145,7 +145,7 @@ def event_detail(event_id=None):
         db.session.add(event)
         db.session.commit()
 
-        status = 'confirmed' if approved else 'tentative'
+        status = 'confirmed' if event.approved else 'tentative'
 
         update_event = {
             'summary': title if title else event.title,
