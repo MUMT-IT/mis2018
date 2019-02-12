@@ -151,6 +151,8 @@ def edit_detail(event_id=None):
             enddatetime = None
 
         event.category_id = int(category_id)
+        if title:
+            event.title = title
         event.start = startdatetime
         event.end = enddatetime
         event.occupancy = occupancy
