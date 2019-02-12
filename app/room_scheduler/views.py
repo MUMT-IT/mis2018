@@ -107,7 +107,21 @@ def new_event():
 
 
 @room.route('/events/<int:event_id>', methods=['POST', 'GET'])
-def event_detail(event_id=None):
+def show_event_detail(event_id=None):
+    tz = pytz.timezone('Asia/Bangkok')
+    if event_id:
+        event = RoomEvent.query.get(event_id)
+        if event:
+            event.start = event.start.astimezone(tz)
+            event.end = event.end.astimezone(tz)
+            return render_template(
+                'scheduler/event_detail.html', event=event)
+    else:
+        return 'No event ID specified.'
+
+
+@room.route('/events/edit/<int:event_id>', methods=['POST', 'GET'])
+def edit_detail(event_id=None):
     tz = pytz.timezone('Asia/Bangkok')
     if request.method == 'POST':
         event_id = request.form.get('event_id')
@@ -193,7 +207,7 @@ def event_detail(event_id=None):
         if event:
             event.start = event.start.astimezone(tz)
             event.end = event.end.astimezone(tz)
-            return render_template('scheduler/event_detail.html',
+            return render_template('scheduler/event_edit.html',
                         event=event, categories=categories)
     else:
         return 'No room ID specified.'
