@@ -76,6 +76,7 @@ admin.add_views(ModelView(RoomResource, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomEvent, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomType, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomAvailability, db.session, category='Physicals'))
+admin.add_views(ModelView(EventCategory, db.session, category='Physicals'))
 
 admin.add_view(ModelView(VehicleResource, db.session, category='Physicals'))
 admin.add_view(ModelView(VehicleAvailability, db.session, category='Physicals'))

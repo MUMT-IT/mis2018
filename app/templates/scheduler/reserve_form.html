@@ -39,13 +39,31 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
+                            <label class="label">ประเภทกิจกรรม</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="control">
+                                <div class="field">
+                                    <div class="select">
+                                        <select name="category_id">
+                                            {% for cat in categories %}
+                                                <option value="{{ cat.id }}">{{ cat.category }}</option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
                             <label class="label">จุดประสงค์</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
                                     <input class="input " v-model="title"
-                                        name="title" type="text" placeholder="ประชุม, สอน ฯลฯ​">
+                                        name="title" type="text" placeholder="จุดประสงค์การใช้ห้อง หัวข้อกิจกรรม">
                                 </div>
                             </div>
                         </div>

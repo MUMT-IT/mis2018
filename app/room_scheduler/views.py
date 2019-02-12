@@ -1,7 +1,7 @@
 # -*- coding: utf8 -*-
 
 from . import roombp as room
-from .models import RoomResource, RoomEvent
+from .models import RoomResource, RoomEvent, EventCategory
 from flask import render_template, jsonify, request, flash, redirect, url_for
 from flask_login import login_required
 from datetime import datetime
@@ -71,11 +71,11 @@ def get_events():
             start = event.get('start', None)
             end = event.get('end', None)
             extended_properties = event.get('extendedProperties', {}).get('private', {})
-            room_no = extended_properties.get('room_no', '736')
+            room_no = extended_properties.get('room_no', '')
             status = event.get('status')
             evt = {
                 'location': event.get('location', None),
-                'title': event.get('summary', 'NO SUMMARY'),
+                'title': u'(Rm{}) {}'.format(room_no, event.get('summary', 'NO SUMMARY')),
                 'description': event.get('description', ''),
                 'start': start['dateTime'],
                 'end': end['dateTime'],
@@ -111,6 +111,7 @@ def event_detail(event_id=None):
     tz = pytz.timezone('Asia/Bangkok')
     if request.method == 'POST':
         event_id = request.form.get('event_id')
+        category_id = request.form.get('category_id')
         event = RoomEvent.query.get(int(event_id))
         title = request.form.get('title', '')
         startdate = request.form.get('startdate')
@@ -135,6 +136,7 @@ def event_detail(event_id=None):
         else:
             enddatetime = None
 
+        event.category_id = int(category_id)
         event.start = startdatetime
         event.end = enddatetime
         event.occupancy = occupancy
@@ -187,10 +189,12 @@ def event_detail(event_id=None):
 
     if event_id:
         event = RoomEvent.query.get(event_id)
+        categories = EventCategory.query.all()
         if event:
             event.start = event.start.astimezone(tz)
             event.end = event.end.astimezone(tz)
-            return render_template('scheduler/event_detail.html', event=event)
+            return render_template('scheduler/event_detail.html',
+                        event=event, categories=categories)
     else:
         return 'No room ID specified.'
 
@@ -217,6 +221,7 @@ def room_reserve(room_id):
     if request.method=='POST':
         room_no = request.form.get('number', None)
         location = request.form.get('location', None)
+        category_id = request.form.get('category_id', None)
         desc = request.form.get('desc', None)
         startdate = request.form.get('startdate', None)
         starttime = request.form.get('starttime', None)
@@ -258,6 +263,7 @@ def room_reserve(room_id):
                                   request=desc, refreshment=int(food),
                                   occupancy=int(participants),
                                   approved=approval_needed,
+                                  category_id=int(category_id),
                                   )
 
             db.session.add(new_event)
@@ -313,11 +319,12 @@ def room_reserve(room_id):
 
     if room_id:
         room = RoomResource.query.get(room_id)
+        categories = EventCategory.query.all()
         if room:
             timeslots = []
             for i in range(8,19):
                 for j in [0, 30]:
                     timeslots.append('{:02}:{:02}'.format(i,j))
             return render_template('scheduler/reserve_form.html',
-                                room=room, timeslots=timeslots)
+                        room=room, timeslots=timeslots, categories=categories)
 

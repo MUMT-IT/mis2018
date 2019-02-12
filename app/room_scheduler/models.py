@@ -43,6 +43,12 @@ class RoomResource(db.Model):
     def __repr__(self):
         return u'Room: {}, ID: {}'.format(self.number, self.id)
 
+class EventCategory(db.Model):
+    __tablename__ = 'scheduler_event_categories'
+    id = db.Column('id', db.Integer(), primary_key=True,
+                   autoincrement=True)
+    category = db.Column('category', db.String(255))
+
 
 class RoomEvent(db.Model):
     __tablename__ = 'scheduler_room_reservations'
@@ -50,6 +56,9 @@ class RoomEvent(db.Model):
                    autoincrement=True)
     room_id = db.Column('room_id', db.ForeignKey('scheduler_room_resources.id'),
                         nullable=False)
+    category_id = db.Column('category_id',
+        db.ForeignKey('scheduler_event_categories.id'))
+    category = db.relationship('EventCategory', backref=db.backref('events'))
     title = db.Column('title', db.String(255), nullable=False)
     start = db.Column('start', db.DateTime(timezone=True), nullable=False)
     end = db.Column('end', db.DateTime(timezone=True), nullable=False)
