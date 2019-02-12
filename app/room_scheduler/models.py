@@ -49,6 +49,9 @@ class EventCategory(db.Model):
                    autoincrement=True)
     category = db.Column('category', db.String(255))
 
+    def __str__(self):
+        return u'{}'.format(self.category)
+
 
 class RoomEvent(db.Model):
     __tablename__ = 'scheduler_room_reservations'
