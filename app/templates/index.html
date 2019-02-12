@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <div class="panel">
+                        <p class="panel-heading">Education</p>
+                        <div class="panel-block">
+                            <a class="subtitle">
+                                <span class="panel-icon is-large">
+                                    <i class="fas fa-user-graduate fa-2x"></i>
+                                </span>&nbsp;&nbsp;
+                                ระบบนักศึกษา
+                            </a>
+                        </div>
+                        <p class="panel-heading">Services</p>
+                        <div class="panel-block">
+                            <a class="subtitle" href="/room">
+                                <span class="panel-icon is-large">
+                                    <i class="far fa-calendar-alt fa-2x"></i>
+                                </span>&nbsp;&nbsp;
+                                ระบบจองห้อง
+                            </a>
+                        </div>
+                        <div class="panel-block">
+                            <a class="subtitle" href="/vehicle">
+                                <span class="panel-icon is-large">
+                                    <i class="fas fa-car fa-2x"></i>
+                                </span>&nbsp;&nbsp;
+                                ระบบจองยานพาหนะ
+                            </a>
+                        </div>
+                        <p class="panel-heading">Staff</p>
+                        <div class="panel-block">
+                            <a class="subtitle">
+                                <span class="panel-icon is-large">
+                                    <i class="fas fa-users fa-2x"></i>
+                                </span>&nbsp;&nbsp;
+                                ข้อมูลบุคลากร
+                            </a>
+                        </div>
+                        <p class="panel-heading">Analytics</p>
+                        <div class="panel-block">
+                            <a class="subtitle" href="/kpi">
+                                <span class="panel-icon is-large">
+                                    <i class="fas fa-tachometer-alt fa-2x"></i>
+                                </span>&nbsp;&nbsp;
+                                ระบบฐานข้อมูลตัวชี้วัดองค์กร
+                            </a>
+                        </div>
+                        <div class="panel-block">
+                            <a class="subtitle" href="/food">
+                                <span class="panel-icon is-large">
+                                    <i class="fas fa-utensils fa-2x"></i>
+                                </span>&nbsp;&nbsp;
+                                ระบบฐานข้อมูลโครงการเกษตรและอาหารปลอดภัย
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
