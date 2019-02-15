@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Event Detail{% endblock %}
+{% include "scheduler/nav.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-one-third is-offset-one-third">
+                    <div class="card">
+                        <div class="card-image">
+                            <figure class="image is-3by2">
+                                <img src="{{ url_for('static', filename='img/meeting.jpg') }}">
+                            </figure>
+                        </div>
+                        <div class="card-content">
+                            <div class="content">
+                                <p><span class="title is-3">{{ event.category.category }}</span></p>
+                                <p>
+                                    <span class="title is-4">{{ event.title }}</span>
+                                </p>
+                                <p>
+                                    <span class="subtitle">ห้อง {{ event.room.number }} ณ {{ event.room.location }}</span>
+                                </p>
+                                <p>
+                                    <span class="subtitle is-6">
+                                        <span class="icon">
+                                            <i class="far fa-clock"></i>
+                                        </span>
+                                            &nbsp;{{ event.start.strftime('%d/%m/%Y') }} {{ event.start.strftime('%H:%M') }}
+                                        ถึง {{ event.end.strftime('%d/%m/%Y') }} {{ event.end.strftime('%H:%M') }}
+                                    </span>
+                                </p>
+                                <p>
+                                <span class="subtitle is-6">
+                                        <span class="icon">
+                                            <i class="fas fa-users"></i>
+                                        </span>
+                                        &nbsp;{{ event.occupancy }} คน
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="subtitle is-6">
+                                        {% if event.approved %}
+                                            <span class="icon">
+                                            <i class="far fa-check-circle has-text-success"></i>
+                                        </span>
+                                            <span class="has-text-success">
+                                            &nbsp;ยืนยันแล้ว
+                                            </span>
+                                        {% else %}
+                                            <span class="icon">
+                                                <i class="far fa-circle has-text-danger"></i>
+                                            </span>
+                                            <span class="has-text-danger">
+                                                &nbsp;รอการยืนยัน
+                                            </span>
+                                        {% endif %}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                        <footer class="card-footer">
+                            <a href="/room/" class="card-footer-item">กลับ</a>
+                            <a href="/room/events/edit/{{ event.id }}" class="card-footer-item">แก้ไข</a>
+                            {% if not event.approved %}
+                                <a href="/room/events/edit/{{ event.id }}" class="card-footer-item">ยืนยัน</a>
+                            {% endif %}
+                        </footer>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

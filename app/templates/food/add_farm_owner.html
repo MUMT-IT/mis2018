@@ -17,6 +17,7 @@
 <div class="columns">
   <div class="column is-two-thirds">
     <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <div class="field is-horizontal">
 
       <div class="field-label is-normal">

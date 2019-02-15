@@ -15,6 +15,7 @@
   {% endif %}
   <div class="columns">
     <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
     <div class="column is-two-thirds">
       <div class="control">
         <input class="input" type="hidden" name="owner_id" value="{{ farm.id }}">

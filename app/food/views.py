@@ -328,10 +328,26 @@ def list_sample_lots(farm_id):
     return render_template('food/samplelots.html', farm=farm)
 
 
-@food.route('/farm/<int:farm_id>/tests/lots/<int:lot_id>/samples/')
+@food.route('/farm/<int:farm_id>/tests/lots/<int:lot_id>/samples/', methods=['GET', 'POST'])
 def list_samples(farm_id, lot_id):
-    farm = Farm.query.get(farm_id)
-    lot = SampleLot.query.get(lot_id)
+    if request.method == 'GET':
+        farm = Farm.query.get(farm_id)
+        lot = SampleLot.query.get(lot_id)
+    elif request.method == 'POST':
+        farm_id = request.form.get('farm_id')
+        lot_id = request.form.get('lot_id')
+        produce_id = request.form.get('produce_id')
+        p = Produce.query.get(int(produce_id))
+        grown_produce = GrownProduce(produce=p)
+        farm = Farm.query.get(int(farm_id))
+        lot = SampleLot.query.get(int(lot_id))
+        farm.produce.append(grown_produce)
+        lot.samples.append(Sample(produce=grown_produce))
+        db.session.add(grown_produce)
+        db.session.add(farm)
+        db.session.add(lot)
+        db.session.commit()
+
     produces = Produce.query.all()
     samples = []
     for s in lot.samples:

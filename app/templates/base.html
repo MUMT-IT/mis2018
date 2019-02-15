@@ -9,6 +9,8 @@
         <link rel="stylesheet" href="{{ url_for('static', filename='css/bulma-extensions.min.css') }}">
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.6.2/css/bulma.min.css" />
         <link rel="stylesheet" href="https://cdn.datatables.net/1.10.16/css/jquery.dataTables.min.css"/>
+        <link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css"/>
+        <link rel="stylesheet" href="//cdn.materialdesignicons.com/2.5.94/css/materialdesignicons.min.css">
         {% endblock %}
     </head>
     <body>
@@ -18,7 +20,7 @@
             <div class="container">
                 <div class="content has-text-centered">
                     {% block footer %}
-                    MUMT Information Management System Powered by Flask and Python Technology
+                    MUMT Information Management System Powered by Bulma, Vue, Knockout, Flask and Python Technology
                     {% endblock %}
                 </div>
             </div>
@@ -26,6 +28,9 @@
         {% block scripts %}
             <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
             <script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.21/vue.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+            <script src="https://unpkg.com/buefy/dist/buefy.min.js"></script>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout.mapping/2.4.1/knockout.mapping.min.js"></script>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>

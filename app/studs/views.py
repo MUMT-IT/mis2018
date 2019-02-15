@@ -1,6 +1,6 @@
 import datetime
 import pytz
-from flask import render_template
+from flask import render_template, jsonify
 from ..models import Student, ClassCheckIn, StudentCheckInRecord, Class
 from ..main import db
 from . import studbp as stud
@@ -12,11 +12,26 @@ def index():
     print(stud.th_first_name)
     return '<h2>Welcome to Students Index Page.</h2>'
 
+@stud.route('/api/v1.0/checkins/class')
+def get_class_list():
+    class_checkin_list = ClassCheckIn.query.all()
+    classes = []
+    for cls in class_checkin_list:
+        classes.append({
+            'refno': cls.class_.refno,
+            'chkid': cls.id,
+            'year': cls.class_.academic_year,
+            'th_name': cls.class_.th_class_name,
+        })
 
-@stud.route('/checkin/<int:class_id>/<stud_id>')
+    classes = sorted(classes, key=lambda x: x['year'], reverse=True)
+    return jsonify(classes)
+
+
+@stud.route('/api/v1.0/checkin/<int:class_id>/<stud_id>')
 def checkin(class_id, stud_id):
     if not class_id or not stud_id:
-        return render_template(student={})
+        return jsonify({'status': 'failed'}), 400
     else:
         tz = pytz.timezone('Asia/Bangkok')
         fmt = '%Y-%m-%d %H:%M:%S'
@@ -45,9 +60,14 @@ def checkin(class_id, stud_id):
                         )
         db.session.add(chk_record)
         db.session.commit()
-        return render_template('/studs/checkin.html',
-                student=student,
-                klass=klass,
-                checkin=checkin,
-                deadline=deadline,
-                status=status)
+        return jsonify({'checkedAt': checkin,
+                            'chk_status': status,
+                            'status': 'succeeded'})
+
+@stud.route('/analytics/checkins/<int:class_id>')
+def show_checkins_data(class_id):
+    klass = Class.query.get(class_id)
+    if klass is None:
+        return 'Class ID not specified.', 400
+
+    return render_template('studs/analytics/checkins.html', klass=klass)

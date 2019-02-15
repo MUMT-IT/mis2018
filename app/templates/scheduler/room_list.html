@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Add New Event{% endblock %}
-{% include "kpi/nav.html" %}
+{% include "scheduler/nav.html" %}
 {% block page_content %}
 <section class="section">
     <h1 class="title">รายการห้อง</h1>
@@ -32,7 +32,7 @@
                     </span>
                 </td>
                 <td>
-                    <a href="{{ url_for('room.room_reserve', room_no=room.number) }}"
+                    <a href="{{ url_for('room.room_reserve', room_id=room.id) }}"
                         class="button is-rounded is-info">
                         <strong>จอง</strong>
                     </a>

@@ -7,19 +7,19 @@ services:
     ports:
       - "5000:5000"
       - "80:5000"
+    env_file:
+      - web_variables.env
     environment:
-      - FLASK_CONFIG=production
-      - FLASK_APP=app/main.py
       - FLASK_DEBUG
-      - GOOGLE_APPLICATION_CREDENTIALS
-      - JSON_KEYFILE
+      - POSTGRES_PASSWORD
     volumes:
       - ./app:/mis2018/app
+      - ./warehouse:/mis2018/warehouse
       - ./migrations:/mis2018/migrations
   pg:
     image: postgres
     environment:
-      - POSTGRES_PASSWORD=genius01
+      - POSTGRES_PASSWORD
     volumes:
       - ./pgdata:/var/lib/postgresql/data
     ports:

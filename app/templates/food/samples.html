@@ -55,11 +55,14 @@
   <div class="container">
       <hr>
       <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <input type="hidden" name="farm_id" value="{{ farm.id }}"/>
+          <input type="hidden" name="lot_id" value="{{ lot.id }}"/>
           <label class="label">เพิ่มรายการผลผลิตที่นำมาทดสอบ</label>
           <div class="field is-grouped">
             <div class="control">
               <div class="select">
-                <select name="produce">
+                <select name="produce_id">
                   {% for produce in produces %}
                   <option value={{produce.id}}>{{produce.name}}</option>
                   {% endfor %}

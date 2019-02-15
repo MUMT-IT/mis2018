@@ -9,6 +9,7 @@
       <div class="columns">
         <div class="column is-half">
           <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="field is-grouped">
               <div class="control">
                 <input class="input" type="text" name="produce" placeholder="รายการใหม่" required>

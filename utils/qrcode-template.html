@@ -3,7 +3,7 @@
         <table>
             {% for student in students %}
             <tr>
-                <td><img src="qrimages/{{ student.uid }}.png"></td>
+                <td><img src="{{ folder }}/{{ student.uid }}.png"></td>
                 <td>{{ student.uid }}</td>
                 <td>{{ student.title }}</td>
                 <td>{{ student.firstname }}</td>

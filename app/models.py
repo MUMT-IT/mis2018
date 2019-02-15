@@ -1,11 +1,21 @@
 from main import db, ma
 from sqlalchemy.sql import func
+from flask_login import UserMixin
+from .main import login_manager
 
-class User(db.Model):
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(int(user_id))
+
+
+class User(UserMixin, db.Model):
     __tablename__ = 'users'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     email = db.Column('email', db.String(), nullable=False)
     username = db.Column('username', db.String(), nullable=False, unique=True)
+
+    def __repr__(self):
+        return self.username
 
 
 class Org(db.Model):
@@ -18,6 +28,9 @@ class Org(db.Model):
                     backref=db.backref('parent', remote_side=[id]))
     strategies = db.relationship('Strategy',
                     backref=db.backref('org'))
+
+    def __repr__(self):
+        return self.name
 
 
 class Strategy(db.Model):
@@ -118,6 +131,9 @@ class Student(db.Model):
     class_check_ins = db.relationship('StudentCheckInRecord',
                         backref=db.backref('student'))
 
+    def __str__(self):
+        return u'ID:{} {} {}'.format(self.id, self.th_first_name, self.th_last_name)
+
 
 class Class(db.Model):
     __tablename__ = 'classes'
@@ -128,6 +144,9 @@ class Class(db.Model):
     academic_year = db.Column('academic_year', db.String(4), nullable=False)
     deadlines = db.relationship('ClassCheckIn', backref=db.backref('class'))
 
+    def __str__(self):
+        return u'{} : {}'.format(self.refno, self.academic_year)
+
 
 class ClassCheckIn(db.Model):
     __tablename__ = 'class_check_in'
@@ -135,6 +154,10 @@ class ClassCheckIn(db.Model):
     class_id = db.Column('class_id', db.ForeignKey('classes.id'))
     deadline = db.Column('deadline', db.String())
     late_mins = db.Column('late_mins', db.Integer())
+    class_ = db.relationship('Class', backref=db.backref('checkin_info'))
+
+    def __str__(self):
+        return self.class_.refno
 
 
 class StudentCheckInRecord(db.Model):
@@ -143,6 +166,7 @@ class StudentCheckInRecord(db.Model):
     stud_id = db.Column('stud_id', db.ForeignKey('students.id'))
     classchk_id = db.Column('classchk_id', db.Integer(),
                     db.ForeignKey('class_check_in.id'), nullable=False)
+    classchk = db.relationship('ClassCheckIn', backref=db.backref('student_records'))
     check_in_time = db.Column('checkin', db.DateTime(timezone=True), nullable=False)
     check_in_status = db.Column('status', db.String())
     elapsed_mins = db.Column('elapsed_mins', db.Integer())
@@ -194,3 +218,38 @@ class HomeAddress(db.Model):
     subdistrict_id = db.Column('subdistrict_id', db.Integer(),
                                db.ForeignKey('subdistricts.id'))
     postal_code = db.Column('postal_code', db.Integer())
+
+
+class Mission(db.Model):
+    __tablename__ = 'missions'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    name = db.Column('name', db.String(), nullable=False)
+
+    def __repr__(self):
+        return u'{}:{}'.format(self.id, self.name)
+
+
+class CostCenter(db.Model):
+    __tablename__ = 'cost_centers'
+    id = db.Column('id', db.String(12), primary_key=True)
+
+    def __repr__(self):
+        return u'{}'.format(self.id)
+
+
+class IOCode(db.Model):
+    __tablename__ = 'iocodes'
+    id = db.Column('id', db.String(16), primary_key=True)
+    cost_center_id = db.Column('cost_center_id', db.String(),
+                        db.ForeignKey('cost_centers.id'), nullable=False)
+    cost_center = db.relationship('CostCenter', backref=db.backref('iocodes'))
+    mission_id = db.Column('mission_id', db.Integer(), db.ForeignKey('missions.id'), nullable=False)
+    mission = db.relationship('Mission', backref=db.backref('iocodes'))
+    org_id = db.Column('org_id', db.Integer(), db.ForeignKey('orgs.id'), nullable=False)
+    org = db.relationship('Org', backref=db.backref('iocodes'))
+    name = db.Column('name', db.String(255), nullable=False)
+
+    def __repr__(self):
+        return u'{}:{}'.format(self.id, self.name)
+
+
