@@ -27,14 +27,7 @@ session = Session()
 MisSession = sessionmaker(bind=mis_engine)
 mis_session = MisSession()
 
-def test():
-    Staff = Base.classes.staff_account
-    s = mis_session.query(Staff).filter(Staff.email=='likit.pre').first()
-    print('{} {} {}'.format(
-        s.email,
-        s.staff_personal_info.en_firstname,
-        s.staff_personal_info.en_lastname,
-    ))
+StaffAccount = Base.classes.staff_account
 
 
 def load_funding_resource(input_file, sheet_name=None):
@@ -139,15 +132,32 @@ def create_fact_table(input_file, sheet_name=None):
                                         ResearchProject.title_en == en_name).first()
 
         total_funding = row['amount fund']
-        if project:
+
+        staff_email = row['main researcher email']
+        staff_ = mis_session.query(StaffAccount).filter(StaffAccount.email == staff_email).first()
+        if staff_:
+            s = Staff(
+                email=staff_.email,
+                en_firstname=staff_.staff_personal_info.en_firstname,
+                en_lastname=staff_.staff_personal_info.en_lastname,
+
+            )
+            session.add(s)
+            session.commit()
+        else:
+            print('Staff not found.')
+
+
+        if project and staff_:
             ft = FundingResearchFact(
                 funding_source_id=funding_source.id,
                 funding_agency_id=funding_agency.id,
                 project_id=project.id,
                 total_funding=total_funding,
+                id=s.id,
             )
-        session.add(ft)
-    session.commit()
+            session.add(ft)
+        session.commit()
 
 
 def load_researcher(input_file, sheet_name=None):
@@ -183,14 +193,10 @@ def load_researcher(input_file, sheet_name=None):
 
 
 if __name__ == '__main__':
-    '''
     inputfile = sys.argv[1]
     sheetname = sys.argv[2]
 
-    load_funding_resource(inputfile, sheetname)
-    load_funding_agency(inputfile, sheetname)
-    load_research_project(inputfile, sheetname)
+    #load_funding_resource(inputfile, sheetname)
+    #load_funding_agency(inputfile, sheetname)
+    #load_research_project(inputfile, sheetname)
     create_fact_table(inputfile, sheetname)
-    '''
-
-    test()
