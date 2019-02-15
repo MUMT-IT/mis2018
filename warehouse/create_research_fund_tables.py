@@ -26,23 +26,24 @@ class FundingAgency(Base):
 
 class Staff(Base):
     __tablename__ = 'staff'
-    staff_id = Column('staff_id', Integer, autoincrement=True, primary_key=True)
-    staff_firstname = Column('staff_firstname', String())
-    staff_lastname = Column('staff_lastname', String())
-    staff_email = Column('staff_email', String())
+    id = Column('staff_id', Integer, autoincrement=True, primary_key=True)
+    en_firstname = Column('firstname', String())
+    en_lastname = Column('lastname', String())
+    email = Column('email', String())
 
 
 class Department(Base):
     __tablename__ = 'department'
-    department_id = Column('department_id', Integer, autoincrement=True, primary_key=True)
-    department_name = Column('department_name', String())
+    id = Column('id', Integer, autoincrement=True, primary_key=True)
+    mis_id = Column('mis_id', Integer)
+    name = Column('name', String(), index=True)
 
 
 class ResearchProject(Base):
     __tablename__ = 'research_projects'
     id = Column('id', Integer, autoincrement=True, primary_key=True)
-    title_th = Column('title_th', String())
-    title_en = Column('title_en', String())
+    title_th = Column('title_th', String(), index=True)
+    title_en = Column('title_en', String(), index=True)
     est_funding = Column('est_funding',Float())
     startdate = Column('startdate', Date())
     enddate = Column('enddate', Date())
