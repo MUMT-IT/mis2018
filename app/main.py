@@ -39,7 +39,6 @@ app = create_app(config_name)
 
 
 @app.route('/')
-@login_required
 def index():
     return render_template('index.html')
 
