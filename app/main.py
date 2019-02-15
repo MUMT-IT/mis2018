@@ -5,7 +5,7 @@ from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
-from flask_login import LoginManager
+from flask_login import LoginManager, login_required
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
@@ -37,7 +37,9 @@ import os
 config_name = os.environ.get('FLASK_CONFIG', 'default')
 app = create_app(config_name)
 
+
 @app.route('/')
+@login_required
 def index():
     return render_template('index.html')
 
@@ -89,7 +91,7 @@ app.register_blueprint(auth_blueprint, url_prefix='/auth')
 from research import researchbp as research_blueprint
 app.register_blueprint(research_blueprint, url_prefix='/research')
 
-from models import (Student, Class, ClassCheckIn, User,
+from models import (Student, Class, ClassCheckIn,
                         Org, Mission, IOCode, CostCenter,
                         StudentCheckInRecord)
 import database
@@ -130,8 +132,6 @@ class CostCenterAdminModel(ModelView):
     column_list = ('id',)
 
 admin.add_view(CostCenterAdminModel(CostCenter, db.session, category='Finance'))
-
-admin.add_view(ModelView(User, db.session))
 
 from lisedu import lisedu as lis_blueprint
 app.register_blueprint(lis_blueprint, url_prefix='/lis')

@@ -20,6 +20,8 @@
             {% endif %}
         </div>
         <div>
+            {{ current_user.email }}
+            {{ current_user.is_authenticated }}
             <form action="" method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 {{ form.email.label() }}

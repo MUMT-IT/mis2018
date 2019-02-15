@@ -1,21 +1,5 @@
 from main import db, ma
 from sqlalchemy.sql import func
-from flask_login import UserMixin
-from .main import login_manager
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.get(int(user_id))
-
-
-class User(UserMixin, db.Model):
-    __tablename__ = 'users'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    email = db.Column('email', db.String(), nullable=False)
-    username = db.Column('username', db.String(), nullable=False, unique=True)
-
-    def __repr__(self):
-        return self.username
 
 
 class Org(db.Model):
@@ -128,8 +112,6 @@ class Student(db.Model):
     th_last_name = db.Column('th_last_name', db.String(), nullable=False)
     en_first_name = db.Column('en_first_name', db.String())
     en_last_name = db.Column('en_last_name', db.String())
-    class_check_ins = db.relationship('StudentCheckInRecord',
-                        backref=db.backref('student'))
 
     def __str__(self):
         return u'ID:{} {} {}'.format(self.id, self.th_first_name, self.th_last_name)
@@ -164,6 +146,7 @@ class StudentCheckInRecord(db.Model):
     __tablename__ = 'student_check_in_records'
     id = db.Column('id', db.Integer(), primary_key=True)
     stud_id = db.Column('stud_id', db.ForeignKey('students.id'))
+    student = db.relationship('Student', backref=db.backref('check_in_records'))
     classchk_id = db.Column('classchk_id', db.Integer(),
                     db.ForeignKey('class_check_in.id'), nullable=False)
     classchk = db.relationship('ClassCheckIn', backref=db.backref('student_records'))

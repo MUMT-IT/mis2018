@@ -1,7 +1,8 @@
-from ..main import db
+from ..main import db, login_manager
+from flask_login import UserMixin
 
 
-class StaffAccount(db.Model):
+class StaffAccount(UserMixin, db.Model):
     __tablename__ = 'staff_account'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     personal_id = db.Column('personal_id', db.ForeignKey('staff_personal_info.id'))
@@ -11,6 +12,11 @@ class StaffAccount(db.Model):
     def __str__(self):
         return u'{}'.format(self.email)
 
+
+@login_manager.user_loader
+def load_user(user_id):
+    print('loading user..')
+    return StaffAccount.query.get(int(user_id))
 
 
 class StaffPersonalInfo(db.Model):
