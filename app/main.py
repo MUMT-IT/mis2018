@@ -53,9 +53,10 @@ app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
 from food import foodbp as food_blueprint
 app.register_blueprint(food_blueprint, url_prefix='/food')
-from food.models import Person, Farm
+from food.models import Person, Farm, Produce
 admin.add_views(ModelView(Person, db.session, category='Food'))
 admin.add_views(ModelView(Farm, db.session, category='Food'))
+admin.add_views(ModelView(Produce, db.session, category='Food'))
 
 from staff import staffbp as staff_blueprint
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
