@@ -82,7 +82,7 @@ class KPI(db.Model):
     available = db.Column('available', db.Boolean())
     availability = db.Column('availability', db.String())
     formula = db.Column('formula', db.String())
-    keeper = db.Column('keeper', db.String(), db.ForeignKey('users.username'))
+    keeper = db.Column('keeper', db.String(), db.ForeignKey('staff_account.email'))
     note = db.Column('note', db.String())
     target = db.Column('target', db.String())
     target_source = db.Column('target_source', db.String())

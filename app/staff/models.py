@@ -7,6 +7,7 @@ class StaffAccount(db.Model):
     personal_id = db.Column('personal_id', db.ForeignKey('staff_personal_info.id'))
     email = db.Column('email', db.String(), unique=True)
     personal_info = db.relationship("StaffPersonalInfo", backref=db.backref("staff_account", uselist=False))
+    password = db.Column('password', db.String(64), nullable=True)
 
     def is_authenticated(self):
         return True
