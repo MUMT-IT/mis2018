@@ -1,22 +1,27 @@
-from ..main import db, login_manager
-from flask_login import UserMixin
+from ..main import db
 
 
-class StaffAccount(UserMixin, db.Model):
+class StaffAccount(db.Model):
     __tablename__ = 'staff_account'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     personal_id = db.Column('personal_id', db.ForeignKey('staff_personal_info.id'))
     email = db.Column('email', db.String(), unique=True)
     personal_info = db.relationship("StaffPersonalInfo", backref=db.backref("staff_account", uselist=False))
 
+    def is_authenticated(self):
+        return True
+
+    def is_active(self):
+        return True
+
+    def is_anonymous(self):
+        return False
+
+    def get_id(self):
+        return unicode(self.id)
+
     def __str__(self):
         return u'{}'.format(self.email)
-
-
-@login_manager.user_loader
-def load_user(user_id):
-    print('loading user..')
-    return StaffAccount.query.get(int(user_id))
 
 
 class StaffPersonalInfo(db.Model):

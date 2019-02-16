@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+import os
 import click
 from flask.cli import AppGroup
 from flask import Flask, render_template
@@ -15,8 +16,8 @@ import json
 db = SQLAlchemy()
 migrate = Migrate()
 ma = Marshmallow()
-login_manager = LoginManager()
-login_manager.login_view = 'auth.login'
+login = LoginManager()
+login.login_view = 'auth.login'
 csrf = CSRFProtect()
 admin = Admin()
 
@@ -28,14 +29,23 @@ def create_app(config_name='default'):
     db.init_app(app)
     ma.init_app(app)
     migrate.init_app(app, db)
-    login_manager.init_app(app)
+    login.init_app(app)
     csrf.init_app(app)
     admin.init_app(app)
     return app
 
-import os
 config_name = os.environ.get('FLASK_CONFIG', 'default')
 app = create_app(config_name)
+
+from staff.models import StaffAccount
+
+@login.user_loader
+def load_user(user_id):
+    print('load user..')
+    try:
+        return StaffAccount.query.filter_by(id=int(user_id)).first()
+    except:
+        raise SystemExit
 
 
 @app.route('/')

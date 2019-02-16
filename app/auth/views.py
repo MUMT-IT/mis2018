@@ -10,7 +10,10 @@ from .forms import LoginForm
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        return 'You are already logged in.'
+        next = request.args.get('next')
+        if not is_safe_url(next):
+            return abort(400)
+        return redirect(next)
 
     form = LoginForm()
     if form.validate_on_submit():
@@ -19,12 +22,15 @@ def login():
         if user:
             status = login_user(user, form.remember_me.data)
             next = request.args.get('next')
-            print(status, next)
             if not is_safe_url(next):
                 return abort(400)
             # return redirect(next or url_for('index'))
-            return redirect(url_for('room.index'))
+            return redirect(next or url_for('index'))
         else:
-            flash('The user with this email address is not registered in this system.')
+            return redirect(url_for('auth.account'))
     return render_template('/auth/login.html', form=form)
 
+
+@auth.route('/account')
+def account():
+    return 'Welcome to your account.'
