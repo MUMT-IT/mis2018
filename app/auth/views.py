@@ -19,15 +19,17 @@ def login():
     if form.validate_on_submit():
         # authenticate the user
         user = db.session.query(StaffAccount).filter_by(email=form.email.data).first()
+        print(user)
         if user:
             status = login_user(user, form.remember_me.data)
             next = request.args.get('next')
             if not is_safe_url(next):
                 return abort(400)
-            # return redirect(next or url_for('index'))
             return redirect(next or url_for('index'))
         else:
             return redirect(url_for('auth.account'))
+    else:
+        flash('Form was not validated. Plase check your entry again.')
     return render_template('/auth/login.html', form=form)
 
 

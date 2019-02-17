@@ -1,6 +1,6 @@
 from models import StaffAccount, StaffPersonalInfo
 from . import staffbp as staff
-from flask import jsonify, render_template
+from flask import jsonify, render_template, request
 
 @staff.route('/')
 def index():
@@ -36,5 +36,13 @@ def get_staff(account_id=None):
                 'lastname': account.personal_info.en_lastname,
             }]
         else:
-            return jsonify({'data': data, 'status': 'fail'})
-    return jsonify({'data': data, 'status': 'success'})
+            return jsonify(data), 401
+    return jsonify(data), 200
+
+
+@staff.route('/set_password', methods=['GET', 'POST'])
+def set_password():
+    if request.method=='POST':
+        email = request.form.get('email', None)
+        return email
+    return render_template('staff/set_password.html')

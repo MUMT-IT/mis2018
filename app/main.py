@@ -6,7 +6,7 @@ from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
-from flask_login import LoginManager, login_required
+from flask_login import LoginManager
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
@@ -15,9 +15,10 @@ import json
 
 db = SQLAlchemy()
 migrate = Migrate()
-ma = Marshmallow()
 login = LoginManager()
 login.login_view = 'auth.login'
+
+ma = Marshmallow()
 csrf = CSRFProtect()
 admin = Admin()
 
@@ -28,8 +29,8 @@ def create_app(config_name='default'):
     app.config.from_object(config[config_name])
     db.init_app(app)
     ma.init_app(app)
-    migrate.init_app(app, db)
     login.init_app(app)
+    migrate.init_app(app, db)
     csrf.init_app(app)
     admin.init_app(app)
     return app
