@@ -67,12 +67,13 @@ class ResearchProject(Base):
 class FundingResearchFact(Base):
     __tablename__ = 'research_funding_fact'
     id = Column('id', Integer, primary_key=True, autoincrement=True)
-    funding_source_id = Column('funding_source_id', ForeignKey('research_funding_sources.id'))
-    funding_agency_id = Column('funding_agency_id', ForeignKey('research_funding_agencies.id'))
+    source_id = Column('source_id', ForeignKey('research_funding_sources.id'))
+    agency_id = Column('agency_id', ForeignKey('research_funding_agencies.id'))
     project_id = Column('project_id', ForeignKey('research_funding_projects.id'))
     staff_id = Column('staff_id', ForeignKey('research_funding_staff.id'))
     # department_id = Column('department_id', ForeignKey('department.department_id'))
-    date_id = Column('date_id', ForeignKey('dates.date_id'))
+    startdate_id = Column('startdate_id', ForeignKey('dates.date_id'))
+    enddate_id = Column('enddate_id', ForeignKey('dates.date_id'))
     total_funding = Column('total_funding', Float())
 
 

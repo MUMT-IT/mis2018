@@ -148,13 +148,18 @@ def create_fact_table(input_file, sheet_name=None):
             print('Staff not found.')
 
 
+        startdate = row['start date']
+        enddate = row['end date']
+
         if project and staff_:
             ft = FundingResearchFact(
                 funding_source_id=funding_source.id,
                 funding_agency_id=funding_agency.id,
                 project_id=project.id,
                 total_funding=total_funding,
-                id=s.id,
+                staff_id=s.id,
+                startdate_id=int(startdate.strftime('%Y%m%d')),
+                enddate_id=int(enddate.strftime('%Y%m%d')),
             )
             session.add(ft)
         session.commit()
