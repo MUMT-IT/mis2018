@@ -1,5 +1,5 @@
 import os
-from sqlalchemy import (create_engine, Table, Column, Integer,
+from sqlalchemy import (create_engine, Column, Integer,
                         String, Date, ForeignKey, Float, Boolean)
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -7,7 +7,7 @@ POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD')
 
 Base = declarative_base()
 
-engine = create_engine('postgres+psycopg2://postgres:{}@pg/mumtdw'\
+engine = create_engine('postgres+psycopg2://postgres:{}@pg/mumtdw'
                        .format(POSTGRES_PASSWORD))
 
 
@@ -43,7 +43,7 @@ class ResearchProject(Base):
     id = Column('id', Integer, autoincrement=True, primary_key=True)
     title_th = Column('title_th', String())
     title_en = Column('title_en', String())
-    est_funding = Column('est_funding',Float())
+    est_funding = Column('est_funding', Float())
     startdate = Column('startdate', Date())
     enddate = Column('enddate', Date())
     contract = Column('contract', Boolean())
@@ -68,7 +68,7 @@ class FundingResearchFact(Base):
     project_id = Column('project_id', ForeignKey('research_projects.id'))
     # staff_id = Column('staff_id', ForeignKey('staff.staff_id'))
     # department_id = Column('department_id', ForeignKey('department.department_id'))
-    # date_id = Column('date_id', ForeignKey('date.date_id'))
+    # date_id = Column('date_id', ForeignKey('dates.date_id'))
     total_funding = Column('total_funding', Float())
 
 
