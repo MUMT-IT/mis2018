@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <h3 class="title">Customer List</h3>
+            <h3 class="subtitle">วันที่ {{ service.date }} สถานที่ {{ service.location }}</h4>
+            <table class="table">
+                <thead>
+                    <th>คำนำหน้า</th>
+                    <th>ชื่อ</th>
+                    <th>นามสกุล</th>
+                    <th>Lab No.</th>
+                    <th></th>
+                </thead>
+                <tbody>
+                    {% for record in service.records %}
+                        <tr>
+                            <td>{{ record.customer.title }}</td>
+                            <td>{{ record.customer.firstname }}</td>
+                            <td>{{ record.customer.lastname }}</td>
+                            <td>{{ record.customer.labno }}</td>
+                            <td>
+                                <a class="button is-rounded is-primary"
+                                   href="{{ url_for('comhealth.edit_record',
+                                        record_id=record.id) }}">
+                                    Edit
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+{% endblock %}

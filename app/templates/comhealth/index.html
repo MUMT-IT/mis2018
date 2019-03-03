@@ -5,26 +5,27 @@
             <h3>Health Services</h3>
             <table class="table">
                 <thead>
-                    <th>Service Date</th>
-                    <th>Location</th>
-                    <th></th>
+                <th>Service Date</th>
+                <th>Location</th>
+                <th></th>
                 </thead>
                 <tbody>
-                    {% for sv in services %}
-                        <tr>
-                            <td>
-                                <a href="#">
-                                    {{ sv.date }}
-                                </a>
-                            </td>
-                            <td>{{ sv.location }}</td>
-                            <td>
-                                <span class="icon">
-                                    <i class="fas fa-chevron-right"></i>
-                                </span>
-                            </td>
-                        </tr>
-                    {% endfor %}
+                {% for sv in services %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('comhealth.display_service_customers',
+                                    service_id=sv.id) }}">
+                                {{ sv.date }}
+                            </a>
+                        </td>
+                        <td>{{ sv.location }}</td>
+                        <td>
+                            <span class="icon">
+                                <i class="fas fa-chevron-right"></i>
+                            </span>
+                        </td>
+                    </tr>
+                {% endfor %}
                 </tbody>
             </table>
         </div>

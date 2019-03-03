@@ -1,5 +1,5 @@
 from flask import Blueprint
 
-comhealth = Blueprint('comheatlh', __name__)
+comhealth = Blueprint('comhealth', __name__)
 
 from . import views
