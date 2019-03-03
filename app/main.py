@@ -156,7 +156,7 @@ from comhealth import comhealth as comhealth_blueprint
 from comhealth.models import (ComHealthTest, ComHealthTestProfile,
                               ComHealthCustomer, ComHealthOrg,
                               ComHealthRecord, ComHealthTestItem,
-                              ComHealthTestProfileItem)
+                              ComHealthTestProfileItem, ComHealthService)
 app.register_blueprint(comhealth_blueprint, url_prefix='/comhealth')
 admin.add_view(ModelView(ComHealthTest, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthTestProfile, db.session, category='Com Health'))
@@ -165,6 +165,7 @@ admin.add_view(ModelView(ComHealthOrg, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthRecord, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthTestItem, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthTestProfileItem, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthService, db.session, category='Com Health'))
 
 
 

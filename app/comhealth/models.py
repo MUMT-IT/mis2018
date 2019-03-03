@@ -56,6 +56,9 @@ class ComHealthRecord(db.Model):
     labno = db.Column('labno', db.Integer)
     customer_id = db.Column('customer_id', db.ForeignKey('comhealth_customers.id'))
     customer = db.relationship('ComHealthCustomer', backref=db.backref('records'))
+    service_id = db.Column('service_id', db.ForeignKey('comhealth_services.id'))
+    service = db.relationship('ComHealthService',
+                              backref=db.backref('records'))
 
 
 class ComHealthTestItem(db.Model):
@@ -78,3 +81,11 @@ class ComHealthTestProfileItem(db.Model):
                              backref=db.backref('test_profile_items'))
 
 
+class ComHealthService(db.Model):
+    __tablename__ = 'comhealth_services'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    date = db.Column('date', db.Date())
+    location = db.Column('location', db.String(255))
+
+    def __str__(self):
+        return str(self.date)
