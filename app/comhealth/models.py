@@ -5,6 +5,11 @@ test_profile_assoc_table = db.Table('comhealth_test_profile_assoc',
     db.Column('profile_id', db.Integer, db.ForeignKey('comhealth_test_profiles.id'), primary_key=True)
 )
 
+test_group_assoc_table = db.Table('comhealth_test_group_assoc',
+                                    db.Column('test_id', db.Integer, db.ForeignKey('comhealth_tests.id'), primary_key=True),
+                                    db.Column('group_id', db.Integer, db.ForeignKey('comhealth_test_groups.id'), primary_key=True)
+                                    )
+
 
 class ComHealthOrg(db.Model):
     __tablename__ = 'comhealth_orgs'
@@ -34,6 +39,18 @@ class ComHealthTest(db.Model):
     name = db.Column('name', db.String(64), index=True)
     desc = db.Column('desc', db.Text())
     # price = db.Column('price', db.Numeric(), default=0)
+
+    def __str__(self):
+        return self.name
+
+
+class ComHealthTestGroup(db.Model):
+    __tablename__ = 'comhealth_test_groups'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    name = db.Column('name', db.String(64), index=True)
+    desc = db.Column('desc', db.Text())
+    tests = db.relationship('ComHealthTestGroup', secondary=test_group_assoc_table,
+                            backref=db.backref('groups', lazy=True))
 
     def __str__(self):
         return self.name
