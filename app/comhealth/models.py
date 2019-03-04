@@ -20,6 +20,8 @@ class ComHealthCustomer(db.Model):
     lastname = db.Column('lastname', db.String(255), index=True)
     org_id = db.Column('org_id', db.ForeignKey('comhealth_orgs.id'))
     org = db.relationship('ComHealthOrg', backref=db.backref('employees', lazy=True))
+    dob = db.Column('dob', db.Date())
+    gender = db.Column('gender', db.Integer)
 
     def __str__(self):
         return u'{}{} {} {}'.format(self.title, self.firstname,
@@ -76,7 +78,7 @@ class ComHealthTestProfileItem(db.Model):
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     record_id = db.Column('record_id', db.ForeignKey('comhealth_test_records.id'))
     profile_id = db.Column('test_id', db.ForeignKey('comhealth_test_profiles.id'))
-    protile = db.relationship('ComHealthTestProfile')
+    profile = db.relationship('ComHealthTestProfile')
     record = db.relationship('ComHealthRecord',
                              backref=db.backref('test_profile_items'))
 
