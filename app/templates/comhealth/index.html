@@ -1,33 +1,87 @@
 {% extends "base.html" %}
 {% block page_content %}
-    <section class="section">
-        <div class="container">
-            <h3>Health Services</h3>
-            <table class="table">
-                <thead>
-                <th>Service Date</th>
-                <th>Location</th>
-                <th></th>
-                </thead>
-                <tbody>
-                {% for sv in services %}
-                    <tr>
-                        <td>
-                            <a href="{{ url_for('comhealth.display_service_customers',
-                                    service_id=sv.id) }}">
-                                {{ sv.date }}
+    <section class="section hero is-info is-small">
+        <div class="hero-head">
+            <nav class="navbar">
+                <div class="container">
+                    <div class="navbar-brand">
+                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+                    </div>
+                    <div id="navbarMenuHeroA" class="navbar-menu">
+                        <div class="navbar-end">
+                            <a class="navbar-item is-active"
+                                href="/comhealth">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                                <span>Home</span>
                             </a>
-                        </td>
-                        <td>{{ sv.location }}</td>
-                        <td>
-                            <span class="icon">
-                                <i class="fas fa-chevron-right"></i>
-                            </span>
-                        </td>
-                    </tr>
-                {% endfor %}
-                </tbody>
-            </table>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <img src="{{ url_for('static', filename='img/medical-history.png') }}" width="100">
+                <h1 class="title">Community Health Service Registration System</h1>
+            </div>
         </div>
     </section>
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                    <b-table :data="services" :paginated="true" :per-page="10" default-sort="date" default-sort-direction="dsc">
+                        <template slot-scope="props">
+                            <b-table-column field="id" label="ID" numeric>
+                                <% props.row.id %>
+                            </b-table-column>
+                            <b-table-column field="date" label="Date" sortable centered>
+                                <% props.row.date %>
+                            </b-table-column>
+                            <b-table-column field="location" label="Location" sortable>
+                                <% props.row.location %>
+                            </b-table-column>
+                            <b-table-column field="records" label="Registered Customers" sortable numeric centered>
+                                <% props.row.records.length %>
+                            </b-table-column>
+                            <b-table-column field="" label="Checked In Customers" sortable numeric centered>
+                                <% props.row.records.filter(function(record) { return record.checkin_datetime!==null;
+                                }).length %>
+                            </b-table-column>
+                            <b-table-column field="" label="Detail">
+                                <a class="button is-rounded is-light" v-bind:href="'/comhealth/services/'+props.row.id">
+                                    <span class="icon">
+                                        <i class="far fa-eye"></i>
+                                    </span>&nbsp;
+                                    <span>View</span>
+                                </a>
+                            </b-table-column>
+                        </template>
+                    </b-table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#app",
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    services: {{ services|tojson|safe }},
+                    query: '',
+                }
+            },
+            computed: {}
+        });
+    </script>
 {% endblock %}

@@ -1,9 +1,34 @@
 {% extends "base.html" %}
 {% block page_content %}
     <section class="hero is-info is-small">
+        <div class="hero-head">
+            <nav class="navbar">
+                <div class="container">
+                    <div class="navbar-brand">
+                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+                    </div>
+                    <div id="navbarMenuHeroA" class="navbar-menu">
+                        <div class="navbar-end">
+                            <a class="navbar-item is-active"
+                                href="/comhealth">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                                <span>Home</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
         <div class="hero-body">
             <div class="container has-text-centered">
-                <h3 class="title">Customers</h3>
+                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="100">
+                <h3 class="title">Customers Checkin</h3>
                 <h3 class="subtitle">วันที่ {{ service.date }} สถานที่ {{ service.location }}</h3>
             </div>
         </div>
@@ -19,7 +44,9 @@
             <div class="columns">
                 <div class="column">
                     <div class="has-text-left">
-                        <strong>Total Checked Ins</strong>&nbsp;<span class="tag is-success">130</span>
+                        <strong>Total Checked Ins</strong>&nbsp;<span class="tag is-success">
+                        <% records.filter(function(record) { return record.checkin_datetime!==null; }).length %>
+                    </span>
                     </div>
                 </div>
                 <div class="column">
@@ -46,7 +73,7 @@
                             <b-table-column field="customer.lastname" label="Last Name" sortable>
                                 <% props.row.customer.lastname %>
                             </b-table-column>
-                            <b-table-column field="customer.gender" label="Gender" sortable>
+                            <b-table-column field="customer.gender" label="Gender" sortable centered>
                         <span class="icon">
                             <i class="fas fa-venus" v-if="props.row.customer.gender===0"></i>
                             <i class="fas fa-mars" v-if="props.row.customer.gender===1"></i>
@@ -54,15 +81,15 @@
                                 <span v-if="props.row.customer.gender===0">Female</span>
                                 <span v-if="props.row.customer.gender===1">Male</span>
                             </b-table-column>
-                            <b-table-column field="customer.dob" label="Birthdate" sortable>
+                            <b-table-column field="customer.dob" label="Birthdate" sortable centered>
                                 <% props.row.customer.dob %>
                             </b-table-column>
-                            <b-table-column field="labno" label="Lab Number" sortable numeric>
+                            <b-table-column field="labno" label="Lab Number" sortable numeric centered>
                                 <% props.row.labno %>
                             </b-table-column>
                             <b-table-column field="" label="Check In" sortable>
                                 <a class="button is-rounded is-light"
-                                    v-bind:href="'/checkin/'+props.row.id">
+                                    v-bind:href="'/comhealth/checkin/'+props.row.id">
                                 <span class="icon" v-if="props.row.checkin_datetime !== null">
                                     <i class="far fa-check"></i>
                                 </span>
