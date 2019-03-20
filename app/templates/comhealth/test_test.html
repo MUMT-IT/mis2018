@@ -5,8 +5,8 @@
             <div class="container">
                 <ul>
                     <li><a href="/comhealth/tests">Profile</a></li>
-                    <li class="is-active"><a href="/comhealth/test/groups">Group</a></li>
-                    <li><a href="/comhealth/test/tests">Test</a></li>
+                    <li><a href="/comhealth/test/groups">Group</a></li>
+                    <li><a class="is-active" href="/comhealth/test/tests">Test</a></li>
                 </ul>
             </div>
         </nav>
@@ -17,7 +17,7 @@
             <div class="columns">
                 <div class="column">
                     <div class="has-text-left">
-                        <strong>Total Group</strong>&nbsp;<span class="tag is-success">
+                        <strong>Total Test</strong>&nbsp;<span class="tag is-success">
                         <% groups.length %>
                     </span>
                     </div>
@@ -28,14 +28,14 @@
                     <span class="icon">
                         <i class="fas fa-plus"></i>
                     </span>
-                            <span>Add Test Group</span>
+                            <span>Add Test</span>
                         </a>
                     </div>
                 </div>
             </div>
             <div class="columns">
                 <div class="column">
-                    <b-table :data="groups" :paginated="true" :per-page="10" default-sort="name">
+                    <b-table :data="tests" :paginated="true" :per-page="10" default-sort="name">
                         <template slot-scope="props">
                             <b-table-column field="id" label="ID" numeric>
                                 <% props.row.id %>
@@ -46,8 +46,11 @@
                             <b-table-column field="desc" label="Description" sortable>
                                 <% props.row.desc %>
                             </b-table-column>
+                            <b-table-column field="default_price" label="Default Price" sortable>
+                                <% props.row.default_price %>
+                            </b-table-column>
                             <b-table-column field="" label="Detail" sortable>
-                                <a class="button is-rounded is-light" v-bind:href="'/comhealth/test/groups/'+props.row.id">
+                                <a class="button is-rounded is-light" v-bind:href="'/comhealth/test/tests/'+props.row.id">
                                     <span class="icon">
                                         <i class="far fa-eye"></i>
                                     </span>&nbsp;
@@ -69,7 +72,7 @@
             delimiters: ['<%', '%>'],
             data() {
                 return {
-                    groups: {{ groups|tojson|safe }},
+                    tests: {{ tests|tojson|safe }},
                     query: '',
                 }
             },

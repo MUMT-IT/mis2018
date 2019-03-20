@@ -158,3 +158,8 @@ class ComHealthTestProfileSchema(ma.ModelSchema):
 class ComHealthTestGroupSchema(ma.ModelSchema):
     class Meta:
         model = ComHealthTestGroup
+
+
+class ComHealthTestSchema(ma.ModelSchema):
+    class Meta:
+        model = ComHealthTest

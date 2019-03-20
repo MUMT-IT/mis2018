@@ -2,9 +2,10 @@ from flask import render_template
 from flask_login import login_required
 from . import comhealth
 from .models import (ComHealthService, ComHealthRecord, ComHealthTestProfile,
-                     ComHealthTestProfile, ComHealthTest, ComHealthTestGroup)
+                     ComHealthTestProfile, ComHealthTest, ComHealthTestGroup,
+                     ComHealthTest)
 from .models import (ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTestProfileSchema,
-                     ComHealthTestGroupSchema)
+                     ComHealthTestGroupSchema, ComHealthTestSchema)
 
 
 @comhealth.route('/')
@@ -57,3 +58,16 @@ def test_group_index(group_id=None):
 def test_profile(profile_id):
     profile = ComHealthTestProfile.query.get(profile_id)
     return render_template('comhealth/test_profile_edit.html', profile=profile)
+
+
+@comhealth.route('/test/tests')
+@comhealth.route('/test/tests/<int:group_id>')
+def test_test_index(test_id=None):
+    if test_id:
+        test = ComHealthTest.query.get(test_id)
+        return render_template('comhealth/test_group_edit.html', test=test)
+
+    tests = ComHealthTest.query.all()
+    t_schema = ComHealthTestSchema(many=True)
+    return render_template('comhealth/test_test.html',
+                           tests=t_schema.dump(tests).data)
