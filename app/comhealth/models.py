@@ -161,5 +161,6 @@ class ComHealthTestGroupSchema(ma.ModelSchema):
 
 
 class ComHealthTestSchema(ma.ModelSchema):
+    default_price = fields.String()
     class Meta:
         model = ComHealthTest

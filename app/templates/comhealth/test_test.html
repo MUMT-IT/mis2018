@@ -6,7 +6,7 @@
                 <ul>
                     <li><a href="/comhealth/tests">Profile</a></li>
                     <li><a href="/comhealth/test/groups">Group</a></li>
-                    <li><a class="is-active" href="/comhealth/test/tests">Test</a></li>
+                    <li class="is-active"><a href="/comhealth/test/tests">Test</a></li>
                 </ul>
             </div>
         </nav>
@@ -18,7 +18,7 @@
                 <div class="column">
                     <div class="has-text-left">
                         <strong>Total Test</strong>&nbsp;<span class="tag is-success">
-                        <% groups.length %>
+                        <% tests.length %>
                     </span>
                     </div>
                 </div>
@@ -46,15 +46,15 @@
                             <b-table-column field="desc" label="Description" sortable>
                                 <% props.row.desc %>
                             </b-table-column>
-                            <b-table-column field="default_price" label="Default Price" sortable>
+                            <b-table-column field="default_price" label="Default Price"
+                                sortable numeric centered>
                                 <% props.row.default_price %>
                             </b-table-column>
-                            <b-table-column field="" label="Detail" sortable>
-                                <a class="button is-rounded is-light" v-bind:href="'/comhealth/test/tests/'+props.row.id">
+                            <b-table-column field="" label="Edit" sortable>
+                                <a class="button is-rounded is-light">
                                     <span class="icon">
-                                        <i class="far fa-eye"></i>
-                                    </span>&nbsp;
-                                    <span>View</span>
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </span><span>Edit</span>
                                 </a>
                             </b-table-column>
                         </template>
