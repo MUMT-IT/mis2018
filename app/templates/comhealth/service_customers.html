@@ -18,6 +18,11 @@
             </div>
             <div class="columns">
                 <div class="column">
+                    <div class="has-text-left">
+                        <strong>Total Checked Ins</strong>&nbsp;<span class="tag is-success">130</span>
+                    </div>
+                </div>
+                <div class="column">
                     <div class="has-text-right">
                         <a class="button is-rounded is-link">
                     <span class="icon">
@@ -54,6 +59,15 @@
                             </b-table-column>
                             <b-table-column field="labno" label="Lab Number" sortable numeric>
                                 <% props.row.labno %>
+                            </b-table-column>
+                            <b-table-column field="" label="Check In" sortable>
+                                <a class="button is-rounded is-light"
+                                    v-bind:href="'/checkin/'+props.row.id">
+                                <span class="icon" v-if="props.row.checkin_datetime !== null">
+                                    <i class="far fa-check"></i>
+                                </span>
+                                    <span>Check in</span>
+                                </a>
                             </b-table-column>
                         </template>
                     </b-table>

@@ -102,6 +102,7 @@ class ComHealthRecord(db.Model):
     service_id = db.Column('service_id', db.ForeignKey('comhealth_services.id'))
     service = db.relationship('ComHealthService',
                               backref=db.backref('records'))
+    checkin_datetime = db.Column('checkin_datetime', db.DateTime(timezone=True))
 
 
 class ComHealthTestItem(db.Model):
