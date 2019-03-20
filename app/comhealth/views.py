@@ -1,7 +1,9 @@
 from flask import render_template
+from flask_login import login_required
 from . import comhealth
 from .models import (ComHealthService, ComHealthRecord,
                      ComHealthTestProfile, ComHealthTest)
+from .models import ComHealthRecordSchema
 
 
 @comhealth.route('/')
@@ -14,8 +16,10 @@ def index():
 @comhealth.route('/services/<int:service_id>')
 def display_service_customers(service_id):
     service = ComHealthService.query.get(service_id)
+    record_schema = ComHealthRecordSchema(many=True)
     return render_template('comhealth/service_customers.html',
-                           service=service)
+                           service=service,
+                           records=record_schema.dump(service.records).data)
 
 
 @comhealth.route('/records/<int:record_id>')
