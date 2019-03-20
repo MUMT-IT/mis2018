@@ -3,14 +3,15 @@ from flask_login import login_required
 from . import comhealth
 from .models import (ComHealthService, ComHealthRecord,
                      ComHealthTestProfile, ComHealthTest)
-from .models import ComHealthRecordSchema
+from .models import ComHealthRecordSchema, ComHealthServiceSchema
 
 
 @comhealth.route('/')
 def index():
-    services = ComHealthService.query.order_by('date desc').all()
+    services = ComHealthService.query.all()
+    sv_schema = ComHealthServiceSchema(many=True)
     return render_template('comhealth/index.html',
-                           services=services)
+                           services=sv_schema.dump(services).data)
 
 
 @comhealth.route('/services/<int:service_id>')
@@ -22,7 +23,7 @@ def display_service_customers(service_id):
                            records=record_schema.dump(service.records).data)
 
 
-@comhealth.route('/records/<int:record_id>')
+@comhealth.route('/checkin/<int:record_id>')
 def edit_record(record_id):
     record = ComHealthRecord.query.get(record_id)
     test_profiles = {}
