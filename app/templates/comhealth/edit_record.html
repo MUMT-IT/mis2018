@@ -1,23 +1,66 @@
 {% extends "base.html" %}
 {% block page_content %}
-    <section class="section">
+    <section class="section hero is-info is-small">
+        <div class="hero-head">
+            <nav class="navbar">
+                <div class="container">
+                    <div class="navbar-brand">
+                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+                    </div>
+                    <div id="navbarMenuHeroA" class="navbar-menu">
+                        <div class="navbar-end">
+                            <a class="navbar-item is-active"
+                               href="/comhealth">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                                <span>Home</span>
+                            </a>
+                            <a class="navbar-item"
+                               href="/comhealth/tests">
+                                <span>Tests</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <img src="{{ url_for('static', filename='img/medical-history.png') }}" width="100">
+                <h1 class="title">Customer Check In</h1>
+            </div>
+        </div>
+    </section>
+    <section class="section" id="app">
         <div class="container">
-            <div class="card">
-                <div class="card-content">
+        <div class="columns">
+            <div class="column">
+                <input type="text" class="input is-rounded is-large" placeholder="Enter a lab number or scan a barcode" autofocus>
+            </div>
+        </div>
+            <div class="columns">
+                <div class="column">
                     <div class="card">
                         <header class="card-header">
-                            <p class="card-header-title">ข้อมูลส่วนตัว</p>
+                            <p class="card-header-title">Personal Information</p>
                         </header>
                         <div class="card-content">
                             <div class="columns">
                                 <div class="column">
-                                    <p><strong>ชื่อ</strong> {{ record.customer.firstname }} <strong>นามสกุล</strong> {{ record.customer.lastname }}</p>
+                                    <p><strong>ชื่อ</strong> {{ record.customer.firstname }}
+                                        <strong>นามสกุล</strong> {{ record.customer.lastname }}</p>
                                     <p><strong>องค์กร</strong> {{ record.customer.org.name }}</p>
                                 </div>
                                 <div class="column">
                                     <p><strong>วันเดือนปีเกิด</strong> {{ record.customer.dob }}</p>
                                     {% if record.customer.gender %}
-                                        <p><strong>เพศ</strong> {% if record.customer.gender == 0 %}ชาย{% else %}หญิง{% endif %}</p>
+                                        <p><strong>เพศ</strong> {% if record.customer.gender == 0 %}ชาย{% else %}
+                                            หญิง{% endif %}</p>
                                     {% else %}
                                         <p><strong>เพศ</strong> ไม่ระบุ</p>
                                     {% endif %}
@@ -25,73 +68,63 @@
                             </div>
                         </div>
                     </div>
-                    <div class="card">
-                        <header class="card-header">
-                            <p class="card-header-title">
-                                Lab Number
-                            </p>
-                        </header>
-                        <div class="card-content">
-                            <form>
-                                <div class="field">
-                                    <label class="label">Lab No.</label>
-                                    <div class="control">
-                                        {% if record.labno %}
-                                        <input type="text" class="input" value={{ record.labno }} disabled>
-                                        {% else %}
-                                        <input type="text" class="input" value=""
-                                            placeholder="แสกนบาร์โค้ดหรือป้อนรหัส">
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                <div class="columns">
-                                {% for pitem in record.test_profile_items %}
-                                    <div class="column">
-                                        <div class="box">
-                                            <p>{{ pitem.profile.desc }}</p>
-                                            {% for test in test_profiles[pitem.profile.name]%}
-                                            <label class="checkbox">
-                                                <input type="checkbox"
-                                                       {% if test in ordered_profiled_tests %}
-                                                        checked
-                                                       {% endif %}
-                                                >
-                                                {{ test.desc }} ({{ test.name }})
-                                            </label>
-                                            <br>
-                                            {% endfor %}
-                                        </div> <!-- box -->
-                                    </div> <!-- column -->
-                                    {% if loop.index % 2 == 0 %}
-                                        </div>
-                                        <div class="columns">
-                                    {% endif %}
-                                {% endfor %}
-                                </div>
-                                <div class="columns">
-                                    <div class="column">
-                                        <div class="box">
-                                        {% for test in tests %}
-                                            {% if test not in ordered_profiled_tests %}
-                                            <label class="checkbox">
-                                                <input type="checkbox"
-                                                   {% if test in ordered_tests %}
-                                                    checked
-                                                   {% endif %}
-                                                >
-                                            {{ test.desc }} ({{ test.name }})
-                                            </label>
-                                            <br>
-                                            {% endif %}
-                                        {% endfor %}
-                                        </div>
-                                    </div>
-                                </div>
-                            </form>
+                </div>
+            </div>
+            <div class="columns">
+                {% for profile in record.service.profiles %}
+                    <div class="column">
+                        <div class="card">
+                            <div class="card-header">
+                                <p class="card-header-title"><span>Profile</span>&nbsp;<span>{{ profile.name }}</span></p>
+                            </div>
+                            <div class="card-content">
+                                <p class="subtitle is-size-6">{{ profile.desc }}</p>
+                                <ul>
+                                    {% for item in profile.test_items %}
+                                        <li>
+                                            <b-checkbox v-model="true">{{ item.test.desc }} ({{ item.price or item.test.default_price }})</b-checkbox>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
                         </div>
                     </div>
-                </div>
+                {% endfor %}
+            </div>
+            <div class="columns">
+                {% for group in record.service.groups %}
+                    <div class="column">
+                        <div class="card">
+                            <div class="card-header">
+                                <p class="card-header-title"><span>Group</span>&nbsp;{{ group.name }}</p>
+                            </div>
+                            <div class="card-content">
+                                <p class="subtitle is-size-6">{{ group.desc }}</p>
+                                <ul>
+                                    {% for item in group.test_items %}
+                                        <li>
+                                            <b-checkbox v-model="false">{{ item.test.desc }} ({{ item.price or item.test.default_price }})</b-checkbox>
+                                        </li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
             </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#app",
+            delimiters: ['<%', '%>'],
+            data() {
+                return {}
+            },
+            computed: {}
+        });
+    </script>
 {% endblock %}
