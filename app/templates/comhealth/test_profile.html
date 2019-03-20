@@ -1,0 +1,68 @@
+{% extends "comhealth/tests.html" %}
+{% block subpage_content %}
+<section class="section" id="app">
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                <div class="has-text-left">
+                    <strong>Total Profiles</strong>&nbsp;<span class="tag is-success">
+                        <% profiles.length %>
+                    </span>
+                </div>
+            </div>
+            <div class="column">
+                <div class="has-text-right">
+                    <a class="button is-rounded is-link">
+                    <span class="icon">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                        <span>Add Test Profile</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <b-table :data="profiles" :paginated="true" :per-page="10" default-sort="name">
+                    <template slot-scope="props">
+                        <b-table-column field="id" label="ID" numeric>
+                            <% props.row.id %>
+                        </b-table-column>
+                        <b-table-column field="name" label="Name" sortable>
+                            <% props.row.name %>
+                        </b-table-column>
+                        <b-table-column field="desc" label="Description" sortable>
+                            <% props.row.desc %>
+                        </b-table-column>
+                        <b-table-column field="" label="Detail" sortable>
+                            <a class="button is-rounded is-light" v-bind:href="'/comhealth/profiles/'+props.row.id">
+                                    <span class="icon">
+                                        <i class="far fa-eye"></i>
+                                    </span>&nbsp;
+                                <span>View</span>
+                            </a>
+                        </b-table-column>
+                    </template>
+                </b-table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#app",
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    profiles: {{ profiles|tojson|safe }},
+                    query: '',
+                }
+            },
+            computed: {
+            }
+        });
+    </script>
+{% endblock %}

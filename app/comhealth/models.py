@@ -149,3 +149,7 @@ class ComHealthServiceSchema(ma.ModelSchema):
     class Meta:
         model = ComHealthService
 
+
+class ComHealthTestProfileSchema(ma.ModelSchema):
+    class Meta:
+        model = ComHealthTestProfile

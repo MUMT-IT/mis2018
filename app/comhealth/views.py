@@ -1,9 +1,9 @@
 from flask import render_template
 from flask_login import login_required
 from . import comhealth
-from .models import (ComHealthService, ComHealthRecord,
+from .models import (ComHealthService, ComHealthRecord, ComHealthTestProfile,
                      ComHealthTestProfile, ComHealthTest)
-from .models import ComHealthRecordSchema, ComHealthServiceSchema
+from .models import ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTestProfileSchema
 
 
 @comhealth.route('/')
@@ -52,4 +52,7 @@ def edit_record(record_id):
 
 @comhealth.route('/tests')
 def test_index():
-    return render_template('comhealth/tests.html')
+    profiles = ComHealthTestProfile.query.all()
+    pf_schema = ComHealthTestProfileSchema(many=True)
+    return render_template('comhealth/test_profile.html',
+                           profiles=pf_schema.dump(profiles).data)
