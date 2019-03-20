@@ -48,3 +48,8 @@ def edit_record(record_id):
                            ordered_tests=set(ordered_tests),
                            ordered_profiled_tests=ordered_profiled_tests,
                            tests=tests)
+
+
+@comhealth.route('/tests')
+def test_index():
+    return render_template('comhealth/tests.html')
