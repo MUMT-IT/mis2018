@@ -17,7 +17,7 @@ services:
       - ./warehouse:/mis2018/warehouse
       - ./migrations:/mis2018/migrations
   pg:
-    image: postgres
+    image: postgres:11
     environment:
       - POSTGRES_PASSWORD
     volumes:
