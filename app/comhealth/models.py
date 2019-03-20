@@ -1,14 +1,37 @@
-from ..main import db
+from ..main import db, ma
+from marshmallow import fields
+
+
+class SmartNested(fields.Nested):
+    def serialize(self, attr, obj, accessor=None):
+        if attr not in obj.__dict__:
+            return {"id": int(getattr(obj, attr + "_id"))}
+        return super(SmartNested, self).serialize(attr, obj, accessor)
+
 
 test_profile_assoc_table = db.Table('comhealth_test_profile_assoc',
-    db.Column('test_id', db.Integer, db.ForeignKey('comhealth_tests.id'), primary_key=True),
-    db.Column('profile_id', db.Integer, db.ForeignKey('comhealth_test_profiles.id'), primary_key=True)
-)
+                                    db.Column('test_id', db.Integer, db.ForeignKey('comhealth_tests.id'),
+                                              primary_key=True),
+                                    db.Column('profile_id', db.Integer, db.ForeignKey('comhealth_test_profiles.id'),
+                                              primary_key=True))
 
 test_group_assoc_table = db.Table('comhealth_test_group_assoc',
-                                    db.Column('test_id', db.Integer, db.ForeignKey('comhealth_tests.id'), primary_key=True),
-                                    db.Column('group_id', db.Integer, db.ForeignKey('comhealth_test_groups.id'), primary_key=True)
-                                    )
+                                  db.Column('test_id', db.Integer, db.ForeignKey('comhealth_tests.id'),
+                                            primary_key=True),
+                                  db.Column('group_id', db.Integer, db.ForeignKey('comhealth_test_groups.id'),
+                                            primary_key=True))
+
+profile_service_assoc_table = db.Table('comhealth_profile_service_assoc',
+                                       db.Column('profile_id', db.Integer, db.ForeignKey('comhealth_test_profiles.id'),
+                                                 primary_key=True),
+                                       db.Column('service_id', db.Integer, db.ForeignKey('comhealth_services.id'),
+                                                 primary_key=True))
+
+group_service_assoc_table = db.Table('comhealth_group_service_assoc',
+                                     db.Column('group_id', db.Integer, db.ForeignKey('comhealth_test_groups.id'),
+                                               primary_key=True),
+                                     db.Column('service_id', db.Integer, db.ForeignKey('comhealth_services.id'),
+                                               primary_key=True))
 
 
 class ComHealthOrg(db.Model):
@@ -38,6 +61,7 @@ class ComHealthTest(db.Model):
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     name = db.Column('name', db.String(64), index=True)
     desc = db.Column('desc', db.Text())
+
     # price = db.Column('price', db.Numeric(), default=0)
 
     def __str__(self):
@@ -87,7 +111,7 @@ class ComHealthTestItem(db.Model):
     test_id = db.Column('test_id', db.ForeignKey('comhealth_tests.id'))
     test = db.relationship('ComHealthTest')
     record = db.relationship('ComHealthRecord',
-                             backref=db.backref('test_items'),)
+                             backref=db.backref('test_items'), )
 
 
 class ComHealthTestProfileItem(db.Model):
@@ -105,6 +129,21 @@ class ComHealthService(db.Model):
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     date = db.Column('date', db.Date())
     location = db.Column('location', db.String(255))
+    groups = db.relationship('ComHealthTestGroup', backref=db.backref('services'),
+                            secondary=group_service_assoc_table)
+    profiles = db.relationship('ComHealthTestProfile', backref=db.backref('services'),
+                               secondary=profile_service_assoc_table)
 
     def __str__(self):
         return str(self.date)
+
+
+class ComHealthCustomerSchema(ma.ModelSchema):
+    class Meta:
+        model = ComHealthCustomer
+
+
+class ComHealthRecordSchema(ma.ModelSchema):
+    customer = fields.Nested(ComHealthCustomerSchema)
+    class Meta:
+        model = ComHealthRecord
