@@ -32,21 +32,36 @@
         <div class="hero-body">
             <div class="container has-text-centered">
                 <img src="{{ url_for('static', filename='img/flask-2.png') }}" width="100">
-                <h3 class="title">Tests Manager</h3>
+                <h3 class="title">Test Group Manager</h3>
+                <h3 class="subtitle">Group name : {{ group.name }}</h3>
             </div>
         </div>
-        <div class="hero-foot">
-            <nav class="tabs is-boxed">
-                <div class="container">
-                    <ul>
-                        <li class="is-active"><a href="/comhealth/tests">Profile</a></li>
-                        <li><a href="/comhealth/test/groups">Group</a></li>
-                        <li><a>Test</a></li>
-                    </ul>
-                </div>
-            </nav>
+    </section>
+    <section class="section">
+        <div class="container">
+            <form>
+                <table class="table">
+                    <thead>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Default Price</th>
+                    <th>Group Price</th>
+                    </thead>
+                    <tbody>
+                    {% for item in group.test_items %}
+                        <tr>
+                            <td>{{ item.test.name }}</td>
+                            <td>{{ item.test.desc }}</td>
+                            <td>{{ item.test.default_price }} บาท</td>
+                            <td>
+                                <input type="text" class="input" name="test_{{ item.id }}"
+                                       value="{{ item.price or item.test.default_price }}">
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </form>
         </div>
     </section>
-    {% block subpage_content %}
-    {% endblock %}
 {% endblock %}
