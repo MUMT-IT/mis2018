@@ -17,8 +17,7 @@ class APIKey(db.Model):
 
 class ResearchPub(db.Model):
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    scopus_id = db.Column('scopus_id', db.String(128), index=True)
     data = db.Column('data', JSON)
-    pubyear = db.Column('pubyear', db.Integer)
-    pubmonth = db.Column('pubmonth', db.Integer)
     created_at = db.Column('created_at', db.DateTime, default=func.now())
-    citation_count = db.Column('citation_count', db.Integer, default=0)
+
