@@ -100,6 +100,7 @@ app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
 from research import researchbp as research_blueprint
 app.register_blueprint(research_blueprint, url_prefix='/research')
+from research.models import ResearchPub
 
 from models import (Student, Class, ClassCheckIn,
                         Org, Mission, IOCode, CostCenter,
