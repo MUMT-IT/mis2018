@@ -1,7 +1,9 @@
 import os
-from sqlalchemy import (create_engine, Column, Integer,
+from sqlalchemy import (create_engine, Column, Integer, Text,
                         String, Date, ForeignKey, Float, Boolean)
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.dialects.postgresql import JSON
+from sqlalchemy.orm import relationship, backref
 
 POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD')
 
@@ -75,6 +77,17 @@ class FundingResearchFact(Base):
     startdate_id = Column('startdate_id', ForeignKey('dates.date_id'))
     enddate_id = Column('enddate_id', ForeignKey('dates.date_id'))
     total_funding = Column('total_funding', Float())
+
+
+class Abstract(Base):
+    __tablename__ = 'research_abstracts'
+    id = Column('id', Integer, primary_key=True, autoincrement=True)
+    scopus_id = Column('scopus_id', String(128), index=True)
+    date_id = Column('date_id', ForeignKey('dates.date_id'))
+    cover_date = relationship(DateTable, backref=backref('abstracts'))
+    abstract = Column('abstract', Text())
+    authors = Column('authors', JSON)
+    cited = Column('cited', Integer(), default=0)
 
 
 if __name__ == '__main__':
