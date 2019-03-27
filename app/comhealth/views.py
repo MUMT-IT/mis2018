@@ -1,6 +1,9 @@
-from flask import render_template
+from datetime import datetime
+from flask import render_template, flash, redirect, url_for
 from flask_login import login_required
+from app.main import db
 from . import comhealth
+from .forms import ScheduleForm
 from .models import (ComHealthService, ComHealthRecord, ComHealthTestProfile,
                      ComHealthTestProfile, ComHealthTest, ComHealthTestGroup,
                      ComHealthTest)
@@ -71,3 +74,23 @@ def test_test_index(test_id=None):
     t_schema = ComHealthTestSchema(many=True)
     return render_template('comhealth/test_test.html',
                            tests=t_schema.dump(tests).data)
+
+
+
+@comhealth.route('/schedule/new', methods=['GET', 'POST'])
+def add_schedule():
+    form = ScheduleForm()
+    if form.validate_on_submit():
+        try:
+            service_date = datetime.strptime(form.service_date.data, '%Y-%m-%d')
+        except ValueError:
+            flash('Date data not valid.')
+        else:
+            new_service = ComHealthService(location=form.location.data,
+                                           date=service_date)
+            db.session.add(new_service)
+            db.session.commit()
+            flash('The schedule has been updated.')
+            return redirect(url_for('comhealth.index'))
+
+    return render_template('comhealth/new_schedule.html', form=form)
