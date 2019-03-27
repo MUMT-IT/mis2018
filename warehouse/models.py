@@ -86,6 +86,8 @@ class Abstract(Base):
     date_id = Column('date_id', ForeignKey('dates.date_id'))
     cover_date = relationship(DateTable, backref=backref('abstracts'))
     abstract = Column('abstract', Text())
+    title = Column('title', String())
+    publication = Column('publication', String())
     authors = Column('authors', JSON)
     cited = Column('cited', Integer(), default=0)
 
