@@ -76,7 +76,7 @@ def add_test_profile():
     return render_template('comhealth/new_profile.html', form=form)
 
 
-@comhealth.route('/test/tests/menu/<int:profile_id>')
+@comhealth.route('/test/tests/profile/menu/<int:profile_id>')
 def profile_test_menu(profile_id=None):
     '''Shows a menu of tests to be added to the profile.
 
@@ -166,6 +166,87 @@ def remove_test_profile(profile_id, item_id):
     db.session.add(profile)
     db.session.commit()
     return redirect(url_for('comhealth.test_profile', profile_id=profile.id))
+
+
+@comhealth.route('/test/tests/group/menu/<int:group_id>')
+def group_test_menu(group_id=None):
+    '''Shows a menu of tests to be added to the profile.
+
+    :param profile_id:
+    :return:
+    '''
+    if group_id:
+        tests = ComHealthTest.query.all()
+        t_schema = ComHealthTestSchema(many=True)
+        form = TestListForm()
+        group = ComHealthTestGroup.query.get(group_id)
+        action = url_for('comhealth.add_test_to_group', group_id=group_id)
+        return render_template('comhealth/group_test_menu.html',
+                               tests=t_schema.dump(tests).data,
+                               form=form,
+                               action=action,
+                               group=group)
+    return redirect(url_for('comhealth.test_index'))
+
+
+@comhealth.route('/test/groups/<int:group_id>/add-test',
+                 methods=['GET', 'POST'])
+def add_test_to_group(group_id):
+    '''Add tests selected from the menu to be added to the group.
+
+    :param group_id:
+    :return:
+    '''
+    form = TestListForm()
+    if form.validate_on_submit() and group_id:
+        data = form.test_list.data
+        tests = json.loads(data)
+
+        for test in tests:
+            new_item = ComHealthTestItem(test_id=int(test['id']),
+                                         price=float(test['default_price']), group_id=group_id)
+            db.session.add(new_item)
+        db.session.commit()
+        flash('Test(s) have been added to the group')
+        return redirect(url_for('comhealth.test_group_index', group_id=group_id))
+
+    flash('Falied to add tests to the group.')
+    return redirect(url_for('comhealth.group_test_menu', set_id=group_id))
+
+
+@comhealth.route('/test/groups/<int:group_id>/save', methods=['GET', 'POST'])
+def save_test_group(group_id):
+    '''Generates a form for editing the price of the test item.
+
+    :param group_id:
+    :return:
+    '''
+    group = ComHealthTestProfile.query.get(group_id)
+    for test in request.form:
+        if test.startswith('test'):
+            _, test_id = test.split('_')
+            test_item = ComHealthTestItem.query.get(int(test_id))
+            if request.form.get(test):
+                test_item.price = request.form.get(test)
+                db.session.add(test_item)
+    db.session.commit()
+    flash('Change has been saved.')
+    return redirect(url_for('comhealth.test_group_index', group_id=group_id))
+
+
+@comhealth.route('/test/groups/<int:group_id>/tests/<int:item_id>/remove', methods=['GET', 'POST'])
+def remove_group_test_item(group_id, item_id):
+    '''Delete the test item from the group.
+
+    :param group_id:
+    :return:
+    '''
+    group = ComHealthTestGroup.query.get(group_id)
+    tests = [test for test in group.test_items if test.id != item_id]
+    group.test_items = tests
+    db.session.add(group)
+    db.session.commit()
+    return redirect(url_for('comhealth.test_group_index', group_id=group.id))
 
 
 @comhealth.route('/test/tests')
