@@ -37,31 +37,88 @@
             </div>
         </div>
     </section>
-    <section class="section">
+    <section class="section" id="app">
         <div class="container">
-            <form>
-                <table class="table">
-                    <thead>
-                    <th>Name</th>
-                    <th>Description</th>
-                    <th>Default Price</th>
-                    <th>Profile Price</th>
-                    </thead>
-                    <tbody>
-                    {% for item in profile.test_items %}
-                        <tr>
-                            <td>{{ item.test.name }}</td>
-                            <td>{{ item.test.desc }}</td>
-                            <td>{{ item.test.default_price }} บาท</td>
-                            <td>
-                                <input type="text" class="input" name="test_{{ item.id }}"
-                                    value="{{ item.price or item.test.default_price }}">
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </form>
+            <div class="columns">
+                <div class="column">
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for msg in messages %}
+                                <b-notification type="is-success">{{ msg }}</b-notification>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column has-text-right">
+                    <a class="button is-rounded is-link"
+                        href="{{ url_for('comhealth.profile_test_menu', profile_id=profile.id) }}">
+                        <span class="icon">
+                            <i class="fas fa-plus"></i>
+                        </span>
+                            <span>
+                            Add Test
+                        </span>
+                    </a>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <form method="post" action="{{ url_for('comhealth.save_test_profile', profile_id=profile.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <table class="table">
+                            <thead>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Default Price</th>
+                            <th>Profile Price</th>
+                            </thead>
+                            <tbody>
+                            {% for item in profile.test_items %}
+                                <tr>
+                                    <td>{{ item.test.name }}</td>
+                                    <td>{{ item.test.desc }}</td>
+                                    <td>{{ item.test.default_price }} บาท</td>
+                                    <td>
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <input type="number" step="10.0" class="input" name="test_{{ item.id }}"
+                                                       value="{{ item.price or item.test.default_price }}">
+                                            </div>
+                                            <div class="control">
+                                                <button class="button is-static">บาท</button>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a class="button is-danger" href="{{ url_for('comhealth.remove_test_profile', item_id=item.id, profile_id=profile.id) }}">
+                                            <span class="icon">
+                                                <i class="far fa-trash-alt"></i>
+                                            </span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        <button class="button is-rounded is-link is-medium" type="submit">
+                            <span class="icon">
+                                <i class="far fa-save"></i>
+                            </span>
+                            <span>Save</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        var vm = new Vue({
+            el: "#app",
+        })
+    </script>
 {% endblock %}

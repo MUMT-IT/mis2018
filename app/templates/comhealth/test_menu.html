@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <nav class="navbar is-info">
+        <div class="container">
+            <div class="navbar-brand">
+                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+            </div>
+            <div id="navbarMenuHeroA" class="navbar-menu">
+                <div class="navbar-end">
+                    <a class="navbar-item is-active"
+                       href="/comhealth">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                        <span>Home</span>
+                    </a>
+                    <a class="navbar-item"
+                       href="/comhealth/tests">
+                        <span>Tests</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for msg in messages %}
+                                <b-notification type="is-danger">{{ msg }}</b-notification>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">Add Tests to The Profile</h1>
+                    <h1 class="subtitle">Select the tests below to add to the profile.</h1>
+                    <button class="button is-rounded is-medium"><strong>Profile {{ profile.name }}</strong></button></h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-two-thirds is-offset-2">
+                    <div>
+                        <form method="post" action="{{ action }}">
+                            {{ form.csrf_token() }}
+                            {{ form.set_id(value=profile.id) }}
+                            {{ form.test_list(**{'v-model': 'testList'}) }}
+                            <b-table :data="data" :columns="columns" :checked-rows.sync="checkedRows"
+                                     checkable>
+                                <template slot="bottom-left">
+                                    <b>Total checked</b>: <% checkedRows.length %>
+                                </template>
+                            </b-table>
+                            <div class="has-text-centered">
+                                <button type="submit" class="button is-link is-rounded is-medium">
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>
+                                    <span>Submit</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        var vm = new Vue({
+            el: '#app',
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    data: {{ tests|tojson|safe }},
+                    columns: [
+                        {
+                            field: 'code',
+                            label: 'Code',
+                            numeric: false,
+                            sortable: true,
+                        },
+                        {
+                            field: 'name',
+                            label: 'Name',
+                            numeric: false,
+                            sortable: true,
+                        },
+                        {
+                            field: 'desc',
+                            label: 'Description',
+                            numeric: false,
+                        },
+                        {
+                            field: 'default_price',
+                            label: 'Default Price',
+                            numeric: true,
+                            sortable: true,
+                        },
+                    ],
+                    checkedRows: [],
+                }
+            },
+            computed: {
+                testList: function() {
+                    return JSON.stringify(this.checkedRows);
+                }
+            }
+        })
+    </script>
+{% endblock %}

@@ -1,10 +1,11 @@
+import json
 from datetime import datetime
-from flask import render_template, flash, redirect, url_for
+from flask import render_template, flash, redirect, url_for, request, jsonify
 from flask_login import login_required
 from app.main import db
 from . import comhealth
-from .forms import ServiceForm, TestProfileForm
-from .models import (ComHealthService, ComHealthRecord, ComHealthTestProfile,
+from .forms import ServiceForm, TestProfileForm, TestListForm
+from .models import (ComHealthService, ComHealthRecord, ComHealthTestItem,
                      ComHealthTestProfile, ComHealthTest, ComHealthTestGroup,
                      ComHealthTest)
 from .models import (ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTestProfileSchema,
@@ -75,10 +76,96 @@ def add_test_profile():
     return render_template('comhealth/new_profile.html', form=form)
 
 
+@comhealth.route('/test/tests/menu/<int:profile_id>')
+def profile_test_menu(profile_id=None):
+    '''Shows a menu of tests to be added to the profile.
+
+    :param profile_id:
+    :return:
+    '''
+    if profile_id:
+        tests = ComHealthTest.query.all()
+        t_schema = ComHealthTestSchema(many=True)
+        form = TestListForm()
+        profile = ComHealthTestProfile.query.get(profile_id)
+        action = url_for('comhealth.add_test_to_profile', profile_id=profile_id)
+        return render_template('comhealth/test_menu.html',
+                               tests=t_schema.dump(tests).data,
+                               form=form,
+                               action=action,
+                               profile=profile)
+    return redirect(url_for('comhealth.test_index'))
+
+
+@comhealth.route('/test/profiles/<int:profile_id>/add-test',
+                 methods=['GET', 'POST'])
+def add_test_to_profile(profile_id):
+    '''Add tests selected from the menu to be added to the profile.
+
+    :param profile_id:
+    :return:
+    '''
+    form = TestListForm()
+    if form.validate_on_submit() and profile_id:
+        data = form.test_list.data
+        tests = json.loads(data)
+
+        for test in tests:
+            new_item = ComHealthTestItem(test_id=int(test['id']),
+                                         price=float(test['default_price']), profile_id=profile_id)
+            db.session.add(new_item)
+        db.session.commit()
+        flash('Test(s) have been added to the profile')
+        return redirect(url_for('comhealth.test_profile', profile_id=profile_id))
+
+    flash('Falied to add tests to the profile.')
+    return redirect(url_for('comhealth.profile_test_menu', set_id=profile_id))
+
+
 @comhealth.route('/test/profiles/<int:profile_id>')
 def test_profile(profile_id):
+    '''Main Test Index with Profile, Group and Test tabs.
+
+    :param profile_id:
+    :return:
+    '''
     profile = ComHealthTestProfile.query.get(profile_id)
     return render_template('comhealth/test_profile_edit.html', profile=profile)
+
+
+@comhealth.route('/test/profiles/<int:profile_id>/save', methods=['GET', 'POST'])
+def save_test_profile(profile_id):
+    '''Generates a form for editing the price of the test item.
+
+    :param profile_id:
+    :return:
+    '''
+    profile = ComHealthTestProfile.query.get(profile_id)
+    for test in request.form:
+        if test.startswith('test'):
+            _, test_id = test.split('_')
+            test_item = ComHealthTestItem.query.get(int(test_id))
+            if request.form.get(test):
+                test_item.price = request.form.get(test)
+                db.session.add(test_item)
+    db.session.commit()
+    flash('Change has been saved.')
+    return redirect(url_for('comhealth.test_profile', profile_id=profile_id))
+
+
+@comhealth.route('/test/profiles/<int:profile_id>/tests/<int:item_id>/remove', methods=['GET', 'POST'])
+def remove_test_profile(profile_id, item_id):
+    '''Delete the test item from the profile.
+
+    :param profile_id:
+    :return:
+    '''
+    profile = ComHealthTestProfile.query.get(profile_id)
+    tests = [test for test in profile.test_items if test.id != item_id]
+    profile.test_items = tests
+    db.session.add(profile)
+    db.session.commit()
+    return redirect(url_for('comhealth.test_profile', profile_id=profile.id))
 
 
 @comhealth.route('/test/tests')
@@ -86,14 +173,13 @@ def test_profile(profile_id):
 def test_test_index(test_id=None):
     if test_id:
         test = ComHealthTest.query.get(test_id)
-        #TODO: create the test_test_edit.html
+        # TODO: create the test_test_edit.html
         return render_template('comhealth/test_test_edit.html', test=test)
 
     tests = ComHealthTest.query.all()
     t_schema = ComHealthTestSchema(many=True)
     return render_template('comhealth/test_test.html',
                            tests=t_schema.dump(tests).data)
-
 
 
 @comhealth.route('/services/new', methods=['GET', 'POST'])
@@ -120,7 +206,6 @@ def edit_service(service_id=None):
     if service_id:
         service = ComHealthService.query.get(service_id)
         return render_template('comhealth/edit_service.html', service=service)
-
 
 
 @comhealth.route('/services/profiles/<int:service_id>')

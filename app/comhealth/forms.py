@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, DateField, SelectField, IntegerField
+from wtforms import StringField, DateField, SelectField, IntegerField, HiddenField
 from wtforms.validators import DataRequired
 
 
@@ -17,3 +17,8 @@ class TestProfileForm(FlaskForm):
                                             (1, 'Male'),
                                             (2, 'All')],
                          default=2, coerce=int)
+
+
+class TestListForm(FlaskForm):
+    set_id = HiddenField('Set ID', validators=[DataRequired()])
+    test_list = HiddenField('Test List', validators=[DataRequired()])

@@ -44,13 +44,30 @@ class ComHealthCustomer(db.Model):
                                     self.lastname, self.org.name)
 
 
+class ComHealthContainer(db.Model):
+    __tablename__ = 'comhealth_containers'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    name = db.Column('code', db.String(64), index=True)
+    detail = db.Column('name', db.String(64), index=True)
+    desc = db.Column('desc', db.Text())
+    volume = db.Column('volume', db.Numeric(), default=0)
+
+
+    def __str__(self):
+        return self.name
+
+
 class ComHealthTest(db.Model):
     __tablename__ = 'comhealth_tests'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    code = db.Column('code', db.String(64), index=True)
     name = db.Column('name', db.String(64), index=True)
     desc = db.Column('desc', db.Text())
 
     default_price = db.Column('default_price', db.Numeric(), default=0)
+
+    container_id = db.Column('container_id', db.ForeignKey('comhealth_containers.id'))
+    container = db.relationship('ComHealthContainer', backref=db.backref('tests'))
 
     def __str__(self):
         return self.name
