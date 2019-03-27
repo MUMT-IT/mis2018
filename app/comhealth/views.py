@@ -101,3 +101,40 @@ def edit_service(service_id=None):
     if service_id:
         service = ComHealthService.query.get(service_id)
         return render_template('comhealth/edit_service.html', service=service)
+
+
+
+@comhealth.route('/services/profiles/<int:service_id>')
+@comhealth.route('/services/profiles/<int:service_id>/<int:profile_id>')
+def add_service_profile(service_id=None, profile_id=None):
+    if not (service_id and profile_id):
+        service = ComHealthService.query.get(service_id)
+        profiles = [pf for pf in ComHealthTestProfile.query.all() if pf not in service.profiles]
+        return render_template('comhealth/profile_list.html',
+                               profiles=profiles,
+                               service=service)
+
+    service = ComHealthService.query.get(service_id)
+    profile = ComHealthTestProfile.query.get(profile_id)
+    service.profiles.append(profile)
+    db.session.add(service)
+    db.session.commit()
+    flash('Profile {} has been added to the service.'.format(profile.name))
+    return redirect(url_for('comhealth.edit_service', service_id=service.id))
+
+
+@comhealth.route('/services/profiles/delete/<int:service_id>/<int:profile_id>')
+def delete_service_profile(service_id=None, profile_id=None):
+    if service_id and profile_id:
+        service = ComHealthService.query.get(service_id)
+        kept_profiles = []
+        for profile in service.profiles:
+            if profile.id != profile_id:
+                kept_profiles.append(profile)
+
+        service.profiles = kept_profiles
+        db.session.add(service)
+        db.session.commit()
+        flash('Profile {} has been removed to the service.'.format(profile.name))
+
+    return redirect(url_for('comhealth.edit_service', service_id=service.id))

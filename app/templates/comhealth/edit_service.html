@@ -33,7 +33,7 @@
                     {% with messages = get_flashed_messages() %}
                         {% if messages %}
                             {% for msg in messages %}
-                                <b-notification type="is-danger">{{ msg }}</b-notification>
+                                <b-notification type="is-light">{{ msg }}</b-notification>
                             {% endfor %}
                         {% endif %}
                     {% endwith %}
@@ -45,7 +45,7 @@
                         <div class="card-header">
                             <p class="card-header-title">
                                 <span>Profile</span>&nbsp;
-                                <a class="button is-rounded is-link">
+                                <a class="button is-rounded is-link" href="{{ url_for('comhealth.add_service_profile', service_id=service.id) }}">
                                     <span class="icon">
                                         <i class="fas fa-plus"></i>
                                     </span>
@@ -78,9 +78,11 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="icon">
-                                                <i class="far fa-trash-alt"></i>
-                                            </span>
+                                            <a href="{{ url_for('comhealth.delete_service_profile', service_id=service.id, profile_id=profile.id) }}">
+                                                <span class="icon">
+                                                    <i class="far fa-trash-alt"></i>
+                                                </span>
+                                            </a>
                                         </td>
                                     </tr>
                                 {% endfor %}
