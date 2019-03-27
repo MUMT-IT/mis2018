@@ -236,7 +236,7 @@ def delete_service_profile(service_id=None, profile_id=None):
             if profile.id != profile_id:
                 kept_profiles.append(profile)
             else:
-                flash(u'Profile {} has been removed to the service.'.format(profile.name))
+                flash(u'Profile {} has been removed from the service.'.format(profile.name))
 
         service.profiles = kept_profiles
         db.session.add(service)
