@@ -68,11 +68,17 @@ def add_test_profile():
             age_max=form.age_max.data,
             age_min=form.age_min.data,
             gender=form.gender.data,
+            quote=form.quote.data,
         )
         db.session.add(new_profile)
         db.session.commit()
         flash('Profile {} has been added.')
         return redirect(url_for('comhealth.test_index'))
+    else:
+        for field_name, errors in form.errors.items():
+            for error in errors:
+                flash(u'{} {}'.format(field_name, error))
+
     return render_template('comhealth/new_profile.html', form=form)
 
 

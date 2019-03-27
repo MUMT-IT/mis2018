@@ -1,6 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, DateField, SelectField, IntegerField, HiddenField
-from wtforms.validators import DataRequired
+from wtforms import StringField, DateField, SelectField, IntegerField, HiddenField, FloatField
+from wtforms.validators import DataRequired, optional
 
 
 class ServiceForm(FlaskForm):
@@ -11,12 +11,13 @@ class ServiceForm(FlaskForm):
 class TestProfileForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()])
     desc = StringField('Description', validators=[DataRequired()])
-    age_max = IntegerField('Age max')
-    age_min = IntegerField('Age min')
+    age_max = IntegerField('Age max', validators=[optional()])
+    age_min = IntegerField('Age min', validators=[optional()])
     gender = SelectField('Gender', choices=[(0, 'Female'),
                                             (1, 'Male'),
                                             (2, 'All')],
                          default=2, coerce=int)
+    quote = FloatField('Quote', validators=[optional()])
 
 
 class TestListForm(FlaskForm):
