@@ -3,7 +3,7 @@ from flask import render_template, flash, redirect, url_for
 from flask_login import login_required
 from app.main import db
 from . import comhealth
-from .forms import ServiceForm
+from .forms import ServiceForm, TestProfileForm
 from .models import (ComHealthService, ComHealthRecord, ComHealthTestProfile,
                      ComHealthTestProfile, ComHealthTest, ComHealthTestGroup,
                      ComHealthTest)
@@ -57,6 +57,24 @@ def test_group_index(group_id=None):
                            groups=gr_schema.dump(groups).data)
 
 
+@comhealth.route('/test/profiles/new', methods=['GET', 'POST'])
+def add_test_profile():
+    form = TestProfileForm()
+    if form.validate_on_submit():
+        new_profile = ComHealthTestProfile(
+            name=form.name.data,
+            desc=form.desc.data,
+            age_max=form.age_max.data,
+            age_min=form.age_min.data,
+            gender=form.gender.data,
+        )
+        db.session.add(new_profile)
+        db.session.commit()
+        flash('Profile {} has been added.')
+        return redirect(url_for('comhealth.test_index'))
+    return render_template('comhealth/new_profile.html', form=form)
+
+
 @comhealth.route('/test/profiles/<int:profile_id>')
 def test_profile(profile_id):
     profile = ComHealthTestProfile.query.get(profile_id)
@@ -64,11 +82,12 @@ def test_profile(profile_id):
 
 
 @comhealth.route('/test/tests')
-@comhealth.route('/test/tests/<int:group_id>')
+@comhealth.route('/test/tests/<int:test_id>')
 def test_test_index(test_id=None):
     if test_id:
         test = ComHealthTest.query.get(test_id)
-        return render_template('comhealth/test_group_edit.html', test=test)
+        #TODO: create the test_test_edit.html
+        return render_template('comhealth/test_test_edit.html', test=test)
 
     tests = ComHealthTest.query.all()
     t_schema = ComHealthTestSchema(many=True)

@@ -24,7 +24,8 @@
             </div>
             <div class="column">
                 <div class="has-text-right">
-                    <a class="button is-rounded is-link">
+                    <a class="button is-rounded is-link"
+                        href="{{ url_for('comhealth.add_test_profile') }}">
                     <span class="icon">
                         <i class="fas fa-plus"></i>
                     </span>
@@ -52,6 +53,11 @@
                                         <i class="far fa-eye"></i>
                                     </span>&nbsp;
                                 <span>View</span>
+                            </a>
+                        </b-table-column>
+                        <b-table-column field="tests" label="No. Tests" sortable>
+                            <a v-bind:href="'/comhealth/test/profiles/'+props.row.id">
+                                <% props.row.test_items.length %>
                             </a>
                         </b-table-column>
                     </template>
