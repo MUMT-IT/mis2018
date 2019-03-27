@@ -3,7 +3,7 @@ from flask import render_template, flash, redirect, url_for
 from flask_login import login_required
 from app.main import db
 from . import comhealth
-from .forms import ScheduleForm
+from .forms import ServiceForm
 from .models import (ComHealthService, ComHealthRecord, ComHealthTestProfile,
                      ComHealthTestProfile, ComHealthTest, ComHealthTestGroup,
                      ComHealthTest)
@@ -77,9 +77,9 @@ def test_test_index(test_id=None):
 
 
 
-@comhealth.route('/schedule/new', methods=['GET', 'POST'])
-def add_schedule():
-    form = ScheduleForm()
+@comhealth.route('/services/new', methods=['GET', 'POST'])
+def add_service():
+    form = ServiceForm()
     if form.validate_on_submit():
         try:
             service_date = datetime.strptime(form.service_date.data, '%Y-%m-%d')
@@ -94,3 +94,10 @@ def add_schedule():
             return redirect(url_for('comhealth.index'))
 
     return render_template('comhealth/new_schedule.html', form=form)
+
+
+@comhealth.route('/services/edit/<int:service_id>', methods=['GET', 'POST'])
+def edit_service(service_id=None):
+    if service_id:
+        service = ComHealthService.query.get(service_id)
+        return render_template('comhealth/edit_service.html', service=service)

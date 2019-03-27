@@ -52,7 +52,7 @@
             <div class="columns">
                 <div class="column has-text-right">
                     <a class="button is-rounded is-link is-medium"
-                        href="{{ url_for('comhealth.add_schedule') }}">
+                        href="{{ url_for('comhealth.add_service') }}">
                         <span class="icon">
                             <i class="fas fa-plus"></i>
                         </span>
@@ -86,6 +86,12 @@
                                         <i class="far fa-eye"></i>
                                     </span>&nbsp;
                                     <span>View</span>
+                                </a>
+                                <a class="button is-rounded is-light" v-bind:href="'/comhealth/services/edit/'+props.row.id">
+                                    <span class="icon">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </span>&nbsp;
+                                    <span>Edit</span>
                                 </a>
                             </b-table-column>
                         </template>
