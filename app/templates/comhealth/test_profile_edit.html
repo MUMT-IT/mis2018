@@ -1,44 +1,40 @@
 {% extends "base.html" %}
 {% block page_content %}
-    <section class="hero is-info is-small">
-        <div class="hero-head">
-            <nav class="navbar">
-                <div class="container">
-                    <div class="navbar-brand">
-                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </span>
-                    </div>
-                    <div id="navbarMenuHeroA" class="navbar-menu">
-                        <div class="navbar-end">
-                            <a class="navbar-item"
-                               href="/comhealth">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                                <span>Home</span>
-                            </a>
-                            <a class="navbar-item is-active"
-                               href="/comhealth/tests">
-                                <span>Tests</span>
-                            </a>
-                        </div>
+        <nav class="navbar is-info">
+            <div class="container">
+                <div class="navbar-brand">
+                    <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </span>
+                </div>
+                <div id="navbarMenuHeroA" class="navbar-menu">
+                    <div class="navbar-end">
+                        <a class="navbar-item"
+                           href="/comhealth">
+                            <span class="icon">
+                                <i class="fas fa-home"></i>
+                            </span>
+                            <span>Home</span>
+                        </a>
+                        <a class="navbar-item is-active"
+                           href="/comhealth/tests">
+                            <span>Tests</span>
+                        </a>
                     </div>
                 </div>
-            </nav>
-        </div>
-        <div class="hero-body">
-            <div class="container has-text-centered">
-                <img src="{{ url_for('static', filename='img/flask-2.png') }}" width="100">
-                <h3 class="title">Test Profile Manager</h3>
-                <h3 class="subtitle">Profile name : {{ profile.name }}</h3>
             </div>
-        </div>
+        </nav>
     </section>
     <section class="section" id="app">
         <div class="container">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('comhealth.test_index') }}">Test Index</a></li>
+                <li><a href="#">Test Edit</a></li>
+            </ul>
+        </nav>
             <div class="columns">
                 <div class="column">
                     {% with messages = get_flashed_messages() %}
@@ -51,8 +47,15 @@
                 </div>
             </div>
             <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">Profile Test List</h1>
+                    <h1 class="subtitle">Use the form below to edit the tests.</h1>
+                    <button class="button is-rounded is-medium"><strong>Profile {{ profile.name }}</strong></button>
+                </div>
+            </div>
+            <div class="columns">
                 <div class="column has-text-right">
-                    <a class="button is-rounded is-link"
+                    <a class="button is-rounded is-success"
                         href="{{ url_for('comhealth.profile_test_menu', profile_id=profile.id) }}">
                         <span class="icon">
                             <i class="fas fa-plus"></i>
@@ -108,6 +111,13 @@
                             </span>
                             <span>Save</span>
                         </button>
+                        <a class="button is-medium is-rounded is-light"
+                            href="{{ url_for('comhealth.test_index') }}">
+                            <span class="icon">
+                                <i class="fas fa-times"></i>
+                            </span>
+                            <span>Close</span>
+                        </a>
                     </form>
                 </div>
             </div>
