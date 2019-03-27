@@ -119,7 +119,7 @@ def add_service_profile(service_id=None, profile_id=None):
     service.profiles.append(profile)
     db.session.add(service)
     db.session.commit()
-    flash('Profile {} has been added to the service.'.format(profile.name))
+    flash(u'Profile {} has been added to the service.'.format(profile.name))
     return redirect(url_for('comhealth.edit_service', service_id=service.id))
 
 
@@ -131,10 +131,47 @@ def delete_service_profile(service_id=None, profile_id=None):
         for profile in service.profiles:
             if profile.id != profile_id:
                 kept_profiles.append(profile)
+            else:
+                flash(u'Profile {} has been removed to the service.'.format(profile.name))
 
         service.profiles = kept_profiles
         db.session.add(service)
         db.session.commit()
-        flash('Profile {} has been removed to the service.'.format(profile.name))
+
+    return redirect(url_for('comhealth.edit_service', service_id=service.id))
+
+
+@comhealth.route('/services/groups/<int:service_id>')
+@comhealth.route('/services/groups/<int:service_id>/<int:group_id>')
+def add_service_group(service_id=None, group_id=None):
+    if not (service_id and group_id):
+        service = ComHealthService.query.get(service_id)
+        groups = [gr for gr in ComHealthTestGroup.query.all() if gr not in service.groups]
+        return render_template('comhealth/group_list.html',
+                               groups=groups,
+                               service=service)
+
+    service = ComHealthService.query.get(service_id)
+    group = ComHealthTestGroup.query.get(group_id)
+    service.groups.append(group)
+    db.session.add(service)
+    db.session.commit()
+    flash(u'Group {} has been added to the service.'.format(group.name))
+    return redirect(url_for('comhealth.edit_service', service_id=service.id))
+
+
+@comhealth.route('/services/groups/delete/<int:service_id>/<int:group_id>')
+def delete_service_group(service_id=None, group_id=None):
+    if service_id and group_id:
+        service = ComHealthService.query.get(service_id)
+        kept_groups = []
+        for group in service.groups:
+            if group.id != group_id:
+                kept_groups.append(group)
+            else:
+                flash(u'Group {} has been removed to the service.'.format(group.name))
+        service.groups = kept_groups
+        db.session.add(service)
+        db.session.commit()
 
     return redirect(url_for('comhealth.edit_service', service_id=service.id))

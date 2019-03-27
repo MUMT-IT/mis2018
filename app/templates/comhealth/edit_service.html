@@ -98,7 +98,8 @@
                         <div class="card-header">
                             <p class="card-header-title">
                                 <span>Group</span>&nbsp;
-                                <a class="button is-rounded is-link">
+                                <a class="button is-rounded is-link"
+                                    href="{{ url_for('comhealth.add_service_group', service_id=service.id) }}">
                                     <span class="icon">
                                         <i class="fas fa-plus"></i>
                                     </span>
@@ -131,9 +132,11 @@
                                             </span>
                                         </td>
                                         <td>
-                                            <span class="icon">
-                                                <i class="far fa-trash-alt"></i>
-                                            </span>
+                                            <a href="{{ url_for('comhealth.delete_service_group', service_id=service.id, group_id=group.id) }}">
+                                                <span class="icon">
+                                                    <i class="far fa-trash-alt"></i>
+                                                </span>
+                                            </a>
                                         </td>
                                     </tr>
                                 {% endfor %}
