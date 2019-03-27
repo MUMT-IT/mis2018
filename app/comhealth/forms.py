@@ -3,6 +3,6 @@ from wtforms import StringField, DateField
 from wtforms.validators import DataRequired
 
 
-class ScheduleForm(FlaskForm):
+class ServiceForm(FlaskForm):
     location = StringField('Location', validators=[DataRequired()])
     service_date = StringField('Service Date', validators=[DataRequired()])
