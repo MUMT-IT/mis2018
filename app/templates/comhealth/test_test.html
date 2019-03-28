@@ -24,7 +24,8 @@
                 </div>
                 <div class="column">
                     <div class="has-text-right">
-                        <a class="button is-rounded is-link">
+                        <a class="button is-rounded is-link"
+                            href="{{ url_for('comhealth.add_new_test') }}">
                     <span class="icon">
                         <i class="fas fa-plus"></i>
                     </span>
@@ -51,7 +52,8 @@
                                 <% props.row.default_price %>
                             </b-table-column>
                             <b-table-column field="" label="Edit" sortable>
-                                <a class="button is-rounded is-light">
+                                <a class="button is-rounded is-light"
+                                    :href="'/comhealth/test/tests/edit/'+props.row.id">
                                     <span class="icon">
                                         <i class="fas fa-pencil-alt"></i>
                                     </span><span>Edit</span>

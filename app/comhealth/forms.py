@@ -23,3 +23,11 @@ class TestProfileForm(FlaskForm):
 class TestListForm(FlaskForm):
     set_id = HiddenField('Set ID', validators=[DataRequired()])
     test_list = HiddenField('Test List', validators=[DataRequired()])
+
+
+class TestForm(FlaskForm):
+    code = StringField('Code', validators=[DataRequired()])
+    name = StringField('Name', validators=[DataRequired()])
+    desc = StringField('Description', validators=[DataRequired()])
+    default_price = FloatField('Default Price', validators=[optional()])
+    container = SelectField('Container', coerce=int)

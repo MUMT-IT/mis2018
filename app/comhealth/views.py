@@ -4,9 +4,9 @@ from flask import render_template, flash, redirect, url_for, request, jsonify
 from flask_login import login_required
 from app.main import db
 from . import comhealth
-from .forms import ServiceForm, TestProfileForm, TestListForm
+from .forms import ServiceForm, TestProfileForm, TestListForm, TestForm
 from .models import (ComHealthService, ComHealthRecord, ComHealthTestItem,
-                     ComHealthTestProfile, ComHealthTest, ComHealthTestGroup,
+                     ComHealthTestProfile, ComHealthContainer, ComHealthTestGroup,
                      ComHealthTest)
 from .models import (ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTestProfileSchema,
                      ComHealthTestGroupSchema, ComHealthTestSchema)
@@ -267,6 +267,32 @@ def test_test_index(test_id=None):
     t_schema = ComHealthTestSchema(many=True)
     return render_template('comhealth/test_test.html',
                            tests=t_schema.dump(tests).data)
+
+
+@comhealth.route('/test/tests/new', methods=['GET', 'POST'])
+def add_new_test():
+    form = TestForm()
+    containers = [(c.id, c.name) for c in ComHealthContainer.query.all()]
+    form.container.choices = containers
+    if form.validate_on_submit():
+        new_test = ComHealthTest(
+            code=form.code.data,
+            name=form.name.data,
+            desc=form.desc.data,
+            default_price=form.default_price.data,
+            container_id=form.container.data
+        )
+        db.session.add(new_test)
+        db.session.commit()
+        flash('New test added successfully.')
+        return redirect(url_for('comhealth.test_test_index'))
+    return render_template('comhealth/new_test.html',
+                           form=form)
+
+
+@comhealth.route('/test/tests/edit/<int:test_id>', methods=['GET', 'POST'])
+def edit_test(test_id):
+    return render_template('comhealth/edit_test.html')
 
 
 @comhealth.route('/services/new', methods=['GET', 'POST'])
