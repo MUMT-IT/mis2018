@@ -20,6 +20,17 @@ class TestProfileForm(FlaskForm):
     quote = FloatField('Quote', validators=[optional()])
 
 
+class TestGroupForm(FlaskForm):
+    name = StringField('Name', validators=[DataRequired()])
+    desc = StringField('Description', validators=[DataRequired()])
+    age_max = IntegerField('Age max', validators=[optional()])
+    age_min = IntegerField('Age min', validators=[optional()])
+    gender = SelectField('Gender', choices=[(0, 'Female'),
+                                            (1, 'Male'),
+                                            (2, 'All')],
+                         default=2, coerce=int)
+
+
 class TestListForm(FlaskForm):
     set_id = HiddenField('Set ID', validators=[DataRequired()])
     test_list = HiddenField('Test List', validators=[DataRequired()])

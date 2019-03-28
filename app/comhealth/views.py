@@ -4,7 +4,7 @@ from flask import render_template, flash, redirect, url_for, request, jsonify
 from flask_login import login_required
 from app.main import db
 from . import comhealth
-from .forms import ServiceForm, TestProfileForm, TestListForm, TestForm
+from .forms import ServiceForm, TestProfileForm, TestListForm, TestForm, TestGroupForm
 from .models import (ComHealthService, ComHealthRecord, ComHealthTestItem,
                      ComHealthTestProfile, ComHealthContainer, ComHealthTestGroup,
                      ComHealthTest)
@@ -80,6 +80,29 @@ def add_test_profile():
                 flash(u'{} {}'.format(field_name, error))
 
     return render_template('comhealth/new_profile.html', form=form)
+
+
+@comhealth.route('/test/groups/new', methods=['GET', 'POST'])
+def add_test_group():
+    form = TestGroupForm()
+    if form.validate_on_submit():
+        new_group = ComHealthTestGroup(
+            name=form.name.data,
+            desc=form.desc.data,
+            age_max=form.age_max.data,
+            age_min=form.age_min.data,
+            gender=form.gender.data,
+        )
+        db.session.add(new_group)
+        db.session.commit()
+        flash('Group {} has been added.')
+        return redirect(url_for('comhealth.test_index'))
+    else:
+        for field_name, errors in form.errors.items():
+            for error in errors:
+                flash(u'{} {}'.format(field_name, error))
+
+    return render_template('comhealth/new_group.html', form=form)
 
 
 @comhealth.route('/test/tests/profile/menu/<int:profile_id>')
