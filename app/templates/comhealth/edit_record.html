@@ -38,80 +38,96 @@
     </section>
     <section class="section" id="app">
         <div class="container">
-        <div class="columns">
-            <div class="column">
-                <input type="text" class="input is-rounded is-large" placeholder="Enter a lab number or scan a barcode" autofocus>
-            </div>
-        </div>
-            <div class="columns">
-                <div class="column">
-                    <div class="card">
-                        <header class="card-header">
-                            <p class="card-header-title">Personal Information</p>
-                        </header>
-                        <div class="card-content">
-                            <div class="columns">
-                                <div class="column">
-                                    <p><strong>ชื่อ</strong> {{ record.customer.firstname }}
-                                        <strong>นามสกุล</strong> {{ record.customer.lastname }}</p>
-                                    <p><strong>องค์กร</strong> {{ record.customer.org.name }}</p>
-                                </div>
-                                <div class="column">
-                                    <p><strong>วันเดือนปีเกิด</strong> {{ record.customer.dob }}</p>
-                                    {% if record.customer.gender %}
-                                        <p><strong>เพศ</strong> {% if record.customer.gender == 0 %}ชาย{% else %}
-                                            หญิง{% endif %}</p>
-                                    {% else %}
-                                        <p><strong>เพศ</strong> ไม่ระบุ</p>
-                                    {% endif %}
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="record_id" value="{{ record.id }}">
+                <div class="columns">
+                    <div class="column">
+                        <input type="text" class="input is-rounded is-large" name="service_code"
+                               placeholder="Enter a lab number or scan a barcode" autofocus
+                               {% if record.labno %}disabled value="{{ record.labno }}"{% endif %}
+                        >
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <div class="card">
+                            <header class="card-header">
+                                <p class="card-header-title">Personal Information</p>
+                            </header>
+                            <div class="card-content">
+                                <div class="columns">
+                                    <div class="column">
+                                        <p><strong>ชื่อ</strong> {{ record.customer.firstname }}
+                                            <strong>นามสกุล</strong> {{ record.customer.lastname }}</p>
+                                        <p><strong>องค์กร</strong> {{ record.customer.org.name }}</p>
+                                    </div>
+                                    <div class="column">
+                                        <p><strong>วันเดือนปีเกิด</strong> {{ record.customer.dob }}</p>
+                                        {% if record.customer.gender %}
+                                            <p><strong>เพศ</strong> {% if record.customer.gender == 0 %}ชาย{% else %}
+                                                หญิง{% endif %}</p>
+                                        {% else %}
+                                            <p><strong>เพศ</strong> ไม่ระบุ</p>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="columns">
                 {% for profile in record.service.profiles %}
-                    <div class="column">
-                        <div class="card">
-                            <div class="card-header">
-                                <p class="card-header-title"><span>Profile</span>&nbsp;<span>{{ profile.name }}</span></p>
-                            </div>
-                            <div class="card-content">
-                                <p class="subtitle is-size-6">{{ profile.desc }}</p>
-                                <ul>
-                                    {% for item in profile.test_items %}
-                                        <li>
-                                            <b-checkbox v-model="true">{{ item.test.desc }} ({{ item.price or item.test.default_price }})</b-checkbox>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
+                    <div class="columns">
+                        <div class="column">
+                            <div class="card">
+                                <div class="card-header">
+                                    <p class="card-header-title">
+                                        <span>Profile</span>&nbsp;<span>{{ profile.name }}</span></p>
+                                </div>
+                                <div class="card-content">
+                                    <p class="subtitle is-size-6">{{ profile.desc }}</p>
+                                    <ul>
+                                        {% for item in profile.test_items %}
+                                            <li>
+                                                <label class="checkbox">
+                                                    <input type="checkbox" name="profile_{{ item.id }}" checked>
+                                                    <strong>{{ item.test.name }}</strong> {{ item.test.desc }}
+                                                </label>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
                 {% endfor %}
-            </div>
-            <div class="columns">
                 {% for group in record.service.groups %}
-                    <div class="column">
-                        <div class="card">
-                            <div class="card-header">
-                                <p class="card-header-title"><span>Group</span>&nbsp;{{ group.name }}</p>
-                            </div>
-                            <div class="card-content">
-                                <p class="subtitle is-size-6">{{ group.desc }}</p>
-                                <ul>
-                                    {% for item in group.test_items %}
-                                        <li>
-                                            <b-checkbox v-model="false">{{ item.test.desc }} ({{ item.price or item.test.default_price }})</b-checkbox>
-                                        </li>
-                                    {% endfor %}
-                                </ul>
+                    <div class="columns">
+                        <div class="column">
+                            <div class="card">
+                                <div class="card-header">
+                                    <p class="card-header-title"><span>Group</span>&nbsp;{{ group.name }}</p>
+                                </div>
+                                <div class="card-content">
+                                    <p class="subtitle is-size-6">{{ group.desc }}</p>
+                                    <ul>
+                                        {% for item in group.test_items %}
+                                            <li>
+                                                <label class="checkbox">
+                                                    <input type="checkbox" name="test_{{ item.id }}">
+                                                    <strong>{{ item.test.name }}</strong> {{ item.test.desc }}
+                                                    ({{ item.price or item.test.default_price }})
+                                                </label>
+                                            </li>
+                                        {% endfor %}
+                                    </ul>
+                                </div>
                             </div>
                         </div>
                     </div>
                 {% endfor %}
-            </div>
+            <button class="button is-rounded is-medium" type="submit">Proceed</button>
+            </form>
         </div>
     </section>
 {% endblock %}

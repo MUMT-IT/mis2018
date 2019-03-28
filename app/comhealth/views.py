@@ -29,9 +29,35 @@ def display_service_customers(service_id):
                            records=record_schema.dump(service.records).data)
 
 
-@comhealth.route('/checkin/<int:record_id>')
+@comhealth.route('/checkin/<int:record_id>', methods=['GET', 'POST'])
 def edit_record(record_id):
     record = ComHealthRecord.query.get(record_id)
+    all_tests = []
+    total_price = 0
+    containers = set()
+    if request.method == 'POST':
+        if not record.labno:
+            labno = request.form.get('service_code')
+            record.labno = int(labno)
+            db.session.add(record)
+            db.session.commit()
+        for field in request.form:
+            if field.startswith('test_'):
+                _, test_id = field.split('_')
+                test_item = ComHealthTestItem.query.get(int(test_id))
+                containers.add(test_item.test.container)
+                all_tests.append(test_item)
+                total_price += test_item.price or test_item.test.default_price
+            elif field.startswith('profile_'):
+                _, test_id = field.split('_')
+                test_item = ComHealthTestItem.query.get(int(test_id))
+                all_tests.append(test_item)
+                containers.add(test_item.test.container)
+
+        return render_template('comhealth/record_summary.html', record=record,
+                               all_tests=all_tests, total_price=total_price,
+                               containers=containers,
+                               )
 
     return render_template('comhealth/edit_record.html',
                            record=record)
