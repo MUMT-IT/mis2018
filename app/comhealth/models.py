@@ -104,7 +104,7 @@ class ComHealthRecord(db.Model):
     __tablename__ = 'comhealth_test_records'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     date = db.Column('date', db.Date())
-    labno = db.Column('labno', db.Integer)
+    labno = db.Column('labno', db.String(16))
     customer_id = db.Column('customer_id', db.ForeignKey('comhealth_customers.id'))
     customer = db.relationship('ComHealthCustomer', backref=db.backref('records'))
     service_id = db.Column('service_id', db.ForeignKey('comhealth_services.id'))
