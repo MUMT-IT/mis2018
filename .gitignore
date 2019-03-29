@@ -8,3 +8,4 @@ utils/
 data/
 backup/
 analysis/
+*.env
