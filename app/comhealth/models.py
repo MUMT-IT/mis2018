@@ -106,6 +106,16 @@ class ComHealthTestProfile(db.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def quote_price(self):
+        total_price = 0
+        if self.quote:
+            return self.quote
+        else:
+            for item in self.test_items:
+                total_price += item.price or item.test.default_price
+        return total_price
+
 
 class ComHealthRecord(db.Model):
     __tablename__ = 'comhealth_test_records'
