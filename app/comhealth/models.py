@@ -21,6 +21,13 @@ group_service_assoc_table = db.Table('comhealth_group_service_assoc',
                                      db.Column('service_id', db.Integer, db.ForeignKey('comhealth_services.id'),
                                                primary_key=True))
 
+test_item_record_table = db.Table('comhealth_test_item_records',
+                                  db.Column('test_item_id', db.Integer, db.ForeignKey('comhealth_test_items.id'),
+                                            primary_key=True),
+                                  db.Column('record_id', db.Integer, db.ForeignKey('comhealth_test_records.id'),
+                                            primary_key=True),
+                                  )
+
 
 class ComHealthOrg(db.Model):
     __tablename__ = 'comhealth_orgs'
@@ -111,6 +118,8 @@ class ComHealthRecord(db.Model):
     service = db.relationship('ComHealthService',
                               backref=db.backref('records'))
     checkin_datetime = db.Column('checkin_datetime', db.DateTime(timezone=True))
+    ordered_tests = db.relationship('ComHealthTestItem', backref=db.backref('records'),
+                                    secondary=test_item_record_table)
 
 
 class ComHealthTestItem(db.Model):
