@@ -122,6 +122,18 @@ def remove_item_from_order(record_id, item_id):
             return redirect(url_for('comhealth.edit_record', record_id=record.id))
 
 
+@comhealth.route('/record/<int:record_id>/update-delivery-status')
+def update_delivery_status(record_id):
+    if record_id:
+        record = ComHealthRecord.query.get(record_id)
+        record.urgent = not record.urgent
+        record.updated_at = datetime.now(tz=bangkok)
+        db.session.add(record)
+        db.session.commit()
+        flash('Delivery request has been updated.')
+        return redirect(url_for('comhealth.edit_record', record_id=record.id))
+
+
 @comhealth.route('/tests')
 def test_index():
     profiles = ComHealthTestProfile.query.all()

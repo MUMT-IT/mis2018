@@ -79,6 +79,22 @@
                                 {% endif %}
                             </td>
                         </tr>
+                        <tr>
+                            <td><h1 class="subtitle">การรายงานผล
+                                <a class="button is-rounded is-warning" href="{{ url_for('comhealth.update_delivery_status', record_id=record.id) }}">
+                                    <span class="icon">
+                                        <i class="fas fa-sync"></i>
+                                    </span>
+                                </a></h1>
+                            </td>
+                            <td>
+                                {% if record.urgent %}
+                                    <h3 class="title has-text-danger is-size-4">แบบด่วน</h3>
+                                {% else %}
+                                    <h3 class="title has-text-success is-size-4">แบบปกติ</h3>
+                                {% endif %}
+                            </td>
+                        </tr>
                         </tbody>
                     </table>
                 </div>
