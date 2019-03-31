@@ -1,5 +1,7 @@
 from ..main import db, ma
 from marshmallow import fields
+from dateutil.relativedelta import relativedelta
+from datetime import date
 
 
 class SmartNested(fields.Nested):
@@ -49,6 +51,18 @@ class ComHealthCustomer(db.Model):
     def __str__(self):
         return u'{}{} {} {}'.format(self.title, self.firstname,
                                     self.lastname, self.org.name)
+
+    @property
+    def thai_dob(self):
+        return u'{}/{}/{}'.format(self.dob.day, self.dob.month, self.dob.year + 543)
+
+    @property
+    def age(self):
+        if self.dob:
+            rdelta = relativedelta(date.today(), self.dob)
+            return rdelta
+        else:
+            return None
 
 
 class ComHealthContainer(db.Model):

@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+from datetime import date
 import pytz
 from flask import render_template, flash, redirect, url_for, request, jsonify
 from flask_login import login_required
@@ -38,6 +39,17 @@ def edit_record(record_id):
     profile_item_cost = 0
     group_item_cost = 0
     if request.method == 'POST':
+        if not record.customer.dob and request.form.get('dob'):
+            try:
+                day, month, year = request.form.get('dob', '').split('/')
+                year = int(year) - 543
+                month = int(month)
+                day = int(day)
+            except:
+                flash('Date of birth is not valid.')
+                pass
+            else:
+                record.customer.dob = date(year, month, day)
         if not record.checkin_datetime:
             record.checkin_datetime = datetime.now(tz=bangkok)
         if not record.labno:
