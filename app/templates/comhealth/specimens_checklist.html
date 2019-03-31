@@ -43,7 +43,7 @@
                 <div class="column has-text-centered">
                     <h1 class="title">Specimens Summary</h1>
                     <div class="tags has-addons is-centered">
-                        <div class="tag is-light is-large">Service</div>
+                        <div class="tag is-light is-large">Service Date</div>
                         <div class="tag is-link is-large">{{ service.date }}</div>
                     </div>
                     <h1 class="subtitle">สถานที่ {{ service.location }}</h1>
@@ -54,14 +54,18 @@
                 <div class="column is-two-thirds is-offset-2">
                     <div class="has-text-centered">
                         <a class="button is-rounded is-medium is-warning"
-                            href="{{ url_for('comhealth.summarize_specimens', service_id=service.id) }}">
-                            <span class="icon">
-                                <i class="fas fa-sync"></i>
-                            </span>
+                           href="{{ url_for('comhealth.summarize_specimens', service_id=service.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-sync"></i>
+                                </span>
                             <span>Refresh</span>
                         </a>
                     </div>
-                    <table class="table is-fullwidth">
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-two-thirds is-offset-2">
+                    <table class="table is-fullwidth is-narrow is-striped is-bordered">
                         <thead>
                             <th>Lab No.</th>
                             {% for ct in containers %}
@@ -70,6 +74,7 @@
                         </thead>
                         <tbody>
                             {% for rec in sorted_records %}
+                                {% if rec.labno %}
                                 <tr>
                                     <td>{{ rec.labno }}</td>
                                         {% for ct in containers %}
@@ -88,8 +93,15 @@
                                         {% endif %}
                                     {% endfor %}
                                 </tr>
+                                {% endif %}
                             {% endfor %}
                         </tbody>
+                        <tfoot>
+                        <th>Lab No.</th>
+                        {% for ct in containers %}
+                            <th>{{ ct }}</th>
+                        {% endfor %}
+                        </tfoot>
                     </table>
                 </div>
             </div>
