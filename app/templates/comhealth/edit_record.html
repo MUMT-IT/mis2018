@@ -45,7 +45,7 @@
                     <div class="column">
                         <input type="text" class="input is-rounded is-large" name="service_code"
                                placeholder="Enter a lab number or scan a barcode" autofocus
-                               {% if record.labno %}disabled value="{{ record.labno }}"{% endif %}
+                               {% if record.labno %} readonly value="{{ record.labno }}"{% endif %}
                                required
                         >
                     </div>
@@ -69,7 +69,7 @@
                                             <div class="control">
                                                 <input class="input" name='dob' type="text" value='{{ record.customer.thai_dob or "" }}' placeholder="dd/mm/yyyy"
                                                        {% if record.customer.dob %}
-                                                        disabled
+                                                        readonly
                                                        {% endif %}
                                                 />
                                             </div>
@@ -92,6 +92,7 @@
                     </div>
                 </div>
                 {% for profile in record.service.profiles %}
+                    {% if record.customer.age.years >= profile.age_min or record.customer.age.years <= profile.age_max %}
                     <div class="columns">
                         <div class="column">
                             <div class="card">
@@ -105,7 +106,9 @@
                                         {% for item in profile.test_items %}
                                             <li>
                                                 <label class="checkbox">
-                                                    <input type="checkbox" name="profile_{{ item.id }}" checked>
+                                                    <input type="checkbox" name="profile_{{ item.id }}"
+                                                           checked
+                                                    >
                                                     <strong>{{ item.test.name }}</strong> {{ item.test.desc }}
                                                 </label>
                                             </li>
@@ -115,6 +118,7 @@
                             </div>
                         </div>
                     </div>
+                    {% endif %}
                 {% endfor %}
                 {% for group in record.service.groups %}
                     <div class="columns">
