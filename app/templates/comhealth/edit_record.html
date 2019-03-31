@@ -113,7 +113,6 @@
                     </div>
                 </div>
                 {% for profile in record.service.profiles %}
-                    {% if record.customer.age.years >= profile.age_min and record.customer.age.years <= profile.age_max %}
                     <div class="columns">
                         <div class="column">
                             <div class="card">
@@ -139,7 +138,6 @@
                             </div>
                         </div>
                     </div>
-                    {% endif %}
                 {% endfor %}
                 {% for group in record.service.groups %}
                     <div class="columns">
