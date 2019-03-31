@@ -532,11 +532,20 @@ def summarize_specimens(service_id):
             for test_item in group.test_items:
                 containers.add(test_item.test.container.name)
 
+        record_ids = dict([(int(r.labno[-4:]), r) for r in service.records if r.labno])
+        print(record_ids)
+        sorted_records = []
+        for i in range(len(service.records)):
+            if i+1 in record_ids:
+                sorted_records.append(record_ids[i+1])
+            else:
+                sorted_records.append(None)
+
         return render_template('comhealth/specimens_checklist.html',
                                summary_date=datetime.now(tz=bangkok),
                                service=service,
                                containers=containers,
-                               sorted_records=sorted(service.records, key=lambda x: x.labno))
+                               sorted_records=sorted_records)
 
 
 @comhealth.route('/organizations')

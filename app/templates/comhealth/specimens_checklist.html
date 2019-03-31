@@ -74,7 +74,7 @@
                         </thead>
                         <tbody>
                             {% for rec in sorted_records %}
-                                {% if rec.labno %}
+                                {% if rec %}
                                 <tr>
                                     <td>{{ rec.labno }}</td>
                                         {% for ct in containers %}
@@ -91,6 +91,13 @@
                                                 </span>
                                             </td>
                                         {% endif %}
+                                    {% endfor %}
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td>None</td>
+                                    {% for ct in containers %}
+                                        <td>-</td>
                                     {% endfor %}
                                 </tr>
                                 {% endif %}
