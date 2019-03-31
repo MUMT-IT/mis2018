@@ -33,7 +33,7 @@
                     {% with messages = get_flashed_messages() %}
                         {% if messages %}
                             {% for msg in messages %}
-                                <b-notification type="is-danger">{{ msg }}</b-notification>
+                                <b-notification type="is-success">{{ msg }}</b-notification>
                             {% endfor %}
                         {% endif %}
                     {% endwith %}
@@ -60,14 +60,19 @@
                                 <td colspan="1" class="is-light"><strong>{{ profile.name }}</strong></td>
                                 <td colspan="1" class="is-light"><strong>{{ profile.quote_price }}</strong></td>
                             </tr>
-                            {% for test in profile.test_items %}
+                            {% for test_item in profile.test_items %}
                                 <tr>
-                                    {% if test in record.ordered_tests %}
-                                        <td>{{ test.test.name }}</td>
-                                        <td><a class="button is-rounded is-small is-warning">ยกเลิก</a></td>
+                                    {% if test_item in record.ordered_tests %}
+                                        <td>{{ test_item.test.name }}</td>
+                                        <td><a class="button is-rounded is-small is-warning"
+                                               href="{{ url_for('comhealth.remove_item_from_order',
+                                                       record_id=record.id, item_id=test_item.id) }}"
+                                                >ยกเลิก</a></td>
                                     {% else %}
-                                        <td class="has-text-danger"><strike>{{ test.test.name }}</strike></td>
-                                        <td><a class="button is-rounded is-small is-success">สั่งเพิ่ม</a></td>
+                                        <td class="has-text-danger"><strike>{{ test_item.test.name }}</strike></td>
+                                        <td><a class="button is-rounded is-small is-success"
+                                                href="{{ url_for('comhealth.add_item_to_order',
+                                                        record_id=record.id, item_id=test_item.id) }}">สั่งเพิ่ม</a></td>
                                     {% endif %}
                                 </tr>
                             {% endfor %}
@@ -94,16 +99,21 @@
                                 <td colspan="1" class="is-light"></td>
                                 <td colspan="1" class="is-light"></td>
                             </tr>
-                            {% for test in group.test_items %}
+                            {% for test_item in group.test_items %}
                                 <tr>
-                                    {% if test in record.ordered_tests %}
-                                        <td>{{ test.test.name }}</td>
-                                        <td class="has-text-right">{{ test.price or test.test.default_price }} บาท</td>
-                                        <td><a class="button is-rounded is-small is-warning">ยกเลิก</a></td>
+                                    {% if test_item in record.ordered_tests %}
+                                        <td>{{ test_item.test.name }}</td>
+                                        <td class="has-text-right">{{ test_item.price or test_item.test.default_price }} บาท</td>
+                                        <td><a class="button is-rounded is-small is-warning"
+                                               href="{{ url_for('comhealth.remove_item_from_order',
+                                                       record_id=record.id, item_id=test_item.id) }}"
+                                                    >ยกเลิก</a></td>
                                     {% else %}
-                                        <td class="has-text-danger"><strike>{{ test.test.name }}</strike></td>
-                                        <td class="has-text-right">{{ test.price or test.test.default_price }} บาท</td>
-                                        <td><a class="button is-rounded is-small is-success">สั่งเพิ่ม</a></td>
+                                        <td class="has-text-danger"><strike>{{ test_item.test.name }}</strike></td>
+                                        <td class="has-text-right">{{ test_item.price or test_item.test.default_price }} บาท</td>
+                                        <td><a class="button is-rounded is-small is-success"
+                                               href="{{ url_for('comhealth.add_item_to_order',
+                                                       record_id=record.id, item_id=test_item.id) }}">สั่งเพิ่ม</a></td>
                                     {% endif %}
                                 </tr>
                             {% endfor %}

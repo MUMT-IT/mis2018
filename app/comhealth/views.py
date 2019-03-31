@@ -12,6 +12,7 @@ from .models import (ComHealthService, ComHealthRecord, ComHealthTestItem,
 from .models import (ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTestProfileSchema,
                      ComHealthTestGroupSchema, ComHealthTestSchema)
 
+bangkok = pytz.timezone('Asia/Bangkok')
 
 @comhealth.route('/')
 def index():
@@ -38,7 +39,6 @@ def edit_record(record_id):
     group_item_cost = 0
     profiles = set()
     groups = set()
-    bangkok = pytz.timezone('Asia/Bangkok')
     if request.method == 'POST':
         if not record.checkin_datetime:
             record.checkin_datetime = datetime.now(tz=bangkok)
@@ -89,6 +89,35 @@ def edit_record(record_id):
                                profiles=profiles,
                                groups=groups)
 
+
+@comhealth.route('/record/<int:record_id>/order/add-test-item/<int:item_id>')
+def add_item_to_order(record_id, item_id):
+    if record_id and item_id:
+        record = ComHealthRecord.query.get(record_id)
+        item = ComHealthTestItem.query.get(item_id)
+
+        if item not in record.ordered_tests:
+            record.ordered_tests.append(item)
+            record.updated_at = datetime.now(tz=bangkok)
+            db.session.add(record)
+            db.session.commit()
+            flash('{} has been added to the order.'.format(item.test.name))
+            return redirect(url_for('comhealth.edit_record', record_id=record.id))
+
+
+@comhealth.route('/record/<int:record_id>/order/remove-test-item/<int:item_id>')
+def remove_item_from_order(record_id, item_id):
+    if record_id and item_id:
+        record = ComHealthRecord.query.get(record_id)
+        item = ComHealthTestItem.query.get(item_id)
+
+        if item in record.ordered_tests:
+            record.ordered_tests.remove(item)
+            record.updated_at = datetime.now(tz=bangkok)
+            db.session.add(record)
+            db.session.commit()
+            flash('{} has been removed from the order.'.format(item.test.name))
+            return redirect(url_for('comhealth.edit_record', record_id=record.id))
 
 
 @comhealth.route('/tests')
