@@ -43,6 +43,7 @@
                 <div class="column has-text-centered">
                     <h1 class="title">Record Summary</h1>
                     <h1 class="subtitle">Lab Service No: {{ record.labno }}</h1>
+                    <h1 class="subtitle">แก้ไขล่าสุด: วันที่ {{ record.updated_at|localdatetime }} นาฬิกา</h1>
                 </div>
             </div>
             <div class="columns">
@@ -140,7 +141,7 @@
             </div>
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
-                    <h1 class="title">ภาชนะที่ใส่</h1>
+                    <h1 class="title"><span class="icon"><i class="fas fa-vial"></i></span>&nbsp;ภาชนะ</h1>
                     <table class="table is-fullwidth is-striped">
                         <thead>
                         <th>Name</th>

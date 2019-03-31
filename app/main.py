@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 import os
 import click
+from pytz import timezone
 from flask.cli import AppGroup
 from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
@@ -226,6 +227,11 @@ def populate_subdistricts():
 def import_chem_items(excel_file):
     database.load_chem_items(excel_file)
 
+@app.template_filter("localdatetime")
+def local_datetime(dt):
+    bangkok = timezone('Asia/Bangkok')
+    datetime_format = '%d/%m/%Y %H:%S'
+    return dt.astimezone(bangkok).strftime(datetime_format)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host="0.0.0.0")

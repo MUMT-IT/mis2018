@@ -130,6 +130,7 @@ class ComHealthRecord(db.Model):
     checkin_datetime = db.Column('checkin_datetime', db.DateTime(timezone=True))
     ordered_tests = db.relationship('ComHealthTestItem', backref=db.backref('records'),
                                     secondary=test_item_record_table)
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
 
 
 class ComHealthTestItem(db.Model):

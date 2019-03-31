@@ -62,6 +62,7 @@ def edit_record(record_id):
                 containers.add(test_item.test.container)
                 profile_item_cost += test_item.price or test_item.test.default_price
                 profiles.add(test_item.profile)
+        record.updated_at = datetime.now(tz=bangkok)
         db.session.add(record)
         db.session.commit()
 
