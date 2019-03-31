@@ -101,12 +101,8 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <div class="select">
-                                        <select>
-                                            {% for ch in form.gender %}
-                                                {{ ch(class="select") }}
-                                            {% endfor %}
-                                        </select>
+                                    <div class="select is-rounded">
+                                        {{ form.gender(class="select") }}
                                     </div>
                                 </div>
                             </div>
