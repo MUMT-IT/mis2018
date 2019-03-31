@@ -41,12 +41,13 @@
             </div>
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
+                    <h1 class="title has-text-centered">เพิ่มตารางวันให้บริการของสถาบัน/องค์กร</h1>
                     <div>
                         <form method="post">
                             {{ form.hidden_tag() }}
                             <div class="field">
                                 <div class="control">
-                                    {{ form.location(class="input is-rounded is-medium", placeholder="สถานที่/ชื่อองค์กร") }}
+                                    {{ form.location(class="input is-rounded is-medium", value=org.name, placeholder="สถานที่/ชื่อองค์กร", readonly=True) }}
                                 </div>
                             </div>
                             <div class="field">
@@ -56,9 +57,6 @@
                             </div>
                             <div class="has-text-centered">
                                 <button type="submit" class="button is-link is-rounded is-medium">
-                                    <span class="icon">
-                                        <i class="fas fa-plus"></i>
-                                    </span>
                                     <span>Submit</span>
                                 </button>
                             </div>

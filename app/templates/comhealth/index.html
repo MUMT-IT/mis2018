@@ -24,6 +24,10 @@
                                href="/comhealth/tests">
                                 <span>Tests</span>
                             </a>
+                            <a class="navbar-item"
+                               href="/comhealth/organizations">
+                                <span>Organizations</span>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -52,11 +56,11 @@
             <div class="columns">
                 <div class="column has-text-right">
                     <a class="button is-rounded is-link is-medium"
-                        href="{{ url_for('comhealth.add_service') }}">
+                        href="{{ url_for('comhealth.list_orgs') }}">
                         <span class="icon">
                             <i class="fas fa-plus"></i>
                         </span>
-                        <span>New Schedule</span>
+                        <span>New Service</span>
                     </a>
                 </div>
             </div>

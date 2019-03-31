@@ -10,9 +10,9 @@ from . import comhealth
 from .forms import ServiceForm, TestProfileForm, TestListForm, TestForm, TestGroupForm
 from .models import (ComHealthService, ComHealthRecord, ComHealthTestItem,
                      ComHealthTestProfile, ComHealthContainer, ComHealthTestGroup,
-                     ComHealthTest)
+                     ComHealthTest, ComHealthOrg)
 from .models import (ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTestProfileSchema,
-                     ComHealthTestGroupSchema, ComHealthTestSchema)
+                     ComHealthTestGroupSchema, ComHealthTestSchema, ComHealthOrgSchema)
 
 bangkok = pytz.timezone('Asia/Bangkok')
 
@@ -37,6 +37,9 @@ def display_service_customers(service_id):
 @comhealth.route('/checkin/<int:record_id>', methods=['GET', 'POST'])
 def edit_record(record_id):
     record = ComHealthRecord.query.get(record_id)
+    if not record.service.profiles or not record.service.groups:
+        return redirect(url_for('comhealth.edit_service', service_id=record.service.id))
+
     containers = set()
     profile_item_cost = 0
     group_item_cost = 0
@@ -534,3 +537,49 @@ def summarize_specimens(service_id):
                                service=service,
                                containers=containers,
                                sorted_records=sorted(service.records, key=lambda x: x.labno))
+
+
+@comhealth.route('/organizations')
+def list_orgs():
+    org_schema = ComHealthOrgSchema(many=True)
+    orgs = ComHealthOrg.query.all()
+    return render_template('comhealth/org_list.html',
+                           orgs=org_schema.dump(orgs).data)
+
+
+@comhealth.route('/services/add-to-org/<int:org_id>', methods=['GET', 'POST'])
+def add_service_to_org(org_id):
+    form = ServiceForm()
+    org = ComHealthOrg.query.get(org_id)
+    if form.validate_on_submit():
+        try:
+            service_date = datetime.strptime(form.service_date.data, '%Y-%m-%d')
+        except ValueError:
+            flash('Date data not valid.')
+        else:
+            existing_service = ComHealthService.query.filter_by(date=service_date).first()
+            if not existing_service:
+                new_service = ComHealthService(date=service_date, location=form.location.data)
+                db.session.add(new_service)
+                for employee in org.employees:
+                    new_record = ComHealthRecord(date=service_date, service=new_service,
+                                                 customer=employee)
+                    db.session.add(new_record)
+                db.session.commit()
+            else:
+                for employee in org.employees:
+                    services = set([rec.service for rec in employee.records])
+                    if existing_service not in services:
+                        new_record = ComHealthRecord(date=service_date, service=existing_service,
+                                                     customer=employee)
+                        db.session.add(new_record)
+                        db.session.commit()
+
+            flash('New service has been added to the organization.')
+            return redirect(url_for('comhealth.index'))
+    else:
+        for field, errors in form.errors.items():
+            for error in errors:
+                flash('{} {}'.format(field, error))
+    return render_template('comhealth/new_schedule.html',
+                           form=form, org=org)

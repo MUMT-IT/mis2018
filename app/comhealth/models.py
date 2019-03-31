@@ -36,6 +36,9 @@ class ComHealthOrg(db.Model):
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     name = db.Column('name', db.String(255), index=True)
 
+    def __str__(self):
+        return u'{}'.format(self.name)
+
 
 class ComHealthCustomer(db.Model):
     __tablename__ = 'comhealth_customers'
@@ -188,7 +191,7 @@ class ComHealthService(db.Model):
                                secondary=profile_service_assoc_table)
 
     def __str__(self):
-        return str(self.date)
+        return u'{} {}'.format(self.date, self.location)
 
 
 class ComHealthCustomerSchema(ma.ModelSchema):
@@ -223,3 +226,8 @@ class ComHealthTestSchema(ma.ModelSchema):
     default_price = fields.String()
     class Meta:
         model = ComHealthTest
+
+
+class ComHealthOrgSchema(ma.ModelSchema):
+    class Meta:
+        model = ComHealthOrg
