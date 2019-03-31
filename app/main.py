@@ -230,7 +230,7 @@ def import_chem_items(excel_file):
 @app.template_filter("localdatetime")
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
-    datetime_format = '%d/%m/%Y %H:%S'
+    datetime_format = '%d/%m/%Y %H:%M'
     return dt.astimezone(bangkok).strftime(datetime_format)
 
 if __name__ == '__main__':
