@@ -159,7 +159,7 @@
                         </thead>
                         <tbody>
                         {% for profile in record.service.profiles %}
-                            {% if record.customer.age.years >= profile.age_min or record.customer.age.years <= profile.age_max %}
+                            {% if record.customer.age.years >= profile.age_min and record.customer.age.years <= profile.age_max %}
                             <tr>
                                 <td colspan="1" class="is-light"><strong>{{ profile.name }}</strong></td>
                                 <td colspan="1" class="is-light"><strong>{{ profile.quote_price }}</strong></td>
@@ -237,7 +237,10 @@
                 <div class="column">
                     <a class="button is-rounded is-medium is-link"
                        href="{{ url_for('comhealth.display_service_customers', service_id=record.service.id) }}">
-                        Back
+                        <span class="icon">
+                            <i class="far fa-hand-point-left"></i>
+                        </span>
+                        <span>Back</span>
                     </a>
                 </div>
             </div>

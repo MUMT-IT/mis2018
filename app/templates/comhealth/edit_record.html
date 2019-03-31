@@ -92,7 +92,7 @@
                     </div>
                 </div>
                 {% for profile in record.service.profiles %}
-                    {% if record.customer.age.years >= profile.age_min or record.customer.age.years <= profile.age_max %}
+                    {% if record.customer.age.years >= profile.age_min and record.customer.age.years <= profile.age_max %}
                     <div class="columns">
                         <div class="column">
                             <div class="card">
@@ -145,7 +145,12 @@
                         </div>
                     </div>
                 {% endfor %}
-            <button class="button is-rounded is-medium" type="submit">Proceed</button>
+            <button class="button is-rounded is-medium is-centered is-link" type="submit">
+                <span>Proceed</span>
+                <span class="icon">
+                    <i class="far fa-hand-point-right"></i>
+                </span>
+            </button>
             </form>
         </div>
     </section>
