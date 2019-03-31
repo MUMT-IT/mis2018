@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from datetime import date
 import pytz
-from flask import render_template, flash, redirect, url_for, request, jsonify
+from flask import render_template, flash, redirect, url_for, request, jsonify, Response, stream_with_context
 from flask_login import login_required
 from collections import defaultdict
 from app.main import db
@@ -615,3 +615,15 @@ def add_customer_to_service_org(service_id, org_id):
         form.org_id.default = org_id
         form.process()
         return render_template('comhealth/new_customer_service_org.html', form=form)
+
+
+@comhealth.route('/services/<int:service_id>/to-csv')
+def export_csv(service_id):
+    service = ComHealthService.query.get(service_id)
+    def generate():
+        for record in sorted(service.records, key=lambda x: x.labno):
+            if not record.labno:
+                continue
+            tests = ','.join([item.test.code for item in record.ordered_tests])
+            yield u'{}\t{}\n'.format(record.labno,tests)
+    return Response(stream_with_context(generate()), mimetype='text/csv')

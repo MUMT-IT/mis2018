@@ -103,6 +103,12 @@
                                     </span>&nbsp;
                                     <span>Specimens</span>
                                 </a>
+                                <a class="button is-rounded is-light" v-bind:href="'/comhealth/services/'+props.row.id+'/to-csv'">
+                                    <span class="icon">
+                                        <i class="fas fa-cloud-download-alt"></i>
+                                    </span>&nbsp;
+                                    <span>Export</span>
+                                </a>
                             </b-table-column>
                         </template>
                     </b-table>
