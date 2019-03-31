@@ -59,32 +59,53 @@
                             <div class="card-content">
                                 <div class="columns">
                                     <div class="column">
-                                        <p><strong>ชื่อ</strong> {{ record.customer.firstname }}
-                                            <strong>นามสกุล</strong> {{ record.customer.lastname }}</p>
-                                        <p><strong>องค์กร</strong> {{ record.customer.org.name }}</p>
+                                        <p>
+                                            <h1 class="subtitle is-size-4">
+                                            <strong>ชื่อ</strong> {{ record.customer.title or '-' }} {{ record.customer.firstname }}
+                                            <strong>นามสกุล</strong> {{ record.customer.lastname }}
+                                        </h1>
+                                        </p>
+                                        {% if record.customer.gender %}
+                                            <p>
+                                            <h1 class="subtitle is-size-4">
+                                                <strong>เพศ</strong> {% if record.customer.gender == 1 %}ชาย{% else %}
+                                                หญิง{% endif %}
+                                            </h1>
+                                            </p>
+                                        {% else %}
+                                            <p>
+                                            <h1 class="subtitle is-size-4">
+                                                <strong>เพศ</strong> ไม่ระบุ
+                                            </h1>
+                                            </p>
+                                        {% endif %}
+                                        <p>
+                                            <h1 class="subtitle is-size-4">
+                                            <strong>สังกัด</strong> {{ record.customer.org.name }}
+                                            </h1>
+                                        </p>
                                     </div>
                                     <div class="column">
+                                        {% if record.customer.dob %}
+                                            <p>
+                                            <h1 class="subtitle is-size-4">
+                                                <strong>อายุ</strong> {{ record.customer.age.years  }} ปี {{ record.customer.age.months }} เดือน {{ record.customer.age.days }} วัน
+                                            </h1>
+                                            </p>
+                                        {% endif %}
                                         <div class="field">
-                                            <label><strong>วันเดือนปีเกิด</strong></label>
+                                            <label class="label is-size-4"><strong>วัน/เดือน/ปีเกิด</strong></label>
                                             <div class="control">
-                                                <input class="input" name='dob' type="text" value='{{ record.customer.thai_dob or "" }}' placeholder="dd/mm/yyyy"
+                                                <input class="input is-rounded is-medium" name='dob' type="text" value='{{ record.customer.thai_dob or "" }}' placeholder="dd/mm/yyyy"
                                                        {% if record.customer.dob %}
                                                         readonly
                                                        {% endif %}
                                                 />
                                             </div>
-                                        </div>
-                                        {% if record.customer.dob %}
-                                            <p>
-                                                <strong>อายุ</strong> {{ record.customer.age.years  }} ปี {{ record.customer.age.months }} เดือน {{ record.customer.age.days }} วัน
+                                            <p class="help has-text-info">
+                                                *ใช้ปีพุทธศักราช
                                             </p>
-                                        {% endif %}
-                                        {% if record.customer.gender %}
-                                            <p><strong>เพศ</strong> {% if record.customer.gender == 1 %}ชาย{% else %}
-                                                หญิง{% endif %}</p>
-                                        {% else %}
-                                            <p><strong>เพศ</strong> ไม่ระบุ</p>
-                                        {% endif %}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
