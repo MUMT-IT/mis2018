@@ -1,5 +1,6 @@
 import json
 from datetime import datetime
+import pytz
 from flask import render_template, flash, redirect, url_for, request, jsonify
 from flask_login import login_required
 from app.main import db
@@ -32,10 +33,15 @@ def display_service_customers(service_id):
 @comhealth.route('/checkin/<int:record_id>', methods=['GET', 'POST'])
 def edit_record(record_id):
     record = ComHealthRecord.query.get(record_id)
-    all_tests = []
-    total_price = 0
     containers = set()
+    profile_item_cost = 0
+    group_item_cost = 0
+    profiles = set()
+    groups = set()
+    bangkok = pytz.timezone('Asia/Bangkok')
     if request.method == 'POST':
+        if not record.checkin_datetime:
+            record.checkin_datetime = datetime.now(tz=bangkok)
         if not record.labno:
             labno = request.form.get('service_code')
             record.labno = int(labno)
@@ -45,22 +51,43 @@ def edit_record(record_id):
             if field.startswith('test_'):
                 _, test_id = field.split('_')
                 test_item = ComHealthTestItem.query.get(int(test_id))
+                group_item_cost += test_item.price or test_item.test.default_price
                 containers.add(test_item.test.container)
-                all_tests.append(test_item)
-                total_price += test_item.price or test_item.test.default_price
+                record.ordered_tests.append(test_item)
+                groups.add(test_item.group)
             elif field.startswith('profile_'):
                 _, test_id = field.split('_')
                 test_item = ComHealthTestItem.query.get(int(test_id))
-                all_tests.append(test_item)
+                record.ordered_tests.append(test_item)
                 containers.add(test_item.test.container)
+                profile_item_cost += test_item.price or test_item.test.default_price
+                profiles.add(test_item.profile)
+        db.session.add(record)
+        db.session.commit()
 
         return render_template('comhealth/record_summary.html', record=record,
-                               all_tests=all_tests, total_price=total_price,
                                containers=containers,
-                               )
+                               profile_item_cost=profile_item_cost,
+                               group_item_cost=group_item_cost,
+                               profiles=profiles,
+                               groups=groups)
 
-    return render_template('comhealth/edit_record.html',
-                           record=record)
+    if not record.checkin_datetime:
+        return render_template('comhealth/edit_record.html',
+                               record=record)
+    else:
+        profiles = set([item.profile for item in record.ordered_tests if item.profile])
+        profile_item_cost = sum([item.price or item.test.default_price for item in record.ordered_tests if item.profile])
+        groups = set([item.group for item in record.ordered_tests if item.group])
+        group_item_cost = sum([item.price or item.test.default_price for item in record.ordered_tests if item.group])
+        containers = set([item.test.container for item in record.ordered_tests])
+        return render_template('comhealth/record_summary.html', record=record,
+                               containers=containers,
+                               profile_item_cost=profile_item_cost,
+                               group_item_cost=group_item_cost,
+                               profiles=profiles,
+                               groups=groups)
+
 
 
 @comhealth.route('/tests')

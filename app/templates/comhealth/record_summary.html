@@ -47,26 +47,101 @@
             </div>
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
-                    <table class="table">
+                    <table class="table is-fullwidth is-hoverable">
+                        <col width="80%">
                         <thead>
-                            <th>Name</th>
-                            <th>Price</th>
+                        <th><h1 class="title">Profile Tests</h1><h1 class="subtitle">รายการตรวจตามชุดตรวจ</h1></th>
+                        <th></th>
                         </thead>
                         <tbody>
-                            {% for test in all_tests %}
+                        {% for profile in profiles %}
+                            <tr>
+                                <td colspan="1" class="is-light"><strong>{{ profile.name }}</strong></td>
+                                <td colspan="1" class="is-light"><strong>{{ profile.quote_price }}</strong></td>
+                            </tr>
+                            {% for test in profile.test_items %}
                                 <tr>
-                                    <td>{{ test.test.name }}</td>
-                                    <td>{{ test.price or test.test.default_price }}</td>
+                                    {% if test in record.ordered_tests %}
+                                        <td>{{ test.test.name }}</td>
+                                        <td><a class="button is-rounded is-small is-warning">ยกเลิก</a></td>
+                                    {% else %}
+                                        <td class="has-text-danger"><strike>{{ test.test.name }}</strike></td>
+                                        <td><a class="button is-rounded is-small is-success">สั่งเพิ่ม</a></td>
+                                    {% endif %}
                                 </tr>
                             {% endfor %}
+                        {% endfor %}
                         </tbody>
                     </table>
-                <h1 class="title">รวม {{ total_price }} บาท</h1>
                 </div>
             </div>
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
-                    <table class="table">
+                    <table class="table is-fullwidth is-hoverable">
+                        <col width="60%">
+                        <col width="20%">
+                        <col width="20%">
+                        <thead>
+                        <th><h1 class="title">Other Tests</h1><h1 class="subtitle">รายการตรวจตามกลุ่ม</h1></th>
+                        <th></th>
+                        <th></th>
+                        </thead>
+                        <tbody>
+                        {% for group in groups %}
+                            <tr>
+                                <td colspan="1" class="is-light"><strong>{{ group.name }}</strong></td>
+                                <td colspan="1" class="is-light"></td>
+                                <td colspan="1" class="is-light"></td>
+                            </tr>
+                            {% for test in group.test_items %}
+                                <tr>
+                                    {% if test in record.ordered_tests %}
+                                        <td>{{ test.test.name }}</td>
+                                        <td class="has-text-right">{{ test.price or test.test.default_price }} บาท</td>
+                                        <td><a class="button is-rounded is-small is-warning">ยกเลิก</a></td>
+                                    {% else %}
+                                        <td class="has-text-danger"><strike>{{ test.test.name }}</strike></td>
+                                        <td class="has-text-right">{{ test.price or test.test.default_price }} บาท</td>
+                                        <td><a class="button is-rounded is-small is-success">สั่งเพิ่ม</a></td>
+                                    {% endif %}
+                                </tr>
+                            {% endfor %}
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-two-thirds is-offset-2">
+                    <h1 class="title"><span class="icon"><i class="fab fa-bitcoin"></i></span>&nbsp;<span>รวมค่าใช้จ่าย</span></h1>
+                    <table class="table is-fullwidth">
+                        <tbody>
+                            <tr>
+                                <td><h1 class="subtitle">Profile Total</h1></td>
+                                <td class="has-text-right">
+                                    <h1 class="subtitle">{{ profile_item_cost }} บาท</h1>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><h1 class="subtitle">Others Total</h1></td>
+                                <td class="has-text-right">
+                                    <h1 class="subtitle">{{ group_item_cost }} บาท</h1>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><h1 class="title">Grand Total</h1></td>
+                                <td class="has-text-right">
+                                    <h1 class="title">{{ profile_item_cost + group_item_cost }} บาท</h1>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-two-thirds is-offset-2">
+                    <h1 class="title">ภาชนะที่ใส่</h1>
+                    <table class="table is-fullwidth is-striped">
                         <thead>
                         <th>Name</th>
                         <th>Detail</th>
@@ -77,7 +152,7 @@
                             <tr>
                                 <td>{{ ct.name }}</td>
                                 <td>{{ ct.detail }}</td>
-                                <td>{{ ct.description }}</td>
+                                <td>{{ ct.desc }}</td>
                             </tr>
                         {% endfor %}
                         </tbody>
@@ -86,7 +161,8 @@
             </div>
             <div class="columns">
                 <div class="column">
-                    <a class="button is-rounded is-medium is-link" href="{{ url_for('comhealth.display_service_customers', service_id=record.service.id) }}">
+                    <a class="button is-rounded is-medium is-link"
+                       href="{{ url_for('comhealth.display_service_customers', service_id=record.service.id) }}">
                         Back
                     </a>
                 </div>
