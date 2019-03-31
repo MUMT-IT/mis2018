@@ -42,3 +42,14 @@ class TestForm(FlaskForm):
     desc = StringField('Description', validators=[DataRequired()])
     default_price = FloatField('Default Price', validators=[optional()])
     container = SelectField('Container', coerce=int)
+
+
+class CustomerForm(FlaskForm):
+    org_id = HiddenField('org_id')
+    service_id = HiddenField('service_id')
+    title = StringField('title')
+    firstname = StringField('firstname')
+    lastname = StringField('lastname')
+    dob = StringField('dob')
+    gender = SelectField('Gender', choices=[(0, 'Female'), (1, 'Male')],
+                         coerce=int, default=0)

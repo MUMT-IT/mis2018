@@ -7,10 +7,10 @@ from flask_login import login_required
 from collections import defaultdict
 from app.main import db
 from . import comhealth
-from .forms import ServiceForm, TestProfileForm, TestListForm, TestForm, TestGroupForm
+from .forms import ServiceForm, TestProfileForm, TestListForm, TestForm, TestGroupForm, CustomerForm
 from .models import (ComHealthService, ComHealthRecord, ComHealthTestItem,
                      ComHealthTestProfile, ComHealthContainer, ComHealthTestGroup,
-                     ComHealthTest, ComHealthOrg)
+                     ComHealthTest, ComHealthOrg, ComHealthCustomer)
 from .models import (ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTestProfileSchema,
                      ComHealthTestGroupSchema, ComHealthTestSchema, ComHealthOrgSchema)
 
@@ -583,3 +583,35 @@ def add_service_to_org(org_id):
                 flash('{} {}'.format(field, error))
     return render_template('comhealth/new_schedule.html',
                            form=form, org=org)
+
+
+@comhealth.route('/services/<int:service_id>/add-new-customer/<int:org_id>', methods=['GET', 'POST'])
+def add_customer_to_service_org(service_id, org_id):
+    form = CustomerForm()
+    if form.validate_on_submit():
+        service_id = form.service_id.data
+        org_id = form.org_id.data
+        d, m, y = form.dob.data.split('/')
+        dob = date(int(y)-543, int(m), int(d))  # convert to Thai Buddhist year
+        customer = ComHealthCustomer(title=form.title.data,
+                                     firstname=form.firstname.data,
+                                     lastname=form.lastname.data,
+                                     gender=form.gender.data,
+                                     dob=dob,
+                                     org_id=org_id)
+        new_record = ComHealthRecord(service_id=service_id, customer=customer)
+        db.session.add(customer)
+        db.session.add(new_record)
+        db.session.commit()
+        flash('New customer has been added to the database and service.')
+        return redirect(url_for('comhealth.display_service_customers', service_id=service_id))
+    else:
+        for field, errors in form.errors.items():
+            for err in errors:
+                flash('{} {}'.format(field, err))
+
+    if service_id and org_id:
+        form.service_id.default = service_id
+        form.org_id.default = org_id
+        form.process()
+        return render_template('comhealth/new_customer_service_org.html', form=form)

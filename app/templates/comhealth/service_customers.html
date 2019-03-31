@@ -14,7 +14,7 @@
                     <div id="navbarMenuHeroA" class="navbar-menu">
                         <div class="navbar-end">
                             <a class="navbar-item is-active"
-                                href="/comhealth">
+                               href="/comhealth">
                                 <span class="icon">
                                     <i class="fas fa-home"></i>
                                 </span>
@@ -55,10 +55,12 @@
                 </div>
                 <div class="column">
                     <div class="has-text-right">
-                        <a class="button is-rounded is-link">
-                    <span class="icon">
-                        <i class="fas fa-user-plus"></i>
-                    </span>
+                        <a class="button is-rounded is-link"
+                            href="{{ url_for('comhealth.add_customer_to_service_org',
+                                    service_id=service.id, org_id=service.records[0].customer.org_id) }}">
+                            <span class="icon">
+                                <i class="fas fa-user-plus"></i>
+                            </span>
                             <span>Add Customer</span>
                         </a>
                     </div>
@@ -93,7 +95,7 @@
                             </b-table-column>
                             <b-table-column field="" label="Check In" sortable>
                                 <a class="button is-rounded is-light"
-                                    v-bind:href="'/comhealth/checkin/'+props.row.id">
+                                   v-bind:href="'/comhealth/checkin/'+props.row.id">
                                 <span class="icon" v-if="props.row.checkin_datetime !== null">
                                     <i class="far fa-check"></i>
                                 </span>
