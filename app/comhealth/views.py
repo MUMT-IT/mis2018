@@ -4,6 +4,7 @@ from datetime import date
 import pytz
 from flask import render_template, flash, redirect, url_for, request, jsonify
 from flask_login import login_required
+from collections import defaultdict
 from app.main import db
 from . import comhealth
 from .forms import ServiceForm, TestProfileForm, TestListForm, TestForm, TestGroupForm
@@ -14,6 +15,7 @@ from .models import (ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTes
                      ComHealthTestGroupSchema, ComHealthTestSchema)
 
 bangkok = pytz.timezone('Asia/Bangkok')
+
 
 @comhealth.route('/')
 def index():
@@ -83,7 +85,8 @@ def edit_record(record_id):
         return render_template('comhealth/edit_record.html',
                                record=record)
     else:
-        profile_item_cost = sum([item.price or item.test.default_price for item in record.ordered_tests if item.profile])
+        profile_item_cost = sum(
+            [item.price or item.test.default_price for item in record.ordered_tests if item.profile])
         group_item_cost = sum([item.price or item.test.default_price for item in record.ordered_tests if item.group])
         containers = set([item.test.container for item in record.ordered_tests])
         return render_template('comhealth/record_summary.html', record=record,
@@ -512,3 +515,22 @@ def delete_service_group(service_id=None, group_id=None):
         db.session.commit()
 
     return redirect(url_for('comhealth.edit_service', service_id=service.id))
+
+
+@comhealth.route('/services/<int:service_id>/specimens-summary')
+def summarize_specimens(service_id):
+    containers = set()
+    if service_id:
+        service = ComHealthService.query.get(service_id)
+        for profile in service.profiles:
+            for test_item in profile.test_items:
+                containers.add(test_item.test.container.name)
+        for group in service.groups:
+            for test_item in group.test_items:
+                containers.add(test_item.test.container.name)
+
+        return render_template('comhealth/specimens_checklist.html',
+                               summary_date=datetime.now(tz=bangkok),
+                               service=service,
+                               containers=containers,
+                               sorted_records=sorted(service.records, key=lambda x: x.labno))

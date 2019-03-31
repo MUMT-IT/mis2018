@@ -147,6 +147,11 @@ class ComHealthRecord(db.Model):
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     urgent = db.Column('urgent', db.Boolean(), default=False)
 
+    @property
+    def container_set(self):
+        _containers = set([item.test.container.name for item in self.ordered_tests])
+        return _containers
+
 
 class ComHealthTestItem(db.Model):
     __tablename__ = 'comhealth_test_items'

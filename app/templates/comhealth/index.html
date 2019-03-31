@@ -83,15 +83,21 @@
                             <b-table-column field="" label="Detail">
                                 <a class="button is-rounded is-light" v-bind:href="'/comhealth/services/'+props.row.id">
                                     <span class="icon">
-                                        <i class="far fa-eye"></i>
+                                        <i class="fas fa-user"></i>
                                     </span>&nbsp;
-                                    <span>View</span>
+                                    <span>Customers</span>
                                 </a>
                                 <a class="button is-rounded is-light" v-bind:href="'/comhealth/services/edit/'+props.row.id">
                                     <span class="icon">
                                         <i class="fas fa-pencil-alt"></i>
                                     </span>&nbsp;
                                     <span>Edit</span>
+                                </a>
+                                <a class="button is-rounded is-light" v-bind:href="'/comhealth/services/'+props.row.id+'/specimens-summary'">
+                                    <span class="icon">
+                                        <i class="fas fa-vial"></i>
+                                    </span>&nbsp;
+                                    <span>Specimens</span>
                                 </a>
                             </b-table-column>
                         </template>
