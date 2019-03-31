@@ -12,6 +12,7 @@ services:
     environment:
       - FLASK_DEBUG
       - POSTGRES_PASSWORD
+      - SECRET_KEY
     volumes:
       - ./app:/mis2018/app
       - ./warehouse:/mis2018/warehouse
