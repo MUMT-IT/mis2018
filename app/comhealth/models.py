@@ -171,6 +171,8 @@ class ComHealthTestItem(db.Model):
 
 
 class ComHealthTestProfileItem(db.Model):
+    '''Probably obsolete.
+    '''
     __tablename__ = 'comhealth_test_profile_items'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     record_id = db.Column('record_id', db.ForeignKey('comhealth_test_records.id'))
