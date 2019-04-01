@@ -69,7 +69,7 @@ def edit_record(record_id):
             if field.startswith('test_'):
                 _, test_id = field.split('_')
                 test_item = ComHealthTestItem.query.get(int(test_id))
-                group_item_cost += test_item.price or test_item.test.default_price
+                group_item_cost += float(test_item.price) or float(test_item.test.default_price)
                 containers.add(test_item.test.container)
                 record.ordered_tests.append(test_item)
             elif field.startswith('profile_'):
@@ -82,7 +82,7 @@ def edit_record(record_id):
         for profile in record.service.profiles:
             for test_item in profile.test_items:
                 if test_item not in ordered_profile_items:
-                    profile_item_cost -= test_item.price or test_item.test.default_price
+                    profile_item_cost -= float(test_item.price) or float(test_item.test.default_price)
         record.updated_at = datetime.now(tz=bangkok)
         db.session.add(record)
         db.session.commit()
