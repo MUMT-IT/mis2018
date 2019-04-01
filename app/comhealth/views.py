@@ -82,7 +82,7 @@ def edit_record(record_id):
         for profile in record.service.profiles:
             for test_item in profile.test_items:
                 if test_item not in ordered_profile_items:
-                    profile_item_cost -= test_item.test.price or test_item.test.default_price
+                    profile_item_cost -= test_item.price or test_item.test.default_price
         record.updated_at = datetime.now(tz=bangkok)
         db.session.add(record)
         db.session.commit()
@@ -642,5 +642,5 @@ def export_csv(service_id):
             if not record.labno:
                 continue
             tests = ','.join([item.test.code for item in record.ordered_tests])
-            yield u'{}\t{}\n'.format(record.labno,tests)
+            yield u'{}\t{}\t{}\n'.format(record.labno, tests, record.urgent)
     return Response(stream_with_context(generate()), mimetype='text/csv')
