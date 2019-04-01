@@ -41,7 +41,10 @@ def edit_record(record_id):
         return redirect(url_for('comhealth.edit_service', service_id=record.service.id))
 
     containers = set()
-    profile_item_cost = 0
+    profile_item_cost = 0.0
+    for profile in record.service.profiles:
+        profile_item_cost += float(profile.quote)
+    ordered_profile_items = set()
     group_item_cost = 0
     if request.method == 'POST':
         if not record.customer.dob and request.form.get('dob'):
@@ -74,7 +77,12 @@ def edit_record(record_id):
                 test_item = ComHealthTestItem.query.get(int(test_id))
                 record.ordered_tests.append(test_item)
                 containers.add(test_item.test.container)
-                profile_item_cost += test_item.price or test_item.test.default_price
+                ordered_profile_items.add(test_item)
+
+        for profile in record.service.profiles:
+            for test_item in profile.test_items:
+                if test_item not in ordered_profile_items:
+                    profile_item_cost -= test_item.test.price or test_item.test.default_price
         record.updated_at = datetime.now(tz=bangkok)
         db.session.add(record)
         db.session.commit()

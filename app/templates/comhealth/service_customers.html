@@ -93,6 +93,9 @@
                             <b-table-column field="labno" label="Lab Number" sortable numeric centered>
                                 <% props.row.labno %>
                             </b-table-column>
+                            <b-table-column field="checkin_datetime" label="Checked-In Time" sortable centered>
+                                <% props.row.checkin_datetime %>
+                            </b-table-column>
                             <b-table-column field="" label="Check In" sortable>
                                 <a class="button is-rounded is-light"
                                    v-bind:href="'/comhealth/checkin/'+props.row.id">
