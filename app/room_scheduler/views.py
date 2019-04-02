@@ -92,7 +92,7 @@ def get_events():
 
 
 @room.route('/')
-@login_required
+#@login_required
 def index():
     return render_template('scheduler/room_main.html')
 
