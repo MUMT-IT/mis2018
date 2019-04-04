@@ -36,16 +36,23 @@ def display_service_customers(service_id):
 
 @comhealth.route('/checkin/<int:record_id>', methods=['GET', 'POST'])
 def edit_record(record_id):
+    # TODO: use decimal in price calculation instead of float
+
     record = ComHealthRecord.query.get(record_id)
     if not record.service.profiles or not record.service.groups:
         return redirect(url_for('comhealth.edit_service', service_id=record.service.id))
 
+    if request.method == 'GET':
+        if not record.checkin_datetime:
+            return render_template('comhealth/edit_record.html',
+                                   record=record)
+
     containers = set()
     profile_item_cost = 0.0
+    group_item_cost = 0
     for profile in record.service.profiles:
         profile_item_cost += float(profile.quote)
-    ordered_profile_items = set()
-    group_item_cost = 0
+
     if request.method == 'POST':
         if not record.customer.dob and request.form.get('dob'):
             try:
@@ -77,33 +84,28 @@ def edit_record(record_id):
                 test_item = ComHealthTestItem.query.get(int(test_id))
                 record.ordered_tests.append(test_item)
                 containers.add(test_item.test.container)
-                ordered_profile_items.add(test_item)
 
-        for profile in record.service.profiles:
-            for test_item in profile.test_items:
-                if test_item not in ordered_profile_items:
-                    profile_item_cost -= float(test_item.price) or float(test_item.test.default_price)
         record.updated_at = datetime.now(tz=bangkok)
         db.session.add(record)
         db.session.commit()
 
-        return render_template('comhealth/record_summary.html', record=record,
-                               containers=containers,
-                               profile_item_cost=profile_item_cost,
-                               group_item_cost=group_item_cost)
+    for profile in record.service.profiles:
+        # if all tests are ordered, the quote price is used.
+        # if some tests in the profile are ordered, subtract the price of the tests that are not ordered
+        if set(profile.test_items).intersection(record.ordered_tests):
+            for test_item in set(profile.test_items).difference(record.ordered_tests):
+                profile_item_cost -= float(test_item.price) or float(test_item.test.default_price)
+        else:  # in case no tests in the profile is ordered, subtract a quote price from the total price
+            profile_item_cost -= float(profile.quote)
 
-    if not record.checkin_datetime:
-        return render_template('comhealth/edit_record.html',
-                               record=record)
-    else:
-        profile_item_cost = sum(
-            [item.price or item.test.default_price for item in record.ordered_tests if item.profile])
-        group_item_cost = sum([item.price or item.test.default_price for item in record.ordered_tests if item.group])
-        containers = set([item.test.container for item in record.ordered_tests])
-        return render_template('comhealth/record_summary.html', record=record,
-                               containers=containers,
-                               profile_item_cost=profile_item_cost,
-                               group_item_cost=group_item_cost)
+    group_item_cost = sum([item.price or item.test.default_price for item in record.ordered_tests if item.group])
+    containers = set([item.test.container for item in record.ordered_tests])
+
+    return render_template('comhealth/record_summary.html',
+                           record=record,
+                           containers=containers,
+                           profile_item_cost=profile_item_cost,
+                           group_item_cost=float(group_item_cost))
 
 
 @comhealth.route('/record/<int:record_id>/order/add-test-item/<int:item_id>')
@@ -544,8 +546,8 @@ def summarize_specimens(service_id):
         print(record_ids)
         sorted_records = []
         for i in range(len(service.records)):
-            if i+1 in record_ids:
-                sorted_records.append(record_ids[i+1])
+            if i + 1 in record_ids:
+                sorted_records.append(record_ids[i + 1])
             else:
                 sorted_records.append(None)
 
@@ -610,7 +612,7 @@ def add_customer_to_service_org(service_id, org_id):
         org_id = form.org_id.data
         if form.dob.data:
             d, m, y = form.dob.data.split('/')
-            dob = date(int(y)-543, int(m), int(d))  # convert to Thai Buddhist year
+            dob = date(int(y) - 543, int(m), int(d))  # convert to Thai Buddhist year
         else:
             dob = None
         customer = ComHealthCustomer(title=form.title.data,
@@ -640,10 +642,12 @@ def add_customer_to_service_org(service_id, org_id):
 @comhealth.route('/services/<int:service_id>/to-csv')
 def export_csv(service_id):
     service = ComHealthService.query.get(service_id)
+
     def generate():
         for record in sorted(service.records, key=lambda x: x.labno):
             if not record.labno:
                 continue
             tests = ','.join([item.test.code for item in record.ordered_tests])
             yield u'{}\t{}\t{}\n'.format(record.labno, tests, record.urgent)
+
     return Response(stream_with_context(generate()), mimetype='text/csv')
