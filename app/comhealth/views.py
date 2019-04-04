@@ -608,8 +608,11 @@ def add_customer_to_service_org(service_id, org_id):
     if form.validate_on_submit():
         service_id = form.service_id.data
         org_id = form.org_id.data
-        d, m, y = form.dob.data.split('/')
-        dob = date(int(y)-543, int(m), int(d))  # convert to Thai Buddhist year
+        if form.dob.data:
+            d, m, y = form.dob.data.split('/')
+            dob = date(int(y)-543, int(m), int(d))  # convert to Thai Buddhist year
+        else:
+            dob = None
         customer = ComHealthCustomer(title=form.title.data,
                                      firstname=form.firstname.data,
                                      lastname=form.lastname.data,
