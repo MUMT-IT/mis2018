@@ -50,6 +50,7 @@ class CustomerForm(FlaskForm):
     title = StringField('title')
     firstname = StringField('firstname')
     lastname = StringField('lastname')
-    dob = StringField('dob')
+    dob = StringField('dob', validators=[optional()])
+    age = IntegerField('age', validators=[optional()])
     gender = SelectField('Gender', choices=[(0, 'Female'), (1, 'Male')],
                          coerce=int, default=0)
