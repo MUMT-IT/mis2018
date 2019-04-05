@@ -38,6 +38,13 @@
     </section>
     <section class="section" id="app">
         <div class="container">
+            <nav class="breadcrumb is-light is-centered" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="/comhealth">Home</a></li>
+                    <li><a href="{{ url_for('comhealth.display_service_customers', service_id=record.service.id) }}">Customers</a></li>
+                    <li><a href="#">Check In</a></li>
+                </ul>
+            </nav>
             <form method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="record_id" value="{{ record.id }}">
@@ -60,27 +67,19 @@
                                 <div class="columns">
                                     <div class="column">
                                         <p>
-                                        <h1 class="subtitle is-size-4">
+                                        <h1 class="subtitle is-size-5">
                                             <strong>ชื่อ</strong> {{ record.customer.title or '-' }} {{ record.customer.firstname }}
                                             <strong>นามสกุล</strong> {{ record.customer.lastname }}
                                         </h1>
                                         </p>
-                                        {% if record.customer.gender %}
-                                            <p>
-                                            <h1 class="subtitle is-size-4">
-                                                <strong>เพศ</strong> {% if record.customer.gender == 1 %}ชาย{% else %}
-                                                หญิง{% endif %}
-                                            </h1>
-                                            </p>
-                                        {% else %}
-                                            <p>
-                                            <h1 class="subtitle is-size-4">
-                                                <strong>เพศ</strong> ไม่ระบุ
-                                            </h1>
-                                            </p>
-                                        {% endif %}
                                         <p>
-                                        <h1 class="subtitle is-size-4">
+                                        <h1 class="subtitle is-size-5">
+                                            <strong>เพศ</strong>
+                                            {% if record.customer.gender == 1 %}ชาย{% else %} หญิง{% endif %}
+                                        </h1>
+                                        </p>
+                                        <p>
+                                        <h1 class="subtitle is-size-5">
                                             <strong>สังกัด</strong> {{ record.customer.org.name }}
                                         </h1>
                                         </p>
@@ -88,7 +87,7 @@
                                     <div class="column">
                                         {% if record.customer.dob %}
                                             <p>
-                                            <h1 class="subtitle is-size-4">
+                                            <h1 class="subtitle is-size-5">
                                                 <strong>อายุ</strong> {{ record.customer.age.years }}
                                                 ปี {{ record.customer.age.months }} เดือน {{ record.customer.age.days }}
                                                 วัน

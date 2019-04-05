@@ -27,7 +27,14 @@
         </div>
     </nav>
     <section class="section" id="app">
-        <div class="container">
+        <nav class="breadcrumb is-centered">
+            <ul>
+                <li><a href="/comhealth">Home</a></li>
+                <li><a href="{{ url_for('comhealth.display_service_customers', service_id=record.service.id) }}">Customers</a>
+                </li>
+                <li><a href="#">Record Summary</a></li>
+            </ul>
+        </nav>
             <div class="columns">
                 <div class="column">
                     {% with messages = get_flashed_messages() %}
@@ -50,236 +57,291 @@
                 </div>
             </div>
             <div class="columns">
-                <div class="column is-two-thirds is-offset-2">
-                    <h1 class="title"><span class="icon">
+                <div class="column is-2">
+                    <aside class="menu">
+                        <p class="menu-label">
+                            General
+                        </p>
+                        <ul class="menu-list">
+                            <li><a href="#customer-info">ข้อมูลผู้รับบริการ</a></li>
+                        </ul>
+                        <p class="menu-label">
+                            Payment
+                        </p>
+                        <ul class="menu-list">
+                            <li><a href="#total-cost">ราคารวม</a></li>
+                        </ul>
+                        <p class="menu-label">
+                            Tests
+                        </p>
+                        <ul class="menu-list">
+                            <li><a href="#profiles">รายการตรวจแบบชุด</a></li>
+                            <li><a href="#groups">รายการตรวจอื่นๆ</a></li>
+                            <li><a href="#container">ภาชนะสิ่งส่งตรวจ</a></li>
+                            <li><a href="#comment">หมายเหตุ</a></li>
+                        </ul>
+                    </aside>
+                </div>
+                <a name="customer-info"></a>
+                <div class="column is-10">
+                    <div class="columns">
+                        <div class="column is-two-thirds is-offset-2">
+                            <h1 class="title"><span class="icon">
                         {% if record.customer.gender == 1 %}
                             <i class="fas fa-male"></i></span>&nbsp;<span>ข้อมูลส่วนตัว</span></h1>
                         {% elif record.customer.gender == 0 %}
                             <i class="fas fa-female"></i></span>&nbsp;<span>ข้อมูลส่วนตัว</span></h1>
                         {% endif %}
-                    <table class="table is-fullwidth">
-                        <tbody>
-                        <tr>
-                            <td><h1 class="subtitle">ชื่อ นามสกุล</h1></td>
-                            <td>
-                                <h1 class="subtitle">{{ record.customer.title or '' }} {{ record.customer.firstname }} {{ record.customer.lastname }}</h1>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><h1 class="subtitle">วันเดือนปีเกิด</h1></td>
-                            <td>
-                                <h1 class="subtitle">{{ record.customer.thai_dob }}</h1>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><h1 class="subtitle">อายุ</h1></td>
-                            <td>
-                                {% if record.customer.dob %}
-                                <h1 class="subtitle">{{ record.customer.age.years }} ปี {{ record.customer.age.months }} เดือน {{ record.customer.age.days }} วัน</h1>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><h1 class="subtitle">การรายงานผล
-                                <a class="button is-rounded is-warning" href="{{ url_for('comhealth.update_delivery_status', record_id=record.id) }}">
+                            <table class="table is-fullwidth">
+                                <tbody>
+                                <tr>
+                                    <td><h1 class="subtitle">ชื่อ นามสกุล</h1></td>
+                                    <td>
+                                        <h1 class="subtitle">{{ record.customer.title or '' }} {{ record.customer.firstname }} {{ record.customer.lastname }}</h1>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">เพศ</h1></td>
+                                    <td>
+                                        <h1 class="subtitle">
+                                            {% if record.customer.gender != None %}
+                                                {% if record.customer.gender == 1 %}
+                                                    ชาย
+                                                {% else %}
+                                                    หญิง
+                                                {% endif %}
+                                            {% endif %}
+                                        </h1>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">วันเดือนปีเกิด</h1></td>
+                                    <td>
+                                        <h1 class="subtitle">{{ record.customer.thai_dob }}</h1>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">อายุ</h1></td>
+                                    <td>
+                                        {% if record.customer.dob %}
+                                            <h1 class="subtitle">{{ record.customer.age.years }}
+                                                ปี {{ record.customer.age.months }} เดือน {{ record.customer.age.days }}
+                                                วัน</h1>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">การรายงานผล
+                                        <a class="button is-rounded is-warning"
+                                           href="{{ url_for('comhealth.update_delivery_status', record_id=record.id) }}">
                                     <span class="icon">
                                         <i class="fas fa-sync"></i>
                                     </span>
-                                </a></h1>
-                            </td>
-                            <td>
-                                {% if record.urgent %}
-                                    <h3 class="title has-text-danger is-size-4">แบบด่วน</h3>
-                                {% else %}
-                                    <h3 class="title has-text-success is-size-4">แบบปกติ</h3>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="columns">
-                <div class="column is-two-thirds is-offset-2">
-                    <h1 class="title"><span class="icon"><i
-                            class="fab fa-bitcoin"></i></span>&nbsp;<span>รวมค่าใช้จ่าย</span></h1>
-                    <table class="table is-fullwidth">
-                        <tbody>
-                        <tr>
-                            <td><h1 class="subtitle">Profile Total</h1></td>
-                            <td class="has-text-right">
-                                <h1 class="subtitle">{{ profile_item_cost }} บาท</h1>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><h1 class="subtitle">Others Total</h1></td>
-                            <td class="has-text-right">
-                                <h1 class="subtitle">{{ group_item_cost }} บาท</h1>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td><h1 class="title">Grand Total</h1></td>
-                            <td class="has-text-right">
-                                <h1 class="title">{{ profile_item_cost + group_item_cost }} บาท</h1>
-                            </td>
-                        </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="columns">
-                <div class="column is-two-thirds is-offset-2">
-                    <h1 class="title"><span class="icon"><i class="fas fa-vial"></i></span>&nbsp;ภาชนะ</h1>
-                    <table class="table is-fullwidth is-striped">
-                        <thead>
-                        <th>Name</th>
-                        <th>Detail</th>
-                        <th>Description</th>
-                        </thead>
-                        <tbody>
-                        {% for ct in containers %}
-                            <tr>
-                                <td>{{ ct.name }}</td>
-                                <td>{{ ct.detail }}</td>
-                                <td>{{ ct.desc }}</td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="columns">
-                <div class="column is-two-thirds is-offset-2">
-                    <article class="message is-light">
-                        <div class="message-header">
-                            <span>Footnote</span>
-                            <a class="button is-light" @click="toggleComment()">
+                                        </a></h1>
+                                    </td>
+                                    <td>
+                                        {% if record.urgent %}
+                                            <h3 class="title has-text-danger is-size-4">แบบด่วน</h3>
+                                        {% else %}
+                                            <h3 class="title has-text-success is-size-4">แบบปกติ</h3>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <a name="total-cost"></a>
+                    <div class="columns">
+                        <div class="column is-two-thirds is-offset-2">
+                            <h1 class="title"><span class="icon"><i
+                                    class="fab fa-bitcoin"></i></span>&nbsp;<span>รวมค่าใช้จ่าย</span></h1>
+                            <table class="table is-fullwidth">
+                                <tbody>
+                                <tr>
+                                    <td><h1 class="subtitle">Profile Total</h1></td>
+                                    <td class="has-text-right">
+                                        <h1 class="subtitle">{{ profile_item_cost }} บาท</h1>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">Others Total</h1></td>
+                                    <td class="has-text-right">
+                                        <h1 class="subtitle">{{ group_item_cost }} บาท</h1>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="title">Grand Total</h1></td>
+                                    <td class="has-text-right">
+                                        <h1 class="title">{{ profile_item_cost + group_item_cost }} บาท</h1>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <a name="container"></a>
+                    <div class="columns">
+                        <div class="column is-two-thirds is-offset-2">
+                            <h1 class="title"><span class="icon"><i class="fas fa-vial"></i></span>&nbsp;ภาชนะ</h1>
+                            <table class="table is-fullwidth is-striped">
+                                <thead>
+                                <th>Name</th>
+                                <th>Detail</th>
+                                <th>Description</th>
+                                </thead>
+                                <tbody>
+                                {% for ct in containers %}
+                                    <tr>
+                                        <td>{{ ct.name }}</td>
+                                        <td>{{ ct.detail }}</td>
+                                        <td>{{ ct.desc }}</td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <a name="comment"></a>
+                    <div class="columns">
+                        <div class="column is-two-thirds is-offset-2">
+                            <article class="message is-light">
+                                <div class="message-header">
+                                    <span>Footnote</span>
+                                    <a class="button is-light" @click="toggleComment()">
                             <span class="icon">
                                 <i class="fas fa-edit"></i>
                             </span>
-                                <span>Edit</span>
-                            </a>
-                        </div>
-                        <div class="message-body" v-if="!commentEdit">
-                            {{ record.comment or "" }}
-                        </div>
-                        <form v-if="commentEdit" method="post" action="{{ url_for('comhealth.add_comment_to_order') }}">
-                            <div class="field">
-                                <div class="control">
-                                    <textarea class="textarea" name="comment">{{ record.comment or "" }}</textarea>
+                                        <span>Edit</span>
+                                    </a>
                                 </div>
-                            </div>
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                            <input type="hidden" name="record_id" value="{{ record.id }}"/>
-                            <div class="has-text-centered">
-                                <button class="button is-dark is-rounded" type="submit">
+                                <div class="message-body" v-if="!commentEdit">
+                                    {{ record.comment or "" }}
+                                </div>
+                                <form v-if="commentEdit" method="post"
+                                      action="{{ url_for('comhealth.add_comment_to_order') }}">
+                                    <div class="field">
+                                        <div class="control">
+                                            <textarea class="textarea"
+                                                      name="comment">{{ record.comment or "" }}</textarea>
+                                        </div>
+                                    </div>
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                                    <input type="hidden" name="record_id" value="{{ record.id }}"/>
+                                    <div class="has-text-centered">
+                                        <button class="button is-dark is-rounded" type="submit">
                                     <span class="icon">
                                         <i class="fas fa-save"></i>
                                     </span>
-                                    <span>Save</span>
-                                </button>
-                            </div>
-                        </form>
-                    </article>
-                </div>
-            </div>
-            <div class="columns">
-                <div class="column is-two-thirds is-offset-2">
-                    <table class="table is-fullwidth is-hoverable">
-                        <col width="80%">
-                        <thead>
-                        <th><h1 class="title">Profile Tests</h1>
-                            <h1 class="subtitle">รายการตรวจตามชุดตรวจ</h1></th>
-                        <th></th>
-                        </thead>
-                        <tbody>
-                        {% for profile in record.service.profiles %}
-                            <tr>
-                                <td colspan="1" class="is-light"><strong>{{ profile.name }}</strong></td>
-                                <td colspan="1" class="is-light"><strong>{{ profile.quote_price }}</strong></td>
-                            </tr>
-                            {% for test_item in profile.test_items %}
-                                <tr>
-                                    {% if test_item in record.ordered_tests %}
-                                        <td>{{ test_item.test.name }}</td>
-                                        <td><a class="button is-rounded is-small is-warning"
-                                               href="{{ url_for('comhealth.remove_item_from_order',
+                                            <span>Save</span>
+                                        </button>
+                                    </div>
+                                </form>
+                            </article>
+                        </div>
+                    </div>
+                    <a name="profiles"></a>
+                    <div class="columns">
+                        <div class="column is-two-thirds is-offset-2">
+                            <table class="table is-fullwidth is-hoverable">
+                                <col width="80%">
+                                <thead>
+                                <th><h1 class="title">Profile Tests</h1>
+                                    <h1 class="subtitle">รายการตรวจตามชุดตรวจ</h1></th>
+                                <th></th>
+                                </thead>
+                                <tbody>
+                                {% for profile in record.service.profiles %}
+                                    <tr>
+                                        <td colspan="1" class="is-light"><strong>{{ profile.name }}</strong></td>
+                                        <td colspan="1" class="is-light"><strong>{{ profile.quote_price }}</strong></td>
+                                    </tr>
+                                    {% for test_item in profile.test_items %}
+                                        <tr>
+                                            {% if test_item in record.ordered_tests %}
+                                                <td>{{ test_item.test.name }}</td>
+                                                <td><a class="button is-rounded is-small is-warning"
+                                                       href="{{ url_for('comhealth.remove_item_from_order',
                                                        record_id=record.id, item_id=test_item.id) }}"
-                                        >ยกเลิก</a></td>
-                                    {% else %}
-                                        <td class="has-text-danger"><strike>{{ test_item.test.name }}</strike></td>
-                                        <td><a class="button is-rounded is-small is-success"
-                                               href="{{ url_for('comhealth.add_item_to_order',
+                                                >ยกเลิก</a></td>
+                                            {% else %}
+                                                <td class="has-text-danger"><strike>{{ test_item.test.name }}</strike>
+                                                </td>
+                                                <td><a class="button is-rounded is-small is-success"
+                                                       href="{{ url_for('comhealth.add_item_to_order',
                                                         record_id=record.id, item_id=test_item.id) }}">สั่งเพิ่ม</a>
-                                        </td>
-                                    {% endif %}
-                                </tr>
-                            {% endfor %}
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="columns">
-                <div class="column is-two-thirds is-offset-2">
-                    <table class="table is-fullwidth is-hoverable">
-                        <col width="60%">
-                        <col width="20%">
-                        <col width="20%">
-                        <thead>
-                        <th><h1 class="title">Other Tests</h1>
-                            <h1 class="subtitle">รายการตรวจตามกลุ่ม</h1></th>
-                        <th></th>
-                        <th></th>
-                        </thead>
-                        <tbody>
-                        {% for group in record.service.groups %}
-                            <tr>
-                                <td colspan="1" class="is-light"><strong>{{ group.name }}</strong></td>
-                                <td colspan="1" class="is-light"></td>
-                                <td colspan="1" class="is-light"></td>
-                            </tr>
-                            {% for test_item in group.test_items %}
-                                <tr>
-                                    {% if test_item in record.ordered_tests %}
-                                        <td>{{ test_item.test.name }}</td>
-                                        <td class="has-text-right">
-                                            -{{ test_item.price or test_item.test.default_price }} บาท
-                                        </td>
-                                        <td><a class="button is-rounded is-small is-warning"
-                                               href="{{ url_for('comhealth.remove_item_from_order',
+                                                </td>
+                                            {% endif %}
+                                        </tr>
+                                    {% endfor %}
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <a name="groups"></a>
+                    <div class="columns">
+                        <div class="column is-two-thirds is-offset-2">
+                            <table class="table is-fullwidth is-hoverable">
+                                <col width="60%">
+                                <col width="20%">
+                                <col width="20%">
+                                <thead>
+                                <th><h1 class="title">Other Tests</h1>
+                                    <h1 class="subtitle">รายการตรวจตามกลุ่ม</h1></th>
+                                <th></th>
+                                <th></th>
+                                </thead>
+                                <tbody>
+                                {% for group in record.service.groups %}
+                                    <tr>
+                                        <td colspan="1" class="is-light"><strong>{{ group.name }}</strong></td>
+                                        <td colspan="1" class="is-light"></td>
+                                        <td colspan="1" class="is-light"></td>
+                                    </tr>
+                                    {% for test_item in group.test_items %}
+                                        <tr>
+                                            {% if test_item in record.ordered_tests %}
+                                                <td>{{ test_item.test.name }}</td>
+                                                <td class="has-text-right">
+                                                    -{{ test_item.price or test_item.test.default_price }} บาท
+                                                </td>
+                                                <td><a class="button is-rounded is-small is-warning"
+                                                       href="{{ url_for('comhealth.remove_item_from_order',
                                                        record_id=record.id, item_id=test_item.id) }}"
-                                        >ยกเลิก</a></td>
-                                    {% else %}
-                                        <td class="has-text-danger"><strike>{{ test_item.test.name }}</strike></td>
-                                        <td class="has-text-right">
-                                            +{{ test_item.price or test_item.test.default_price }} บาท
-                                        </td>
-                                        <td><a class="button is-rounded is-small is-success"
-                                               href="{{ url_for('comhealth.add_item_to_order',
+                                                >ยกเลิก</a></td>
+                                            {% else %}
+                                                <td class="has-text-danger"><strike>{{ test_item.test.name }}</strike>
+                                                </td>
+                                                <td class="has-text-right">
+                                                    +{{ test_item.price or test_item.test.default_price }} บาท
+                                                </td>
+                                                <td><a class="button is-rounded is-small is-success"
+                                                       href="{{ url_for('comhealth.add_item_to_order',
                                                        record_id=record.id, item_id=test_item.id) }}">สั่งเพิ่ม</a></td>
-                                    {% endif %}
-                                </tr>
-                            {% endfor %}
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-            <div class="columns">
-                <div class="column">
-                    <div class="has-text-centered">
-                        <a class="button is-rounded is-medium is-link"
-                           href="{{ url_for('comhealth.display_service_customers', service_id=record.service.id) }}">
+                                            {% endif %}
+                                        </tr>
+                                    {% endfor %}
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="columns">
+                        <div class="column">
+                            <div class="has-text-centered">
+                                <a class="button is-rounded is-medium is-link"
+                                   href="{{ url_for('comhealth.display_service_customers', service_id=record.service.id) }}">
                             <span class="icon">
                                 <i class="far fa-hand-point-left"></i>
                             </span>
-                            <span>Back</span>
-                        </a>
+                                    <span>Back</span>
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
     </section>
 {% endblock %}
 {% block scripts %}
@@ -293,7 +355,7 @@
                 }
             },
             methods: {
-                toggleComment: function() {
+                toggleComment: function () {
                     this.commentEdit = !this.commentEdit;
                 }
             }
