@@ -303,9 +303,8 @@ def save_test_profile(profile_id):
         if test.startswith('test'):
             _, test_id = test.split('_')
             test_item = ComHealthTestItem.query.get(int(test_id))
-            if request.form.get(test):
-                test_item.price = request.form.get(test)
-                db.session.add(test_item)
+            test_item.price = float(request.form.get(test))
+            db.session.add(test_item)
     db.session.commit()
     flash('Change has been saved.')
     return redirect(url_for('comhealth.test_profile', profile_id=profile_id))
@@ -384,9 +383,8 @@ def save_test_group(group_id):
         if test.startswith('test'):
             _, test_id = test.split('_')
             test_item = ComHealthTestItem.query.get(int(test_id))
-            if request.form.get(test):
-                test_item.price = request.form.get(test)
-                db.session.add(test_item)
+            test_item.price = float(request.form.get(test))
+            db.session.add(test_item)
     db.session.commit()
     flash('Change has been saved.')
     return redirect(url_for('comhealth.test_group_index', group_id=group_id))
