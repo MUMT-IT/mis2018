@@ -45,7 +45,7 @@
                     <div class="column">
                         <input type="text" class="input is-rounded is-large" name="service_code"
                                placeholder="Enter a lab number or scan a barcode" autofocus
-                               {% if record.labno %} readonly value="{{ record.labno }}"{% endif %}
+                                {% if record.labno %} readonly value="{{ record.labno }}"{% endif %}
                                required
                         >
                     </div>
@@ -60,7 +60,7 @@
                                 <div class="columns">
                                     <div class="column">
                                         <p>
-                                            <h1 class="subtitle is-size-4">
+                                        <h1 class="subtitle is-size-4">
                                             <strong>ชื่อ</strong> {{ record.customer.title or '-' }} {{ record.customer.firstname }}
                                             <strong>นามสกุล</strong> {{ record.customer.lastname }}
                                         </h1>
@@ -80,26 +80,30 @@
                                             </p>
                                         {% endif %}
                                         <p>
-                                            <h1 class="subtitle is-size-4">
+                                        <h1 class="subtitle is-size-4">
                                             <strong>สังกัด</strong> {{ record.customer.org.name }}
-                                            </h1>
+                                        </h1>
                                         </p>
                                     </div>
                                     <div class="column">
                                         {% if record.customer.dob %}
                                             <p>
                                             <h1 class="subtitle is-size-4">
-                                                <strong>อายุ</strong> {{ record.customer.age.years  }} ปี {{ record.customer.age.months }} เดือน {{ record.customer.age.days }} วัน
+                                                <strong>อายุ</strong> {{ record.customer.age.years }}
+                                                ปี {{ record.customer.age.months }} เดือน {{ record.customer.age.days }}
+                                                วัน
                                             </h1>
                                             </p>
                                         {% endif %}
                                         <div class="field">
                                             <label class="label is-size-4"><strong>วัน/เดือน/ปีเกิด</strong></label>
                                             <div class="control">
-                                                <input class="input is-rounded is-medium" name='dob' type="text" value='{{ record.customer.thai_dob or "" }}' placeholder="dd/mm/yyyy"
-                                                       {% if record.customer.dob %}
-                                                        readonly
-                                                       {% endif %}
+                                                <input class="input is-rounded is-medium" name='dob' type="text"
+                                                       value='{{ record.customer.thai_dob or "" }}'
+                                                       placeholder="dd/mm/yyyy"
+                                                        {% if record.customer.dob %}
+                                                       readonly
+                                                        {% endif %}
                                                 />
                                             </div>
                                             <p class="help has-text-info">
@@ -107,6 +111,23 @@
                                             </p>
                                         </div>
                                     </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <div class="card">
+                            <div class="card-header">
+                                <p class="card-header-title">Footnote</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="field">
+                                    <label class="label">หมายเหตุ เงื่อนไขหรือความต้องการเพิ่มเติม</label>
+                                    <p class="control">
+                                        <textarea class="textarea" name="comment" placeholder="Comment here..."></textarea>
+                                    </p>
                                 </div>
                             </div>
                         </div>
@@ -139,6 +160,16 @@
                         </div>
                     </div>
                 {% endfor %}
+                <div class="columns">
+                    <div class="column">
+                        <div class="has-text-centered">
+                            <button class="button is-rounded is-medium is-link" type="submit">
+                                <span>Proceed</span>
+                                <span class="icon"><i class="far fa-hand-point-right"></i></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 {% for group in record.service.groups %}
                     <div class="columns">
                         <div class="column">
@@ -164,12 +195,16 @@
                         </div>
                     </div>
                 {% endfor %}
-            <button class="button is-rounded is-medium is-centered is-link" type="submit">
-                <span>Proceed</span>
-                <span class="icon">
-                    <i class="far fa-hand-point-right"></i>
-                </span>
-            </button>
+                <div class="columns">
+                    <div class="column">
+                        <div class="has-text-centered">
+                            <button class="button is-rounded is-medium is-link" type="submit">
+                                <span>Proceed</span>
+                                <span class="icon"><i class="far fa-hand-point-right"></i></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </form>
         </div>
     </section>

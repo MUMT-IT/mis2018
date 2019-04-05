@@ -149,6 +149,7 @@ class ComHealthRecord(db.Model):
                                     secondary=test_item_record_table)
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     urgent = db.Column('urgent', db.Boolean(), default=False)
+    comment = db.Column('comment', db.Text())
 
     @property
     def container_set(self):

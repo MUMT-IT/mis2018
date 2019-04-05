@@ -85,6 +85,8 @@ def edit_record(record_id):
                 record.ordered_tests.append(test_item)
                 containers.add(test_item.test.container)
 
+        record.comment = request.form.get('comment')
+
         record.updated_at = datetime.now(tz=bangkok)
         db.session.add(record)
         db.session.commit()
@@ -106,6 +108,20 @@ def edit_record(record_id):
                            containers=containers,
                            profile_item_cost=profile_item_cost,
                            group_item_cost=float(group_item_cost))
+
+
+@comhealth.route('/record/order/add-comment', methods=['GET', 'POST'])
+def add_comment_to_order():
+    if request.method == 'POST':
+        print(request.form.keys())
+        record_id = request.form.get('record_id')
+        record = ComHealthRecord.query.get(int(record_id))
+        comment = request.form.get('comment')
+        record.comment = comment
+        db.session.add(record)
+        db.session.commit()
+
+        return redirect(url_for('comhealth.edit_record', record_id=record.id))
 
 
 @comhealth.route('/record/<int:record_id>/order/add-test-item/<int:item_id>')
