@@ -39,7 +39,7 @@ def edit_record(record_id):
     # TODO: use decimal in price calculation instead of float
 
     record = ComHealthRecord.query.get(record_id)
-    if not record.service.profiles or not record.service.groups:
+    if not record.service.profiles and not record.service.groups:
         return redirect(url_for('comhealth.edit_service', service_id=record.service.id))
 
     if request.method == 'GET':
