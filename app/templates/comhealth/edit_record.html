@@ -159,6 +159,7 @@
                         </div>
                     </div>
                 {% endfor %}
+                {% if record.service.groups %}
                 <div class="columns">
                     <div class="column">
                         <div class="has-text-centered">
@@ -169,6 +170,7 @@
                         </div>
                     </div>
                 </div>
+                {% endif %}
                 {% for group in record.service.groups %}
                     <div class="columns">
                         <div class="column">
