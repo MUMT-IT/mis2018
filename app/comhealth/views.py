@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 from datetime import date
+from pandas import read_excel
 import pytz
 from flask import render_template, flash, redirect, url_for, request, jsonify, Response, stream_with_context
 from flask_login import login_required
@@ -18,6 +19,7 @@ from .models import (ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTes
 
 bangkok = pytz.timezone('Asia/Bangkok')
 
+ALLOWED_EXTENSIONS = ['xlsx', 'xls']
 
 @comhealth.route('/')
 def index():
@@ -692,3 +694,84 @@ def list_employees(orgid):
         return render_template('comhealth/employees.html',
                                     employees=customer_schema.dump(org.employees).data,
                                     org=org)
+
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS 
+
+
+@comhealth.route('/organizations/<int:orgid>/employees/addmany', methods=['GET', 'POST'])
+def add_many_employees(orgid):
+    org = ComHealthOrg.query.get(orgid)
+
+    if request.method == 'POST':
+        labno_included = request.form.get('labno_included')
+        if 'file' not in request.files:
+            flash('No file alert')
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            flash('No file selected')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            service = None
+            df = read_excel(file)
+            for idx, rec in df.iterrows():
+                labno, title, firstname, lastname, dob, servicedate = rec
+                if not firstname or not lastname:
+                    continue
+                try:
+                    day, month, year = map(int, dob.split('/'))
+                except Exception as e:
+                    if isinstance(e, AttributeError):
+                        day, month, year = map(int, [dob.day, dob.month, dob.year])
+                        year = year - 543
+                        dob = date(year, month, day)
+                    elif isinstance(e, ValueError):
+                        dob = None
+                else:
+                    year = year - 543
+                    dob = date(year, month, day)
+
+                if not service:
+                    service = ComHealthService.query.filter_by(date=servicedate).first()
+
+                customer_ = ComHealthCustomer.query.filter_by(
+                                    firstname=firstname, lastname=lastname).first()
+                if customer_:
+                    record_ = ComHealthRecord.query.filter_by(
+                                        service=service, customer=customer_).first()
+                    if record_:
+                        print('Record exists. Continue..')
+                        continue
+                    new_customer = customer_
+                else:
+                    new_customer = ComHealthCustomer(
+                        title=title,
+                        firstname=firstname,
+                        lastname=lastname,
+                        dob=dob,
+                        org=org
+                    )
+
+                db.session.add(new_customer)
+
+                if labno_included == 'true' and labno:
+                    labno = int(labno)
+                    labno = '{}{:02}{:02}2{:04}'.format(str(service.date.year)[-1],
+                                                        service.date.month,
+                                                        service.date.day,
+                                                        labno)
+                    new_record = ComHealthRecord(
+                        date=service.date,
+                        labno=labno,
+                        service=service,
+                        customer=new_customer,
+                    )
+                    db.session.add(new_record)
+
+                db.session.commit()
+            return 'File is valid. {}'.format(labno_included)
+
+    return render_template('comhealth/employee_upload.html', org=org)
