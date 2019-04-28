@@ -12,7 +12,9 @@ from .models import (ComHealthService, ComHealthRecord, ComHealthTestItem,
                      ComHealthTestProfile, ComHealthContainer, ComHealthTestGroup,
                      ComHealthTest, ComHealthOrg, ComHealthCustomer)
 from .models import (ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTestProfileSchema,
-                     ComHealthTestGroupSchema, ComHealthTestSchema, ComHealthOrgSchema)
+                     ComHealthTestGroupSchema, ComHealthTestSchema, ComHealthOrgSchema,
+                     ComHealthCustomerSchema,
+                     )
 
 bangkok = pytz.timezone('Asia/Bangkok')
 
@@ -680,3 +682,13 @@ def add_org():
             db.session.commit()
             return redirect(url_for('comhealth.list_orgs'))
     return 'No name found.'
+
+
+@comhealth.route('/organizations/<int:orgid>/employees', methods=['GET', 'POST'])
+def list_employees(orgid):
+    if orgid:
+        org = ComHealthOrg.query.get(orgid)
+        customer_schema = ComHealthCustomerSchema(many=True)
+        return render_template('comhealth/employees.html',
+                                    employees=customer_schema.dump(org.employees).data,
+                                    org=org)
