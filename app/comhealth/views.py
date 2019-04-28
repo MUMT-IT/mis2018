@@ -665,3 +665,18 @@ def export_csv(service_id):
             yield u'{}\t{}\t{}\n'.format(record.labno, tests, record.urgent)
 
     return Response(stream_with_context(generate()), mimetype='text/csv')
+
+
+@comhealth.route('/organizations/add', methods=['GET', 'POST'])
+def add_org():
+    name = request.form.get('name', '')
+    if name:
+        org_ = ComHealthOrg.query.filter_by(name=name).first()
+        if org_:
+            return 'Organization exists!'
+        else:
+            new_org = ComHealthOrg(name=name)
+            db.session.add(new_org)
+            db.session.commit()
+            return redirect(url_for('comhealth.list_orgs'))
+    return 'No name found.'

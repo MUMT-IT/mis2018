@@ -52,6 +52,28 @@
                 </div>
             </div>
             <div class="columns">
+                <div class="column is-two-quarter is-offset-4">
+                    <form action="{{ url_for('comhealth.add_org') }}" method="post">
+                        <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                        <div class="field has-addons">
+                            <p class="control">
+                                <input class="input is-rounded is-primary is-medium"
+                                    name="name"
+                                    type="text" placeholder="Organization name" />
+                            </p>
+                            <p class="control">
+                                <button class="button is-medium is-primary is-rounded" href="">
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>&nbsp;
+                                    <span>Add</span>
+                                </button>
+                            </p>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="columns">
                 <div class="column">
                     <b-table :data="fltServices" :paginated="true" :per-page="10" default-sort="date" default-sort-direction="dsc">
                         <template slot-scope="props">
