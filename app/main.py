@@ -71,6 +71,10 @@ admin.add_views(ModelView(Person, db.session, category='Food'))
 admin.add_views(ModelView(Farm, db.session, category='Food'))
 admin.add_views(ModelView(Produce, db.session, category='Food'))
 
+from research import researchbp as research_blueprint
+app.register_blueprint(research_blueprint, url_prefix='/research')
+from app.research.models import ResearchPub
+
 from staff import staffbp as staff_blueprint
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
@@ -98,10 +102,6 @@ admin.add_view(ModelView(VehicleType, db.session, category='Physicals'))
 
 from auth import authbp as auth_blueprint
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
-
-from research import researchbp as research_blueprint
-app.register_blueprint(research_blueprint, url_prefix='/research')
-from research.models import ResearchPub
 
 from models import (Student, Class, ClassCheckIn,
                         Org, Mission, IOCode, CostCenter,
