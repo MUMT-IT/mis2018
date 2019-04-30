@@ -2,10 +2,12 @@ from ..main import db
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import JSON
 
+
 pubs_authors = db.Table('pub_author_table',
     db.Column('author_email', db.String, db.ForeignKey('staff_account.email'), primary_key=True),
     db.Column('pub_id', db.Integer, db.ForeignKey('research_pub.id'), primary_key=True)
 )
+
 
 class APIKey(db.Model):
     __tablename__ = 'api_keys'
@@ -20,4 +22,5 @@ class ResearchPub(db.Model):
     scopus_id = db.Column('scopus_id', db.String(128), index=True)
     data = db.Column('data', JSON)
     created_at = db.Column('created_at', db.DateTime, default=func.now())
+    cited_count = db.Column('cited_count', db.Integer, default=0)
 
