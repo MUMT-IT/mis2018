@@ -16,6 +16,7 @@ Author = namedtuple('Author', ['email', 'firstname', 'lastname'])
 
 usr = os.environ.get('PROXY_USER')
 pwd = os.environ.get('PROXY_PASSWORD')
+SCOPUS_API_KEY = os.environ.get('SCOPUS_API_KEY')
 
 ITEM_PER_PAGE = 25
 SLEEPTIME = 5
@@ -86,24 +87,18 @@ def download_scopus_pub(api_key, year):
         url = 'http://api.elsevier.com/content/abstract/scopus_id/' + scopus_id
         r = requests.get(url, params=params).json()
         citation_count = int(r['abstracts-retrieval-response']['coredata']['citedby-count'])
-        existing_pub = db.session.query(ResearchPub).filter(ResearchPub.uid==scopus_id).first()
+        existing_pub = db.session.query(ResearchPub).filter(ResearchPub.scopus_id==scopus_id).first()
         if existing_pub:
             print('\t\t\t{} exists..updating a citation count..'.format(scopus_id))
-            existing_pub.citation_count = citation_count
+            existing_pub.cited_count = citation_count
             db.session.add(existing_pub)
             db.session.commit()
             continue
-        pubdate = r['abstracts-retrieval-response']['coredata']['prism:coverDate']
-        pubyear = int(pubdate.split('-')[0])
-        pubmonth = int(pubdate.split('-')[1])
-        rp = ResearchPub(uid=scopus_id,
-                            citation_count=citation_count,
-                            data=r,
-                            indexed_db='scopus',
-                            pubmonth=pubmonth,
-                            pubyear=pubyear)
+        rp = ResearchPub(scopus_id=scopus_id, data=r, cited_count=citation_count)
         db.session.add(rp)
         db.session.commit()
+        # TODO: add article to staff.
+        '''
         for _author in r['abstracts-retrieval-response']['authors']['author']:
             _firstname = _author.get('ce:given-name', '').title()
             _lastname = _author.get('ce:surname', '').title()
@@ -112,11 +107,12 @@ def download_scopus_pub(api_key, year):
                         StaffPersonalInfo.en_lastname==_lastname).first()
             if _au:
                 author_account = _au.staff_account
-                existing_pubs = set([p.uid for p in author_account.pubs])
-                if rp.uid not in existing_pubs:
+                existing_pubs = set([p.scopus_id for p in author_account.pubs])
+                if rp.scopus_id not in existing_pubs:
                     author_account.pubs.append(rp)
                     db.session.add(author_account)
         db.session.commit()
+        '''
     return {'status': 'done'}
 
 
@@ -127,7 +123,7 @@ def retrieve_scopus_data():
     if year is None:
         year = datetime.datetime.today().year
 
-    api_key = get_key('SCOPUS')
+    api_key = SCOPUS_API_KEY
 
     res = download_scopus_pub(api_key, year)
     return jsonify({'status': 'ok'})
