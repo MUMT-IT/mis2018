@@ -13,6 +13,7 @@ services:
       - FLASK_DEBUG
       - POSTGRES_PASSWORD
       - SECRET_KEY
+      - SCOPUS_API_KEY
     volumes:
       - ./app:/mis2018/app
       - ./warehouse:/mis2018/warehouse
