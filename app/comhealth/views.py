@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import json
 from datetime import datetime
 from datetime import date
@@ -775,3 +776,19 @@ def add_many_employees(orgid):
             return 'File is valid. {}'.format(labno_included)
 
     return render_template('comhealth/employee_upload.html', org=org)
+
+
+@comhealth.route('/organizations/nha/employees', methods=['GET', 'POST'])
+def search_employees():
+    df = read_excel('app/static/data/nha2019.xlsx')
+    data = []
+    for idx, rec in df.iterrows():
+        item = {
+            'id': idx,
+            'no': rec[0],
+            'firstname': rec.firstname,
+            'lastname': rec.lastname,
+            'dob': rec.dob
+            }
+        data.append(item)
+    return render_template('comhealth/search_employees.html', employees=data, org=u'การเคหะแห่งชาติ')

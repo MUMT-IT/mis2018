@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="hero is-info is-small">
+        <div class="hero-head">
+            <nav class="navbar">
+                <div class="container">
+                    <div class="navbar-brand">
+                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+                    </div>
+                    <div id="navbarMenuHeroA" class="navbar-menu">
+                        <div class="navbar-end">
+                            <a class="navbar-item"
+                               href="/comhealth">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                                <span>Home</span>
+                            </a>
+                            <a class="navbar-item"
+                               href="/comhealth/tests">
+                                <span>Tests</span>
+                            </a>
+                            <a class="navbar-item is-active"
+                            href="/comhealth/organizations">
+                                <span>Organizations</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="100">
+                <h3 class="title">Employees Search from Excel</h3>
+                <h3 class="subtitle">ชื่อสถาบัน {{ org }}</h3>
+            </div>
+        </div>
+    </section>
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-two-thirds is-offset-2">
+                    <input type="text" v-model="query" class="input is-large is-rounded"
+                           placeholder="ค้นหาชื่อพนักงาน">
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <b-table :data="fltRecords" :paginated="true" :per-page="10" default-sort="customer.firstname">
+                        <template slot-scope="props">
+                            <b-table-column field="no" label="ID" width="10" numeric>
+                                <% props.row.no %>
+                            </b-table-column>
+                            <b-table-column field="firstname" label="First Name" sortable>
+                                <% props.row.firstname %>
+                            </b-table-column>
+                            <b-table-column field="lastname" label="Last Name" sortable>
+                                <% props.row.lastname %>
+                            </b-table-column>
+                            <b-table-column field="dob" label="Birthdate" sortable centered>
+                                <% props.row.dob %>
+                            </b-table-column>
+                        </template>
+                    </b-table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#app",
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    records: {{ employees|tojson|safe }},
+                    query: '',
+                }
+            },
+            computed: {
+                fltRecords: function () {
+                    var self = this;
+                    return this.records.filter(function (item) {
+                        if (self.query !== "") {
+                            var match = item.firstname
+                                .toString()
+                                .toLowerCase()
+                                .indexOf(self.query.toLowerCase()) >= 0;
+                            if (!match) {
+                                match = item.lastname
+                                    .toString()
+                                    .toLowerCase()
+                                    .indexOf(self.query.toLowerCase()) >= 0;
+                                return match;
+                            }
+                            return match;
+                        } else {
+                            return self.records;
+                        }
+                    })
+                }
+            }
+        });
+    </script>
+{% endblock %}
