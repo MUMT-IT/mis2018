@@ -37,6 +37,7 @@ class StaffPersonalInfo(db.Model):
     th_lastname = db.Column('th_lastname', db.String(), nullable=False)
     academic_position_id = db.Column('academic_position_id', db.ForeignKey('staff_academic_position.id'))
     academic_position = db.relationship('StaffAcademicPosition', backref=db.backref('staff_list'))
+    orgs_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
 
     def __str__(self):
         return u'{} {}'.format(self.en_firstname, self.en_lastname)
@@ -62,4 +63,3 @@ class StaffAcademicPosition(db.Model):
     position_full_en = db.Column('position_full_en', db.String(), nullable=False)
     position_abbr_en = db.Column('position_abbr_en', db.String(), nullable=False)
     level = db.Column('level', db.Integer(), nullable=False)
-    
