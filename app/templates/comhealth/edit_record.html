@@ -146,9 +146,7 @@
                                         {% for item in profile.test_items %}
                                             <li>
                                                 <label class="checkbox">
-                                                    <input type="checkbox" name="profile_{{ item.id }}"
-                                                           checked
-                                                    >
+                                                    <input type="checkbox" name="profile_{{ item.id }}">
                                                     <strong>{{ item.test.name }}</strong> {{ item.test.desc }}
                                                 </label>
                                             </li>
