@@ -25,9 +25,18 @@ ALLOWED_EXTENSIONS = ['xlsx', 'xls']
 @comhealth.route('/')
 def index():
     services = ComHealthService.query.all()
-    sv_schema = ComHealthServiceSchema(many=True)
-    return render_template('comhealth/index.html',
-                           services=sv_schema.dump(services).data)
+    services_data = []
+    for sv in services:
+        d = {
+            'id': sv.id,
+            'date': sv.date,
+            'location': sv.location,
+            'registered': len(sv.records),
+            'checkedin': len([r for r in sv.records if r.checkin_datetime is not None])
+        }
+        services_data.append(d)
+    # sv_schema = ComHealthServiceSchema(many=True)
+    return render_template('comhealth/index.html', services=services_data)
 
 
 @comhealth.route('/services/<int:service_id>')
@@ -719,7 +728,7 @@ def add_many_employees(orgid):
             service = None
             df = read_excel(file)
             for idx, rec in df.iterrows():
-                labno, title, firstname, lastname, dob, servicedate = rec
+                labno, title, firstname, lastname, dob, gender, servicedate = rec
                 if not firstname or not lastname:
                     continue
                 try:
@@ -738,26 +747,41 @@ def add_many_employees(orgid):
                 if not service:
                     service = ComHealthService.query.filter_by(date=servicedate).first()
 
-                #TODO: Customers with the same firstname and lastname from a different org will not be added to the db
-
                 customer_ = ComHealthCustomer.query.filter_by(
                                     firstname=firstname, lastname=lastname).first()
                 if customer_:
                     record_ = ComHealthRecord.query.filter_by(
                                         service=service, customer=customer_).first()
                     if record_:
-                        print('Record exists. Continue..')
+                        print(u'Record exists. Continue..{} {}'.format(firstname, lastname))
                         continue
-                    new_customer = customer_
+
+                    # A new customer is created for this org even when the name exists in the db.
+                    # This helps resolve the issue of redundant names.
+                    if dob:
+                        cdob = dob
+                    else:
+                        cdob = customer_.dob
+
+                    gender = int(gender) if not isna(gender) else None
+
+                    new_customer = ComHealthCustomer(
+                        title=customer_.title,
+                        firstname=customer_.firstname,
+                        lastname=customer_.lastname,
+                        dob=cdob,
+                        org=org,
+                        gender=gender,
+                    )
                 else:
                     new_customer = ComHealthCustomer(
                         title=title,
                         firstname=firstname,
                         lastname=lastname,
                         dob=dob,
-                        org=org
+                        org=org,
+                        gender=gender
                     )
-
                 db.session.add(new_customer)
 
                 if labno_included == 'true' and labno:
@@ -774,7 +798,7 @@ def add_many_employees(orgid):
                     )
                     db.session.add(new_record)
 
-                db.session.commit()
+            db.session.commit()
             return redirect(url_for('comhealth.list_employees', orgid=org.id))
 
     return render_template('comhealth/employee_upload.html', org=org)
