@@ -49,7 +49,7 @@ class ComHealthCustomer(db.Model):
     org_id = db.Column('org_id', db.ForeignKey('comhealth_orgs.id'))
     org = db.relationship('ComHealthOrg', backref=db.backref('employees', lazy=True))
     dob = db.Column('dob', db.Date())
-    gender = db.Column('gender', db.Integer)
+    gender = db.Column('gender', db.Integer)  # 0 for female, 1 for male
 
     def __str__(self):
         return u'{}{} {} {}'.format(self.title, self.firstname,
