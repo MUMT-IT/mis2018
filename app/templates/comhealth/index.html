@@ -72,17 +72,16 @@
                                 <% props.row.id %>
                             </b-table-column>
                             <b-table-column field="date" label="Date" sortable centered>
-                                <% props.row.date %>
+                                <% props.row.date.toLocaleString({timeZone: "UTC"}) %>
                             </b-table-column>
                             <b-table-column field="location" label="Location" sortable>
                                 <% props.row.location %>
                             </b-table-column>
                             <b-table-column field="records" label="Registered Customers" sortable numeric centered>
-                                <% props.row.records.length %>
+                                <% props.row.registered %>
                             </b-table-column>
                             <b-table-column field="" label="Checked In Customers" sortable numeric centered>
-                                <% props.row.records.filter(function(record) { return record.checkin_datetime!==null;
-                                }).length %>
+                                <% props.row.checkedin %>
                             </b-table-column>
                             <b-table-column field="" label="Detail">
                                 <a class="button is-rounded is-light" v-bind:href="'/comhealth/services/'+props.row.id">
