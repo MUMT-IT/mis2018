@@ -2,7 +2,7 @@
 import json
 from datetime import datetime
 from datetime import date
-from pandas import read_excel
+from pandas import read_excel, isna
 import pytz
 from flask import render_template, flash, redirect, url_for, request, jsonify, Response, stream_with_context
 from flask_login import login_required
@@ -725,18 +725,20 @@ def add_many_employees(orgid):
                 try:
                     day, month, year = map(int, dob.split('/'))
                 except Exception as e:
-                    if isinstance(e, AttributeError):
+                    if isna(dob) or isinstance(e, ValueError):
+                        dob = None
+                    elif isinstance(e, AttributeError):
                         day, month, year = map(int, [dob.day, dob.month, dob.year])
                         year = year - 543
                         dob = date(year, month, day)
-                    elif isinstance(e, ValueError):
-                        dob = None
                 else:
                     year = year - 543
                     dob = date(year, month, day)
 
                 if not service:
                     service = ComHealthService.query.filter_by(date=servicedate).first()
+
+                #TODO: Customers with the same firstname and lastname from a different org will not be added to the db
 
                 customer_ = ComHealthCustomer.query.filter_by(
                                     firstname=firstname, lastname=lastname).first()
@@ -773,14 +775,14 @@ def add_many_employees(orgid):
                     db.session.add(new_record)
 
                 db.session.commit()
-            return 'File is valid. {}'.format(labno_included)
+            return redirect(url_for('comhealth.list_employees', orgid=org.id))
 
     return render_template('comhealth/employee_upload.html', org=org)
 
 
-@comhealth.route('/organizations/nha/employees', methods=['GET', 'POST'])
+@comhealth.route('/organizations/mudt/employees', methods=['GET', 'POST'])
 def search_employees():
-    df = read_excel('app/static/data/nha2019.xlsx')
+    df = read_excel('app/static/data/mudt2019.xls')
     data = []
     for idx, rec in df.iterrows():
         item = {
