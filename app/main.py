@@ -44,7 +44,7 @@ def create_app(config_setting='development'):
     admin.init_app(app)
     return app
 
-config_setting = os.environ.get('FLASK_CONFIG', 'default')
+config_setting = os.environ.get('FLASK_CONFIG', 'development')
 app = create_app(config_setting)
 
 @login.user_loader

@@ -10,7 +10,7 @@ services:
     env_file:
       - web_variables.env
     environment:
-      - FLASK_DEBUG
+      - FLASK_CONFIG
       - POSTGRES_PASSWORD
       - SECRET_KEY
       - SCOPUS_API_KEY
