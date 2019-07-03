@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import os
+import json
 import click
 from pytz import timezone
 from flask.cli import AppGroup
@@ -11,8 +12,7 @@ from flask_login import LoginManager
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
-from config import config
-import json
+from app.config import config
 
 db = SQLAlchemy()
 migrate = Migrate()

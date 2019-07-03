@@ -1,24 +1,30 @@
+"""
+    Config file for the web app.
+"""
+
 import os
 
-basedir = os.path.abspath(os.path.dirname(__file__))
-
-class Config:
+class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 
+class SQLiteDevelopmentConfig(Config):
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///mumtmis.db'
+
+
 class DevelopmentConfig(Config):
-    DEBUG = True
-    SQLALCHEMY_DATABASE_URI = 'postgres+psycopg2://postgres:genius01@pg/mumtmis_dev'
+    # SQLALCHEMY_DATABASE_URI = 'postgres+psycopg2://postgres:genius01@pg/mumtmis_dev'
+    pass
 
 
 class ProductionConfig(Config):
     SQLALCHEMY_DATABASE_URI = 'postgres+psycopg2://postgres:genius01@pg/mumtmis_dev'
 
 
-config = {
+SETTINGS = {
+    'sqlite': SQLiteDevelopmentConfig,
     'development': DevelopmentConfig,
     'production': ProductionConfig,
     'default': DevelopmentConfig
 }
-
