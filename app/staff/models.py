@@ -58,8 +58,8 @@ class StaffEduDegree(db.Model):
 class StaffAcademicPosition(db.Model):
     __tablename__ = 'staff_academic_position'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    position_full_th = db.Column('position_full_th', db.String(), nullable=False)
-    position_abbr_th = db.Column('position_abbr_th', db.String(), nullable=False)
-    position_full_en = db.Column('position_full_en', db.String(), nullable=False)
-    position_abbr_en = db.Column('position_abbr_en', db.String(), nullable=False)
+    fullname_th = db.Column('fullname_th', db.String(), nullable=False)
+    shortname_th = db.Column('shortname_th', db.String(), nullable=False)
+    fullname_en = db.Column('fullname_en', db.String(), nullable=False)
+    shortname_en = db.Column('shortname_en', db.String(), nullable=False)
     level = db.Column('level', db.Integer(), nullable=False)
