@@ -30,7 +30,7 @@ admin = Admin()
 dbutils = AppGroup('dbutils')
 
 
-def create_app(config_setting='default'):
+def create_app(config_setting='development'):
     '''Create app based on the config setting
     '''
 
