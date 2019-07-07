@@ -14,8 +14,6 @@ from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from config import SETTINGS
 
-from app.staff.models import StaffAccount
-
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 db = SQLAlchemy()
@@ -64,37 +62,37 @@ def index():
 with app.open_resource(os.environ.get('JSON_KEYFILE')) as jk:
     json_keyfile = json.load(jk)
 
-from app.kpi import kpibp as kpi_blueprint
+from kpi import kpibp as kpi_blueprint
 app.register_blueprint(kpi_blueprint, url_prefix='/kpi')
 
-from app.studs import studbp as stud_blueprint
+from studs import studbp as stud_blueprint
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
-from app.food import foodbp as food_blueprint
+from food import foodbp as food_blueprint
 app.register_blueprint(food_blueprint, url_prefix='/food')
-from app.food.models import Person, Farm, Produce
+from food.models import Person, Farm, Produce
 admin.add_views(ModelView(Person, db.session, category='Food'))
 admin.add_views(ModelView(Farm, db.session, category='Food'))
 admin.add_views(ModelView(Produce, db.session, category='Food'))
 
-from app.research import researchbp as research_blueprint
+from research import researchbp as research_blueprint
 app.register_blueprint(research_blueprint, url_prefix='/research')
-from app.research.models import ResearchPub
+from research.models import ResearchPub
 
-from app.staff import staffbp as staff_blueprint
+from staff import staffbp as staff_blueprint
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
-from app.staff.models import StaffAccount, StaffPersonalInfo
+from staff.models import StaffAccount, StaffPersonalInfo
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
 
-from app.room_scheduler import roombp as room_blueprint
+from room_scheduler import roombp as room_blueprint
 app.register_blueprint(room_blueprint, url_prefix='/room')
-from app.room_scheduler.models import *
+from room_scheduler.models import *
 
-from app.vehicle_scheduler import vehiclebp as vehicle_blueprint
+from vehicle_scheduler import vehiclebp as vehicle_blueprint
 app.register_blueprint(vehicle_blueprint, url_prefix='/vehicle')
-from app.vehicle_scheduler.models import *
+from vehicle_scheduler.models import *
 
 admin.add_views(ModelView(RoomResource, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomEvent, db.session, category='Physicals'))
@@ -106,13 +104,13 @@ admin.add_view(ModelView(VehicleResource, db.session, category='Physicals'))
 admin.add_view(ModelView(VehicleAvailability, db.session, category='Physicals'))
 admin.add_view(ModelView(VehicleType, db.session, category='Physicals'))
 
-from app.auth import authbp as auth_blueprint
+from auth import authbp as auth_blueprint
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-from app.models import (Student, Class, ClassCheckIn,
+from models import (Student, Class, ClassCheckIn,
                         Org, Mission, IOCode, CostCenter,
                         StudentCheckInRecord)
-import app.database
+import database
 
 
 class StudentCheckInAdminModel(ModelView):
@@ -151,17 +149,17 @@ class CostCenterAdminModel(ModelView):
 
 admin.add_view(CostCenterAdminModel(CostCenter, db.session, category='Finance'))
 
-from app.lisedu import lisedu as lis_blueprint
+from lisedu import lisedu as lis_blueprint
 app.register_blueprint(lis_blueprint, url_prefix='/lis')
-from app.lisedu.models import *
+from lisedu.models import *
 
 
-from app.chemdb import chemdbbp as chemdb_blueprint
-import app.chemdb.models
+from chemdb import chemdbbp as chemdb_blueprint
+import chemdb.models
 app.register_blueprint(chemdb_blueprint, url_prefix='/chemdb')
 
-from app.comhealth import comhealth as comhealth_blueprint
-from app.comhealth.models import *
+from comhealth import comhealth as comhealth_blueprint
+from comhealth.models import *
 app.register_blueprint(comhealth_blueprint, url_prefix='/comhealth')
 admin.add_view(ModelView(ComHealthTest, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthTestProfile, db.session, category='Com Health'))
