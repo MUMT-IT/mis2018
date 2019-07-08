@@ -81,6 +81,30 @@
                             <li><a href="#comment">หมายเหตุ</a></li>
                         </ul>
                     </aside>
+                    <aside>
+                        <div id="receipt-slip" class="box" style="font-family:
+                            monospace; font-size: 11px;">
+                            <table>
+                                <col width="40%">
+                                <col width="60%">
+                                <tr><td colspan=2><strong>ใบแทนใบเสร็จรับเงิน</strong></td><td></td></tr>
+                                <tr><td>LABNO</td><td>{{ record.labno }}</td></tr>
+                                <tr><td>NAME</td><td>{{ record.customer.firstname }} 
+                                        {{ record.customer.lastname }}</td></tr>
+                                <tr><td>DATE</td><td>{{ record.updated_at|localdatetime }}</td></tr>
+                                {% for test_item in special_tests %}
+                                <tr><td>{{ test_item.test.name }}</td>
+                                    <td> {{ test_item.test.default_price }} THB</td>
+                                </tr>
+                                {% endfor %}
+                                <tr><td><strong>TOTAL</strong></td><td><strong>{{ special_item_cost }}
+                                            THB</strong></td></tr>
+                            </table>
+                        </div>
+                        <button class="button"
+                                       @click="printJS('receipt-slip',
+                                       'html')">Print</button>
+                    </aside>
                 </div>
                 <a name="customer-info"></a>
                 <div class="column is-10">
