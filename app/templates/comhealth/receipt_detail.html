@@ -82,7 +82,11 @@
                     </div>
                     <button class="button is-primary is-rounded"
                                    @click="printJS('receipt',
-                                   'html')">Print</button>
+                                   'html')">
+                        <span>
+                            <i class="fas fa-print"></i>
+                        </span> <span>Print</span>
+                    </button>
                     <a class="button is-primary is-rounded" href="{{
                                                            url_for('comhealth.list_all_receipts',
                                                            record_id=receipt.record.id)
