@@ -89,19 +89,30 @@
                                 <col width="60%">
                                 <tr><td colspan=2><strong>ใบแทนใบเสร็จรับเงิน</strong></td><td></td></tr>
                                 <tr><td>LABNO</td><td>{{ record.labno }}</td></tr>
-                                <tr><td>NAME</td><td>{{ record.customer.firstname }} 
+                                <tr><td>ชื่อ</td><td>{{ record.customer.firstname }} 
                                         {{ record.customer.lastname }}</td></tr>
-                                <tr><td>DATE</td><td>{{ record.updated_at|localdatetime }}</td></tr>
+                                <tr><td>วันที่</td><td>{{ record.updated_at|localdatetime }}</td></tr>
                                 {% for test_item in special_tests %}
                                 <tr><td>{{ test_item.test.name }}</td>
                                     <td> {{ test_item.test.default_price }} THB</td>
                                 </tr>
                                 {% endfor %}
-                                <tr><td><strong>TOTAL</strong></td><td><strong>{{ special_item_cost }}
+                                <tr><td><strong>รวม</strong></td><td><strong><% special_item_cost %>
+                                            THB</strong></td></tr>
+                                <tr><td><strong>จ่าย</strong></td><td><strong><% prepaid %>
+                                            THB</strong></td></tr>
+                                <tr><td><strong>ทอน</strong></td><td><strong><%
+                                            prepaid - special_item_cost %>
                                             THB</strong></td></tr>
                             </table>
                         </div>
-                        <button class="button"
+                        <div class="field">
+                            <label class="label">จ่ายแล้ว</label>
+                            <div class="control">
+                                <input type="number" v-model="prepaid" step="any" class="input">
+                            </div>
+                        </div>
+                        <button class="button is-primary is-rounded"
                                        @click="printJS('receipt-slip',
                                        'html')">Print</button>
                     </aside>
@@ -373,9 +384,12 @@
     <script>
         var vm = new Vue({
             el: '#app',
+            delimiters: ['<%', '%>'],
             data() {
                 return {
                     commentEdit: false,
+                    prepaid: 0,
+                    special_item_cost: {{ special_item_cost|tojson|safe }},
                 }
             },
             methods: {
