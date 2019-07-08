@@ -12,7 +12,8 @@ from . import comhealth
 from .forms import ServiceForm, TestProfileForm, TestListForm, TestForm, TestGroupForm, CustomerForm
 from .models import (ComHealthService, ComHealthRecord, ComHealthTestItem,
                      ComHealthTestProfile, ComHealthContainer, ComHealthTestGroup,
-                     ComHealthTest, ComHealthOrg, ComHealthCustomer)
+                     ComHealthTest, ComHealthOrg, ComHealthCustomer,
+                     ComHealthReceipt)
 from .models import (ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTestProfileSchema,
                      ComHealthTestGroupSchema, ComHealthTestSchema, ComHealthOrgSchema,
                      ComHealthCustomerSchema,
@@ -833,3 +834,12 @@ def search_employees():
 def list_all_receipts(record_id):
     record = ComHealthRecord.query.get(record_id)
     return render_template('comhealth/receipts.html', record=record)
+
+
+@comhealth.route('/checkin/receipts/<int:receipt_id>', methods=['GET', 'POST'])
+def show_receipt_detail(receipt_id):
+    receipt = ComHealthReceipt.query.get(receipt_id)
+    special_item_cost = sum([item.price or item.test.default_price
+                             for item in receipt.special_tests])
+    return render_template('comhealth/receipt_detail.html', receipt=receipt,
+                           total_cost=special_item_cost)
