@@ -129,7 +129,7 @@ def edit_record(record_id):
                            profile_item_cost=profile_item_cost,
                            group_item_cost=float(group_item_cost),
                            special_tests=special_tests,
-                           special_item_cost=special_item_cost,
+                           special_item_cost=float(special_item_cost),
                         )
 
 
@@ -827,3 +827,9 @@ def search_employees():
             }
         data.append(item)
     return render_template('comhealth/search_employees.html', employees=data, org=u'การเคหะแห่งชาติ')
+
+
+@comhealth.route('/checkin/<int:record_id>/receipts', methods=['GET', 'POST'])
+def list_all_receipts(record_id):
+    record = ComHealthRecord.query.get(record_id)
+    return render_template('comhealth/receipts.html', record=record)
