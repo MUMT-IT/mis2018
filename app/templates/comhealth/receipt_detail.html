@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="section hero is-info is-small">
+        <div class="hero-head">
+            <nav class="navbar">
+                <div class="container">
+                    <div class="navbar-brand">
+                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+                    </div>
+                    <div id="navbarMenuHeroA" class="navbar-menu">
+                        <div class="navbar-end">
+                            <a class="navbar-item is-active"
+                                href="/comhealth">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                                <span>Home</span>
+                            </a>
+                            <a class="navbar-item"
+                               href="/comhealth/tests">
+                                <span>Tests</span>
+                            </a>
+                            <a class="navbar-item"
+                               href="/comhealth/organizations">
+                                <span>Organizations</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <img src="{{ url_for('static', filename='img/medical-history.png') }}" width="100">
+                <h1 class="title">Community Health Service Registration System</h1>
+            </div>
+        </div>
+    </section>
+    <section class="section" id="app">
+        <div class="container">
+            <h3 class="title is-size-4">Lab no. {{ receipt.record.labno }}</h3>
+            <h4 class="subtitle is-size-5">{{ receipt.record.customer.title or
+                '' }}{{ receipt.record.customer.firstname }} {{ receipt.record.customer.lastname }}</h3>
+            <div class="columns">
+                <div class="column">
+                    <table class="table">
+                        <thead>
+                            <th>Test Code</th>
+                            <th>Description</th>
+                            <th>Cost</th>
+                        </thead>
+                        <tbody>
+                            {% for t in receipt.special_tests %}
+                            <tr>
+                                <td>{{ t.test.code }}</td>
+                                <td>{{ t.test.description }}</td>
+                                <td>{{ t.price or t.test.default_price }}</td>
+                            </tr>
+                            {% endfor %}
+                            <tr>
+                                <td colspan=2><strong>Total</strong></td><td>{{ total_cost }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <a class="button is-primary is-rounded" href="{{
+                                                           url_for('comhealth.list_all_receipts',
+                                                           record_id=receipt.record.id)
+                                                           }}">Back</a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#app",
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                }
+            },
+            computed: {}
+        });
+    </script>
+{% endblock %}
