@@ -145,7 +145,6 @@ def edit_record(record_id):
 @comhealth.route('/record/order/add-comment', methods=['GET', 'POST'])
 def add_comment_to_order():
     if request.method == 'POST':
-        print(request.form.keys())
         record_id = request.form.get('record_id')
         record = ComHealthRecord.query.get(int(record_id))
         comment = request.form.get('comment')
@@ -589,7 +588,6 @@ def summarize_specimens(service_id):
                 containers.add(test_item.test.container.name)
 
         record_ids = dict([(int(r.labno[-4:]), r) for r in service.records if r.labno])
-        print(record_ids)
         sorted_records = []
         for i in range(len(service.records)):
             if i + 1 in record_ids:
