@@ -115,6 +115,10 @@
                         <button class="button is-primary is-rounded"
                                        @click="printJS('receipt-slip',
                                        'html')">Print</button>
+                        <a class="button is-rounded" href="{{
+                                                     url_for('comhealth.list_all_receipts',
+                                                     record_id=record.id) }}">
+                            Receipts</a>
                     </aside>
                 </div>
                 <a name="customer-info"></a>

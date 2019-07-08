@@ -124,6 +124,14 @@ def edit_record(record_id):
                              for item in special_tests])
     containers = set([item.test.container for item in record.ordered_tests])
 
+    if len(record.receipts) == 0 and len(special_tests) > 0:
+        receipt = ComHealthReceipt(record=record,
+                                   created_datetime=record.updated_at,
+                                   special_tests=list(special_tests),
+                                  )
+        db.session.add(receipt)
+        db.session.commit()
+
     return render_template('comhealth/record_summary.html',
                            record=record,
                            containers=containers,
