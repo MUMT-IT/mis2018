@@ -105,6 +105,8 @@ def edit_record(record_id):
         db.session.add(record)
         db.session.commit()
 
+    special_tests = set(record.ordered_tests)
+
     for profile in record.service.profiles:
         # if all tests are ordered, the quote price is used.
         # if some tests in the profile are ordered, subtract the price of the tests that are not ordered
@@ -113,15 +115,22 @@ def edit_record(record_id):
                 profile_item_cost -= float(test_item.price) or float(test_item.test.default_price)
         else:  # in case no tests in the profile is ordered, subtract a quote price from the total price
             profile_item_cost -= float(profile.quote)
+        special_tests.difference_update(set(profile.test_items))
 
-    group_item_cost = sum([item.price or item.test.default_price for item in record.ordered_tests if item.group])
+    group_item_cost = sum([item.price or item.test.default_price
+                           for item in record.ordered_tests if item.group])
+    special_item_cost = sum([item.price or item.test.default_price
+                             for item in special_tests])
     containers = set([item.test.container for item in record.ordered_tests])
 
     return render_template('comhealth/record_summary.html',
                            record=record,
                            containers=containers,
                            profile_item_cost=profile_item_cost,
-                           group_item_cost=float(group_item_cost))
+                           group_item_cost=float(group_item_cost),
+                           special_tests=special_tests,
+                           special_item_cost=special_item_cost,
+                        )
 
 
 @comhealth.route('/record/order/add-comment', methods=['GET', 'POST'])
