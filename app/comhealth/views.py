@@ -839,7 +839,13 @@ def list_all_receipts(record_id):
 @comhealth.route('/checkin/receipts/<int:receipt_id>', methods=['GET', 'POST'])
 def show_receipt_detail(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
+    action = request.args.get('action', None)
+    if action == 'pay':
+        receipt.paid = True
+        db.session.add(receipt)
+        db.session.commit()
     special_item_cost = sum([item.price or item.test.default_price
                              for item in receipt.special_tests])
+
     return render_template('comhealth/receipt_detail.html', receipt=receipt,
                            total_cost=special_item_cost)

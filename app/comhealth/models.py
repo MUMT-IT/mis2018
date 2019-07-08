@@ -217,6 +217,7 @@ class ComHealthReceipt(db.Model):
                                     backref=db.backref('receipts'),
                                     secondary=test_item_receipt_table)
     comment = db.Column('comment', db.Text())
+    paid = db.Column('paid', db.Boolean(), default=False)
 
 
 class ComHealthCustomerSchema(ma.ModelSchema):

@@ -42,30 +42,47 @@
     </section>
     <section class="section" id="app">
         <div class="container">
-            <h3 class="title is-size-4">Lab no. {{ receipt.record.labno }}</h3>
-            <h4 class="subtitle is-size-5">{{ receipt.record.customer.title or
-                '' }}{{ receipt.record.customer.firstname }} {{ receipt.record.customer.lastname }}</h3>
             <div class="columns">
                 <div class="column">
-                    <table class="table">
-                        <thead>
-                            <th>Test Code</th>
-                            <th>Description</th>
-                            <th>Cost</th>
-                        </thead>
-                        <tbody>
-                            {% for t in receipt.special_tests %}
-                            <tr>
-                                <td>{{ t.test.code }}</td>
-                                <td>{{ t.test.description }}</td>
-                                <td>{{ t.price or t.test.default_price }}</td>
-                            </tr>
-                            {% endfor %}
-                            <tr>
-                                <td colspan=2><strong>Total</strong></td><td>{{ total_cost }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                    <div id="receipt">
+                        <h3 class="title is-size-3">ใบเสร็จรับเงิน</h3>
+                        <h4 class="subtitle">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล เลขประจำตัวผู้เสียภาษี xxxxxxxxx</h4>
+                        <hr>
+                        <p><strong>รหัส {{ receipt.id }}</strong> <strong>หมายเลขตรวจ</strong> {{ receipt.record.labno }}</p>
+                        <p><strong>ชื่อ</strong> {{ receipt.record.customer.title or
+                            '' }}{{ receipt.record.customer.firstname }} {{ receipt.record.customer.lastname }}</p>
+                        <hr>
+                        <p><strong>รายการทดสอบเพิ่มเติม</strong></p>
+                        <table class="table is-bordered is-striped">
+                            <thead>
+                            </thead>
+                            <tbody>
+                                {% for t in receipt.special_tests %}
+                                <tr>
+                                    <td>{{ loop.index }}</td>
+                                    <td>{{ t.test.desc }}</td>
+                                    <td>{{ t.price or t.test.default_price }} บาท</td>
+                                    <td></td>
+                                </tr>
+                                {% endfor %}
+                                <tr>
+                                    <td></td>
+                                    <td><strong>Total</strong></td><td>{{ total_cost }} บาท</td>
+                                    {% if receipt.paid %}
+                                    <td>PAID</td>
+                                    {% else %}
+                                    <td><a class="button is-rounded"
+                                            href="{{ url_for('comhealth.show_receipt_detail', receipt_id=receipt.id, action='pay') }}">
+                                            Pay</a>
+                                    </td>
+                                    {% endif %}
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <button class="button is-primary is-rounded"
+                                   @click="printJS('receipt',
+                                   'html')">Print</button>
                     <a class="button is-primary is-rounded" href="{{
                                                            url_for('comhealth.list_all_receipts',
                                                            record_id=receipt.record.id)

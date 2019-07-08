@@ -48,16 +48,24 @@
                 <div class="column">
                     <table class="table">
                         <thead>
+                            <th>Receipt ID</th>
                             <th>Copy Number</th>
                             <th>Issued Date</th>
+                            <th>Status</th>
                             <th>Tests</th>
                             <th>Detail</th>
                         </thead>
                         <tbody>
                             {% for r in record.receipts %}
                             <tr>
+                                <td>{{ r.id }}</td>
                                 <td>{{ r.copy_number }}</td>
                                 <td>{{ r.created_datetime }}</td>
+                                {% if r.paid %}
+                                <td>ชำระแล้ว</td>
+                                {% else %}
+                                <td>ยังไม่ชำระ</td>
+                                {% endif %}
                                 <td>{{ r.special_tests|length }}</td>
                                 <td><a href="{{ url_for('comhealth.show_receipt_detail',
                                         receipt_id=r.id) }}">Click</td>
