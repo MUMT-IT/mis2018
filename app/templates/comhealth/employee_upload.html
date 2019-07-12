@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="hero is-info is-small">
+        <div class="hero-head">
+            <nav class="navbar">
+                <div class="container">
+                    <div class="navbar-brand">
+                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+                    </div>
+                    <div id="navbarMenuHeroA" class="navbar-menu">
+                        <div class="navbar-end">
+                            <a class="navbar-item is-active"
+                               href="/comhealth">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                                <span>Home</span>
+                            </a>
+                            <a class="navbar-item"
+                               href="/comhealth/tests">
+                                <span>Tests</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="100">
+                <h3 class="title">Organization</h3>
+                <h3 class="subtitle">ชื่อสถาบัน {{ org.name }}</h3>
+            </div>
+        </div>
+    </section>
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column box is-one-third has-text-right is-offset-4">
+                    <form method="post" enctype="multipart/form-data">
+                        <div class="file">
+                            <label class="file-label">
+                                <input class="file-input" type="file" name="file">
+                                <span class="file-cta">
+                                    <span class="file-icon">
+                                        <i class="fas fa-upload"></i>
+                                    </span>
+                                    <span class="file-label">
+                                        Choose a file...
+                                    </span>
+                                </span>
+                            </label>
+                        </div>
+                        <br>
+                        <div class="field">
+                            <div class="control">
+                                <label class="checkbox">
+                                <input type="checkbox" name="labno_included" value=true>
+                                    ใช้ลำดับในคอลัมน์แรกเป็นหมายเลข lab number
+                                </label>
+                            </div>
+                        </div>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="button is-primary">Upload</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

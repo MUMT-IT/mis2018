@@ -3,16 +3,6 @@ from flask import render_template, request, flash, redirect, url_for
 from flask_login import login_user
 from models import StudentUser
 from ..models import Student
-from ..main import login_manager
-
-
-@login_manager.user_loader
-def load_user(user_id):
-    user = Student.query.get(user_id)
-    if user:
-        return user
-    else:
-        return None
 
 
 @lis.route('/')

@@ -1,5 +1,7 @@
 # -*- coding:utf-8 -*-
+import os
 import click
+from pytz import timezone
 from flask.cli import AppGroup
 from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
@@ -14,9 +16,10 @@ import json
 
 db = SQLAlchemy()
 migrate = Migrate()
+login = LoginManager()
+login.login_view = 'auth.login'
+
 ma = Marshmallow()
-login_manager = LoginManager()
-login_manager.login_view = 'auth.login'
 csrf = CSRFProtect()
 admin = Admin()
 
@@ -27,15 +30,25 @@ def create_app(config_name='default'):
     app.config.from_object(config[config_name])
     db.init_app(app)
     ma.init_app(app)
+    login.init_app(app)
     migrate.init_app(app, db)
-    login_manager.init_app(app)
     csrf.init_app(app)
     admin.init_app(app)
     return app
 
-import os
 config_name = os.environ.get('FLASK_CONFIG', 'default')
 app = create_app(config_name)
+
+from staff.models import StaffAccount
+
+@login.user_loader
+def load_user(user_id):
+    print('load user..')
+    try:
+        return StaffAccount.query.filter_by(id=int(user_id)).first()
+    except:
+        raise SystemExit
+
 
 @app.route('/')
 def index():
@@ -57,6 +70,10 @@ from food.models import Person, Farm, Produce
 admin.add_views(ModelView(Person, db.session, category='Food'))
 admin.add_views(ModelView(Farm, db.session, category='Food'))
 admin.add_views(ModelView(Produce, db.session, category='Food'))
+
+from research import researchbp as research_blueprint
+app.register_blueprint(research_blueprint, url_prefix='/research')
+from app.research.models import ResearchPub
 
 from staff import staffbp as staff_blueprint
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
@@ -86,10 +103,7 @@ admin.add_view(ModelView(VehicleType, db.session, category='Physicals'))
 from auth import authbp as auth_blueprint
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-from research import researchbp as research_blueprint
-app.register_blueprint(research_blueprint, url_prefix='/research')
-
-from models import (Student, Class, ClassCheckIn, User,
+from models import (Student, Class, ClassCheckIn,
                         Org, Mission, IOCode, CostCenter,
                         StudentCheckInRecord)
 import database
@@ -131,8 +145,6 @@ class CostCenterAdminModel(ModelView):
 
 admin.add_view(CostCenterAdminModel(CostCenter, db.session, category='Finance'))
 
-admin.add_view(ModelView(User, db.session))
-
 from lisedu import lisedu as lis_blueprint
 app.register_blueprint(lis_blueprint, url_prefix='/lis')
 from lisedu.models import *
@@ -141,6 +153,22 @@ from lisedu.models import *
 from chemdb import chemdbbp as chemdb_blueprint
 import chemdb.models
 app.register_blueprint(chemdb_blueprint, url_prefix='/chemdb')
+
+from comhealth import comhealth as comhealth_blueprint
+from comhealth.models import *
+app.register_blueprint(comhealth_blueprint, url_prefix='/comhealth')
+admin.add_view(ModelView(ComHealthTest, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthTestProfile, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthCustomer, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthOrg, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthRecord, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthTestItem, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthTestProfileItem, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthService, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthTestGroup, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthContainer, db.session, category='Com Health'))
+
+
 
 @app.cli.command()
 def populatedb():
@@ -199,6 +227,11 @@ def populate_subdistricts():
 def import_chem_items(excel_file):
     database.load_chem_items(excel_file)
 
+@app.template_filter("localdatetime")
+def local_datetime(dt):
+    bangkok = timezone('Asia/Bangkok')
+    datetime_format = '%d/%m/%Y %H:%M'
+    return dt.astimezone(bangkok).strftime(datetime_format)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host="0.0.0.0")

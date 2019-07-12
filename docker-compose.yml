@@ -12,12 +12,14 @@ services:
     environment:
       - FLASK_DEBUG
       - POSTGRES_PASSWORD
+      - SECRET_KEY
+      - SCOPUS_API_KEY
     volumes:
       - ./app:/mis2018/app
       - ./warehouse:/mis2018/warehouse
       - ./migrations:/mis2018/migrations
   pg:
-    image: postgres
+    image: postgres:11
     environment:
       - POSTGRES_PASSWORD
     volumes:

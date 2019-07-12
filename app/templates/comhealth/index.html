@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="section hero is-info is-small">
+        <div class="hero-head">
+            <nav class="navbar">
+                <div class="container">
+                    <div class="navbar-brand">
+                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+                    </div>
+                    <div id="navbarMenuHeroA" class="navbar-menu">
+                        <div class="navbar-end">
+                            <a class="navbar-item is-active"
+                                href="/comhealth">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                                <span>Home</span>
+                            </a>
+                            <a class="navbar-item"
+                               href="/comhealth/tests">
+                                <span>Tests</span>
+                            </a>
+                            <a class="navbar-item"
+                               href="/comhealth/organizations">
+                                <span>Organizations</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <img src="{{ url_for('static', filename='img/medical-history.png') }}" width="100">
+                <h1 class="title">Community Health Service Registration System</h1>
+            </div>
+        </div>
+    </section>
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for msg in messages %}
+                                <b-notification type="is-success">{{ msg }}</b-notification>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column has-text-right">
+                    <a class="button is-rounded is-link is-medium"
+                        href="{{ url_for('comhealth.list_orgs') }}">
+                        <span class="icon">
+                            <i class="fas fa-plus"></i>
+                        </span>
+                        <span>New Service</span>
+                    </a>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <b-table :data="services" :paginated="true" :per-page="10" default-sort="date" default-sort-direction="dsc">
+                        <template slot-scope="props">
+                            <b-table-column field="id" label="ID" numeric>
+                                <% props.row.id %>
+                            </b-table-column>
+                            <b-table-column field="date" label="Date" sortable centered>
+                                <% props.row.date.toLocaleString({timeZone: "UTC"}) %>
+                            </b-table-column>
+                            <b-table-column field="location" label="Location" sortable>
+                                <% props.row.location %>
+                            </b-table-column>
+                            <b-table-column field="records" label="Registered Customers" sortable numeric centered>
+                                <% props.row.registered %>
+                            </b-table-column>
+                            <b-table-column field="" label="Checked In Customers" sortable numeric centered>
+                                <% props.row.checkedin %>
+                            </b-table-column>
+                            <b-table-column field="" label="Detail">
+                                <a class="button is-rounded is-light" v-bind:href="'/comhealth/services/'+props.row.id">
+                                    <span class="icon">
+                                        <i class="fas fa-user"></i>
+                                    </span>&nbsp;
+                                    <span>Customers</span>
+                                </a>
+                                <a class="button is-rounded is-light" v-bind:href="'/comhealth/services/edit/'+props.row.id">
+                                    <span class="icon">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </span>&nbsp;
+                                    <span>Edit</span>
+                                </a>
+                                <a class="button is-rounded is-light" v-bind:href="'/comhealth/services/'+props.row.id+'/specimens-summary'">
+                                    <span class="icon">
+                                        <i class="fas fa-vial"></i>
+                                    </span>&nbsp;
+                                    <span>Specimens</span>
+                                </a>
+                                <a class="button is-rounded is-light" v-bind:href="'/comhealth/services/'+props.row.id+'/to-csv'">
+                                    <span class="icon">
+                                        <i class="fas fa-cloud-download-alt"></i>
+                                    </span>&nbsp;
+                                    <span>Export</span>
+                                </a>
+                            </b-table-column>
+                        </template>
+                    </b-table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#app",
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    services: {{ services|tojson|safe }},
+                    query: '',
+                }
+            },
+            computed: {}
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <nav class="navbar is-info">
+        <div class="container">
+            <div class="navbar-brand">
+                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+            </div>
+            <div id="navbarMenuHeroA" class="navbar-menu">
+                <div class="navbar-end">
+                    <a class="navbar-item is-active"
+                       href="/comhealth">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                        <span>Home</span>
+                    </a>
+                    <a class="navbar-item"
+                       href="/comhealth/tests">
+                        <span>Tests</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for msg in messages %}
+                                <b-notification type="is-success">{{ msg }}</b-notification>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">Specimens Summary</h1>
+                    <div class="tags has-addons is-centered">
+                        <div class="tag is-light is-large">Service Date</div>
+                        <div class="tag is-link is-large">{{ service.date }}</div>
+                    </div>
+                    <h1 class="subtitle">สถานที่ {{ service.location }}</h1>
+                    <h1 class="subtitle">ข้อมูล ณ วันที่ {{ summary_date|localdatetime }} นาฬิกา</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-two-thirds is-offset-2">
+                    <div class="has-text-centered">
+                        <a class="button is-rounded is-medium is-warning"
+                           href="{{ url_for('comhealth.summarize_specimens', service_id=service.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-sync"></i>
+                                </span>
+                            <span>Refresh</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-two-thirds is-offset-2">
+                    <table class="table is-fullwidth is-narrow is-striped is-bordered">
+                        <thead>
+                            <th>Lab No.</th>
+                            {% for ct in containers %}
+                                <th>{{ ct }}</th>
+                            {% endfor %}
+                        </thead>
+                        <tbody>
+                            {% for rec in sorted_records %}
+                                {% if rec %}
+                                <tr>
+                                    <td>{{ rec.labno }}</td>
+                                        {% for ct in containers %}
+                                        {% if ct in rec.container_set %}
+                                            <td>
+                                                <span class="icon">
+                                                    <i class="fas fa-check has-text-success"></i>
+                                                </span>
+                                            </td>
+                                        {% else %}
+                                            <td>
+                                                <span class="icon">
+                                                    <i class="fas fa-times has-text-danger"></i>
+                                                </span>
+                                            </td>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td>None</td>
+                                    {% for ct in containers %}
+                                        <td>-</td>
+                                    {% endfor %}
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                        <th>Lab No.</th>
+                        {% for ct in containers %}
+                            <th>{{ ct }}</th>
+                        {% endfor %}
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        var vm = new Vue({
+            el: '#app',
+        })
+    </script>
+{% endblock %}

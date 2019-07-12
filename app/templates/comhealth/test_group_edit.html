@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <nav class="navbar is-info">
+        <div class="container">
+            <div class="navbar-brand">
+                <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </span>
+            </div>
+            <div id="navbarMenuHeroA" class="navbar-menu">
+                <div class="navbar-end">
+                    <a class="navbar-item"
+                       href="/comhealth">
+                        <span class="icon">
+                            <i class="fas fa-home"></i>
+                        </span>
+                        <span>Home</span>
+                    </a>
+                    <a class="navbar-item is-active"
+                       href="/comhealth/tests">
+                        <span>Tests</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    </section>
+    <section class="section">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="{{ url_for('comhealth.test_index') }}">Test Index</a></li>
+                    <li><a href="#">Test Edit</a></li>
+                </ul>
+            </nav>
+            <div class="columns">
+                <div class="column">
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for msg in messages %}
+                                <b-notification type="is-success">{{ msg }}</b-notification>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">Group Test List</h1>
+                    <h1 class="subtitle">Use the form below to edit the tests.</h1>
+                    <button class="button is-rounded is-medium"><strong>Group {{ group.name }}</strong></button>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column has-text-right">
+                    <a class="button is-rounded is-success"
+                       href="{{ url_for('comhealth.group_test_menu', group_id=group.id) }}">
+                        <span class="icon">
+                            <i class="fas fa-plus"></i>
+                        </span>
+                        <span>
+                            Add Test
+                        </span>
+                    </a>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <form method="post" action="{{ url_for('comhealth.save_test_group', group_id=group.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <table class="table">
+                            <thead>
+                            <th>Name</th>
+                            <th>Description</th>
+                            <th>Default Price</th>
+                            <th>Group Price</th>
+                            <th></th>
+                            </thead>
+                            <tbody>
+                            {% for item in group.test_items %}
+                                <tr>
+                                    <td>{{ item.test.name }}</td>
+                                    <td>{{ item.test.desc }}</td>
+                                    <td>{{ item.test.default_price }} บาท</td>
+                                    <td>
+                                        <div class="field has-addons">
+                                            <div class="control">
+                                                <input type="number" step="1.0" class="input" name="test_{{ item.id }}"
+                                                       value="{{ item.price or item.test.default_price }}">
+                                            </div>
+                                            <div class="control">
+                                                <p class="button is-static">บาท</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <a class="button is-danger" href="{{ url_for('comhealth.remove_group_test_item', item_id=item.id, group_id=group.id) }}">
+                                            <span class="icon">
+                                                <i class="far fa-trash-alt"></i>
+                                            </span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        <button class="button is-rounded is-link is-medium" type="submit">
+                            <span class="icon">
+                                <i class="far fa-save"></i>
+                            </span>
+                            <span>Save</span>
+                        </button>
+                        <a class="button is-medium is-rounded is-light"
+                           href="{{ url_for('comhealth.test_index') }}">
+                            <span class="icon">
+                                <i class="fas fa-times"></i>
+                            </span>
+                            <span>Close</span>
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
