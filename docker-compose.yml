@@ -11,6 +11,7 @@ services:
       - web_variables.env
     environment:
       - FLASK_CONFIG
+      - FLASK_DEBUG
       - POSTGRES_PASSWORD
       - SECRET_KEY
       - SCOPUS_API_KEY

@@ -16,7 +16,8 @@ class SQLiteDevelopmentConfig(Config):
 
 class DevelopmentConfig(Config):
     ENV = 'development'
-    SQLALCHEMY_DATABASE_URI = 'postgres+psycopg2://postgres:genius01@pg/mumtmis_test'
+    SQLALCHEMY_DATABASE_URI = \
+    'postgres+psycopg2://postgres:genius01@pg/mumtmis_test'
 
 
 class ProductionConfig(Config):
