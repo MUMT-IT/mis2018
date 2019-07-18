@@ -779,7 +779,7 @@ def add_many_employees(orgid):
                     record_ = ComHealthRecord.query.filter_by(
                                         service=service, customer=customer_).first()
                     if record_:
-                        print(u'Record exists. Continue..{} {}'.format(firstname, lastname))
+                        # print(u'Record exists. Continue..{} {}'.format(firstname, lastname))
                         continue
 
                     # A new customer is created for this org even when the name exists in the db.

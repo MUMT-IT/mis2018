@@ -24,6 +24,10 @@
                                href="/comhealth/tests">
                                 <span>Tests</span>
                             </a>
+                            <a class="navbar-item"
+                               href="/comhealth/organizations">
+                                <span>Organizations</span>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -55,6 +59,7 @@
                 </div>
                 <div class="column">
                     <div class="has-text-right">
+                      {% if service.records|length > 0 %}
                         <a class="button is-rounded is-link"
                             href="{{ url_for('comhealth.add_customer_to_service_org',
                                     service_id=service.id, org_id=service.records[0].customer.org_id) }}">
@@ -63,6 +68,15 @@
                             </span>
                             <span>Add Customer</span>
                         </a>
+                      {% else %}
+                        <a class="button is-rounded is-link"
+                           href="{{ url_for('comhealth.list_orgs') }}">
+                            <span class="icon">
+                                <i class="fas fa-user-plus"></i>
+                            </span>
+                            <span>Add Customer</span>
+                        </a>
+                      {% endif %}
                     </div>
                 </div>
             </div>
