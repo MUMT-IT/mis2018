@@ -30,6 +30,14 @@ test_item_record_table = db.Table('comhealth_test_item_records',
                                             primary_key=True),
                                   )
 
+test_item_receipt_table = db.Table('comhealth_test_item_receipts',
+                                  db.Column('test_item_id', db.Integer, db.ForeignKey('comhealth_test_items.id'),
+                                            primary_key=True),
+                                  db.Column('receipt_id', db.Integer,
+                                            db.ForeignKey('comhealth_test_receipts.id'),
+                                            primary_key=True),
+                                  )
+
 
 class ComHealthOrg(db.Model):
     __tablename__ = 'comhealth_orgs'
@@ -195,6 +203,21 @@ class ComHealthService(db.Model):
 
     def __str__(self):
         return u'{} {}'.format(self.date, self.location)
+
+
+class ComHealthReceipt(db.Model):
+    __tablename__ = 'comhealth_test_receipts'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    copy_number = db.Column('copy_number', db.Integer, default=1)
+    created_datetime = db.Column('checkin_datetime', db.DateTime(timezone=True))
+    record_id = db.Column('record_id', db.ForeignKey('comhealth_test_records.id'))
+    record = db.relationship('ComHealthRecord',
+                              backref=db.backref('receipts'))
+    special_tests = db.relationship('ComHealthTestItem',
+                                    backref=db.backref('receipts'),
+                                    secondary=test_item_receipt_table)
+    comment = db.Column('comment', db.Text())
+    paid = db.Column('paid', db.Boolean(), default=False)
 
 
 class ComHealthCustomerSchema(ma.ModelSchema):

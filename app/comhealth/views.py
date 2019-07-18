@@ -12,7 +12,8 @@ from . import comhealth
 from .forms import ServiceForm, TestProfileForm, TestListForm, TestForm, TestGroupForm, CustomerForm
 from .models import (ComHealthService, ComHealthRecord, ComHealthTestItem,
                      ComHealthTestProfile, ComHealthContainer, ComHealthTestGroup,
-                     ComHealthTest, ComHealthOrg, ComHealthCustomer)
+                     ComHealthTest, ComHealthOrg, ComHealthCustomer,
+                     ComHealthReceipt)
 from .models import (ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTestProfileSchema,
                      ComHealthTestGroupSchema, ComHealthTestSchema, ComHealthOrgSchema,
                      ComHealthCustomerSchema,
@@ -105,6 +106,8 @@ def edit_record(record_id):
         db.session.add(record)
         db.session.commit()
 
+    special_tests = set(record.ordered_tests)
+
     for profile in record.service.profiles:
         # if all tests are ordered, the quote price is used.
         # if some tests in the profile are ordered, subtract the price of the tests that are not ordered
@@ -113,21 +116,35 @@ def edit_record(record_id):
                 profile_item_cost -= float(test_item.price) or float(test_item.test.default_price)
         else:  # in case no tests in the profile is ordered, subtract a quote price from the total price
             profile_item_cost -= float(profile.quote)
+        special_tests.difference_update(set(profile.test_items))
 
-    group_item_cost = sum([item.price or item.test.default_price for item in record.ordered_tests if item.group])
+    group_item_cost = sum([item.price or item.test.default_price
+                           for item in record.ordered_tests if item.group])
+    special_item_cost = sum([item.price or item.test.default_price
+                             for item in special_tests])
     containers = set([item.test.container for item in record.ordered_tests])
+
+    if len(record.receipts) == 0 and len(special_tests) > 0:
+        receipt = ComHealthReceipt(record=record,
+                                   created_datetime=record.updated_at,
+                                   special_tests=list(special_tests),
+                                  )
+        db.session.add(receipt)
+        db.session.commit()
 
     return render_template('comhealth/record_summary.html',
                            record=record,
                            containers=containers,
                            profile_item_cost=profile_item_cost,
-                           group_item_cost=float(group_item_cost))
+                           group_item_cost=float(group_item_cost),
+                           special_tests=special_tests,
+                           special_item_cost=float(special_item_cost),
+                        )
 
 
 @comhealth.route('/record/order/add-comment', methods=['GET', 'POST'])
 def add_comment_to_order():
     if request.method == 'POST':
-        print(request.form.keys())
         record_id = request.form.get('record_id')
         record = ComHealthRecord.query.get(int(record_id))
         comment = request.form.get('comment')
@@ -571,7 +588,6 @@ def summarize_specimens(service_id):
                 containers.add(test_item.test.container.name)
 
         record_ids = dict([(int(r.labno[-4:]), r) for r in service.records if r.labno])
-        print(record_ids)
         sorted_records = []
         for i in range(len(service.records)):
             if i + 1 in record_ids:
@@ -818,3 +834,24 @@ def search_employees():
             }
         data.append(item)
     return render_template('comhealth/search_employees.html', employees=data, org=u'การเคหะแห่งชาติ')
+
+
+@comhealth.route('/checkin/<int:record_id>/receipts', methods=['GET', 'POST'])
+def list_all_receipts(record_id):
+    record = ComHealthRecord.query.get(record_id)
+    return render_template('comhealth/receipts.html', record=record)
+
+
+@comhealth.route('/checkin/receipts/<int:receipt_id>', methods=['GET', 'POST'])
+def show_receipt_detail(receipt_id):
+    receipt = ComHealthReceipt.query.get(receipt_id)
+    action = request.args.get('action', None)
+    if action == 'pay':
+        receipt.paid = True
+        db.session.add(receipt)
+        db.session.commit()
+    special_item_cost = sum([item.price or item.test.default_price
+                             for item in receipt.special_tests])
+
+    return render_template('comhealth/receipt_detail.html', receipt=receipt,
+                           total_cost=special_item_cost)
