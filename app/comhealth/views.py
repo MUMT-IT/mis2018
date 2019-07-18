@@ -729,6 +729,11 @@ def allowed_file(filename):
 
 @comhealth.route('/organizations/<int:orgid>/employees/addmany', methods=['GET', 'POST'])
 def add_many_employees(orgid):
+    '''Add employees from Excel file.
+
+    Note that the birthdate is in Thai year.
+    The columns are labno, title, firstname, lastname, dob, gender, and servicedate
+    '''
     org = ComHealthOrg.query.get(orgid)
 
     if request.method == 'POST':
@@ -762,6 +767,11 @@ def add_many_employees(orgid):
 
                 if not service:
                     service = ComHealthService.query.filter_by(date=servicedate).first()
+                    if not service:
+                        service = ComHealthService(date=servicedate,
+                                                   location=org.name)
+                        db.session.add(service)
+                        db.session.commit()
 
                 customer_ = ComHealthCustomer.query.filter_by(
                                     firstname=firstname, lastname=lastname).first()
