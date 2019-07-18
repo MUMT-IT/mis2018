@@ -33,8 +33,8 @@ class StaffPersonalInfo(db.Model):
     highest_degree_id = db.Column('highest_degree_id', db.ForeignKey('staff_edu_degree.id'))
     highest_degree = db.relationship('StaffEduDegree',
                         backref=db.backref('staff_personal_info', uselist=False))
-    th_firstname = db.Column('th_firstname', db.String(), nullable=False)
-    th_lastname = db.Column('th_lastname', db.String(), nullable=False)
+    th_firstname = db.Column('th_firstname', db.String(), nullable=True)
+    th_lastname = db.Column('th_lastname', db.String(), nullable=True)
     academic_position_id = db.Column('academic_position_id', db.ForeignKey('staff_academic_position.id'))
     academic_position = db.relationship('StaffAcademicPosition', backref=db.backref('staff_list'))
     orgs_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))

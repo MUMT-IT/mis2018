@@ -30,9 +30,9 @@ def upgrade():
     op.add_column(u'staff_personal_info', sa.Column('academic_position_id', sa.Integer(), nullable=True))
     op.add_column(u'staff_personal_info', sa.Column('orgs_id', sa.Integer(), nullable=True))
     op.add_column(u'staff_personal_info', sa.Column('th_firstname',
-                                                    sa.String(), nullable=False))
+                                                    sa.String(), nullable=True))
     op.add_column(u'staff_personal_info', sa.Column('th_lastname', sa.String(),
-                                                    nullable=False))
+                                                    nullable=True))
     op.create_foreign_key(None, 'staff_personal_info', 'staff_academic_position', ['academic_position_id'], ['id'])
     op.create_foreign_key(None, 'staff_personal_info', 'orgs', ['orgs_id'], ['id'])
     # ### end Alembic commands ###
