@@ -147,7 +147,7 @@
                                     <a class="button is-link is-rounded"
                                       rel="{{ profile.id }}" href="#uncheck_{{profile.id}}">Uncheck All</a>
                                     <ul id="{{ profile.id }}">
-                                        {% for item in profile.test_items %}
+                                        {% for item in profile.test_items|sorttest %}
                                             <li>
                                                 <label class="checkbox">
                                                   <input type="checkbox" name="profile_{{ item.id }}">
@@ -183,7 +183,7 @@
                                 <div class="card-content">
                                     <p class="subtitle is-size-6">{{ group.desc }}</p>
                                     <ul>
-                                        {% for item in group.test_items %}
+                                        {% for item in group.test_items|sorttest %}
                                             <li>
                                                 <label class="checkbox">
                                                     <input type="checkbox" name="test_{{ item.id }}">

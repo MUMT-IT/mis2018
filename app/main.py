@@ -236,5 +236,11 @@ def local_datetime(dt):
     datetime_format = '%d/%m/%Y %H:%M'
     return dt.astimezone(bangkok).strftime(datetime_format)
 
+
+@app.template_filter("sorttest")
+def sort_test_item(tests):
+    return sorted(tests, key=lambda x: x.test.name)
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host="0.0.0.0")

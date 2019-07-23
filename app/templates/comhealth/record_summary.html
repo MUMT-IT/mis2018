@@ -92,7 +92,7 @@
                                 <tr><td>ชื่อ</td><td>{{ record.customer.firstname }} 
                                         {{ record.customer.lastname }}</td></tr>
                                 <tr><td>วันที่</td><td>{{ record.updated_at|localdatetime }}</td></tr>
-                                {% for test_item in special_tests %}
+                                {% for test_item in special_tests|sorttest %}
                                 <tr><td>{{ test_item.test.name }}</td>
                                     <td> {{ test_item.test.default_price }} THB</td>
                                 </tr>
@@ -303,7 +303,7 @@
                                         <td colspan="1" class="is-light"><strong>{{ profile.name }}</strong></td>
                                         <td colspan="1" class="is-light"><strong>{{ profile.quote_price }}</strong></td>
                                     </tr>
-                                    {% for test_item in profile.test_items %}
+                                    {% for test_item in profile.test_items|sorttest %}
                                         <tr>
                                             {% if test_item in record.ordered_tests %}
                                                 <td>{{ test_item.test.name }}</td>
@@ -346,7 +346,7 @@
                                         <td colspan="1" class="is-light"></td>
                                         <td colspan="1" class="is-light"></td>
                                     </tr>
-                                    {% for test_item in group.test_items %}
+                                    {% for test_item in group.test_items|sorttest %}
                                         <tr>
                                             {% if test_item in record.ordered_tests %}
                                                 <td>{{ test_item.test.name }}</td>
