@@ -2,6 +2,7 @@
 import json
 from datetime import datetime
 from datetime import date
+from decimal import Decimal
 from pandas import read_excel, isna
 from flask_weasyprint import HTML, render_pdf
 import pytz
@@ -870,6 +871,8 @@ def show_receipt_detail(receipt_id):
 
 @comhealth.route('/receipts/slip/<int:record_id>')
 def print_slip(record_id):
+    paidamt = request.args.get('paidamt', 0.0)
+    paidamt = Decimal(paidamt)
     record = ComHealthRecord.query.get(record_id)
 
     containers = set()
@@ -895,10 +898,14 @@ def print_slip(record_id):
     special_item_cost = sum([item.price or item.test.default_price
                              for item in special_tests])
     containers = set([item.test.container for item in record.ordered_tests])
+    change = paidamt - special_item_cost
 
     html = render_template('comhealth/slip.html',
                            record=record,
                            customer=record.customer,
                            special_tests=special_tests,
-                           special_item_cost=special_item_cost)
+                           special_item_cost="{:10.2f}".format(special_item_cost),
+                           paidamt="{:10.2f}".format(paidamt),
+                           change="{:10.2f}".format(change)
+                          )
     return render_pdf(HTML(string=html))
