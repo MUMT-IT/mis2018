@@ -142,11 +142,15 @@
                                 </div>
                                 <div class="card-content">
                                     <p class="subtitle is-size-6">{{ profile.desc }}</p>
-                                    <ul>
+                                    <a class="button is-link is-rounded"
+                                      rel="{{ profile.id }}" href="#check_{{profile.id}}">Check All</a>
+                                    <a class="button is-link is-rounded"
+                                      rel="{{ profile.id }}" href="#uncheck_{{profile.id}}">Uncheck All</a>
+                                    <ul id="{{ profile.id }}">
                                         {% for item in profile.test_items %}
                                             <li>
                                                 <label class="checkbox">
-                                                    <input type="checkbox" name="profile_{{ item.id }}">
+                                                  <input type="checkbox" name="profile_{{ item.id }}">
                                                     <strong>{{ item.test.name }}</strong> {{ item.test.desc }}
                                                 </label>
                                             </li>
@@ -220,4 +224,18 @@
             computed: {}
         });
     </script>
+  <script type="text/javascript">
+    $(document).ready(function() {
+      {% for profile in record.service.profiles %}
+      $("A[href='#check_{{profile.id}}']").click(function() {
+        $("#" + $(this).attr('rel') + " INPUT[type='checkbox']").attr('checked', true);
+        return false;
+      });
+      $("A[href='#uncheck_{{profile.id}}']").click(function() {
+        $("#" + $(this).attr('rel') + " INPUT[type='checkbox']").attr('checked', false);
+        return false;
+      });
+      {% endfor %}
+    });
+  </script>
 {% endblock %}
