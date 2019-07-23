@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from datetime import date
 from pandas import read_excel, isna
+from flask_weasyprint import HTML, render_pdf
 import pytz
 from flask import render_template, flash, redirect, url_for, request, jsonify, Response, stream_with_context
 from flask_login import login_required
@@ -865,3 +866,39 @@ def show_receipt_detail(receipt_id):
 
     return render_template('comhealth/receipt_detail.html', receipt=receipt,
                            total_cost=special_item_cost)
+
+
+@comhealth.route('/receipts/slip/<int:record_id>')
+def print_slip(record_id):
+    record = ComHealthRecord.query.get(record_id)
+
+    containers = set()
+    profile_item_cost = 0.0
+    group_item_cost = 0
+    for profile in record.service.profiles:
+        profile_item_cost += float(profile.quote)
+
+    special_tests = set(record.ordered_tests)
+
+    for profile in record.service.profiles:
+        # if all tests are ordered, the quote price is used.
+        # if some tests in the profile are ordered, subtract the price of the tests that are not ordered
+        if set(profile.test_items).intersection(record.ordered_tests):
+            for test_item in set(profile.test_items).difference(record.ordered_tests):
+                profile_item_cost -= float(test_item.price) or float(test_item.test.default_price)
+        else:  # in case no tests in the profile is ordered, subtract a quote price from the total price
+            profile_item_cost -= float(profile.quote)
+        special_tests.difference_update(set(profile.test_items))
+
+    group_item_cost = sum([item.price or item.test.default_price
+                           for item in record.ordered_tests if item.group])
+    special_item_cost = sum([item.price or item.test.default_price
+                             for item in special_tests])
+    containers = set([item.test.container for item in record.ordered_tests])
+
+    html = render_template('comhealth/slip.html',
+                           record=record,
+                           customer=record.customer,
+                           special_tests=special_tests,
+                           special_item_cost=special_item_cost)
+    return render_pdf(HTML(string=html))

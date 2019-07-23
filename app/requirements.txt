@@ -109,3 +109,5 @@ Werkzeug==0.14.1
 wrapt==1.10.11
 WTForms==2.1
 xlrd==1.1.0
+Flask-WeasyPrint==0.6
+WeasyPrint==0.42

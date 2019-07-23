@@ -113,7 +113,7 @@
                             </div>
                         </div>
                         <button class="button is-primary is-rounded"
-                                @click="printJS({printable:'receipt-slip', type:'html', maxWidth: 80, style: '#receipt-slip { font-size: 10px }'})">
+                                @click="printJS('/comhealth/receipts/slip/{{record.id}}')">
                             <span class="icon">
                                 <i class="fas fa-print"></i>
                             </span>
@@ -411,4 +411,4 @@
             }
         })
     </script>
-{% endblock %}
+% endblock %}
