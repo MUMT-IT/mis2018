@@ -65,6 +65,8 @@
           <td>
             {% if not pest_res.value %}
             ไม่พบ
+            {% elif pest_res.value < 0 %}
+            ไม่ได้ทดสอบ
             {% else %}
             {{ pest_res.value }} {{ pest_res.test.unit }}
             {% endif %}
@@ -73,6 +75,7 @@
             {% if not pest_res.value or pest_res.value <= pest_res.test.cutoff %}
             <span class="icon has-text-success">
               <i class="fa fa-check"></i>
+            {% elif pest_res.value < 0 %}
             {% else %}
             <span class="icon has-text-danger">
               <i class="fa fa-times"></i>
