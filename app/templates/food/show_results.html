@@ -169,7 +169,6 @@
         <thead>
           <tr>
             <th>ชนิดพยาธิ</th>
-            <th>จำนวนที่พบ</th>
             <th>หมายเหตุ</th>
           </tr>
         </thead>
@@ -177,7 +176,6 @@
         {% for par_res in sample.parasite_results|sort(attribute='test.id') %}
         <tr>
           <td>{{ par_res.test.organism }} {{ par_res.test.stage }}</td>
-          <td>{{ par_res.count }}</td>
           <td>{{ par_res.comment}}</td>
         </tr>
         {% endfor %}
