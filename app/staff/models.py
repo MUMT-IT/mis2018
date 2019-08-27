@@ -63,3 +63,13 @@ class StaffAcademicPosition(db.Model):
     fullname_en = db.Column('fullname_en', db.String(), nullable=False)
     shortname_en = db.Column('shortname_en', db.String(), nullable=False)
     level = db.Column('level', db.Integer(), nullable=False)
+
+class StaffAppointWorkingGroup(db.Model):
+    __tablename__ = 'staff_appoint_working_group'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_email = db.Column('staff_email', db.ForeignKey('staff_account.email'))
+    appoint_id = db.Column('appoint_id', db.String(), nullable=False)
+    appoint_date = db.Column('appoint_date',db.Date(), nullable=False)
+    expire_date = db.Column('expire_date',db.Date())
+    appoint_position = db.Column('appoint_position',db.String(), nullable=False)
+    duty = db.Column('duty',db.String())
