@@ -239,7 +239,7 @@
                 self.insKpiCreatedBy() !== ''
                 ) {
                     $.ajax({
-                        url: "{{ url_for('kpi.add_kpi_json') }}",
+                        url: "{{ url_for('kpi_blueprint.add_kpi_json') }}",
                         dataType: 'json',
                         type: 'post',
                         contentType: 'application/json',

@@ -65,6 +65,16 @@ with app.open_resource(os.environ.get('JSON_KEYFILE')) as jk:
 from kpi import kpibp as kpi_blueprint
 app.register_blueprint(kpi_blueprint, url_prefix='/kpi')
 
+
+class KPIAdminModel(ModelView):
+    can_create = True
+    column_list = ('id', 'created_by', 'created_at',
+                   'updated_at', 'updated_by', 'name')
+
+
+from models import KPI
+admin.add_views(KPIAdminModel(KPI, db.session, category='KPI'))
+
 from studs import studbp as stud_blueprint
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
