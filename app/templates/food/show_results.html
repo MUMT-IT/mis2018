@@ -55,6 +55,7 @@
           <tr>
             <th>ชื่อสาร</th>
             <th>ปริมาณ</th>
+            <th>ค่าตามเกณฑ์มาตรฐาน</th>
             <th>ปลอดภัย</th>
           </tr>
         </thead>
@@ -72,7 +73,10 @@
             {% endif %}
           </td>
           <td>
-            {% if not pest_res.value or pest_res.value <= pest_res.test.cutoff %}
+            {{ pest_res.cutoff_value or 0.0 }}
+          </td>
+          <td>
+            {% if not pest_res.value or pest_res.value < pest_res.cutoff_value %}
             <span class="icon has-text-success">
               <i class="fa fa-check"></i>
             {% elif pest_res.value < 0 %}

@@ -377,10 +377,17 @@ def add_pesticide_results(farm_id, lot_id, sample_id):
     sample = Sample.query.get(sample_id)
     pest_tests = PesticideTest.query.all()
     result_dict = {}
+    cutoff_dict = {}
     for res in sample.pesticide_results:
         result_dict[res.test.id] = res.value
-    return render_template('food/pest_results.html', farm=farm, lot=lot,
-                        sample=sample, pest_tests=pest_tests, result_dict=result_dict)
+        cutoff_dict[res.test.id] = res.cutoff_value
+    return render_template('food/pest_results.html',
+                           farm=farm, lot=lot,
+                           sample=sample,
+                           pest_tests=pest_tests,
+                           result_dict=result_dict,
+                           cutoff_dict=cutoff_dict,
+                          )
 
 
 @food.route('/farm/results/pesticides/', methods=['POST'])
@@ -394,17 +401,26 @@ def add_pesticide_results_from_form():
         for res in sample.pesticide_results:
             test_results_dict[res.test.id] = res
         for pt in PesticideTest.query.all():
-            test_value = request.form.get(str(pt.id), None)
+            test_value = request.form.get('value_' + str(pt.id), None)
+            cutoff_value = request.form.get('cutoff_' + str(pt.id), None)
             if pt.id in test_results_dict:
                 res = test_results_dict[pt.id]
                 res.value = float(test_value) if test_value else None
+                res.cutoff_value = float(cutoff_value) if cutoff_value else 0.0
             else:
                 if test_value:
+                    cutoff_value = float(cutoff_value) if cutoff_value else 0.0
                     pest_test_result = PesticideResult(sample_id=sample.id,
-                                        test_id=pt.id, value=float(test_value))
+                                                       test_id=pt.id,
+                                                       value=float(test_value),
+                                                       cutoff_value=float(cutoff_value))
                 else:
+                    cutoff_value = float(cutoff_value) if cutoff_value else 0.0
                     pest_test_result = PesticideResult(sample_id=sample.id,
-                                        test_id=pt.id, value=None)
+                                                       test_id=pt.id,
+                                                       cutoff_value=cutoff_value,
+                                                       value=None,
+                                                      )
                 sample.pesticide_results.append(pest_test_result)
         db.session.add(sample)
         db.session.commit()
