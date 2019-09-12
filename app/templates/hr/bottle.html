@@ -33,7 +33,7 @@
     }
     var vm = new ViewModel();
     ko.applyBindings(vm);
-    $.getJSON("{{ url_for('kpi.get_bottle_data') }}", function(data) {
+    $.getJSON("{{ url_for('kpi_blueprint.get_bottle_data') }}", function(data) {
         vm.data(data);
     });
 </script>

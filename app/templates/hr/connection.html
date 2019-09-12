@@ -44,7 +44,7 @@
     var rates = [];
     var aca_rates = [];
     var sup_rates = [];
-    $.getJSON("{{ url_for('kpi.get_connection_data') }}", function(data) {
+    $.getJSON("{{ url_for('kpi_blueprint.get_connection_data') }}", function(data) {
         vm.data(data);
     }).done(function() {
         $.each(vm.data(), function(_, dt) {

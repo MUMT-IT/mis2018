@@ -42,7 +42,7 @@
     var years = [];
     var electricity = [];
     var carbon = [];
-    $.getJSON("{{ url_for('kpi.get_electricity_data') }}", function(data) {
+    $.getJSON("{{ url_for('kpi_blueprint.get_electricity_data') }}", function(data) {
         vm.data(data);
     }).done(function() {
         $.each(vm.data(), function(_, dt) {

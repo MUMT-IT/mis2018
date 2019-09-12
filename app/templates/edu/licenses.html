@@ -93,7 +93,7 @@
     var mtyears = [];
     var mtvalues = [];
     var mtcutoffs = [];
-    $.getJSON("{{ url_for('kpi.get_licenses_data', program='mt') }}", function(data) {
+    $.getJSON("{{ url_for('kpi_blueprint.get_licenses_data', program='mt') }}", function(data) {
         $.each(data, function(ix, d) {
             mtyears.push(d.year);
             mtvalues.push(d['percent']['passed']);

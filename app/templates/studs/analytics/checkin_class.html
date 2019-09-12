@@ -12,7 +12,9 @@
                 <tbody>
                 {% for rec in records %}
                     <tr>
-                        <td>{{ chk.check_in_time }}</td>
+                        <td>{{ rec.stud_firstname }}</td>
+                        <td>{{ rec.stud_lastname }}</td>
+                        <td>{{ rec.check_in_time }}</td>
                         <td>
                             <a href="#">
                             <span class="icon">
