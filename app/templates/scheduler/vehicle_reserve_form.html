@@ -2,7 +2,7 @@
 {% block title %}Add New Event{% endblock %}
 {% include "scheduler/nav.html" %}
 {% block page_content %}
-<section class="section">
+<section class="section" id="app">
     <div class="columns">
         <div class="column is-8 is-offset-2">
             <div class="box">
@@ -38,6 +38,27 @@
                             </div>
                         </div>
                     </div>
+                    <b-field horizontal label="รหัส IO" message="สามารถค้นหาด้วยชื่อโครงการฯ หน่วยงาน รหัส cost center พันธกิจ หรือรหัส IO">
+                        <b-autocomplete v-model="ioquery" :data="data" name="iocode"
+                                        field="id" :loading="isFetching" icon="magnify"
+                                        @keyup.native="getAsyncData"
+                                        @select="option => iocode = option.id">
+                            <template slot-scope="props">
+                                <div class="media">
+                                    <div class="media-content">
+                                        <%props.option.name%>
+                                        <br>
+                                        <small>
+                                            IO code: <%props.option.id%>,
+                                            Department: <%props.option.org%>,
+                                            Cost Center : <%props.option.costCenter%>,
+                                            Mission: <%props.option.mission%>
+                                        </small>
+                                    </div>
+                                </div>
+                            </template>
+                        </b-autocomplete>
+                    </b-field>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
                             <label class="label">จุดประสงค์</label>
@@ -59,7 +80,7 @@
                             <div class="field">
                                 <div class="control">
                                     <input class="input is-danger"
-                                           name="location" type="text" placeholder="สถานที่ปลายทาง">
+                                           name="destination" type="text" placeholder="สถานที่ปลายทาง">
                                 </div>
                             </div>
                         </div>
@@ -119,13 +140,13 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">จำนวนผู้เข้าร่วม</label>
+                            <label class="label">จำนวนผู้โดยสาร</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
                                     <input class="input is-danger" type="text"
-                                           value="1" name="participants">
+                                           value="1" name="num_passengers">
                                 </div>
                             </div>
                         </div>
@@ -138,18 +159,6 @@
                             <div class="field">
                                 <div class="control">
                                     <input class="input" type="number" value="10" name="distance">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">อุปกรณ์เสริม</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input" type="text" name="request">
                                 </div>
                             </div>
                         </div>
@@ -175,4 +184,95 @@
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+{{super()}}
+<script type="text/javascript">
+    var vm = new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                data: [],
+                ioquery: '',
+                iocode: '',
+                isFetching: false,
+                title: '',
+                startdate: undefined,
+                enddate: undefined,
+                num_passengers: 1,
+            }
+        },
+        computed: {
+            datedelta: function() {
+                var self = this
+                if (self.startdate !== undefined && self.enddate !== undefined) {
+                    return new Date(self.enddate) - new Date(self.startdate)
+                } else {
+                    return 0
+                }
+            },
+        },
+        methods: {
+            checkDate: function() {
+                var self = this
+                if (self.datedelta < 0) {
+                    self.$toast.open({
+                        duration: 2000,
+                        message: 'วันสิ้นสุดต้องมาหลังวันเริ่มต้น',
+                        position: 'is-bottom',
+                        type: 'is-danger'
+                    })
+                }
+            },
+            checkPassenger: function() {
+                var self = this
+                if (self.num_passengers < 1) {
+                    self.$toast.open({
+                        duration: 2000,
+                        message: 'ผู้ใช้งานห้องต้องมีจำนวนอย่างน้อยหนึ่งคน',
+                        position: 'is-bottom',
+                        type: 'is-danger'
+                    })
+                }
+            },
+            isNotReady: function() {
+                var self = this
+                if(self.datedelta >= 0 && self.iocode !== '' &&
+                    self.startdate !== undefined &&
+                    self.title !== '' && self.participant >= 1) {
+                    return false
+                } else {
+                    return true
+                }
+            },
+            getAsyncData: function() {
+                var self = this
+                self.isFetching = true
+                axios.get('/room/api/iocodes').then(function(resp) {
+                    self.data = []
+                    resp.data.forEach(function(item) {
+                        if (item.id.indexOf(self.ioquery) !== -1) {
+                            self.data.push(item)
+                        }
+                        else if (item.name.indexOf(self.ioquery) !== -1) {
+                            self.data.push(item)
+                        }
+                        else if (item.costCenter.indexOf(self.ioquery) !== -1) {
+                            self.data.push(item)
+                        }
+                        else if (item.org.indexOf(self.ioquery) !== -1) {
+                            self.data.push(item)
+                        }
+                        else if (item.mission.indexOf(self.ioquery) !== -1) {
+                            self.data.push(item)
+                        }
+                    })
+                    self.isFetching = false
+                })
+            },
+        }
+    })
+</script>
 {% endblock %}
