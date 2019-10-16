@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import os
+import json
 import click
 from pytz import timezone
 from flask.cli import AppGroup
@@ -11,8 +12,9 @@ from flask_login import LoginManager
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
-from config import config
-import json
+from config import SETTINGS
+
+BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -25,9 +27,13 @@ admin = Admin()
 
 dbutils = AppGroup('dbutils')
 
-def create_app(config_name='default'):
+
+def create_app(config_setting='development'):
+    '''Create app based on the config setting
+    '''
+
     app = Flask(__name__)
-    app.config.from_object(config[config_name])
+    app.config.from_object(SETTINGS[config_setting])
     db.init_app(app)
     ma.init_app(app)
     login.init_app(app)
@@ -36,10 +42,8 @@ def create_app(config_name='default'):
     admin.init_app(app)
     return app
 
-config_name = os.environ.get('FLASK_CONFIG', 'default')
-app = create_app(config_name)
-
-from staff.models import StaffAccount
+config_setting = os.environ.get('FLASK_CONFIG', 'development')
+app = create_app(config_setting)
 
 @login.user_loader
 def load_user(user_id):
@@ -73,7 +77,7 @@ admin.add_views(ModelView(Produce, db.session, category='Food'))
 
 from research import researchbp as research_blueprint
 app.register_blueprint(research_blueprint, url_prefix='/research')
-from app.research.models import ResearchPub
+from research.models import ResearchPub
 
 from staff import staffbp as staff_blueprint
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
@@ -111,8 +115,8 @@ import database
 
 class StudentCheckInAdminModel(ModelView):
     can_create = True
-    form_columns = ('id','classchk', 'check_in_time', 'check_in_status', 'elapsed_mins')
-    column_list = ('id','classchk', 'check_in_time', 'check_in_status', 'elapsed_mins')
+    form_columns = ('id', 'classchk', 'check_in_time', 'check_in_status', 'elapsed_mins')
+    column_list = ('id', 'classchk', 'check_in_time', 'check_in_status', 'elapsed_mins')
 
 
 admin.add_view(ModelView(Student, db.session, category='Student Affairs'))
@@ -167,7 +171,6 @@ admin.add_view(ModelView(ComHealthTestProfileItem, db.session, category='Com Hea
 admin.add_view(ModelView(ComHealthService, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthTestGroup, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthContainer, db.session, category='Com Health'))
-
 
 
 @app.cli.command()
