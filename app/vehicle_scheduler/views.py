@@ -80,6 +80,13 @@ def get_events():
 def index():
     return render_template('scheduler/vehicle_main.html')
 
+@vehicle.route('/trip')
+def trip():
+    vehicles = VehicleResource.query.all()
+    return render_template(
+                'scheduler/vehicle_list_trip.html',
+                vehicles=vehicles)
+
 
 @vehicle.route('/events/<list_type>')
 def event_list(list_type='timelineDay'):
