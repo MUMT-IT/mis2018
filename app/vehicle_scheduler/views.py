@@ -8,9 +8,13 @@ from googleapiclient.discovery import build
 from flask import jsonify, render_template, redirect, flash, url_for, request
 from models import *
 from ..models import Org, IOCode
+from ..main import config_setting
 
+if config_setting == 'development':
+    CALENDAR_ID = 'cl05me2rhh57a5n3i76nqao7ng@group.calendar.google.com'
+else:
+    CALENDAR_ID = 'anatjgngk7bcv9kte15p38l7mg@group.calendar.google.com'
 
-CALENDAR_ID = 'anatjgngk7bcv9kte15p38l7mg@group.calendar.google.com'
 
 @vehicle.route('/api/vehicles')
 def get_vehicles():
@@ -58,13 +62,22 @@ def get_events():
             else:
                 org = None
             approved = extended_properties.get('approved', False)
+            closed = extended_properties.get('closed', False)
+            if closed:
+                closed = True
+
             if approved == 'true':
                 approved = True
                 text_color = '#ffffff'
                 bg_color = '#2b8c36'
+                border_color = '#ffffff'
+                if closed:
+                    bg_color = '#003366'
+                    border_color = '#000000'
             else:
                 text_color = '#000000'
                 bg_color = '#f0f0f5'
+                border_color = '#ff4d4d'
 
             evt = {
                 'id': extended_properties.get('event_id', None),
@@ -76,9 +89,10 @@ def get_events():
                 'end': end['dateTime'],
                 'resourceId': license,
                 'approved': approved,
-                'borderColor': '#ff3333',
+                'borderColor': border_color,
                 'backgroundColor': bg_color,
                 'textColor': text_color,
+                'closed': closed,
             }
             all_events.append(evt)
         # Get the next request object by passing the previous request object to
@@ -89,6 +103,7 @@ def get_events():
 
 @vehicle.route('/')
 def index():
+    print(CALENDAR_ID)
     return render_template('scheduler/vehicle_main.html')
 
 @vehicle.route('/trip')
@@ -221,7 +236,6 @@ def vehicle_reserve(license):
                         'private': {
                             'license': license,
                             'destination': destination,
-                            'distance': distance,
                             'orgId': org_id,
                             'iocode': iocode_id,
                             'event_id': reservation.id,
@@ -310,6 +324,9 @@ def edit_detail(event_id=None):
         starttime = request.form.get('starttime')
         endtime = request.form.get('endtime')
         num_passengers = request.form.get('num_passengers', 0)
+        init_milage = request.form.get('init_milage', 0)
+        end_milage = request.form.get('end_milage', 0)
+        toll_fee = request.form.get('toll_fee', 0)
         desc = request.form.get('desc', '')
         destination = request.form.get('destination', 'ไม่ระบุ')
         distance = request.form.get('distance', 0)
@@ -335,6 +352,15 @@ def edit_detail(event_id=None):
         event.end = enddatetime
         event.num_passengers = num_passengers
         event.distance = int(distance)
+        if init_milage and end_milage:
+            if int(init_milage) < int(end_milage):
+                event.init_milage = int(init_milage)
+                event.end_milage = int(end_milage)
+                event.distance = int(end_milage) - int(init_milage)
+                event.closed = True
+
+        event.toll_fee = float(toll_fee)
+
         event.desc = desc
         event.iocode_id = iocode_id
         event.updated_at=tz.localize(datetime.utcnow())
@@ -361,6 +387,7 @@ def edit_detail(event_id=None):
                     'distance': distance,
                     'iocode': iocode_id,
                     'event_id': event.id,
+                    'closed': event.closed,
                 }
             }
         }

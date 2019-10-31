@@ -25,6 +25,16 @@
                                         &nbsp;{{ event.destination }}
                                     </span>
                                 </p>
+                                {% if event.init_milage and event.end_milage %}
+                                <p>
+                                    <span class="subtitle">
+                                        <span class="icon">
+                                            <i class="fas fa-tachometer-alt"></i>
+                                        </span>
+                                        &nbsp;เลขไมล์ {{ event.init_milage }} - {{ event.end_milage }}
+                                    </span>
+                                </p>
+                                {% endif %}
                                 <p>
                                     <span class="subtitle">
                                         <span class="icon">
@@ -97,10 +107,12 @@
                         </div>
                         <footer class="card-footer">
                             <a href="/vehicle/" class="card-footer-item">กลับ</a>
+                            {% if not event.closed %}
                             <a href="{{ url_for('vehicle.edit_detail', event_id=event.id) }}"
                                     class="card-footer-item">แก้ไข</a>
                             <a href="{{ url_for('vehicle.approve_event', event_id=event.id) }}"
                                     class="card-footer-item">ยืนยัน</a>
+                            {% endif %}
                         </footer>
                     </div>
                 </div>

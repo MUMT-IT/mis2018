@@ -168,13 +168,43 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">ระยะทาง (km)</label>
+                            <label class="label">เลขไมล์เริ่มต้น</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
                                     <input class="input" type="number"
-                                    value="{{ event.distance }}" name="distance">
+                                           value="{{ event.init_milage }}"
+                                           name="init_milage">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">เลขไมล์ปลายทาง</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input" type="number"
+                                           value="{{ event.end_milage }}"
+                                           name="end_milage">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ค่าทางด่วน</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input" type="number"
+                                           value="{{ event.toll_fee }}"
+                                           step="0.1"
+                                           name="toll_fee">
                                 </div>
                             </div>
                         </div>
@@ -195,7 +225,7 @@
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input type="hidden" name="event_id" value="{{ event.id }}">
                     <button type="submit" class="button is-rounded is-success">
-                        <strong>Submit</strong>
+                        <strong>บันทึกข้อมูล</strong>
                     </button>
                 </form>
             </div>
