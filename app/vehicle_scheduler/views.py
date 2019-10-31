@@ -294,7 +294,7 @@ def approve_event(event_id):
             db.session.add(event)
             db.session.commit()
         update_event = {
-            'status': 'approved',
+            'status': 'confirmed',
             'extendedProperties': {
                 'private': {
                     'approved': True,
