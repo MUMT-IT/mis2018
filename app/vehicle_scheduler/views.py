@@ -221,7 +221,7 @@ def vehicle_reserve(license):
                 db.session.commit()
 
                 event = {
-                    'summary': title,
+                    'summary': u'{} @ {}'.format(title,destination),
                     'location': destination,
                     'sendUpdates': 'all',
                     'status': 'tentative',
@@ -371,9 +371,11 @@ def edit_detail(event_id=None):
         db.session.commit()
 
         status = 'confirmed' if event.approved else 'tentative'
+        if not title:
+            title = event.title
 
         update_event = {
-            'summary': title if title else event.title,
+            'summary': u'{} @ {}'.format(title, destination),
             'description': desc,
             'location': destination,
             'start': {
