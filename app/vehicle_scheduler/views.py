@@ -62,9 +62,11 @@ def get_events():
             else:
                 org = None
             approved = extended_properties.get('approved', False)
-            closed = extended_properties.get('closed', False)
-            if closed:
+            closed = extended_properties.get('closed')
+            if closed == 'true':
                 closed = True
+            else:
+                closed = False
 
             if approved == 'true':
                 approved = True
@@ -331,7 +333,6 @@ def edit_detail(event_id=None):
         destination = request.form.get('destination', 'ไม่ระบุ')
         distance = request.form.get('distance', 0)
         iocode_id = request.form.get('iocode')
-        print(iocode_id)
         if startdate and starttime:
             startdatetime = datetime.strptime(
                 '{} {}'.format(startdate, starttime), '%Y-%m-%d %H:%M')
@@ -358,6 +359,8 @@ def edit_detail(event_id=None):
                 event.end_milage = int(end_milage)
                 event.distance = int(end_milage) - int(init_milage)
                 event.closed = True
+        else:
+            event.closed = False
 
         event.toll_fee = float(toll_fee)
 
