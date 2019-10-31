@@ -55,7 +55,7 @@
             events: '/vehicle/api/events',
             eventLimit: true,
             eventClick: function(calEvent, jsEvent, view) {
-                alert(calEvent.title + " สำหรับ" + calEvent.org);
+                window.location = '/vehicle/events/' + calEvent.id;
             }
         });
     });

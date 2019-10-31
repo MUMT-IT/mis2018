@@ -59,6 +59,7 @@ def get_events():
                 org = None
             status = event.get('status', 'confirmed')
             evt = {
+                'id': extended_properties.get('event_id', None),
                 'license': license,
                 'org': org,
                 'title': u'{}: {}'.format(license, event.get('summary', 'NO SUMMARY')),
@@ -162,6 +163,22 @@ def vehicle_reserve(license):
             if timedelta.days < 0 or timedelta.seconds == 0:
                 flash('Date or time is invalid.')
             else:
+                reservation = VehicleBooking(
+                    vehicle=vehicle,
+                    title=title,
+                    start=startdatetime,
+                    end=enddatetime,
+                    destination=destination,
+                    distance=distance,
+                    iocode=iocode,
+                    org=org,
+                    num_passengers=num_passengers,
+                    approved=False,
+                    desc=desc,
+                )
+                db.session.add(reservation)
+                db.session.commit()
+
                 event = {
                     'summary': title,
                     'location': destination,
@@ -183,23 +200,11 @@ def vehicle_reserve(license):
                             'distance': distance,
                             'orgId': org_id,
                             'iocode': iocode_id,
+                            'event_id': reservation.id,
                         }
                     }
                 }
-                print(event)
-                reservation = VehicleBooking(
-                    vehicle=vehicle,
-                    title=title,
-                    start=startdatetime,
-                    end=enddatetime,
-                    destination=destination,
-                    distance=distance,
-                    iocode=iocode,
-                    org=org,
-                    num_passengers=num_passengers,
-                    approved=False,
-                    desc=desc,
-                )
+
                 credentials, project_id = google.auth.default()
                 scoped_credentials = credentials.with_scopes([
                     'https://www.googleapis.com/auth/calendar',
