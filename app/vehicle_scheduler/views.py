@@ -51,11 +51,12 @@ def get_events():
         # returns a list of item objects (events).
         for event in response.get('items', []):
             # The event object is a dict object with a 'summary' key.
-            start = event.get('start', None)
-            end = event.get('end', None)
+            start = event.get('start')
+            end = event.get('end')
             extended_properties = event.get('extendedProperties', {}).get('private', {})
-            license = extended_properties.get('license', None)
-            org_id = extended_properties.get('orgId', None)
+            status = extended_properties.get('status')
+            license = extended_properties.get('license')
+            org_id = extended_properties.get('orgId')
             if org_id:
                 org = Org.query.get(int(org_id))
                 org = org.name
@@ -68,7 +69,11 @@ def get_events():
             else:
                 closed = False
 
-            if approved == 'true':
+            if status == 'cancelled':
+                text_color = '#ffffff'
+                bg_color = '#ff6666'
+                border_color = '#ffffff'
+            elif approved == 'true':
                 approved = True
                 text_color = '#ffffff'
                 bg_color = '#2b8c36'
@@ -289,6 +294,7 @@ def approve_event(event_id):
             db.session.add(event)
             db.session.commit()
         update_event = {
+            'status': 'approved',
             'extendedProperties': {
                 'private': {
                     'approved': True,
@@ -358,14 +364,13 @@ def edit_detail(event_id=None):
         event.end = enddatetime
         event.num_passengers = num_passengers
         event.distance = int(distance)
+        # users should not modify milage after the initial submission
         if init_milage and end_milage:
             if int(init_milage) < int(end_milage):
                 event.init_milage = int(init_milage)
                 event.end_milage = int(end_milage)
                 event.distance = int(end_milage) - int(init_milage)
                 event.closed = True
-        else:
-            event.closed = False
 
         event.toll_fee = float(toll_fee)
 
@@ -434,3 +439,32 @@ def edit_detail(event_id=None):
                                     )
     else:
         return 'No Booking ID specified.'
+
+
+@vehicle.route('/events/cancel/<int:event_id>')
+def cancel(event_id):
+    event = VehicleBooking.query.get(event_id)
+    if event:
+        if not event.init_milage and not event.end_milage:
+            tz = pytz.timezone('Asia/Bangkok')
+            cancelled_datetime = tz.localize(datetime.utcnow())
+            event.cancelled_at = cancelled_datetime
+            db.session.add(event)
+            db.session.commit()
+            update_event = { 'status': 'cancelled' }
+            credentials, project_id = google.auth.default()
+            scoped_credentials = credentials.with_scopes([
+                'https://www.googleapis.com/auth/calendar',
+                'https://www.googleapis.com/auth/calendar.events'
+            ])
+            calendar_service = build('calendar', 'v3',
+                                        credentials=scoped_credentials)
+            event_ = calendar_service.events().patch(
+                calendarId=event.google_calendar_id,
+                eventId=event.google_event_id, body=update_event).execute()
+            flash('The booking no.{} has been cancelled.'.format(event.id))
+        else:
+            flash('The booking no.{} cannot be cancelled.'.format(event.id))
+    else:
+        flash('The booking no.{} not found.'.format(event.id))
+    return redirect(url_for('vehicle.index'))

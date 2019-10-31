@@ -240,8 +240,13 @@
                     <button type="submit" class="button is-rounded is-success">
                         <strong>บันทึกข้อมูล</strong>
                     </button>
-                    <a href="{{ url_for('vehicle.show_event_detail', event_id=event.id) }}" class="button is-rounded is-success">
+                    <a href="{{ url_for('vehicle.show_event_detail', event_id=event.id) }}"
+                        class="button is-rounded is-success">
                         <strong>กลับ</strong>
+                    </a>
+                    <a href="{{ url_for('vehicle.cancel', event_id=event.id) }}"
+                        class="button is-rounded is-danger">
+                        <strong>ยกเลิก</strong>
                     </a>
                 </form>
             </div>
