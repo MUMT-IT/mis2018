@@ -168,14 +168,16 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">เลขไมล์เริ่มต้น</label>
+                            <label class="label">เลขไมล์ต้นทาง</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
                                     <input class="input" type="number"
                                            value="{{ event.init_milage }}"
-                                           name="init_milage">
+                                           name="init_milage"
+                                           placeholder="ต้องใส่พร้อมกับเลขไมล์ปลายทาง"
+                                           >
                                 </div>
                             </div>
                         </div>
@@ -189,7 +191,9 @@
                                 <div class="control">
                                     <input class="input" type="number"
                                            value="{{ event.end_milage }}"
-                                           name="end_milage">
+                                           name="end_milage"
+                                           placeholder="ต้องใส่พร้อมกับเลขไมล์ต้นทาง"
+                                           >
                                 </div>
                             </div>
                         </div>
