@@ -109,8 +109,10 @@
                             <a href="/vehicle/" class="card-footer-item">กลับ</a>
                             <a href="{{ url_for('vehicle.edit_detail', event_id=event.id) }}"
                                     class="card-footer-item">แก้ไข</a>
+                            {% if event.vehicle.license != 'xxxxxx' %}
                             <a href="{{ url_for('vehicle.approve_event', event_id=event.id) }}"
                                     class="card-footer-item">ยืนยัน</a>
+                            {% endif %}
                         </footer>
                     </div>
                 </div>
