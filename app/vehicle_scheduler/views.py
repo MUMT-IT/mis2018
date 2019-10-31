@@ -296,3 +296,100 @@ def approve_event(event_id):
         flash('The booking no. {} not found.'.format(event_id))
 
     return redirect(url_for('vehicle.index'))
+
+
+@vehicle.route('/events/edit/<int:event_id>', methods=['POST', 'GET'])
+def edit_detail(event_id=None):
+    tz = pytz.timezone('Asia/Bangkok')
+    if request.method == 'POST':
+        event_id = request.form.get('event_id')
+        event = VehicleBooking.query.get(int(event_id))
+        title = request.form.get('title', '')
+        startdate = request.form.get('startdate')
+        enddate = request.form.get('enddate')
+        starttime = request.form.get('starttime')
+        endtime = request.form.get('endtime')
+        num_passengers = request.form.get('num_passengers', 0)
+        desc = request.form.get('desc', '')
+        destination = request.form.get('destination', 'ไม่ระบุ')
+        distance = request.form.get('distance', 0)
+        iocode_id = request.form.get('iocode')
+        print(iocode_id)
+        if startdate and starttime:
+            startdatetime = datetime.strptime(
+                '{} {}'.format(startdate, starttime), '%Y-%m-%d %H:%M')
+            startdatetime = tz.localize(startdatetime, is_dst=None)
+        else:
+            startdatetime = None
+        if enddate and endtime:
+            enddatetime = datetime.strptime(
+                '{} {}'.format(enddate, endtime), '%Y-%m-%d %H:%M')
+            enddatetime = tz.localize(enddatetime, is_dst=None)
+        else:
+            enddatetime = None
+
+        if title:
+            event.title = title
+
+        event.start = startdatetime
+        event.end = enddatetime
+        event.num_passengers = num_passengers
+        event.distance = int(distance)
+        event.desc = desc
+        event.iocode_id = iocode_id
+        event.updated_at=tz.localize(datetime.utcnow())
+        db.session.add(event)
+        db.session.commit()
+
+        status = 'confirmed' if event.approved else 'tentative'
+
+        update_event = {
+            'summary': title if title else event.title,
+            'description': desc,
+            'location': destination,
+            'start': {
+                'dateTime': startdatetime.isoformat(),
+                'timeZone': 'Asia/Bangkok',
+            },
+            'end': {
+                'dateTime': enddatetime.isoformat(),
+                'timeZone': 'Asia/Bangkok',
+            },
+            'extendedProperties': {
+                'private': {
+                    'destination': destination,
+                    'distance': distance,
+                    'iocode': iocode_id,
+                    'event_id': event.id,
+                }
+            }
+        }
+        credentials, project_id = google.auth.default()
+        scoped_credentials = credentials.with_scopes([
+            'https://www.googleapis.com/auth/calendar',
+            'https://www.googleapis.com/auth/calendar.events'
+        ])
+        calendar_service = build('calendar', 'v3', credentials=scoped_credentials)
+        event_ = calendar_service.events().patch(
+            calendarId=event.google_calendar_id,
+            eventId=event.google_event_id, body=update_event).execute()
+        if event_:
+            flash('Reservation ID={} has been updated.'.format(event_.get('id')))
+
+        return redirect(url_for('vehicle.show_event_detail', event_id=event.id))
+
+    if event_id:
+        event = VehicleBooking.query.get(event_id)
+        timeslots = []
+        for i in range(1,24):
+            for j in [0, 30]:
+                timeslots.append('{:02}:{:02}'.format(i,j))
+        if event:
+            event.start = event.start.astimezone(tz)
+            event.end = event.end.astimezone(tz)
+            iocode = event.iocode_id if event.iocode_id else None
+            return render_template('scheduler/vehicle_event_edit.html',
+                                    event=event, iocode=iocode,
+                                    timeslots=timeslots)
+    else:
+        return 'No Booking ID specified.'

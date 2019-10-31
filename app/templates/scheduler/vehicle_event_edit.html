@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% block title %}Edit Vehicle Booking{% endblock %}
+{% include "scheduler/nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="columns">
+        <div class="column is-8 is-offset-2">
+            <div class="box">
+                <p class="has-text-centered">กรุณากรอกข้อมูลการจองให้สมบูรณ์</p>
+                {% if event.vehicle.required_permission %}
+                <p class="has-text-danger">หมายเหตุ ท่านจะสามารถใช้ห้องนี้ได้หลังจากได้รับการอนุมัติแล้วเท่านั้น</p>
+                {% endif %}
+                <form method="post">
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">หมายเลขทะเบียน</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input is-danger is-static"
+                                           name="license" type="text" value="{{ event.vehicle.license }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">หน่วยงาน</label>
+                        </div>
+                        <div class="field-body">
+                            <p>
+                                {{ event.org.name }}
+                            </p>
+                        </div>
+                    </div>
+                    <b-field horizontal label="รหัส IO" message="สามารถค้นหาด้วยชื่อโครงการฯ หน่วยงาน รหัส cost center พันธกิจ หรือรหัส IO">
+                        <b-autocomplete v-model="ioquery" :data="data" name="iocode"
+                                        field="id" :loading="isFetching" icon="magnify"
+                                        @keyup.native="getAsyncData"
+                                        @select="option => iocode = option.id">
+                            <template slot-scope="props">
+                                <div class="media">
+                                    <div class="media-content">
+                                        <%props.option.name%>
+                                        <br>
+                                        <small>
+                                            IO code: <%props.option.id%>,
+                                            Department: <%props.option.org%>,
+                                            Cost Center : <%props.option.costCenter%>,
+                                            Mission: <%props.option.mission%>
+                                        </small>
+                                    </div>
+                                </div>
+                            </template>
+                        </b-autocomplete>
+                    </b-field>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">จุดประสงค์</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input is-danger"
+                                           name="title" type="text"
+                                           value="{{ event.title }}"
+                                           placeholder="ประชุม, สอน ฯลฯ​">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">สถานที่</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input is-danger"
+                                           name="destination" type="text"
+                                           value="{{event.destination}}"
+                                           placeholder="สถานที่ปลายทาง">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ตั้งแต่วันที่</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input is-danger"
+                                        type="date" name="startdate"
+                                        value="{{ event.end.date() }}"
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">เวลา</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="select is-danger">
+                                <select name="starttime">
+                                    {% for ts in timeslots %}
+                                    <option value="{{ ts }}"
+                                    {% if event.start.strftime('%H:%M')==ts %}
+                                    selected
+                                    {% endif %}
+                                    >{{ ts }}</option>
+                                    {% endfor %}
+                                </select>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">สิ้นสุดวันที่</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input is-danger"
+                                        type="date" name="enddate"
+                                        value="{{ event.end.date() }}"
+                                    >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">เวลา</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="select is-danger">
+                                <select name="endtime">
+                                    {% for ts in timeslots %}
+                                    <option value="{{ ts }}"
+                                    {% if event.end.strftime('%H:%M')==ts %}
+                                    selected
+                                    {% endif %}
+                                    >{{ ts }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">จำนวนผู้โดยสาร</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input is-danger" type="number"
+                                           value="{{ event.num_passengers }}"
+                                           name="num_passengers">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ระยะทาง (km)</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input" type="number"
+                                    value="{{ event.distance }}" name="distance">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">รายละเอียดเพิ่มเติม</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <textarea class="textarea"
+                                        type="text" name="desc" rows="5">{{ event.desc }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <input type="hidden" name="event_id" value="{{ event.id }}">
+                    <button type="submit" class="button is-rounded is-success">
+                        <strong>Submit</strong>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{super()}}
+<script type="text/javascript">
+    var vm = new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                data: [],
+                ioquery: '',
+                iocode: '',
+                isFetching: false,
+                title: '',
+                startdate: undefined,
+                enddate: undefined,
+                num_passengers: 1,
+            }
+        },
+        mounted: function() {
+            this.iocode = {{iocode|tojson|safe}};
+            this.ioquery = {{iocode|tojson|safe}};
+        },
+        computed: {
+            datedelta: function() {
+                var self = this
+                if (self.startdate !== undefined && self.enddate !== undefined) {
+                    return new Date(self.enddate) - new Date(self.startdate)
+                } else {
+                    return 0
+                }
+            },
+        },
+        methods: {
+            checkDate: function() {
+                var self = this
+                if (self.datedelta < 0) {
+                    self.$toast.open({
+                        duration: 2000,
+                        message: 'วันสิ้นสุดต้องมาหลังวันเริ่มต้น',
+                        position: 'is-bottom',
+                        type: 'is-danger'
+                    })
+                }
+            },
+            checkPassenger: function() {
+                var self = this
+                if (self.num_passengers < 1) {
+                    self.$toast.open({
+                        duration: 2000,
+                        message: 'ผู้ใช้งานห้องต้องมีจำนวนอย่างน้อยหนึ่งคน',
+                        position: 'is-bottom',
+                        type: 'is-danger'
+                    })
+                }
+            },
+            isNotReady: function() {
+                var self = this
+                if(self.datedelta >= 0 && self.iocode !== '' &&
+                    self.startdate !== undefined &&
+                    self.title !== '' && self.participant >= 1) {
+                    return false
+                } else {
+                    return true
+                }
+            },
+            getAsyncData: function() {
+                var self = this
+                self.isFetching = true
+                axios.get('/room/api/iocodes').then(function(resp) {
+                    self.data = []
+                    resp.data.forEach(function(item) {
+                        if (item.id.indexOf(self.ioquery) !== -1) {
+                            self.data.push(item)
+                        }
+                        else if (item.name.indexOf(self.ioquery) !== -1) {
+                            self.data.push(item)
+                        }
+                        else if (item.costCenter.indexOf(self.ioquery) !== -1) {
+                            self.data.push(item)
+                        }
+                        else if (item.org.indexOf(self.ioquery) !== -1) {
+                            self.data.push(item)
+                        }
+                        else if (item.mission.indexOf(self.ioquery) !== -1) {
+                            self.data.push(item)
+                        }
+                    })
+                    self.isFetching = false
+                })
+            },
+        }
+    })
+</script>
+{% endblock %}

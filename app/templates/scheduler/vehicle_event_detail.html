@@ -18,7 +18,33 @@
                                     <span class="title is-4">{{ event.title }}</span>
                                 </p>
                                 <p>
-                                    <span class="subtitle">ทะเบียน {{ event.vehicle.license }}</span>
+                                    <span class="subtitle">
+                                        <span class="icon">
+                                            <i class="fas fa-map-marker-alt"></i>
+                                        </span>
+                                        &nbsp;{{ event.destination }}
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="subtitle">
+                                        <span class="icon">
+                                            <i class="fas fa-road"></i>
+                                        </span>
+                                        {% if event.distance > 0 %}
+                                        &nbsp;ระยะทางโดยประมาณ {{ event.distance }} ก.ม.
+                                        {% else %}
+                                        &nbsp;ระยะทางไม่ระบุ
+                                        {% endif %}
+                                    </span>
+                                </p>
+                                </p>
+                                <p>
+                                    <span class="subtitle">
+                                        <span class="icon">
+                                            <i class="fas fa-car"></i>
+                                        </span>
+                                        &nbsp;ทะเบียน {{ event.vehicle.license }}
+                                    </span>
                                 </p>
                                 <p>
                                     <span class="subtitle is-6">
@@ -71,12 +97,10 @@
                         </div>
                         <footer class="card-footer">
                             <a href="/vehicle/" class="card-footer-item">กลับ</a>
-                            {% if not event.approved %}
-                                <a href="/room/events/edit/{{ event.id }}"
-                                        class="card-footer-item">แก้ไข</a>
-                                <a href="{{ url_for('vehicle.approve_event', event_id=event.id) }}"
-                                        class="card-footer-item">ยืนยัน</a>
-                            {% endif %}
+                            <a href="{{ url_for('vehicle.edit_detail', event_id=event.id) }}"
+                                    class="card-footer-item">แก้ไข</a>
+                            <a href="{{ url_for('vehicle.approve_event', event_id=event.id) }}"
+                                    class="card-footer-item">ยืนยัน</a>
                         </footer>
                     </div>
                 </div>
