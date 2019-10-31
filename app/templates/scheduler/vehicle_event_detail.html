@@ -107,12 +107,10 @@
                         </div>
                         <footer class="card-footer">
                             <a href="/vehicle/" class="card-footer-item">กลับ</a>
-                            {% if not event.closed %}
                             <a href="{{ url_for('vehicle.edit_detail', event_id=event.id) }}"
                                     class="card-footer-item">แก้ไข</a>
                             <a href="{{ url_for('vehicle.approve_event', event_id=event.id) }}"
                                     class="card-footer-item">ยืนยัน</a>
-                            {% endif %}
                         </footer>
                     </div>
                 </div>
