@@ -16,11 +16,20 @@
                             <label class="label">หมายเลขทะเบียน</label>
                         </div>
                         <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input is-danger is-static"
-                                           name="license" type="text" value="{{ event.vehicle.license }}">
-                                </div>
+                            <div class="select is-danger">
+                                <select name="license">
+                                    {% for vh in vehicles %}
+                                    <option value="{{ vh.license }}"
+                                    {% if event.vehicle.license==vh.license %}
+                                    selected
+                                    {% endif %}
+                                    {% if event.init_milage and event.end_milage %}
+                                    disabled
+                                    {% endif %}
+                                    >{{ vh.license }}</option>
+                                    {% endfor %}
+                                </select>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -231,6 +240,9 @@
                     <button type="submit" class="button is-rounded is-success">
                         <strong>บันทึกข้อมูล</strong>
                     </button>
+                    <a href="{{ url_for('vehicle.show_event_detail', event_id=event.id) }}" class="button is-rounded is-success">
+                        <strong>กลับ</strong>
+                    </a>
                 </form>
             </div>
         </div>

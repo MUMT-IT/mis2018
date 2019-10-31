@@ -105,7 +105,6 @@ def get_events():
 
 @vehicle.route('/')
 def index():
-    print(CALENDAR_ID)
     return render_template('scheduler/vehicle_main.html')
 
 @vehicle.route('/trip')
@@ -319,7 +318,13 @@ def edit_detail(event_id=None):
     tz = pytz.timezone('Asia/Bangkok')
     if request.method == 'POST':
         event_id = request.form.get('event_id')
+        license = request.form.get('license', None)
         event = VehicleBooking.query.get(int(event_id))
+        if license and (event.vehicle.license != license):
+            vehicle = VehicleResource.query.filter_by(license=license).first()
+            if vehicle:
+                event.vehicle = vehicle
+
         title = request.form.get('title', '')
         startdate = request.form.get('startdate')
         enddate = request.form.get('enddate')
@@ -388,6 +393,7 @@ def edit_detail(event_id=None):
             },
             'extendedProperties': {
                 'private': {
+                    'license': event.vehicle.license,
                     'destination': destination,
                     'distance': distance,
                     'iocode': iocode_id,
@@ -412,6 +418,7 @@ def edit_detail(event_id=None):
 
     if event_id:
         event = VehicleBooking.query.get(event_id)
+        vehicles = VehicleResource.query.all()
         timeslots = []
         for i in range(1,24):
             for j in [0, 30]:
@@ -422,6 +429,8 @@ def edit_detail(event_id=None):
             iocode = event.iocode_id if event.iocode_id else None
             return render_template('scheduler/vehicle_event_edit.html',
                                     event=event, iocode=iocode,
-                                    timeslots=timeslots)
+                                    timeslots=timeslots,
+                                    vehicles=vehicles
+                                    )
     else:
         return 'No Booking ID specified.'
