@@ -57,7 +57,15 @@ def get_events():
                 org = org.name
             else:
                 org = None
-            status = event.get('status', 'confirmed')
+            approved = extended_properties.get('approved', False)
+            if approved == 'true':
+                approved = True
+                text_color = '#ffffff'
+                bg_color = '#2b8c36'
+            else:
+                text_color = '#000000'
+                bg_color = '#f0f0f5'
+
             evt = {
                 'id': extended_properties.get('event_id', None),
                 'license': license,
@@ -67,8 +75,10 @@ def get_events():
                 'start': start['dateTime'],
                 'end': end['dateTime'],
                 'resourceId': license,
-                'status': status,
-                'borderColor': '#2b8c36' if status=='confirmed' else '#f44242'
+                'approved': approved,
+                'borderColor': '#ff3333',
+                'backgroundColor': bg_color,
+                'textColor': text_color,
             }
             all_events.append(evt)
         # Get the next request object by passing the previous request object to
@@ -92,6 +102,20 @@ def trip():
 @vehicle.route('/events/<list_type>')
 def event_list(list_type='timelineDay'):
     return render_template('scheduler/vehicle_event_list.html', list_type=list_type)
+
+
+@vehicle.route('/events/<int:event_id>', methods=['POST', 'GET'])
+def show_event_detail(event_id=None):
+    tz = pytz.timezone('Asia/Bangkok')
+    if event_id:
+        event = VehicleBooking.query.get(event_id)
+        if event:
+            event.start = event.start.astimezone(tz)
+            event.end = event.end.astimezone(tz)
+            return render_template(
+                'scheduler/vehicle_event_detail.html', event=event)
+    else:
+        return 'No event ID specified.'
 
 
 @vehicle.route('/events/new')
@@ -241,3 +265,34 @@ def vehicle_reserve(license):
                                    vehicle=vehicle, timeslots=timeslots, orgs=orgs)
 
 
+@vehicle.route('/events/approve/<int:event_id>')
+def approve_event(event_id):
+    if event_id:
+        event = VehicleBooking.query.get(event_id)
+        if not event.approved:
+            event.approved = True
+            db.session.add(event)
+            db.session.commit()
+        update_event = {
+            'extendedProperties': {
+                'private': {
+                    'approved': True,
+                }
+            }
+        }
+
+        credentials, project_id = google.auth.default()
+        scoped_credentials = credentials.with_scopes([
+            'https://www.googleapis.com/auth/calendar',
+            'https://www.googleapis.com/auth/calendar.events'
+        ])
+        calendar_service = build('calendar', 'v3',
+                                    credentials=scoped_credentials)
+        event_ = calendar_service.events().patch(
+            calendarId=event.google_calendar_id,
+            eventId=event.google_event_id, body=update_event).execute()
+        flash('The booking no. {} has been approved.'.format(event_id))
+    else:
+        flash('The booking no. {} not found.'.format(event_id))
+
+    return redirect(url_for('vehicle.index'))
