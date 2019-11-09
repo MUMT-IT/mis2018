@@ -92,6 +92,22 @@
                             <b-table-column field="dob" label="Birthdate" sortable centered>
                                 <% props.row.dob %>
                             </b-table-column>
+                            <b-table-column field="info" label="Info Update" centered>
+                                <span v-if="props.row.info!=null">
+                                    <a class="button is-info">
+                                        <span class="icon">
+                                            <i class="fas fa-notes-medical"></i>
+                                        </span>
+                                    </a>
+                                </span>
+                                <span v-else>
+                                    <a class="button is-warning">
+                                        <span class="icon">
+                                            <i class="fas fa-notes-medical"></i>
+                                        </span>
+                                    </a>
+                                </span>
+                            </b-table-column>
                         </template>
                     </b-table>
                 </div>

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="hero is-info is-small">
+        <div class="hero-head">
+            <nav class="navbar">
+                <div class="container">
+                    <div class="navbar-brand">
+                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+                    </div>
+                    <div id="navbarMenuHeroA" class="navbar-menu">
+                        <div class="navbar-end">
+                            <a class="navbar-item is-active"
+                               href="/comhealth">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                                <span>Home</span>
+                            </a>
+                            <a class="navbar-item"
+                               href="/comhealth/tests">
+                                <span>Tests</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="100">
+                <h3 class="title">Organization</h3>
+                <h3 class="subtitle">ชื่อสถาบัน {{ org.name }}</h3>
+            </div>
+        </div>
+    </section>
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column box is-one-third has-text-right is-offset-4">
+                    <form method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <b-field class="file">
+                            <b-upload v-model="file" type="file" name="file">
+                                <a class="button is-info">
+                                    <b-icon icon="upload"></b-icon>
+                                    <span>Click to upload</span>
+                                </a>
+                            </b-upload>
+                            <span class="file-name" v-if="file"><% file.name %></span>
+                            <span class="file-name" v-else>กรุณาเลือกไฟล์เพื่ออัพโหลด</span>
+                        </b-field>
+                        <div class="field">
+                            <button class="button is-info">Upload</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var vm = new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                file: null
+            }
+        }
+    });
+</script>
+{% endblock %}

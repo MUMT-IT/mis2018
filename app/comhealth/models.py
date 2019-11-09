@@ -2,7 +2,9 @@ from ..main import db, ma
 from marshmallow import fields
 from dateutil.relativedelta import relativedelta
 from datetime import date
+import pytz
 
+bangkok = pytz.timezone('Asia/Bangkok')
 
 class SmartNested(fields.Nested):
     def serialize(self, attr, obj, accessor=None):
@@ -74,6 +76,27 @@ class ComHealthCustomer(db.Model):
             return rdelta
         else:
             return None
+
+
+class ComHealthCustomerInfo(db.Model):
+    __tablename__ = 'comhealth_customer_info'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    cust_id = db.Column('customer_id', db.ForeignKey('comhealth_customers.id'))
+    customer = db.relationship('ComHealthCustomer',
+                    backref=db.backref('info', lazy=True, uselist=False))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    data = db.Column('data', db.JSON)
+
+    @property
+    def updated_date(self):
+        return bangkok.localize(self.updated_at.date())
+
+
+class ComHealthCustomerInfoItem(db.Model):
+    __tablename__ = 'comhealth_customer_info_items'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    text = db.Column('text', db.String(256), nullable=False)
+    dtype = db.Column('type', db.String(64), nullable=False, default='text')
 
 
 class ComHealthContainer(db.Model):
@@ -220,7 +243,13 @@ class ComHealthReceipt(db.Model):
     paid = db.Column('paid', db.Boolean(), default=False)
 
 
+class ComHealthCustomerInfoSchema(ma.ModelSchema):
+    class Meta:
+        model = ComHealthCustomerInfo
+
+
 class ComHealthCustomerSchema(ma.ModelSchema):
+    info = fields.Nested(ComHealthCustomerInfoSchema)
     class Meta:
         model = ComHealthCustomer
 

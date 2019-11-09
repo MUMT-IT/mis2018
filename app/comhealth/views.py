@@ -15,7 +15,7 @@ from .forms import ServiceForm, TestProfileForm, TestListForm, TestForm, TestGro
 from .models import (ComHealthService, ComHealthRecord, ComHealthTestItem,
                      ComHealthTestProfile, ComHealthContainer, ComHealthTestGroup,
                      ComHealthTest, ComHealthOrg, ComHealthCustomer,
-                     ComHealthReceipt)
+                     ComHealthReceipt, ComHealthCustomerInfoItem, ComHealthCustomerInfo)
 from .models import (ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTestProfileSchema,
                      ComHealthTestGroupSchema, ComHealthTestSchema, ComHealthOrgSchema,
                      ComHealthCustomerSchema,
@@ -728,6 +728,57 @@ def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS 
 
+
+@comhealth.route('/organizations/<int:orgid>/employees/info', methods=['POST', 'GET'])
+def add_employee_info(orgid):
+    '''Add employees info from a file.
+    '''
+    org = ComHealthOrg.query.get(orgid)
+    info_items = ComHealthCustomerInfoItem.query.all()
+    info_items = set([item.text for item in info_items])
+
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            flash('No file alert')
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            flash('No file selected')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            service = None
+            df = read_excel(file)
+            name = df.columns[2]
+            for idx, rec in df.iterrows():
+                rec = rec.fillna('')
+                data = {}
+                try:
+                    firstname, lastname = rec[name].split(' ', 1)
+                except:
+                    print(rec[name])
+                    raise ValueError
+                customer = ComHealthCustomer.query.filter_by(
+                                                    firstname=firstname,
+                                                    lastname=lastname).first()
+                if customer:
+                    print(u'{} {}'.format(firstname, lastname))
+                    for col in rec.keys():
+                        if col in info_items:
+                            data[col] = rec[col]
+                    if not customer.info:
+                        info = ComHealthCustomerInfo(
+                            customer=customer,
+                            data=data,
+                            updated_at=datetime.now(tz=bangkok)
+                        )
+                        db.session.add(info)
+                    else:
+                        customer.info.data = data
+                    db.session.add(customer)
+                    db.session.commit()
+        return redirect(url_for('comhealth.list_employees', orgid=org.id))
+
+    return render_template('comhealth/employee_info_upload.html', org=org)
 
 @comhealth.route('/organizations/<int:orgid>/employees/addmany', methods=['GET', 'POST'])
 def add_many_employees(orgid):
