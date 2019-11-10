@@ -97,6 +97,11 @@ class ComHealthCustomerInfoItem(db.Model):
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     text = db.Column('text', db.String(256), nullable=False)
     dtype = db.Column('type', db.String(64), nullable=False, default='text')
+    choices = db.Column('choices', db.Text())
+    placeholder = db.Column('placeholder', db.String(64))
+    multiple_selection = db.Column('multiple_selection', db.Boolean(), default=False)
+    order = db.Column('order', db.Integer, nullable=False)
+    unit = db.Column('unit', db.String(32))
 
 
 class ComHealthContainer(db.Model):

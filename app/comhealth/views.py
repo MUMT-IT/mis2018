@@ -8,7 +8,7 @@ from flask_weasyprint import HTML, render_pdf
 import pytz
 from flask import render_template, flash, redirect, url_for, request, jsonify, Response, stream_with_context
 from flask_login import login_required
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from app.main import db
 from . import comhealth
 from .forms import ServiceForm, TestProfileForm, TestListForm, TestForm, TestGroupForm, CustomerForm
@@ -779,6 +779,27 @@ def add_employee_info(orgid):
         return redirect(url_for('comhealth.list_employees', orgid=org.id))
 
     return render_template('comhealth/employee_info_upload.html', org=org)
+
+
+@comhealth.route('/organizations/employees/info/<int:custid>')
+def show_employee_info(custid):
+    if not custid:
+        flash('No customer ID specified.')
+        return redirect(request.referrer)
+
+    customer = ComHealthCustomer.query.get(custid)
+    info_items = ComHealthCustomerInfoItem.query.all()
+    info_items = [(it.text, it) for it in info_items]
+    info_items = OrderedDict(sorted(info_items, key=lambda x: x[1].order))
+    if customer:
+        return render_template('comhealth/employee_info_update.html',
+                                    info_items=info_items,
+                                    customer=customer)
+    else:
+        flash('Customer with ID={} does not exist.'.format(customer.id))
+        return redirect(request.referrer)
+
+
 
 @comhealth.route('/organizations/<int:orgid>/employees/addmany', methods=['GET', 'POST'])
 def add_many_employees(orgid):

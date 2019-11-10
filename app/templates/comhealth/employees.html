@@ -94,14 +94,16 @@
                             </b-table-column>
                             <b-table-column field="info" label="Info Update" centered>
                                 <span v-if="props.row.info!=null">
-                                    <a class="button is-info">
+                                    <a class="button is-info"
+                                        v-bind:href="'/comhealth/organizations/employees/info/'+props.row.id">
                                         <span class="icon">
                                             <i class="fas fa-notes-medical"></i>
                                         </span>
                                     </a>
                                 </span>
                                 <span v-else>
-                                    <a class="button is-warning">
+                                    <a class="button is-warning"
+                                        v-bind:href="'/comhealth/organizations/employees/info/'+props.row.id">
                                         <span class="icon">
                                             <i class="fas fa-notes-medical"></i>
                                         </span>
