@@ -87,7 +87,7 @@
                         </h1>
                         <input type="{{ info_items[k].dtype }}"
                             class="input is-large is-rounded" placeholder="{{ info_items[k].placeholder }}"
-                            name="{{ k }}" value="{{ customer.info.data.get(k) }}">
+                            name="{{ k }}" value="{{ customer.info.data.get(k, '') }}">
                         {% endif %}
                     </div>
                 {% endfor %}

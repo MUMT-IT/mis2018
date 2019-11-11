@@ -762,7 +762,6 @@ def add_employee_info(orgid):
                                                     firstname=firstname,
                                                     lastname=lastname).first()
                 if customer:
-                    print(u'{} {}'.format(firstname, lastname))
                     for col in rec.keys():
                         if col in info_items:
                             data[col] = rec[col]
@@ -796,6 +795,10 @@ def show_employee_info(custid):
 
         customer = ComHealthCustomer.query.get(custid)
         if customer:
+            if not customer.info:
+                info = ComHealthCustomerInfo(customer=customer, data={})
+                db.session.add(info)
+                db.session.commit()
             return render_template('comhealth/employee_info_update.html',
                                         info_items=info_items,
                                         customer=customer)
