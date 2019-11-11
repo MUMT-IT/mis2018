@@ -56,14 +56,21 @@
                             <span class="icon">
                                 <i class="fas fa-user-plus"></i>
                             </span>
-                            <span>Add One</span>
+                            <span>เพิ่มหนึ่งรายการ</span>
                         </a>
                         <a class="button is-rounded is-link"
                             href="{{ url_for('comhealth.add_many_employees', orgid=org.id) }}">
                             <span class="icon">
                                 <i class="fas fa-user-plus"></i>
                             </span>
-                            <span>Add Many</span>
+                            <span>เพิ่มหลายรายการ</span>
+                        </a>
+                        <a class="button is-rounded is-link"
+                            href="{{ url_for('comhealth.add_employee_info', orgid=org.id) }}">
+                            <span class="icon">
+                                <i class="fas fa-notes-medical"></i>
+                            </span>
+                            <span>เพิ่มข้อมูลประวัติเก่า</span>
                         </a>
                     </div>
                 </div>
