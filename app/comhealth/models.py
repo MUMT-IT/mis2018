@@ -1,5 +1,6 @@
 from ..main import db, ma
 from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.associationproxy import association_proxy
 from marshmallow import fields
 from dateutil.relativedelta import relativedelta
 from datetime import date
@@ -32,7 +33,7 @@ test_item_record_table = db.Table('comhealth_test_item_records',
                                   db.Column('record_id', db.Integer, db.ForeignKey('comhealth_test_records.id'),
                                             primary_key=True),
                                   )
-
+'''
 test_item_receipt_table = db.Table('comhealth_test_item_receipts',
                                   db.Column('test_item_id', db.Integer, db.ForeignKey('comhealth_test_items.id'),
                                             primary_key=True),
@@ -40,6 +41,24 @@ test_item_receipt_table = db.Table('comhealth_test_item_receipts',
                                             db.ForeignKey('comhealth_test_receipts.id'),
                                             primary_key=True),
                                   )
+'''
+
+
+class ComHealthInvoice(db.Model):
+    __tablename__ = 'comhealth_invoice'
+    test_item_id = db.Column('test_item_id', db.Integer,
+                        db.ForeignKey('comhealth_test_items.id'),
+                        primary_key=True)
+    receipt_id = db.Column('receipt_id', db.Integer,
+                        db.ForeignKey('comhealth_test_receipts.id'),
+                        primary_key=True)
+    visible = db.Column('visible', db.Boolean(), default=True)
+    billed = db.Column('billed', db.Boolean(), default=True)
+    test_item = db.relationship('ComHealthTestItem', backref='invoices')
+    receipt = db.relationship('ComHealthReceipt', backref='invoices')
+    payment_group_id = db.Column('payment_group_id',
+                                db.ForeignKey('comhealth_payment_group.id'))
+    payment_group = db.relationship('ComHealthPaymentGroup', backref='invoices')
 
 
 class ComHealthOrg(db.Model):
@@ -210,6 +229,7 @@ class ComHealthTestItem(db.Model):
     group = db.relationship('ComHealthTestGroup', backref=db.backref('test_items'))
 
     price = db.Column('price', db.Numeric())
+    receipts = association_proxy('invoices', 'receipt')
 
 
 class ComHealthTestProfileItem(db.Model):
@@ -246,11 +266,16 @@ class ComHealthReceipt(db.Model):
     record_id = db.Column('record_id', db.ForeignKey('comhealth_test_records.id'))
     record = db.relationship('ComHealthRecord',
                               backref=db.backref('receipts'))
-    special_tests = db.relationship('ComHealthTestItem',
-                                    backref=db.backref('receipts'),
-                                    secondary=test_item_receipt_table)
+    tests = association_proxy('invoices', 'test_item')
     comment = db.Column('comment', db.Text())
     paid = db.Column('paid', db.Boolean(), default=False)
+    cancelled = db.Column('cancelled', db.Boolean(), default=False)
+
+
+class ComHealthPaymentGroup(db.Model):
+    __tablename__ = 'comhealth_payment_group'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    name = db.Column('name', db.String(256), nullable=False)
 
 
 class ComHealthCustomerInfoSchema(ma.ModelSchema):
