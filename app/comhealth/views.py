@@ -5,6 +5,7 @@ from datetime import date
 from decimal import Decimal
 from pandas import read_excel, isna
 from flask_weasyprint import HTML, render_pdf
+from sqlalchemy.orm.attributes import flag_modified
 import pytz
 from flask import render_template, flash, redirect, url_for, request, jsonify, Response, stream_with_context
 from flask_login import login_required
@@ -781,24 +782,48 @@ def add_employee_info(orgid):
     return render_template('comhealth/employee_info_upload.html', org=org)
 
 
-@comhealth.route('/organizations/employees/info/<int:custid>')
+@comhealth.route('/organizations/employees/info/<int:custid>',
+    methods=["POST", "GET"])
 def show_employee_info(custid):
-    if not custid:
-        flash('No customer ID specified.')
-        return redirect(request.referrer)
-
-    customer = ComHealthCustomer.query.get(custid)
     info_items = ComHealthCustomerInfoItem.query.all()
     info_items = [(it.text, it) for it in info_items]
     info_items = OrderedDict(sorted(info_items, key=lambda x: x[1].order))
-    if customer:
-        return render_template('comhealth/employee_info_update.html',
-                                    info_items=info_items,
-                                    customer=customer)
-    else:
-        flash('Customer with ID={} does not exist.'.format(customer.id))
-        return redirect(request.referrer)
 
+    if request.method == 'GET':
+        if not custid:
+            flash('No customer ID specified.')
+            return redirect(request.referrer)
+
+        customer = ComHealthCustomer.query.get(custid)
+        if customer:
+            return render_template('comhealth/employee_info_update.html',
+                                        info_items=info_items,
+                                        customer=customer)
+        else:
+            flash('Customer with ID={} does not exist.'.format(customer.id))
+            return redirect(request.referrer)
+
+    if request.method == 'POST':
+        customer_id = request.form.get('customer_id')
+        print('customer id is {}'.format(customer_id))
+        if customer_id:
+            customer = ComHealthCustomer.query.get(int(customer_id))
+            print(u'{}'.format(customer.fullname))
+            for k, item in info_items.items():
+                if not item.multiple_selection:
+                    customer.info.data[k] = request.form.get(k)
+                else:
+                    values = ' '.join(request.form.getlist(k))
+                    customer.info.data[k] = values
+            for k,v in customer.info.data.items():
+                print(u'{} {}'.format(k,v))
+            flag_modified(customer.info, "data")
+            db.session.add(customer)
+            db.session.commit()
+        else:
+            flash('Customer ID not found.')
+        return redirect(url_for('comhealth.list_employees',
+                                        orgid=customer.org.id))
 
 
 @comhealth.route('/organizations/<int:orgid>/employees/addmany', methods=['GET', 'POST'])

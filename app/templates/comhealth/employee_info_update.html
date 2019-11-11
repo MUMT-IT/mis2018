@@ -46,6 +46,8 @@
             <div class="column">
                 <h1 class="title">ประวัติสุขภาพ {{ customer.title }}{{ customer.firstname }} {{ customer.lastname }}</h1>
                 <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="customer_id" value="{{ customer.id }}">
                 {% for k in info_items %}
                     <div class="box">
                         {% if info_items[k].choices %}
@@ -59,7 +61,7 @@
                                         {% if choice == customer.info.data.get(k) %}
                                         checked
                                         {% endif %}
-                                        type="radio" name="{{ k }}"/>
+                                        type="radio" name="{{ k }}" value="{{ choice }}"/>
                                     <label for="{{ choice }}">{{ choice }}</label>
                                 </div>
                                 {% endfor %}
@@ -68,10 +70,10 @@
                                 <div class="field">
                                     <input class="is-checkradio is-large is-info"
                                         id="{{ choice }}"
-                                        {% if choice == customer.info.data.get(k) %}
+                                        {% if choice in customer.info.data.get(k, '').split() %}
                                         checked="checked"
                                         {% endif %}
-                                        type="checkbox" name="{{ k }}"/>
+                                        type="checkbox" name="{{ k }}" value="{{ choice }}"/>
                                     <label for="{{ choice }}">{{ choice }}</label>
                                 </div>
                                 {% endfor %}
@@ -94,7 +96,9 @@
         <div class="columns">
             <div class="column has-text-centered">
                 <button class="button is-primary is-large" type="submit">Save</button>
-                <a class="button is-text is-large">Cancel</a>
+                <a class="button is-text is-large"
+                    href="{{ url_for('comhealth.list_employees', orgid=customer.org.id)}}">
+                Cancel</a>
             </div>
         </div>
         </form>

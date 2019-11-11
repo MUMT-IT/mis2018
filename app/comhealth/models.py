@@ -1,4 +1,5 @@
 from ..main import db, ma
+from sqlalchemy.dialects.postgresql import JSONB
 from marshmallow import fields
 from dateutil.relativedelta import relativedelta
 from datetime import date
@@ -77,6 +78,10 @@ class ComHealthCustomer(db.Model):
         else:
             return None
 
+    @property
+    def fullname(self):
+        return u'{}{} {}'.format(self.title, self.firstname, self.lastname)
+
 
 class ComHealthCustomerInfo(db.Model):
     __tablename__ = 'comhealth_customer_info'
@@ -85,7 +90,7 @@ class ComHealthCustomerInfo(db.Model):
     customer = db.relationship('ComHealthCustomer',
                     backref=db.backref('info', lazy=True, uselist=False))
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
-    data = db.Column('data', db.JSON)
+    data = db.Column('data', JSONB)
 
     @property
     def updated_date(self):
