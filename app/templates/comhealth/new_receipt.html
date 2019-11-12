@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="hero is-info is-small">
+        <div class="hero-head">
+            <nav class="navbar">
+                <div class="container">
+                    <div class="navbar-brand">
+                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+                    </div>
+                    <div id="navbarMenuHeroA" class="navbar-menu">
+                        <div class="navbar-end">
+                            <a class="navbar-item"
+                               href="/comhealth">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                                <span>Home</span>
+                            </a>
+                            <a class="navbar-item"
+                               href="/comhealth/tests">
+                                <span>Tests</span>
+                            </a>
+                            <a class="navbar-item is-active"
+                            href="/comhealth/organizations">
+                                <span>Organizations</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="100">
+                <h1 class="title">{{ record.customer.fullname }}</h1>
+            </div>
+        </div>
+    </section>
+    <section class="section" id="app">
+        <div class="container">
+        <div class="columns">
+            <div class="column">
+                <h1 class="title">ใบเสร็จรับเงิน</h1>
+                <h1 class="subtitle">กรุณาตรวจสอบรายละเอียดเพื่อการออกใบเสร็จรับเงิน</h1>
+                {% if record.receipts %}
+                <h1 class="title is-4">รายการตรวจเหมาจ่าย</h1>
+                <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="record_id" value="{{ record.id }}">
+                <table class="table is-narrow">
+                    <thead>
+                        <th>Code</th>
+                        <th>Description</th>
+                        <th>Price</th>
+                        <th colspan="2">การเก็บเงิน</th>
+                        <th>การพิมพ์ใบเสร็จ</th>
+                    </thead>
+                    <tbody>
+                    {% for ti in record.ordered_tests %}
+                    {% if ti.profile %}
+                    <tr>
+                        <td>{{ ti.test.code }}</td>
+                        <td>{{ ti.test.desc }}</td>
+                        <td>{{ ti.price or ti.test.default_price }}</td>
+                        <td>
+                            <div class="field">
+                            {% for pg in payment_groups %}
+                                    <input class="is-checkradio is-info"
+                                        id="{{ ti.test.code }}_payment"
+                                        {% if pg.name == ti.profile.payment_group.name %}
+                                        checked
+                                        {% endif %}
+                                        type="radio" name="{{ ti.test.code }}_payment" value="{{ pg.id }}"/>
+                                    <label for="{{ ti.test.code }}_payment">{{ pg.name }}</label>
+                            {% endfor %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="field">
+                                <input class="is-checkradio is-info"
+                                    id="{{ ti.test.code }}_billed" value="yes"
+                                    type="checkbox" name="{{ ti.test.code }}_billed"/>
+                                <label for="{{ ti.test.code }}_billed">รวมจำนวนเงิน</label>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="field">
+                                <input class="is-checkradio is-info"
+                                    id="{{ ti.test.code }}_visible" value="yes"
+                                    type="checkbox" name="{{ ti.test.code }}_visible"/>
+                                <label for="{{ ti.test.code }}_visible">แสดงรายการ</label>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                    {% endif %}
+                    {% endfor %}
+                </table>
+                <h1 class="title is-4">รายการตรวจพิเศษ</h1>
+                <table class="table is-narrow">
+                    <thead>
+                        <th>Code</th>
+                        <th>Description</th>
+                        <th>Price</th>
+                        <th colspan="2">การเก็บเงิน</th>
+                        <th>การพิมพ์ใบเสร็จ</th>
+                    </thead>
+                    <tbody>
+                    {% for ti in record.ordered_tests %}
+                    {% if ti.group %}
+                    <tr>
+                        <td>{{ ti.test.code }}</td>
+                        <td>{{ ti.test.desc }}</td>
+                        <td>{{ ti.price or ti.test.default_price }}</td>
+                        <td>
+                            <div class="field">
+                            {% for pg in payment_groups %}
+                                    <input class="is-checkradio is-info"
+                                        id="{{ ti.test.code }}_payment"
+                                        {% if pg.name == ti.group.payment_group.name %}
+                                        checked
+                                        {% endif %}
+                                        type="radio" name="{{ ti.test.code }}_payment" value="{{ pg.id }}"/>
+                                    <label for="{{ ti.test.code }}_payment">{{ pg.name }}</label>
+                            {% endfor %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="field">
+                                <input class="is-checkradio is-info"
+                                    id="{{ ti.test.code }}_billed" checked value="yes"
+                                    type="checkbox" name="{{ ti.test.code }}_billed"/>
+                                <label for="{{ ti.test.code }}_billed">รวมจำนวนเงิน</label>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="field">
+                                <input class="is-checkradio is-info"
+                                    id="{{ ti.test.code }}_visible" checked value="yes"
+                                    type="checkbox" name="{{ ti.test.code }}_visible"/>
+                                <label for="{{ ti.test.code }}_visible">แสดงรายการ</label>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                    {% endif %}
+                    {% endfor %}
+                </table>
+                {% endif %}
+                <div class="field">
+                    <div class="control">
+                        <input class="input" type="text" name="issuer" placeholder="ผู้ออกใบเสร็จ"/>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="control">
+                        <input class="input" type="text" name="issuer" placeholder="ผู้รับเงิน"/>
+                    </div>
+                </div>
+                <input class="button is-success" type="submit"/>
+                </form>
+            </div>
+        </div>
+        </div>
+    </section>
+{% endblock %}

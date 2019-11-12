@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+from bahttext import bahttext
 from datetime import datetime
 from datetime import date
 from decimal import Decimal
@@ -16,7 +17,8 @@ from .forms import ServiceForm, TestProfileForm, TestListForm, TestForm, TestGro
 from .models import (ComHealthService, ComHealthRecord, ComHealthTestItem,
                      ComHealthTestProfile, ComHealthContainer, ComHealthTestGroup,
                      ComHealthTest, ComHealthOrg, ComHealthCustomer,
-                     ComHealthReceipt, ComHealthCustomerInfoItem, ComHealthCustomerInfo)
+                     ComHealthReceipt, ComHealthCustomerInfoItem, ComHealthCustomerInfo,
+                     ComHealthPaymentGroup, ComHealthInvoice)
 from .models import (ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTestProfileSchema,
                      ComHealthTestGroupSchema, ComHealthTestSchema, ComHealthOrgSchema,
                      ComHealthCustomerSchema,
@@ -126,14 +128,6 @@ def edit_record(record_id):
     special_item_cost = sum([item.price or item.test.default_price
                              for item in special_tests])
     containers = set([item.test.container for item in record.ordered_tests])
-
-    if len(record.receipts) == 0 and len(special_tests) > 0:
-        receipt = ComHealthReceipt(record=record,
-                                   created_datetime=record.updated_at,
-                                   special_tests=list(special_tests),
-                                  )
-        db.session.add(receipt)
-        db.session.commit()
 
     return render_template('comhealth/record_summary.html',
                            record=record,
@@ -954,19 +948,80 @@ def list_all_receipts(record_id):
     return render_template('comhealth/receipts.html', record=record)
 
 
+@comhealth.route('/checkin/records/<int:record_id>/receipts', methods=['POST', 'GET'])
+def create_receipt(record_id):
+    payment_groups = ComHealthPaymentGroup.query.all()
+    if request.method == 'GET':
+        record = ComHealthRecord.query.get(record_id)
+        return render_template('comhealth/new_receipt.html', record=record,
+                                                payment_groups=payment_groups)
+    if request.method == 'POST':
+        record_id = request.form.get('record_id')
+        record = ComHealthRecord.query.get(record_id)
+        valid_receipts = [rcp for rcp in record.receipts if not rcp.cancelled]
+        if not valid_receipts:  # not active receipt
+            receipt = ComHealthReceipt(
+                created_datetime=datetime.now(tz=bangkok),
+                record=record,
+                )
+            db.session.add(receipt)
+        for test_item in record.ordered_tests:
+            visible = test_item.test.code + '_visible'
+            payment = test_item.test.code + '_payment'
+            billed = test_item.test.code + '_billed'
+            billed = True if request.form.getlist(billed) else False
+            visible = True if request.form.getlist(visible) else False
+            payment_group_id = int(request.form.get(payment))
+            invoice = ComHealthInvoice(test_item=test_item,
+                                        receipt=receipt,
+                                        billed=billed,
+                                        payment_group_id=payment_group_id,
+                                        visible=visible
+                                        )
+            db.session.add(invoice)
+        db.session.commit()
+        return redirect(url_for('comhealth.list_all_receipts', record_id=record.id)) 
+
+
+
+@comhealth.route('/checkin/receipts/cancel/<int:receipt_id>', methods=['GET', 'POST'])
+def cancel_receipt(receipt_id):
+    receipt = ComHealthReceipt.query.get(receipt_id)
+    receipt.cancelled = True
+    db.session.add(receipt)
+    db.session.commit()
+    return redirect(url_for('comhealth.list_all_receipts',
+                                record_id=receipt.record.id))
+
+
 @comhealth.route('/checkin/receipts/<int:receipt_id>', methods=['GET', 'POST'])
 def show_receipt_detail(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
     action = request.args.get('action', None)
+    payment_groups = ComHealthPaymentGroup.query.all()
     if action == 'pay':
         receipt.paid = True
         db.session.add(receipt)
         db.session.commit()
-    special_item_cost = sum([item.price or item.test.default_price
-                             for item in receipt.special_tests])
 
-    return render_template('comhealth/receipt_detail.html', receipt=receipt,
-                           total_cost=special_item_cost)
+    total_cost = sum([t.test_item.price or t.test_item.test.default_price
+                        for t in receipt.invoices if t.billed])
+    total_special_cost = sum([t.test_item.price or t.test_item.test.default_price
+                        for t in receipt.invoices if t.billed and t.test_item.group])
+
+    total_special_cost_thai = bahttext(total_special_cost)
+    
+    visible_special_tests = [t for t in receipt.invoices if t.visible and t.test_item.group]
+    visible_profile_tests = [t for t in receipt.invoices if t.visible and t.test_item.profile]
+
+    return render_template('comhealth/receipt_detail.html',
+                            receipt=receipt, total_cost=total_cost,
+                            total_special_cost=total_special_cost,
+                            total_special_cost_thai=total_special_cost_thai,
+                            visible_special_tests=visible_special_tests,
+                            visible_profile_tests=visible_profile_tests,
+                            payment_groups=payment_groups
+                            )
 
 
 @comhealth.route('/receipts/slip/<int:record_id>')

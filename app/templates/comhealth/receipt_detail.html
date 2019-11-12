@@ -57,41 +57,66 @@
                             <thead>
                             </thead>
                             <tbody>
-                                {% for t in receipt.special_tests %}
+                                {% for t in visible_special_tests %}
+                                {% if t.test_item.group %}
                                 <tr>
                                     <td>{{ loop.index }}</td>
-                                    <td>{{ t.test.desc }}</td>
-                                    <td>{{ t.price or t.test.default_price }} บาท</td>
-                                    <td></td>
+                                    <td>{{ t.test_item.test.desc }}</td>
+                                    {% if t.billed %}
+                                    <td>{{ t.price or t.test_item.test.default_price }} บาท</td>
+                                    {% else %}
+                                    <td>0.0 บาท</td>
+                                    {% endif %}
+                                    <td>{{ t.payment_group.name }}</td>
                                 </tr>
+                                {% endif %}
                                 {% endfor %}
                                 <tr>
                                     <td></td>
-                                    <td><strong>Total</strong></td><td>{{ total_cost }} บาท</td>
+                                    <td><strong>รวม</strong></td><td>{{ total_special_cost }} บาท</td>
                                     {% if receipt.paid %}
                                     <td>PAID</td>
                                     {% else %}
-                                    <td><a class="button is-rounded"
-                                            href="{{ url_for('comhealth.show_receipt_detail', receipt_id=receipt.id, action='pay') }}">
-                                            Pay</a>
-                                    </td>
                                     {% endif %}
+                                    <td></td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
-                    <button class="button is-primary is-rounded"
-                                   @click="printJS('receipt',
-                                   'html')">
+                    <div>
+                        <table class="table">
+                            <tr>
+                                <td>
+                                    <strong>รวมเงิน (ตัวอักษร) {{ total_special_cost_thai }} บาท</strong>
+                                </td>
+                                <td>
+                                    <strong>รวมทั้งสิ้น {{ total_cost }} บาท</strong>
+                                </td>
+                            </tr>
+                        </table>
+                    </div>
+                    <a class="button is-rounded is-success"
+                        {% if receipt.cancelled %}disabled{% endif %}
+                            href="{{ url_for('comhealth.show_receipt_detail', receipt_id=receipt.id, action='pay') }}">
+                            ชำระเงิน</a>
+                    <button class="button is-info is-rounded"
+                                @click="printJS('receipt','html')"
+                        {% if receipt.cancelled %}disabled{% endif %}
+                                >
                         <span class="icon">
                             <i class="fas fa-print"></i>
                         </span>
-                        <span>Print</span>
+                        <span>พิมพ์ใบเสร็จ</span>
                     </button>
+                    <a class="button is-danger is-rounded"
+                        href="{{ url_for('comhealth.cancel_receipt',
+                                receipt_id=receipt.id) }}"
+                        {% if receipt.cancelled %}disabled{% endif %}
+                                >ยกเลิก</a>
                     <a class="button is-primary is-rounded" href="{{
                                                            url_for('comhealth.list_all_receipts',
                                                            record_id=receipt.record.id)
-                                                           }}">Back</a>
+                                                           }}">กลับ</a>
                 </div>
             </div>
         </div>
