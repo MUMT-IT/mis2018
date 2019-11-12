@@ -253,6 +253,13 @@ def local_datetime(dt):
     return dt.astimezone(bangkok).strftime(datetime_format)
 
 
+@app.template_filter("localdate")
+def local_datetime(dt):
+    bangkok = timezone('Asia/Bangkok')
+    datetime_format = '%d/%m/%Y'
+    return dt.astimezone(bangkok).strftime(datetime_format)
+
+
 @app.template_filter("sorttest")
 def sort_test_item(tests):
     return sorted(tests, key=lambda x: x.test.name)

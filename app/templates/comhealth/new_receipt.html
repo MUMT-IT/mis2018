@@ -46,7 +46,7 @@
             <div class="column">
                 <h1 class="title">ใบเสร็จรับเงิน</h1>
                 <h1 class="subtitle">กรุณาตรวจสอบรายละเอียดเพื่อการออกใบเสร็จรับเงิน</h1>
-                {% if record.receipts %}
+                {% if not valid_receipts %}
                 <h1 class="title is-4">รายการตรวจเหมาจ่าย</h1>
                 <form method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

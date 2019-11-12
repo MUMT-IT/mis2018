@@ -85,8 +85,15 @@
             <div class="columns">
                 <div class="column">
                     <a class="button is-rounded is-primary"
+                        {% if valid_receipts %}
+                        disabled
+                        {% endif %}
                         href="{{ url_for('comhealth.create_receipt', record_id=record.id)}}">
                         ออกใบเสร็จใหม่
+                    </a>
+                    <a class="button is-rounded is-primary"
+                        href="{{ url_for('comhealth.display_service_customers', service_id=record.service.id)}}">
+                        กลับ
                     </a>
                 </div>
             </div>

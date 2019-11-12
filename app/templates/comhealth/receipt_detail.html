@@ -41,60 +41,113 @@
         </div>
     </section>
     <section class="section" id="app">
+        <div class="container" id="receipt">
+            <div class="columns">
+                <div class="column">
+                    <p>เลขที่ 999 ถนนพุทธมณฑลสาย 4</p>
+                    <p>ต.ศาลายา อ.พุทธมณฑล จ.นครปฐม 73170</p>
+                    <p>เลขประจำตัวผู้เสียภาษี 4107039192</p>
+                    <br>
+                    <p>ชื่อ <strong>{{ receipt.record.customer.title or
+                        '' }}{{ receipt.record.customer.firstname }} {{ receipt.record.customer.lastname }}</strong></p>
+                </div>
+                <div class="column has-text-centered">
+                    <img width="80" src="{{ url_for('static', filename='img/logo-MU_black-white.jpg')}}">
+                    <h4 class="title is-size-4">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h4>
+                </div>
+                <div class="column has-text-right">
+                    <p>เลขที่ {{ receipt.id }}</p>
+                    <p>วันที่ {{ receipt.created_datetime|localdate }}</p>
+                </div>
+            </div>
+            <hr>
+            <div class="columns">
+                {% if visible_profile_tests %}
+                <div class="column">
+                    <p><strong>รายการทดสอบ</strong></p>
+                    <table class="table is-narrow">
+                        <thead>
+                        </thead>
+                        <tbody>
+                            {% for t in visible_profile_tests %}
+                            {% if t.test_item.profile %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ t.test_item.test.name }}</td>
+                                {% if t.billed %}
+                                <td>{{ t.price or t.test_item.test.default_price }}</td>
+                                {% else %}
+                                <td>0.0</td>
+                                {% endif %}
+                                <td>บาท</td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                            <tr>
+                                <td></td>
+                                <td><strong>รวม</strong></td><td>{{ total_profile_cost }}</td>
+                                {% if receipt.paid %}
+                                <td>PAID</td>
+                                {% else %}
+                                {% endif %}
+                                <td>บาท</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                {% endif %}
+                <div class="column">
+                    <p><strong>รายการทดสอบเพิ่มเติม</strong></p>
+                    <table class="table is-narrow">
+                        <thead>
+                        </thead>
+                        <tbody>
+                            {% for t in visible_special_tests %}
+                            {% if t.test_item.group %}
+                            <tr>
+                                <td>{{ loop.index }}</td>
+                                <td>{{ t.test_item.test.name }}</td>
+                                {% if t.billed %}
+                                <td>{{ t.price or t.test_item.test.default_price }}</td>
+                                {% else %}
+                                <td>0.0</td>
+                                {% endif %}
+                                <td>บาท</td>
+                            </tr>
+                            {% endif %}
+                            {% endfor %}
+                            <tr>
+                                <td></td>
+                                <td><strong>รวม</strong></td><td>{{ total_special_cost }}</td>
+                                {% if receipt.paid %}
+                                <td>PAID</td>
+                                {% else %}
+                                {% endif %}
+                                <td>บาท</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <hr>
+                    <table class="table">
+                        <tr>
+                            <td>
+                                <strong>รวมเงิน (ตัวอักษร) {{ total_special_cost_thai }} บาท</strong>
+                            </td>
+                            <td>
+                                <strong>รวมทั้งสิ้น {{ total_cost }} บาท</strong>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
         <div class="container">
             <div class="columns">
                 <div class="column">
-                    <div id="receipt">
-                        <h3 class="title is-size-3">ใบเสร็จรับเงิน</h3>
-                        <h4 class="subtitle">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล เลขประจำตัวผู้เสียภาษี xxxxxxxxx</h4>
-                        <hr>
-                        <p><strong>รหัส {{ receipt.id }}</strong> <strong>หมายเลขตรวจ</strong> {{ receipt.record.labno }}</p>
-                        <p><strong>ชื่อ</strong> {{ receipt.record.customer.title or
-                            '' }}{{ receipt.record.customer.firstname }} {{ receipt.record.customer.lastname }}</p>
-                        <hr>
-                        <p><strong>รายการทดสอบเพิ่มเติม</strong></p>
-                        <table class="table is-bordered is-striped">
-                            <thead>
-                            </thead>
-                            <tbody>
-                                {% for t in visible_special_tests %}
-                                {% if t.test_item.group %}
-                                <tr>
-                                    <td>{{ loop.index }}</td>
-                                    <td>{{ t.test_item.test.desc }}</td>
-                                    {% if t.billed %}
-                                    <td>{{ t.price or t.test_item.test.default_price }} บาท</td>
-                                    {% else %}
-                                    <td>0.0 บาท</td>
-                                    {% endif %}
-                                    <td>{{ t.payment_group.name }}</td>
-                                </tr>
-                                {% endif %}
-                                {% endfor %}
-                                <tr>
-                                    <td></td>
-                                    <td><strong>รวม</strong></td><td>{{ total_special_cost }} บาท</td>
-                                    {% if receipt.paid %}
-                                    <td>PAID</td>
-                                    {% else %}
-                                    {% endif %}
-                                    <td></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                        <table class="table">
-                            <tr>
-                                <td>
-                                    <strong>รวมเงิน (ตัวอักษร) {{ total_special_cost_thai }} บาท</strong>
-                                </td>
-                                <td>
-                                    <strong>รวมทั้งสิ้น {{ total_cost }} บาท</strong>
-                                </td>
-                            </tr>
-                        </table>
-                    </div>
                     <a class="button is-rounded is-success"
                         {% if receipt.cancelled %}disabled{% endif %}
                             href="{{ url_for('comhealth.show_receipt_detail', receipt_id=receipt.id, action='pay') }}">
@@ -114,9 +167,9 @@
                         {% if receipt.cancelled %}disabled{% endif %}
                                 >ยกเลิก</a>
                     <a class="button is-primary is-rounded" href="{{
-                                                           url_for('comhealth.list_all_receipts',
-                                                           record_id=receipt.record.id)
-                                                           }}">กลับ</a>
+                                                        url_for('comhealth.list_all_receipts',
+                                                        record_id=receipt.record.id)
+                                                        }}">กลับ</a>
                 </div>
             </div>
         </div>

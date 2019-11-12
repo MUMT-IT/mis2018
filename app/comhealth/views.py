@@ -953,8 +953,11 @@ def create_receipt(record_id):
     payment_groups = ComHealthPaymentGroup.query.all()
     if request.method == 'GET':
         record = ComHealthRecord.query.get(record_id)
+        valid_receipts = [rcp for rcp in record.receipts if not rcp.cancelled]
         return render_template('comhealth/new_receipt.html', record=record,
-                                                payment_groups=payment_groups)
+                                                payment_groups=payment_groups,
+                                                valid_receipts=valid_receipts,
+                                                )
     if request.method == 'POST':
         record_id = request.form.get('record_id')
         record = ComHealthRecord.query.get(record_id)
@@ -1009,6 +1012,9 @@ def show_receipt_detail(receipt_id):
     total_special_cost = sum([t.test_item.price or t.test_item.test.default_price
                         for t in receipt.invoices if t.billed and t.test_item.group])
 
+    total_profile_cost = sum([t.test_item.price or t.test_item.test.default_price
+                        for t in receipt.invoices if t.billed and t.test_item.profile])
+
     total_special_cost_thai = bahttext(total_special_cost)
     
     visible_special_tests = [t for t in receipt.invoices if t.visible and t.test_item.group]
@@ -1017,6 +1023,7 @@ def show_receipt_detail(receipt_id):
     return render_template('comhealth/receipt_detail.html',
                             receipt=receipt, total_cost=total_cost,
                             total_special_cost=total_special_cost,
+                            total_profile_cost=total_profile_cost,
                             total_special_cost_thai=total_special_cost_thai,
                             visible_special_tests=visible_special_tests,
                             visible_profile_tests=visible_profile_tests,
