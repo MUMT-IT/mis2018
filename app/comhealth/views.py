@@ -959,6 +959,8 @@ def create_receipt(record_id):
     if request.method == 'POST':
         record_id = request.form.get('record_id')
         record = ComHealthRecord.query.get(record_id)
+        issuer = request.form.get('issuer')
+        cashier = request.form.get('cashier')
         valid_receipts = [rcp for rcp in record.receipts if not rcp.cancelled]
         if not valid_receipts:  # not active receipt
             receipt = ComHealthReceipt(
@@ -968,7 +970,6 @@ def create_receipt(record_id):
             db.session.add(receipt)
         for test_item in record.ordered_tests:
             visible = test_item.test.code + '_visible'
-            payment = test_item.test.code + '_payment'
             billed = test_item.test.code + '_billed'
             billed = True if request.form.getlist(billed) else False
             visible = True if request.form.getlist(visible) else False

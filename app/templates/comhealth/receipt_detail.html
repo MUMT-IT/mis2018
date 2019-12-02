@@ -100,15 +100,27 @@
                     <p><strong>รายการทดสอบเพิ่มเติม</strong></p>
                     <table class="table is-narrow">
                         <thead>
+                        <th>ลำดับ</th>
+                        <th>รายการทดสอบ</th>
+                        <th>รหัสกรมบัญชีกลาง</th>
+                        <th>ราคา</th>
+                        <th>เบิกได้</th>
+                        <th>เบิกไม่ได้</th>
+                        <th></th>
                         </thead>
                         <tbody>
                             {% for t in visible_special_tests %}
                             {% if t.test_item.group %}
                             <tr>
                                 <td>{{ loop.index }}</td>
-                                <td>{{ t.test_item.test.name }}</td>
+                                <td>{{ t.test_item.test.desc }} ({{ t.test_item.test.name }})</td>
+                                <td>{{ t.test_item.test.gov_code }}</td>
                                 {% if t.billed %}
-                                <td>{{ t.price or t.test_item.test.default_price }}</td>
+                                    {% if t.test_item.price %}
+                                    <td>{{ t.test_item.price }}</td>
+                                    <td>{{ t.test_item.test.default_price }}</td>
+                                    <td>{{ t.test_item.price - t.test_item.test.default_price }}</td>
+                                    {% endif %}
                                 {% else %}
                                 <td>0.0</td>
                                 {% endif %}
@@ -118,12 +130,15 @@
                             {% endfor %}
                             <tr>
                                 <td></td>
+                                <td></td>
                                 <td><strong>รวม</strong></td><td>{{ total_special_cost }}</td>
                                 {% if receipt.paid %}
                                 <td>PAID</td>
                                 {% else %}
                                 {% endif %}
                                 <td>บาท</td>
+                                <td></td>
+                                <td></td>
                             </tr>
                         </tbody>
                     </table>
