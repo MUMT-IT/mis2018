@@ -104,9 +104,8 @@
                         <th>รายการทดสอบ</th>
                         <th>รหัสกรมบัญชีกลาง</th>
                         <th>ราคา</th>
-                        <th>เบิกได้</th>
-                        <th>เบิกไม่ได้</th>
-                        <th></th>
+                        <th>เบิกได้ (บาท)</th>
+                        <th>เบิกไม่ได้ตามระเบียบกระทรวงการคลัง (บาท)</th>
                         </thead>
                         <tbody>
                             {% for t in visible_special_tests %}
@@ -124,7 +123,6 @@
                                 {% else %}
                                 <td>0.0</td>
                                 {% endif %}
-                                <td>บาท</td>
                             </tr>
                             {% endif %}
                             {% endfor %}
@@ -132,11 +130,6 @@
                                 <td></td>
                                 <td></td>
                                 <td><strong>รวม</strong></td><td>{{ total_special_cost }}</td>
-                                {% if receipt.paid %}
-                                <td>PAID</td>
-                                {% else %}
-                                {% endif %}
-                                <td>บาท</td>
                                 <td></td>
                                 <td></td>
                             </tr>
@@ -154,6 +147,11 @@
                             </td>
                             <td>
                                 <strong>รวมทั้งสิ้น {{ total_cost }} บาท</strong>
+                                {% if receipt.paid %}
+                                <strong class="has-text-success">(ชำระแล้ว)</strong>
+                                {% else %}
+                                <strong class="has-text-danger">(ยังไม่ได้ชำระ)</strong>
+                                {% endif %}
                             </td>
                         </tr>
                     </table>
