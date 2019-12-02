@@ -55,8 +55,9 @@
                     <thead>
                         <th>Code</th>
                         <th>Description</th>
-                        <th>Price</th>
-                        <th colspan="2">การเก็บเงิน</th>
+                        <th>ราคา</th>
+                        <th>เบิกได้</th>
+                        <th>การเก็บเงิน</th>
                         <th>การพิมพ์ใบเสร็จ</th>
                     </thead>
                     <tbody>
@@ -66,19 +67,7 @@
                         <td>{{ ti.test.code }}</td>
                         <td>{{ ti.test.desc }}</td>
                         <td>{{ ti.price or ti.test.default_price }}</td>
-                        <td>
-                            <div class="field">
-                            {% for pg in payment_groups %}
-                                    <input class="is-checkradio is-info"
-                                        id="{{ ti.test.code }}_payment"
-                                        {% if pg.name == ti.profile.payment_group.name %}
-                                        checked
-                                        {% endif %}
-                                        type="radio" name="{{ ti.test.code }}_payment" value="{{ pg.id }}"/>
-                                    <label for="{{ ti.test.code }}_payment">{{ pg.name }}</label>
-                            {% endfor %}
-                            </div>
-                        </td>
+                        <td>{{ ti.test.default_price }}</td>
                         <td>
                             <div class="field">
                                 <input class="is-checkradio is-info"
@@ -105,8 +94,9 @@
                     <thead>
                         <th>Code</th>
                         <th>Description</th>
-                        <th>Price</th>
-                        <th colspan="2">การเก็บเงิน</th>
+                        <th>ราคา</th>
+                        <th>เบิกได้</th>
+                        <th>การเก็บเงิน</th>
                         <th>การพิมพ์ใบเสร็จ</th>
                     </thead>
                     <tbody>
@@ -116,19 +106,7 @@
                         <td>{{ ti.test.code }}</td>
                         <td>{{ ti.test.desc }}</td>
                         <td>{{ ti.price or ti.test.default_price }}</td>
-                        <td>
-                            <div class="field">
-                            {% for pg in payment_groups %}
-                                    <input class="is-checkradio is-info"
-                                        id="{{ ti.test.code }}_payment"
-                                        {% if pg.name == ti.group.payment_group.name %}
-                                        checked
-                                        {% endif %}
-                                        type="radio" name="{{ ti.test.code }}_payment" value="{{ pg.id }}"/>
-                                    <label for="{{ ti.test.code }}_payment">{{ pg.name }}</label>
-                            {% endfor %}
-                            </div>
-                        </td>
+                        <td>{{ ti.test.default_price }}</td>
                         <td>
                             <div class="field">
                                 <input class="is-checkradio is-info"

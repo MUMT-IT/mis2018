@@ -56,9 +56,6 @@ class ComHealthInvoice(db.Model):
     billed = db.Column('billed', db.Boolean(), default=True)
     test_item = db.relationship('ComHealthTestItem', backref='invoices')
     receipt = db.relationship('ComHealthReceipt', backref='invoices')
-    payment_group_id = db.Column('payment_group_id',
-                                db.ForeignKey('comhealth_payment_group.id'))
-    payment_group = db.relationship('ComHealthPaymentGroup', backref='invoices')
 
 
 class ComHealthOrg(db.Model):
@@ -164,9 +161,6 @@ class ComHealthTestGroup(db.Model):
     age_max = db.Column('age_max', db.Integer())
     age_min = db.Column('age_min', db.Integer())
     gender = db.Column('gender', db.Integer())
-    payment_group_id = db.Column('payment_group_id',
-                                    db.ForeignKey('comhealth_payment_group.id'))
-    payment_group = db.relationship('ComHealthPaymentGroup', uselist=False)
 
     def __str__(self):
         return self.name
@@ -181,9 +175,6 @@ class ComHealthTestProfile(db.Model):
     age_min = db.Column('age_min', db.Integer())
     gender = db.Column('gender', db.Integer())
     quote = db.Column('quote', db.Numeric())
-    payment_group_id = db.Column('payment_group_id',
-                            db.ForeignKey('comhealth_payment_group.id'))
-    payment_group = db.relationship('ComHealthPaymentGroup', uselist=False)
 
     def __str__(self):
         return self.name
@@ -275,15 +266,6 @@ class ComHealthReceipt(db.Model):
     comment = db.Column('comment', db.Text())
     paid = db.Column('paid', db.Boolean(), default=False)
     cancelled = db.Column('cancelled', db.Boolean(), default=False)
-
-
-class ComHealthPaymentGroup(db.Model):
-    __tablename__ = 'comhealth_payment_group'
-    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    name = db.Column('name', db.String(256), nullable=False)
-
-    def __str__(self):
-        return u'{}'.format(self.name)
 
 
 class ComHealthCustomerInfoSchema(ma.ModelSchema):

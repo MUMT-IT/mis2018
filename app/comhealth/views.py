@@ -18,7 +18,7 @@ from .models import (ComHealthService, ComHealthRecord, ComHealthTestItem,
                      ComHealthTestProfile, ComHealthContainer, ComHealthTestGroup,
                      ComHealthTest, ComHealthOrg, ComHealthCustomer,
                      ComHealthReceipt, ComHealthCustomerInfoItem, ComHealthCustomerInfo,
-                     ComHealthPaymentGroup, ComHealthInvoice)
+                     ComHealthInvoice)
 from .models import (ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTestProfileSchema,
                      ComHealthTestGroupSchema, ComHealthTestSchema, ComHealthOrgSchema,
                      ComHealthCustomerSchema,
@@ -950,12 +950,10 @@ def list_all_receipts(record_id):
 
 @comhealth.route('/checkin/records/<int:record_id>/receipts', methods=['POST', 'GET'])
 def create_receipt(record_id):
-    payment_groups = ComHealthPaymentGroup.query.all()
     if request.method == 'GET':
         record = ComHealthRecord.query.get(record_id)
         valid_receipts = [rcp for rcp in record.receipts if not rcp.cancelled]
         return render_template('comhealth/new_receipt.html', record=record,
-                                                payment_groups=payment_groups,
                                                 valid_receipts=valid_receipts,
                                                 )
     if request.method == 'POST':
@@ -974,11 +972,9 @@ def create_receipt(record_id):
             billed = test_item.test.code + '_billed'
             billed = True if request.form.getlist(billed) else False
             visible = True if request.form.getlist(visible) else False
-            payment_group_id = int(request.form.get(payment))
             invoice = ComHealthInvoice(test_item=test_item,
                                         receipt=receipt,
                                         billed=billed,
-                                        payment_group_id=payment_group_id,
                                         visible=visible
                                         )
             db.session.add(invoice)
@@ -1001,7 +997,6 @@ def cancel_receipt(receipt_id):
 def show_receipt_detail(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
     action = request.args.get('action', None)
-    payment_groups = ComHealthPaymentGroup.query.all()
     if action == 'pay':
         receipt.paid = True
         db.session.add(receipt)
@@ -1027,7 +1022,6 @@ def show_receipt_detail(receipt_id):
                             total_special_cost_thai=total_special_cost_thai,
                             visible_special_tests=visible_special_tests,
                             visible_profile_tests=visible_profile_tests,
-                            payment_groups=payment_groups
                             )
 
 
