@@ -53,8 +53,8 @@
                 <input type="hidden" name="record_id" value="{{ record.id }}">
                 <table class="table is-narrow">
                     <thead>
-                        <th>Code</th>
-                        <th>Description</th>
+                        <th>รหัสการทดสอบ</th>
+                        <th>รายการทดสอบ</th>
                         <th>ราคา</th>
                         <th>เบิกได้</th>
                         <th>การเก็บเงิน</th>
@@ -92,8 +92,8 @@
                 <h1 class="title is-4">รายการตรวจพิเศษ</h1>
                 <table class="table is-narrow">
                     <thead>
-                        <th>Code</th>
-                        <th>Description</th>
+                        <th>รหัสการทดสอบ</th>
+                        <th>รายการทดสอบ</th>
                         <th>ราคา</th>
                         <th>เบิกได้</th>
                         <th>การเก็บเงิน</th>
@@ -129,16 +129,30 @@
                     {% endfor %}
                 </table>
                 {% endif %}
-                <div class="field">
-                    <div class="control">
-                        <input class="input" type="text" name="issuer" placeholder="ผู้ออกใบเสร็จ"/>
+                    <div class="field">
+                        <label class="label">ผู้ออกใบเสร็จ</label>
+                        <div class="control">
+                            <div class="select">
+                                <select name="issuer_id">
+                                    {% for issuer in cashiers %}
+                                    <option value="{{ issuer.id }}">{{ issuer.fullname }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="field">
-                    <div class="control">
-                        <input class="input" type="text" name="cashier" placeholder="ผู้รับเงิน"/>
+                    <div class="field">
+                        <label class="label">ผู้รับเงิน</label>
+                        <div class="control">
+                            <div class="select">
+                                <select name="cashier_id">
+                                    {% for cashier in cashiers %}
+                                    <option value="{{ cashier.id }}">{{ cashier.fullname }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                </div>
                 <input class="button is-success" type="submit"/>
                 </form>
             </div>

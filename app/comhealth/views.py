@@ -13,16 +13,10 @@ from flask_login import login_required
 from collections import defaultdict, OrderedDict
 from app.main import db
 from . import comhealth
-from .forms import ServiceForm, TestProfileForm, TestListForm, TestForm, TestGroupForm, CustomerForm
-from .models import (ComHealthService, ComHealthRecord, ComHealthTestItem,
-                     ComHealthTestProfile, ComHealthContainer, ComHealthTestGroup,
-                     ComHealthTest, ComHealthOrg, ComHealthCustomer,
-                     ComHealthReceipt, ComHealthCustomerInfoItem, ComHealthCustomerInfo,
-                     ComHealthInvoice)
-from .models import (ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTestProfileSchema,
-                     ComHealthTestGroupSchema, ComHealthTestSchema, ComHealthOrgSchema,
-                     ComHealthCustomerSchema,
-                     )
+from .forms import (ServiceForm, TestProfileForm, TestListForm,
+                    TestForm, TestGroupForm, CustomerForm)
+from .models import *
+
 
 bangkok = pytz.timezone('Asia/Bangkok')
 
@@ -952,20 +946,24 @@ def list_all_receipts(record_id):
 def create_receipt(record_id):
     if request.method == 'GET':
         record = ComHealthRecord.query.get(record_id)
+        cashiers = ComHealthCashier.query.all()
         valid_receipts = [rcp for rcp in record.receipts if not rcp.cancelled]
         return render_template('comhealth/new_receipt.html', record=record,
                                                 valid_receipts=valid_receipts,
+                                                cashiers=cashiers,
                                                 )
     if request.method == 'POST':
         record_id = request.form.get('record_id')
         record = ComHealthRecord.query.get(record_id)
-        issuer = request.form.get('issuer')
-        cashier = request.form.get('cashier')
+        issuer_id = request.form.get('issuer_id', None)
+        cashier_id = request.form.get('cashier_id', None)
         valid_receipts = [rcp for rcp in record.receipts if not rcp.cancelled]
         if not valid_receipts:  # not active receipt
             receipt = ComHealthReceipt(
                 created_datetime=datetime.now(tz=bangkok),
                 record=record,
+                issuer_id=int(issuer_id) if issuer_id is not None else None,
+                cashier_id=int(cashier_id) if cashier_id is not None else None,
                 )
             db.session.add(receipt)
         for test_item in record.ordered_tests:

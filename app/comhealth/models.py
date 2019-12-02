@@ -58,6 +58,20 @@ class ComHealthInvoice(db.Model):
     receipt = db.relationship('ComHealthReceipt', backref='invoices')
 
 
+class ComHealthCashier(db.Model):
+    __tablename__ = 'comhealth_cashier'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    firstname = db.Column('firstname', db.String(255), index=True)
+    lastname = db.Column('lastname', db.String(255), index=True)
+
+    @property
+    def fullname(self):
+        return u'{} {}'.format(self.firstname, self.lastname)
+
+    def __str__(self):
+        return self.fullname
+
+
 class ComHealthOrg(db.Model):
     __tablename__ = 'comhealth_orgs'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
@@ -266,6 +280,12 @@ class ComHealthReceipt(db.Model):
     comment = db.Column('comment', db.Text())
     paid = db.Column('paid', db.Boolean(), default=False)
     cancelled = db.Column('cancelled', db.Boolean(), default=False)
+    issuer_id = db.Column('issuer_id', db.ForeignKey('comhealth_cashier.id'))
+    issuer = db.relationship('ComHealthCashier',
+                             foreign_keys=[issuer_id],
+                             backref=db.backref('issued_receipts'))
+    cashier_id = db.Column('cashier_id', db.ForeignKey('comhealth_cashier.id'))
+    cashier = db.relationship('ComHealthCashier', foreign_keys=[cashier_id])
 
 
 class ComHealthCustomerInfoSchema(ma.ModelSchema):
