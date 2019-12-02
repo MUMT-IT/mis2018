@@ -147,9 +147,8 @@ class ComHealthTest(db.Model):
     code = db.Column('code', db.String(64), index=True)
     name = db.Column('name', db.String(64), index=True)
     desc = db.Column('desc', db.Text())
-
+    gov_code = db.Column('gov_code', db.String(16))
     default_price = db.Column('default_price', db.Numeric(), default=0)
-
     container_id = db.Column('container_id', db.ForeignKey('comhealth_containers.id'))
     container = db.relationship('ComHealthContainer', backref=db.backref('tests'))
 
