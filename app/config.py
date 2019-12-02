@@ -4,6 +4,10 @@
 
 import os
 
+POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD')
+DEV_DATABASE = os.environ.get('DEV_DATABASE')
+DATABASE = os.environ.get('DATABASE')
+
 class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -15,11 +19,12 @@ class SQLiteDevelopmentConfig(Config):
 
 class DevelopmentConfig(Config):
     SQLALCHEMY_DATABASE_URI = \
-    'postgres+psycopg2://postgres:genius01@pg/mumtmis_test'
+    'postgres+psycopg2://postgres:{}@pg/{}'.format(POSTGRES_PASSWORD, DEV_DATABASE)
 
 
 class ProductionConfig(Config):
-    SQLALCHEMY_DATABASE_URI = 'postgres+psycopg2://postgres:genius01@pg/mumtmis_dev'
+    SQLALCHEMY_DATABASE_URI = \
+        'postgres+psycopg2://postgres:{}@pg/{}'.format(POSTGRES_PASSWORD, DATABASE)
 
 
 SETTINGS = {
