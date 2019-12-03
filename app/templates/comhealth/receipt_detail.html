@@ -147,27 +147,61 @@
                             </td>
                             <td>
                                 <strong>รวมทั้งสิ้น {{ total_cost }} บาท</strong>
-                                {% if receipt.paid %}
-                                <strong class="has-text-success">(ชำระแล้ว)</strong>
-                                {% else %}
-                                <strong class="has-text-danger">(ยังไม่ได้ชำระ)</strong>
-                                {% endif %}
                             </td>
                         </tr>
+                        {% if receipt.paid %}
+                        <tr>
+                            <td>
+                                {% if receipt.payment_method == 'cash' %}
+                                ชำระด้วยเงินสด
+                                {% elif receipt.payment_method == 'card' %}
+                                ชำระด้วยบัตรเครดิต หมายเลข {{ receipt.card_number }}
+                                {% else %}
+                                ยังไม่ได้ชำระเงิน
+                                {% endif %}
+                            </td>
+                            <td></td>
+                        </tr>
+                        {% endif %}
                     </table>
                 </div>
             </div>
         </div>
         <div class="container">
             <div class="columns">
+                {%if not receipt.paid %}
+                <div class="box">
+                   <form method="post" action="/comhealth/checkin/receipts/pay/{{receipt.id}}">
+                       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                       <div class="control">
+                           <label class="radio">
+                               <input type="radio" checked name="pay_method" value="cash">
+                               เงินสด
+                           </label>
+                           <label class="radio">
+                               <input type="radio" name="pay_method" value="card">
+                               บัตรเครดิต
+                           </label>
+                       </div>
+                       <div class="control">
+                           <input type="text" placeholder="Card Number"
+                                  class="input" maxlength="16" name="card_number">
+                       </div>
+                       <br>
+                       <div class="control">
+                           <button class="button is-rounded is-success" type="submit"
+                                   {% if receipt.cancelled %}disabled{% endif %}>
+                               ชำระเงิน</button>
+                       </div>
+                   </form>
+                </div>
+                {% endif %}
+            </div>
+            <div class="columns">
                 <div class="column">
-                    <a class="button is-rounded is-success"
-                        {% if receipt.cancelled %}disabled{% endif %}
-                            href="{{ url_for('comhealth.show_receipt_detail', receipt_id=receipt.id, action='pay') }}">
-                            ชำระเงิน</a>
                     <button class="button is-info is-rounded"
-                                @click="printJS('receipt','html')"
-                        {% if receipt.cancelled %}disabled{% endif %}
+                                @click="printJS('{{url_for('comhealth.export_receipt_pdf', receipt_id=receipt.id)}}')"
+                        {% if receipt.cancelled or not receipt.paid %}disabled{% endif %}
                                 >
                         <span class="icon">
                             <i class="fas fa-print"></i>

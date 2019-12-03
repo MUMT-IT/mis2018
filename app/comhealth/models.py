@@ -286,6 +286,8 @@ class ComHealthReceipt(db.Model):
                              backref=db.backref('issued_receipts'))
     cashier_id = db.Column('cashier_id', db.ForeignKey('comhealth_cashier.id'))
     cashier = db.relationship('ComHealthCashier', foreign_keys=[cashier_id])
+    payment_method = db.Column('payment_method', db.String(64))
+    card_number = db.Column('card_number', db.String(16))
 
 
 class ComHealthCustomerInfoSchema(ma.ModelSchema):

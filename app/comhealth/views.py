@@ -993,6 +993,24 @@ def cancel_receipt(receipt_id):
                                 record_id=receipt.record.id))
 
 
+@comhealth.route('/checkin/receipts/pay/<int:receipt_id>', methods=['POST'])
+def pay_receipt(receipt_id):
+    pay_method = request.form.get('pay_method')
+    if pay_method == 'card':
+        card_number = request.form.get('card_number')
+    receipt = ComHealthReceipt.query.get(receipt_id)
+    if not receipt.paid:
+        print(pay_method, card_number)
+        receipt.paid = True
+        receipt.payment_method = pay_method
+        if pay_method == 'card':
+            receipt.card_number = card_number
+        db.session.add(receipt)
+        db.session.commit()
+    return redirect(url_for('comhealth.show_receipt_detail',
+                            receipt_id=receipt_id))
+
+
 @comhealth.route('/checkin/receipts/<int:receipt_id>', methods=['GET', 'POST'])
 def show_receipt_detail(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
@@ -1185,10 +1203,26 @@ def export_receipt_pdf(receipt_id):
                                   receipt_id, document.page, issued_date))
         canvas.restoreState()
 
+    if receipt.payment_method == 'cash':
+        payment_info = '''<font size=12>
+        ชำระเงินด้วยเงินสด
+        </font>'''
+    elif receipt.payment_method == 'card':
+        payment_info = '''<font size=12>
+        ชำระเงินด้วยบัตรเครดิต หมายเลข {}
+        </font>'''.format(receipt.card_number)
+    else:
+        payment_info = '''<font size=12>ยังไม่ชำระเงิน</font>'''
+
     notice_text = '''<para align=center><font size=12>
     ***ใบเสร็จนี้จะสมบูรณ์ก็ต่อเมื่อคณะเทคนิคการแพทย์ได้รับเงินครบถ้วนแล้วเท่านั้น***</font></para>
     '''
     notice = Table([[Paragraph(notice_text, style=style_sheet['ThaiStyle'])]])
+
+    sign_text = '''<para align=center><font size=12>
+    ลงชื่อ .........................................<br/>
+    ({})
+    </font></para>'''.format(receipt.issuer.fullname.encode('utf-8'))
 
     data.append(header)
     data.append(customer)
@@ -1198,6 +1232,10 @@ def export_receipt_pdf(receipt_id):
     data.append(item_table)
     data.append(Spacer(1,6))
     data.append(total_table)
+    data.append(Spacer(1,6))
+    data.append(Paragraph(payment_info, style=style_sheet['ThaiStyle']))
+    data.append(Spacer(1,6))
+    data.append(Paragraph(sign_text, style=style_sheet['ThaiStyle']))
     data.append(Spacer(1,6))
     data.append(notice)
     doc.build(data, onLaterPages=later_page)
