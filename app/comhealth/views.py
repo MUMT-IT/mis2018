@@ -8,7 +8,8 @@ from pandas import read_excel, isna
 from flask_weasyprint import HTML, render_pdf
 from sqlalchemy.orm.attributes import flag_modified
 import pytz
-from flask import render_template, flash, redirect, url_for, request, jsonify, Response, stream_with_context
+from flask import (render_template, flash, redirect, url_for,
+                   request, send_file, Response, stream_with_context)
 from flask_login import login_required
 from collections import defaultdict, OrderedDict
 from app.main import db
@@ -1064,3 +1065,140 @@ def print_slip(record_id):
                            change="{:10.2f}".format(change)
                           )
     return render_pdf(HTML(string=html))
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A5, landscape
+from reportlab.platypus import (SimpleDocTemplate, Table, Image,
+                                Spacer, Paragraph, TableStyle)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
+pdfmetrics.registerFont(sarabun_font)
+style_sheet = getSampleStyleSheet()
+style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
+
+@comhealth.route('/receipts/pdf/<int:receipt_id>')
+def export_receipt_pdf(receipt_id):
+    receipt = ComHealthReceipt.query.get(receipt_id)
+    doc = SimpleDocTemplate("app/receipt.pdf",
+                            pagesize=landscape(A5),
+                            rightMargin=20,
+                            leftMargin=20,
+                            topMargin=5,
+                            bottomMargin=10,
+                            )
+    data = []
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
+    data.append(logo)
+    affiliation = '''<para align=center><font size=14>
+    มหาวิทยาลัยมหิดล<br/>
+    คณะเทคนิคการแพทย์<br/><br/>
+    </font>
+    <font size=18>ใบเสร็จรับเงิน</font></para>
+    '''
+    address = '''<font size=12>
+    เลขที่ 999 พุทธมณฑลสาย 4<br/>
+    ต.ศาลายา อ.พุทธมณฑล<br/>
+    จ.นครปฐม 73170<br/>
+    เลขประจำตัวผู้เสียภาษี 4107039192<br/><br/>
+    </font>
+    '''
+
+    receipt_info = '''<font size=12>
+    เลขที่ {receipt_id} แผ่นที่ 1<br/>
+    วันที่ {issued_date}<br/>
+    </font>
+    '''
+    issued_date = datetime.now().strftime('%d/%m/%Y')
+    receipt_info = receipt_info.format(receipt_id=receipt_id,
+                                       issued_date=issued_date)
+
+    header_content = [[Paragraph(address, style=style_sheet['ThaiStyle']),
+                        Paragraph(affiliation, style=style_sheet['ThaiStyle']),
+                        Paragraph(receipt_info, style=style_sheet['ThaiStyle'])]]
+
+    header_styles = TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ])
+
+    header = Table(header_content, colWidths=[120, 300, 120])
+    header.hAlign = 'CENTER'
+    header.setStyle(header_styles)
+    customer_name = '''<para align=center><font size=11>
+    ชื่อ {customer_name}
+    </font></para>
+    '''.format(customer_name=receipt.record.customer.fullname.encode('utf-8'))
+    customer_hn = '''<para align=center><font size=11>
+    เลขประจำตัว {customer_hn}
+    </font></para>
+    '''.format(customer_hn=3039394949)
+    customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
+                      Paragraph(customer_hn, style=style_sheet['ThaiStyle'])]])
+    body_text = '''<para align=center><font size=16>
+    รายการ</font></para>
+    '''
+    body = Table([[Paragraph(body_text, style=style_sheet['ThaiStyle'])]])
+    body.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 0.25, colors.black),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+    ]))
+
+    items = [[Paragraph('', style=style_sheet['ThaiStyle']),
+              Paragraph('<font size=11>เบิกได้ (บาท)</font>', style=style_sheet['ThaiStyle']),
+              Paragraph('<font size=11>เบิกไม่ได้ตามระเบียบกระทรวงการคลัง (บาท)</font>',
+                        style=style_sheet['ThaiStyle'])]]
+    total = 0
+    for t in receipt.invoices:
+        if t.test_item.price:
+            split = t.test_item.price - t.test_item.test.default_price
+            total += t.test_item.price
+        else:
+            split = 0
+            total += t.test_item.default_price
+        item = [Paragraph('<font size=11>{} (รหัส {})</font>'.format(t.test_item.test.desc.encode('utf-8'), t.test_item.test.gov_code),
+                          style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=11>{:.2f}</font>'.format(t.test_item.test.default_price),
+                          style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=11>{:.2f}</font>'.format(split),
+                          style=style_sheet['ThaiStyle']),
+                ]
+        items.append(item)
+
+    item_table = Table(items, colWidths=[200,80,180])
+
+    total_thai = bahttext(total)
+    total_text = Paragraph('<font size=12>รวมเงิน (ตัวอักษร) {}</font>'.format(total_thai.encode('utf-8')),
+                           style=style_sheet['ThaiStyle'])
+    total_number = Paragraph('<font size=12>รวมเงินทั้งสิ้น {:.2f} บาท</font>'.format(total),
+                             style=style_sheet['ThaiStyle'])
+    total_content = [[total_text, total_number]]
+    total_table = Table(total_content, colWidths=[400, 150])
+
+    def later_page(canvas, document):
+        canvas.saveState()
+        canvas.setFont('Sarabun', 12)
+        canvas.drawString(400,20,
+                          u'ใบเสร็จเลขที่ {} แผ่นที่ {} ออกวันที่ {}'.format(
+                                  receipt_id, document.page, issued_date))
+        canvas.restoreState()
+
+    notice_text = '''<para align=center><font size=12>
+    ***ใบเสร็จนี้จะสมบูรณ์ก็ต่อเมื่อคณะเทคนิคการแพทย์ได้รับเงินครบถ้วนแล้วเท่านั้น***</font></para>
+    '''
+    notice = Table([[Paragraph(notice_text, style=style_sheet['ThaiStyle'])]])
+
+    data.append(header)
+    data.append(customer)
+    data.append(Spacer(1,12))
+    data.append(body)
+    data.append(Spacer(1,6))
+    data.append(item_table)
+    data.append(Spacer(1,6))
+    data.append(total_table)
+    data.append(Spacer(1,6))
+    data.append(notice)
+    doc.build(data, onLaterPages=later_page)
+    return send_file('receipt.pdf')
