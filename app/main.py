@@ -186,7 +186,7 @@ admin.add_view(ModelView(ComHealthService, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthTestGroup, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthContainer, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCustomerInfoItem, db.session, category='Com Health'))
-admin.add_view(ModelView(ComHealthPaymentGroup, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthCashier, db.session, category='Com Health'))
 
 
 @app.cli.command()

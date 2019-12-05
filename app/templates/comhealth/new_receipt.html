@@ -53,10 +53,11 @@
                 <input type="hidden" name="record_id" value="{{ record.id }}">
                 <table class="table is-narrow">
                     <thead>
-                        <th>Code</th>
-                        <th>Description</th>
-                        <th>Price</th>
-                        <th colspan="2">การเก็บเงิน</th>
+                        <th>รหัสการทดสอบ</th>
+                        <th>รายการทดสอบ</th>
+                        <th>ราคา</th>
+                        <th>เบิกได้</th>
+                        <th>การเก็บเงิน</th>
                         <th>การพิมพ์ใบเสร็จ</th>
                     </thead>
                     <tbody>
@@ -66,19 +67,7 @@
                         <td>{{ ti.test.code }}</td>
                         <td>{{ ti.test.desc }}</td>
                         <td>{{ ti.price or ti.test.default_price }}</td>
-                        <td>
-                            <div class="field">
-                            {% for pg in payment_groups %}
-                                    <input class="is-checkradio is-info"
-                                        id="{{ ti.test.code }}_payment"
-                                        {% if pg.name == ti.profile.payment_group.name %}
-                                        checked
-                                        {% endif %}
-                                        type="radio" name="{{ ti.test.code }}_payment" value="{{ pg.id }}"/>
-                                    <label for="{{ ti.test.code }}_payment">{{ pg.name }}</label>
-                            {% endfor %}
-                            </div>
-                        </td>
+                        <td>{{ ti.test.default_price }}</td>
                         <td>
                             <div class="field">
                                 <input class="is-checkradio is-info"
@@ -103,10 +92,11 @@
                 <h1 class="title is-4">รายการตรวจพิเศษ</h1>
                 <table class="table is-narrow">
                     <thead>
-                        <th>Code</th>
-                        <th>Description</th>
-                        <th>Price</th>
-                        <th colspan="2">การเก็บเงิน</th>
+                        <th>รหัสการทดสอบ</th>
+                        <th>รายการทดสอบ</th>
+                        <th>ราคา</th>
+                        <th>เบิกได้</th>
+                        <th>การเก็บเงิน</th>
                         <th>การพิมพ์ใบเสร็จ</th>
                     </thead>
                     <tbody>
@@ -116,19 +106,7 @@
                         <td>{{ ti.test.code }}</td>
                         <td>{{ ti.test.desc }}</td>
                         <td>{{ ti.price or ti.test.default_price }}</td>
-                        <td>
-                            <div class="field">
-                            {% for pg in payment_groups %}
-                                    <input class="is-checkradio is-info"
-                                        id="{{ ti.test.code }}_payment"
-                                        {% if pg.name == ti.group.payment_group.name %}
-                                        checked
-                                        {% endif %}
-                                        type="radio" name="{{ ti.test.code }}_payment" value="{{ pg.id }}"/>
-                                    <label for="{{ ti.test.code }}_payment">{{ pg.name }}</label>
-                            {% endfor %}
-                            </div>
-                        </td>
+                        <td>{{ ti.test.default_price }}</td>
                         <td>
                             <div class="field">
                                 <input class="is-checkradio is-info"
@@ -151,16 +129,30 @@
                     {% endfor %}
                 </table>
                 {% endif %}
-                <div class="field">
-                    <div class="control">
-                        <input class="input" type="text" name="issuer" placeholder="ผู้ออกใบเสร็จ"/>
+                    <div class="field">
+                        <label class="label">ผู้ออกใบเสร็จ</label>
+                        <div class="control">
+                            <div class="select">
+                                <select name="issuer_id">
+                                    {% for issuer in cashiers %}
+                                    <option value="{{ issuer.id }}">{{ issuer.fullname }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                </div>
-                <div class="field">
-                    <div class="control">
-                        <input class="input" type="text" name="issuer" placeholder="ผู้รับเงิน"/>
+                    <div class="field">
+                        <label class="label">ผู้รับเงิน</label>
+                        <div class="control">
+                            <div class="select">
+                                <select name="cashier_id">
+                                    {% for cashier in cashiers %}
+                                    <option value="{{ cashier.id }}">{{ cashier.fullname }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                </div>
                 <input class="button is-success" type="submit"/>
                 </form>
             </div>

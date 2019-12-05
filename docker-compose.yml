@@ -13,6 +13,8 @@ services:
       - FLASK_CONFIG
       - FLASK_DEBUG
       - POSTGRES_PASSWORD
+      - DEV_DATABASE
+      - DATABASE
       - SECRET_KEY
       - SCOPUS_API_KEY
     volumes:
@@ -24,7 +26,9 @@ services:
     environment:
       - POSTGRES_PASSWORD
     volumes:
-      - ./pgdata:/var/lib/postgresql/data
+      - misdata:/var/lib/postgresql/data
     ports:
       - "5443:5432"
 
+volumes:
+  misdata:

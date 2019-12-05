@@ -56,9 +56,20 @@ class ComHealthInvoice(db.Model):
     billed = db.Column('billed', db.Boolean(), default=True)
     test_item = db.relationship('ComHealthTestItem', backref='invoices')
     receipt = db.relationship('ComHealthReceipt', backref='invoices')
-    payment_group_id = db.Column('payment_group_id',
-                                db.ForeignKey('comhealth_payment_group.id'))
-    payment_group = db.relationship('ComHealthPaymentGroup', backref='invoices')
+
+
+class ComHealthCashier(db.Model):
+    __tablename__ = 'comhealth_cashier'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    firstname = db.Column('firstname', db.String(255), index=True)
+    lastname = db.Column('lastname', db.String(255), index=True)
+
+    @property
+    def fullname(self):
+        return u'{} {}'.format(self.firstname, self.lastname)
+
+    def __str__(self):
+        return self.fullname
 
 
 class ComHealthOrg(db.Model):
@@ -147,9 +158,8 @@ class ComHealthTest(db.Model):
     code = db.Column('code', db.String(64), index=True)
     name = db.Column('name', db.String(64), index=True)
     desc = db.Column('desc', db.Text())
-
+    gov_code = db.Column('gov_code', db.String(16))
     default_price = db.Column('default_price', db.Numeric(), default=0)
-
     container_id = db.Column('container_id', db.ForeignKey('comhealth_containers.id'))
     container = db.relationship('ComHealthContainer', backref=db.backref('tests'))
 
@@ -165,9 +175,6 @@ class ComHealthTestGroup(db.Model):
     age_max = db.Column('age_max', db.Integer())
     age_min = db.Column('age_min', db.Integer())
     gender = db.Column('gender', db.Integer())
-    payment_group_id = db.Column('payment_group_id',
-                                    db.ForeignKey('comhealth_payment_group.id'))
-    payment_group = db.relationship('ComHealthPaymentGroup', uselist=False)
 
     def __str__(self):
         return self.name
@@ -182,9 +189,6 @@ class ComHealthTestProfile(db.Model):
     age_min = db.Column('age_min', db.Integer())
     gender = db.Column('gender', db.Integer())
     quote = db.Column('quote', db.Numeric())
-    payment_group_id = db.Column('payment_group_id',
-                            db.ForeignKey('comhealth_payment_group.id'))
-    payment_group = db.relationship('ComHealthPaymentGroup', uselist=False)
 
     def __str__(self):
         return self.name
@@ -276,15 +280,14 @@ class ComHealthReceipt(db.Model):
     comment = db.Column('comment', db.Text())
     paid = db.Column('paid', db.Boolean(), default=False)
     cancelled = db.Column('cancelled', db.Boolean(), default=False)
-
-
-class ComHealthPaymentGroup(db.Model):
-    __tablename__ = 'comhealth_payment_group'
-    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    name = db.Column('name', db.String(256), nullable=False)
-
-    def __str__(self):
-        return u'{}'.format(self.name)
+    issuer_id = db.Column('issuer_id', db.ForeignKey('comhealth_cashier.id'))
+    issuer = db.relationship('ComHealthCashier',
+                             foreign_keys=[issuer_id],
+                             backref=db.backref('issued_receipts'))
+    cashier_id = db.Column('cashier_id', db.ForeignKey('comhealth_cashier.id'))
+    cashier = db.relationship('ComHealthCashier', foreign_keys=[cashier_id])
+    payment_method = db.Column('payment_method', db.String(64))
+    card_number = db.Column('card_number', db.String(16))
 
 
 class ComHealthCustomerInfoSchema(ma.ModelSchema):
