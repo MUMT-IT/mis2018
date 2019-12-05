@@ -18,10 +18,12 @@
                 <td>{{ vehicle.maker }}</td>
                 <td>{{ vehicle.model }}</td>
                 <td>
-                    <a href="{{ url_for('vehicle.vehicle_reserve', license=vehicle.license) }}"
+                    <!--
+                    <a href="{{ url_for('vehicle.car_event_list', license=vehicle.license) }}"
                         class="button is-rounded is-info">
                         <strong>ป้อนข้อมูล</strong>
                     </a>
+                    -->
                 </td>
             </tr>
         {% endfor %}
