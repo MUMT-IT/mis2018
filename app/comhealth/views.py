@@ -1000,7 +1000,6 @@ def pay_receipt(receipt_id):
         card_number = request.form.get('card_number')
     receipt = ComHealthReceipt.query.get(receipt_id)
     if not receipt.paid:
-        print(pay_method, card_number)
         receipt.paid = True
         receipt.payment_method = pay_method
         if pay_method == 'card':
@@ -1149,9 +1148,9 @@ def export_receipt_pdf(receipt_id):
     </font></para>
     '''.format(customer_name=receipt.record.customer.fullname.encode('utf-8'))
     customer_hn = '''<para align=center><font size=11>
-    เลขประจำตัว {customer_hn}
+    หมายเลขรายการ {customer_hn}
     </font></para>
-    '''.format(customer_hn=3039394949)
+    '''.format(customer_hn=receipt.record.labno)
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
                       Paragraph(customer_hn, style=style_sheet['ThaiStyle'])]])
     body_text = '''<para align=center><font size=16>
@@ -1170,20 +1169,23 @@ def export_receipt_pdf(receipt_id):
                         style=style_sheet['ThaiStyle'])]]
     total = 0
     for t in receipt.invoices:
-        if t.test_item.price:
-            split = t.test_item.price - t.test_item.test.default_price
-            total += t.test_item.price
-        else:
-            split = 0
-            total += t.test_item.default_price
-        item = [Paragraph('<font size=11>{} (รหัส {})</font>'.format(t.test_item.test.desc.encode('utf-8'), t.test_item.test.gov_code),
-                          style=style_sheet['ThaiStyle']),
-                Paragraph('<font size=11>{:.2f}</font>'.format(t.test_item.test.default_price),
-                          style=style_sheet['ThaiStyle']),
-                Paragraph('<font size=11>{:.2f}</font>'.format(split),
-                          style=style_sheet['ThaiStyle']),
-                ]
-        items.append(item)
+        if t.visible:
+            if t.test_item.price:
+                split = t.test_item.price - t.test_item.test.default_price
+                if t.billed:
+                    total += t.test_item.price
+            else:
+                split = 0
+                if t.billed:
+                    total += t.test_item.default_price
+            item = [Paragraph('<font size=11>{} (รหัส {})</font>'.format(t.test_item.test.desc.encode('utf-8'), t.test_item.test.gov_code),
+                              style=style_sheet['ThaiStyle']),
+                    Paragraph('<font size=11>{:.2f}</font>'.format(t.test_item.test.default_price),
+                              style=style_sheet['ThaiStyle']),
+                    Paragraph('<font size=11>{:.2f}</font>'.format(split),
+                              style=style_sheet['ThaiStyle']),
+                    ]
+            items.append(item)
 
     item_table = Table(items, colWidths=[200,80,180])
 
@@ -1193,7 +1195,7 @@ def export_receipt_pdf(receipt_id):
     total_number = Paragraph('<font size=12>รวมเงินทั้งสิ้น {:.2f} บาท</font>'.format(total),
                              style=style_sheet['ThaiStyle'])
     total_content = [[total_text, total_number]]
-    total_table = Table(total_content, colWidths=[400, 150])
+    total_table = Table(total_content, colWidths=[405, 150])
 
     def later_page(canvas, document):
         canvas.saveState()
@@ -1221,8 +1223,10 @@ def export_receipt_pdf(receipt_id):
 
     sign_text = '''<para align=center><font size=12>
     ลงชื่อ .........................................<br/>
-    ({})
-    </font></para>'''.format(receipt.issuer.fullname.encode('utf-8'))
+    ({})<br/>
+    ตำแหน่ง {}
+    </font></para>'''.format(receipt.issuer.fullname.encode('utf-8'),
+                             receipt.issuer.position.encode('utf-8'))
 
     data.append(header)
     data.append(customer)
@@ -1234,7 +1238,7 @@ def export_receipt_pdf(receipt_id):
     data.append(total_table)
     data.append(Spacer(1,6))
     data.append(Paragraph(payment_info, style=style_sheet['ThaiStyle']))
-    data.append(Spacer(1,6))
+    data.append(Spacer(1,12))
     data.append(Paragraph(sign_text, style=style_sheet['ThaiStyle']))
     data.append(Spacer(1,6))
     data.append(notice)
