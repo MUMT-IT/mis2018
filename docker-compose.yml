@@ -1,12 +1,17 @@
 version: "3.4"
 services:
+  nginx:
+    build: ./nginx
+    ports:
+      - 1337:80
+    depends_on:
+      - web
   web:
     build: .
     depends_on:
       - pg
     ports:
-      - "5000:5000"
-      - "80:5000"
+      - 5000
     env_file:
       - web_variables.env
     environment:
