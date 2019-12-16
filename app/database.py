@@ -3,7 +3,7 @@ from sqlalchemy.sql import func
 from main import db
 import pandas as pd
 from chemdb.models import ChemItem
-from staff.models import StaffAccount
+from staff.models import StaffAccount, StaffPersonalInfo
 from models import (Org, Strategy, StrategyTactic,
                         StrategyTheme, StrategyActivity)
 
@@ -165,3 +165,34 @@ def load_chem_items(excel_file):
                     citem.contact = staff
             db.session.add(citem)
         db.session.commit()
+
+def load_staff_list(excel_file):
+    df = pd.read_excel(excel_file)
+    for idx,row in df.iterrows():
+        if pd.isna(row['email']):
+            continue
+        acnt = StaffAccount.query.filter_by(email=row['email']).first()
+        if acnt:
+            # print('Updating staff...')
+            acnt.personal_info.th_firstname = row['th_firstname']
+            acnt.personal_info.th_lastname = row['th_lastname']
+            acnt.personal_info.org_id = row['org_id']
+            acnt.password = str(row['password'])
+            acnt.personal_info.org_id = row['org_id']
+        else:
+            # print('Inserting new staff...')
+            personal_info = StaffPersonalInfo(
+                th_firstname=row['th_firstname'],
+                th_lastname=row['th_lastname'],
+                en_firstname=row['en_firstname'].lower().title(),
+                en_lastname=row['en_lastname'].lower().title(),
+                org_id=row['org_id']
+            )
+            acnt = StaffAccount(
+                email=row['email'],
+                personal_info=personal_info,
+            )
+            acnt.password = str(row['password'])
+        # print(u'{} {}'.format(acnt.email, acnt.personal_info.org_id))
+        db.session.add(acnt)
+    db.session.commit()

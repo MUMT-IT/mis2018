@@ -227,6 +227,7 @@ def populate_checkin():
     db.session.commit()
 
 from database import load_provinces, load_districts, load_subdistricts
+
 @app.cli.command()
 def populate_provinces():
     load_provinces()
@@ -241,10 +242,18 @@ def populate_districts():
 def populate_subdistricts():
     load_subdistricts()
 
+
+@dbutils.command('load_staff_list')
+@click.argument('excel_file')
+def load_staff_list(excel_file):
+    database.load_staff_list(excel_file)
+
+
 @dbutils.command('import_chem_items')
 @click.argument('excel_file')
 def import_chem_items(excel_file):
     database.load_chem_items(excel_file)
+
 
 @app.template_filter("localdatetime")
 def local_datetime(dt):
