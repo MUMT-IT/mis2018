@@ -63,6 +63,7 @@ class ComHealthCashier(db.Model):
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     firstname = db.Column('firstname', db.String(255), index=True)
     lastname = db.Column('lastname', db.String(255), index=True)
+    position = db.Column('position', db.String(255))
 
     @property
     def fullname(self):
