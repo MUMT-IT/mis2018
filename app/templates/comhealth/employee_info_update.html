@@ -45,6 +45,27 @@
         <div class="columns">
             <div class="column">
                 <h1 class="title">ประวัติสุขภาพ {{ customer.title }}{{ customer.firstname }} {{ customer.lastname }}</h1>
+                <div class="box">
+                    <table class="table is-narrow">
+                        {% for k in info_items %}
+                        <tr>
+                            <td><span class="subtitle">{{ k }}</span></td>
+                            <td><span class="subtitle">{{ customer.info.data.get(k) }}</span></td>
+                            <td>
+                                <a href="#{{k}}">
+                                <span class="icon">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </span>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
                 <form method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="customer_id" value="{{ customer.id }}">
@@ -52,7 +73,7 @@
                     <div class="box">
                         {% if info_items[k].choices %}
                         <div class="control">
-                            <h1 class="title">{{ info_items[k].order }}. {{ k }}</h1>
+                            <h1 class="title">{{ info_items[k].order }}. <a name="{{ k }}">{{ k }}</a></h1>
                             {% if not info_items[k].multiple_selection %}
                                 {% for choice in info_items[k].choices.split(',') %}
                                 <div class="field">
@@ -80,7 +101,7 @@
                             {% endif %}
                         </div>
                         {% else %}
-                        <h1 class="title">{{ info_items[k].order }}. {{ k }}
+                        <h1 class="title">{{ info_items[k].order }}. <a name="{{ k }}">{{ k }}</a>
                             {% if info_items[k].unit %}
                             ({{ info_items[k].unit }})
                             {% endif %}
