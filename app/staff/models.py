@@ -1,4 +1,5 @@
 from ..main import db
+from werkzeug import generate_password_hash, check_password_hash
 
 
 class StaffAccount(db.Model):
@@ -7,7 +8,18 @@ class StaffAccount(db.Model):
     personal_id = db.Column('personal_id', db.ForeignKey('staff_personal_info.id'))
     email = db.Column('email', db.String(), unique=True)
     personal_info = db.relationship("StaffPersonalInfo", backref=db.backref("staff_account", uselist=False))
-    password = db.Column('password', db.String(255), nullable=True)
+    __password_hash = db.Column('password', db.String(255), nullable=True)
+
+    @property
+    def password(self):
+        raise AttributeError('Password attribute is not accessible.')
+
+    @password.setter
+    def password(self, password):
+        self.__password_hash = generate_password_hash(password)
+
+    def verify_password(self, password):
+        return check_password_hash(self.__password_hash, password)
 
     def is_authenticated(self):
         return True
