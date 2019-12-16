@@ -49,7 +49,8 @@ class StaffPersonalInfo(db.Model):
     th_lastname = db.Column('th_lastname', db.String(), nullable=True)
     academic_position_id = db.Column('academic_position_id', db.ForeignKey('staff_academic_position.id'))
     academic_position = db.relationship('StaffAcademicPosition', backref=db.backref('staff_list'))
-    orgs_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
+    org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
+    # employed_date = db.Column('employed_date', db.Date(), nullable=True)
 
     def __str__(self):
         return u'{} {}'.format(self.en_firstname, self.en_lastname)
