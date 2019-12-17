@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% include "nav.html" %}
 {% block page_content %}
 <section class="section">
     <div class="container">
@@ -32,7 +33,6 @@
         <input type="submit" class="button is-rounded is-primary"/>
     </form>
     </div>
-    <a href="{{ url_for('auth.logout') }}" class="button is-text is-rounded">Log out</a>
     </div>
 </section>
 {% endblock %}
