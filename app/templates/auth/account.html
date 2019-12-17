@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+    {% for msg in get_flashed_messages() %}
+    <p>{{ msg }}</p>
+    {% endfor %}
+    <h2 class="title">Welcome to your account.</h2>
+    <ul>
+        <li>Name: {{ current_user.personal_info.th_firstname }} {{ current_user.personal_info.th_lastname }}</li>
+        <li>Email: {{ current_user.email }}@mahidol.ac.th</li>
+    </ul>
+    <div class="box">
+    <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="field is-horizontal">
+            <div class="field-body">
+                <div class="control is-expanded has-icons-left">
+                    <input type="password" class="input" name="new_password" placeholder="New password">
+                    <span class="icon is-small is-left">
+                        <i class="fas fa-key"></i>
+                    </span>
+                </div>
+                <div class="control is-expanded has-icons-left">
+                    <input type="password" class="input" name="new_password2" placeholder="Confirm password">
+                    <span class="icon is-small is-left">
+                        <i class="fas fa-key"></i>
+                    </span>
+                </div>
+            </div>
+        </div>
+        <input type="submit" class="button is-rounded is-primary"/>
+    </form>
+    </div>
+    <a href="{{ url_for('auth.logout') }}" class="button is-text is-rounded">Log out</a>
+    </div>
+</section>
+{% endblock %}

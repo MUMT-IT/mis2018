@@ -2,7 +2,7 @@ from flask_admin.helpers import is_safe_url
 from . import authbp as auth
 from app.main import db
 from flask import render_template, redirect, request, url_for, flash, abort, session
-from flask_login import login_user, current_user, logout_user
+from flask_login import login_user, current_user, logout_user, login_required
 from app.staff.models import StaffAccount
 from .forms import LoginForm
 
@@ -43,14 +43,28 @@ def login():
     return render_template('/auth/login.html', form=form)
 
 
-@auth.route('/account')
+@auth.route('/account', methods=['GET', 'POST'])
+@login_required
 def account():
-    return u'Welcome {} to your account. <a href="/auth/logout">Logout</a>'.format(
-        current_user.personal_info.th_firstname
-    )
+    if request.method == 'POST':
+        new_password = request.form.get('new_password')
+        new_password2 = request.form.get('new_password2')
+        if new_password and new_password2:
+            if new_password == new_password2:
+                current_user.password = new_password
+                db.session.add(current_user)
+                db.session.commit()
+                flash('Password has been updated.')
+            else:
+                flash('Passwords do not match. Try again.')
+        else:
+            flash('New passwords are missing. Try again.')
+
+    return render_template('/auth/account.html')
 
 
 @auth.route('/logout')
+@login_required
 def logout():
     logout_user()
     return redirect(url_for('auth.login'))
