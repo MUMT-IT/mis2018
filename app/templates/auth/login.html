@@ -1,41 +1,40 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Log In</title>
-</head>
-<body>
-    <section>
-        <h1>Log In Page</h1>
-        <div>
-            {% for message in get_flashed_messages() %}
-                {{ message }}
-            {% endfor %}
-        </div>
-        <div>
-            {% if current_user.is_authenticated %}
-                {{ current_user.email }}
-            {% else %}
-                {{ current_user.username }}
-            {% endif %}
-        </div>
-        <div>
-            {{ current_user.email }}
-            {{ current_user.is_authenticated }}
-            <form action="" method="post">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                {{ form.email.label() }}
-                {{ form.email(placeholder='Enter your email here') }}
-                <br>
-                {{ form.password.label() }}
-                {{ form.password() }}
-                <br>
-                {{ form.remember_me.label() }}
-                {{ form.remember_me() }}
-                <br>
-                {{ form.submit() }}
-            </form>
-        </div>
-    </section>
-</body>
-</html>
+{% extends 'base.html' %}
+{% include 'nav.html' %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+    <h1 class="title">Log In Page</h1>
+    {% for message in get_flashed_messages() %}
+    <div class="notification">
+        <button class="delete"></button>
+        {{ message }}
+    </div>
+    {% endfor %}
+    <div>
+        <form action="" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div class="field">
+                <div class="control">
+                    {{ form.email.label(class='label') }}
+                    {{ form.email(placeholder='Enter your email here', class='input') }}
+                </div>
+            </div>
+            <div class="field">
+                <div class="control">
+                    {{ form.password.label(class='label') }}
+                    {{ form.password(class='input') }}
+                </div>
+            </div>
+            <br>
+            {{ form.remember_me.label() }}
+            {{ form.remember_me() }}
+            <div class="field">
+                <div class="control">
+                    {{ form.submit(class='button is-primary') }}
+                </div>
+            </div>
+        </form>
+    </div>
+    </div>
+</section>
+{% endblock %}
