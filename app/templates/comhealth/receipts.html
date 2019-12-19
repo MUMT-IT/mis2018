@@ -53,7 +53,9 @@
                             <th>Issued Date</th>
                             <th>Tests</th>
                             <th>Detail</th>
+                            <th>Comment</th>
                             <th>Valid</th>
+                            <th>Cancellation Comment</th>
                         </thead>
                         <tbody>
                             {% for r in record.receipts %}
@@ -69,6 +71,7 @@
                                         </span>
                                         <span>View</span>
                                 </td>
+                                <td>{{ r.comment or '' }}</td>
                                 <td>
                                     {% if r.cancelled %}
                                     <span class="icon">
@@ -76,6 +79,7 @@
                                     </span>
                                     {% endif %}
                                 </td>
+                                <td>{{ r.cancel_comment or '' }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>

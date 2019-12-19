@@ -281,6 +281,7 @@ class ComHealthReceipt(db.Model):
     comment = db.Column('comment', db.Text())
     paid = db.Column('paid', db.Boolean(), default=False)
     cancelled = db.Column('cancelled', db.Boolean(), default=False)
+    cancel_comment = db.Column('cancel_comment', db.Text())
     issuer_id = db.Column('issuer_id', db.ForeignKey('comhealth_cashier.id'))
     issuer = db.relationship('ComHealthCashier',
                              foreign_keys=[issuer_id],

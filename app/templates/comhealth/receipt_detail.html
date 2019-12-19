@@ -113,7 +113,7 @@
                             <tr>
                                 <td>{{ loop.index }}</td>
                                 <td>{{ t.test_item.test.desc }} ({{ t.test_item.test.name }})</td>
-                                <td>{{ t.test_item.test.gov_code }}</td>
+                                <td>{{ t.test_item.test.gov_code or '-' }}</td>
                                 {% if t.billed %}
                                     {% if t.test_item.price %}
                                     <td>{{ t.test_item.price }}</td>
@@ -209,7 +209,7 @@
                         <span>พิมพ์ใบเสร็จ</span>
                     </button>
                     <a class="button is-danger is-rounded"
-                        href="{{ url_for('comhealth.cancel_receipt',
+                        href="{{ url_for('comhealth.confirm_cancel_receipt',
                                 receipt_id=receipt.id) }}"
                         {% if receipt.cancelled %}disabled{% endif %}
                                 >ยกเลิก</a>
