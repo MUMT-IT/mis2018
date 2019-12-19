@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Cancel Receipt</title>
+</head>
+</body>
+<p>You sure want to cancel the receipt?</p>
+<form method="post" action="{{ url_for('comhealth.cancel_receipt') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <div class="field">
+        <div class="control">
+            <input type="text" placeholder="Comment" name="comment">
+            <input class="button" type="submit">
+        </div>
+    </div>
+</form>
+</html>
