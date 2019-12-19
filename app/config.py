@@ -11,6 +11,8 @@ DATABASE = os.environ.get('DATABASE')
 class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    LINE_CLIENT_ID = os.environ.get('LINE_CLIENT_ID')
+    LINE_CLIENT_SECRET = os.environ.get('LINE_CLIENT_SECRET')
 
 
 class SQLiteDevelopmentConfig(Config):
