@@ -982,6 +982,12 @@ def create_receipt(record_id):
         return redirect(url_for('comhealth.list_all_receipts', record_id=record.id)) 
 
 
+@comhealth.route('/checkin/receipts/cancel/confirm/<int:receipt_id>', methods=['GET', 'POST'])
+def confirm_cancel_receipt(receipt_id):
+    receipt = ComHealthReceipt.query.get(receipt_id)
+    if not receipt.cancelled:
+        return render_template('/comhealth/confirm_cancel_receipt.html', receipt=receipt)
+
 
 @comhealth.route('/checkin/receipts/cancel/<int:receipt_id>', methods=['GET', 'POST'])
 def cancel_receipt(receipt_id):
