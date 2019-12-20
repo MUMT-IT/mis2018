@@ -17,7 +17,7 @@ from . import comhealth
 from .forms import (ServiceForm, TestProfileForm, TestListForm,
                     TestForm, TestGroupForm, CustomerForm)
 from .models import *
-
+from flask_admin import BaseView, expose
 
 bangkok = pytz.timezone('Asia/Bangkok')
 
@@ -1251,3 +1251,35 @@ def export_receipt_pdf(receipt_id):
     data.append(notice)
     doc.build(data, onLaterPages=later_page)
     return send_file('receipt.pdf')
+
+
+class CustomerEmploymentTypeUploadView(BaseView):
+    @expose('/')
+    def index(self):
+        return self.render('comhealth/employment_type_upload.html')
+
+    @expose('/upload', methods=('POST', 'GET'))
+    def upload(self):
+        if request.method == 'POST':
+            if 'file' not in request.files:
+                flash('No file alert')
+                return redirect(request.url)
+            file = request.files['file']
+            if file.filename == '':
+                flash('No file selected')
+                return redirect(request.url)
+            if file and allowed_file(file.filename):
+                df = read_excel(file, dtype=object)
+                for idx, row in df.iterrows():
+                    rec = ComHealthCustomerEmploymentType.query\
+                            .filter_by(emptype_id=row[0]).first()
+                    if rec:
+                        if not isna(row[1]):
+                            rec.name = row[1]
+                            db.session.add(rec)
+                    else:
+                        if not isna(row[1]) and not isna(row[0]):
+                            rec = ComHealthCustomerEmploymentType(emptype_id=row[0], name=row[1])
+                            db.session.add(rec)
+                db.session.commit()
+        return request.method
