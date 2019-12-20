@@ -53,6 +53,7 @@ class ComHealthInvoice(db.Model):
                         db.ForeignKey('comhealth_test_receipts.id'),
                         primary_key=True)
     visible = db.Column('visible', db.Boolean(), default=True)
+    reimbursable = db.Column('reimbursable', db.Boolean(), default=True)
     billed = db.Column('billed', db.Boolean(), default=True)
     test_item = db.relationship('ComHealthTestItem', backref='invoices')
     receipt = db.relationship('ComHealthReceipt', backref='invoices')
@@ -92,6 +93,9 @@ class ComHealthCustomer(db.Model):
     org = db.relationship('ComHealthOrg', backref=db.backref('employees', lazy=True))
     dob = db.Column('dob', db.Date())
     gender = db.Column('gender', db.Integer)  # 0 for female, 1 for male
+    emptype_id = db.Column('emptype_id', db.ForeignKey('comhealth_customer_employment_types.id'))
+    emptype = db.relationship('ComHealthCustomerEmploymentType',
+                              backref=db.backref('customers'))
 
     def __str__(self):
         return u'{}{} {} {}'.format(self.title, self.firstname,
@@ -112,6 +116,16 @@ class ComHealthCustomer(db.Model):
     @property
     def fullname(self):
         return u'{}{} {}'.format(self.title, self.firstname, self.lastname)
+
+
+class ComHealthCustomerEmploymentType(db.Model):
+    __tablename__ = 'comhealth_customer_employment_types'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    emptype_id = db.Column('emptype_id', db.String(), nullable=False)
+    name = db.Column('name', db.String(), nullable=False)
+
+    def __str__(self):
+        return self.name
 
 
 class ComHealthCustomerInfo(db.Model):
@@ -281,6 +295,7 @@ class ComHealthReceipt(db.Model):
     comment = db.Column('comment', db.Text())
     paid = db.Column('paid', db.Boolean(), default=False)
     cancelled = db.Column('cancelled', db.Boolean(), default=False)
+    cancel_comment = db.Column('cancel_comment', db.Text())
     issuer_id = db.Column('issuer_id', db.ForeignKey('comhealth_cashier.id'))
     issuer = db.relationship('ComHealthCashier',
                              foreign_keys=[issuer_id],
