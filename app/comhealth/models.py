@@ -124,6 +124,9 @@ class ComHealthCustomerEmploymentType(db.Model):
     emptype_id = db.Column('emptype_id', db.String(), nullable=False)
     name = db.Column('name', db.String(), nullable=False)
 
+    def __str__(self):
+        return self.name
+
 
 class ComHealthCustomerInfo(db.Model):
     __tablename__ = 'comhealth_customer_info'

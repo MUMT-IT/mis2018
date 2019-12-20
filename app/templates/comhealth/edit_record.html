@@ -68,12 +68,8 @@
                                     <div class="column">
                                         <p>
                                         <h1 class="subtitle is-size-5">
-                                            <strong>ชื่อ</strong> {{ record.customer.title or '-' }} {{ record.customer.firstname }}
-                                            <strong>นามสกุล</strong> {{ record.customer.lastname }}
-                                        </h1>
-                                        </p>
-                                        <p>
-                                        <h1 class="subtitle is-size-5">
+                                            <strong>ชื่อ</strong> {{ record.customer.title or '-' }} {{ record.customer.firstname or '-' }}
+                                            <strong>นามสกุล</strong> {{ record.customer.lastname or '-' }}
                                             <strong>เพศ</strong>
                                             {% if record.customer.gender == 1 %}ชาย{% else %} หญิง{% endif %}
                                         </h1>
@@ -83,6 +79,20 @@
                                             <strong>สังกัด</strong> {{ record.customer.org.name }}
                                         </h1>
                                         </p>
+                                        <h1 class="subtitle is-size-5">
+                                            <strong>ประเภท</strong>
+                                        </h1>
+                                        <div class="select">
+                                            <select name="emptype_id">
+                                                {% for emptype in emptypes %}
+                                                <option value="{{ emptype.id }}"
+                                                        {% if emptype.id == record.customer.emptype.id %}
+                                                        selected
+                                                        {% endif %}
+                                                    >{{ emptype }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
                                     </div>
                                     <div class="column">
                                         {% if record.customer.dob %}

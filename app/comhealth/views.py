@@ -57,10 +57,14 @@ def edit_record(record_id):
     if not record.service.profiles and not record.service.groups:
         return redirect(url_for('comhealth.edit_service', service_id=record.service.id))
 
+    emptypes = ComHealthCustomerEmploymentType.query.all()
+
     if request.method == 'GET':
         if not record.checkin_datetime:
             return render_template('comhealth/edit_record.html',
-                                   record=record)
+                                   record=record,
+                                   emptypes=emptypes,
+                                   )
 
     containers = set()
     profile_item_cost = 0.0
@@ -101,6 +105,8 @@ def edit_record(record_id):
                 containers.add(test_item.test.container)
 
         record.comment = request.form.get('comment')
+        emptype_id = int(request.form.get('emptype_id', 0))
+        record.customer.emptype_id = emptype_id
 
         record.updated_at = datetime.now(tz=bangkok)
         db.session.add(record)
