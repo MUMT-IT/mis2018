@@ -1,3 +1,5 @@
+from flask_login import login_required
+
 from models import StaffAccount, StaffPersonalInfo
 from . import staffbp as staff
 from flask import jsonify, render_template, request
@@ -46,3 +48,8 @@ def set_password():
         email = request.form.get('email', None)
         return email
     return render_template('staff/set_password.html')
+
+@login_required
+@staff.route('/leave/info/')
+def show_leave_info():
+    return render_template('staff/leave_info.html')

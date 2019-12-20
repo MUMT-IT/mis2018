@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<h1>Welcome {{ current_user.personal_info }}</h1>
+<h4>
+    {% if current_user.personal_info.is_eligible_for_leave %}
+    You can request for a leave.
+    {% else %}
+    You cannot request for a leave.
+    {% endif %}
+</h4>
+</body>
+</html>
