@@ -970,13 +970,15 @@ def create_receipt(record_id):
         for test_item in record.ordered_tests:
             visible = test_item.test.code + '_visible'
             billed = test_item.test.code + '_billed'
+            reimbursable = test_item.test.code + '_reimbursable'
             billed = True if request.form.getlist(billed) else False
             visible = True if request.form.getlist(visible) else False
+            reimbursable = True if request.form.getlist(reimbursable) else False
             invoice = ComHealthInvoice(test_item=test_item,
-                                        receipt=receipt,
-                                        billed=billed,
-                                        visible=visible
-                                        )
+                                       receipt=receipt,
+                                       billed=billed,
+                                       reimbursable=reimbursable,
+                                       visible=visible)
             db.session.add(invoice)
         db.session.commit()
         return redirect(url_for('comhealth.list_all_receipts', record_id=record.id)) 
@@ -1040,13 +1042,13 @@ def show_receipt_detail(receipt_id):
     visible_profile_tests = [t for t in receipt.invoices if t.visible and t.test_item.profile]
 
     return render_template('comhealth/receipt_detail.html',
-                            receipt=receipt, total_cost=total_cost,
-                            total_special_cost=total_special_cost,
-                            total_profile_cost=total_profile_cost,
-                            total_special_cost_thai=total_special_cost_thai,
-                            visible_special_tests=visible_special_tests,
-                            visible_profile_tests=visible_profile_tests,
-                            )
+                           receipt=receipt,
+                           total_cost=total_cost,
+                           total_special_cost=total_special_cost,
+                           total_profile_cost=total_profile_cost,
+                           total_special_cost_thai=total_special_cost_thai,
+                           visible_special_tests=visible_special_tests,
+                           visible_profile_tests=visible_profile_tests)
 
 
 @comhealth.route('/receipts/slip/<int:record_id>')
@@ -1171,35 +1173,32 @@ def export_receipt_pdf(receipt_id):
     ]))
 
     items = [[Paragraph('', style=style_sheet['ThaiStyle']),
-              Paragraph('<font size=11>เบิกได้ (บาท)</font>', style=style_sheet['ThaiStyle']),
-              Paragraph('<font size=11>เบิกไม่ได้ตามระเบียบกระทรวงการคลัง (บาท)</font>',
+              Paragraph('<font size=11>เบิกได้ (บาท)*</font>', style=style_sheet['ThaiStyle']),
+              Paragraph('<font size=11>เบิกไม่ได้ (บาท)*</font>',
                         style=style_sheet['ThaiStyle'])]]
     total = 0
     for t in receipt.invoices:
         if t.visible:
-            if t.test_item.price:
-                split = t.test_item.price - t.test_item.test.default_price
-                if t.billed:
-                    total += t.test_item.price
-            else:
-                split = 0
-                if t.billed:
-                    total += t.test_item.default_price
-            item = [Paragraph('<font size=11>{} (รหัส {})</font>'.format(t.test_item.test.desc.encode('utf-8'), t.test_item.test.gov_code),
-                              style=style_sheet['ThaiStyle']),
-                    Paragraph('<font size=11>{:.2f}</font>'.format(t.test_item.test.default_price),
-                              style=style_sheet['ThaiStyle']),
-                    Paragraph('<font size=11>{:.2f}</font>'.format(split),
-                              style=style_sheet['ThaiStyle']),
-                    ]
-            items.append(item)
+            if t.billed:
+                price = t.test_item.price or t.test_item.default_price
+                total += price
+                item = [Paragraph('<font size=11>{} (รหัส {})</font>'\
+                                  .format(t.test_item.test.desc.encode('utf-8'), t.test_item.test.gov_code or '-'),
+                                  style=style_sheet['ThaiStyle'])]
+                if t.reimbursable:
+                    item.append(Paragraph('<font size=11>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyle']))
+                    item.append(Paragraph('<font size=11>{:,.2f}</font>'.format(0.0), style=style_sheet['ThaiStyle']))
+                else:
+                    item.append(Paragraph('<font size=11>{:,.2f}</font>'.format(0.0), style=style_sheet['ThaiStyle']))
+                    item.append(Paragraph('<font size=11>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyle']))
+                items.append(item)
 
     item_table = Table(items, colWidths=[200,80,180])
 
     total_thai = bahttext(total)
     total_text = Paragraph('<font size=12>รวมเงิน (ตัวอักษร) {}</font>'.format(total_thai.encode('utf-8')),
                            style=style_sheet['ThaiStyle'])
-    total_number = Paragraph('<font size=12>รวมเงินทั้งสิ้น {:.2f} บาท</font>'.format(total),
+    total_number = Paragraph('<font size=12>รวมเงินทั้งสิ้น {:,.2f} บาท</font>'.format(total),
                              style=style_sheet['ThaiStyle'])
     total_content = [[total_text, total_number]]
     total_table = Table(total_content, colWidths=[405, 150])
@@ -1224,7 +1223,8 @@ def export_receipt_pdf(receipt_id):
         payment_info = '''<font size=12>ยังไม่ชำระเงิน</font>'''
 
     notice_text = '''<para align=center><font size=12>
-    ***ใบเสร็จนี้จะสมบูรณ์ก็ต่อเมื่อคณะเทคนิคการแพทย์ได้รับเงินครบถ้วนแล้วเท่านั้น***</font></para>
+    ใบเสร็จนี้จะสมบูรณ์ก็ต่อเมื่อคณะเทคนิคการแพทย์ได้รับเงินครบถ้วนแล้วเท่านั้น
+    <br/>*ตามระเบียบกระทรวงการคลัง</font></para>
     '''
     notice = Table([[Paragraph(notice_text, style=style_sheet['ThaiStyle'])]])
 

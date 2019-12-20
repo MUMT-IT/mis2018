@@ -53,6 +53,7 @@ class ComHealthInvoice(db.Model):
                         db.ForeignKey('comhealth_test_receipts.id'),
                         primary_key=True)
     visible = db.Column('visible', db.Boolean(), default=True)
+    reimbursable = db.Column('reimbursable', db.Boolean(), default=True)
     billed = db.Column('billed', db.Boolean(), default=True)
     test_item = db.relationship('ComHealthTestItem', backref='invoices')
     receipt = db.relationship('ComHealthReceipt', backref='invoices')

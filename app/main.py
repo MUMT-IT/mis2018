@@ -255,6 +255,11 @@ def import_chem_items(excel_file):
     database.load_chem_items(excel_file)
 
 
+@app.template_filter("moneyformat")
+def money_format(value):
+    return '{:,.2f}'.format(value)
+
+
 @app.template_filter("localdatetime")
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')

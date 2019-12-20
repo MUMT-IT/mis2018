@@ -103,9 +103,8 @@
                         <th>ลำดับ</th>
                         <th>รายการทดสอบ</th>
                         <th>รหัสกรมบัญชีกลาง</th>
-                        <th>ราคา</th>
                         <th>เบิกได้ (บาท)</th>
-                        <th>เบิกไม่ได้ตามระเบียบกระทรวงการคลัง (บาท)</th>
+                        <th>เบิกไม่ได้(บาท)</th>
                         </thead>
                         <tbody>
                             {% for t in visible_special_tests %}
@@ -115,10 +114,12 @@
                                 <td>{{ t.test_item.test.desc }} ({{ t.test_item.test.name }})</td>
                                 <td>{{ t.test_item.test.gov_code or '-' }}</td>
                                 {% if t.billed %}
-                                    {% if t.test_item.price %}
-                                    <td>{{ t.test_item.price }}</td>
-                                    <td>{{ t.test_item.test.default_price }}</td>
-                                    <td>{{ t.test_item.price - t.test_item.test.default_price }}</td>
+                                    {% if t.reimbursable %}
+                                    <td>{{ t.test_item.price or t.test_item.test.default_price }}</td>
+                                    <td>0.0</td>
+                                    {% else %}
+                                    <td>0.0</td>
+                                    <td>{{ t.test_item.price or t.test_item.test.default_price|moneyformat }}</td>
                                     {% endif %}
                                 {% else %}
                                 <td>0.0</td>
@@ -129,7 +130,7 @@
                             <tr>
                                 <td></td>
                                 <td></td>
-                                <td><strong>รวม</strong></td><td>{{ total_special_cost }}</td>
+                                <td><strong>รวม</strong></td><td>{{ total_special_cost|moneyformat }}</td>
                                 <td></td>
                                 <td></td>
                             </tr>
@@ -146,7 +147,7 @@
                                 <strong>รวมเงิน (ตัวอักษร) {{ total_special_cost_thai }} บาท</strong>
                             </td>
                             <td>
-                                <strong>รวมทั้งสิ้น {{ total_cost }} บาท</strong>
+                                <strong>รวมทั้งสิ้น {{ total_cost|moneyformat }} บาท</strong>
                             </td>
                         </tr>
                         {% if receipt.paid %}

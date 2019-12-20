@@ -106,7 +106,14 @@
                         <td>{{ ti.test.code }}</td>
                         <td>{{ ti.test.desc }}</td>
                         <td>{{ ti.price or ti.test.default_price }}</td>
-                        <td>{{ ti.test.default_price }}</td>
+                        <td>
+                            <div class="field">
+                                <input class="is-checkradio is-info"
+                                       id="{{ ti.test.code }}_reimbursable" checked value="yes"
+                                       type="checkbox" name="{{ ti.test.code }}_reimbursable"/>
+                                <label for="{{ ti.test.code }}_reimbursable">เบิกได้</label>
+                            </div>
+                        </td>
                         <td>
                             <div class="field">
                                 <input class="is-checkradio is-info"
