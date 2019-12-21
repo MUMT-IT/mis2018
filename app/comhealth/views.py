@@ -8,8 +8,8 @@ from pandas import read_excel, isna
 from flask_weasyprint import HTML, render_pdf
 from sqlalchemy.orm.attributes import flag_modified
 import pytz
-from flask import (render_template, flash, redirect, url_for,
-                   request, send_file, Response, stream_with_context)
+from flask import (render_template, flash, redirect, url_for, session,
+                   request, send_file, Response, stream_with_context, jsonify)
 from flask_login import login_required
 from collections import defaultdict, OrderedDict
 from app.main import db
@@ -31,11 +31,25 @@ def landing():
 
 @comhealth.route('/finance', methods=('GET', 'POST'))
 def finance_landing():
+    cur_year = datetime.today().date().year + 543
+    receipt_ids = ComHealthReceiptID.query.filter_by(buddhist_year=cur_year)
     if request.method == 'POST':
-        pass
-    receipt_ids = ComHealthReceiptID.query.all()
+        code_id = request.form.get('code_id')
+        venue = request.form.get('venue')
+        if code_id:
+            session['receipt_venue'] = venue
+            session['receipt_code_id'] = int(code_id)
+            return redirect(url_for('comhealth.finance_index'))
+        else:
+            flash('No receipt code ID specified.')
     return render_template('comhealth/finance_landing.html',
                            receipt_ids=receipt_ids)
+
+@comhealth.route('/customers')
+def finance_index():
+    print(session)
+    return 'Welcome to finance index page.'
+
 
 
 @comhealth.route('/customers')

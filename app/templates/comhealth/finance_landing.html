@@ -8,7 +8,7 @@
             <div class="container has-text-centered">
                 <h2 class="title">ระบบการเงินงานบริการสุขภาพชุมชน</h2>
                 <h2 class="subtitle">กรุณาตรวจสอบความถูกต้องของข้อมูลและกรอกข้อมูลเพิ่มเติมให้สมบูรณ์</h2>
-                <form>
+                <form method="post">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
@@ -18,9 +18,11 @@
                             <div class="field">
                                 <div class="control is-expanded">
                                     <div class="select is-fullwidth">
-                                        <select>
+                                        <select name="code_id">
                                             {% for rid in receipt_ids %}
-                                            <option name="code_id" value="{{rid.id}}">{{ rid.next }}</option>
+                                            <option value="{{rid.id}}">
+                                                {{ rid.next }}
+                                            </option>
                                             {% endfor %}
                                         </select>
                                     </div>
@@ -35,7 +37,7 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control is-expanded">
-                                    <input type="text" class="input">
+                                    <input type="text" class="input" name="venue">
                                 </div>
                             </div>
                         </div>
