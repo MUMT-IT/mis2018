@@ -227,8 +227,7 @@ class ComHealthRecord(db.Model):
     customer_id = db.Column('customer_id', db.ForeignKey('comhealth_customers.id'))
     customer = db.relationship('ComHealthCustomer', backref=db.backref('records'))
     service_id = db.Column('service_id', db.ForeignKey('comhealth_services.id'))
-    service = db.relationship('ComHealthService',
-                              backref=db.backref('records'))
+    service = db.relationship('ComHealthService', backref=db.backref('records'))
     checkin_datetime = db.Column('checkin_datetime', db.DateTime(timezone=True))
     ordered_tests = db.relationship('ComHealthTestItem', backref=db.backref('records'),
                                     secondary=test_item_record_table)
@@ -240,6 +239,10 @@ class ComHealthRecord(db.Model):
     def container_set(self):
         _containers = set([item.test.container.name for item in self.ordered_tests])
         return _containers
+
+    @property
+    def is_checked_in(self):
+        return self.checkin_datetime is not None
 
 
 class ComHealthTestItem(db.Model):

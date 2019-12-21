@@ -45,11 +45,34 @@ def finance_landing():
     return render_template('comhealth/finance_landing.html',
                            receipt_ids=receipt_ids)
 
-@comhealth.route('/customers')
+@comhealth.route('/services/finance')
 def finance_index():
-    print(session)
-    return 'Welcome to finance index page.'
+    services = ComHealthService.query.all()
+    services_data = []
+    for sv in services:
+        d = {
+            'id': sv.id,
+            'date': sv.date,
+            'location': sv.location,
+            'registered': len(sv.records),
+            'checkedin': len([r for r in sv.records if r.checkin_datetime is not None])
+        }
+        services_data.append(d)
+    return render_template('comhealth/finance_index.html', services=services_data)
 
+
+@comhealth.route('/api/services/<int:service_id>/records')
+def api_finance_record(service_id):
+    service = ComHealthService.query.get(service_id)
+    records = [rec for rec in service.records if rec.is_checked_in]
+    record_schema = ComHealthRecordSchema(many=True)
+    return jsonify(record_schema.dump(records).data)
+
+
+@comhealth.route('/services/<int:service_id>/records')
+def finance_record(service_id):
+    service = ComHealthService.query.get(service_id)
+    return render_template('comhealth/finance_records.html', service=service)
 
 
 @comhealth.route('/customers')
