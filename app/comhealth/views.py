@@ -29,6 +29,11 @@ def landing():
     return render_template('comhealth/landing.html')
 
 
+@comhealth.route('/finance')
+def finance_landing():
+    return render_template('comhealth/finance_landing.html')
+
+
 @comhealth.route('/customers')
 def index():
     services = ComHealthService.query.all()
