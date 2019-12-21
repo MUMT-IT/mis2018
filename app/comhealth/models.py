@@ -283,6 +283,19 @@ class ComHealthService(db.Model):
         return u'{} {}'.format(self.date, self.location)
 
 
+class ComHealthReceiptID(db.Model):
+    __tablename__ = 'comhealth_receipt_ids'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    code = db.Column('code', db.String(), nullable=False)
+    buddhist_year = db.Column('buddhist_year', db.Integer(), nullable=False)
+    count = db.Column('count', db.Integer, default=0)
+    updated_datetime = db.Column('updated_datetime', db.DateTime(timezone=True))
+
+    @property
+    def next(self):
+        return u'{}{}{:06}'.format(self.code,str(self.buddhist_year)[-2:], self.count+1)
+
+
 class ComHealthReceipt(db.Model):
     __tablename__ = 'comhealth_test_receipts'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)

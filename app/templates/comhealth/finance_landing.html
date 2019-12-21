@@ -19,9 +19,9 @@
                                 <div class="control is-expanded">
                                     <div class="select is-fullwidth">
                                         <select>
-                                            <option>A62000056</option>
-                                            <option>B62000036</option>
-                                            <option>C62000046</option>
+                                            {% for rid in receipt_ids %}
+                                            <option name="code_id" value="{{rid.id}}">{{ rid.next }}</option>
+                                            {% endfor %}
                                         </select>
                                     </div>
                                 </div>

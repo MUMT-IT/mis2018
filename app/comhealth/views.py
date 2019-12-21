@@ -29,9 +29,13 @@ def landing():
     return render_template('comhealth/landing.html')
 
 
-@comhealth.route('/finance')
+@comhealth.route('/finance', methods=('GET', 'POST'))
 def finance_landing():
-    return render_template('comhealth/finance_landing.html')
+    if request.method == 'POST':
+        pass
+    receipt_ids = ComHealthReceiptID.query.all()
+    return render_template('comhealth/finance_landing.html',
+                           receipt_ids=receipt_ids)
 
 
 @comhealth.route('/customers')

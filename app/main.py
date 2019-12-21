@@ -187,6 +187,7 @@ admin.add_view(ModelView(ComHealthTestGroup, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthContainer, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCustomerInfoItem, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCashier, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthReceiptID, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCustomerEmploymentType, db.session, category='Com Health'))
 from comhealth.views import CustomerEmploymentTypeUploadView
 admin.add_view(CustomerEmploymentTypeUploadView(
