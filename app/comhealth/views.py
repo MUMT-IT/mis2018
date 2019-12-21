@@ -23,7 +23,13 @@ bangkok = pytz.timezone('Asia/Bangkok')
 
 ALLOWED_EXTENSIONS = ['xlsx', 'xls']
 
+
 @comhealth.route('/')
+def landing():
+    return render_template('comhealth/landing.html')
+
+
+@comhealth.route('/customers')
 def index():
     services = ComHealthService.query.all()
     services_data = []
