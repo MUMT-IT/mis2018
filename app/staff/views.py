@@ -4,6 +4,8 @@ from models import StaffAccount, StaffPersonalInfo
 from . import staffbp as staff
 from flask import jsonify, render_template, request
 
+LEAVE_ANNUAL_QUOTA = 10
+
 @staff.route('/')
 def index():
     return '<h1>Staff page</h1><br>'
