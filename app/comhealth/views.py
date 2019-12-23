@@ -1035,6 +1035,7 @@ def create_receipt(record_id):
                 record=record,
                 issuer_id=int(issuer_id) if issuer_id is not None else None,
                 cashier_id=int(cashier_id) if cashier_id is not None else None,
+                print_profile_note=print_profile_note,
                 )
             db.session.add(receipt)
         for test_item in record.ordered_tests:
@@ -1249,6 +1250,14 @@ def export_receipt_pdf(receipt_id):
               Paragraph('<font size=11>เบิกไม่ได้ (บาท)*</font>',
                         style=style_sheet['ThaiStyle'])]]
     total = 0
+    if receipt.print_profile_note:
+        profile_tests = [t for t in receipt.record.ordered_tests if t.profile]
+        if profile_tests:
+            profile_price = profile_tests[0].profile.quote
+            item = [Paragraph('<font size=11>การตรวจสุขภาพทางห้องปฏิบัติการ</font>', style=style_sheet['ThaiStyle']),
+                    Paragraph('<font size=11>{:,.2f}</font>'.format(profile_price), style=style_sheet['ThaiStyle']),
+                    Paragraph('<font size=11>{:,.2f}</font>'.format(0.0), style=style_sheet['ThaiStyle'])]
+            items.append(item)
     for t in receipt.invoices:
         if t.visible:
             if t.billed:
