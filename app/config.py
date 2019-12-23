@@ -15,8 +15,8 @@ class Config(object):
 
 class DevelopmentConfig(Config):
     DEV_DATABASE = os.environ.get('DEV_DATABASE')
-    DEV_DATABASE_HOST = os.environ.get('DEV_DATABASE_HOST', 'localhost')
-    DEV_DATABASE_PORT = os.environ.get('DEV_DATABASE_PORT', 5443)
+    DEV_DATABASE_HOST = os.environ.get('DEV_DATABASE_HOST', 'pg')
+    DEV_DATABASE_PORT = os.environ.get('DEV_DATABASE_PORT', 5432)
     POSTGRES_PASSWORD = os.environ.get('POSTGRES_PASSWORD')
     SQLALCHEMY_DATABASE_URI = \
         'postgres+psycopg2://postgres:{}@{}:{}/{}'.format(POSTGRES_PASSWORD,
