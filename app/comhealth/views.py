@@ -1005,17 +1005,29 @@ def list_all_receipts(record_id):
 def create_receipt(record_id):
     if request.method == 'GET':
         record = ComHealthRecord.query.get(record_id)
+        customer_age = record.customer.age.years
         cashiers = ComHealthCashier.query.all()
+        ref_profile = ComHealthReferenceTestProfile.query.\
+            filter(ComHealthReferenceTestProfile.profile.\
+                   has(ComHealthTestProfile.age_min<=customer_age)).first()
+        if ref_profile:
+            ref_profile_test_ids = [ti.test.id for ti in ref_profile.profile.test_items]
+        else:
+            ref_profile_test_ids = []
         valid_receipts = [rcp for rcp in record.receipts if not rcp.cancelled]
         return render_template('comhealth/new_receipt.html', record=record,
                                                 valid_receipts=valid_receipts,
                                                 cashiers=cashiers,
+                                                ref_profile=ref_profile,
+                                                ref_profile_test_ids=ref_profile_test_ids,
                                                 )
     if request.method == 'POST':
         record_id = request.form.get('record_id')
         record = ComHealthRecord.query.get(record_id)
         issuer_id = request.form.get('issuer_id', None)
         cashier_id = request.form.get('cashier_id', None)
+        print_profile_item = True if request.form.getlist('print_profile_items') else False
+        print_profile_note = True if request.form.getlist('print_profile_note') else False
         valid_receipts = [rcp for rcp in record.receipts if not rcp.cancelled]
         if not valid_receipts:  # not active receipt
             receipt = ComHealthReceipt(
@@ -1026,6 +1038,8 @@ def create_receipt(record_id):
                 )
             db.session.add(receipt)
         for test_item in record.ordered_tests:
+            if test_item.profile and not print_profile_item:
+                continue
             visible = test_item.test.code + '_visible'
             billed = test_item.test.code + '_billed'
             reimbursable = test_item.test.code + '_reimbursable'
@@ -1238,7 +1252,7 @@ def export_receipt_pdf(receipt_id):
     for t in receipt.invoices:
         if t.visible:
             if t.billed:
-                price = t.test_item.price or t.test_item.default_price
+                price = t.test_item.price or t.test_item.test.default_price
                 total += price
                 item = [Paragraph('<font size=11>{} (รหัส {})</font>'\
                                   .format(t.test_item.test.desc.encode('utf-8'), t.test_item.test.gov_code or '-'),

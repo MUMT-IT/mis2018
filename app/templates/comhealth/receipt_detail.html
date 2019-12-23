@@ -75,7 +75,7 @@
                                 <td>{{ loop.index }}</td>
                                 <td>{{ t.test_item.test.name }}</td>
                                 {% if t.billed %}
-                                <td>{{ t.price or t.test_item.test.default_price }}</td>
+                                <td>{{ t.test_item.test.default_price|moneyformat }}</td>
                                 {% else %}
                                 <td>0.0</td>
                                 {% endif %}
