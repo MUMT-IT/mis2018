@@ -28,12 +28,19 @@ admin = Admin()
 dbutils = AppGroup('dbutils')
 
 
-def create_app(config_setting='development'):
-    '''Create app based on the config setting
-    '''
+def create_app(config_setting):
+    """Create app based on the config setting
+    """
 
     app = Flask(__name__)
     app.config.from_object(SETTINGS[config_setting])
+    if config_setting == 'development':
+        if not app.config['DEV_DATABASE']:
+            raise ValueError('DEV_DATABASE not specified for the development mode.')
+    elif config_setting == 'production':
+        if not app.config['DATABASE']:
+            raise ValueError('DATABASE not specified for the development mode.')
+
     db.init_app(app)
     ma.init_app(app)
     login.init_app(app)
@@ -42,7 +49,10 @@ def create_app(config_setting='development'):
     admin.init_app(app)
     return app
 
-config_setting = os.environ.get('FLASK_CONFIG', 'development')
+config_setting = os.environ.get('FLASK_ENV')
+if config_setting is None:
+    raise ValueError('Work mode not specified.')
+
 app = create_app(config_setting)
 
 @login.user_loader
