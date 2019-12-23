@@ -322,6 +322,15 @@ class ComHealthReceipt(db.Model):
     card_number = db.Column('card_number', db.String(16))
 
 
+class ComHealthReferenceTestProfile(db.Model):
+    """All tests in the profile are reimbursable by the government.
+    """
+    __tablename__ = 'comhealth_reference_test_profile'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    profile_id = db.Column('profile_id', db.ForeignKey('comhealth_test_profiles.id'))
+    profile = db.relationship('ComHealthTestProfile')
+
+
 class ComHealthCustomerInfoSchema(ma.ModelSchema):
     class Meta:
         model = ComHealthCustomerInfo
