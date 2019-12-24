@@ -71,6 +71,36 @@ def api_finance_record(service_id):
     return jsonify(record_schema.dump(records).data)
 
 
+@comhealth.route('/services/health-record')
+def health_record_landing():
+    services = ComHealthService.query.all()
+    services_data = []
+    for sv in services:
+        d = {
+            'id': sv.id,
+            'date': sv.date,
+            'location': sv.location,
+            'registered': len(sv.records),
+            'checkedin': len([r for r in sv.records if r.checkin_datetime is not None])
+        }
+        services_data.append(d)
+    return render_template('comhealth/health_record_landing.html', services=services_data)
+
+
+@comhealth.route('/services/<int:service_id>/health-record')
+def health_record_index(service_id):
+    service = ComHealthService.query.get(service_id)
+    employees = [r.customer for r in service.records]
+    customer_schema = ComHealthCustomerSchema(many=True)
+    if employees:
+        org = employees[0].org
+    else:
+        org = None
+    return render_template('comhealth/employees.html',
+                           employees=customer_schema.dump(org.employees).data,
+                           org=org)
+
+
 @comhealth.route('/services/<int:service_id>/records')
 def finance_record(service_id):
     service = ComHealthService.query.get(service_id)
