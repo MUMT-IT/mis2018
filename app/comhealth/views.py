@@ -47,6 +47,8 @@ def finance_landing():
 
 @comhealth.route('/services/finance')
 def finance_index():
+    if not session.get('receipt_code_id'):
+        return redirect(url_for('comhealth.finance_landing'))
     services = ComHealthService.query.all()
     services_data = []
     for sv in services:
@@ -1022,6 +1024,7 @@ def create_receipt(record_id):
                                                 ref_profile_test_ids=ref_profile_test_ids,
                                                 )
     if request.method == 'POST':
+        receipt_code = ComHealthReceiptID.query.get(session['receipt_code_id'])
         record_id = request.form.get('record_id')
         record = ComHealthRecord.query.get(record_id)
         issuer_id = request.form.get('issuer_id', None)
@@ -1031,6 +1034,7 @@ def create_receipt(record_id):
         valid_receipts = [rcp for rcp in record.receipts if not rcp.cancelled]
         if not valid_receipts:  # not active receipt
             receipt = ComHealthReceipt(
+                code=receipt_code.next,
                 created_datetime=datetime.now(tz=bangkok),
                 record=record,
                 issuer_id=int(issuer_id) if issuer_id is not None else None,
@@ -1053,6 +1057,8 @@ def create_receipt(record_id):
                                        reimbursable=reimbursable,
                                        visible=visible)
             db.session.add(invoice)
+        receipt_code.count += 1
+        db.session.add(receipt_code)
         db.session.commit()
         return redirect(url_for('comhealth.list_all_receipts', record_id=record.id)) 
 
@@ -1206,13 +1212,15 @@ def export_receipt_pdf(receipt_id):
     '''
 
     receipt_info = '''<font size=12>
-    เลขที่ {receipt_id} แผ่นที่ 1<br/>
+    เลขที่ {receipt_code} แผ่นที่ 1<br/>
     วันที่ {issued_date}<br/>
+    ออกที่ {venue}
     </font>
     '''
     issued_date = datetime.now().strftime('%d/%m/%Y')
-    receipt_info = receipt_info.format(receipt_id=receipt_id,
-                                       issued_date=issued_date)
+    receipt_info = receipt_info.format(receipt_code=receipt.code,
+                                       issued_date=issued_date,
+                                       venue=session['receipt_venue'])
 
     header_content = [[Paragraph(address, style=style_sheet['ThaiStyle']),
                         Paragraph(affiliation, style=style_sheet['ThaiStyle']),
