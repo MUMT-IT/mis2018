@@ -1250,7 +1250,7 @@ def export_receipt_pdf(receipt_id):
     issued_date = datetime.now().strftime('%d/%m/%Y')
     receipt_info = receipt_info.format(receipt_code=receipt.code,
                                        issued_date=issued_date,
-                                       venue=session['receipt_venue'])
+                                       venue=session.get('receipt_venue', '-').encode('utf-8'))
 
     header_content = [[Paragraph(address, style=style_sheet['ThaiStyle']),
                         Paragraph(affiliation, style=style_sheet['ThaiStyle']),
