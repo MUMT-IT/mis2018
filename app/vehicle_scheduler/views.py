@@ -8,9 +8,9 @@ from googleapiclient.discovery import build
 from flask import jsonify, render_template, redirect, flash, url_for, request
 from models import *
 from ..models import Org, IOCode
-from ..main import config_setting
+import os
 
-if config_setting == 'development':
+if os.environ.get('FLASK_ENV') == 'development':
     CALENDAR_ID = 'cl05me2rhh57a5n3i76nqao7ng@group.calendar.google.com'
 else:
     CALENDAR_ID = 'anatjgngk7bcv9kte15p38l7mg@group.calendar.google.com'
