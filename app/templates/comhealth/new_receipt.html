@@ -66,12 +66,23 @@
                     <tr>
                         <td>{{ ti.test.code }}</td>
                         <td>{{ ti.test.desc }}</td>
-                        <td>{{ ti.price or ti.test.default_price }}</td>
-                        <td>{{ ti.test.default_price }}</td>
+                        <td>{{ ti.test.default_price|moneyformat }}</td>
                         <td>
                             <div class="field">
                                 <input class="is-checkradio is-info"
-                                    id="{{ ti.test.code }}_billed" value="yes"
+                                       id="{{ ti.test.code }}_reimbursable" value="yes"
+                                       type="checkbox" name="{{ ti.test.code }}_reimbursable"
+                                       {% if ti.test.id in ref_profile_test_ids %}
+                                       checked
+                                       {% endif %}
+                                />
+                                <label for="{{ ti.test.code }}_reimbursable">เบิกได้</label>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="field">
+                                <input class="is-checkradio is-info"
+                                    id="{{ ti.test.code }}_billed" value="yes" checked
                                     type="checkbox" name="{{ ti.test.code }}_billed"/>
                                 <label for="{{ ti.test.code }}_billed">รวมจำนวนเงิน</label>
                             </div>
@@ -79,7 +90,7 @@
                         <td>
                             <div class="field">
                                 <input class="is-checkradio is-info"
-                                    id="{{ ti.test.code }}_visible" value="yes"
+                                    id="{{ ti.test.code }}_visible" value="yes" checked
                                     type="checkbox" name="{{ ti.test.code }}_visible"/>
                                 <label for="{{ ti.test.code }}_visible">แสดงรายการ</label>
                             </div>
@@ -89,6 +100,18 @@
                     {% endif %}
                     {% endfor %}
                 </table>
+                <div class="field">
+                    <input class="is-checkradio is-info"
+                           id="print_profile_items"
+                           value="yes" type="checkbox" name="print_profile_items"/>
+                    <label for="print_profile_items">แสดงรายการตรวจปกติทุกรายการ</label>
+                </div>
+                <div class="field">
+                    <input class="is-checkradio is-info"
+                           id="print_profile_note"
+                           value="profile_note" type="checkbox" name="print_profile_note"/>
+                    <label for="print_profile_note">แสดงรายการตรวจปกติแบบรวม</label>
+                </div>
                 <h1 class="title is-4">รายการตรวจพิเศษ</h1>
                 <table class="table is-narrow">
                     <thead>
@@ -109,7 +132,7 @@
                         <td>
                             <div class="field">
                                 <input class="is-checkradio is-info"
-                                       id="{{ ti.test.code }}_reimbursable" checked value="yes"
+                                       id="{{ ti.test.code }}_reimbursable" value="yes"
                                        type="checkbox" name="{{ ti.test.code }}_reimbursable"/>
                                 <label for="{{ ti.test.code }}_reimbursable">เบิกได้</label>
                             </div>

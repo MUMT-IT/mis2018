@@ -55,7 +55,6 @@ def create_app():
 
 app = create_app()
 
-
 @login.user_loader
 def load_user(user_id):
     print('load user..')
@@ -216,7 +215,10 @@ admin.add_view(ModelView(ComHealthTestGroup, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthContainer, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCustomerInfoItem, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCashier, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthReceiptID, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCustomerEmploymentType, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthReferenceTestProfile, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthCustomerInfo, db.session, category='Com Health'))
 from comhealth.views import CustomerEmploymentTypeUploadView
 
 admin.add_view(CustomerEmploymentTypeUploadView(

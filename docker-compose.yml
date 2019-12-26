@@ -7,18 +7,30 @@ services:
       - 80:80
     depends_on:
       - web
+  traefik:
+    image: traefik
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./traefik/acme:/etc/traefik/acme
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"
   web:
     build: .
     depends_on:
       - pg
-    ports:
-      - 5000
     env_file:
       - web_variables.env
+    ports:
+      - 5000
+    labels:
+      - "traefik.enable=true"
+      - "traefik.frontend.rule=Host:web-docker.localhost"
     environment:
       - FLASK_ENV
       - POSTGRES_PASSWORD
-      - DEV_DATABASE
       - DATABASE
       - SCOPUS_API_KEY
     volumes:

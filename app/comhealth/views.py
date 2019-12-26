@@ -8,8 +8,8 @@ from pandas import read_excel, isna
 from flask_weasyprint import HTML, render_pdf
 from sqlalchemy.orm.attributes import flag_modified
 import pytz
-from flask import (render_template, flash, redirect, url_for,
-                   request, send_file, Response, stream_with_context)
+from flask import (render_template, flash, redirect, url_for, session,
+                   request, send_file, Response, stream_with_context, jsonify)
 from flask_login import login_required
 from collections import defaultdict, OrderedDict
 from app.main import db
@@ -23,7 +23,59 @@ bangkok = pytz.timezone('Asia/Bangkok')
 
 ALLOWED_EXTENSIONS = ['xlsx', 'xls']
 
+
 @comhealth.route('/')
+def landing():
+    return render_template('comhealth/landing.html')
+
+
+@comhealth.route('/finance', methods=('GET', 'POST'))
+def finance_landing():
+    cur_year = datetime.today().date().year + 543
+    receipt_ids = ComHealthReceiptID.query.filter_by(buddhist_year=cur_year)
+    if request.method == 'POST':
+        code_id = request.form.get('code_id')
+        venue = request.form.get('venue')
+        if code_id:
+            session['receipt_venue'] = venue
+            session['receipt_code_id'] = int(code_id)
+            return redirect(url_for('comhealth.finance_index'))
+        else:
+            flash('No receipt code ID specified.')
+    return render_template('comhealth/finance_landing.html',
+                           receipt_ids=receipt_ids)
+
+@comhealth.route('/services/finance')
+def finance_index():
+    services = ComHealthService.query.all()
+    services_data = []
+    for sv in services:
+        d = {
+            'id': sv.id,
+            'date': sv.date,
+            'location': sv.location,
+            'registered': len(sv.records),
+            'checkedin': len([r for r in sv.records if r.checkin_datetime is not None])
+        }
+        services_data.append(d)
+    return render_template('comhealth/finance_index.html', services=services_data)
+
+
+@comhealth.route('/api/services/<int:service_id>/records')
+def api_finance_record(service_id):
+    service = ComHealthService.query.get(service_id)
+    records = [rec for rec in service.records if rec.is_checked_in]
+    record_schema = ComHealthRecordSchema(many=True)
+    return jsonify(record_schema.dump(records).data)
+
+
+@comhealth.route('/services/<int:service_id>/records')
+def finance_record(service_id):
+    service = ComHealthService.query.get(service_id)
+    return render_template('comhealth/finance_records.html', service=service)
+
+
+@comhealth.route('/customers')
 def index():
     services = ComHealthService.query.all()
     services_data = []
@@ -953,17 +1005,29 @@ def list_all_receipts(record_id):
 def create_receipt(record_id):
     if request.method == 'GET':
         record = ComHealthRecord.query.get(record_id)
+        customer_age = record.customer.age.years
         cashiers = ComHealthCashier.query.all()
+        ref_profile = ComHealthReferenceTestProfile.query.\
+            filter(ComHealthReferenceTestProfile.profile.\
+                   has(ComHealthTestProfile.age_min<=customer_age)).first()
+        if ref_profile:
+            ref_profile_test_ids = [ti.test.id for ti in ref_profile.profile.test_items]
+        else:
+            ref_profile_test_ids = []
         valid_receipts = [rcp for rcp in record.receipts if not rcp.cancelled]
         return render_template('comhealth/new_receipt.html', record=record,
                                                 valid_receipts=valid_receipts,
                                                 cashiers=cashiers,
+                                                ref_profile=ref_profile,
+                                                ref_profile_test_ids=ref_profile_test_ids,
                                                 )
     if request.method == 'POST':
         record_id = request.form.get('record_id')
         record = ComHealthRecord.query.get(record_id)
         issuer_id = request.form.get('issuer_id', None)
         cashier_id = request.form.get('cashier_id', None)
+        print_profile_item = True if request.form.getlist('print_profile_items') else False
+        print_profile_note = True if request.form.getlist('print_profile_note') else False
         valid_receipts = [rcp for rcp in record.receipts if not rcp.cancelled]
         if not valid_receipts:  # not active receipt
             receipt = ComHealthReceipt(
@@ -971,9 +1035,12 @@ def create_receipt(record_id):
                 record=record,
                 issuer_id=int(issuer_id) if issuer_id is not None else None,
                 cashier_id=int(cashier_id) if cashier_id is not None else None,
+                print_profile_note=print_profile_note,
                 )
             db.session.add(receipt)
         for test_item in record.ordered_tests:
+            if test_item.profile and not print_profile_item:
+                continue
             visible = test_item.test.code + '_visible'
             billed = test_item.test.code + '_billed'
             reimbursable = test_item.test.code + '_reimbursable'
@@ -1183,10 +1250,18 @@ def export_receipt_pdf(receipt_id):
               Paragraph('<font size=11>เบิกไม่ได้ (บาท)*</font>',
                         style=style_sheet['ThaiStyle'])]]
     total = 0
+    if receipt.print_profile_note:
+        profile_tests = [t for t in receipt.record.ordered_tests if t.profile]
+        if profile_tests:
+            profile_price = profile_tests[0].profile.quote
+            item = [Paragraph('<font size=11>การตรวจสุขภาพทางห้องปฏิบัติการ</font>', style=style_sheet['ThaiStyle']),
+                    Paragraph('<font size=11>{:,.2f}</font>'.format(profile_price), style=style_sheet['ThaiStyle']),
+                    Paragraph('<font size=11>{:,.2f}</font>'.format(0.0), style=style_sheet['ThaiStyle'])]
+            items.append(item)
     for t in receipt.invoices:
         if t.visible:
             if t.billed:
-                price = t.test_item.price or t.test_item.default_price
+                price = t.test_item.price or t.test_item.test.default_price
                 total += price
                 item = [Paragraph('<font size=11>{} (รหัส {})</font>'\
                                   .format(t.test_item.test.desc.encode('utf-8'), t.test_item.test.gov_code or '-'),

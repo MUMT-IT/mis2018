@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Community Health Information System{% endblock %}
+{% include "comhealth/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="columns">
+        <div class="column">
+            <div class="container has-text-centered">
+                <h2 class="title">ระบบการเงินงานบริการสุขภาพชุมชน</h2>
+                <h2 class="subtitle">กรุณาตรวจสอบความถูกต้องของข้อมูลและกรอกข้อมูลเพิ่มเติมให้สมบูรณ์</h2>
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label>หมายเลขใบเสร็จเริ่มต้น</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control is-expanded">
+                                    <div class="select is-fullwidth">
+                                        <select name="code_id">
+                                            {% for rid in receipt_ids %}
+                                            <option value="{{rid.id}}">
+                                                {{ rid.next }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            สถานที่ออกใบเสร็จ
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control is-expanded">
+                                    <input type="text" class="input" name="venue">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control is-expanded">
+                                    <input type="submit" class="button is-info" value="Proceed">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

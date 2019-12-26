@@ -227,8 +227,7 @@ class ComHealthRecord(db.Model):
     customer_id = db.Column('customer_id', db.ForeignKey('comhealth_customers.id'))
     customer = db.relationship('ComHealthCustomer', backref=db.backref('records'))
     service_id = db.Column('service_id', db.ForeignKey('comhealth_services.id'))
-    service = db.relationship('ComHealthService',
-                              backref=db.backref('records'))
+    service = db.relationship('ComHealthService', backref=db.backref('records'))
     checkin_datetime = db.Column('checkin_datetime', db.DateTime(timezone=True))
     ordered_tests = db.relationship('ComHealthTestItem', backref=db.backref('records'),
                                     secondary=test_item_record_table)
@@ -240,6 +239,10 @@ class ComHealthRecord(db.Model):
     def container_set(self):
         _containers = set([item.test.container.name for item in self.ordered_tests])
         return _containers
+
+    @property
+    def is_checked_in(self):
+        return self.checkin_datetime is not None
 
 
 class ComHealthTestItem(db.Model):
@@ -283,6 +286,19 @@ class ComHealthService(db.Model):
         return u'{} {}'.format(self.date, self.location)
 
 
+class ComHealthReceiptID(db.Model):
+    __tablename__ = 'comhealth_receipt_ids'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    code = db.Column('code', db.String(), nullable=False)
+    buddhist_year = db.Column('buddhist_year', db.Integer(), nullable=False)
+    count = db.Column('count', db.Integer, default=0)
+    updated_datetime = db.Column('updated_datetime', db.DateTime(timezone=True))
+
+    @property
+    def next(self):
+        return u'{}{}{:06}'.format(self.code,str(self.buddhist_year)[-2:], self.count+1)
+
+
 class ComHealthReceipt(db.Model):
     __tablename__ = 'comhealth_test_receipts'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
@@ -304,6 +320,16 @@ class ComHealthReceipt(db.Model):
     cashier = db.relationship('ComHealthCashier', foreign_keys=[cashier_id])
     payment_method = db.Column('payment_method', db.String(64))
     card_number = db.Column('card_number', db.String(16))
+    print_profile_note = db.Column('print_profile_note', db.Boolean(), default=False)
+
+
+class ComHealthReferenceTestProfile(db.Model):
+    """All tests in the profile are reimbursable by the government.
+    """
+    __tablename__ = 'comhealth_reference_test_profile'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    profile_id = db.Column('profile_id', db.ForeignKey('comhealth_test_profiles.id'))
+    profile = db.relationship('ComHealthTestProfile')
 
 
 class ComHealthCustomerInfoSchema(ma.ModelSchema):

@@ -1,0 +1,43 @@
+<section class="hero is-info">
+    <div class="hero-head">
+        <nav class="navbar">
+            <div class="container">
+                <div class="navbar-brand">
+                    <a class="navbar-item" href="/">Main</a>
+                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+                </div>
+                <div id="navbarMenuHeroA" class="navbar-menu">
+                    <div class="navbar-end">
+                        <a class="navbar-item"
+                           href="/comhealth">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                            <span>Home</span>
+                        </a>
+                        <a class="navbar-item"
+                           href="/comhealth/tests">
+                            <span>Tests</span>
+                        </a>
+                        <a class="navbar-item"
+                           href="/comhealth/organizations">
+                            <span>Organizations</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </div>
+    <div class="hero-body">
+        <div class="columns">
+            <div class="container has-text-centered">
+                <img src="{{ url_for('static', filename='img/medical-history.png') }}" width="100">
+                <h1 class="title">Community Health Service Registration System</h1>
+            </div>
+        </div>
+    </div>
+</section>
