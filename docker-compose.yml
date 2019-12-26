@@ -16,12 +16,10 @@ services:
     env_file:
       - web_variables.env
     environment:
-      - FLASK_CONFIG
-      - FLASK_DEBUG
+      - FLASK_ENV
       - POSTGRES_PASSWORD
       - DEV_DATABASE
       - DATABASE
-      - SECRET_KEY
       - SCOPUS_API_KEY
     volumes:
       - ./app:/mis2018/app
