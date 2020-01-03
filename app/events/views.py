@@ -6,7 +6,6 @@ from flask import jsonify, render_template
 from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
 
-
 CALENDAR_ID = 'mumtpr@mahidol.edu'
 
 service_account_info = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()

@@ -60,10 +60,6 @@ def create_app():
 
 app = create_app()
 
-import logging
-logging.basicConfig()
-
-
 @login.user_loader
 def load_user(user_id):
     print('load user..')
@@ -79,13 +75,15 @@ def index():
 
 
 # Scheduler for sending event of the day!
-from app.auth.views import event_notifier
-'''
-scheduler = BackgroundScheduler()
-scheduler.add_job(event_notifier, trigger='interval', seconds=30)
-scheduler.start()
-atexit.register(lambda: scheduler.shutdown())
-'''
+if os.environ.get('FLASK_ENV') == 'production':
+    import logging
+    logging.basicConfig()
+
+    from app.line.views import event_notifier
+    scheduler = BackgroundScheduler()
+    scheduler.add_job(event_notifier, trigger='interval', seconds=60)
+    scheduler.start()
+    atexit.register(lambda: scheduler.shutdown())
 
 json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()
 
@@ -161,8 +159,11 @@ app.register_blueprint(auth_blueprint, url_prefix='/auth')
 from models import (Student, Class, ClassCheckIn,
                     Org, Mission, IOCode, CostCenter,
                     StudentCheckInRecord)
-import database
 
+from line import linebot_bp as linebot_blueprint
+app.register_blueprint(linebot_blueprint, url_prefix='/linebot')
+
+import database
 
 class StudentCheckInAdminModel(ModelView):
     can_create = True
