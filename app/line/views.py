@@ -63,7 +63,7 @@ def handle_message(event):
 def event_notifier():
     c = Calendar()
     today = datetime.today().date().strftime('%Y-%m-%d')
-    events = requests.get('https://75fe7249.ngrok.io/events/api/global')
+    events = requests.get('https://mumtmis.herokuapp.com/events/api/global')
     all_events = []
     for evt in events.json():
         if evt.get('start') == today:
