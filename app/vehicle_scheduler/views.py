@@ -1,20 +1,23 @@
 # -*- coding: utf-8 -*-
-from . import vehiclebp as vehicle
+import os
 import pytz
+import requests
+from . import vehiclebp as vehicle
 from sqlalchemy.exc import SQLAlchemyError
-import google.auth
 from datetime import datetime
 from googleapiclient.discovery import build
 from flask import jsonify, render_template, redirect, flash, url_for, request
 from models import *
 from ..models import Org, IOCode
-import os
+from google.oauth2.service_account import Credentials
 
 if os.environ.get('FLASK_ENV') == 'development':
     CALENDAR_ID = 'cl05me2rhh57a5n3i76nqao7ng@group.calendar.google.com'
 else:
     CALENDAR_ID = 'anatjgngk7bcv9kte15p38l7mg@group.calendar.google.com'
 
+service_account_info = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+credentials = Credentials.from_service_account_info(service_account_info)
 
 @vehicle.route('/api/vehicles')
 def get_vehicles():
@@ -36,7 +39,6 @@ def get_vehicles():
 @vehicle.route('/api/events')
 def get_events():
     tz = pytz.timezone('Asia/Bangkok')
-    credentials, project_id = google.auth.default()
     scoped_credentials = credentials.with_scopes([
         'https://www.googleapis.com/auth/calendar',
         'https://www.googleapis.com/auth/calendar.events'
@@ -249,7 +251,6 @@ def vehicle_reserve(license):
                     }
                 }
 
-                credentials, project_id = google.auth.default()
                 scoped_credentials = credentials.with_scopes([
                     'https://www.googleapis.com/auth/calendar',
                     'https://www.googleapis.com/auth/calendar.events'
@@ -302,7 +303,6 @@ def approve_event(event_id):
             }
         }
 
-        credentials, project_id = google.auth.default()
         scoped_credentials = credentials.with_scopes([
             'https://www.googleapis.com/auth/calendar',
             'https://www.googleapis.com/auth/calendar.events'
@@ -407,7 +407,6 @@ def edit_detail(event_id=None):
                 }
             }
         }
-        credentials, project_id = google.auth.default()
         scoped_credentials = credentials.with_scopes([
             'https://www.googleapis.com/auth/calendar',
             'https://www.googleapis.com/auth/calendar.events'
@@ -452,7 +451,6 @@ def cancel(event_id):
             db.session.add(event)
             db.session.commit()
             update_event = { 'status': 'cancelled' }
-            credentials, project_id = google.auth.default()
             scoped_credentials = credentials.with_scopes([
                 'https://www.googleapis.com/auth/calendar',
                 'https://www.googleapis.com/auth/calendar.events'
