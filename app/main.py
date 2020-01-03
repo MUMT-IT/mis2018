@@ -80,12 +80,12 @@ def index():
 
 # Scheduler for sending event of the day!
 from app.auth.views import event_notifier
-
+'''
 scheduler = BackgroundScheduler()
 scheduler.add_job(event_notifier, trigger='interval', seconds=30)
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown())
-
+'''
 
 json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()
 
@@ -99,17 +99,16 @@ class KPIAdminModel(ModelView):
     column_list = ('id', 'created_by', 'created_at',
                    'updated_at', 'updated_by', 'name')
 
+from events import event_bp as event_blueprint
+app.register_blueprint(event_blueprint, url_prefix='/events')
 
 from models import KPI
-
 admin.add_views(KPIAdminModel(KPI, db.session, category='KPI'))
 
 from studs import studbp as stud_blueprint
-
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
 from food import foodbp as food_blueprint
-
 app.register_blueprint(food_blueprint, url_prefix='/food')
 from food.models import (Person, Farm, Produce, PesticideTest,
                          BactTest, ParasiteTest)
