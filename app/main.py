@@ -3,6 +3,7 @@ import os
 import json
 import click
 import requests
+from dotenv import load_dotenv
 from pytz import timezone
 from flask.cli import AppGroup
 from flask import Flask, render_template
@@ -14,6 +15,7 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 
+load_dotenv()
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 DATABASE = os.environ.get('DATABASE')
