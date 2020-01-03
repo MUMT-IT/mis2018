@@ -86,7 +86,6 @@ def logout():
 def line_login():
     line_auth_url = 'https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id={}&redirect_uri={}&state=494959&scope=profile'
     line_auth_url = line_auth_url.format(LINE_CLIENT_ID, url_for('auth.line_callback', _external=True, _scheme='https'))
-    print(line_auth_url)
     return redirect(line_auth_url)
 
 
