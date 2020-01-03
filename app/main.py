@@ -2,6 +2,8 @@
 import os
 import json
 import click
+import atexit
+from apscheduler.schedulers.background import BackgroundScheduler
 import requests
 from dotenv import load_dotenv
 from pytz import timezone
@@ -10,7 +12,7 @@ from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
-from flask_login import LoginManager
+from flask_login import LoginManager, current_user
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
@@ -58,6 +60,10 @@ def create_app():
 
 app = create_app()
 
+import logging
+logging.basicConfig()
+
+
 @login.user_loader
 def load_user(user_id):
     print('load user..')
@@ -70,6 +76,15 @@ def load_user(user_id):
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+# Scheduler for sending event of the day!
+from app.auth.views import event_notifier
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(event_notifier, trigger='interval', seconds=30)
+scheduler.start()
+atexit.register(lambda: scheduler.shutdown())
 
 
 json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()

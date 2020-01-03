@@ -1,5 +1,6 @@
 alembic==0.9.6
 appnope==0.1.0
+APScheduler==3.6.3
 asn1crypto==0.24.0
 astroid==1.6.3
 backports-abc==0.5
@@ -32,6 +33,7 @@ Flask-Script==2.0.6
 Flask-SQLAlchemy==2.3.2
 Flask-WeasyPrint==0.6
 Flask-WTF==0.14.2
+funcsigs==1.0.2
 functools32==3.2.3.post2
 future==0.18.2
 futures==3.2.0

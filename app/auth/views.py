@@ -186,3 +186,9 @@ def handle_message(event):
         line_bot_api.reply_message(
             event.reply_token,
             TextSendMessage(text=u'Always available'))
+
+
+def event_notifier():
+    line_bot_api.push_message(
+        to='U6d57844061b29c8f2a46a5ff841b28d8',
+        messages=TextSendMessage(text='This is the event of the day!'))
