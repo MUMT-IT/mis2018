@@ -72,16 +72,19 @@ def account():
         else:
             flash('New passwords are missing. Try again.')
 
-    return render_template('/auth/account.html')
+    return render_template('/auth/account.html',
+                           line_profile=session.get('line_profile', {}))
 
 
 @auth.route('/logout')
 @login_required
 def logout():
     logout_user()
+    session.pop('line_profile', None)
     return redirect(url_for('auth.login'))
 
 
+@auth.route('/line')
 @auth.route('/line/login')
 def line_login():
     line_auth_url = 'https://access.line.me/oauth2/v2.1/authorize?response_type=code&client_id={}&redirect_uri={}&state=494959&scope=profile'
@@ -116,17 +119,46 @@ def line_callback():
             headers = {'Authorization': 'Bearer {}'.format(payload['access_token'])}
             profile = requests.get('https://api.line.me/v2/profile', headers=headers)
             if profile.status_code == 200:
-                session['line_profile'] = profile.json()
+                profile_data = profile.json()
+                session['line_profile'] = profile_data
                 return redirect(url_for('auth.line_profile'))
             else:
                 return "Failed to retrieve a user's profile."
-    return 'Log in done.'
+    return 'Failed to retrieve the access code from Line.'
 
 
 @auth.route('/line/profile')
 def line_profile():
-    if session.get('line_profile'):
-        return render_template('auth/line_account.html', profile=session['line_profile'])
+    if 'line_profile' not in session:
+        return redirect('auth.line_login')
+
+    if current_user.is_authenticated:
+        logout_user()
+
+    userId = session['line_profile'].get('userId')
+    line_user = StaffAccount.query.filter_by(line_id=userId).first()
+    if line_user:
+        # Automatically login the user with the associated Line account
+        login_user(line_user)
+        return redirect(url_for('auth.account'))
+    else:
+        return render_template('auth/line_account.html',
+                               profile=session['line_profile'],
+                               line_account=line_user)
+
+
+@auth.route('/line/account/link')
+@login_required
+def link_line_account():
+    if not session.get('line_profile'):
+        return redirect(url_for('auth.line_login'))
+    else:
+        profile_data = session.get('line_profile')
+
+    current_user.line_id = profile_data.get('userId'),
+    db.session.add(current_user)
+    db.session.commit()
+    return redirect(url_for('auth.account'))
 
 
 @auth.route('/line/message/callback', methods=['POST'])

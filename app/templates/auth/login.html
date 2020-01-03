@@ -44,9 +44,17 @@
                         <br>
                         {{ form.remember_me.label() }}
                         {{ form.remember_me() }}
-                        <div class="field">
+                        <div class="field is-grouped">
                             <div class="control">
-                                {{ form.submit(class='button is-primary') }}
+                                {{ form.submit(class='button is-info') }}
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('auth.line_login') }}" class="button is-success">
+                                    <span class="icon">
+                                        <i class="fab fa-line fa-2x"></i>
+                                    </span>
+                                    <span>Line login</span>
+                                </a>
                             </div>
                         </div>
                     </form>
