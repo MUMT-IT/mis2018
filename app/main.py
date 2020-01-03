@@ -2,6 +2,7 @@
 import os
 import json
 import click
+import requests
 from pytz import timezone
 from flask.cli import AppGroup
 from flask import Flask, render_template
@@ -69,8 +70,7 @@ def index():
     return render_template('index.html')
 
 
-with app.open_resource(os.environ.get('JSON_KEYFILE')) as jk:
-    json_keyfile = json.load(jk)
+json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()
 
 from kpi import kpibp as kpi_blueprint
 

@@ -8,14 +8,20 @@ from datetime import datetime
 import pytz
 
 import google.auth
+import requests
+import os
 import dateutil.parser
 from googleapiclient.discovery import build
+from google.oauth2.service_account import Credentials
 from oauth2client.service_account import ServiceAccountCredentials
 from ..main import json_keyfile, db
 
-from ..models import IOCode, Mission, Org, CostCenter
+from ..models import IOCode
 
 CALENDAR_ID = '9hur49up24fdcbicdbggvpu77k@group.calendar.google.com'
+
+service_account_info = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+credentials = Credentials.from_service_account_info(service_account_info)
 
 @room.route('/api/iocodes')
 def get_iocodes():
@@ -53,13 +59,14 @@ def get_rooms():
 @room.route('/api/events')
 def get_events():
     tz = pytz.timezone('Asia/Bangkok')
-    credentials, project_id = google.auth.default()
+    # credentials, project_id = google.auth.default()
     scoped_credentials = credentials.with_scopes([
         'https://www.googleapis.com/auth/calendar',
         'https://www.googleapis.com/auth/calendar.events'
     ])
     calendar_service = build('calendar', 'v3', credentials=scoped_credentials)
-    request = calendar_service.events().list(calendarId='9hur49up24fdcbicdbggvpu77k@group.calendar.google.com')
+    request = calendar_service.events().list(
+        calendarId='{}'.format(CALENDAR_ID))
     # Loop until all pages have been processed.
     all_events = []
     while request != None:
@@ -92,7 +99,6 @@ def get_events():
 
 
 @room.route('/')
-@login_required
 def index():
     return render_template('scheduler/room_main.html')
 
@@ -190,7 +196,7 @@ def edit_detail(event_id=None):
                 }
             }
         }
-        credentials, project_id = google.auth.default()
+        # credentials, project_id = google.auth.default()
         scoped_credentials = credentials.with_scopes([
             'https://www.googleapis.com/auth/calendar',
             'https://www.googleapis.com/auth/calendar.events'
@@ -317,7 +323,7 @@ def room_reserve(room_id):
                             }
                         }
                     }
-                    credentials, project_id = google.auth.default()
+                    # credentials, project_id = google.auth.default()
                     scoped_credentials = credentials.with_scopes([
                         'https://www.googleapis.com/auth/calendar',
                         'https://www.googleapis.com/auth/calendar.events'
