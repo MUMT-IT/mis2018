@@ -45,7 +45,6 @@ httplib2==0.11.3
 idna==2.6
 ipaddress==1.0.22
 ipykernel==4.8.2
-ipython==5.5.0
 ipython-genutils==0.2.0
 isort==4.3.4
 itsdangerous==0.24
@@ -94,6 +93,7 @@ Pyphen==0.9.5
 pypng==0.0.18
 PyQRCode==1.2.1
 python-dateutil==2.6.1
+python-dotenv==0.10.3
 python-editor==1.0.3
 pytz==2017.3
 pyzmq==17.0.0
@@ -112,6 +112,7 @@ testpath==0.3.1
 tinycss2==0.6.1
 tornado==5.0.1
 traitlets==4.3.2
+typing==3.7.4.1
 tzlocal==1.5.1
 uritemplate==3.0.0
 urllib3==1.22
