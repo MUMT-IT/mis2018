@@ -91,4 +91,14 @@ class StaffAcademicPosition(db.Model):
     level = db.Column('level', db.Integer(), nullable=False)
 
 
+class StaffLineAccount(db.Model):
+    __tablename__ = 'staff_line_account'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', backref=db.backref('line', uselist=False))
+    line_id = db.Column('line_id', db.String(), index=True, unique=True, nullable=False)
+    picture_url = db.Column('picture_url', db.String())
+    display_name = db.Column('display_name', db.String())
+
+
 #TODO: Add a model for leave tracker
