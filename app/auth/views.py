@@ -37,7 +37,6 @@ def login():
         user = db.session.query(StaffAccount).filter_by(email=form.email.data).first()
         if user:
             pwd = form.password.data
-            print(pwd)
             if user.verify_password(pwd):
                 status = login_user(user, form.remember_me.data)
                 next = request.args.get('next')
@@ -45,15 +44,15 @@ def login():
                     return abort(400)
                 return redirect(next or url_for('index'))
             else:
-                flash('Password does not match.')
+                flash(u'รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง')
                 return redirect(url_for('auth.login'))
         else:
             flash('User does not exists.')
             print('User does not exists.')
             return redirect(url_for('auth.login'))
-    else:
-        flash('Form was not validated. Please check your entry again.')
-    return render_template('/auth/login.html', form=form)
+
+    return render_template('/auth/login.html',
+                           form=form, errors=form.errors)
 
 
 @auth.route('/account', methods=['GET', 'POST'])

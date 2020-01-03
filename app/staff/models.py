@@ -20,6 +20,8 @@ class StaffAccount(db.Model):
         self.__password_hash = generate_password_hash(password)
 
     def verify_password(self, password):
+        if not self.__password_hash:
+            return False
         return check_password_hash(self.__password_hash, password)
 
     def is_authenticated(self):
