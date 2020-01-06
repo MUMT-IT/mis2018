@@ -1,13 +1,10 @@
 # -*- coding:utf-8 -*-
 import os
-import json
 import click
-import atexit
-from apscheduler.schedulers.background import BackgroundScheduler
 import requests
-from dotenv import load_dotenv
 from pytz import timezone
 from flask.cli import AppGroup
+from dotenv import load_dotenv
 from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
@@ -17,10 +14,10 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 
-load_dotenv()
-
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 DATABASE = os.environ.get('DATABASE')
+
+load_dotenv()
 
 db = SQLAlchemy()
 migrate = Migrate()
@@ -60,6 +57,7 @@ def create_app():
 
 app = create_app()
 
+
 @login.user_loader
 def load_user(user_id):
     print('load user..')
@@ -74,17 +72,6 @@ def index():
     return render_template('index.html')
 
 
-# Scheduler for sending event of the day!
-if os.environ.get('FLASK_ENV') == 'production':
-    import logging
-    logging.basicConfig()
-
-    from app.line.views import event_notifier
-    scheduler = BackgroundScheduler()
-    scheduler.add_job(event_notifier, 'cron', day_of_week='mon-fri', hour=21)
-    scheduler.start()
-    atexit.register(lambda: scheduler.shutdown())
-
 json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()
 
 from kpi import kpibp as kpi_blueprint
@@ -97,16 +84,21 @@ class KPIAdminModel(ModelView):
     column_list = ('id', 'created_by', 'created_at',
                    'updated_at', 'updated_by', 'name')
 
+
 from events import event_bp as event_blueprint
+
 app.register_blueprint(event_blueprint, url_prefix='/events')
 
 from models import KPI
+
 admin.add_views(KPIAdminModel(KPI, db.session, category='KPI'))
 
 from studs import studbp as stud_blueprint
+
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
 from food import foodbp as food_blueprint
+
 app.register_blueprint(food_blueprint, url_prefix='/food')
 from food.models import (Person, Farm, Produce, PesticideTest,
                          BactTest, ParasiteTest)
@@ -161,9 +153,11 @@ from models import (Student, Class, ClassCheckIn,
                     StudentCheckInRecord)
 
 from line import linebot_bp as linebot_blueprint
+
 app.register_blueprint(linebot_blueprint, url_prefix='/linebot')
 
 import database
+
 
 class StudentCheckInAdminModel(ModelView):
     can_create = True

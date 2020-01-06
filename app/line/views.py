@@ -60,7 +60,8 @@ def handle_message(event):
                                        TextSendMessage(text=text))
 
 
-def event_notifier():
+@line.route('/events/notification')
+def notify_events():
     c = Calendar()
     today = datetime.today().date().strftime('%Y-%m-%d')
     events = requests.get('https://mumtmis.herokuapp.com/events/api/global')
@@ -75,4 +76,4 @@ def event_notifier():
     if all_events:
         line_bot_api.broadcast(
             messages=TextSendMessage(text='\n'.join(all_events)))
-
+    return True, 200
