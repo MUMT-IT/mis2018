@@ -73,7 +73,6 @@ def event_notifier():
                                       evt.get('location', ''),
                                       ))
     if all_events:
-        line_bot_api.push_message(
-            to='U6d57844061b29c8f2a46a5ff841b28d8',
+        line_bot_api.broadcast(
             messages=TextSendMessage(text='\n'.join(all_events)))
 
