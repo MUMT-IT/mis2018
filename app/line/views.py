@@ -86,12 +86,12 @@ def notify_events():
             return jsonify({'message': 'failed to push a message.'}), 500
     else:
         try:
-            '''
             line_bot_api.broadcast(
                 messages=TextSendMessage(text=notifications))
             '''
             line_bot_api.push_message(to='U6d57844061b29c8f2a46a5ff841b28d8',
                                       messages=TextSendMessage(text=notifications))
+            '''
         except:
             return jsonify({'message': 'failed to broadcast a message.'}), 500
 
