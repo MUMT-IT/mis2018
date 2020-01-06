@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from flask import request, url_for
+import os
 import requests
+from flask import request, url_for, jsonify
 from calendar import Calendar
 from . import linebot_bp as line
 from app.auth.views import line_bot_api, handler
@@ -24,7 +25,7 @@ def line_message_callback():
         handler.handle(body, signature)
     except InvalidSignatureError:
         print("Invalid signature. Please check your channel access token/channel secret.")
-        #abort(400)
+        # abort(400)
 
     return 'OK'
 
@@ -43,7 +44,7 @@ def handle_message(event):
         all_events = []
         for evt in events.json():
             if evt.get('start') in this_week:
-                all_events.append(u'วันที่:{}\nกิจกรรม:{}\nสถานที่:{}'\
+                all_events.append(u'วันที่:{}\nกิจกรรม:{}\nสถานที่:{}' \
                                   .format(evt.get('start'),
                                           evt.get('title', ''),
                                           evt.get('location', ''),
@@ -54,7 +55,7 @@ def handle_message(event):
                 event.reply_token,
                 TextSendMessage(text=u'\n'.join(all_events)))
         else:
-            text = u'ไม่มีกิจกรรมในสัปดาห์นี้\nดูปฏิทินที่ {}'\
+            text = u'ไม่มีกิจกรรมในสัปดาห์นี้\nดูปฏิทินที่ {}' \
                 .format(url_for('event.list_global_events', _external=True))
             line_bot_api.reply_message(event.reply_token,
                                        TextSendMessage(text=text))
@@ -68,12 +69,30 @@ def notify_events():
     all_events = []
     for evt in events.json():
         if evt.get('start') == today:
-            all_events.append(u'วันที่:{}\nกิจกรรม:{}\nสถานที่:{}' \
+            all_events.append(u'วันที่:{}\nกิจกรรม:{}\nสถานที่:{}'
                               .format(evt.get('start'),
                                       evt.get('title', ''),
                                       evt.get('location', ''),
                                       ))
     if all_events:
-        line_bot_api.broadcast(
-            messages=TextSendMessage(text='\n'.join(all_events)))
-    return True, 200
+        notifications = '\n'.join(all_events)
+    else:
+        notifications = u'ไม่มีกิจกรรมในวันนี้'
+    if os.environ.get('FLASK_ENV') == 'development':
+        try:
+            line_bot_api.push_message(to='U6d57844061b29c8f2a46a5ff841b28d8',
+                                      messages=TextSendMessage(text=notifications))
+        except:
+            return jsonify({'message': 'failed to push a message.'}), 500
+    else:
+        try:
+            '''
+            line_bot_api.broadcast(
+                messages=TextSendMessage(text=notifications))
+            '''
+            line_bot_api.push_message(to='U6d57844061b29c8f2a46a5ff841b28d8',
+                                      messages=TextSendMessage(text=notifications))
+        except:
+            return jsonify({'message': 'failed to broadcast a message.'}), 500
+
+    return jsonify({'message': 'success'}), 200

@@ -7,13 +7,13 @@ logging.basicConfig()
 
 
 def send_event_notification():
-    events = requests.get('https://mumtmis.herokuapp.com/line/events/notification')
+    events = requests.get('https://mumtmis.herokuapp.com/linebot/events/notification')
 
 
 scheduler = BlockingScheduler()
 scheduler.add_job(send_event_notification,
                   'cron', day_of_week='mon-fri',
-                  hour='10',
-                  minute='45',
+                  hour='11',
+                  minute='15',
                   timezone='Asia/Bangkok')
 scheduler.start()
