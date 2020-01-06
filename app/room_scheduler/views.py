@@ -1,24 +1,22 @@
 # -*- coding: utf8 -*-
 
-from . import roombp as room
-from .models import RoomResource, RoomEvent, EventCategory
-from flask import render_template, jsonify, request, flash, redirect, url_for
-from flask_login import login_required
-from datetime import datetime
-import pytz
-
-import google.auth
 import requests
 import os
-import dateutil.parser
+import pytz
+from datetime import datetime
+from flask import render_template, jsonify, request, flash, redirect, url_for
+from flask_login import login_required
 from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
-from oauth2client.service_account import ServiceAccountCredentials
-from ..main import json_keyfile, db
-
+from ..main import db
+from . import roombp as room
+from .models import RoomResource, RoomEvent, EventCategory
 from ..models import IOCode
 
-CALENDAR_ID = '9hur49up24fdcbicdbggvpu77k@group.calendar.google.com'
+if os.environ.get('FLASK_ENV') == 'production':
+    CALENDAR_ID = '9hur49up24fdcbicdbggvpu77k@group.calendar.google.com'
+else:
+    CALENDAR_ID = 'rsrlpk6sbr0ntbq9ukd6vkpkbc@group.calendar.google.com'
 
 service_account_info = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 credentials = Credentials.from_service_account_info(service_account_info)
@@ -80,6 +78,14 @@ def get_events():
             extended_properties = event.get('extendedProperties', {}).get('private', {})
             room_no = extended_properties.get('room_no', '')
             status = event.get('status')
+            if status == 'confirmed':
+                text_color = '#ffffff'
+                bg_color = '#2b8c36'
+                border_color = '#ffffff'
+            else:
+                text_color = '#000000'
+                bg_color = '#f0f0f5'
+                border_color = '#ff4d4d'
             evt = {
                 'location': event.get('location', None),
                 'title': u'(Rm{}) {}'.format(room_no, event.get('summary', 'NO SUMMARY')),
@@ -88,7 +94,9 @@ def get_events():
                 'end': end['dateTime'],
                 'resourceId': room_no,
                 'status': status,
-                'borderColor': '#24ef15' if status=='confirmed' else '#f44242',
+                'borderColor': border_color,
+                'backgroundColor': bg_color,
+                'textColor': text_color,
                 'id': extended_properties.get('event_id', None),
             }
             all_events.append(evt)
