@@ -81,7 +81,7 @@ if os.environ.get('FLASK_ENV') == 'production':
 
     from app.line.views import event_notifier
     scheduler = BackgroundScheduler()
-    scheduler.add_job(event_notifier, 'cron', day_of_week='mon-fri', hour=8)
+    scheduler.add_job(event_notifier, 'cron', day_of_week='mon-fri', hour=21)
     scheduler.start()
     atexit.register(lambda: scheduler.shutdown())
 
