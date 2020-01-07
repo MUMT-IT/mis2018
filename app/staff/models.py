@@ -93,4 +93,61 @@ class StaffAcademicPosition(db.Model):
     level = db.Column('level', db.Integer(), nullable=False)
 
 
-#TODO: Add a model for leave tracker
+class StaffEmployment(db.Model):
+    __tablename__ = 'staff_employments'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    title = db.Column('title', db.String(), unique=True, nullable=False)
+
+
+class StaffLeaveType(db.Model):
+    __tablename__ = 'staff_leave_types'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    type_ = db.Column('type', db.String(), nullable=False, unique=True)
+
+
+class StaffLeaveQuota(db.Model):
+    __tablename__ = 'staff_leave_quota'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    first_year = db.Column('first_year', db.Integer())
+    max_per_leave = db.Column('max_per_leave', db.Integer())
+    max_per_year = db.Column('max_per_year', db.Integer())
+    cum_max_per_year1 = db.Column('cum_max_per_year1', db.Integer())
+    cum_max_per_year2 = db.Column('cum_max_per_year2', db.Integer())
+    min_employed_months = db.Column('min_employed_months', db.Integer())
+    employment_id = db.Column('employment_id', db.ForeignKey('staff_employments.id'))
+    leave_type_id = db.Column('leave_type_id', db.ForeignKey('staff_leave_types.id'))
+    leave_type = db.relationship('StaffLeaveType', backref=db.backref('quota'))
+    employment = db.relationship('StaffEmployment', backref=db.backref('quota'))
+
+
+class StaffLeaveRequest(db.Model):
+    __tablename__ = 'staff_leave_requests'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    leave_quota_id = db.Column('quota_id', db.ForeignKey('staff_leave_quota.id'))
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    start_datetime = db.Column('start_date', db.DateTime(timezone=True))
+    end_datetime = db.Column('start_date', db.DateTime(timezone=True))
+    created_at = db.Column('created_at',
+                           db.DateTime(timezone=True),
+                           default=datetime.utcnow()
+                           )
+    reason = db.Column('reason', db.String())
+    contact_address = db.Column('contact_address', db.String())
+    contact_phone = db.Column('contact_phone', db.String())
+
+
+class StaffLeaveApprover(db.Model):
+    __tablename__ = 'staff_leave_approvers'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    approver_account_id = db.Column('approver_account_id', db.ForeignKey('staff_account.id'))
+    is_active = db.Column('is_active', db.Boolean(), default=True)
+
+
+class StaffLeaveApproval(db.Model):
+    __tablename__ = 'staff_leave_approvers'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    request_id = db.Column('request_id', db.ForeignKey('staff_leave_requests.id'))
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_leave_approvers.id'))
+    is_approved = db.Column('is_approved', db.Boolean(), default=False)
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))

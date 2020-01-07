@@ -6,6 +6,7 @@ from flask import jsonify, render_template, request
 
 LEAVE_ANNUAL_QUOTA = 10
 
+
 @staff.route('/')
 def index():
     return '<h1>Staff page</h1><br>'
@@ -16,7 +17,6 @@ def show_person_info(account_id=None):
     if account_id:
         account = StaffAccount.query.get(account_id)
         return render_template('staff/info.html', person=account)
-
 
 
 @staff.route('/api/list/')
@@ -51,7 +51,17 @@ def set_password():
         return email
     return render_template('staff/set_password.html')
 
+
 @login_required
-@staff.route('/leave/info/')
+@staff.route('/leave/info')
 def show_leave_info():
     return render_template('staff/leave_info.html')
+
+
+#TODO: If employed for more than  6 months, can leave for 10 days max.
+#TODO: If employed fewer than 10 years, can accumulate up to 20 days max per year, otherwise 30 days.
+#TODO: Temporary employed staff can accumulate up to 20 days.
+@login_required
+@staff.route('/leave/request')
+def request_for_leave():
+    return 'Ok'
