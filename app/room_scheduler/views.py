@@ -135,6 +135,35 @@ def show_event_detail(event_id=None):
         return 'No event ID specified.'
 
 
+@room.route('/events/cancel/<int:event_id>')
+def cancel(event_id=None):
+    if not event_id:
+        return redirect(url_for('room.index'))
+
+    tz = pytz.timezone('Asia/Bangkok')
+    cancelled_datetime = tz.localize(datetime.utcnow(), is_dst=None)
+    event = RoomEvent.query.get(event_id)
+    event.cancelled_at = cancelled_datetime
+    event.cancelled_by = 1
+    db.session.add(event)
+    db.session.commit()
+
+    scoped_credentials = credentials.with_scopes([
+        'https://www.googleapis.com/auth/calendar',
+        'https://www.googleapis.com/auth/calendar.events'
+    ])
+
+    calendar_service = build('calendar', 'v3', credentials=scoped_credentials)
+    event_ = calendar_service.events().patch(
+        calendarId=event.google_calendar_id,
+        eventId=event.google_event_id, body={'status': 'cancelled'}).execute()
+
+    if event_:
+        flash('Reservation ID={} has been updated.'.format(event_.get('id')))
+
+    return redirect(url_for('room.index'))
+
+
 @room.route('/events/edit/<int:event_id>', methods=['POST', 'GET'])
 def edit_detail(event_id=None):
     tz = pytz.timezone('Asia/Bangkok')
@@ -174,7 +203,7 @@ def edit_detail(event_id=None):
         event.refreshment = refreshment
         event.note = note
         event.updated_at=tz.localize(datetime.utcnow())
-        event.approved = True if approved=='yes' else False
+        event.approved = True if approved == 'yes' else False
         db.session.add(event)
         db.session.commit()
 
