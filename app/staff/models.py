@@ -98,6 +98,9 @@ class StaffEmployment(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     title = db.Column('title', db.String(), unique=True, nullable=False)
 
+    def __str__(self):
+        return self.title
+
 
 class StaffLeaveType(db.Model):
     __tablename__ = 'staff_leave_types'
@@ -122,21 +125,31 @@ class StaffLeaveQuota(db.Model):
     leave_type = db.relationship('StaffLeaveType', backref=db.backref('quota'))
     employment = db.relationship('StaffEmployment', backref=db.backref('quota'))
 
+    def __str__(self):
+        return u'{}:{}:{}'.format(self.employment.title,
+                                  self.leave_type.type_,
+                                  self.cum_max_per_year2)
+
 
 class StaffLeaveRequest(db.Model):
     __tablename__ = 'staff_leave_requests'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     leave_quota_id = db.Column('quota_id', db.ForeignKey('staff_leave_quota.id'))
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    #TODO: fixed offset-naive and offset-timezone comparison error.
     start_datetime = db.Column('start_date', db.DateTime(timezone=True))
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
     created_at = db.Column('created_at',
                            db.DateTime(timezone=True),
-                           default=datetime.utcnow()
+                           default=datetime.now()
                            )
     reason = db.Column('reason', db.String())
     contact_address = db.Column('contact_address', db.String())
     contact_phone = db.Column('contact_phone', db.String())
+    staff = db.relationship('StaffAccount',
+                            backref=db.backref('leave_requests'))
+    quota = db.relationship('StaffLeaveQuota',
+                            backref=db.backref('leave_requests'))
 
 
 class StaffLeaveApprover(db.Model):
