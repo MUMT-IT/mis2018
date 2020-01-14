@@ -104,6 +104,9 @@ class StaffLeaveType(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     type_ = db.Column('type', db.String(), nullable=False, unique=True)
 
+    def __str__(self):
+        return self.type_
+
 
 class StaffLeaveQuota(db.Model):
     __tablename__ = 'staff_leave_quota'

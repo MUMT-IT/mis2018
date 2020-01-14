@@ -119,10 +119,15 @@ from staff import staffbp as staff_blueprint
 
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
-from staff.models import StaffAccount, StaffPersonalInfo
+from staff.models import *
 
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
+admin.add_views(ModelView(StaffLeaveType, db.session, category='Staff'))
+admin.add_views(ModelView(StaffLeaveRequest, db.session, category='Staff'))
+admin.add_views(ModelView(StaffLeaveQuota, db.session, category='Staff'))
+admin.add_views(ModelView(StaffLeaveApprover, db.session, category='Staff'))
+admin.add_views(ModelView(StaffLeaveApproval, db.session, category='Staff'))
 
 from room_scheduler import roombp as room_blueprint
 
