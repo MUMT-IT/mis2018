@@ -126,7 +126,7 @@ class StaffLeaveRequest(db.Model):
     leave_quota_id = db.Column('quota_id', db.ForeignKey('staff_leave_quota.id'))
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     start_datetime = db.Column('start_date', db.DateTime(timezone=True))
-    end_datetime = db.Column('start_date', db.DateTime(timezone=True))
+    end_datetime = db.Column('end_date', db.DateTime(timezone=True))
     created_at = db.Column('created_at',
                            db.DateTime(timezone=True),
                            default=datetime.utcnow()
@@ -145,7 +145,7 @@ class StaffLeaveApprover(db.Model):
 
 
 class StaffLeaveApproval(db.Model):
-    __tablename__ = 'staff_leave_approvers'
+    __tablename__ = 'staff_leave_approvals'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     request_id = db.Column('request_id', db.ForeignKey('staff_leave_requests.id'))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_leave_approvers.id'))
