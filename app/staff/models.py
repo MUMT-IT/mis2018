@@ -151,3 +151,4 @@ class StaffLeaveApproval(db.Model):
     approver_id = db.Column('approver_id', db.ForeignKey('staff_leave_approvers.id'))
     is_approved = db.Column('is_approved', db.Boolean(), default=False)
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    request  = db.relationship('StaffLeaveRequest', backref=db.backref('approvals'))
