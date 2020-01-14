@@ -56,6 +56,10 @@ class StaffPersonalInfo(db.Model):
     org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
     org = db.relationship('Org', backref=db.backref('staff'))
     employed_date = db.Column('employed_date', db.Date(), nullable=True)
+    employment_id = db.Column('employment_id',
+                              db.ForeignKey('staff_employments.id'))
+    employment = db.relationship('StaffEmployment',
+                                 backref=db.backref('staff'))
 
     def __str__(self):
         return u'{} {}'.format(self.en_firstname, self.en_lastname)
