@@ -1,14 +1,23 @@
-from flask_login import login_required
+from flask_login import login_required, current_user
 
-from models import StaffAccount, StaffPersonalInfo
+from models import (StaffAccount, StaffPersonalInfo,
+                    StaffLeaveRequest, StaffLeaveQuota)
 from . import staffbp as staff
+from forms import LeaveRequestForm
+from app.main import db
 from flask import jsonify, render_template, request
+from datetime import datetime
+import pytz
+
+tz = pytz.timezone('Asia/Bangkok')
 
 LEAVE_ANNUAL_QUOTA = 10
 
+
 @staff.route('/')
+@login_required
 def index():
-    return '<h1>Staff page</h1><br>'
+    return render_template('staff/index.html')
 
 
 @staff.route('/person/<int:account_id>')
@@ -16,7 +25,6 @@ def show_person_info(account_id=None):
     if account_id:
         account = StaffAccount.query.get(account_id)
         return render_template('staff/info.html', person=account)
-
 
 
 @staff.route('/api/list/')
@@ -51,7 +59,37 @@ def set_password():
         return email
     return render_template('staff/set_password.html')
 
+
+@staff.route('/leave/info')
 @login_required
-@staff.route('/leave/info/')
 def show_leave_info():
     return render_template('staff/leave_info.html')
+
+
+#TODO: If employed for more than  6 months, can leave for 10 days max.
+#TODO: If employed fewer than 10 years, can accumulate up to 20 days max per year, otherwise 30 days.
+#TODO: Temporary employed staff can accumulate up to 20 days.
+@staff.route('/leave/request/quota/<int:quota_id>',
+             methods=['GET', 'POST'])
+@login_required
+def request_for_leave(quota_id=None):
+    if request.method == 'POST':
+        return jsonify(request.form)
+        '''
+            if quota_id:
+                quota = StaffLeaveQuota.query.get(quota_id)
+                req = StaffLeaveRequest(
+                    staff=current_user,
+                    quota=quota,
+                    start_datetime=tz.localize(form.data.get('start_datetime')),
+                    end_datetime=tz.localize(form.data.get('end_datetime')),
+                    reason=form.data.get('reason'),
+                    contact_address=form.data.get('contact_addr'),
+                    contact_phone=form.data.get('contact_phone')
+                )
+                db.session.add(req)
+                db.session.commit()
+                return 'Done.'
+            '''
+    else:
+        return render_template('staff/leave_request.html', errors={})
