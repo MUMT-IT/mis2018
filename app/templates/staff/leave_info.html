@@ -2,16 +2,44 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="stylesheet" href="//cdn.materialdesignicons.com/2.5.94/css/materialdesignicons.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.8.0/css/bulma.css" />
+    <link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css"/>
     <title>Title</title>
 </head>
 <body>
 <h1>Welcome {{ current_user.personal_info }}</h1>
 <h4>
+    สถานะการจ้าง {{ current_user.personal_info.employment.title }}
+    <ul>
+    <hr>
     {% if current_user.personal_info.is_eligible_for_leave %}
     You can request for a leave.
+        <table>
+            <thead>
+            <th>ID</th>
+            <th>ชนิด</th>
+            <th>ต้องทำงานมากกว่า (เดือน)</th>
+            <th>ปีแรกได้ไม่เกิน (วัน)</th>
+            <th>สะสมทบปีได้ไม่เกิน (วัน)</th>
+            </thead>
+            <tbody>
+            {% for quota in current_user.personal_info.employment.quota %}
+            <tr>
+                <td>{{ quota.id }}</td>
+                <td>{{ quota.leave_type }}</td>
+                <td>{{ quota.min_employed_months }}</td>
+                <td>{{ quota.cum_max_per_year1 }}</td>
+                <td>{{ quota.cum_max_per_year2 }}</td>
+                <td><a href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ขออนุมัติลา</a></td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
     {% else %}
     You cannot request for a leave.
     {% endif %}
 </h4>
+</div>
 </body>
 </html>
