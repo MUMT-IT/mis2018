@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">Staff Page</h1>
+        <ul>
+            <li><a href="{{ url_for('staff.show_leave_info') }}">ข้อมูลวันลา</a></li>
+        </ul>
+    </div>
+</section>
+{% endblock %}
