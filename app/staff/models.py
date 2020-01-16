@@ -1,4 +1,6 @@
 from ..main import db
+from werkzeug import generate_password_hash, check_password_hash
+from datetime import datetime
 
 
 class StaffAccount(db.Model):
@@ -7,7 +9,21 @@ class StaffAccount(db.Model):
     personal_id = db.Column('personal_id', db.ForeignKey('staff_personal_info.id'))
     email = db.Column('email', db.String(), unique=True)
     personal_info = db.relationship("StaffPersonalInfo", backref=db.backref("staff_account", uselist=False))
-    password = db.Column('password', db.String(255), nullable=True)
+    line_id = db.Column('line_id', db.String(), index=True, unique=True)
+    __password_hash = db.Column('password', db.String(255), nullable=True)
+
+    @property
+    def password(self):
+        raise AttributeError('Password attribute is not accessible.')
+
+    @password.setter
+    def password(self, password):
+        self.__password_hash = generate_password_hash(password)
+
+    def verify_password(self, password):
+        if not self.__password_hash:
+            return False
+        return check_password_hash(self.__password_hash, password)
 
     def is_authenticated(self):
         return True
@@ -33,14 +49,30 @@ class StaffPersonalInfo(db.Model):
     highest_degree_id = db.Column('highest_degree_id', db.ForeignKey('staff_edu_degree.id'))
     highest_degree = db.relationship('StaffEduDegree',
                         backref=db.backref('staff_personal_info', uselist=False))
-    th_firstname = db.Column('th_firstname', db.String(), nullable=False)
-    th_lastname = db.Column('th_lastname', db.String(), nullable=False)
+    th_firstname = db.Column('th_firstname', db.String(), nullable=True)
+    th_lastname = db.Column('th_lastname', db.String(), nullable=True)
     academic_position_id = db.Column('academic_position_id', db.ForeignKey('staff_academic_position.id'))
     academic_position = db.relationship('StaffAcademicPosition', backref=db.backref('staff_list'))
-    orgs_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
+    org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
+    org = db.relationship('Org', backref=db.backref('staff'))
+    employed_date = db.Column('employed_date', db.Date(), nullable=True)
+    employment_id = db.Column('employment_id',
+                              db.ForeignKey('staff_employments.id'))
+    employment = db.relationship('StaffEmployment',
+                                 backref=db.backref('staff'))
 
     def __str__(self):
         return u'{} {}'.format(self.en_firstname, self.en_lastname)
+
+
+    def get_employ_period(self):
+        today = datetime.now().date()
+        period = today - self.employed_date
+        return period.days
+
+    @property
+    def is_eligible_for_leave(self, minmonth=6.0):
+        return (self.get_employ_period()/12.0) > minmonth
 
 
 class StaffEduDegree(db.Model):
@@ -64,12 +96,87 @@ class StaffAcademicPosition(db.Model):
     shortname_en = db.Column('shortname_en', db.String(), nullable=False)
     level = db.Column('level', db.Integer(), nullable=False)
 
-class StaffAppointWorkingGroup(db.Model):
-    __tablename__ = 'staff_appoint_working_group'
+
+class StaffEmployment(db.Model):
+    __tablename__ = 'staff_employments'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    staff_email = db.Column('staff_email', db.ForeignKey('staff_account.email'))
-    appoint_id = db.Column('appoint_id', db.String(), nullable=False)
-    appoint_date = db.Column('appoint_date',db.Date(), nullable=False)
-    expire_date = db.Column('expire_date',db.Date())
-    appoint_position = db.Column('appoint_position',db.String(), nullable=False)
-    duty = db.Column('duty',db.String())
+    title = db.Column('title', db.String(), unique=True, nullable=False)
+
+    def __str__(self):
+        return self.title
+
+
+class StaffLeaveType(db.Model):
+    __tablename__ = 'staff_leave_types'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    type_ = db.Column('type', db.String(), nullable=False, unique=True)
+
+    def __str__(self):
+        return self.type_
+
+
+class StaffLeaveQuota(db.Model):
+    __tablename__ = 'staff_leave_quota'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    first_year = db.Column('first_year', db.Integer())
+    max_per_leave = db.Column('max_per_leave', db.Integer())
+    max_per_year = db.Column('max_per_year', db.Integer())
+    cum_max_per_year1 = db.Column('cum_max_per_year1', db.Integer())
+    cum_max_per_year2 = db.Column('cum_max_per_year2', db.Integer())
+    min_employed_months = db.Column('min_employed_months', db.Integer())
+    employment_id = db.Column('employment_id', db.ForeignKey('staff_employments.id'))
+    leave_type_id = db.Column('leave_type_id', db.ForeignKey('staff_leave_types.id'))
+    leave_type = db.relationship('StaffLeaveType', backref=db.backref('quota'))
+    employment = db.relationship('StaffEmployment', backref=db.backref('quota'))
+
+    def __str__(self):
+        return u'{}:{}:{}'.format(self.employment.title,
+                                  self.leave_type.type_,
+                                  self.cum_max_per_year2)
+
+
+class StaffLeaveRequest(db.Model):
+    __tablename__ = 'staff_leave_requests'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    leave_quota_id = db.Column('quota_id', db.ForeignKey('staff_leave_quota.id'))
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    #TODO: fixed offset-naive and offset-timezone comparison error.
+    start_datetime = db.Column('start_date', db.DateTime(timezone=True))
+    end_datetime = db.Column('end_date', db.DateTime(timezone=True))
+    created_at = db.Column('created_at',
+                           db.DateTime(timezone=True),
+                           default=datetime.now()
+                           )
+    reason = db.Column('reason', db.String())
+    contact_address = db.Column('contact_address', db.String())
+    contact_phone = db.Column('contact_phone', db.String())
+    staff = db.relationship('StaffAccount',
+                            backref=db.backref('leave_requests'))
+    quota = db.relationship('StaffLeaveQuota',
+                            backref=db.backref('leave_requests'))
+
+
+class StaffLeaveApprover(db.Model):
+    __tablename__ = 'staff_leave_approvers'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    approver_account_id = db.Column('approver_account_id', db.ForeignKey('staff_account.id'))
+    is_active = db.Column('is_active', db.Boolean(), default=True)
+    staff = db.relationship('StaffAccount',
+                            foreign_keys=[staff_account_id])
+    approver = db.relationship('StaffAccount',
+                               foreign_keys=[approver_account_id],
+                               backref=db.backref('leave_approvers'))
+
+
+class StaffLeaveApproval(db.Model):
+    __tablename__ = 'staff_leave_approvals'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    request_id = db.Column('request_id', db.ForeignKey('staff_leave_requests.id'))
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_leave_approvers.id'))
+    is_approved = db.Column('is_approved', db.Boolean(), default=False)
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    request  = db.relationship('StaffLeaveRequest', backref=db.backref('approvals'))
+    approver = db.relationship('StaffLeaveApprover',
+                               backref=db.backref('approved_requests'))
+    

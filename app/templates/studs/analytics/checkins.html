@@ -1,27 +1,35 @@
 {% extends "base.html" %}
-{% block title %}Check Ins Analytics {{ klass.refno }}{% endblock %}
+{% block title %}Check Ins Analytics {% endblock %}
 {% block page_content %}
     <section class="section">
-        <div class="box">
-            <p>รายวิชา <strong>{{ klass.refno }}</strong> {{ klass.th_class_name }} ({{ klass.en_class_name }})</p>
+        <div class="container">
+            <h1 class="title">Class List</h1>
+            <table class="table">
+                <thead>
+                <th>ID</th>
+                <th>Th Title</th>
+                <th>En Title</th>
+                <th>Academic Year</th>
+                <th></th>
+                </thead>
+                <tbody>
+                {% for cls in classes %}
+                    <tr>
+                        <td>{{ cls.refno }}</td>
+                        <td>{{ cls.th_class_name }}</td>
+                        <td>{{ cls.en_class_name }}</td>
+                        <td>{{ cls.academic_year }}</td>
+                        <td>
+                            <a href="{{ url_for('studs.show_checkin_data_class', class_id=cls.id) }}">
+                            <span class="icon">
+                                <i class="fas fa-chart-bar"></i>
+                            </span>
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
         </div>
-        <table class="table">
-            <thead>
-                <th>Check In ID</th>
-                <th>Class ID</th>
-                <th>Deadline</th>
-                <th>Academic year</th>
-            </thead>
-            <tbody>
-            {% for chk in klass.deadlines %}
-                <tr>
-                    <td>{{ chk.id }}</td>
-                    <td>{{ klass.refno }}</td>
-                    <td>{{ chk.deadline }}</td>
-                    <td>{{ klass.academic_year }}</td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
     </section>
 {% endblock %}

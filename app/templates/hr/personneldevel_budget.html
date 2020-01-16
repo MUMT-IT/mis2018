@@ -52,7 +52,7 @@
     var cursum;
     var curgroup;
     var bgColor;
-    $.getJSON("{{ url_for('kpi.get_personneldevel_budget_data') }}", function(data) {
+    $.getJSON("{{ url_for('kpi_blueprint.get_personneldevel_budget_data') }}", function(data) {
         vm.data(data);
     }).done(function() {
         var totalsum;
@@ -114,7 +114,7 @@
     var percapita_academic = [];
     var percapita_support = [];
     var percapita_years = [];
-    $.getJSON("{{ url_for('kpi.get_personneldevel_data') }}", function(data) {
+    $.getJSON("{{ url_for('kpi_blueprint.get_personneldevel_data') }}", function(data) {
         $.each(years, function(_, yr){
             $.each(data, function(idx, d) {
                 if(d.year === yr) {

@@ -6,62 +6,94 @@
     <div class="container">
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
-                <div class="box">
-                    <div class="panel">
-                        <p class="panel-heading">Education</p>
-                        <div class="panel-block">
-                            <a class="subtitle">
-                                <span class="panel-icon is-large">
-                                    <i class="fas fa-user-graduate fa-2x"></i>
-                                </span>&nbsp;&nbsp;
-                                ระบบนักศึกษา
-                            </a>
-                        </div>
-                        <p class="panel-heading">Services</p>
-                        <div class="panel-block">
-                            <a class="subtitle" href="/room">
-                                <span class="panel-icon is-large">
-                                    <i class="far fa-calendar-alt fa-2x"></i>
-                                </span>&nbsp;&nbsp;
-                                ระบบจองห้อง
-                            </a>
-                        </div>
-                        <div class="panel-block">
-                            <a class="subtitle" href="/vehicle">
-                                <span class="panel-icon is-large">
-                                    <i class="fas fa-car fa-2x"></i>
-                                </span>&nbsp;&nbsp;
-                                ระบบจองยานพาหนะ
-                            </a>
-                        </div>
-                        <p class="panel-heading">Staff</p>
-                        <div class="panel-block">
-                            <a class="subtitle">
-                                <span class="panel-icon is-large">
-                                    <i class="fas fa-users fa-2x"></i>
-                                </span>&nbsp;&nbsp;
-                                ข้อมูลบุคลากร
-                            </a>
-                        </div>
-                        <p class="panel-heading">Analytics</p>
-                        <div class="panel-block">
-                            <a class="subtitle" href="/kpi">
-                                <span class="panel-icon is-large">
-                                    <i class="fas fa-tachometer-alt fa-2x"></i>
-                                </span>&nbsp;&nbsp;
-                                ระบบฐานข้อมูลตัวชี้วัดองค์กร
-                            </a>
-                        </div>
-                        <div class="panel-block">
-                            <a class="subtitle" href="/food">
-                                <span class="panel-icon is-large">
-                                    <i class="fas fa-utensils fa-2x"></i>
-                                </span>&nbsp;&nbsp;
-                                ระบบฐานข้อมูลโครงการเกษตรและอาหารปลอดภัย
-                            </a>
-                        </div>
-                    </div>
-                </div>
+                <nav class="panel is-info">
+                    <p class="panel-heading">Staff</p>
+                    <a class="panel-block"
+                        href="{{ url_for('staff.index') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-users"></i>
+                        </span>
+                        <span class="is-size-5">
+                            บุคลากร
+                        </span>
+                    </a>
+                </nav>
+                <nav class="panel is-info">
+                    <p class="panel-heading">Education</p>
+                    <a href="#" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-graduate"></i>
+                        </span><span class="is-size-5">นักศึกษา</span>
+                    </a>
+                </nav>
+                <nav class="panel is-info">
+                    <p class="panel-heading">Services</p>
+                    <a href="{{ url_for('comhealth.landing') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-heartbeat"></i>
+                        </span>
+                        <span class="is-size-5">ระบบงานบริการสุขภาพชุมชน</span>
+                    </a>
+                    <a href="{{ url_for('room.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="far fa-calendar-alt"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ระบบจองห้อง
+                        </span>
+                    </a>
+                    <a href="{{ url_for('vehicle.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-car"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ระบบจองยานพาหนะ
+                        </span>
+                    </a>
+                    <a href="{{ url_for('vehicle.trip') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-car"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ป้อนข้อมูลการเดินทาง (สำหรับพขร.)
+                        </span>
+                    </a>
+                    <a href="http://10.4.2.51/Repair/StatusList.aspx" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-cogs"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ระบบซ่อมบำรุงและครุภัณฑ์ (Intranet only)
+                        </span>
+                    </a>
+                </nav>
+                <nav class="panel is-info">
+                    <p class="panel-heading">Analytics</p>
+                    <a href="{{ url_for('kpi_blueprint.main') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ระบบฐานข้อมูลตัวชี้วัดองค์กร
+                        </span>
+                    </a>
+                    <a href="{{ url_for('chemdb.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-flask"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ระบบฐานข้อมูลสารเคมี
+                        </span>
+                    </a>
+                    <a href="{{ url_for('food.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fab fa-pagelines"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ฐานข้อมูลโครงการเกษตรและอาหารปลอดภัย
+                        </span>
+                    </a>
+                </nav>
             </div>
         </div>
     </div>

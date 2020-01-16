@@ -68,7 +68,7 @@
     var mtctx = document.getElementById('mtchart').getContext('2d');
     var rtctx = document.getElementById('rtchart').getContext('2d');
 
-    $.getJSON("{{ url_for('kpi.get_evaluation_data') }}", function(data) {
+    $.getJSON("{{ url_for('kpi_blueprint.get_evaluation_data') }}", function(data) {
         $.each(data, function(idx, d) {
             years.push(d['year']);
             programs.push(d['program']);

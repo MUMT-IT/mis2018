@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="hero is-info is-small">
+        <div class="hero-head">
+            <nav class="navbar">
+                <div class="container">
+                    <div class="navbar-brand">
+                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+                    </div>
+                    <div id="navbarMenuHeroA" class="navbar-menu">
+                        <div class="navbar-end">
+                            <a class="navbar-item"
+                               href="/comhealth">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                                <span>Home</span>
+                            </a>
+                            <a class="navbar-item"
+                               href="/comhealth/tests">
+                                <span>Tests</span>
+                            </a>
+                            <a class="navbar-item is-active"
+                            href="/comhealth/organizations">
+                                <span>Organizations</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="100">
+                <h3 class="title">Organization</h3>
+                <h3 class="subtitle">ชื่อสถาบัน {{ customer.org.name }}</h3>
+            </div>
+        </div>
+    </section>
+    <section class="section" id="app">
+        <div class="columns">
+            <div class="column">
+                <h1 class="title">ประวัติสุขภาพ {{ customer.title }}{{ customer.firstname }} {{ customer.lastname }}</h1>
+                <div class="box">
+                    <table class="table is-narrow">
+                        {% for k in info_items %}
+                        <tr>
+                            <td><span class="subtitle">{{ k }}</span></td>
+                            <td><span class="subtitle">{{ customer.info.data.get(k) }}</span></td>
+                            <td>
+                                <a href="#{{k}}">
+                                <span class="icon">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </span>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="customer_id" value="{{ customer.id }}">
+                {% for k in info_items %}
+                    <div class="box">
+                        {% if info_items[k].choices %}
+                        <div class="control">
+                            <h1 class="title">{{ info_items[k].order }}. <a name="{{ k }}">{{ k }}</a></h1>
+                            {% if not info_items[k].multiple_selection %}
+                                {% for choice in info_items[k].choices.split(',') %}
+                                <div class="field">
+                                    <input class="is-checkradio is-large is-info"
+                                        id="{{ choice }}"
+                                        {% if choice == customer.info.data.get(k) %}
+                                        checked
+                                        {% endif %}
+                                        type="radio" name="{{ k }}" value="{{ choice }}"/>
+                                    <label for="{{ choice }}">{{ choice }}</label>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                {% for choice in info_items[k].choices.split(',') %}
+                                <div class="field">
+                                    <input class="is-checkradio is-large is-info"
+                                        id="{{ choice }}"
+                                        {% if choice in customer.info.data.get(k, '').split() %}
+                                        checked="checked"
+                                        {% endif %}
+                                        type="checkbox" name="{{ k }}" value="{{ choice }}"/>
+                                    <label for="{{ choice }}">{{ choice }}</label>
+                                </div>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <h1 class="title">{{ info_items[k].order }}. <a name="{{ k }}">{{ k }}</a>
+                            {% if info_items[k].unit %}
+                            ({{ info_items[k].unit }})
+                            {% endif %}
+                        </h1>
+                        <input type="{{ info_items[k].dtype }}"
+                            class="input is-large is-rounded" placeholder="{{ info_items[k].placeholder }}"
+                            name="{{ k }}" value="{{ customer.info.data.get(k, '') }}">
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <button class="button is-primary is-large" type="submit">Save</button>
+                <a class="button is-text is-large"
+                    href="{{ url_for('comhealth.list_employees', orgid=customer.org.id)}}">
+                Cancel</a>
+            </div>
+        </div>
+        </form>
+    </section>
+{% endblock %}

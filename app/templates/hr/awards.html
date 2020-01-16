@@ -42,7 +42,7 @@
     var years = [];
     var academic = [];
     var support = [];
-    $.getJSON("{{ url_for('kpi.get_awards_data') }}", function(data) {
+    $.getJSON("{{ url_for('kpi_blueprint.get_awards_data') }}", function(data) {
         vm.data(data);
     }).done(function() {
         $.each(vm.data(), function(_, dt) {

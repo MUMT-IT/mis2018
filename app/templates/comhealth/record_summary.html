@@ -81,6 +81,53 @@
                             <li><a href="#comment">หมายเหตุ</a></li>
                         </ul>
                     </aside>
+                    <aside>
+                        <div id="receipt-slip" class="box" style="font-family:
+                            monospace; font-size: 11px;">
+                            <table>
+                                <col width="40%">
+                                <col width="60%">
+                                <tr><td colspan=2><strong>ใบแทนใบเสร็จรับเงิน</strong></td><td></td></tr>
+                                <tr><td>LABNO</td><td>{{ record.labno }}</td></tr>
+                                <tr><td>ชื่อ</td><td>{{ record.customer.firstname }} 
+                                        {{ record.customer.lastname }}</td></tr>
+                                <tr><td>วันที่</td><td>{{ record.updated_at|localdatetime }}</td></tr>
+                                {% for test_item in special_tests|sorttest %}
+                                <tr><td>{{ test_item.test.name }}</td>
+                                    <td> {{ test_item.test.default_price }} THB</td>
+                                </tr>
+                                {% endfor %}
+                                <tr><td><strong>รวม</strong></td><td><strong><% special_item_cost %>
+                                            THB</strong></td></tr>
+                                <tr><td><strong>จ่าย</strong></td><td><strong><% prepaid %>
+                                            THB</strong></td></tr>
+                                <tr><td><strong>ทอน</strong></td><td><strong><%
+                                            prepaid - special_item_cost %>
+                                            THB</strong></td></tr>
+                            </table>
+                        </div>
+                        <div class="field">
+                            <label class="label">จ่ายแล้ว</label>
+                            <div class="control">
+                                <input type="number" v-model="prepaid" step="any" class="input">
+                            </div>
+                        </div>
+                        <button class="button is-primary is-rounded"
+                                @click="printJS(printUrl)">
+                            <span class="icon">
+                                <i class="fas fa-print"></i>
+                            </span>
+                            <span>Print</span>
+                        </button>
+                        <a class="button is-rounded" href="{{
+                                                     url_for('comhealth.list_all_receipts',
+                                                     record_id=record.id) }}">
+                            <span class="icon">
+                                <i class="fas fa-receipt"></i>
+                            </span>
+                            <span>Receipts</span>
+                        </a>
+                    </aside>
                 </div>
                 <a name="customer-info"></a>
                 <div class="column is-10">
@@ -256,7 +303,7 @@
                                         <td colspan="1" class="is-light"><strong>{{ profile.name }}</strong></td>
                                         <td colspan="1" class="is-light"><strong>{{ profile.quote_price }}</strong></td>
                                     </tr>
-                                    {% for test_item in profile.test_items %}
+                                    {% for test_item in profile.test_items|sorttest %}
                                         <tr>
                                             {% if test_item in record.ordered_tests %}
                                                 <td>{{ test_item.test.name }}</td>
@@ -299,7 +346,7 @@
                                         <td colspan="1" class="is-light"></td>
                                         <td colspan="1" class="is-light"></td>
                                     </tr>
-                                    {% for test_item in group.test_items %}
+                                    {% for test_item in group.test_items|sorttest %}
                                         <tr>
                                             {% if test_item in record.ordered_tests %}
                                                 <td>{{ test_item.test.name }}</td>
@@ -349,10 +396,19 @@
     <script>
         var vm = new Vue({
             el: '#app',
+            delimiters: ['<%', '%>'],
             data() {
                 return {
                     commentEdit: false,
+                    prepaid: 0,
+                    special_item_cost: {{ special_item_cost|tojson|safe }},
+                    recordId: {{ record.id|tojson|safe }}
                 }
+            },
+            computed: {
+              printUrl: function() {
+                return "/comhealth/receipts/slip/"+this.recordId+"?paidamt="+this.prepaid;
+              }
             },
             methods: {
                 toggleComment: function () {
@@ -361,4 +417,4 @@
             }
         })
     </script>
-{% endblock %}
+  {% endblock %}

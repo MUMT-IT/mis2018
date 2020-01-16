@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% include "comhealth/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <b-table
+            :data="data"
+            :loading="loading"
+            paginated
+            :total="total"
+            default-sort="checkin_datetime"
+            default-sort-direction="desc"
+            :per-page="perPage">
+            <template slot-scope="props">
+                <b-table-column field="checkin_datetime" label="Checked In At" sortable>
+                    <% props.row.checkin_datetime.toLocaleString({timeZone: "UTC"}) %>
+                </b-table-column>
+                <b-table-column field="customer.firstname" label="First Name" sortable>
+                    <% props.row.customer.firstname %>
+                </b-table-column>
+                <b-table-column field="customer.lastname" label="Last Name" sortable>
+                    <% props.row.customer.lastname %>
+                </b-table-column>
+                <b-table-column field="labno" label="Lab No." sortable numeric>
+                    <% props.row.labno %>
+                </b-table-column>
+                <b-table-column field="ordered_tests" label="Tests" sortable numeric>
+                    <% props.row.ordered_tests.length %>
+                </b-table-column>
+                <b-table-column field="" label="Receipts">
+                    <a class="button is-rounded is-light"
+                       v-bind:href="'/comhealth/checkin/'+props.row.id+'/receipts'">
+                        <span class="icon">
+                            <i class="fas fa-receipt"></i>
+                        </span>
+                        <span>Receipts</span>
+                    </a>
+                </b-table-column>
+            </template>
+        </b-table>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript">
+        var vm = new Vue({
+            el: "#app",
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    data: [],
+                    total: 0,
+                    loading: false,
+                    page: 1,
+                    perPage: 20
+                }
+            },
+            methods: {
+                loadAsyncData() {
+                    var self = this;
+                    axios.get('/comhealth/api/services/{{service.id}}/records')
+                        .then(function(response) {
+                            self.data = response.data;
+                            self.total = response.data.length;
+                        });
+                }
+            },
+            mounted() {
+                var self = this;
+                self.loadAsyncData();
+                setInterval(()=>{
+                    self.loadAsyncData();
+                    console.log('updated.');
+                }, 6000);
+            }
+        });
+    </script>
+{% endblock %}

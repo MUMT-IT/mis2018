@@ -21,7 +21,7 @@
             </ul>
         </div>
         <div class="columns">
-            <div class="column">
+            <div class="column is-half">
                 <form method="post" action="{{ url_for('food.add_pesticide_results_from_form') }}">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                     <input type="hidden" name="sample_id" value="{{ sample.id }}">
@@ -34,12 +34,21 @@
                             </div>
                             <div class="field-body">
                                 <div class="field has-addons">
-                                    <div class="control">
-                                        <input class="input" type="number" step="any" name="{{ test.id }}"
+                                    <div class="control is-expanded">
+                                        <input class="input" type="number"
+                                                             step="any"
+                                                             name="value_{{ test.id }}"
                                                value="{{ result_dict[test.id] }}">
                                     </div>
                                     <div class="control">
                                         <a class="button">{{ test.unit }}</a>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <div class="control is-expanded">
+                                        <input class="input" type="number"
+                                               step="any" name="cutoff_{{ test.id }}" placeholder="Cutoff"
+                                               value="{{ cutoff_dict[test.id] }}">
                                     </div>
                                 </div>
                             </div> <!-- body -->

@@ -15,3 +15,6 @@ class AssetItem(db.Model):
     desc_id = db.Column('desc_id', db.String(4), nullable=False)
     room_id = db.Column('room_id', db.ForeignKey('scheduler_room_resources.id'))
     reservable = db.Column('reservable', db.Boolean, default=False)
+
+    def __str__(self):
+        return u'{} {}-{}-{}'.format(th_name, group_id, class_id, type_id)

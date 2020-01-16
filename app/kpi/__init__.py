@@ -1,5 +1,5 @@
 from flask import Blueprint
 
-kpibp = Blueprint('kpi', __name__)
+kpibp = Blueprint('kpi_blueprint', __name__)
 
 from . import views

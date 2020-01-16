@@ -55,6 +55,7 @@
           <tr>
             <th>ชื่อสาร</th>
             <th>ปริมาณ</th>
+            <th>ค่าตามเกณฑ์มาตรฐาน</th>
             <th>ปลอดภัย</th>
           </tr>
         </thead>
@@ -65,14 +66,20 @@
           <td>
             {% if not pest_res.value %}
             ไม่พบ
+            {% elif pest_res.value < 0 %}
+            ไม่ได้ทดสอบ
             {% else %}
             {{ pest_res.value }} {{ pest_res.test.unit }}
             {% endif %}
           </td>
           <td>
-            {% if not pest_res.value or pest_res.value <= pest_res.test.cutoff %}
+            {{ pest_res.cutoff_value or 0.0 }}
+          </td>
+          <td>
+            {% if not pest_res.value or pest_res.value < pest_res.cutoff_value %}
             <span class="icon has-text-success">
               <i class="fa fa-check"></i>
+            {% elif pest_res.value < 0 %}
             {% else %}
             <span class="icon has-text-danger">
               <i class="fa fa-times"></i>
@@ -159,14 +166,13 @@
     </div>
     <div class="box has-text-centered">
       <p class="notification is-link is-rounded is-inverted button is-static">
-        <strong>ผลการตรวจเชื้อปรสิตก่อโรค</strong>
+        <strong>ผลการตรวจเชื้อปรสิตก่อโรคในคนที่ติดต่อจากการกิน</strong>
       </p>
       <br>
       <table class="table is-narrow is-striped">
         <thead>
           <tr>
             <th>ชนิดพยาธิ</th>
-            <th>จำนวนที่พบ</th>
             <th>หมายเหตุ</th>
           </tr>
         </thead>
@@ -174,7 +180,6 @@
         {% for par_res in sample.parasite_results|sort(attribute='test.id') %}
         <tr>
           <td>{{ par_res.test.organism }} {{ par_res.test.stage }}</td>
-          <td>{{ par_res.count }}</td>
           <td>{{ par_res.comment}}</td>
         </tr>
         {% endfor %}

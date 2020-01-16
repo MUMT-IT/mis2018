@@ -3,45 +3,51 @@
 {% include "scheduler/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <h1 class="title">รายการห้อง</h1>
-    <table class="table">
-        <thead>
-            <th>หมายเลขทะเบียน</th>
-            <th>ยี่ห้อ</th>
-            <th>รุ่น</th>
-            <th>จำนวนคนสูงสุด</th>
-            <th>รายละเอียด</th>
-            <th>ความพร้อมใช้</th>
-            <th>ชนิดของห้อง</th>
-            <th>เวลาทำการ</th>
-            <th>ดูข้อมูลการจอง</th>
-            <th></th>
-        </thead>
-        <tbody>
-        {% for vehicle in vehicles %}
-            <tr>
-                <td>{{ vehicle.license }}</td>
-                <td>{{ vehicle.maker }}</td>
-                <td>{{ vehicle.model }}</td>
-                <td>{{ vehicle.occupancy }}</td>
-                <td>{{ vehicle.desc }}</td>
-                <td>{{ vehicle.availability.availability }}</td>
-                <td>{{ vehicle.type.type }}</td>
-                <td>{{ vehicle.business_hour_start }}-{{ vehicle.business_hour_end }}</td>
-                <td>
-                    <span class="icon is-medium">
-                        <i class="fas fa-clipboard-list fa-lg"></i>
-                    </span>
-                </td>
-                <td>
-                    <a href="{{ url_for('vehicle.vehicle_reserve', license=vehicle.license) }}"
-                        class="button is-rounded is-info">
-                        <strong>จอง</strong>
-                    </a>
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+    <div class="container">
+        <h1 class="title">รายการยานพาหนะ</h1>
+        <div class="has-text-right">
+            <a href="{{ url_for('vehicle.vehicle_reserve', license='xxxxxx')}}"
+                class="button is-large is-rounded is-info">จองไม่ระบุยานพาหนะ</a>
+        </div>
+        <table class="table">
+            <thead>
+                <th>หมายเลขทะเบียน</th>
+                <th>ยี่ห้อ</th>
+                <th>รุ่น</th>
+                <th>จำนวนคนสูงสุด</th>
+                <th>รายละเอียด</th>
+                <th>ความพร้อมใช้</th>
+                <th>ชนิดของห้อง</th>
+                <th>เวลาทำการ</th>
+                <th>ดูข้อมูลการจอง</th>
+                <th></th>
+            </thead>
+            <tbody>
+            {% for vehicle in vehicles %}
+                <tr>
+                    <td>{{ vehicle.license }}</td>
+                    <td>{{ vehicle.maker }}</td>
+                    <td>{{ vehicle.model }}</td>
+                    <td>{{ vehicle.occupancy }}</td>
+                    <td>{{ vehicle.desc }}</td>
+                    <td>{{ vehicle.availability.availability }}</td>
+                    <td>{{ vehicle.type.type }}</td>
+                    <td>{{ vehicle.business_hour_start }}-{{ vehicle.business_hour_end }}</td>
+                    <td>
+                        <span class="icon is-medium">
+                            <i class="fas fa-clipboard-list fa-lg"></i>
+                        </span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('vehicle.vehicle_reserve', license=vehicle.license) }}"
+                            class="button is-rounded is-info">
+                            <strong>จอง</strong>
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </section>
 {% endblock page_content %}

@@ -1,8 +1,12 @@
 from ..main import db, ma
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.ext.associationproxy import association_proxy
 from marshmallow import fields
 from dateutil.relativedelta import relativedelta
 from datetime import date
+import pytz
 
+bangkok = pytz.timezone('Asia/Bangkok')
 
 class SmartNested(fields.Nested):
     def serialize(self, attr, obj, accessor=None):
@@ -29,6 +33,45 @@ test_item_record_table = db.Table('comhealth_test_item_records',
                                   db.Column('record_id', db.Integer, db.ForeignKey('comhealth_test_records.id'),
                                             primary_key=True),
                                   )
+'''
+test_item_receipt_table = db.Table('comhealth_test_item_receipts',
+                                  db.Column('test_item_id', db.Integer, db.ForeignKey('comhealth_test_items.id'),
+                                            primary_key=True),
+                                  db.Column('receipt_id', db.Integer,
+                                            db.ForeignKey('comhealth_test_receipts.id'),
+                                            primary_key=True),
+                                  )
+'''
+
+
+class ComHealthInvoice(db.Model):
+    __tablename__ = 'comhealth_invoice'
+    test_item_id = db.Column('test_item_id', db.Integer,
+                        db.ForeignKey('comhealth_test_items.id'),
+                        primary_key=True)
+    receipt_id = db.Column('receipt_id', db.Integer,
+                        db.ForeignKey('comhealth_test_receipts.id'),
+                        primary_key=True)
+    visible = db.Column('visible', db.Boolean(), default=True)
+    reimbursable = db.Column('reimbursable', db.Boolean(), default=True)
+    billed = db.Column('billed', db.Boolean(), default=True)
+    test_item = db.relationship('ComHealthTestItem', backref='invoices')
+    receipt = db.relationship('ComHealthReceipt', backref='invoices')
+
+
+class ComHealthCashier(db.Model):
+    __tablename__ = 'comhealth_cashier'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    firstname = db.Column('firstname', db.String(255), index=True)
+    lastname = db.Column('lastname', db.String(255), index=True)
+    position = db.Column('position', db.String(255))
+
+    @property
+    def fullname(self):
+        return u'{} {}'.format(self.firstname, self.lastname)
+
+    def __str__(self):
+        return self.fullname
 
 
 class ComHealthOrg(db.Model):
@@ -50,6 +93,9 @@ class ComHealthCustomer(db.Model):
     org = db.relationship('ComHealthOrg', backref=db.backref('employees', lazy=True))
     dob = db.Column('dob', db.Date())
     gender = db.Column('gender', db.Integer)  # 0 for female, 1 for male
+    emptype_id = db.Column('emptype_id', db.ForeignKey('comhealth_customer_employment_types.id'))
+    emptype = db.relationship('ComHealthCustomerEmploymentType',
+                              backref=db.backref('customers'))
 
     def __str__(self):
         return u'{}{} {} {}'.format(self.title, self.firstname,
@@ -66,6 +112,46 @@ class ComHealthCustomer(db.Model):
             return rdelta
         else:
             return None
+
+    @property
+    def fullname(self):
+        return u'{}{} {}'.format(self.title, self.firstname, self.lastname)
+
+
+class ComHealthCustomerEmploymentType(db.Model):
+    __tablename__ = 'comhealth_customer_employment_types'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    emptype_id = db.Column('emptype_id', db.String(), nullable=False)
+    name = db.Column('name', db.String(), nullable=False)
+
+    def __str__(self):
+        return self.name
+
+
+class ComHealthCustomerInfo(db.Model):
+    __tablename__ = 'comhealth_customer_info'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    cust_id = db.Column('customer_id', db.ForeignKey('comhealth_customers.id'))
+    customer = db.relationship('ComHealthCustomer',
+                    backref=db.backref('info', lazy=True, uselist=False))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    data = db.Column('data', JSONB)
+
+    @property
+    def updated_date(self):
+        return bangkok.localize(self.updated_at.date())
+
+
+class ComHealthCustomerInfoItem(db.Model):
+    __tablename__ = 'comhealth_customer_info_items'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    text = db.Column('text', db.String(256), nullable=False)
+    dtype = db.Column('type', db.String(64), nullable=False, default='text')
+    choices = db.Column('choices', db.Text())
+    placeholder = db.Column('placeholder', db.String(64))
+    multiple_selection = db.Column('multiple_selection', db.Boolean(), default=False)
+    order = db.Column('order', db.Integer, nullable=False)
+    unit = db.Column('unit', db.String(32))
 
 
 class ComHealthContainer(db.Model):
@@ -87,9 +173,8 @@ class ComHealthTest(db.Model):
     code = db.Column('code', db.String(64), index=True)
     name = db.Column('name', db.String(64), index=True)
     desc = db.Column('desc', db.Text())
-
+    gov_code = db.Column('gov_code', db.String(16))
     default_price = db.Column('default_price', db.Numeric(), default=0)
-
     container_id = db.Column('container_id', db.ForeignKey('comhealth_containers.id'))
     container = db.relationship('ComHealthContainer', backref=db.backref('tests'))
 
@@ -142,8 +227,7 @@ class ComHealthRecord(db.Model):
     customer_id = db.Column('customer_id', db.ForeignKey('comhealth_customers.id'))
     customer = db.relationship('ComHealthCustomer', backref=db.backref('records'))
     service_id = db.Column('service_id', db.ForeignKey('comhealth_services.id'))
-    service = db.relationship('ComHealthService',
-                              backref=db.backref('records'))
+    service = db.relationship('ComHealthService', backref=db.backref('records'))
     checkin_datetime = db.Column('checkin_datetime', db.DateTime(timezone=True))
     ordered_tests = db.relationship('ComHealthTestItem', backref=db.backref('records'),
                                     secondary=test_item_record_table)
@@ -155,6 +239,10 @@ class ComHealthRecord(db.Model):
     def container_set(self):
         _containers = set([item.test.container.name for item in self.ordered_tests])
         return _containers
+
+    @property
+    def is_checked_in(self):
+        return self.checkin_datetime is not None
 
 
 class ComHealthTestItem(db.Model):
@@ -169,6 +257,7 @@ class ComHealthTestItem(db.Model):
     group = db.relationship('ComHealthTestGroup', backref=db.backref('test_items'))
 
     price = db.Column('price', db.Numeric())
+    receipts = association_proxy('invoices', 'receipt')
 
 
 class ComHealthTestProfileItem(db.Model):
@@ -197,7 +286,59 @@ class ComHealthService(db.Model):
         return u'{} {}'.format(self.date, self.location)
 
 
+class ComHealthReceiptID(db.Model):
+    __tablename__ = 'comhealth_receipt_ids'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    code = db.Column('code', db.String(), nullable=False)
+    buddhist_year = db.Column('buddhist_year', db.Integer(), nullable=False)
+    count = db.Column('count', db.Integer, default=0)
+    updated_datetime = db.Column('updated_datetime', db.DateTime(timezone=True))
+
+    @property
+    def next(self):
+        return u'{}{}{:06}'.format(self.code,str(self.buddhist_year)[-2:], self.count+1)
+
+
+class ComHealthReceipt(db.Model):
+    __tablename__ = 'comhealth_test_receipts'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    copy_number = db.Column('copy_number', db.Integer, default=1)
+    created_datetime = db.Column('checkin_datetime', db.DateTime(timezone=True))
+    record_id = db.Column('record_id', db.ForeignKey('comhealth_test_records.id'))
+    record = db.relationship('ComHealthRecord',
+                              backref=db.backref('receipts'))
+    tests = association_proxy('invoices', 'test_item')
+    comment = db.Column('comment', db.Text())
+    paid = db.Column('paid', db.Boolean(), default=False)
+    cancelled = db.Column('cancelled', db.Boolean(), default=False)
+    cancel_comment = db.Column('cancel_comment', db.Text())
+    issuer_id = db.Column('issuer_id', db.ForeignKey('comhealth_cashier.id'))
+    issuer = db.relationship('ComHealthCashier',
+                             foreign_keys=[issuer_id],
+                             backref=db.backref('issued_receipts'))
+    cashier_id = db.Column('cashier_id', db.ForeignKey('comhealth_cashier.id'))
+    cashier = db.relationship('ComHealthCashier', foreign_keys=[cashier_id])
+    payment_method = db.Column('payment_method', db.String(64))
+    card_number = db.Column('card_number', db.String(16))
+    print_profile_note = db.Column('print_profile_note', db.Boolean(), default=False)
+
+
+class ComHealthReferenceTestProfile(db.Model):
+    """All tests in the profile are reimbursable by the government.
+    """
+    __tablename__ = 'comhealth_reference_test_profile'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    profile_id = db.Column('profile_id', db.ForeignKey('comhealth_test_profiles.id'))
+    profile = db.relationship('ComHealthTestProfile')
+
+
+class ComHealthCustomerInfoSchema(ma.ModelSchema):
+    class Meta:
+        model = ComHealthCustomerInfo
+
+
 class ComHealthCustomerSchema(ma.ModelSchema):
+    info = fields.Nested(ComHealthCustomerInfoSchema)
     class Meta:
         model = ComHealthCustomer
 

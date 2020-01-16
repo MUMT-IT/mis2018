@@ -36,7 +36,7 @@
     }
     var vm = new ViewModel();
     ko.applyBindings(vm);
-    $.getJSON("{{ url_for('kpi.get_perkeval_data') }}", function(data) {
+    $.getJSON("{{ url_for('kpi_blueprint.get_perkeval_data') }}", function(data) {
         vm.data(data);
     });
 </script>

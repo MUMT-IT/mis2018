@@ -5,6 +5,7 @@
 <section class="section">
 <h1 class="title">ข้อมูลตัวชี้วัด no. {{ kpi.id }}</h1>
 <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <div class="columns">
         <div class="column is-one-third">
             <div class="card">

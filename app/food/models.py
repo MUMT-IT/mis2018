@@ -203,6 +203,7 @@ class PesticideResult(db.Model):
     test_id = db.Column(db.Integer, db.ForeignKey('food_pesticide_tests.id'))
     sample_id = db.Column(db.Integer, db.ForeignKey('food_samples.id'))
     value = db.Column(db.Float())
+    cutoff_value = db.Column(db.Float(), default=0.0)
 
 
 class ToxicoTest(db.Model):

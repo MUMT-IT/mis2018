@@ -1,21 +1,25 @@
 # -*- coding: utf8 -*-
 
-from . import roombp as room
-from .models import RoomResource, RoomEvent, EventCategory
+import requests
+import os
+import pytz
+from datetime import datetime
 from flask import render_template, jsonify, request, flash, redirect, url_for
 from flask_login import login_required
-from datetime import datetime
-import pytz
-
-import google.auth
-import dateutil.parser
 from googleapiclient.discovery import build
-from oauth2client.service_account import ServiceAccountCredentials
-from ..main import json_keyfile, db
+from google.oauth2.service_account import Credentials
+from ..main import db
+from . import roombp as room
+from .models import RoomResource, RoomEvent, EventCategory
+from ..models import IOCode
 
-from ..models import IOCode, Mission, Org, CostCenter
+if os.environ.get('FLASK_ENV') == 'production':
+    CALENDAR_ID = '9hur49up24fdcbicdbggvpu77k@group.calendar.google.com'
+else:
+    CALENDAR_ID = 'rsrlpk6sbr0ntbq9ukd6vkpkbc@group.calendar.google.com'
 
-CALENDAR_ID = '9hur49up24fdcbicdbggvpu77k@group.calendar.google.com'
+service_account_info = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+credentials = Credentials.from_service_account_info(service_account_info)
 
 @room.route('/api/iocodes')
 def get_iocodes():
@@ -53,13 +57,14 @@ def get_rooms():
 @room.route('/api/events')
 def get_events():
     tz = pytz.timezone('Asia/Bangkok')
-    credentials, project_id = google.auth.default()
+    # credentials, project_id = google.auth.default()
     scoped_credentials = credentials.with_scopes([
         'https://www.googleapis.com/auth/calendar',
         'https://www.googleapis.com/auth/calendar.events'
     ])
     calendar_service = build('calendar', 'v3', credentials=scoped_credentials)
-    request = calendar_service.events().list(calendarId='9hur49up24fdcbicdbggvpu77k@group.calendar.google.com')
+    request = calendar_service.events().list(
+        calendarId='{}'.format(CALENDAR_ID))
     # Loop until all pages have been processed.
     all_events = []
     while request != None:
@@ -73,6 +78,14 @@ def get_events():
             extended_properties = event.get('extendedProperties', {}).get('private', {})
             room_no = extended_properties.get('room_no', '')
             status = event.get('status')
+            if status == 'confirmed':
+                text_color = '#ffffff'
+                bg_color = '#2b8c36'
+                border_color = '#ffffff'
+            else:
+                text_color = '#000000'
+                bg_color = '#f0f0f5'
+                border_color = '#ff4d4d'
             evt = {
                 'location': event.get('location', None),
                 'title': u'(Rm{}) {}'.format(room_no, event.get('summary', 'NO SUMMARY')),
@@ -81,7 +94,9 @@ def get_events():
                 'end': end['dateTime'],
                 'resourceId': room_no,
                 'status': status,
-                'borderColor': '#24ef15' if status=='confirmed' else '#f44242',
+                'borderColor': border_color,
+                'backgroundColor': bg_color,
+                'textColor': text_color,
                 'id': extended_properties.get('event_id', None),
             }
             all_events.append(evt)
@@ -92,7 +107,6 @@ def get_events():
 
 
 @room.route('/')
-#@login_required
 def index():
     return render_template('scheduler/room_main.html')
 
@@ -119,6 +133,35 @@ def show_event_detail(event_id=None):
                 'scheduler/event_detail.html', event=event)
     else:
         return 'No event ID specified.'
+
+
+@room.route('/events/cancel/<int:event_id>')
+def cancel(event_id=None):
+    if not event_id:
+        return redirect(url_for('room.index'))
+
+    tz = pytz.timezone('Asia/Bangkok')
+    cancelled_datetime = tz.localize(datetime.utcnow(), is_dst=None)
+    event = RoomEvent.query.get(event_id)
+    event.cancelled_at = cancelled_datetime
+    event.cancelled_by = 1
+    db.session.add(event)
+    db.session.commit()
+
+    scoped_credentials = credentials.with_scopes([
+        'https://www.googleapis.com/auth/calendar',
+        'https://www.googleapis.com/auth/calendar.events'
+    ])
+
+    calendar_service = build('calendar', 'v3', credentials=scoped_credentials)
+    event_ = calendar_service.events().patch(
+        calendarId=event.google_calendar_id,
+        eventId=event.google_event_id, body={'status': 'cancelled'}).execute()
+
+    if event_:
+        flash('Reservation ID={} has been updated.'.format(event_.get('id')))
+
+    return redirect(url_for('room.index'))
 
 
 @room.route('/events/edit/<int:event_id>', methods=['POST', 'GET'])
@@ -160,7 +203,7 @@ def edit_detail(event_id=None):
         event.refreshment = refreshment
         event.note = note
         event.updated_at=tz.localize(datetime.utcnow())
-        event.approved = True if approved=='yes' else False
+        event.approved = True if approved == 'yes' else False
         db.session.add(event)
         db.session.commit()
 
@@ -190,7 +233,7 @@ def edit_detail(event_id=None):
                 }
             }
         }
-        credentials, project_id = google.auth.default()
+        # credentials, project_id = google.auth.default()
         scoped_credentials = credentials.with_scopes([
             'https://www.googleapis.com/auth/calendar',
             'https://www.googleapis.com/auth/calendar.events'
@@ -317,7 +360,7 @@ def room_reserve(room_id):
                             }
                         }
                     }
-                    credentials, project_id = google.auth.default()
+                    # credentials, project_id = google.auth.default()
                     scoped_credentials = credentials.with_scopes([
                         'https://www.googleapis.com/auth/calendar',
                         'https://www.googleapis.com/auth/calendar.events'

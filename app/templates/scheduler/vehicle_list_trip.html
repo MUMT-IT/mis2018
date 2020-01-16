@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Add New Event{% endblock %}
+{% include "scheduler/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <h1 class="title">รายการห้อง</h1>
+    <table class="table">
+        <thead>
+            <th>หมายเลขทะเบียน</th>
+            <th>ยี่ห้อ</th>
+            <th>รุ่น</th>
+            <th></th>
+        </thead>
+        <tbody>
+        {% for vehicle in vehicles %}
+            <tr>
+                <td>{{ vehicle.license }}</td>
+                <td>{{ vehicle.maker }}</td>
+                <td>{{ vehicle.model }}</td>
+                <td>
+                    <!--
+                    <a href="{{ url_for('vehicle.car_event_list', license=vehicle.license) }}"
+                        class="button is-rounded is-info">
+                        <strong>ป้อนข้อมูล</strong>
+                    </a>
+                    -->
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock page_content %}

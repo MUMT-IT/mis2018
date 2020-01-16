@@ -1,28 +1,81 @@
 # -*- coding: utf-8 -*-
 import json
+from bahttext import bahttext
 from datetime import datetime
 from datetime import date
+from decimal import Decimal
 from pandas import read_excel, isna
+from flask_weasyprint import HTML, render_pdf
+from sqlalchemy.orm.attributes import flag_modified
 import pytz
-from flask import render_template, flash, redirect, url_for, request, jsonify, Response, stream_with_context
+from flask import (render_template, flash, redirect, url_for, session,
+                   request, send_file, Response, stream_with_context, jsonify)
 from flask_login import login_required
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 from app.main import db
 from . import comhealth
-from .forms import ServiceForm, TestProfileForm, TestListForm, TestForm, TestGroupForm, CustomerForm
-from .models import (ComHealthService, ComHealthRecord, ComHealthTestItem,
-                     ComHealthTestProfile, ComHealthContainer, ComHealthTestGroup,
-                     ComHealthTest, ComHealthOrg, ComHealthCustomer)
-from .models import (ComHealthRecordSchema, ComHealthServiceSchema, ComHealthTestProfileSchema,
-                     ComHealthTestGroupSchema, ComHealthTestSchema, ComHealthOrgSchema,
-                     ComHealthCustomerSchema,
-                     )
+from .forms import (ServiceForm, TestProfileForm, TestListForm,
+                    TestForm, TestGroupForm, CustomerForm)
+from .models import *
+from flask_admin import BaseView, expose
 
 bangkok = pytz.timezone('Asia/Bangkok')
 
 ALLOWED_EXTENSIONS = ['xlsx', 'xls']
 
+
 @comhealth.route('/')
+def landing():
+    return render_template('comhealth/landing.html')
+
+
+@comhealth.route('/finance', methods=('GET', 'POST'))
+def finance_landing():
+    cur_year = datetime.today().date().year + 543
+    receipt_ids = ComHealthReceiptID.query.filter_by(buddhist_year=cur_year)
+    if request.method == 'POST':
+        code_id = request.form.get('code_id')
+        venue = request.form.get('venue')
+        if code_id:
+            session['receipt_venue'] = venue
+            session['receipt_code_id'] = int(code_id)
+            return redirect(url_for('comhealth.finance_index'))
+        else:
+            flash('No receipt code ID specified.')
+    return render_template('comhealth/finance_landing.html',
+                           receipt_ids=receipt_ids)
+
+@comhealth.route('/services/finance')
+def finance_index():
+    services = ComHealthService.query.all()
+    services_data = []
+    for sv in services:
+        d = {
+            'id': sv.id,
+            'date': sv.date,
+            'location': sv.location,
+            'registered': len(sv.records),
+            'checkedin': len([r for r in sv.records if r.checkin_datetime is not None])
+        }
+        services_data.append(d)
+    return render_template('comhealth/finance_index.html', services=services_data)
+
+
+@comhealth.route('/api/services/<int:service_id>/records')
+def api_finance_record(service_id):
+    service = ComHealthService.query.get(service_id)
+    records = [rec for rec in service.records if rec.is_checked_in]
+    record_schema = ComHealthRecordSchema(many=True)
+    return jsonify(record_schema.dump(records).data)
+
+
+@comhealth.route('/services/<int:service_id>/records')
+def finance_record(service_id):
+    service = ComHealthService.query.get(service_id)
+    return render_template('comhealth/finance_records.html', service=service)
+
+
+@comhealth.route('/customers')
 def index():
     services = ComHealthService.query.all()
     services_data = []
@@ -56,10 +109,14 @@ def edit_record(record_id):
     if not record.service.profiles and not record.service.groups:
         return redirect(url_for('comhealth.edit_service', service_id=record.service.id))
 
+    emptypes = ComHealthCustomerEmploymentType.query.all()
+
     if request.method == 'GET':
         if not record.checkin_datetime:
             return render_template('comhealth/edit_record.html',
-                                   record=record)
+                                   record=record,
+                                   emptypes=emptypes,
+                                   )
 
     containers = set()
     profile_item_cost = 0.0
@@ -100,10 +157,14 @@ def edit_record(record_id):
                 containers.add(test_item.test.container)
 
         record.comment = request.form.get('comment')
+        emptype_id = int(request.form.get('emptype_id', 0))
+        record.customer.emptype_id = emptype_id
 
         record.updated_at = datetime.now(tz=bangkok)
         db.session.add(record)
         db.session.commit()
+
+    special_tests = set(record.ordered_tests)
 
     for profile in record.service.profiles:
         # if all tests are ordered, the quote price is used.
@@ -113,21 +174,27 @@ def edit_record(record_id):
                 profile_item_cost -= float(test_item.price) or float(test_item.test.default_price)
         else:  # in case no tests in the profile is ordered, subtract a quote price from the total price
             profile_item_cost -= float(profile.quote)
+        special_tests.difference_update(set(profile.test_items))
 
-    group_item_cost = sum([item.price or item.test.default_price for item in record.ordered_tests if item.group])
+    group_item_cost = sum([item.price or item.test.default_price
+                           for item in record.ordered_tests if item.group])
+    special_item_cost = sum([item.price or item.test.default_price
+                             for item in special_tests])
     containers = set([item.test.container for item in record.ordered_tests])
 
     return render_template('comhealth/record_summary.html',
                            record=record,
                            containers=containers,
                            profile_item_cost=profile_item_cost,
-                           group_item_cost=float(group_item_cost))
+                           group_item_cost=float(group_item_cost),
+                           special_tests=special_tests,
+                           special_item_cost=float(special_item_cost),
+                        )
 
 
 @comhealth.route('/record/order/add-comment', methods=['GET', 'POST'])
 def add_comment_to_order():
     if request.method == 'POST':
-        print(request.form.keys())
         record_id = request.form.get('record_id')
         record = ComHealthRecord.query.get(int(record_id))
         comment = request.form.get('comment')
@@ -571,7 +638,6 @@ def summarize_specimens(service_id):
                 containers.add(test_item.test.container.name)
 
         record_ids = dict([(int(r.labno[-4:]), r) for r in service.records if r.labno])
-        print(record_ids)
         sorted_records = []
         for i in range(len(service.records)):
             if i + 1 in record_ids:
@@ -711,8 +777,112 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS 
 
 
+@comhealth.route('/organizations/<int:orgid>/employees/info', methods=['POST', 'GET'])
+def add_employee_info(orgid):
+    '''Add employees info from a file.
+    '''
+    org = ComHealthOrg.query.get(orgid)
+    info_items = ComHealthCustomerInfoItem.query.all()
+    info_items = set([item.text for item in info_items])
+
+    if request.method == 'POST':
+        if 'file' not in request.files:
+            flash('No file alert')
+            return redirect(request.url)
+        file = request.files['file']
+        if file.filename == '':
+            flash('No file selected')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            service = None
+            df = read_excel(file)
+            name = df.columns[2]
+            for idx, rec in df.iterrows():
+                rec = rec.fillna('')
+                data = {}
+                try:
+                    firstname, lastname = rec[name].split(' ', 1)
+                except:
+                    print(rec[name])
+                    raise ValueError
+                customer = ComHealthCustomer.query.filter_by(
+                                                    firstname=firstname,
+                                                    lastname=lastname).first()
+                if customer:
+                    for col in rec.keys():
+                        if col in info_items:
+                            data[col] = rec[col]
+                    if not customer.info:
+                        info = ComHealthCustomerInfo(
+                            customer=customer,
+                            data=data,
+                            updated_at=datetime.now(tz=bangkok)
+                        )
+                        db.session.add(info)
+                    else:
+                        customer.info.data = data
+                    db.session.add(customer)
+                    db.session.commit()
+        return redirect(url_for('comhealth.list_employees', orgid=org.id))
+
+    return render_template('comhealth/employee_info_upload.html', org=org)
+
+
+@comhealth.route('/organizations/employees/info/<int:custid>',
+    methods=["POST", "GET"])
+def show_employee_info(custid):
+    info_items = ComHealthCustomerInfoItem.query.all()
+    info_items = [(it.text, it) for it in info_items]
+    info_items = OrderedDict(sorted(info_items, key=lambda x: x[1].order))
+
+    if request.method == 'GET':
+        if not custid:
+            flash('No customer ID specified.')
+            return redirect(request.referrer)
+
+        customer = ComHealthCustomer.query.get(custid)
+        if customer:
+            if not customer.info:
+                info = ComHealthCustomerInfo(customer=customer, data={})
+                db.session.add(info)
+                db.session.commit()
+            return render_template('comhealth/employee_info_update.html',
+                                        info_items=info_items,
+                                        customer=customer)
+        else:
+            flash('Customer with ID={} does not exist.'.format(customer.id))
+            return redirect(request.referrer)
+
+    if request.method == 'POST':
+        customer_id = request.form.get('customer_id')
+        print('customer id is {}'.format(customer_id))
+        if customer_id:
+            customer = ComHealthCustomer.query.get(int(customer_id))
+            print(u'{}'.format(customer.fullname))
+            for k, item in info_items.items():
+                if not item.multiple_selection:
+                    customer.info.data[k] = request.form.get(k)
+                else:
+                    values = ' '.join(request.form.getlist(k))
+                    customer.info.data[k] = values
+            for k,v in customer.info.data.items():
+                print(u'{} {}'.format(k,v))
+            flag_modified(customer.info, "data")
+            db.session.add(customer)
+            db.session.commit()
+        else:
+            flash('Customer ID not found.')
+        return redirect(url_for('comhealth.list_employees',
+                                        orgid=customer.org.id))
+
+
 @comhealth.route('/organizations/<int:orgid>/employees/addmany', methods=['GET', 'POST'])
 def add_many_employees(orgid):
+    '''Add employees from Excel file.
+
+    Note that the birthdate is in Thai year.
+    The columns are labno, title, firstname, lastname, dob, gender, and servicedate
+    '''
     org = ComHealthOrg.query.get(orgid)
 
     if request.method == 'POST':
@@ -746,6 +916,11 @@ def add_many_employees(orgid):
 
                 if not service:
                     service = ComHealthService.query.filter_by(date=servicedate).first()
+                    if not service:
+                        service = ComHealthService(date=servicedate,
+                                                   location=org.name)
+                        db.session.add(service)
+                        db.session.commit()
 
                 customer_ = ComHealthCustomer.query.filter_by(
                                     firstname=firstname, lastname=lastname).first()
@@ -753,7 +928,7 @@ def add_many_employees(orgid):
                     record_ = ComHealthRecord.query.filter_by(
                                         service=service, customer=customer_).first()
                     if record_:
-                        print(u'Record exists. Continue..{} {}'.format(firstname, lastname))
+                        # print(u'Record exists. Continue..{} {}'.format(firstname, lastname))
                         continue
 
                     # A new customer is created for this org even when the name exists in the db.
@@ -818,3 +993,374 @@ def search_employees():
             }
         data.append(item)
     return render_template('comhealth/search_employees.html', employees=data, org=u'การเคหะแห่งชาติ')
+
+
+@comhealth.route('/checkin/<int:record_id>/receipts', methods=['GET', 'POST'])
+def list_all_receipts(record_id):
+    record = ComHealthRecord.query.get(record_id)
+    return render_template('comhealth/receipts.html', record=record)
+
+
+@comhealth.route('/checkin/records/<int:record_id>/receipts', methods=['POST', 'GET'])
+def create_receipt(record_id):
+    if request.method == 'GET':
+        record = ComHealthRecord.query.get(record_id)
+        customer_age = record.customer.age.years
+        cashiers = ComHealthCashier.query.all()
+        ref_profile = ComHealthReferenceTestProfile.query.\
+            filter(ComHealthReferenceTestProfile.profile.\
+                   has(ComHealthTestProfile.age_min<=customer_age)).first()
+        if ref_profile:
+            ref_profile_test_ids = [ti.test.id for ti in ref_profile.profile.test_items]
+        else:
+            ref_profile_test_ids = []
+        valid_receipts = [rcp for rcp in record.receipts if not rcp.cancelled]
+        return render_template('comhealth/new_receipt.html', record=record,
+                                                valid_receipts=valid_receipts,
+                                                cashiers=cashiers,
+                                                ref_profile=ref_profile,
+                                                ref_profile_test_ids=ref_profile_test_ids,
+                                                )
+    if request.method == 'POST':
+        record_id = request.form.get('record_id')
+        record = ComHealthRecord.query.get(record_id)
+        issuer_id = request.form.get('issuer_id', None)
+        cashier_id = request.form.get('cashier_id', None)
+        print_profile_item = True if request.form.getlist('print_profile_items') else False
+        print_profile_note = True if request.form.getlist('print_profile_note') else False
+        valid_receipts = [rcp for rcp in record.receipts if not rcp.cancelled]
+        if not valid_receipts:  # not active receipt
+            receipt = ComHealthReceipt(
+                created_datetime=datetime.now(tz=bangkok),
+                record=record,
+                issuer_id=int(issuer_id) if issuer_id is not None else None,
+                cashier_id=int(cashier_id) if cashier_id is not None else None,
+                print_profile_note=print_profile_note,
+                )
+            db.session.add(receipt)
+        for test_item in record.ordered_tests:
+            if test_item.profile and not print_profile_item:
+                continue
+            visible = test_item.test.code + '_visible'
+            billed = test_item.test.code + '_billed'
+            reimbursable = test_item.test.code + '_reimbursable'
+            billed = True if request.form.getlist(billed) else False
+            visible = True if request.form.getlist(visible) else False
+            reimbursable = True if request.form.getlist(reimbursable) else False
+            invoice = ComHealthInvoice(test_item=test_item,
+                                       receipt=receipt,
+                                       billed=billed,
+                                       reimbursable=reimbursable,
+                                       visible=visible)
+            db.session.add(invoice)
+        db.session.commit()
+        return redirect(url_for('comhealth.list_all_receipts', record_id=record.id)) 
+
+
+@comhealth.route('/checkin/receipts/cancel/confirm/<int:receipt_id>', methods=['GET', 'POST'])
+def confirm_cancel_receipt(receipt_id):
+    receipt = ComHealthReceipt.query.get(receipt_id)
+    if not receipt.cancelled:
+        return render_template('/comhealth/confirm_cancel_receipt.html', receipt=receipt)
+
+
+@comhealth.route('/checkin/receipts/cancel/<int:receipt_id>', methods=['POST'])
+def cancel_receipt(receipt_id):
+    receipt = ComHealthReceipt.query.get(receipt_id)
+    receipt.cancelled = True
+    receipt.cancel_comment = request.form.get('comment')
+    db.session.add(receipt)
+    db.session.commit()
+    return redirect(url_for('comhealth.list_all_receipts',
+                                record_id=receipt.record.id))
+
+
+@comhealth.route('/checkin/receipts/pay/<int:receipt_id>', methods=['POST'])
+def pay_receipt(receipt_id):
+    pay_method = request.form.get('pay_method')
+    if pay_method == 'card':
+        card_number = request.form.get('card_number')
+    receipt = ComHealthReceipt.query.get(receipt_id)
+    if not receipt.paid:
+        receipt.paid = True
+        receipt.payment_method = pay_method
+        if pay_method == 'card':
+            receipt.card_number = card_number
+        db.session.add(receipt)
+        db.session.commit()
+    return redirect(url_for('comhealth.show_receipt_detail',
+                            receipt_id=receipt_id))
+
+
+@comhealth.route('/checkin/receipts/<int:receipt_id>', methods=['GET', 'POST'])
+def show_receipt_detail(receipt_id):
+    receipt = ComHealthReceipt.query.get(receipt_id)
+    action = request.args.get('action', None)
+    if action == 'pay':
+        receipt.paid = True
+        db.session.add(receipt)
+        db.session.commit()
+
+    total_cost = sum([t.test_item.price or t.test_item.test.default_price
+                        for t in receipt.invoices if t.billed])
+    total_special_cost = sum([t.test_item.price or t.test_item.test.default_price
+                        for t in receipt.invoices if t.billed and t.test_item.group])
+
+    total_profile_cost = sum([t.test_item.price or t.test_item.test.default_price
+                        for t in receipt.invoices if t.billed and t.test_item.profile])
+
+    total_special_cost_thai = bahttext(total_special_cost)
+    
+    visible_special_tests = [t for t in receipt.invoices if t.visible and t.test_item.group]
+    visible_profile_tests = [t for t in receipt.invoices if t.visible and t.test_item.profile]
+
+    return render_template('comhealth/receipt_detail.html',
+                           receipt=receipt,
+                           total_cost=total_cost,
+                           total_special_cost=total_special_cost,
+                           total_profile_cost=total_profile_cost,
+                           total_special_cost_thai=total_special_cost_thai,
+                           visible_special_tests=visible_special_tests,
+                           visible_profile_tests=visible_profile_tests)
+
+
+@comhealth.route('/receipts/slip/<int:record_id>')
+def print_slip(record_id):
+    paidamt = request.args.get('paidamt', 0.0)
+    paidamt = Decimal(paidamt)
+    record = ComHealthRecord.query.get(record_id)
+
+    containers = set()
+    profile_item_cost = 0.0
+    group_item_cost = 0
+    for profile in record.service.profiles:
+        profile_item_cost += float(profile.quote)
+
+    special_tests = set(record.ordered_tests)
+
+    for profile in record.service.profiles:
+        # if all tests are ordered, the quote price is used.
+        # if some tests in the profile are ordered, subtract the price of the tests that are not ordered
+        if set(profile.test_items).intersection(record.ordered_tests):
+            for test_item in set(profile.test_items).difference(record.ordered_tests):
+                profile_item_cost -= float(test_item.price) or float(test_item.test.default_price)
+        else:  # in case no tests in the profile is ordered, subtract a quote price from the total price
+            profile_item_cost -= float(profile.quote)
+        special_tests.difference_update(set(profile.test_items))
+
+    group_item_cost = sum([item.price or item.test.default_price
+                           for item in record.ordered_tests if item.group])
+    special_item_cost = sum([item.price or item.test.default_price
+                             for item in special_tests])
+    containers = set([item.test.container for item in record.ordered_tests])
+    change = paidamt - special_item_cost
+
+    html = render_template('comhealth/slip.html',
+                           record=record,
+                           customer=record.customer,
+                           special_tests=special_tests,
+                           special_item_cost="{:10.2f}".format(special_item_cost),
+                           paidamt="{:10.2f}".format(paidamt),
+                           change="{:10.2f}".format(change)
+                          )
+    return render_pdf(HTML(string=html))
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A5, landscape
+from reportlab.platypus import (SimpleDocTemplate, Table, Image,
+                                Spacer, Paragraph, TableStyle)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+
+sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
+pdfmetrics.registerFont(sarabun_font)
+style_sheet = getSampleStyleSheet()
+style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
+
+@comhealth.route('/receipts/pdf/<int:receipt_id>')
+def export_receipt_pdf(receipt_id):
+    receipt = ComHealthReceipt.query.get(receipt_id)
+    doc = SimpleDocTemplate("app/receipt.pdf",
+                            pagesize=landscape(A5),
+                            rightMargin=20,
+                            leftMargin=20,
+                            topMargin=5,
+                            bottomMargin=10,
+                            )
+    data = []
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
+    data.append(logo)
+    affiliation = '''<para align=center><font size=14>
+    มหาวิทยาลัยมหิดล<br/>
+    คณะเทคนิคการแพทย์<br/><br/>
+    </font>
+    <font size=18>ใบเสร็จรับเงิน</font></para>
+    '''
+    address = '''<font size=12>
+    เลขที่ 999 พุทธมณฑลสาย 4<br/>
+    ต.ศาลายา อ.พุทธมณฑล<br/>
+    จ.นครปฐม 73170<br/>
+    เลขประจำตัวผู้เสียภาษี 4107039192<br/><br/>
+    </font>
+    '''
+
+    receipt_info = '''<font size=12>
+    เลขที่ {receipt_id} แผ่นที่ 1<br/>
+    วันที่ {issued_date}<br/>
+    </font>
+    '''
+    issued_date = datetime.now().strftime('%d/%m/%Y')
+    receipt_info = receipt_info.format(receipt_id=receipt_id,
+                                       issued_date=issued_date)
+
+    header_content = [[Paragraph(address, style=style_sheet['ThaiStyle']),
+                        Paragraph(affiliation, style=style_sheet['ThaiStyle']),
+                        Paragraph(receipt_info, style=style_sheet['ThaiStyle'])]]
+
+    header_styles = TableStyle([
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+    ])
+
+    header = Table(header_content, colWidths=[120, 300, 120])
+    header.hAlign = 'CENTER'
+    header.setStyle(header_styles)
+    customer_name = '''<para align=center><font size=11>
+    ชื่อ {customer_name}
+    </font></para>
+    '''.format(customer_name=receipt.record.customer.fullname.encode('utf-8'))
+    customer_hn = '''<para align=center><font size=11>
+    หมายเลขรายการ {customer_hn}
+    </font></para>
+    '''.format(customer_hn=receipt.record.labno)
+    customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
+                      Paragraph(customer_hn, style=style_sheet['ThaiStyle'])]])
+    body_text = '''<para align=center><font size=16>
+    รายการ</font></para>
+    '''
+    body = Table([[Paragraph(body_text, style=style_sheet['ThaiStyle'])]])
+    body.setStyle(TableStyle([
+        ('BOX', (0, 0), (-1, -1), 0.25, colors.black),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ('TOPPADDING', (0, 0), (-1, -1), 0),
+    ]))
+
+    items = [[Paragraph('', style=style_sheet['ThaiStyle']),
+              Paragraph('<font size=11>เบิกได้ (บาท)*</font>', style=style_sheet['ThaiStyle']),
+              Paragraph('<font size=11>เบิกไม่ได้ (บาท)*</font>',
+                        style=style_sheet['ThaiStyle'])]]
+    total = 0
+    if receipt.print_profile_note:
+        profile_tests = [t for t in receipt.record.ordered_tests if t.profile]
+        if profile_tests:
+            profile_price = profile_tests[0].profile.quote
+            item = [Paragraph('<font size=11>การตรวจสุขภาพทางห้องปฏิบัติการ</font>', style=style_sheet['ThaiStyle']),
+                    Paragraph('<font size=11>{:,.2f}</font>'.format(profile_price), style=style_sheet['ThaiStyle']),
+                    Paragraph('<font size=11>{:,.2f}</font>'.format(0.0), style=style_sheet['ThaiStyle'])]
+            items.append(item)
+    for t in receipt.invoices:
+        if t.visible:
+            if t.billed:
+                price = t.test_item.price or t.test_item.test.default_price
+                total += price
+                item = [Paragraph('<font size=11>{} (รหัส {})</font>'\
+                                  .format(t.test_item.test.desc.encode('utf-8'), t.test_item.test.gov_code or '-'),
+                                  style=style_sheet['ThaiStyle'])]
+                if t.reimbursable:
+                    item.append(Paragraph('<font size=11>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyle']))
+                    item.append(Paragraph('<font size=11>{:,.2f}</font>'.format(0.0), style=style_sheet['ThaiStyle']))
+                else:
+                    item.append(Paragraph('<font size=11>{:,.2f}</font>'.format(0.0), style=style_sheet['ThaiStyle']))
+                    item.append(Paragraph('<font size=11>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyle']))
+                items.append(item)
+
+    item_table = Table(items, colWidths=[200,80,180])
+
+    total_thai = bahttext(total)
+    total_text = Paragraph('<font size=12>รวมเงิน (ตัวอักษร) {}</font>'.format(total_thai.encode('utf-8')),
+                           style=style_sheet['ThaiStyle'])
+    total_number = Paragraph('<font size=12>รวมเงินทั้งสิ้น {:,.2f} บาท</font>'.format(total),
+                             style=style_sheet['ThaiStyle'])
+    total_content = [[total_text, total_number]]
+    total_table = Table(total_content, colWidths=[405, 150])
+
+    def later_page(canvas, document):
+        canvas.saveState()
+        canvas.setFont('Sarabun', 12)
+        canvas.drawString(400,20,
+                          u'ใบเสร็จเลขที่ {} แผ่นที่ {} ออกวันที่ {}'.format(
+                                  receipt_id, document.page, issued_date))
+        canvas.restoreState()
+
+    if receipt.payment_method == 'cash':
+        payment_info = '''<font size=12>
+        ชำระเงินด้วยเงินสด
+        </font>'''
+    elif receipt.payment_method == 'card':
+        payment_info = '''<font size=12>
+        ชำระเงินด้วยบัตรเครดิต หมายเลข {}
+        </font>'''.format(receipt.card_number)
+    else:
+        payment_info = '''<font size=12>ยังไม่ชำระเงิน</font>'''
+
+    notice_text = '''<para align=center><font size=12>
+    ใบเสร็จนี้จะสมบูรณ์ก็ต่อเมื่อคณะเทคนิคการแพทย์ได้รับเงินครบถ้วนแล้วเท่านั้น
+    <br/>*ตามระเบียบกระทรวงการคลัง</font></para>
+    '''
+    notice = Table([[Paragraph(notice_text, style=style_sheet['ThaiStyle'])]])
+
+    sign_text = '''<para align=center><font size=12>
+    ลงชื่อ .........................................<br/>
+    ({})<br/>
+    ตำแหน่ง {}
+    </font></para>'''.format(receipt.issuer.fullname.encode('utf-8'),
+                             receipt.issuer.position.encode('utf-8'))
+
+    data.append(header)
+    data.append(customer)
+    data.append(Spacer(1,12))
+    data.append(body)
+    data.append(Spacer(1,6))
+    data.append(item_table)
+    data.append(Spacer(1,6))
+    data.append(total_table)
+    data.append(Spacer(1,6))
+    data.append(Paragraph(payment_info, style=style_sheet['ThaiStyle']))
+    data.append(Spacer(1,12))
+    data.append(Paragraph(sign_text, style=style_sheet['ThaiStyle']))
+    data.append(Spacer(1,6))
+    data.append(notice)
+    doc.build(data, onLaterPages=later_page)
+    return send_file('receipt.pdf')
+
+
+class CustomerEmploymentTypeUploadView(BaseView):
+    @expose('/')
+    def index(self):
+        return self.render('comhealth/employment_type_upload.html')
+
+    @expose('/upload', methods=('POST', 'GET'))
+    def upload(self):
+        if request.method == 'POST':
+            if 'file' not in request.files:
+                flash('No file alert')
+                return redirect(request.url)
+            file = request.files['file']
+            if file.filename == '':
+                flash('No file selected')
+                return redirect(request.url)
+            if file and allowed_file(file.filename):
+                df = read_excel(file, dtype=object)
+                for idx, row in df.iterrows():
+                    rec = ComHealthCustomerEmploymentType.query\
+                            .filter_by(emptype_id=row[0]).first()
+                    if rec:
+                        if not isna(row[1]):
+                            rec.name = row[1]
+                            db.session.add(rec)
+                    else:
+                        if not isna(row[1]) and not isna(row[0]):
+                            rec = ComHealthCustomerEmploymentType(emptype_id=row[0], name=row[1])
+                            db.session.add(rec)
+                db.session.commit()
+        return request.method

@@ -42,13 +42,20 @@
             {% endif %}
             {% endwith %}
             <a id="add_evt_btn" class="button is-rounded is-info" href="{{ url_for('vehicle.new_event') }}">
-                <i class="far fa-calendar-plus"></i></a>
-            <a class="button is-rounded is-primary" href="{{ url_for('vehicle.index') }}">
-                <i class="far fa-calendar-alt"></i>
+                <span class="icon"><i class="far fa-calendar-plus"></i></span>
+                <span>จอง</span>
             </a>
-            <a class="button is-rounded is-primary" href="{{ url_for('vehicle.event_list', list_type='timelineDay') }}"><i class="fas fa-list-ol"></i></a>
+            <a class="button is-rounded is-primary" href="{{ url_for('vehicle.index') }}">
+                <span class="icon"><i class="far fa-calendar-alt"></i></span>
+                <span>ดูทั้งเดือน</span>
+            </a>
+            <a class="button is-rounded is-primary" href="{{ url_for('vehicle.event_list', list_type='timelineDay') }}">
+                <span class="icon"><i class="fas fa-list-ol"></i></span>
+                <span>ดูยานพาหนะ</span>
+            </a>
             <a class="button is-rounded is-primary" href="{{ url_for('vehicle.event_list', list_type='agendaWeek') }}">
-                <i class="far fa-eye"></i>
+                <span class="icon"><i class="far fa-eye"></i></span>
+                <span>ดูรายสัปดาห์</span>
             </a>
         </div>
         <div id="room_calendar"></div>

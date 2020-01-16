@@ -8,7 +8,7 @@
             องค์กร/หน่วยงาน
         </p>
         {% for org in orgs %}
-        <a class="panel-block" href="{{ url_for('kpi.strategy_index', org_id=org.id) }}">
+        <a class="panel-block" href="{{ url_for('kpi_blueprint.strategy_index', org_id=org.id) }}">
             <span class="panel-icon">
             <i class="fa fa-address-book"></i>
             </span>

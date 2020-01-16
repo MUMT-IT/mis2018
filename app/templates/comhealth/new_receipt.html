@@ -1,0 +1,192 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="hero is-info is-small">
+        <div class="hero-head">
+            <nav class="navbar">
+                <div class="container">
+                    <div class="navbar-brand">
+                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+                    </div>
+                    <div id="navbarMenuHeroA" class="navbar-menu">
+                        <div class="navbar-end">
+                            <a class="navbar-item"
+                               href="/comhealth">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                                <span>Home</span>
+                            </a>
+                            <a class="navbar-item"
+                               href="/comhealth/tests">
+                                <span>Tests</span>
+                            </a>
+                            <a class="navbar-item is-active"
+                            href="/comhealth/organizations">
+                                <span>Organizations</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="100">
+                <h1 class="title">{{ record.customer.fullname }}</h1>
+            </div>
+        </div>
+    </section>
+    <section class="section" id="app">
+        <div class="container">
+        <div class="columns">
+            <div class="column">
+                <h1 class="title">ใบเสร็จรับเงิน</h1>
+                <h1 class="subtitle">กรุณาตรวจสอบรายละเอียดเพื่อการออกใบเสร็จรับเงิน</h1>
+                {% if not valid_receipts %}
+                <h1 class="title is-4">รายการตรวจเหมาจ่าย</h1>
+                <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="record_id" value="{{ record.id }}">
+                <table class="table is-narrow">
+                    <thead>
+                        <th>รหัสการทดสอบ</th>
+                        <th>รายการทดสอบ</th>
+                        <th>ราคา</th>
+                        <th>เบิกได้</th>
+                        <th>การเก็บเงิน</th>
+                        <th>การพิมพ์ใบเสร็จ</th>
+                    </thead>
+                    <tbody>
+                    {% for ti in record.ordered_tests %}
+                    {% if ti.profile %}
+                    <tr>
+                        <td>{{ ti.test.code }}</td>
+                        <td>{{ ti.test.desc }}</td>
+                        <td>{{ ti.test.default_price|moneyformat }}</td>
+                        <td>
+                            <div class="field">
+                                <input class="is-checkradio is-info"
+                                       id="{{ ti.test.code }}_reimbursable" value="yes"
+                                       type="checkbox" name="{{ ti.test.code }}_reimbursable"
+                                       {% if ti.test.id in ref_profile_test_ids %}
+                                       checked
+                                       {% endif %}
+                                />
+                                <label for="{{ ti.test.code }}_reimbursable">เบิกได้</label>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="field">
+                                <input class="is-checkradio is-info"
+                                    id="{{ ti.test.code }}_billed" value="yes" checked
+                                    type="checkbox" name="{{ ti.test.code }}_billed"/>
+                                <label for="{{ ti.test.code }}_billed">รวมจำนวนเงิน</label>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="field">
+                                <input class="is-checkradio is-info"
+                                    id="{{ ti.test.code }}_visible" value="yes" checked
+                                    type="checkbox" name="{{ ti.test.code }}_visible"/>
+                                <label for="{{ ti.test.code }}_visible">แสดงรายการ</label>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                    {% endif %}
+                    {% endfor %}
+                </table>
+                <div class="field">
+                    <input class="is-checkradio is-info"
+                           id="print_profile_items"
+                           value="yes" type="checkbox" name="print_profile_items"/>
+                    <label for="print_profile_items">แสดงรายการตรวจปกติทุกรายการ</label>
+                </div>
+                <div class="field">
+                    <input class="is-checkradio is-info"
+                           id="print_profile_note"
+                           value="profile_note" type="checkbox" name="print_profile_note"/>
+                    <label for="print_profile_note">แสดงรายการตรวจปกติแบบรวม</label>
+                </div>
+                <h1 class="title is-4">รายการตรวจพิเศษ</h1>
+                <table class="table is-narrow">
+                    <thead>
+                        <th>รหัสการทดสอบ</th>
+                        <th>รายการทดสอบ</th>
+                        <th>ราคา</th>
+                        <th>เบิกได้</th>
+                        <th>การเก็บเงิน</th>
+                        <th>การพิมพ์ใบเสร็จ</th>
+                    </thead>
+                    <tbody>
+                    {% for ti in record.ordered_tests %}
+                    {% if ti.group %}
+                    <tr>
+                        <td>{{ ti.test.code }}</td>
+                        <td>{{ ti.test.desc }}</td>
+                        <td>{{ ti.price or ti.test.default_price }}</td>
+                        <td>
+                            <div class="field">
+                                <input class="is-checkradio is-info"
+                                       id="{{ ti.test.code }}_reimbursable" value="yes"
+                                       type="checkbox" name="{{ ti.test.code }}_reimbursable"/>
+                                <label for="{{ ti.test.code }}_reimbursable">เบิกได้</label>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="field">
+                                <input class="is-checkradio is-info"
+                                    id="{{ ti.test.code }}_billed" checked value="yes"
+                                    type="checkbox" name="{{ ti.test.code }}_billed"/>
+                                <label for="{{ ti.test.code }}_billed">รวมจำนวนเงิน</label>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="field">
+                                <input class="is-checkradio is-info"
+                                    id="{{ ti.test.code }}_visible" checked value="yes"
+                                    type="checkbox" name="{{ ti.test.code }}_visible"/>
+                                <label for="{{ ti.test.code }}_visible">แสดงรายการ</label>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                    {% endif %}
+                    {% endfor %}
+                </table>
+                {% endif %}
+                    <div class="field">
+                        <label class="label">ผู้ออกใบเสร็จ</label>
+                        <div class="control">
+                            <div class="select">
+                                <select name="issuer_id">
+                                    {% for issuer in cashiers %}
+                                    <option value="{{ issuer.id }}">{{ issuer.fullname }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">ผู้รับเงิน</label>
+                        <div class="control">
+                            <div class="select">
+                                <select name="cashier_id">
+                                    {% for cashier in cashiers %}
+                                    <option value="{{ cashier.id }}">{{ cashier.fullname }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                <input class="button is-success" type="submit"/>
+                </form>
+            </div>
+        </div>
+        </div>
+    </section>
+{% endblock %}

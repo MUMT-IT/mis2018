@@ -36,7 +36,7 @@
     var vm = new ViewModel();
     ko.applyBindings(vm);
     var datasets = [];
-    $.getJSON("{{ url_for('kpi.get_labqa_data') }}", function(data) {
+    $.getJSON("{{ url_for('kpi_blueprint.get_labqa_data') }}", function(data) {
         vm.data(data);
         $.each(data, function(idx, d) {
             $.each(d['data'], function(_, item){

@@ -38,7 +38,7 @@
     ko.applyBindings(vm);
     var datasets = [];
     var years = [];
-    $.getJSON("{{ url_for('kpi.get_faculty_bond_data') }}", function(data) {
+    $.getJSON("{{ url_for('kpi_blueprint.get_faculty_bond_data') }}", function(data) {
         vm.data(data);
         $.each(data, function(idx, d) {
             years.push(d.year);

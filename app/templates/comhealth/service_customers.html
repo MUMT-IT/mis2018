@@ -24,6 +24,10 @@
                                href="/comhealth/tests">
                                 <span>Tests</span>
                             </a>
+                            <a class="navbar-item"
+                               href="/comhealth/organizations">
+                                <span>Organizations</span>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -55,6 +59,7 @@
                 </div>
                 <div class="column">
                     <div class="has-text-right">
+                      {% if service.records|length > 0 %}
                         <a class="button is-rounded is-link"
                             href="{{ url_for('comhealth.add_customer_to_service_org',
                                     service_id=service.id, org_id=service.records[0].customer.org_id) }}">
@@ -63,6 +68,15 @@
                             </span>
                             <span>Add Customer</span>
                         </a>
+                      {% else %}
+                        <a class="button is-rounded is-link"
+                           href="{{ url_for('comhealth.list_orgs') }}">
+                            <span class="icon">
+                                <i class="fas fa-user-plus"></i>
+                            </span>
+                            <span>Add Customer</span>
+                        </a>
+                      {% endif %}
                     </div>
                 </div>
             </div>
@@ -100,9 +114,19 @@
                                 <a class="button is-rounded is-light"
                                    v-bind:href="'/comhealth/checkin/'+props.row.id">
                                 <span class="icon" v-if="props.row.checkin_datetime !== null">
-                                    <i class="far fa-check"></i>
+                                    <i class="fas fa-user-check"></i>
                                 </span>
                                     <span>Check in</span>
+                                </a>
+                            </b-table-column>
+                            <b-table-column field="" label="Receipts" sortable>
+                                <a class="button is-rounded is-light"
+                                    v-if="props.row.receipts.length > 0"
+                                    v-bind:href="'/comhealth/checkin/'+props.row.id+'/receipts'">
+                                <span class="icon">
+                                    <i class="fas fa-receipt"></i>
+                                </span>
+                                <span>Receipts</span>
                                 </a>
                             </b-table-column>
                         </template>
