@@ -3,7 +3,6 @@ from flask_login import login_required, current_user
 from models import (StaffAccount, StaffPersonalInfo,
                     StaffLeaveRequest, StaffLeaveQuota)
 from . import staffbp as staff
-from forms import LeaveRequestForm
 from app.main import db
 from flask import jsonify, render_template, request
 from datetime import datetime
@@ -74,22 +73,21 @@ def show_leave_info():
 @login_required
 def request_for_leave(quota_id=None):
     if request.method == 'POST':
-        return jsonify(request.form)
-        '''
-            if quota_id:
-                quota = StaffLeaveQuota.query.get(quota_id)
-                req = StaffLeaveRequest(
-                    staff=current_user,
-                    quota=quota,
-                    start_datetime=tz.localize(form.data.get('start_datetime')),
-                    end_datetime=tz.localize(form.data.get('end_datetime')),
-                    reason=form.data.get('reason'),
-                    contact_address=form.data.get('contact_addr'),
-                    contact_phone=form.data.get('contact_phone')
-                )
-                db.session.add(req)
-                db.session.commit()
-                return 'Done.'
-            '''
+        start_date, end_date = request.form.get('dates').split(' - ')
+        start_date = datetime.strptime(start_date, '%m/%d/%Y')
+        end_date = datetime.strptime(end_date, '%m/%d/%Y')
+        if quota_id:
+            req = StaffLeaveRequest(
+                staff=current_user,
+                leave_quota_id=quota_id,
+                start_datetime=tz.localize(start_date),
+                end_datetime=tz.localize(end_date),
+                reason=request.form.get('reason'),
+                contact_address=request.form.get('contact_addr'),
+                contact_phone=request.form.get('contact_phone')
+            )
+            db.session.add(req)
+            db.session.commit()
+            return 'Done.'
     else:
         return render_template('staff/leave_request.html', errors={})
