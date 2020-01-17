@@ -22,6 +22,7 @@
             <th>ต้องทำงานมากกว่า (เดือน)</th>
             <th>ปีแรกได้ไม่เกิน (วัน)</th>
             <th>สะสมทบปีได้ไม่เกิน (วัน)</th>
+            <th colspan="2"></th>
             </thead>
             <tbody>
             {% for quota in current_user.personal_info.employment.quota %}
@@ -31,7 +32,8 @@
                 <td>{{ quota.min_employed_months }}</td>
                 <td>{{ quota.cum_max_per_year1 }}</td>
                 <td>{{ quota.cum_max_per_year2 }}</td>
-                <td><a href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ขออนุมัติลา</a></td>
+                <td><a href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ขออนุมัติลาเต็มวัน</a></td>
+                <td><a href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ขออนุมัติลาไม่เต็มวัน</a></td>
             </tr>
             {% endfor %}
             </tbody>

@@ -3,7 +3,6 @@ from flask_login import login_required, current_user
 from models import (StaffAccount, StaffPersonalInfo,
                     StaffLeaveRequest, StaffLeaveQuota)
 from . import staffbp as staff
-from forms import LeaveRequestForm
 from app.main import db
 from flask import jsonify, render_template, request
 from datetime import datetime
@@ -93,3 +92,9 @@ def request_for_leave(quota_id=None):
             '''
     else:
         return render_template('staff/leave_request.html', errors={})
+
+
+@staff.route('/leave/request/quota/period/<int:quota_id>')
+@login_required
+def request_for_leave_period(quota_id=None):
+    return render_template('staff/leave_request_period.html')
