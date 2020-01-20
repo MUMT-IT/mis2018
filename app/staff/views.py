@@ -94,7 +94,10 @@ def request_for_leave(quota_id=None):
         return render_template('staff/leave_request.html', errors={})
 
 
-@staff.route('/leave/request/quota/period/<int:quota_id>')
+@staff.route('/leave/request/quota/period/<int:quota_id>', methods=["POST", "GET"])
 @login_required
 def request_for_leave_period(quota_id=None):
-    return render_template('staff/leave_request_period.html')
+    if request.method == 'POST':
+        return jsonify(request.form)
+    else:
+        return render_template('staff/leave_request_period.html', errors={})
