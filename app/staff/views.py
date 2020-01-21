@@ -98,6 +98,26 @@ def request_for_leave(quota_id=None):
 @login_required
 def request_for_leave_period(quota_id=None):
     if request.method == 'POST':
-        return jsonify(request.form)
+        form = request.form
+        if quota_id:
+            quota = StaffLeaveQuota.query.get(quota_id)
+            if quota:
+                start_dt = '{} {}'.format(form.get('dates'), form.get('startTime'))
+                end_dt = '{} {}'.format(form.get('dates'), form.get('endTime'))
+                start_datetime = datetime.strptime(start_dt, '%m/%d/%Y %H:%M')
+                end_datetime = datetime.strptime(end_dt, '%m/%d/%Y %H:%M')
+                req = StaffLeaveRequest(
+                    staff=current_user,
+                    quota=quota,
+                    start_datetime=tz.localize(start_datetime),
+                    end_datetime=tz.localize(end_datetime),
+                    reason=form.get('reason'),
+                    contact_address=form.get('contact_addr'),
+                    contact_phone=form.get('contact_phone')
+                )
+                db.session.add(req)
+                db.session.commit()
+                return 'Done.'
+            return 'Error happened'
     else:
         return render_template('staff/leave_request_period.html', errors={})
