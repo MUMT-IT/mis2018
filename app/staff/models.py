@@ -155,6 +155,10 @@ class StaffLeaveRequest(db.Model):
     quota = db.relationship('StaffLeaveQuota',
                             backref=db.backref('leave_requests'))
 
+    def __len__(self):
+        delta = self.end_datetime - self.start_datetime
+        return delta.days + 1
+
 
 class StaffLeaveApprover(db.Model):
     __tablename__ = 'staff_leave_approvers'
