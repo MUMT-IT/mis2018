@@ -33,7 +33,6 @@
                 <td>{{ quota.cum_max_per_year1 }}</td>
                 <td>{{ quota.cum_max_per_year2 }}</td>
                 <td><a href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ขออนุมัติลาเต็มวัน</a></td>
-                <td>  </td>
                 <td><a href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ขออนุมัติลาไม่เต็มวัน</a></td>
             </tr>
             {% endfor %}
