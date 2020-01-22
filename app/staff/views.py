@@ -6,7 +6,7 @@ from . import staffbp as staff
 from app.main import db
 from flask import jsonify, render_template, request, redirect, url_for
 from datetime import datetime
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 import pytz
 
 tz = pytz.timezone('Asia/Bangkok')
@@ -74,17 +74,20 @@ def cal_leave_duration(request_record):
 @staff.route('/leave/info')
 @login_required
 def show_leave_info():
+    Quota = namedtuple('quota', ['id','limit'])
     cum_days = defaultdict(float)
     quota_days = defaultdict(float)
     for req in current_user.leave_requests:
         leave_type = unicode(req.quota.leave_type)
         cum_days[leave_type] += cal_leave_duration(req)
+
+    for quota in current_user.personal_info.employment.quota:
         delta = datetime.today().date() - current_user.personal_info.employed_date
         if delta.days > 365:
-            quota_limit = req.quota.cum_max_per_year2 if req.quota.cum_max_per_year2 else req.quota.max_per_year
+            quota_limit = quota.cum_max_per_year2 if quota.cum_max_per_year2 else quota.max_per_year
         else:
-            quota_limit = req.quota.cum_max_per_year1 if req.quota.cum_max_per_year1 else req.quota.first_year
-        quota_days[leave_type] = quota_limit
+            quota_limit = quota.cum_max_per_year1 if quota.cum_max_per_year1 else quota.first_year
+        quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit)
 
     return render_template('staff/leave_info.html', cum_days=cum_days, quota_days=quota_days)
 

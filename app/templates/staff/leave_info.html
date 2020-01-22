@@ -1,37 +1,43 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" href="//cdn.materialdesignicons.com/2.5.94/css/materialdesignicons.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.8.0/css/bulma.css" />
-    <link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css"/>
-    <title>Title</title>
-</head>
-<body>
-<h1>Welcome {{ current_user.personal_info }}</h1>
-<h4>
-    สถานะการจ้าง {{ current_user.personal_info.employment.title }}
-    <ul>
-        <table style="width:100%">
+{% extends "base.html" %}
+
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">Welcome {{ current_user.personal_info }}</h1>
+        <h4 class="subtitle">สถานะการจ้าง {{ current_user.personal_info.employment.title }}</h4>
+        <table class="table is-striped is-fullwidth">
             <thead>
-                <th>ประเภทการลา</th>
-                <th>จำนวนวันลาที่ใช้</th>
-                <th>จำนวนวันลาที่เหลือ</th>
+            <th>ประเภทการลา</th>
+            <th>จำนวนวันลาที่ใช้</th>
+            <th>จำนวนวันลาที่เหลือ</th>
+            <th colspan="2">action</th>
             </thead>
             <tbody>
-            {% for type,d in cum_days.iteritems() %}
+            {% for type,d in quota_days.iteritems() %}
             <tr>
                 <td>{{ type }}</td>
-                <td>{{ d }}</td>
-                <td>{{ quota_days[type] - d }}</td>
+                <td>{{ cum_days[type] }}</td>
+                <td>{{ d.limit - cum_days[type] }}</td>
+                {% if d.limit - cum_days[type] > 0 %}
+                <td><a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave', quota_id=d.id) }}">ขออนุมัติลาเต็มวัน</a></td>
+                <td><a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave_period', quota_id=d.id) }}">ขออนุมัติลาไม่เต็มวัน</a>
+                </td>
+                {% else %}
+                <td>วันลาเต็ม</td>
+                <td>วันลาเต็ม</td>
+                {% endif %}
             </tr>
             {% endfor %}
             </tbody>
         </table>
-    <hr>
-    {% if current_user.personal_info.is_eligible_for_leave %}
-    You can request for a leave.
-        <table style="width:100%">
+        <hr>
+        <div class="message is-info">
+            <div class="message-header">
+                ข้อมูลการลา
+            </div>
+            <div class="message-body">
+                <table class="table is-fullwidth">
             <thead>
             <th>ID</th>
             <th>ชนิด</th>
@@ -48,21 +54,12 @@
                 <td>{{ quota.min_employed_months }}</td>
                 <td>{{ quota.first_year }}</td>
                 <td>{{ quota.cum_max_per_year2 }}</td>
-                {% if quota_days[quota.leave_type.type_] - cum_days[quota.leave_type.type_] > 0 %}
-                <td><a href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ขออนุมัติลาเต็มวัน</a></td>
-                <td><a href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ขออนุมัติลาไม่เต็มวัน</a></td>
-                {% else %}
-                <td>วันลาเต็ม</td>
-                <td>วันลาเต็ม</td>
-                {% endif %}
             </tr>
             {% endfor %}
             </tbody>
         </table>
-    {% else %}
-    You cannot request for a leave.
-    {% endif %}
-</h4>
-</div>
-</body>
-</html>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
