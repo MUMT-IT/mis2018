@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">Welcome {{ current_user.personal_info }}</h1>
+        <h4 class="subtitle">สถานะการจ้าง {{ current_user.personal_info.employment.title }}</h4>
+        <table class="table is-fullwidth">
+            <thead>
+                <th>วันที่ขออนุมัติลา</th>
+                <th>ประเภทการลา</th>
+                <th>วันที่เริ่มลา</th>
+                <th>วันที่สิ้นสุดลา</th>
+                <th>เหตุผลในการลา</th>
+            </thead>
+            <tbody>
+            {% for request in leaves %}
+                <tr>
+                    <td>{{ request.created_at }}</td>
+                    <td>{{ request.quota.leave_type }}</td>
+                    <td>{{ request.start_datetime }}</td>
+                    <td>{{ request.end_datetime }}</td>
+                    <td>{{  request.reason }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

@@ -200,3 +200,13 @@ def request_for_leave_period(quota_id=None):
             return 'Error happened'
     else:
         return render_template('staff/leave_request_period.html', errors={})
+
+@staff.route('/leave/request/info/<int:quota_id>')
+@login_required
+def request_for_leave_info(quota_id=None):
+    quota = StaffLeaveQuota.query.get(quota_id)
+    leaves = []
+    for leave in current_user.leave_requests:
+        if leave.quota == quota:
+            leaves.append(leave)
+    return render_template('staff/request_info.html', leaves=leaves)
