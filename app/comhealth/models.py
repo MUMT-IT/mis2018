@@ -316,6 +316,7 @@ class ComHealthReceipt(db.Model):
     __tablename__ = 'comhealth_test_receipts'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     copy_number = db.Column('copy_number', db.Integer, default=1)
+    book_number = db.Column('book_number', db.String(16))
     created_datetime = db.Column('checkin_datetime', db.DateTime(timezone=True))
     record_id = db.Column('record_id', db.ForeignKey('comhealth_test_records.id'))
     record = db.relationship('ComHealthRecord',
