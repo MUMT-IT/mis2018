@@ -13,6 +13,7 @@ from flask_login import LoginManager, current_user
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
+from wtforms.validators import required
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 DATABASE = os.environ.get('DATABASE')
@@ -222,7 +223,6 @@ from comhealth import comhealth as comhealth_blueprint
 from comhealth.models import *
 
 app.register_blueprint(comhealth_blueprint, url_prefix='/comhealth')
-admin.add_view(ModelView(ComHealthTest, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthTestProfile, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCustomer, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthOrg, db.session, category='Com Health'))
@@ -238,6 +238,20 @@ admin.add_view(ModelView(ComHealthReceiptID, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCustomerEmploymentType, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthReferenceTestProfile, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCustomerInfo, db.session, category='Com Health'))
+
+class ComHealthTestModelView(ModelView):
+    form_args = {
+        'name': {
+            'validators': [required()]
+        },
+        'code': {
+            'label': 'Test code',
+            'validators': [required()]
+        }
+    }
+
+admin.add_view(ComHealthTestModelView(ComHealthTest, db.session, category='Com Health'))
+
 from comhealth.views import CustomerEmploymentTypeUploadView
 
 admin.add_view(CustomerEmploymentTypeUploadView(
