@@ -1204,7 +1204,6 @@ style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
 def export_receipt_pdf(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
     doc = SimpleDocTemplate("app/receipt.pdf",
-                            pagesize=landscape(A5),
                             rightMargin=20,
                             leftMargin=20,
                             topMargin=5,
