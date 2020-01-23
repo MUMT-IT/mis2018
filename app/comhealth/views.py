@@ -1335,7 +1335,7 @@ def export_receipt_pdf(receipt_id):
     ลงชื่อ .........................................<br/>
     ({})<br/>
     ตำแหน่ง {}
-    </font></para>'''.format(receipt.issuer.fullname.encode('utf-8'),
+    </font></para>'''.format(receipt.issuer.staff.personal_info.fullname.encode('utf-8'),
                              receipt.issuer.position.encode('utf-8'))
 
     data.append(header)
