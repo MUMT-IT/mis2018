@@ -62,7 +62,7 @@ class StaffPersonalInfo(db.Model):
                                  backref=db.backref('staff'))
 
     def __str__(self):
-        return u'{} {}'.format(self.en_firstname, self.en_lastname)
+        return u'{} {}'.format(self.th_firstname, self.th_lastname)
 
 
     def get_employ_period(self):
