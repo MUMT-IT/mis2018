@@ -173,33 +173,35 @@ def request_for_leave_period(quota_id=None):
                 for req in current_user.leave_requests:
                     if req.quota == quota:
                         cum_periods += cal_leave_duration(req)
-                        start_dt = '{} {}'.format(form.get('dates'), form.get('startTime'))
-                        end_dt = '{} {}'.format(form.get('dates'), form.get('endTime'))
-                        start_datetime = datetime.strptime(start_dt, '%m/%d/%Y %H:%M')
-                        end_datetime = datetime.strptime(end_dt, '%m/%d/%Y %H:%M')
-                        req = StaffLeaveRequest(
-                            staff=current_user,
-                            quota=quota,
-                            start_datetime=tz.localize(start_datetime),
-                            end_datetime=tz.localize(end_datetime),
-                            reason=form.get('reason'),
-                            contact_address=form.get('contact_addr'),
-                            contact_phone=form.get('contact_phone')
-                        )
-                        req_duration = cal_leave_duration(req)
-                        # if duration not exceeds quota
-                        delta = start_datetime - current_user.personal_info.employed_date
-                        if delta.days > 365:
-                            quota_limit = quota.cum_max_per_year2 if quota.cum_max_per_year2 else quota.max_per_year
-                        else:
-                            quota_limit = quota.cum_max_per_year1 if quota.cum_max_per_year1 else quota.first_year
-                        if cum_periods+req_duration <= quota_limit:
-                            db.session.add(req)
-                            db.session.commit()
-                            return 'Done.'
-                        else:
-                            return 'Error: limit exceed'
-            return 'Error happened'
+
+                start_dt = '{} {}'.format(form.get('dates'), form.get('startTime'))
+                end_dt = '{} {}'.format(form.get('dates'), form.get('endTime'))
+                start_datetime = datetime.strptime(start_dt, '%m/%d/%Y %H:%M')
+                end_datetime = datetime.strptime(end_dt, '%m/%d/%Y %H:%M')
+                req = StaffLeaveRequest(
+                    staff=current_user,
+                    quota=quota,
+                    start_datetime=tz.localize(start_datetime),
+                    end_datetime=tz.localize(end_datetime),
+                    reason=form.get('reason'),
+                    contact_address=form.get('contact_addr'),
+                    contact_phone=form.get('contact_phone')
+                )
+                req_duration = cal_leave_duration(req)
+                # if duration not exceeds quota
+                delta = start_datetime.date() - current_user.personal_info.employed_date
+                if delta.days > 365:
+                    quota_limit = quota.cum_max_per_year2 if quota.cum_max_per_year2 else quota.max_per_year
+                else:
+                    quota_limit = quota.cum_max_per_year1 if quota.cum_max_per_year1 else quota.first_year
+                if cum_periods+req_duration <= quota_limit:
+                    db.session.add(req)
+                    db.session.commit()
+                    return redirect(url_for('staff.show_leave_info'))
+                else:
+                    return 'Error: limit exceed'
+            else:
+                return 'Error happened'
     else:
         return render_template('staff/leave_request_period.html', errors={})
 
