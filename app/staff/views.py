@@ -83,10 +83,12 @@ def show_leave_info():
 
     for quota in current_user.personal_info.employment.quota:
         delta = datetime.today().date() - current_user.personal_info.employed_date
-        if delta.days > 365:
+        if delta.days > 3650:
             quota_limit = quota.cum_max_per_year2 if quota.cum_max_per_year2 else quota.max_per_year
-        else:
+        elif delta.days > 365:
             quota_limit = quota.cum_max_per_year1 if quota.cum_max_per_year1 else quota.first_year
+        else:
+            quota_limit = quota.first_year
         quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit)
 
     return render_template('staff/leave_info.html', cum_days=cum_days, quota_days=quota_days)
@@ -129,9 +131,9 @@ def request_for_leave(quota_id=None):
                 else:
                     quota_limit = quota.cum_max_per_year1 if quota.cum_max_per_year1 else quota.first_year
                 if cum_periods + req_duration <= quota_limit:
-                    db.session.add(req)
-                    db.session.commit()
-                    return redirect(url_for('staff.show_leave_info'))
+                        db.session.add(req)
+                        db.session.commit()
+                        return redirect(url_for('staff.show_leave_info'))
                 else:
                     return 'Error: limit exceed'
             else:
