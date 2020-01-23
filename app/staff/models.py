@@ -65,6 +65,11 @@ class StaffPersonalInfo(db.Model):
         return u'{} {}'.format(self.th_firstname, self.th_lastname)
 
 
+    @property
+    def fullname(self):
+        return u'{} {}'.format(self.th_firstname, self.th_lastname)
+
+
     def get_employ_period(self):
         today = datetime.now().date()
         period = today - self.employed_date
