@@ -60,7 +60,6 @@ app = create_app()
 
 @login.user_loader
 def load_user(user_id):
-    print('load user..')
     try:
         return StaffAccount.query.filter_by(id=int(user_id)).first()
     except:
