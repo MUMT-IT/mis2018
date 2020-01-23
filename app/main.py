@@ -258,8 +258,17 @@ class ComHealthContainerModelView(ModelView):
     }
 
 
+class ComHealthDepartmentModelView(ModelView):
+    form_args = {
+        'name': {
+            'validators': [required()]
+        }
+    }
+
+
 admin.add_view(ComHealthTestModelView(ComHealthTest, db.session, category='Com Health'))
 admin.add_view(ComHealthContainerModelView(ComHealthContainer, db.session, category='Com Health'))
+admin.add_view(ComHealthDepartmentModelView(ComHealthDepartment, db.session, category='Com Health'))
 
 
 from comhealth.views import CustomerEmploymentTypeUploadView

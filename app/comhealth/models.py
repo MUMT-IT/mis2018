@@ -83,6 +83,17 @@ class ComHealthOrg(db.Model):
         return u'{}'.format(self.name)
 
 
+class ComHealthDepartment(db.Model):
+    __tablename__ = 'comhealth_department'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    name = db.Column('name', db.String(255), index=True, nullable=False)
+    parent_id = db.Column('parent_id', db.ForeignKey('comhealth_orgs.id'))
+    parent = db.relationship('ComHealthOrg', backref=db.backref('departments'))
+
+    def __str__(self):
+        return u'{}'.format(self.name)
+
+
 class ComHealthCustomer(db.Model):
     __tablename__ = 'comhealth_customers'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
