@@ -194,6 +194,10 @@
                                         {% endif %}
                                     </td>
                                 </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">สังกัด</h1></td>
+                                    <td>{% if record.customer.dept.name %}{{ record.customer.dept.name }} {% endif %}{{ record.customer.org.name }}</td>
+                                </tr>
                                 </tbody>
                             </table>
                         </div>

@@ -161,7 +161,10 @@ def edit_record(record_id):
 
         record.comment = request.form.get('comment')
         emptype_id = int(request.form.get('emptype_id', 0))
+        department_id = int(request.form.get('department_id', 0))
         record.customer.emptype_id = emptype_id
+        if department_id > 0:
+            record.customer.dept_id = department_id
 
         record.updated_at = datetime.now(tz=bangkok)
         db.session.add(record)

@@ -79,6 +79,18 @@
                                             <strong>สังกัด</strong> {{ record.customer.org.name }}
                                         </h1>
                                         </p>
+                                        <div class="select">
+                                            <select name="department_id">
+                                                <option value="0">ไม่ระบุ</option>
+                                                {% for dept in record.customer.org.departments %}
+                                                <option value="{{ dept.id }}"
+                                                        {% if dept.id == record.customer.dept_id %}
+                                                        selected
+                                                        {% endif %}
+                                                >{{ dept.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
                                         <h1 class="subtitle is-size-5">
                                             <strong>ประเภท</strong>
                                         </h1>
