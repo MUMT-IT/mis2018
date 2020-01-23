@@ -165,7 +165,7 @@
                             <div class="select">
                                 <select name="issuer_id">
                                     {% for issuer in cashiers %}
-                                    <option value="{{ issuer.id }}">{{ issuer.fullname }}</option>
+                                    <option value="{{ issuer.id }}">{{ issuer.staff.personal_info }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -177,7 +177,7 @@
                             <div class="select">
                                 <select name="cashier_id">
                                     {% for cashier in cashiers %}
-                                    <option value="{{ cashier.id }}">{{ cashier.fullname }}</option>
+                                    <option value="{{ cashier.id }}">{{ cashier.staff.personal_info }}</option>
                                     {% endfor %}
                                 </select>
                             </div>

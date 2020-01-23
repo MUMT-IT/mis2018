@@ -62,8 +62,8 @@ class ComHealthInvoice(db.Model):
 class ComHealthCashier(db.Model):
     __tablename__ = 'comhealth_cashier'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    firstname = db.Column('firstname', db.String(255), index=True)
-    lastname = db.Column('lastname', db.String(255), index=True)
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount')
     position = db.Column('position', db.String(255))
 
     @property
