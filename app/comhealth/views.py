@@ -1044,6 +1044,7 @@ def create_receipt(record_id):
                                                 ref_profile_test_ids=ref_profile_test_ids,
                                                 )
     if request.method == 'POST':
+        receipt_code = ComHealthReceiptID.query.get(session.get('receipt_code_id'))
         record_id = request.form.get('record_id')
         record = ComHealthRecord.query.get(record_id)
         issuer_id = request.form.get('issuer_id', None)
@@ -1058,8 +1059,13 @@ def create_receipt(record_id):
                 issuer_id=int(issuer_id) if issuer_id is not None else None,
                 cashier_id=int(cashier_id) if cashier_id is not None else None,
                 print_profile_note=print_profile_note,
+                book_number=receipt_code.next,
+                issued_at=session.get('receipt_venue', ''),
                 )
             db.session.add(receipt)
+            receipt_code.count += 1
+            receipt_code.updated_at = datetime.now(tz=bangkok)
+            db.session.add(receipt_code)
         for test_item in record.ordered_tests:
             if test_item.profile and not print_profile_item:
                 continue
@@ -1227,13 +1233,15 @@ def export_receipt_pdf(receipt_id):
     '''
 
     receipt_info = '''<font size=12>
-    เลขที่ {receipt_id} แผ่นที่ 1<br/>
+    เลขที่ {book_number} แผ่นที่ 1<br/>
     วันที่ {issued_date}<br/>
+    ออกที่ {venue}<br/>
     </font>
     '''
     issued_date = datetime.now().strftime('%d/%m/%Y')
-    receipt_info = receipt_info.format(receipt_id=receipt_id,
-                                       issued_date=issued_date)
+    receipt_info = receipt_info.format(book_number=receipt.book_number,
+                                       issued_date=issued_date,
+                                       venue=receipt.issued_at.encode('utf-8'))
 
     header_content = [[Paragraph(address, style=style_sheet['ThaiStyle']),
                         Paragraph(affiliation, style=style_sheet['ThaiStyle']),

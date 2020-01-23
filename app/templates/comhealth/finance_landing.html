@@ -20,9 +20,10 @@
                                     <div class="select is-fullwidth">
                                         <select name="code_id">
                                             {% for rid in receipt_ids %}
-                                            <option value="{{rid.id}}">
-                                                {{ rid.next }}
-                                            </option>
+                                            <option value="{{rid.id}}"
+                                                {% if rid.id == session.get('receipt_code_id') %}
+                                                selected
+                                                {% endif %}>{{ rid.next }}/option>
                                             {% endfor %}
                                         </select>
                                     </div>
@@ -37,7 +38,7 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control is-expanded">
-                                    <input type="text" class="input" name="venue">
+                                    <input type="text" class="input" name="venue" value="{{ session.get('receipt_venue', '') }}">
                                 </div>
                             </div>
                         </div>

@@ -330,6 +330,7 @@ class ComHealthReceipt(db.Model):
     issuer = db.relationship('ComHealthCashier',
                              foreign_keys=[issuer_id],
                              backref=db.backref('issued_receipts'))
+    issued_at = db.Column('issued_at', db.String())
     cashier_id = db.Column('cashier_id', db.ForeignKey('comhealth_cashier.id'))
     cashier = db.relationship('ComHealthCashier', foreign_keys=[cashier_id])
     payment_method = db.Column('payment_method', db.String(64))
