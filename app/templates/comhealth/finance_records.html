@@ -3,6 +3,14 @@
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
+        <div class="has-text-centered">
+            <button class="button is-rounded is-warning" @click="loadAsyncData()">
+                <span class="icon">
+                    <i class="fas fa-sync"></i>
+                </span>
+                <span>อัพเดตข้อมูล</span>
+            </button>
+        </div>
         <b-table
             :data="data"
             :loading="loading"
@@ -67,12 +75,7 @@
                 }
             },
             mounted() {
-                var self = this;
-                self.loadAsyncData();
-                setInterval(()=>{
-                    self.loadAsyncData();
-                    console.log('updated.');
-                }, 6000);
+                this.loadAsyncData();
             }
         });
     </script>
