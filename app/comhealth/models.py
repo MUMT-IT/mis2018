@@ -170,8 +170,8 @@ class ComHealthContainer(db.Model):
 class ComHealthTest(db.Model):
     __tablename__ = 'comhealth_tests'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    code = db.Column('code', db.String(64), index=True)
-    name = db.Column('name', db.String(64), index=True)
+    code = db.Column('code', db.String(64), index=True, nullable=False)
+    name = db.Column('name', db.String(64), index=True, nullable=False)
     desc = db.Column('desc', db.Text())
     gov_code = db.Column('gov_code', db.String(16))
     default_price = db.Column('default_price', db.Numeric(), default=0)
