@@ -14,7 +14,7 @@ from flask import (render_template, flash, redirect,
                    request, send_file, send_from_directory,
                    Response, jsonify)
 from flask_login import login_required
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 import pytz
 from . import comhealth
 from .forms import (ServiceForm, TestProfileForm, TestListForm,
@@ -62,6 +62,28 @@ def finance_index():
         }
         services_data.append(d)
     return render_template('comhealth/finance_index.html', services=services_data)
+
+
+@comhealth.route('/services/<int:service_id>/finance/summary')
+def finance_summary(service_id):
+    service = ComHealthService.query.get(service_id)
+    receipts = defaultdict(list)
+    counts = defaultdict(list)
+    totals = defaultdict(Decimal)
+    for rec in service.records:
+        for receipt in rec.receipts:
+            if not receipt.book_number:
+                continue
+            book = receipt.book_number[:3]
+            count = int(receipt.book_number[3:])
+            total = 0
+            for invoice in receipt.invoices:
+                if invoice.billed:
+                    total += invoice.test_item.price or invoice.test_item.test.default_price
+            receipts[book].append((receipt, total))
+            totals[book] += total
+            counts[book].append(count)
+    return render_template('comhealth/finance_summary.html', service=service, receipts=receipts, counts=counts, totals=totals)
 
 
 @comhealth.route('/api/services/<int:service_id>/records')
