@@ -1,18 +1,21 @@
 # -*- coding: utf-8 -*-
 import json
+import pandas as pd
+import os
+import io
 from bahttext import bahttext
 from datetime import datetime
-from datetime import date
 from decimal import Decimal
 from pandas import read_excel, isna
 from flask_weasyprint import HTML, render_pdf
 from sqlalchemy.orm.attributes import flag_modified
-import pytz
-from flask import (render_template, flash, redirect, url_for, session,
-                   request, send_file, Response, stream_with_context, jsonify)
+from flask import (render_template, flash, redirect,
+                   url_for, session, stream_with_context,
+                   request, send_file, send_from_directory,
+                   Response, jsonify)
 from flask_login import login_required
-from collections import defaultdict, OrderedDict
-from app.main import db
+from collections import OrderedDict
+import pytz
 from . import comhealth
 from .forms import (ServiceForm, TestProfileForm, TestListForm,
                     TestForm, TestGroupForm, CustomerForm)
@@ -733,18 +736,34 @@ def add_customer_to_service_org(service_id, org_id):
         return render_template('comhealth/new_customer_service_org.html', form=form)
 
 
+#TODO: export the price of tests
+
 @comhealth.route('/services/<int:service_id>/to-csv')
 def export_csv(service_id):
+    #TODO: add employment types (number)
+    #TODO: add age, gender
+    #TODO: add organization + dept + unit
     service = ComHealthService.query.get(service_id)
-
-    def generate():
-        for record in sorted(service.records, key=lambda x: x.labno):
-            if not record.labno:
-                continue
-            tests = ','.join([item.test.code for item in record.ordered_tests])
-            yield u'{}\t{}\t{}\n'.format(record.labno, tests, record.urgent)
-
-    return Response(stream_with_context(generate()), mimetype='text/csv')
+    rows = []
+    for record in sorted(service.records, key=lambda x: x.labno):
+        if not record.labno:
+            continue
+        tests = ','.join([item.test.code for item in record.ordered_tests])
+        rows.append({'firstname': u'{}'.format(record.customer.firstname),
+                     'lastname': u'{}'.format(record.customer.lastname),
+                     'labno': u'{}'.format(record.labno),
+                     'tests': u'{}'.format(tests),
+                     'urgent': record.urgent})
+        pd.DataFrame(rows).to_excel('export.xlsx',
+                                    header=True,
+                                    columns=['labno',
+                                             'firstname',
+                                             'lastname',
+                                             'tests',
+                                             'urgent'],
+                                    index=False,
+                                    encoding='utf-8')
+    return send_from_directory(os.getcwd(), filename='export.xlsx')
 
 
 @comhealth.route('/organizations/add', methods=['GET', 'POST'])
