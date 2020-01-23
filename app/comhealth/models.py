@@ -102,6 +102,8 @@ class ComHealthCustomer(db.Model):
     lastname = db.Column('lastname', db.String(255), index=True)
     org_id = db.Column('org_id', db.ForeignKey('comhealth_orgs.id'))
     org = db.relationship('ComHealthOrg', backref=db.backref('employees', lazy=True))
+    dept_id = db.Column('dept_id', db.ForeignKey('comhealth_department.id'), nullable=True)
+    dept = db.relationship('ComHealthDepartment', backref=db.backref('employees', lazy=True))
     dob = db.Column('dob', db.Date())
     gender = db.Column('gender', db.Integer)  # 0 for female, 1 for male
     emptype_id = db.Column('emptype_id', db.ForeignKey('comhealth_customer_employment_types.id'))
