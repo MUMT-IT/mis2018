@@ -157,7 +157,7 @@ class ComHealthCustomerInfoItem(db.Model):
 class ComHealthContainer(db.Model):
     __tablename__ = 'comhealth_containers'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    name = db.Column('code', db.String(64), index=True)
+    name = db.Column('code', db.String(64), index=True, nullable=False)
     detail = db.Column('name', db.String(64), index=True)
     desc = db.Column('desc', db.Text())
     volume = db.Column('volume', db.Numeric(), default=0)

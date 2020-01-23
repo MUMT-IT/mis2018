@@ -231,7 +231,6 @@ admin.add_view(ModelView(ComHealthTestItem, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthTestProfileItem, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthService, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthTestGroup, db.session, category='Com Health'))
-admin.add_view(ModelView(ComHealthContainer, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCustomerInfoItem, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCashier, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthReceiptID, db.session, category='Com Health'))
@@ -250,7 +249,18 @@ class ComHealthTestModelView(ModelView):
         }
     }
 
+
+class ComHealthContainerModelView(ModelView):
+    form_args = {
+        'name': {
+            'validators': [required()]
+        }
+    }
+
+
 admin.add_view(ComHealthTestModelView(ComHealthTest, db.session, category='Com Health'))
+admin.add_view(ComHealthContainerModelView(ComHealthContainer, db.session, category='Com Health'))
+
 
 from comhealth.views import CustomerEmploymentTypeUploadView
 
