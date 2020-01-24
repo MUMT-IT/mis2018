@@ -854,18 +854,12 @@ def add_employee_info(orgid):
         if file and allowed_file(file.filename):
             service = None
             df = read_excel(file)
-            name = df.columns[2]
             for idx, rec in df.iterrows():
                 rec = rec.fillna('')
                 data = {}
-                try:
-                    firstname, lastname = rec[name].split(' ', 1)
-                except:
-                    print(rec[name])
-                    raise ValueError
                 customer = ComHealthCustomer.query.filter_by(
-                                                    firstname=firstname,
-                                                    lastname=lastname).first()
+                                                    firstname=rec['firstname'],
+                                                    lastname=rec['lastname']).first()
                 if customer:
                     for col in rec.keys():
                         if col in info_items:
