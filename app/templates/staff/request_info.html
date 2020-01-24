@@ -17,10 +17,10 @@
             <tbody>
             {% for request in leaves %}
                 <tr>
-                    <td>{{ request.created_at }}</td>
+                    <td>{{ request.created_at|localdatetime }}</td>
                     <td>{{ request.quota.leave_type }}</td>
-                    <td>{{ request.start_datetime }}</td>
-                    <td>{{ request.end_datetime }}</td>
+                    <td>{{ request.start_datetime|localdatetime }}</td>
+                    <td>{{ request.end_datetime|localdatetime }}</td>
                     <td>{{  request.reason }}</td>
                 </tr>
             {% endfor %}
