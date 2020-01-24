@@ -14,14 +14,18 @@
             <th colspan="2">action</th>
             </thead>
             <tbody>
-            {% for type,d in quota_days.iteritems() %}
+            {% for type,quota in quota_days.iteritems() %}
             <tr>
-                <td>{{ type }}</td>
+                <td>
+                    <a href="{{ url_for('staff.request_for_leave_info', quota_id=quota.id) }}">
+                       {{ type }}
+                    </a>
+                </td>
                 <td>{{ cum_days[type] }}</td>
-                <td>{{ d.limit - cum_days[type] }}</td>
-                {% if d.limit - cum_days[type] > 0 %}
-                <td><a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave', quota_id=d.id) }}">ขออนุมัติลาเต็มวัน</a></td>
-                <td><a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave_period', quota_id=d.id) }}">ขออนุมัติลาไม่เต็มวัน</a>
+                <td>{{ quota.limit - cum_days[type] }}</td>
+                {% if quota.limit - cum_days[type] > 0 %}
+                <td><a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ขออนุมัติลาเต็มวัน</a></td>
+                <td><a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ขออนุมัติลาไม่เต็มวัน</a>
                 </td>
                 {% else %}
                 <td>วันลาเต็ม</td>
