@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% include "comhealth/nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container has-text-centered">
+        <h1 class="title">รายการทดสอบใน {{ container.name }}</h1>
+        <h1 class="title is-4">{{ service.location }}</h1>
+        <h1 class="subtitle">วันที่ {{ service.date }}</h1>
+        <hr>
+        <table class="table is-fullwidth is-striped">
+            <thead>
+            <th>Lab No.</th>
+            <th>Tests</th>
+            </thead>
+            <tbody>
+            {% for rec in tests %}
+            <tr>
+                <td>{{rec}}</td>
+                <td>{{','.join(tests[rec])}}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <a href="{{ url_for('comhealth.summarize_specimens', service_id=service.id) }}"
+            class="button is-primary">Back</a>
+    </div>
+</section>
+{% endblock %}

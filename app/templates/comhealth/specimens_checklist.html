@@ -69,7 +69,9 @@
                         <thead>
                             <th>Lab No.</th>
                             {% for ct in containers %}
-                                <th>{{ ct }}</th>
+                            <th><a href="{{ url_for('comhealth.list_tests_in_container', service_id=service.id, container_id=ct.id) }}">
+                                {{ ct.name }}</a>
+                            </th>
                             {% endfor %}
                         </thead>
                         <tbody>
@@ -78,7 +80,7 @@
                                 <tr>
                                     <td>{{ rec.labno }}</td>
                                         {% for ct in containers %}
-                                        {% if ct in rec.container_set %}
+                                        {% if ct.name in rec.container_set %}
                                             <td>
                                                 <span class="icon">
                                                     <i class="fas fa-check has-text-success"></i>
@@ -86,9 +88,6 @@
                                             </td>
                                         {% else %}
                                             <td>
-                                                <span class="icon">
-                                                    <i class="fas fa-times has-text-danger"></i>
-                                                </span>
                                             </td>
                                         {% endif %}
                                     {% endfor %}

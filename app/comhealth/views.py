@@ -660,10 +660,10 @@ def summarize_specimens(service_id):
         service = ComHealthService.query.get(service_id)
         for profile in service.profiles:
             for test_item in profile.test_items:
-                containers.add(test_item.test.container.name)
+                containers.add(test_item.test.container)
         for group in service.groups:
             for test_item in group.test_items:
-                containers.add(test_item.test.container.name)
+                containers.add(test_item.test.container)
 
         record_ids = dict([(int(r.labno[-4:]), r) for r in service.records if r.labno])
         sorted_records = []
@@ -676,8 +676,22 @@ def summarize_specimens(service_id):
         return render_template('comhealth/specimens_checklist.html',
                                summary_date=datetime.now(tz=bangkok),
                                service=service,
-                               containers=containers,
+                               containers=sorted(containers, key=lambda x: x.name),
                                sorted_records=sorted_records)
+
+
+@comhealth.route('/services/<int:service_id>/containers/<int:container_id>')
+def list_tests_in_container(service_id, container_id):
+    tests = defaultdict(list)
+    if service_id:
+        service = ComHealthService.query.get(service_id)
+        container = ComHealthContainer.query.get(container_id)
+        for record in service.records:
+            for test_item in record.ordered_tests:
+                if test_item.test.container_id == container_id:
+                    tests[record.labno].append(test_item.test.code)
+    return render_template('comhealth/container_tests.html',
+                           tests=tests, service=service, container=container)
 
 
 @comhealth.route('/organizations')
