@@ -106,6 +106,7 @@ class ComHealthCustomer(db.Model):
     dept = db.relationship('ComHealthDepartment', backref=db.backref('employees', lazy=True))
     dob = db.Column('dob', db.Date())
     gender = db.Column('gender', db.Integer)  # 0 for female, 1 for male
+    phone = db.Column('phone', db.String())
     emptype_id = db.Column('emptype_id', db.ForeignKey('comhealth_customer_employment_types.id'))
     emptype = db.relationship('ComHealthCustomerEmploymentType',
                               backref=db.backref('customers'))
