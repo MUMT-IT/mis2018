@@ -21,11 +21,12 @@
                     <td>{{ request.quota.leave_type }}</td>
                     <td>{{ request.start_datetime|localdatetime }}</td>
                     <td>{{ request.end_datetime|localdatetime }}</td>
-                    <td>{{  request.reason }}</td>
+                    <td>{{ request.reason }}</td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
+        <a class="button is-rounded is-info is-light" href="{{ url_for('staff.show_leave_info') }}">กลับหน้าการลา</a>
     </div>
 </section>
 {% endblock %}
