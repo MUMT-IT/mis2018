@@ -1,10 +1,11 @@
+# -*- coding:utf-8 -*-
 from flask_login import login_required, current_user
 
 from models import (StaffAccount, StaffPersonalInfo,
                     StaffLeaveRequest, StaffLeaveQuota)
 from . import staffbp as staff
 from app.main import db
-from flask import jsonify, render_template, request, redirect, url_for
+from flask import jsonify, render_template, request, redirect, url_for, flash
 from datetime import datetime
 from collections import defaultdict, namedtuple
 import pytz
@@ -86,9 +87,15 @@ def show_leave_info():
         if delta.days > 3650:
             quota_limit = quota.cum_max_per_year2 if quota.cum_max_per_year2 else quota.max_per_year
         elif delta.days > 365:
-            quota_limit = quota.cum_max_per_year1 if quota.cum_max_per_year1 else quota.first_year
+            quota_limit = quota.cum_max_per_year1 if quota.cum_max_per_year1 else quota.max_per_year
         else:
-            quota_limit = quota.first_year
+            if quota.min_employed_months:
+                if delta.days > 180:
+                    quota_limit = quota.first_year
+                else:
+                    quota_limit = 0
+            else:
+                quota_limit = quota.first_year
         quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit)
 
     return render_template('staff/leave_info.html', cum_days=cum_days, quota_days=quota_days)
@@ -102,6 +109,7 @@ def show_leave_info():
 @login_required
 def request_for_leave(quota_id=None):
     if request.method == 'POST':
+        #return jsonify(request.form)
         form = request.form
         if quota_id:
             quota = StaffLeaveQuota.query.get(quota_id)
@@ -126,35 +134,32 @@ def request_for_leave(quota_id=None):
                     )
                 req_duration = cal_leave_duration(req)
                 delta = start_datetime.date() - current_user.personal_info.employed_date
-                if delta.days > 365:
-                    quota_limit = quota.cum_max_per_year2 if quota.cum_max_per_year2 else quota.max_per_year
+                if quota.max_per_leave:
+                    if req_duration > quota.max_per_leave:
+                        flash(u'ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ กรุณาติดต่อหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่(HR)')
+                        return redirect(request.referrer)
+                    else:
+                        if delta.days > 365:
+                            quota_limit = quota.max_per_year
+                        else:
+                            quota_limit = quota.first_year
                 else:
-                    quota_limit = quota.cum_max_per_year1 if quota.cum_max_per_year1 else quota.first_year
+                    if delta.days > 3650:
+                        quota_limit = quota.cum_max_per_year2 if quota.cum_max_per_year2 else quota.max_per_year
+                    elif delta.days > 365:
+                        quota_limit = quota.cum_max_per_year1 if quota.cum_max_per_year1 else quota.max_per_year
+                    else:
+                        quota_limit = quota.first_year
+
                 if cum_periods + req_duration <= quota_limit:
-                        db.session.add(req)
-                        db.session.commit()
-                        return redirect(url_for('staff.show_leave_info'))
+                    db.session.add(req)
+                    db.session.commit()
+                    return redirect(url_for('staff.show_leave_info'))
                 else:
-                    return 'Error: limit exceed'
+                    flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
+                    return redirect(request.referrer)
             else:
                 return 'Error happened'
-        #return jsonify(request.form)
-        '''
-            if quota_id:
-                quota = StaffLeaveQuota.query.get(quota_id)
-                req = StaffLeaveRequest(
-                    staff=current_user,
-                    quota=quota,
-                    start_datetime=tz.localize(form.data.get('start_datetime')),
-                    end_datetime=tz.localize(form.data.get('end_datetime')),
-                    reason=form.data.get('reason'),
-                    contact_address=form.data.get('contact_addr'),
-                    contact_phone=form.data.get('contact_phone')
-                )
-                db.session.add(req)
-                db.session.commit()
-                return 'Done.'
-            '''
     else:
         return render_template('staff/leave_request.html', errors={})
 
@@ -163,7 +168,7 @@ def request_for_leave(quota_id=None):
 @login_required
 def request_for_leave_period(quota_id=None):
     if request.method == 'POST':
-        # return jsonify(request.form)
+        #return jsonify(request.form)
         form = request.form
         if quota_id:
             quota = StaffLeaveQuota.query.get(quota_id)
@@ -174,8 +179,9 @@ def request_for_leave_period(quota_id=None):
                     if req.quota == quota:
                         cum_periods += cal_leave_duration(req)
 
-                start_dt = '{} {}'.format(form.get('dates'), form.get('startTime'))
-                end_dt = '{} {}'.format(form.get('dates'), form.get('endTime'))
+                start_t, end_t = form.get('times').split(' - ')
+                start_dt = '{} {}'.format(form.get('dates'), start_t)
+                end_dt = '{} {}'.format(form.get('dates'), end_t)
                 start_datetime = datetime.strptime(start_dt, '%m/%d/%Y %H:%M')
                 end_datetime = datetime.strptime(end_dt, '%m/%d/%Y %H:%M')
                 req = StaffLeaveRequest(
@@ -190,16 +196,20 @@ def request_for_leave_period(quota_id=None):
                 req_duration = cal_leave_duration(req)
                 # if duration not exceeds quota
                 delta = start_datetime.date() - current_user.personal_info.employed_date
-                if delta.days > 365:
+                if delta.days > 3650:
                     quota_limit = quota.cum_max_per_year2 if quota.cum_max_per_year2 else quota.max_per_year
+                elif delta.days > 365:
+                    quota_limit = quota.cum_max_per_year1 if quota.cum_max_per_year1 else quota.max_per_year
                 else:
-                    quota_limit = quota.cum_max_per_year1 if quota.cum_max_per_year1 else quota.first_year
+                    quota_limit = quota.first_year
+
                 if cum_periods+req_duration <= quota_limit:
                     db.session.add(req)
                     db.session.commit()
                     return redirect(url_for('staff.show_leave_info'))
                 else:
-                    return 'Error: limit exceed'
+                    flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
+                    return redirect(request.referrer)
             else:
                 return 'Error happened'
     else:
@@ -213,4 +223,5 @@ def request_for_leave_info(quota_id=None):
     for leave in current_user.leave_requests:
         if leave.quota == quota:
             leaves.append(leave)
+
     return render_template('staff/request_info.html', leaves=leaves)
