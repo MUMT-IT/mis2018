@@ -2,7 +2,6 @@
 import json
 import pandas as pd
 import os
-import io
 from bahttext import bahttext
 from datetime import datetime
 from decimal import Decimal
@@ -115,6 +114,14 @@ def index():
         services_data.append(d)
     # sv_schema = ComHealthServiceSchema(many=True)
     return render_template('comhealth/index.html', services=services_data)
+
+
+@comhealth.route('/services/<int:service_id>/search')
+def search_service_customer(service_id):
+    service = ComHealthService.query.get(service_id)
+    record_schema = ComHealthRecordSchema(many=True)
+    return jsonify(record_schema.dump(service.records).data)
+
 
 
 @comhealth.route('/services/<int:service_id>')

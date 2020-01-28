@@ -82,7 +82,11 @@
             </div>
             <div class="columns">
                 <div class="column">
-                    <b-table :data="fltRecords" :paginated="true" :per-page="10" default-sort="customer.firstname">
+                    <b-table :data="fltRecords"
+                             :paginated="true"
+                             :per-page="10"
+                             :loading="isLoading"
+                             default-sort="customer.firstname">
                         <template slot-scope="props">
                             <b-table-column field="id" label="ID" width="10" numeric>
                                 <% props.row.id %>
@@ -144,15 +148,33 @@
             delimiters: ['<%', '%>'],
             data() {
                 return {
-                    records: {{ records|tojson|safe }},
+                    records: [],
+                    fltRecords: [],
                     query: '',
+                    isLoading: false,
                 }
             },
-            computed: {
-                fltRecords: function () {
+            methods: {
+                loadAsyncData: function() {
                     var self = this;
-                    return this.records.filter(function (item) {
-                        if (self.query !== "") {
+                    self.isLoading = true;
+                    axios.get('/comhealth/services/14/search').then(function(response) {
+                        response.data.forEach((record) => {
+                            self.records.push(record);
+                            self.fltRecords.push(record);
+                        });
+                        self.isLoading = false;
+                    });
+                }
+            },
+            mounted() {
+                this.loadAsyncData();
+            },
+            watch: {
+                query: function () {
+                    var self = this;
+                    if (self.query !=="") {
+                        self.fltRecords = this.records.filter(function(item) {
                             var match = item.customer.firstname
                                 .toString()
                                 .toLowerCase()
@@ -175,10 +197,10 @@
                                 return match;
                             }
                             return match;
-                        } else {
-                            return self.records;
-                        }
-                    })
+                        });
+                    } else {
+                        self.fltRecords = self.records;
+                    }
                 }
             }
         });
