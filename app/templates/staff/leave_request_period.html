@@ -24,19 +24,11 @@
                                 </b-field>
                             </div>
                         </div>
-                        <b-field label="กรุณาเลือกเวลาที่ต้องการลา" >
-                        </b-field>
-                        <b-field >
-                            <b-timepicker
-                                    name="startTime"
-                                    placeholder="คลิ๊กเลือกเวลาเริ่มต้น..."
-                                    icon="clock">
-                            </b-timepicker>
-                            <b-timepicker
-                                    name ="endTime"
-                                    placeholder="คลิ๊กเลือกเวลาสิ้นสุด..."
-                                    icon="clock">
-                            </b-timepicker>
+                        <b-field label="กรุณาเลือกช่วงเวลาที่ต้องการลา">
+                            <b-select placeholder="คลิ๊กเพื่อเลือกช่วงเวลา" name="times">
+                                <option value="08:30 - 12:00">ช่วงเช้า 8:30 - 12:00 น.</option>
+                                <option value="13:00 - 16:30">ช่วงบ่าย 13:00 - 16:30 น.</option>
+                            </b-select>
                         </b-field>
                         <b-field label="จุดประสงค์ในการขออนุมัติลา">
                             <b-input type="text"
