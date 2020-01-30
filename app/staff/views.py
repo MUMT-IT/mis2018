@@ -61,17 +61,6 @@ def set_password():
     return render_template('staff/set_password.html')
 
 
-def cal_leave_duration(request_record):
-    if request_record.start_datetime.date() != request_record.end_datetime.date():
-        return len(request_record)
-    else:
-        delta = request_record.end_datetime - request_record.start_datetime
-        if delta.seconds/3600.0 == 3.5:
-            return 0.5
-        elif delta.seconds == 0:
-            return 1.0
-
-
 @staff.route('/leave/info')
 @login_required
 def show_leave_info():
@@ -80,7 +69,7 @@ def show_leave_info():
     quota_days = defaultdict(float)
     for req in current_user.leave_requests:
         leave_type = unicode(req.quota.leave_type)
-        cum_days[leave_type] += cal_leave_duration(req)
+        cum_days[leave_type] += req.duration
 
     for quota in current_user.personal_info.employment.quota:
         delta = datetime.today().date() - current_user.personal_info.employed_date
@@ -118,7 +107,7 @@ def request_for_leave(quota_id=None):
                 cum_periods = 0
                 for req in current_user.leave_requests:
                     if req.quota == quota:
-                        cum_periods += cal_leave_duration(req)
+                        cum_periods += req.duration
 
                 start_dt, end_dt = form.get('dates').split(' - ')
                 start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
@@ -132,7 +121,7 @@ def request_for_leave(quota_id=None):
                         contact_address=form.get('contact_addr'),
                         contact_phone=form.get('contact_phone')
                     )
-                req_duration = cal_leave_duration(req)
+                req_duration = req.duration
                 delta = start_datetime.date() - current_user.personal_info.employed_date
                 if quota.max_per_leave:
                     if req_duration > quota.max_per_leave:
@@ -177,7 +166,7 @@ def request_for_leave_period(quota_id=None):
                 cum_periods = 0
                 for req in current_user.leave_requests:
                     if req.quota == quota:
-                        cum_periods += cal_leave_duration(req)
+                        cum_periods += req.duration
 
                 start_t, end_t = form.get('times').split(' - ')
                 start_dt = '{} {}'.format(form.get('dates'), start_t)
@@ -193,7 +182,7 @@ def request_for_leave_period(quota_id=None):
                     contact_address=form.get('contact_addr'),
                     contact_phone=form.get('contact_phone')
                 )
-                req_duration = cal_leave_duration(req)
+                req_duration = req.duration
                 # if duration not exceeds quota
                 delta = start_datetime.date() - current_user.personal_info.employed_date
                 if delta.days > 3650:
@@ -220,8 +209,23 @@ def request_for_leave_period(quota_id=None):
 def request_for_leave_info(quota_id=None):
     quota = StaffLeaveQuota.query.get(quota_id)
     leaves = []
+    cum_leave = 0
     for leave in current_user.leave_requests:
         if leave.quota == quota:
             leaves.append(leave)
+            cum_leave = leave.duration
 
-    return render_template('staff/request_info.html', leaves=leaves)
+
+    return render_template('staff/request_info.html', leaves=leaves, cum_leave=cum_leave)
+'''
+@staff.route('/leave/cancel/<int:quota_id>', methods=["POST", "GET"])
+@login_required
+def delete_leave_request(quota_id=None):
+    if quota_id:
+        quota = StaffLeaveQuota.query.get(quota_id)
+        if leave.quota == quota:
+            #db.session.delete()
+    
+    
+
+'''
