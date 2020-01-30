@@ -43,20 +43,22 @@
             <div class="message-body">
                 <table class="table is-fullwidth">
             <thead>
-            <th>ID</th>
             <th>ชนิด</th>
             <th>ต้องทำงานมากกว่า (เดือน)</th>
             <th>ปีแรกได้ไม่เกิน (วัน)</th>
-            <th>สะสมทบปีได้ไม่เกิน (วัน)</th>
+            <th>สูงสุดต่อปีไม่เกิน (วัน)</th>
+            <th>สะสมทบต่อปีได้ไม่เกิน (วัน)</th>
+            <th>ปฏิบัติงานมากกว่า 10 ปีสะสมทบต่อปีได้ไม่เกิน (วัน)</th>
             <th colspan="2"></th>
             </thead>
             <tbody>
             {% for quota in current_user.personal_info.employment.quota %}
             <tr>
-                <td>{{ quota.id }}</td>
                 <td>{{ quota.leave_type }}</td>
                 <td>{{ quota.min_employed_months }}</td>
                 <td>{{ quota.first_year }}</td>
+                <td>{{ quota.max_per_year }}</td>
+                <td>{{ quota.cum_max_per_year1 }}</td>
                 <td>{{ quota.cum_max_per_year2 }}</td>
             </tr>
             {% endfor %}
