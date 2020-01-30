@@ -13,6 +13,8 @@
                 <th>วันที่เริ่มลา</th>
                 <th>วันที่สิ้นสุดลา</th>
                 <th>เหตุผลในการลา</th>
+                <th>รวม(วัน)</th>
+                <th>สถานะการอนุมัติ</th>
             </thead>
             <tbody>
             {% for request in leaves %}
@@ -22,6 +24,9 @@
                     <td>{{ request.start_datetime|localdatetime }}</td>
                     <td>{{ request.end_datetime|localdatetime }}</td>
                     <td>{{ request.reason }}</td>
+                    <td>{{ request.duration }}</td>
+                    <td></td>
+                    <td><a class="button is-danger">ยกเลิกการลาครั้งนี้</a></td>
                 </tr>
             {% endfor %}
             </tbody>
