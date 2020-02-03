@@ -1,16 +1,14 @@
 {% extends "base.html" %}
-
-{% include "staff/nav.html" %}
+{% include "nav.html" %}
 {% block page_content %}
 <section class="section">
     <div class="container">
         <h1 class="title">Welcome {{ current_user.personal_info }}</h1>
         <h4 class="subtitle">สถานะการจ้าง {{ current_user.personal_info.employment.title }}</h4>
-        <table class="table is-striped is-fullwidth">
+        <table class="table is-fullwidth">
             <thead>
             <th>ประเภทการลา</th>
             <th>จำนวนวันลาที่ใช้</th>
-            <th>จำนวนวันลาที่เหลือ</th>
             <th colspan="2">action</th>
             </thead>
             <tbody>
@@ -22,10 +20,9 @@
                     </a>
                 </td>
                 <td>{{ cum_days[type] }}</td>
-                <td>{{ quota.limit - cum_days[type] }}</td>
                 {% if quota.limit - cum_days[type] > 0 %}
                 <td><a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ขออนุมัติลาเต็มวัน</a></td>
-                <td><a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ขออนุมัติลาไม่เต็มวัน</a>
+                <td><a class="button is-rounded is-warning is-light" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ขออนุมัติลาครึ่งวัน</a>
                 </td>
                 {% else %}
                 <td>วันลาเต็ม</td>
@@ -36,35 +33,6 @@
             </tbody>
         </table>
         <hr>
-        <div class="message is-info">
-            <div class="message-header">
-                ข้อมูลการลา
-            </div>
-            <div class="message-body">
-                <table class="table is-fullwidth">
-            <thead>
-            <th>ชนิด</th>
-            <th>ต้องทำงานมากกว่า (เดือน)</th>
-            <th>ปีแรกได้ไม่เกิน (วัน)</th>
-            <th>สูงสุดต่อปีไม่เกิน (วัน)</th>
-            <th>สะสมทบต่อปีได้ไม่เกิน (วัน)</th>
-            <th>ปฏิบัติงานมากกว่า 10 ปีสะสมทบต่อปีได้ไม่เกิน (วัน)</th>
-            <th colspan="2"></th>
-            </thead>
-            <tbody>
-            {% for quota in current_user.personal_info.employment.quota %}
-            <tr>
-                <td>{{ quota.leave_type }}</td>
-                <td>{{ quota.min_employed_months }}</td>
-                <td>{{ quota.first_year }}</td>
-                <td>{{ quota.max_per_year }}</td>
-                <td>{{ quota.cum_max_per_year1 }}</td>
-                <td>{{ quota.cum_max_per_year2 }}</td>
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-            </div>
         </div>
     </div>
 </section>
