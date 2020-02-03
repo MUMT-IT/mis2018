@@ -112,6 +112,10 @@ def request_for_leave(quota_id=None):
                 start_dt, end_dt = form.get('dates').split(' - ')
                 start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
                 end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
+                delta = start_datetime.date() - datetime.today().date()
+                if delta.days > 0 and not quota.leave_type.request_in_advance:
+                    flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
+                    return redirect(request.referrer)
                 req = StaffLeaveRequest(
                         staff=current_user,
                         quota=quota,
@@ -173,6 +177,10 @@ def request_for_leave_period(quota_id=None):
                 end_dt = '{} {}'.format(form.get('dates'), end_t)
                 start_datetime = datetime.strptime(start_dt, '%m/%d/%Y %H:%M')
                 end_datetime = datetime.strptime(end_dt, '%m/%d/%Y %H:%M')
+                delta = start_datetime - datetime.today()
+                if delta.days > 0 and not quota.leave_type.request_in_advance:
+                    flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
+                    return redirect(request.referrer)
                 req = StaffLeaveRequest(
                     staff=current_user,
                     quota=quota,
@@ -225,7 +233,5 @@ def delete_leave_request(quota_id=None):
         quota = StaffLeaveQuota.query.get(quota_id)
         if leave.quota == quota:
             #db.session.delete()
-    
-    
-
+  
 '''
