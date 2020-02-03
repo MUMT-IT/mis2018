@@ -33,7 +33,9 @@
                                 <option value="13:00 - 16:30">ช่วงบ่าย 13:00 - 16:30 น.</option>
                             </b-select>
                         </b-field>
-                        <b-field label="จุดประสงค์ในการขออนุมัติลา">
+                        <b-field label="จุดประสงค์ในการขออนุมัติลา"
+                                 type="is-danger"
+                                 message="กรณีลากิจหรือลาป่วยต้องระบุเหตุผลในการลา มิฉะนั้นจะไม่ได้รับอนุมัติ">>
                             <b-input type="text"
                                  name="reason"
                                  icon-pack="far"
@@ -60,7 +62,7 @@
                             <b-checkbox true-value="yes"
                                     false-value="no"
                                     v-model="notifiedByLine"
-                                    name="notified_by_line">ส่งข้อความเตือนในไลน์เมื่อได้รับการอนุมัติ
+                                    name="notified_by_line">ส่งข้อความเตือนในไลน์เมื่อได้รับการพิจารณาจากหัวหน้างาน
                             </b-checkbox>
                         </div>
                         <div class="field is-grouped">
