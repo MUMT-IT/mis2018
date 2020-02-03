@@ -14,6 +14,7 @@
                 <th>เหตุผลในการลา</th>
                 <th>รวม(วัน)</th>
                 <th>สถานะการอนุมัติ</th>
+                <th></th>
             </thead>
             <tbody>
             {% for request in leaves %}
@@ -24,8 +25,17 @@
                     <td>{{ request.end_datetime|localdatetime }}</td>
                     <td>{{ request.reason }}</td>
                     <td>{{ request.duration }}</td>
-                    <td></td>
-                    <td><a class="button is-danger">ยกเลิกการลาครั้งนี้</a></td>
+                    <td>Pending</td>
+                    <td><a class="button is-light">
+                        <span class="icon">
+                            <i class="fas fa-pencil-alt"></i>
+                        </span>
+                    </a>
+                    <a class="button is-danger">
+                        <span class="icon">
+                            <i class="fas fa-window-close"></i>
+                        </span>
+                    </a></td>
                 </tr>
             {% endfor %}
             </tbody>
