@@ -24,6 +24,8 @@
                                         v-model="selectedDates"
                                         range
                                         icon-pack="fa"
+                                        :events="events"
+                                        :indicators="indicators"
                                         placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                         icon="calendar-alt">
                                 </b-datepicker>
@@ -80,13 +82,30 @@
 {% block scripts %}
 {{ super() }}
 <script>
+    const thisMonth = new Date().getMonth()
+
     new Vue({
         el: '#app',
         delimiters: ['<%', '%>'],
+        computed: {
+            indicators() {
+                return this.bars ? 'bars' : 'dots'
+            }
+        },
         data() {
             return {
                 selectedDates: [],
                 notifiedByLine: "yes",
+                events: [
+                    {
+                        date: new Date(2020, thisMonth, 8),
+                        type: 'is-danger'
+                    },
+                    {
+                        date: new Date(2020, thisMonth, 10),
+                        type: 'is-danger'
+                    }],
+                    bars: true
             }
         },
     });
