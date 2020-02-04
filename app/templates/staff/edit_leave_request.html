@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        {% for msg in get_flashed_messages() %}
+        <p class="notification is-warning">{{ msg }}</p>
+        {% endfor %}
+        {% for err, msg in errors.iteritems() %}
+        <p>{{ err }} : {{ msg }}</p>
+        {% endfor %}
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <b-notification type="is-light" has-icon>กรุณาเลือกวันหรือช่วงของวันที่ต้องการลา ทั้งนี้วันหยุดและเสาร์ อาทิตย์จะไม่ถือเป็นวันลา</b-notification>
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <div class="field">
+                        <div class="control">
+                            <b-field label="เลือกวันที่ต้องการขออนุมัติลา">
+                                <b-datepicker
+                                        required
+                                        name="dates"
+                                        v-model="selectedDates"
+                                        range
+                                        icon-pack="fa"
+                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                        icon="calendar-alt">
+                                </b-datepicker>
+                            </b-field>
+                        </div>
+                    </div>
+                    <b-field label="จุดประสงค์ในการขออนุมัติลา"
+                             type="is-danger"
+                             message="กรณีลากิจหรือลาป่วยต้องระบุเหตุผลในการลา มิฉะนั้นจะไม่ได้รับอนุมัติ">
+                        <b-input type="text"
+                                 name="reason"
+                                 icon-pack="far"
+                                 icon="comment"
+                                 value="{{ req.reason }}">
+                        </b-input>
+                    </b-field>
+                    <b-field label="ระหว่างลาสามารถติดต่อท่านได้ที่">
+                        <b-input name="contact_addr"
+                                 icon-pack="fas"
+                                 icon="map-marker-alt"
+                                 value="{{ req.contact_address }}"
+                                 placeholder="ที่อยู่">
+                        </b-input>
+                    </b-field>
+                    <b-field>
+                        <b-input type="text"
+                               name="contact_phone"
+                               icon-pack="fas"
+                               icon="phone" value="{{ req.contact_phone }}"
+                               placeholder="เบอร์โทรศัพท์">
+                        </b-input>
+                    </b-field>
+                    <div class="field">
+                        <b-checkbox true-value="yes"
+                                    false-value="no"
+                                    v-model="notifiedByLine"
+                                    name="notified_by_line">ส่งข้อความเตือนในไลน์เมื่อได้รับการพิจารณาจากหัวหน้างาน
+                        </b-checkbox>
+                    </div>
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <input type="submit" value="submit" class="button is-primary"/>
+                        </div>
+                        <div class="control">
+                            <a href="{{ url_for('staff.show_leave_info') }}" class="button is-danger">Cancel</a>
+                        </div>
+                    </div>
+                </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var vm = new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                selectedDates: [],
+                notifiedByLine: "yes",
+                givenDates: [],
+            }
+        },
+        mounted() {
+            var self = this;
+            self.givenDates = {{ selected_dates|tojsdatetime }};
+            self.givenDates.forEach((d) => {
+                self.selectedDates.push(new Date(d));
+            });
+        }
+    });
+</script>
+{% endblock %}
