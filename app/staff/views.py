@@ -118,7 +118,7 @@ def request_for_leave(quota_id=None):
                     return redirect(request.referrer)
                 req = StaffLeaveRequest(
                         staff=current_user,
-                        quota=quota,
+                        quota_id=quota.id,
                         start_datetime=tz.localize(start_datetime),
                         end_datetime=tz.localize(end_datetime),
                         reason=form.get('reason'),
@@ -235,3 +235,51 @@ def delete_leave_request(quota_id=None):
             #db.session.delete()
   
 '''
+
+@staff.route('/leave/request/edit/<int:req_id>',
+             methods=['GET', 'POST'])
+@login_required
+def edit_leave_request(req_id=None):
+    req = StaffLeaveRequest.query.get(req_id)
+    if req.duration == 0.5:
+        return  redirect(url_for("staff.edit_leave_request_period", req_id=req_id))
+    if request.method == 'POST':
+        start_dt, end_dt = request.form.get('dates').split(' - ')
+        start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
+        end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
+        req.start_datetime = tz.localize(start_datetime),
+        req.end_datetime = tz.localize(end_datetime),
+        req.reason = request.form.get('reason')
+        req.contact_address = request.form.get('contact_addr'),
+        req.contact_phone = request.form.get('contact_phone')
+        db.session.add(req)
+        db.session.commit()
+        return redirect(url_for('staff.show_leave_info'))
+
+    selected_dates = [req.start_datetime, req.end_datetime]
+    return render_template('staff/edit_leave_request.html', selected_dates=selected_dates, req=req, errors={})
+
+
+@staff.route('/leave/request/edit/period/<int:req_id>',
+             methods=['GET', 'POST'])
+@login_required
+def edit_leave_request_period(req_id=None):
+    req = StaffLeaveRequest.query.get(req_id)
+    if request.method == 'POST':
+        start_t, end_t = request.form.get('times').split(' - ')
+        start_dt = '{} {}'.format(request.form.get('dates'), start_t)
+        end_dt = '{} {}'.format(request.form.get('dates'), end_t)
+        start_datetime = datetime.strptime(start_dt, '%m/%d/%Y %H:%M')
+        end_datetime = datetime.strptime(end_dt, '%m/%d/%Y %H:%M')
+        req.start_datetime = tz.localize(start_datetime),
+        req.end_datetime = tz.localize(end_datetime),
+        req.reason = request.form.get('reason')
+        req.contact_address = request.form.get('contact_addr'),
+        req.contact_phone = request.form.get('contact_phone')
+        db.session.add(req)
+        db.session.commit()
+        return redirect(url_for('staff.show_leave_info'))
+
+    selected_dates = [req.start_datetime]
+
+    return render_template('staff/edit_leave_request_period.html', req=req, selected_dates=selected_dates, errors={})
