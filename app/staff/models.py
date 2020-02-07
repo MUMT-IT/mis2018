@@ -171,14 +171,14 @@ class StaffLeaveRequest(db.Model):
 class StaffLeaveApprover(db.Model):
     __tablename__ = 'staff_leave_approvers'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    # staff account means staff under supervision
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     approver_account_id = db.Column('approver_account_id', db.ForeignKey('staff_account.id'))
     is_active = db.Column('is_active', db.Boolean(), default=True)
-    staff = db.relationship('StaffAccount',
+    requester = db.relationship('StaffAccount',
                             foreign_keys=[staff_account_id])
-    approver = db.relationship('StaffAccount',
-                               foreign_keys=[approver_account_id],
-                               backref=db.backref('leave_approvers'))
+    account = db.relationship('StaffAccount',
+                               foreign_keys=[approver_account_id])
 
 
 class StaffLeaveApproval(db.Model):
