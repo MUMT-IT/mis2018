@@ -307,7 +307,8 @@ def leave_approve(req_id, approver_id):
 @login_required
 def show_leave_approval(req_id):
     req = StaffLeaveRequest.query.get(req_id)
-    return render_template('staff/leave_approval_status.html', req=req)
+    approvers = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id)
+    return render_template('staff/leave_approval_status.html', req=req, approvers=approvers)
 
 
 @staff.route('/leave/list')
