@@ -25,7 +25,9 @@
                     <td>{{ request.end_datetime|localdatetime }}</td>
                     <td>{{ request.reason }}</td>
                     <td>{{ request.duration }}</td>
-                    <td>Pending</td>
+                    <td>
+                        <a class="button is-text" href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">ตรวจสอบสถานะ</a>
+                    </td>
                     <td><a class="button is-light" href="{{ url_for('staff.edit_leave_request', req_id=request.id) }}">
                         <span class="icon">
                             <i class="fas fa-pencil-alt"></i>
