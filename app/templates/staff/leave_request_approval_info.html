@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        {% for msg in get_flashed_messages() %}
+        <p class="notification is-warning">{{ msg }}</p>
+        {% endfor %}
+        <h4 class="subtitle">รายการลาของบุคลากรในสังกัดของ {{ current_user.personal_info.th_firstname }}</h4>
+<table class="table">
+    <tbody>
+        {% for approver in requesters %}
+        {% if not approver.requester.leave_requests|sort(attribute='start_datetime')|checkallapprovals(approver.id) %}
+        <tr>
+            <td colspan="4">
+                {{ approver.requester.personal_info }}
+            </td>
+        </tr>
+        {% for leave_req in approver.requester.leave_requests|sort(attribute='start_datetime') %}
+        {% if not leave_req|checkapprovals(approver.id) %}
+        <tr>
+            <td>
+            </td>
+            <td>
+                {{ leave_req.leave_type }}
+            </td>
+            <td>
+                {{ leave_req.start_datetime|localdatetime }} - {{ leave_req.end_datetime|localdatetime }}
+            </td>
+            <td>
+                <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id) }}">Approve</a>
+            </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+        {% endif %}
+    {% endfor %}
+    </tbody>
+</table>
+         <a href="{{ url_for('staff.show_leave_info') }}" class="button is-link">กลับหน้าสรุปการลาของท่าน</a>
+    </div>
+</section>
+{% endblock %}
