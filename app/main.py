@@ -341,6 +341,38 @@ def local_datetime(dt):
 def sort_test_item(tests):
     return sorted(tests, key=lambda x: x.test.name)
 
+import time
+
+@app.template_filter("tojsdatetime")
+def convert_date_to_js_datetime(select_dates):
+    return [int(time.mktime(d.timetuple())) * 1000 for d in select_dates]
+
+
+@app.template_filter("checkallapprovals")
+def check_all_approval(leave_requests, approver_id):
+    for req in leave_requests:
+        approval = StaffLeaveApproval.query.filter_by(
+                                    request_id=req.id,
+                                    approver_id=approver_id).first()
+        if approval:
+            continue
+        else:
+            return False
+    return True
+
+
+@app.template_filter("checkapprovals")
+def check_approval(leave_request, approver_id):
+    approvals = StaffLeaveApproval.query.filter_by(request_id=leave_request.id,
+                                                   approver_id=approver_id,
+                                                   ).first()
+    if approvals:
+        return True
+    else:
+        return False
+
+
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host="0.0.0.0")
