@@ -2,7 +2,7 @@
 from flask_login import login_required, current_user
 
 from models import (StaffAccount, StaffPersonalInfo,
-                    StaffLeaveRequest, StaffLeaveQuota)
+                    StaffLeaveRequest, StaffLeaveQuota, StaffLeaveApprover, StaffLeaveApproval)
 from . import staffbp as staff
 from app.main import db
 from flask import jsonify, render_template, request, redirect, url_for, flash
@@ -118,7 +118,7 @@ def request_for_leave(quota_id=None):
                     return redirect(request.referrer)
                 req = StaffLeaveRequest(
                         staff=current_user,
-                        quota_id=quota.id,
+                        quota=quota,
                         start_datetime=tz.localize(start_datetime),
                         end_datetime=tz.localize(end_datetime),
                         reason=form.get('reason'),
@@ -212,6 +212,7 @@ def request_for_leave_period(quota_id=None):
     else:
         return render_template('staff/leave_request_period.html', errors={})
 
+
 @staff.route('/leave/request/info/<int:quota_id>')
 @login_required
 def request_for_leave_info(quota_id=None):
@@ -225,16 +226,7 @@ def request_for_leave_info(quota_id=None):
 
 
     return render_template('staff/request_info.html', leaves=leaves, cum_leave=cum_leave)
-'''
-@staff.route('/leave/cancel/<int:quota_id>', methods=["POST", "GET"])
-@login_required
-def delete_leave_request(quota_id=None):
-    if quota_id:
-        quota = StaffLeaveQuota.query.get(quota_id)
-        if leave.quota == quota:
-            #db.session.delete()
-  
-'''
+
 
 @staff.route('/leave/request/edit/<int:req_id>',
              methods=['GET', 'POST'])
@@ -283,3 +275,43 @@ def edit_leave_request_period(req_id=None):
     selected_dates = [req.start_datetime]
 
     return render_template('staff/edit_leave_request_period.html', req=req, selected_dates=selected_dates, errors={})
+
+
+@staff.route('/leave/requests/approval/info')
+@login_required
+def show_leave_approval_info():
+    requesters = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).all()
+    return render_template('staff/leave_request_approval_info.html', requesters=requesters)
+
+
+@staff.route('/leave/requests/approve/<int:req_id>/<int:approver_id>')
+@login_required
+def leave_approve(req_id, approver_id):
+    #if request.method == 'POST':
+    approval = StaffLeaveApproval(
+        request_id=req_id,
+        approver_id=approver_id,
+        is_approved=True,
+        updated_at=tz.localize(datetime.today())
+    )
+    db.session.add(approval)
+    db.session.commit()
+    return u'{} {}'.format(req_id, approver_id)
+    #flash(u'อนุมัติให้...... วันที่ลา..............เรียบร้อย')
+    #return redirect(url_for('staff.show_leave_approval_info'))
+
+    #return render_template('staff/leave_approval_status.html', approval=approval)
+
+
+@staff.route('/leave/requests/<int:req_id>/approvals')
+@login_required
+def show_leave_approval(req_id):
+    req = StaffLeaveRequest.query.get(req_id)
+    return render_template('staff/leave_approval_status.html', req=req)
+
+
+@staff.route('/leave/list')
+@login_required
+def show_leave_list():
+    list = StaffLeaveRequest.query.all()
+    return render_template('staff/leave_list.html', list=list)
