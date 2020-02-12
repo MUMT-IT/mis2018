@@ -156,6 +156,8 @@ class StaffLeaveRequest(db.Model):
     quota = db.relationship('StaffLeaveQuota',
                             backref=db.backref('leave_requests'))
 
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+
     @property
     def duration(self):
         delta = self.end_datetime - self.start_datetime
