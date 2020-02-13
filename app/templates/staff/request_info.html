@@ -42,7 +42,12 @@
             {% endfor %}
             </tbody>
         </table>
-        <a class="button is-rounded is-info is-light" href="{{ url_for('staff.show_leave_info') }}">กลับหน้าการลา</a>
+        <a class="button is-rounded is-info is-light" href="{{ url_for('staff.show_leave_info') }}">
+             <span class="icon">
+                <i class="fas fa-arrow-left"></i>
+            </span>
+            กลับหน้าการลา
+        </a>
     </div>
 </section>
 {% endblock %}
