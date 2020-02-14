@@ -14,7 +14,7 @@
                 <th>เหตุผลในการลา</th>
                 <th>รวม(วัน)</th>
                 <th>สถานะการอนุมัติ</th>
-                <th></th>
+                <th colspan="2"></th>
             </thead>
             <tbody>
             {% for request in leaves %}
@@ -28,16 +28,22 @@
                     <td>
                         <a class="button is-text" href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">ตรวจสอบสถานะ</a>
                     </td>
-                    <td><a class="button is-light" href="{{ url_for('staff.edit_leave_request', req_id=request.id) }}">
+                    {% if not request.cancelled_at %}
+                    <td>
+                        <a class="button is-light" href="{{ url_for('staff.edit_leave_request', req_id=request.id) }}">
                         <span class="icon">
                             <i class="fas fa-pencil-alt"></i>
                         </span>
-                    </a>
-                    <a class="button is-danger" href="{{ url_for('staff.cancel_leave_request', req_id=request.id)}}">
+                        </a>
+                        <a class="button is-danger" href="{{ url_for('staff.cancel_leave_request', req_id=request.id)}}">
                         <span class="icon">
                             <i class="fas fa-window-close"></i>
                         </span>
-                    </a></td>
+                        </a>
+                    </td>
+                    {% else %}
+                    <td>ยกเลิกการลานี้แล้ว</td>
+                    {% endif %}
                 </tr>
             {% endfor %}
             </tbody>
