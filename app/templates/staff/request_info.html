@@ -33,7 +33,7 @@
                             <i class="fas fa-pencil-alt"></i>
                         </span>
                     </a>
-                    <a class="button is-danger">
+                    <a class="button is-danger" href="{{ url_for('staff.cancel_leave_request', req_id=request.id)}}">
                         <span class="icon">
                             <i class="fas fa-window-close"></i>
                         </span>
