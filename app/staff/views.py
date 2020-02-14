@@ -287,7 +287,6 @@ def show_leave_approval_info():
 @staff.route('/leave/requests/approve/<int:req_id>/<int:approver_id>')
 @login_required
 def leave_approve(req_id, approver_id):
-    #if request.method == 'POST':
     approval = StaffLeaveApproval(
         request_id=req_id,
         approver_id=approver_id,
@@ -296,11 +295,24 @@ def leave_approve(req_id, approver_id):
     )
     db.session.add(approval)
     db.session.commit()
-    return u'{} {}'.format(req_id, approver_id)
-    #flash(u'อนุมัติให้...... วันที่ลา..............เรียบร้อย')
-    #return redirect(url_for('staff.show_leave_approval_info'))
+    #return u'{} {}'.format(req_id, approver_id)
+    flash(u'อนุมัติให้...... วันที่ลา..............เรียบร้อย')
+    return redirect(url_for('staff.show_leave_approval_info'))
 
-    #return render_template('staff/leave_approval_status.html', approval=approval)
+
+@staff.route('/leave/requests/reject/<int:req_id>/<int:approver_id>')
+@login_required
+def leave_reject(req_id, approver_id):
+    approval = StaffLeaveApproval(
+        request_id=req_id,
+        approver_id=approver_id,
+        is_approved=False,
+        updated_at=tz.localize(datetime.today())
+    )
+    db.session.add(approval)
+    db.session.commit()
+    flash(u'อนุมัติให้...... วันที่ลา..............เรียบร้อย')
+    return redirect(url_for('staff.show_leave_approval_info'))
 
 
 @staff.route('/leave/requests/<int:req_id>/approvals')
@@ -309,3 +321,13 @@ def show_leave_approval(req_id):
     req = StaffLeaveRequest.query.get(req_id)
     approvers = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id)
     return render_template('staff/leave_approval_status.html', req=req, approvers=approvers)
+
+
+@staff.route('/leave/requests/<int:req_id>/cancel')
+@login_required
+def cancel_leave_request(req_id):
+    req = StaffLeaveRequest.query.get(req_id)
+    req.cancelled_at = tz.localize(datetime.today())
+    db.session.add(req)
+    db.session.commit()
+    return redirect(request.referrer)
