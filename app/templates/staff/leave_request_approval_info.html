@@ -22,13 +22,16 @@
             <td>
             </td>
             <td>
-                {{ leave_req.leave_type }}
+                {{ leave_req.quota.leave_type}}
             </td>
             <td>
                 {{ leave_req.start_datetime|localdatetime }} - {{ leave_req.end_datetime|localdatetime }}
             </td>
             <td>
-                <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id) }}">Approve</a>
+                <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id) }}" class="button is-info">อนุมัติ</a>
+            </td>
+            <td>
+                <a href="{{ url_for('staff.leave_reject', req_id=leave_req.id,approver_id=approver.id) }}" class="button is-danger">ไม่อนุมัติ</a>
             </td>
         </tr>
         {% endif %}
@@ -37,7 +40,12 @@
     {% endfor %}
     </tbody>
 </table>
-         <a href="{{ url_for('staff.show_leave_info') }}" class="button is-link">กลับหน้าสรุปการลาของท่าน</a>
+        <a href="{{ url_for('staff.show_leave_info') }}" class="button is-rounded is-info is-light">
+            <span class="icon">
+                <i class="fas fa-arrow-left"></i>
+            </span>
+            กลับหน้าสรุปการลาของท่าน
+        </a>
     </div>
 </section>
 {% endblock %}
