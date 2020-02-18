@@ -17,6 +17,7 @@
             </td>
         </tr>
         {% for leave_req in approver.requester.leave_requests|sort(attribute='start_datetime') %}
+        {% if not leave_req.cancelled_at %}
         {% if not leave_req|checkapprovals(approver.id) %}
         <tr>
             <td>
@@ -34,6 +35,7 @@
                 <a href="{{ url_for('staff.leave_reject', req_id=leave_req.id,approver_id=approver.id) }}" class="button is-danger">ไม่อนุมัติ</a>
             </td>
         </tr>
+        {% endif %}
         {% endif %}
         {% endfor %}
         {% endif %}
