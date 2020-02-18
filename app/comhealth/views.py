@@ -715,7 +715,8 @@ def add_service_to_org(org_id):
         except ValueError:
             flash('Date data not valid.')
         else:
-            existing_service = ComHealthService.query.filter_by(date=service_date).first()
+            existing_service = ComHealthService.query\
+                .filter_by(date=service_date, location=form.location.data).first()
             if not existing_service:
                 new_service = ComHealthService(date=service_date, location=form.location.data)
                 db.session.add(new_service)
