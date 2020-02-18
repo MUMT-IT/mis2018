@@ -158,7 +158,8 @@
                 loadAsyncData: function() {
                     var self = this;
                     self.isLoading = true;
-                    axios.get('/comhealth/services/14/search').then(function(response) {
+                    axios.get('{{ url_for('comhealth.search_service_customer', service_id=service.id) }}')
+                        .then(function(response) {
                         response.data.forEach((record) => {
                             self.records.push(record);
                             self.fltRecords.push(record);

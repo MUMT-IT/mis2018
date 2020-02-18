@@ -116,21 +116,17 @@ def index():
     return render_template('comhealth/index.html', services=services_data)
 
 
-@comhealth.route('/services/<int:service_id>/search')
+@comhealth.route('/api/services/<int:service_id>/search')
 def search_service_customer(service_id):
     service = ComHealthService.query.get(service_id)
     record_schema = ComHealthRecordSchema(many=True)
     return jsonify(record_schema.dump(service.records).data)
 
 
-
 @comhealth.route('/services/<int:service_id>')
 def display_service_customers(service_id):
     service = ComHealthService.query.get(service_id)
-    record_schema = ComHealthRecordSchema(many=True)
-    return render_template('comhealth/service_customers.html',
-                           service=service,
-                           records=record_schema.dump(service.records).data)
+    return render_template('comhealth/service_customers.html', service=service)
 
 
 @comhealth.route('/checkin/<int:record_id>', methods=['GET', 'POST'])
