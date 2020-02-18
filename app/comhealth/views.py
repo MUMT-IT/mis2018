@@ -670,7 +670,9 @@ def add_service_to_org(org_id):
         except ValueError:
             flash('Date data not valid.')
         else:
-            existing_service = ComHealthService.query.filter_by(date=service_date).first()
+            existing_service = ComHealthService.query\
+                                    .filter_by(date=service_date,
+                                               location=form.location.data).first()
             if not existing_service:
                 new_service = ComHealthService(date=service_date, location=form.location.data)
                 db.session.add(new_service)
@@ -683,7 +685,8 @@ def add_service_to_org(org_id):
                 for employee in org.employees:
                     services = set([rec.service for rec in employee.records])
                     if existing_service not in services:
-                        new_record = ComHealthRecord(date=service_date, service=existing_service,
+                        new_record = ComHealthRecord(date=service_date,
+                                                     service=existing_service,
                                                      customer=employee)
                         db.session.add(new_record)
                         db.session.commit()
