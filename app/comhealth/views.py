@@ -962,15 +962,13 @@ def show_employee_info(custid):
         print('customer id is {}'.format(customer_id))
         if customer_id:
             customer = ComHealthCustomer.query.get(int(customer_id))
-            print(u'{}'.format(customer.fullname))
             for k, item in info_items.items():
                 if not item.multiple_selection:
                     customer.info.data[k] = request.form.get(k)
                 else:
                     values = ' '.join(request.form.getlist(k))
                     customer.info.data[k] = values
-            for k,v in customer.info.data.items():
-                print(u'{} {}'.format(k,v))
+            customer.info.updated_at = datetime.now(tz=bangkok)
             flag_modified(customer.info, "data")
             db.session.add(customer)
             db.session.commit()
