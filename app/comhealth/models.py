@@ -3,7 +3,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.associationproxy import association_proxy
 from marshmallow import fields
 from dateutil.relativedelta import relativedelta
-from datetime import date
+from datetime import date, datetime
 import pytz
 
 bangkok = pytz.timezone('Asia/Bangkok')
@@ -97,6 +97,7 @@ class ComHealthDepartment(db.Model):
 class ComHealthCustomer(db.Model):
     __tablename__ = 'comhealth_customers'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    hn = db.Column('hn', db.String(13), unique=True)
     title = db.Column('title', db.String(32))
     firstname = db.Column('firstname', db.String(255), index=True)
     lastname = db.Column('lastname', db.String(255), index=True)
@@ -104,6 +105,7 @@ class ComHealthCustomer(db.Model):
     org = db.relationship('ComHealthOrg', backref=db.backref('employees', lazy=True))
     dept_id = db.Column('dept_id', db.ForeignKey('comhealth_department.id'), nullable=True)
     dept = db.relationship('ComHealthDepartment', backref=db.backref('employees', lazy=True))
+    unit = db.Column('unit', db.String())
     dob = db.Column('dob', db.Date())
     gender = db.Column('gender', db.Integer)  # 0 for female, 1 for male
     phone = db.Column('phone', db.String())
@@ -114,6 +116,11 @@ class ComHealthCustomer(db.Model):
     def __str__(self):
         return u'{}{} {} {}'.format(self.title, self.firstname,
                                     self.lastname, self.org.name)
+
+    def generate_hn(self, force=False):
+        if not self.hn or force:
+            d = datetime.today().strftime('%y')
+            self.hn = u'2{}{:04}{:06}'.format(d, self.org_id, self.id)
 
     @property
     def thai_dob(self):

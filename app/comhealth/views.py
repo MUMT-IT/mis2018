@@ -841,8 +841,9 @@ def allowed_file(filename):
 
 @comhealth.route('/organizations/<int:orgid>/employees/info', methods=['POST', 'GET'])
 def add_employee_info(orgid):
-    '''Add employees info from a file.
-    '''
+    """Add employees info from a file.
+    """
+
     org = ComHealthOrg.query.get(orgid)
     info_items = ComHealthCustomerInfoItem.query.all()
     info_items = set([item.text for item in info_items])
@@ -856,29 +857,58 @@ def add_employee_info(orgid):
             flash('No file selected')
             return redirect(request.url)
         if file and allowed_file(file.filename):
-            service = None
             df = read_excel(file)
             for idx, rec in df.iterrows():
                 rec = rec.fillna('')
                 data = {}
-                customer = ComHealthCustomer.query.filter_by(
-                                                    firstname=rec['firstname'],
-                                                    lastname=rec['lastname']).first()
-                if customer:
-                    for col in rec.keys():
-                        if col in info_items:
-                            data[col] = rec[col]
-                    if not customer.info:
-                        info = ComHealthCustomerInfo(
-                            customer=customer,
-                            data=data,
-                            updated_at=datetime.now(tz=bangkok)
-                        )
-                        db.session.add(info)
-                    else:
-                        customer.info.data = data
+                for col in rec.keys():
+                    if col in info_items:
+                        data[col] = rec[col]
+
+                customer = ComHealthCustomer.query\
+                    .filter_by(firstname=rec['firstname'], lastname=rec['lastname']).first()
+                if not customer:
+                    dept = None
+                    emptype = None
+                    if rec['department']:
+                        existing_dept = ComHealthDepartment.query.filter_by(name=rec['department']).first()
+                        if existing_dept:
+                            dept = existing_dept
+                        else:
+                            dept = ComHealthDepartment(name=rec['department'], parent_id=orgid)
+                    if rec['employmentType']:
+                        existing_emptype = ComHealthCustomerEmploymentType.query\
+                            .filter_by(name=rec['employmentType']).first()
+                        if existing_emptype:
+                            emptype = existing_emptype
+                        else:
+                            emptype = ComHealthCustomerEmploymentType(name=rec['employmentType'])
+                    customer = ComHealthCustomer(
+                        title=rec['title'],
+                        firstname=rec['firstname'],
+                        lastname=rec['lastname'],
+                        org_id=orgid,
+                        dept=dept,
+                        gender=rec['gender'],
+                        phone=rec['phone'],
+                        emptype=emptype,
+                        unit=rec['unit'],
+                    )
                     db.session.add(customer)
                     db.session.commit()
+                    customer.generate_hn()
+
+                if not customer.info:
+                    info = ComHealthCustomerInfo(
+                        customer=customer,
+                        data=data,
+                        updated_at=datetime.now(tz=bangkok)
+                    )
+                    db.session.add(info)
+                else:
+                    customer.info.data = data
+                db.session.add(customer)
+                db.session.commit()
         return redirect(url_for('comhealth.list_employees', orgid=org.id))
 
     return render_template('comhealth/employee_info_upload.html', org=org)
@@ -934,11 +964,12 @@ def show_employee_info(custid):
 
 @comhealth.route('/organizations/<int:orgid>/employees/addmany', methods=['GET', 'POST'])
 def add_many_employees(orgid):
-    '''Add employees from Excel file.
+    """Add employees from Excel file.
 
     Note that the birthdate is in Thai year.
     The columns are labno, title, firstname, lastname, dob, gender, and servicedate
-    '''
+    :type orgid: int
+    """
     org = ComHealthOrg.query.get(orgid)
 
     if request.method == 'POST':
