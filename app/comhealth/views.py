@@ -123,6 +123,33 @@ def search_service_customer(service_id):
     return jsonify(record_schema.dump(service.records).data)
 
 
+@comhealth.route('/orgs/<int:org_id>/services/register')
+def register_service_to_org(org_id):
+    services = ComHealthService.query.all()
+    org = ComHealthOrg.query.get(org_id)
+    service_schema = ComHealthServiceSchema(many=True)
+    return render_template('comhealth/service_register.html',
+                           services=service_schema.dump(services), org=org)
+
+
+@comhealth.route('/services/<int:service_id>/register/orgs/<int:org_id>')
+def register_customer_to_service_org(service_id, org_id):
+    org = ComHealthOrg.query.get(org_id)
+    service = ComHealthService.query.get(service_id)
+    num_customers = 0
+    for employee in org.employees:
+        previous_services = set([rec.service for rec in employee.records])
+        if service not in previous_services:
+            new_record = ComHealthRecord(date=service.date,
+                                         service=service,
+                                         customer=employee)
+            db.session.add(new_record)
+            num_customers += 1
+        db.session.commit()
+    flash('{} customers have been registered for this service.'.format(num_customers))
+    return redirect(url_for(request.referrer))
+
+
 @comhealth.route('/services/<int:service_id>')
 def display_service_customers(service_id):
     service = ComHealthService.query.get(service_id)

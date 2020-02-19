@@ -90,11 +90,17 @@
                                     </span>&nbsp;
                                     <span>Employees</span>
                                 </a>
-                                <a class="button is-rounded is-success" v-bind:href="'/comhealth/services/add-to-org/'+props.row.id">
+                                <a class="button is-rounded" v-bind:href="'/comhealth/services/add-to-org/'+props.row.id">
                                     <span class="icon">
                                         <i class="fas fa-plus"></i>
                                     </span>&nbsp;
                                     <span>Add Service</span>
+                                </a>
+                                <a class="button is-rounded" v-bind:href="'/comhealth/orgs/' + props.row.id + '/services/register'">
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>&nbsp;
+                                    <span>Register Customers to Service</span>
                                 </a>
                             </b-table-column>
                         </template>

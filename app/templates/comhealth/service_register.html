@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="section hero is-info is-small">
+        <nav class="navbar">
+            <div class="container">
+                <div class="navbar-brand">
+                    <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                      </span>
+                </div>
+                <div id="navbarMenuHeroA" class="navbar-menu">
+                    <div class="navbar-end">
+                        <a class="navbar-item"
+                           href="/comhealth">
+                            <span class="icon">
+                                <i class="fas fa-home"></i>
+                            </span>
+                            <span>Home</span>
+                        </a>
+                        <a class="navbar-item"
+                           href="/comhealth/tests">
+                            <span>Tests</span>
+                        </a>
+                        <a class="navbar-item is-active"
+                           href="/comhealth/organizations">
+                            <span>Organizations</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </section>
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                    {% with messages = get_flashed_messages() %}
+                        {% if messages %}
+                            {% for msg in messages %}
+                                <b-notification type="is-success">{{ msg }}</b-notification>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <b-table :data="services"
+                             :paginated="true"
+                             :per-page="10"
+                             default-sort="date"
+                             default-sort-direction="dsc">
+                        <template slot-scope="props">
+                            <b-table-column field="id" label="ID" numeric>
+                                <% props.row.id %>
+                            </b-table-column>
+                            <b-table-column field="date" label="Name" sortable centered>
+                                <% props.row.date %>
+                            </b-table-column>
+                            <b-table-column field="location" label="Name" sortable centered>
+                                <% props.row.location %>
+                            </b-table-column>
+                            <b-table-column field="" label="Detail">
+                                <a class="button is-rounded" v-bind:href="'/comhealth/orgs/' + props.row.id + '/services/register/'">
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>&nbsp;
+                                    <span>Register Customers to Service</span>
+                                </a>
+                            </b-table-column>
+                        </template>
+                    </b-table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#app",
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    services: {{ services|tojson|safe }},
+                    query: '',
+                }
+            },
+        });
+    </script>
+{% endblock %}
