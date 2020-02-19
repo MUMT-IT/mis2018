@@ -75,8 +75,8 @@
                             {% endfor %}
                         </thead>
                         <tbody>
-                            {% for rec in sorted_records %}
-                                {% if rec %}
+                            {% for rec in service.records|sort(attribute='labno') %}
+                                {% if rec.labno %}
                                 <tr>
                                     <td>{{ rec.labno }}</td>
                                         {% for ct in containers %}
@@ -90,13 +90,6 @@
                                             <td>
                                             </td>
                                         {% endif %}
-                                    {% endfor %}
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td>None</td>
-                                    {% for ct in containers %}
-                                        <td>-</td>
                                     {% endfor %}
                                 </tr>
                                 {% endif %}
