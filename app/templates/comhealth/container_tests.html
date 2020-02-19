@@ -10,12 +10,18 @@
         <table class="table is-fullwidth is-striped">
             <thead>
             <th>Lab No.</th>
+            <th>HN</th>
+            <th>Name</th>
+            <th>Phone</th>
             <th>Tests</th>
             </thead>
             <tbody>
             {% for rec in tests %}
             <tr>
-                <td>{{rec}}</td>
+                <td>{{ rec.labno }}</td>
+                <td>{{ rec.customer.hn }}</td>
+                <td>{{ rec.customer.fullname }}</td>
+                <td>{{ rec.customer.phone }}</td>
                 <td>{{','.join(tests[rec])}}</td>
             </tr>
             {% endfor %}

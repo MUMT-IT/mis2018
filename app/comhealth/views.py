@@ -721,7 +721,7 @@ def list_tests_in_container(service_id, container_id):
         for record in service.records:
             for test_item in record.ordered_tests:
                 if test_item.test.container_id == container_id:
-                    tests[record.labno].append(test_item.test.code)
+                    tests[record].append(test_item.test.code)
     return render_template('comhealth/container_tests.html',
                            tests=tests, service=service, container=container)
 
