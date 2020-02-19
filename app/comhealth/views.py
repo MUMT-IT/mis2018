@@ -794,6 +794,9 @@ def add_customer_to_service_org(service_id, org_id):
         db.session.add(customer)
         db.session.add(new_record)
         db.session.commit()
+        customer.generate_hn()
+        db.session.add(customer)
+        db.session.commit()
         flash('New customer has been added to the database and service.')
         return redirect(url_for('comhealth.display_service_customers', service_id=service_id))
     else:
@@ -1011,6 +1014,7 @@ def show_employee_info(custid):
 
 @comhealth.route('/organizations/<int:orgid>/employees/addmany', methods=['GET', 'POST'])
 def add_many_employees(orgid):
+    #TODO: All new customer needs to have their HN generated.
     """Add employees from Excel file.
 
     Note that the birthdate is in Thai year.
