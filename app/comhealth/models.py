@@ -378,6 +378,11 @@ class ComHealthServiceSchema(ma.ModelSchema):
         model = ComHealthService
 
 
+class ComHealthServiceOnlySchema(ma.ModelSchema):
+    class Meta:
+        model = ComHealthService
+
+
 class ComHealthTestProfileSchema(ma.ModelSchema):
     quote = fields.String()
     class Meta:

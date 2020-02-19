@@ -46,6 +46,13 @@
                 </div>
             </div>
             <div class="columns">
+                <div class="column has-text-centered">
+                    <div class="notification is-light">
+                        โปรดเลือก service ที่ต้องการลงทะเบียนให้กับบุคลากรใน {{ org.name }}
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
                 <div class="column">
                     <b-table :data="services"
                              :paginated="true"
@@ -56,18 +63,18 @@
                             <b-table-column field="id" label="ID" numeric>
                                 <% props.row.id %>
                             </b-table-column>
-                            <b-table-column field="date" label="Name" sortable centered>
+                            <b-table-column field="date" label="Date" sortable centered asc>
                                 <% props.row.date %>
                             </b-table-column>
-                            <b-table-column field="location" label="Name" sortable centered>
+                            <b-table-column field="location" label="Location" sortable centered>
                                 <% props.row.location %>
                             </b-table-column>
-                            <b-table-column field="" label="Detail">
-                                <a class="button is-rounded" v-bind:href="'/comhealth/orgs/' + props.row.id + '/services/register/'">
+                            <b-table-column field="" label="Action">
+                                <a class="button is-light" v-bind:href="'/comhealth/orgs/' + {{ org.id }} + '/services/' + props.row.id + '/register'">
                                     <span class="icon">
                                         <i class="fas fa-plus"></i>
                                     </span>&nbsp;
-                                    <span>Register Customers to Service</span>
+                                    <span>Register</span>
                                 </a>
                             </b-table-column>
                         </template>

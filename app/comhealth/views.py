@@ -127,12 +127,11 @@ def search_service_customer(service_id):
 def register_service_to_org(org_id):
     services = ComHealthService.query.all()
     org = ComHealthOrg.query.get(org_id)
-    service_schema = ComHealthServiceSchema(many=True)
-    return render_template('comhealth/service_register.html',
-                           services=service_schema.dump(services), org=org)
+    service_schema = ComHealthServiceOnlySchema(many=True)
+    return render_template('comhealth/service_register.html', services=service_schema.dump(services).data, org=org)
 
 
-@comhealth.route('/services/<int:service_id>/register/orgs/<int:org_id>')
+@comhealth.route('/orgs/<int:org_id>/services/<int:service_id>/register')
 def register_customer_to_service_org(service_id, org_id):
     org = ComHealthOrg.query.get(org_id)
     service = ComHealthService.query.get(service_id)
@@ -147,7 +146,7 @@ def register_customer_to_service_org(service_id, org_id):
             num_customers += 1
         db.session.commit()
     flash('{} customers have been registered for this service.'.format(num_customers))
-    return redirect(url_for(request.referrer))
+    return redirect(url_for('comhealth.index'))
 
 
 @comhealth.route('/services/<int:service_id>')
