@@ -1134,7 +1134,7 @@ def list_all_receipts(record_id):
 def create_receipt(record_id):
     if request.method == 'GET':
         record = ComHealthRecord.query.get(record_id)
-        customer_age = record.customer.age.years
+        customer_age = record.customer.age.years if record.customer.age else 0
         cashiers = ComHealthCashier.query.all()
         ref_profile = ComHealthReferenceTestProfile.query.\
             filter(ComHealthReferenceTestProfile.profile.\
@@ -1301,21 +1301,33 @@ def print_slip(record_id):
     return render_pdf(HTML(string=html))
 
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import A5, landscape
+from reportlab.lib.utils import ImageReader
 from reportlab.platypus import (SimpleDocTemplate, Table, Image,
-                                Spacer, Paragraph, TableStyle)
+                                Spacer, Paragraph, TableStyle, PageBreak)
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
 pdfmetrics.registerFont(sarabun_font)
 style_sheet = getSampleStyleSheet()
 style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
 
+
 @comhealth.route('/receipts/pdf/<int:receipt_id>')
 def export_receipt_pdf(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
+    receipt.copy_number += 1
+    db.session.add(receipt)
+    db.session.commit()
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
+    def all_page_setup(canvas, doc):
+        canvas.saveState()
+        logo_image = ImageReader('app/static/img/logo-MU_black-white-2-1-watermark.png')
+        canvas.drawImage(logo_image, 90, 200, mask='auto')
+        canvas.restoreState()
+
     doc = SimpleDocTemplate("app/receipt.pdf",
                             rightMargin=20,
                             leftMargin=20,
@@ -1323,8 +1335,6 @@ def export_receipt_pdf(receipt_id):
                             bottomMargin=10,
                             )
     data = []
-    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
-    data.append(logo)
     affiliation = '''<para align=center><font size=14>
     มหาวิทยาลัยมหิดล<br/>
     คณะเทคนิคการแพทย์<br/><br/>
@@ -1339,38 +1349,56 @@ def export_receipt_pdf(receipt_id):
     </font>
     '''
 
-    receipt_info = '''<font size=12>
-    เลขที่ {book_number} แผ่นที่ 1<br/>
+    receipt_info = '''<font size=15>
+    {original}</font><br/>
+    <font size=12>
+    เลขที่ {book_number}<br/>
     วันที่ {issued_date}<br/>
     ออกที่ {venue}<br/>
     </font>
     '''
     issued_date = datetime.now().strftime('%d/%m/%Y')
-    receipt_info = receipt_info.format(book_number=receipt.book_number,
+    receipt_info_ori = receipt_info.format(original=u'ต้นฉบับ'.encode('utf-8'),
+                                       book_number=receipt.book_number,
                                        issued_date=issued_date,
                                        venue=receipt.issued_at.encode('utf-8'))
 
-    header_content = [[Paragraph(address, style=style_sheet['ThaiStyle']),
+    receipt_info_copy = receipt_info.format(original=u'สำเนา'.encode('utf-8'),
+                                           book_number=receipt.book_number,
+                                           issued_date=issued_date,
+                                           venue=receipt.issued_at.encode('utf-8'))
+
+    header_content_ori = [[Paragraph(address, style=style_sheet['ThaiStyle']),
                         Paragraph(affiliation, style=style_sheet['ThaiStyle']),
-                        Paragraph(receipt_info, style=style_sheet['ThaiStyle'])]]
+                        Paragraph(receipt_info_ori, style=style_sheet['ThaiStyle'])]]
+
+    header_content_copy = [[Paragraph(address, style=style_sheet['ThaiStyle']),
+                           Paragraph(affiliation, style=style_sheet['ThaiStyle']),
+                           Paragraph(receipt_info_copy, style=style_sheet['ThaiStyle'])]]
 
     header_styles = TableStyle([
         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
     ])
 
-    header = Table(header_content, colWidths=[120, 300, 120])
-    header.hAlign = 'CENTER'
-    header.setStyle(header_styles)
-    customer_name = '''<para align=center><font size=11>
+    header_ori = Table(header_content_ori, colWidths=[120, 300, 120])
+    header_copy = Table(header_content_copy, colWidths=[120, 300, 120])
+
+    header_ori.hAlign = 'CENTER'
+    header_ori.setStyle(header_styles)
+
+    header_copy.hAlign = 'CENTER'
+    header_copy.setStyle(header_styles)
+    customer_name = '''<para align=center><font size=14>
     ชื่อ {customer_name}
     </font></para>
-    '''.format(customer_name=receipt.record.customer.fullname.encode('utf-8'))
-    customer_hn = '''<para align=center><font size=11>
-    หมายเลขรายการ {customer_hn}
+    '''.format(customer_name=receipt.record.customer.fullname.encode('utf-8'),
+               )
+    customer_labno = '''<para align=center><font size=14>
+    หมายเลขรายการตรวจ {customer_labno}
     </font></para>
-    '''.format(customer_hn=receipt.record.labno)
+    '''.format(customer_labno=receipt.record.labno)
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
-                      Paragraph(customer_hn, style=style_sheet['ThaiStyle'])]])
+                      Paragraph(customer_labno, style=style_sheet['ThaiStyle'])]])
     body_text = '''<para align=center><font size=16>
     รายการ</font></para>
     '''
@@ -1382,32 +1410,32 @@ def export_receipt_pdf(receipt_id):
     ]))
 
     items = [[Paragraph('', style=style_sheet['ThaiStyle']),
-              Paragraph('<font size=11>เบิกได้ (บาท)*</font>', style=style_sheet['ThaiStyle']),
-              Paragraph('<font size=11>เบิกไม่ได้ (บาท)*</font>',
+              Paragraph('<font size=13>เบิกได้ (บาท)*</font>', style=style_sheet['ThaiStyle']),
+              Paragraph('<font size=13>เบิกไม่ได้ (บาท)*</font>',
                         style=style_sheet['ThaiStyle'])]]
     total = 0
     if receipt.print_profile_note:
         profile_tests = [t for t in receipt.record.ordered_tests if t.profile]
         if profile_tests:
             profile_price = profile_tests[0].profile.quote
-            item = [Paragraph('<font size=11>การตรวจสุขภาพทางห้องปฏิบัติการ</font>', style=style_sheet['ThaiStyle']),
-                    Paragraph('<font size=11>{:,.2f}</font>'.format(profile_price), style=style_sheet['ThaiStyle']),
-                    Paragraph('<font size=11>{:,.2f}</font>'.format(0.0), style=style_sheet['ThaiStyle'])]
+            item = [Paragraph('<font size=12>การตรวจสุขภาพทางห้องปฏิบัติการ</font>', style=style_sheet['ThaiStyle']),
+                    Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price), style=style_sheet['ThaiStyle']),
+                    Paragraph('<font size=12>{:,.2f}</font>'.format(0.0), style=style_sheet['ThaiStyle'])]
             items.append(item)
     for t in receipt.invoices:
         if t.visible:
             if t.billed:
                 price = t.test_item.price or t.test_item.test.default_price
                 total += price
-                item = [Paragraph('<font size=11>{} (รหัส {})</font>'\
+                item = [Paragraph('<font size=12>{} (รหัส {})</font>'\
                                   .format(t.test_item.test.desc.encode('utf-8'), t.test_item.test.gov_code or '-'),
                                   style=style_sheet['ThaiStyle'])]
                 if t.reimbursable:
-                    item.append(Paragraph('<font size=11>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyle']))
-                    item.append(Paragraph('<font size=11>{:,.2f}</font>'.format(0.0), style=style_sheet['ThaiStyle']))
+                    item.append(Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyle']))
+                    item.append(Paragraph('<font size=12>{:,.2f}</font>'.format(0.0), style=style_sheet['ThaiStyle']))
                 else:
-                    item.append(Paragraph('<font size=11>{:,.2f}</font>'.format(0.0), style=style_sheet['ThaiStyle']))
-                    item.append(Paragraph('<font size=11>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyle']))
+                    item.append(Paragraph('<font size=12>{:,.2f}</font>'.format(0.0), style=style_sheet['ThaiStyle']))
+                    item.append(Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyle']))
                 items.append(item)
 
     item_table = Table(items, colWidths=[200,80,180])
@@ -1419,14 +1447,6 @@ def export_receipt_pdf(receipt_id):
                              style=style_sheet['ThaiStyle'])
     total_content = [[total_text, total_number]]
     total_table = Table(total_content, colWidths=[405, 150])
-
-    def later_page(canvas, document):
-        canvas.saveState()
-        canvas.setFont('Sarabun', 12)
-        canvas.drawString(400,20,
-                          u'ใบเสร็จเลขที่ {} แผ่นที่ {} ออกวันที่ {}'.format(
-                                  receipt_id, document.page, issued_date))
-        canvas.restoreState()
 
     if receipt.payment_method == 'cash':
         payment_info = '''<font size=12>
@@ -1452,21 +1472,29 @@ def export_receipt_pdf(receipt_id):
     </font></para>'''.format(receipt.issuer.staff.personal_info.fullname.encode('utf-8'),
                              receipt.issuer.position.encode('utf-8'))
 
-    data.append(header)
-    data.append(customer)
-    data.append(Spacer(1,12))
-    data.append(body)
-    data.append(Spacer(1,6))
-    data.append(item_table)
-    data.append(Spacer(1,6))
-    data.append(total_table)
-    data.append(Spacer(1,6))
-    data.append(Paragraph(payment_info, style=style_sheet['ThaiStyle']))
-    data.append(Spacer(1,12))
-    data.append(Paragraph(sign_text, style=style_sheet['ThaiStyle']))
-    data.append(Spacer(1,6))
-    data.append(notice)
-    doc.build(data, onLaterPages=later_page)
+    for i in range(2):
+        data.append(logo)
+        if i == 0:
+            data.append(header_ori)
+        else:
+            data.append(header_copy)
+        data.append(customer)
+        data.append(Spacer(1, 12))
+        data.append(body)
+        data.append(Spacer(1, 6))
+        data.append(item_table)
+        data.append(Spacer(1, 6))
+        data.append(total_table)
+        data.append(Spacer(1, 6))
+        data.append(Paragraph(payment_info, style=style_sheet['ThaiStyle']))
+        data.append(Spacer(1, 12))
+        data.append(Paragraph(sign_text, style=style_sheet['ThaiStyle']))
+        data.append(Spacer(1, 6))
+        data.append(notice)
+        if i == 0:
+            data.append(PageBreak())
+    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+
     return send_file('receipt.pdf')
 
 
