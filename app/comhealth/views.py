@@ -821,36 +821,41 @@ def export_csv(service_id):
         if not record.labno:
             continue
         tests = ','.join([item.test.code for item in record.ordered_tests])
-        rows.append({'hn': u'{}'.format(record.customer.hn),
+        department = record.customer.dept.name if record.customer.dept else ''
+        emptype = record.customer.emptype.name if record.customer.emptype else ''
+        rows.append({'hn': u'{}'.format(record.customer.hn or ''),
                      'firstname': u'{}'.format(record.customer.firstname),
                      'lastname': u'{}'.format(record.customer.lastname),
-                     'employmentType': u'{}'.format(record.customer.emptype.name),
+                     'employmentType': u'{}'.format(emptype),
                      'age': u'{}'.format(record.customer.age),
                      'gender': u'{}'.format(record.customer.gender),
                      'phone': u'{}'.format(record.customer.phone),
                      'organization': u'{}'.format(record.customer.org.name),
-                     'department': u'{}'.format(record.customer.dept.name),
+                     'department': u'{}'.format(department),
                      'unit': u'{}'.format(record.customer.unit),
                      'labno': u'{}'.format(record.labno),
                      'tests': u'{}'.format(tests),
                      'urgent': record.urgent})
+    if rows:
         pd.DataFrame(rows).to_excel('export.xlsx',
                                     header=True,
                                     columns=['labno',
-                                             'hn',
-                                             'firstname',
-                                             'lastname',
-                                             'age',
-                                             'gender',
-                                             'phone',
-                                             'organization',
-                                             'department',
-                                             'unit',
-                                             'tests',
-                                             'urgent'],
+                                                 'hn',
+                                                 'firstname',
+                                                 'lastname',
+                                                 'age',
+                                                 'gender',
+                                                 'phone',
+                                                 'organization',
+                                                 'department',
+                                                 'unit',
+                                                 'tests',
+                                                 'urgent'],
                                     index=False,
                                     encoding='utf-8')
-    return send_from_directory(os.getcwd(), filename='export.xlsx')
+        return send_from_directory(os.getcwd(), filename='export.xlsx')
+    else:
+        return 'Data is empty.'
 
 
 @comhealth.route('/organizations/add', methods=['GET', 'POST'])
