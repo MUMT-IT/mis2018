@@ -132,6 +132,7 @@ def display_service_customers(service_id):
 @comhealth.route('/checkin/<int:record_id>', methods=['GET', 'POST'])
 def edit_record(record_id):
     # TODO: use decimal in price calculation instead of float
+    # TODO: add a page for editing personal information
 
     record = ComHealthRecord.query.get(record_id)
     if not record.service.profiles and not record.service.groups:
@@ -153,6 +154,8 @@ def edit_record(record_id):
         profile_item_cost += float(profile.quote)
 
     if request.method == 'POST':
+        if request.form.get('phone'):
+            record.customer.phone = request.form.get('phone')
         if not record.customer.dob and request.form.get('dob'):
             try:
                 day, month, year = request.form.get('dob', '').split('/')
@@ -792,16 +795,31 @@ def export_csv(service_id):
         if not record.labno:
             continue
         tests = ','.join([item.test.code for item in record.ordered_tests])
-        rows.append({'firstname': u'{}'.format(record.customer.firstname),
+        rows.append({'hn': u'{}'.format(record.customer.hn),
+                     'firstname': u'{}'.format(record.customer.firstname),
                      'lastname': u'{}'.format(record.customer.lastname),
+                     'employmentType': u'{}'.format(record.customer.emptype.name),
+                     'age': u'{}'.format(record.customer.age),
+                     'gender': u'{}'.format(record.customer.gender),
+                     'phone': u'{}'.format(record.customer.phone),
+                     'organization': u'{}'.format(record.customer.org.name),
+                     'department': u'{}'.format(record.customer.dept.name),
+                     'unit': u'{}'.format(record.customer.unit),
                      'labno': u'{}'.format(record.labno),
                      'tests': u'{}'.format(tests),
                      'urgent': record.urgent})
         pd.DataFrame(rows).to_excel('export.xlsx',
                                     header=True,
                                     columns=['labno',
+                                             'hn',
                                              'firstname',
                                              'lastname',
+                                             'age',
+                                             'gender',
+                                             'phone',
+                                             'organization',
+                                             'department',
+                                             'unit',
                                              'tests',
                                              'urgent'],
                                     index=False,
