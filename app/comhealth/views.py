@@ -193,13 +193,15 @@ def edit_record(record_id):
                 pass
             else:
                 record.customer.dob = date(year, month, day)
+
         if not record.checkin_datetime:
             record.checkin_datetime = datetime.now(tz=bangkok)
+
         if not record.labno:
             labno = request.form.get('service_code')
-            record.labno = int(labno)
-            db.session.add(record)
-            db.session.commit()
+            if labno.isdigit():
+                record.labno = labno
+
         for field in request.form:
             if field.startswith('test_'):
                 _, test_id = field.split('_')
@@ -1089,7 +1091,6 @@ def add_many_employees(orgid):
                 db.session.add(new_customer)
 
                 if labno_included == 'true' and labno:
-                    labno = int(labno)
                     labno = '{}{:02}{:02}2{:04}'.format(str(service.date.year)[-1],
                                                         service.date.month,
                                                         service.date.day,
