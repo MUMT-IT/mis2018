@@ -46,7 +46,9 @@
             <div class="column">
                 <div class="notification is-light">
                     <h1 class="title">ชื่อ {{ customer.title }}{{ customer.firstname }} {{ customer.lastname }}</h1>
+                    {% if customer.info.updated_at %}
                     <h1 class="subtitle">ปรับปรุงล่าสุดเมื่อ {{ customer.info.updated_at|localdatetime }} น.</h1>
+                    {% endif %}
                 </div>
                 <div class="box">
                     <table class="table is-narrow">
