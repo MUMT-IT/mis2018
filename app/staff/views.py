@@ -68,8 +68,9 @@ def show_leave_info():
     cum_days = defaultdict(float)
     quota_days = defaultdict(float)
     for req in current_user.leave_requests:
-        leave_type = unicode(req.quota.leave_type)
-        cum_days[leave_type] += req.duration
+        if not req.cancelled_at:
+            leave_type = unicode(req.quota.leave_type)
+            cum_days[leave_type] += req.duration
 
     for quota in current_user.personal_info.employment.quota:
         delta = datetime.today().date() - current_user.personal_info.employed_date
