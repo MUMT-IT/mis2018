@@ -33,13 +33,12 @@
                         </div>
                     </div>
                     <b-field label="จุดประสงค์ในการขออนุมัติลา"
-                             type="is-danger"
-                             message="กรณีลากิจหรือลาป่วยต้องระบุเหตุผลในการลา มิฉะนั้นจะไม่ได้รับอนุมัติ">
+                             message="กรณีลาพักผ่อน สามารถใส่เครื่องหมายขีด (-) ได้" required>
                         <b-input type="text"
                                  name="reason"
                                  icon-pack="far"
                                  icon="comment"
-                                 value="ไม่ระบุ">
+                                 placeholder="ขออนุมัติลาเนื่องจาก">
                         </b-input>
                     </b-field>
                     <b-field label="ระหว่างลาสามารถติดต่อท่านได้ที่">
@@ -57,7 +56,7 @@
                                placeholder="เบอร์โทรศัพท์" required>
                         </b-input>
                     </b-field>
-                    <b-field label="กรณีลาพักผ่อนไปต่างประเทศ" message="กรุณาส่งหนังสือขออนุญาตเดินทางไปต่างประเทศที่หน่วยทรัยากรบุคคล">
+                    <b-field label="สำหรับลาพักผ่อนไปต่างประเทศ" message="กรุณาส่งหนังสือขออนุญาตเดินทางไปต่างประเทศที่หน่วยทรัยากรบุคคล">
                             <b-input type="text"
                                name="country"
                                icon-pack="fas"
