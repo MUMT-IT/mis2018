@@ -32,9 +32,8 @@
             {% endfor %}
             </tbody>
         </table>
-        <hr>
+        <a href="{{ url_for('staff.show_leave_approval_info') }}" class="button is-link">อนุมัติการลาของบุคลากรในสังกัด</a>
         </div>
-    <a href="{{ url_for('staff.show_leave_approval_info') }}" class="button is-link">อนุมัติการลาของบุคลากรในสังกัด</a>
     </div>
 </section>
 {% endblock %}
