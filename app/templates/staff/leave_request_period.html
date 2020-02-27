@@ -34,15 +34,14 @@
                             </b-select>
                         </b-field>
                         <b-field label="จุดประสงค์ในการขออนุมัติลา"
-                                 type="is-danger"
-                                 message="กรณีลากิจหรือลาป่วยต้องระบุเหตุผลในการลา มิฉะนั้นจะไม่ได้รับอนุมัติ">
-                            <b-input type="text"
+                             message="กรณีลาพักผ่อน สามารถใส่เครื่องหมายขีด (-) ได้" required>
+                        <b-input type="text"
                                  name="reason"
                                  icon-pack="far"
                                  icon="comment"
-                                 value="ไม่ระบุ">
-                            </b-input>
-                        </b-field>
+                                 placeholder="ขออนุมัติลาเนื่องจาก">
+                        </b-input>
+                    </b-field>
                         <b-field label="ระหว่างลาสามารถติดต่อท่านได้ที่">
                             <b-input name="contact_addr"
                                  icon-pack="fas"
