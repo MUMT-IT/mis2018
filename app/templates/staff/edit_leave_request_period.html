@@ -46,20 +46,19 @@
                             </div>
                         </div>
                         <b-field label="จุดประสงค์ในการขออนุมัติลา"
-                                 type="is-danger"
-                                 message="กรณีลากิจหรือลาป่วยต้องระบุเหตุผลในการลา มิฉะนั้นจะไม่ได้รับอนุมัติ">
+                                 message="กรณีลาพักผ่อน สามารถใส่เครื่องหมายขีด (-) ได้">
                             <b-input type="text"
                                  name="reason"
                                  icon-pack="far"
                                  icon="comment"
-                                 value="ไม่ระบุ">
+                                 value="{{ req.reason }}" required>
                             </b-input>
                         </b-field>
                         <b-field label="ระหว่างลาสามารถติดต่อท่านได้ที่">
                             <b-input name="contact_addr"
                                  icon-pack="fas"
                                  icon="map-marker-alt"
-                                 placeholder="ที่อยู่">
+                                 value="{{ req.contact_address }}">
                             </b-input>
                         </b-field>
                         <b-field>
@@ -67,7 +66,7 @@
                                name="contact_phone"
                                icon-pack="fas"
                                icon="phone"
-                               placeholder="เบอร์โทรศัพท์">
+                               value="{{ req.contact_phone }}">
                             </b-input>
                         </b-field>
                         <div class="field">
