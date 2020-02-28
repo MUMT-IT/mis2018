@@ -296,8 +296,7 @@ def leave_approve(req_id, approver_id):
     )
     db.session.add(approval)
     db.session.commit()
-    #return u'{} {}'.format(req_id, approver_id)
-    flash(u'อนุมัติให้...... วันที่ลา..............เรียบร้อย')
+    flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย')
     return redirect(url_for('staff.show_leave_approval_info'))
 
 
@@ -312,7 +311,6 @@ def leave_reject(req_id, approver_id):
     )
     db.session.add(approval)
     db.session.commit()
-    flash(u'อนุมัติให้...... วันที่ลา..............เรียบร้อย')
     return redirect(url_for('staff.show_leave_approval_info'))
 
 
