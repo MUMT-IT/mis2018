@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% include "nav.html" %}
 {% block page_content %}
-<section class="section">
+<section class="section" id="app">
     <div class="container">
         <h1 class="title">Welcome {{ current_user.personal_info }}</h1>
         <h4 class="subtitle">สถานะการจ้าง {{ current_user.personal_info.employment.title }}</h4>
-        <table class="table is-fullwidth">
+        <table class="table is-striped is-fullwidth">
             <thead>
                 <th>วันที่ขออนุมัติลา</th>
                 <th>ประเภทการลา</th>
@@ -30,16 +30,20 @@
                     </td>
                     {% if not request.cancelled_at %}
                     <td>
+                        <b-tooltip label="แก้ไขการลา" type="is-light">
                         <a class="button is-light" href="{{ url_for('staff.edit_leave_request', req_id=request.id) }}">
                         <span class="icon">
                             <i class="fas fa-pencil-alt"></i>
                         </span>
                         </a>
-                        <a class="button is-danger" href="{{ url_for('staff.cancel_leave_request', req_id=request.id)}}">
+                        </b-tooltip>
+                        <b-tooltip label="ยกเลิกการลา" type="is-light">
+                        <a class="button is-danger" @click="confirmCustomDelete({{ request.id }})">
                         <span class="icon">
                             <i class="fas fa-window-close"></i>
                         </span>
                         </a>
+                        </b-tooltip>
                     </td>
                     {% else %}
                     <td>ยกเลิกการลานี้แล้ว</td>
@@ -56,4 +60,25 @@
         </a>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        methods: {
+            confirmCustomDelete(req_id) {
+                this.$buefy.dialog.confirm({
+                    title: 'ยกเลิกคำขอที่' + req_id,
+                    message: 'แน่ใจหรือไม่ที่จะ<b>ยกเลิก</b>การลาครั้งนี้ หากยกเลิกแล้วจะไม่สามารถแก้ไขได้',
+                    confirmText: 'Delete this request',
+                    type: 'is-danger',
+                    hasIcon: true,
+                    onConfirm: () => window.location.href = "/staff/leave/requests/" + req_id + "/cancel"
+                })
+            }
+        }
+    });
+</script>
 {% endblock %}
