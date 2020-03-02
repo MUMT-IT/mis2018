@@ -20,6 +20,8 @@
                                             required
                                             name="dates"
                                             v-model="selectedDates"
+                                            :events="events"
+                                            :indicators="indicators"
                                             icon-pack="fa"
                                             placeholder="คลิ๊กเพื่อเปิดปฏิทิน..."
                                             icon="calendar-alt">
@@ -83,12 +85,26 @@
 <script>
 new Vue({
         el: '#app',
+        computed: {
+            indicators() {
+                return this.bars ? 'bars' : 'bars'
+            }
+        },
         data() {
             return {
                 selectedDates: [],
                 notifiedByLine: "yes",
+                events: [
+                    {
+                        date: new Date(2020,1, 8),
+                        type: 'is-danger'
+                    },
+                    {
+                        date: new Date(2020,1, 10),
+                        type: 'is-danger'
+                    }],
             }
-        }
+        },
     });
 </script>
 {% endblock %}
