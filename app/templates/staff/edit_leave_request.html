@@ -24,8 +24,6 @@
                                         v-model="selectedDates"
                                         range
                                         icon-pack="fa"
-                                        :events="events"
-                                        :indicators="indicators"
                                         placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                         icon="calendar-alt">
                                 </b-datepicker>
@@ -33,18 +31,19 @@
                         </div>
                     </div>
                     <b-field label="จุดประสงค์ในการขออนุมัติลา"
-                             message="กรณีลาพักผ่อน สามารถใส่เครื่องหมายขีด (-) ได้">
+                              message="กรณีลาพักผ่อน สามารถใส่เครื่องหมายขีด (-) ได้">
                         <b-input type="text"
                                  name="reason"
                                  icon-pack="far"
                                  icon="comment"
-                                 placeholder="ขออนุมัติลาเนื่องจาก" required>
+                                 value="{{ req.reason }}" required>
                         </b-input>
                     </b-field>
                     <b-field label="ระหว่างลาสามารถติดต่อท่านได้ที่">
                         <b-input name="contact_addr"
                                  icon-pack="fas"
                                  icon="map-marker-alt"
+                                 value="{{ req.contact_address }}"
                                  placeholder="ที่อยู่">
                         </b-input>
                     </b-field>
@@ -52,18 +51,10 @@
                         <b-input type="text"
                                name="contact_phone"
                                icon-pack="fas"
-                               icon="phone"
+                               icon="phone" value="{{ req.contact_phone }}"
                                placeholder="เบอร์โทรศัพท์" required>
                         </b-input>
                     </b-field>
-                    <b-field label="สำหรับลาพักผ่อนไปต่างประเทศ" message="กรุณาส่งหนังสือขออนุญาตเดินทางไปต่างประเทศที่หน่วยทรัยากรบุคคล">
-                            <b-input type="text"
-                               name="country"
-                               icon-pack="fas"
-                               icon="flag"
-                               placeholder="ประเทศที่ไป">
-                            </b-input>
-                        </b-field>
                     <div class="field">
                         <b-checkbox true-value="yes"
                                     false-value="no"
@@ -89,32 +80,23 @@
 {% block scripts %}
 {{ super() }}
 <script>
-    const thisMonth = new Date().getMonth()
-
-    new Vue({
+    var vm = new Vue({
         el: '#app',
         delimiters: ['<%', '%>'],
-        computed: {
-            indicators() {
-                return this.bars ? 'bars' : 'dots'
-            }
-        },
         data() {
             return {
                 selectedDates: [],
                 notifiedByLine: "yes",
-                events: [
-                    {
-                        date: new Date(2020, thisMonth, 8),
-                        type: 'is-danger'
-                    },
-                    {
-                        date: new Date(2020, thisMonth, 10),
-                        type: 'is-danger'
-                    }],
-                    bars: true
+                givenDates: [],
             }
         },
+        mounted() {
+            var self = this;
+            self.givenDates = {{ selected_dates|tojsdatetime }};
+            self.givenDates.forEach((d) => {
+                self.selectedDates.push(new Date(d));
+            });
+        }
     });
 </script>
 {% endblock %}

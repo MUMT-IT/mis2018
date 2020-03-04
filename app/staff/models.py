@@ -110,6 +110,7 @@ class StaffLeaveType(db.Model):
     __tablename__ = 'staff_leave_types'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     type_ = db.Column('type', db.String(), nullable=False, unique=True)
+    request_in_advance = db.Column('request_in_advance', db.Boolean())
 
     def __str__(self):
         return self.type_
@@ -155,18 +156,31 @@ class StaffLeaveRequest(db.Model):
     quota = db.relationship('StaffLeaveQuota',
                             backref=db.backref('leave_requests'))
 
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+
+    @property
+    def duration(self):
+        delta = self.end_datetime - self.start_datetime
+        if delta.days == 0:
+            if delta.seconds == 0:
+                return delta.days + 1
+            if delta.seconds/3600 < 8:
+                return 0.5
+        else:
+            return delta.days + 1
+
 
 class StaffLeaveApprover(db.Model):
     __tablename__ = 'staff_leave_approvers'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    # staff account means staff under supervision
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     approver_account_id = db.Column('approver_account_id', db.ForeignKey('staff_account.id'))
     is_active = db.Column('is_active', db.Boolean(), default=True)
-    staff = db.relationship('StaffAccount',
+    requester = db.relationship('StaffAccount',
                             foreign_keys=[staff_account_id])
-    approver = db.relationship('StaffAccount',
-                               foreign_keys=[approver_account_id],
-                               backref=db.backref('leave_approvers'))
+    account = db.relationship('StaffAccount',
+                               foreign_keys=[approver_account_id])
 
 
 class StaffLeaveApproval(db.Model):
@@ -179,3 +193,4 @@ class StaffLeaveApproval(db.Model):
     request  = db.relationship('StaffLeaveRequest', backref=db.backref('approvals'))
     approver = db.relationship('StaffLeaveApprover',
                                backref=db.backref('approved_requests'))
+    
