@@ -6,32 +6,90 @@
     {% for msg in get_flashed_messages() %}
     <p>{{ msg }}</p>
     {% endfor %}
-    <h2 class="title">Welcome to your account.</h2>
-    <ul>
-        <li>Name: {{ current_user.personal_info.th_firstname }} {{ current_user.personal_info.th_lastname }}</li>
-        <li>Email: {{ current_user.email }}@mahidol.ac.th</li>
-    </ul>
-    <div class="box">
-    <form method="post">
-        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-        <div class="field is-horizontal">
-            <div class="field-body">
-                <div class="control is-expanded has-icons-left">
-                    <input type="password" class="input" name="new_password" placeholder="New password">
-                    <span class="icon is-small is-left">
-                        <i class="fas fa-key"></i>
+    <div class="columns">
+        <div class="column is-half is-offset-one-quarter">
+            <div class="has-text-centered">
+                <h2 class="title">ข้อมูลบัญชีของคุณ</h2>
+                {% if line_profile %}
+                <figure class="image is-128x128 is-inline-block">
+                    <img class="is-rounded" src="{{ line_profile['pictureUrl'] }}">
+                </figure>
+                <h1 class="title">
+                    <span class="icon has-text-success">
+                        <i class="fab fa-line"></i>
                     </span>
-                </div>
-                <div class="control is-expanded has-icons-left">
-                    <input type="password" class="input" name="new_password2" placeholder="Confirm password">
-                    <span class="icon is-small is-left">
-                        <i class="fas fa-key"></i>
+                    <span>{{ line_profile['displayName'] }}</span>
+                </h1>
+                <p>
+                    <span class="icon">
+                        <i class="fas fa-quote-left"></i>
                     </span>
-                </div>
+                    <span>{{ line_profile['statusMessage'] }}</span>
+                    <span class="icon">
+                        <i class="fas fa-quote-right"></i>
+                    </span>
+                </p>
+                {% endif %}
             </div>
+            <hr>
+            <p class="has-text-centered title is-size-4">ข้อมูลพื้นฐาน</p>
+            <table class="table is-fullwidth">
+                <tr>
+                    <td>ชื่อ นามสกุล</td>
+                    <td>
+                        {{ current_user.personal_info.th_firstname }} {{ current_user.personal_info.th_lastname }}
+                    </td>
+                </tr>
+                <tr>
+                    <td>Name</td>
+                    <td>
+                        {{ current_user.personal_info.en_firstname }} {{ current_user.personal_info.en_lastname }}
+                    </td>
+                </tr>
+                <tr>
+                    <td>อีเมล</td>
+                    <td>{{ current_user.email }}@mahidol.ac.th</td>
+                </tr>
+                <tr>
+                    <td>สังกัด</td>
+                    <td>{{ current_user.personal_info.org.name }}</td>
+                </tr>
+            </table>
         </div>
-        <input type="submit" class="button is-rounded is-primary"/>
-    </form>
+    </div>
+    <div class="columns">
+        <div class="column is-half is-offset-one-quarter">
+            <hr>
+            <p class="has-text-centered title is-size-4">แก้ไขรหัสผ่าน</p>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="field is-horizontal">
+                <div class="field-body">
+                    <div class="field">
+                        <div class="control is-expanded has-icons-left">
+                            <input type="password" class="input" name="new_password" placeholder="New password">
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-key"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="control is-expanded has-icons-left">
+                            <input type="password" class="input" name="new_password2" placeholder="Confirm password">
+                            <span class="icon is-small is-left">
+                                <i class="fas fa-key"></i>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="control">
+                            <input type="submit" class="button is-primary"/>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            </form>
+        </div>
     </div>
     </div>
 </section>

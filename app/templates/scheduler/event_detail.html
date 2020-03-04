@@ -60,10 +60,22 @@
                             </div>
                         </div>
                         <footer class="card-footer">
-                            <a href="/room/" class="card-footer-item">กลับ</a>
-                            <a href="/room/events/edit/{{ event.id }}" class="card-footer-item">แก้ไข</a>
+                            <a href="{{ url_for('room.index') }}" class="card-footer-item">กลับ</a>
+                            <a href="{{ url_for('room.edit_detail', event_id=event.id) }}"
+                               class="card-footer-item">แก้ไข</a>
                             {% if not event.approved %}
-                                <a href="/room/events/edit/{{ event.id }}" class="card-footer-item">ยืนยัน</a>
+                                <a href="{{ url_for('room.edit_detail', event_id=event.id) }}"
+                                   class="card-footer-item">
+                                    <span class="icon has-text-success">
+                                        <span>ยืนยัน</span>
+                                    </span>
+                                </a>
+                                <a href="{{ url_for('room.cancel', event_id=event.id) }}"
+                                   class="card-footer-item">
+                                    <span class="icon has-text-danger">
+                                        <i class="far fa-trash-alt"></i>
+                                    </span>
+                                    <span>ยกเลิก</span></a>
                             {% endif %}
                         </footer>
                     </div>

@@ -1,12 +1,51 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-    <h1>{{ profile['displayName'] }}</h1>
-    <img src="{{ profile['pictureUrl'] }}" width="300">
-    <p>{{ profile['statusMessage'] }}</p>
-</body>
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <p class="notification is-warning">
+                    กรุณาเชื่อมต่อบัญชีไลน์ของคุณกับระบบของคณะเพื่อประโยชน์ในการรับข้อมูลผ่านระบบไลน์แชทบอท
+                </p>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter box">
+                <div class="has-text-centered">
+                    <figure class="image is-128x128 is-inline-block">
+                        <img class="is-rounded" src="{{ profile['pictureUrl'] }}">
+                    </figure>
+                    <h1 class="title">
+                        <span class="icon has-text-success">
+                            <i class="fab fa-line"></i>
+                        </span>
+                        <span>{{ profile['displayName'] }}</span>
+                    </h1>
+                    <p>
+                        <span class="icon">
+                            <i class="fas fa-quote-left"></i>
+                        </span>
+                        <span>{{ profile['statusMessage'] }}</span>
+                        <span class="icon">
+                            <i class="fas fa-quote-right"></i>
+                        </span>
+                    </p>
+                    {% if not line_account %}
+                    <hr>
+                    <a class="button is-primary is-rounded"
+                       href="{{ url_for('auth.link_line_account') }}">
+                        เชื่อมต่อบัญชี
+                    </a>
+                    <a class="button is-danger is-rounded"
+                       href="{{ url_for('auth.login') }}">
+                        ไม่เชื่อมต่อ
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
 </html>
