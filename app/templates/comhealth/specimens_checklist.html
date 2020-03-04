@@ -64,21 +64,23 @@
                 </div>
             </div>
             <div class="columns">
-                <div class="column is-two-thirds is-offset-2">
-                    <table class="table is-fullwidth is-narrow is-striped is-bordered">
+                <div class="column">
+                    <table class="table is-fullwidth is-narrow is-striped">
                         <thead>
                             <th>Lab No.</th>
                             {% for ct in containers %}
-                                <th>{{ ct }}</th>
+                            <th><a href="{{ url_for('comhealth.list_tests_in_container', service_id=service.id, container_id=ct.id) }}">
+                                {{ ct.name }}</a>
+                            </th>
                             {% endfor %}
                         </thead>
                         <tbody>
-                            {% for rec in sorted_records %}
-                                {% if rec %}
+                            {% for rec in service.records|sort(attribute='labno') %}
+                                {% if rec.labno %}
                                 <tr>
                                     <td>{{ rec.labno }}</td>
                                         {% for ct in containers %}
-                                        {% if ct in rec.container_set %}
+                                        {% if ct.name in rec.container_set %}
                                             <td>
                                                 <span class="icon">
                                                     <i class="fas fa-check has-text-success"></i>
@@ -86,18 +88,8 @@
                                             </td>
                                         {% else %}
                                             <td>
-                                                <span class="icon">
-                                                    <i class="fas fa-times has-text-danger"></i>
-                                                </span>
                                             </td>
                                         {% endif %}
-                                    {% endfor %}
-                                </tr>
-                                {% else %}
-                                <tr>
-                                    <td>None</td>
-                                    {% for ct in containers %}
-                                        <td>-</td>
                                     {% endfor %}
                                 </tr>
                                 {% endif %}
