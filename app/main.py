@@ -13,6 +13,7 @@ from flask_login import LoginManager, current_user
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
+from wtforms.validators import required
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 DATABASE = os.environ.get('DATABASE')
@@ -60,7 +61,6 @@ app = create_app()
 
 @login.user_loader
 def load_user(user_id):
-    print('load user..')
     try:
         return StaffAccount.query.filter_by(id=int(user_id)).first()
     except:
@@ -223,7 +223,6 @@ from comhealth import comhealth as comhealth_blueprint
 from comhealth.models import *
 
 app.register_blueprint(comhealth_blueprint, url_prefix='/comhealth')
-admin.add_view(ModelView(ComHealthTest, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthTestProfile, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCustomer, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthOrg, db.session, category='Com Health'))
@@ -232,13 +231,46 @@ admin.add_view(ModelView(ComHealthTestItem, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthTestProfileItem, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthService, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthTestGroup, db.session, category='Com Health'))
-admin.add_view(ModelView(ComHealthContainer, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCustomerInfoItem, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCashier, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthReceiptID, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCustomerEmploymentType, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthReferenceTestProfile, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCustomerInfo, db.session, category='Com Health'))
+
+class ComHealthTestModelView(ModelView):
+    form_args = {
+        'name': {
+            'validators': [required()]
+        },
+        'code': {
+            'label': 'Test code',
+            'validators': [required()]
+        }
+    }
+
+
+class ComHealthContainerModelView(ModelView):
+    form_args = {
+        'name': {
+            'validators': [required()]
+        }
+    }
+
+
+class ComHealthDepartmentModelView(ModelView):
+    form_args = {
+        'name': {
+            'validators': [required()]
+        }
+    }
+
+
+admin.add_view(ComHealthTestModelView(ComHealthTest, db.session, category='Com Health'))
+admin.add_view(ComHealthContainerModelView(ComHealthContainer, db.session, category='Com Health'))
+admin.add_view(ComHealthDepartmentModelView(ComHealthDepartment, db.session, category='Com Health'))
+
+
 from comhealth.views import CustomerEmploymentTypeUploadView
 
 admin.add_view(CustomerEmploymentTypeUploadView(

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% include "comhealth/nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container has-text-centered">
+        <h1 class="title">รายการสรุปใบเสร็จรับเงิน</h1>
+        <h1 class="title is-4">{{ service.location }}</h1>
+        <h1 class="subtitle">วันที่ {{ service.date }}</h1>
+        <hr>
+        <table class="table is-fullwidth is-striped">
+            <thead>
+                <th>เล่ม</th>
+                <th>เริ่มต้น</th>
+                <th>สิ้นสุด</th>
+                <th>จำนวนใบเสร็จ</th>
+                <th>จำนวนเงินรวม</th>
+            </thead>
+            <tbody>
+                {% for book in receipts %}
+                    <tr>
+                        <td>{{ book }}</td>
+                        <td>{{ counts[book]|min }}</td>
+                        <td>{{ counts[book]|max }}</td>
+                        <td>{{ counts|length }}</td>
+                        <td>{{ totals[book] }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

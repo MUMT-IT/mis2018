@@ -79,6 +79,18 @@
                                             <strong>สังกัด</strong> {{ record.customer.org.name }}
                                         </h1>
                                         </p>
+                                        <div class="select">
+                                            <select name="department_id">
+                                                <option value="0">ไม่ระบุ</option>
+                                                {% for dept in record.customer.org.departments %}
+                                                <option value="{{ dept.id }}"
+                                                        {% if dept.id == record.customer.dept_id %}
+                                                        selected
+                                                        {% endif %}
+                                                >{{ dept.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
                                         <h1 class="subtitle is-size-5">
                                             <strong>ประเภท</strong>
                                         </h1>
@@ -118,6 +130,15 @@
                                             <p class="help has-text-info">
                                                 *ใช้ปีพุทธศักราช
                                             </p>
+                                        </div>
+                                        <div class="field">
+                                            <label class="label is-size-4"><strong>เบอร์โทรศัพท์</strong></label>
+                                            <div class="control">
+                                                <input class="input is-rounded is-medium"
+                                                       name='phone' type="text"
+                                                       value='{{ record.customer.phone or "" }}'
+                                                />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

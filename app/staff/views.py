@@ -99,7 +99,6 @@ def show_leave_info():
 @login_required
 def request_for_leave(quota_id=None):
     if request.method == 'POST':
-        #return jsonify(request.form)
         form = request.form
         if quota_id:
             quota = StaffLeaveQuota.query.get(quota_id)

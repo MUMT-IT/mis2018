@@ -3,7 +3,7 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.associationproxy import association_proxy
 from marshmallow import fields
 from dateutil.relativedelta import relativedelta
-from datetime import date
+from datetime import date, datetime
 import pytz
 
 bangkok = pytz.timezone('Asia/Bangkok')
@@ -62,8 +62,8 @@ class ComHealthInvoice(db.Model):
 class ComHealthCashier(db.Model):
     __tablename__ = 'comhealth_cashier'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    firstname = db.Column('firstname', db.String(255), index=True)
-    lastname = db.Column('lastname', db.String(255), index=True)
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount')
     position = db.Column('position', db.String(255))
 
     @property
@@ -83,16 +83,32 @@ class ComHealthOrg(db.Model):
         return u'{}'.format(self.name)
 
 
+class ComHealthDepartment(db.Model):
+    __tablename__ = 'comhealth_department'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    name = db.Column('name', db.String(255), index=True, nullable=False)
+    parent_id = db.Column('parent_id', db.ForeignKey('comhealth_orgs.id'))
+    parent = db.relationship('ComHealthOrg', backref=db.backref('departments'))
+
+    def __str__(self):
+        return u'{}'.format(self.name)
+
+
 class ComHealthCustomer(db.Model):
     __tablename__ = 'comhealth_customers'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    hn = db.Column('hn', db.String(13), unique=True)
     title = db.Column('title', db.String(32))
     firstname = db.Column('firstname', db.String(255), index=True)
     lastname = db.Column('lastname', db.String(255), index=True)
     org_id = db.Column('org_id', db.ForeignKey('comhealth_orgs.id'))
     org = db.relationship('ComHealthOrg', backref=db.backref('employees', lazy=True))
+    dept_id = db.Column('dept_id', db.ForeignKey('comhealth_department.id'), nullable=True)
+    dept = db.relationship('ComHealthDepartment', backref=db.backref('employees', lazy=True))
+    unit = db.Column('unit', db.String())
     dob = db.Column('dob', db.Date())
     gender = db.Column('gender', db.Integer)  # 0 for female, 1 for male
+    phone = db.Column('phone', db.String())
     emptype_id = db.Column('emptype_id', db.ForeignKey('comhealth_customer_employment_types.id'))
     emptype = db.relationship('ComHealthCustomerEmploymentType',
                               backref=db.backref('customers'))
@@ -100,6 +116,11 @@ class ComHealthCustomer(db.Model):
     def __str__(self):
         return u'{}{} {} {}'.format(self.title, self.firstname,
                                     self.lastname, self.org.name)
+
+    def generate_hn(self, force=False):
+        if not self.hn or force:
+            d = datetime.today().strftime('%y')
+            self.hn = u'2{}{:04}{:06}'.format(d, self.org_id, self.id)
 
     @property
     def thai_dob(self):
@@ -157,7 +178,7 @@ class ComHealthCustomerInfoItem(db.Model):
 class ComHealthContainer(db.Model):
     __tablename__ = 'comhealth_containers'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    name = db.Column('code', db.String(64), index=True)
+    name = db.Column('code', db.String(64), index=True, nullable=False)
     detail = db.Column('name', db.String(64), index=True)
     desc = db.Column('desc', db.Text())
     volume = db.Column('volume', db.Numeric(), default=0)
@@ -170,8 +191,8 @@ class ComHealthContainer(db.Model):
 class ComHealthTest(db.Model):
     __tablename__ = 'comhealth_tests'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    code = db.Column('code', db.String(64), index=True)
-    name = db.Column('name', db.String(64), index=True)
+    code = db.Column('code', db.String(64), index=True, nullable=False)
+    name = db.Column('name', db.String(64), index=True, nullable=False)
     desc = db.Column('desc', db.Text())
     gov_code = db.Column('gov_code', db.String(16))
     default_price = db.Column('default_price', db.Numeric(), default=0)
@@ -302,7 +323,9 @@ class ComHealthReceiptID(db.Model):
 class ComHealthReceipt(db.Model):
     __tablename__ = 'comhealth_test_receipts'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    code = db.Column('code', db.String())
     copy_number = db.Column('copy_number', db.Integer, default=1)
+    book_number = db.Column('book_number', db.String(16))
     created_datetime = db.Column('checkin_datetime', db.DateTime(timezone=True))
     record_id = db.Column('record_id', db.ForeignKey('comhealth_test_records.id'))
     record = db.relationship('ComHealthRecord',
@@ -316,6 +339,7 @@ class ComHealthReceipt(db.Model):
     issuer = db.relationship('ComHealthCashier',
                              foreign_keys=[issuer_id],
                              backref=db.backref('issued_receipts'))
+    issued_at = db.Column('issued_at', db.String())
     cashier_id = db.Column('cashier_id', db.ForeignKey('comhealth_cashier.id'))
     cashier = db.relationship('ComHealthCashier', foreign_keys=[cashier_id])
     payment_method = db.Column('payment_method', db.String(64))
@@ -351,6 +375,11 @@ class ComHealthRecordSchema(ma.ModelSchema):
 
 class ComHealthServiceSchema(ma.ModelSchema):
     records = fields.Nested(ComHealthRecordSchema, many=True)
+    class Meta:
+        model = ComHealthService
+
+
+class ComHealthServiceOnlySchema(ma.ModelSchema):
     class Meta:
         model = ComHealthService
 

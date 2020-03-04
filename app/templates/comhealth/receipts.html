@@ -48,8 +48,7 @@
                 <div class="column">
                     <table class="table">
                         <thead>
-                            <th>Receipt ID</th>
-                            <th>Copy Number</th>
+                            <th>Booking Number</th>
                             <th>Issued Date</th>
                             <th>Tests</th>
                             <th>Detail</th>
@@ -60,8 +59,7 @@
                         <tbody>
                             {% for r in record.receipts %}
                             <tr>
-                                <td>{{ r.id }}</td>
-                                <td>{{ r.copy_number }}</td>
+                                <td>{{ r.book_number }}</td>
                                 <td>{{ r.created_datetime }}</td>
                                 <td>{{ r.tests|length }}</td>
                                 <td><a href="{{ url_for('comhealth.show_receipt_detail',

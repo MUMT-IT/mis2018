@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% include "comhealth/nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                <b-table :data="services" :paginated="true" :per-page="10" default-sort="date" default-sort-direction="dsc">
+                    <template slot-scope="props">
+                        <b-table-column field="id" label="ID" numeric>
+                            <% props.row.id %>
+                        </b-table-column>
+                        <b-table-column field="date" label="Date" sortable centered>
+                            <% props.row.date.toLocaleString({timeZone: "UTC"}) %>
+                        </b-table-column>
+                        <b-table-column field="location" label="Location" sortable>
+                            <% props.row.location %>
+                        </b-table-column>
+                        <b-table-column field="records" label="Registered Customers" sortable numeric centered>
+                            <% props.row.registered %>
+                        </b-table-column>
+                        <b-table-column field="" label="Checked In Customers" sortable numeric centered>
+                            <% props.row.checkedin %>
+                        </b-table-column>
+                        <b-table-column field="" label="Detail">
+                            <a class="button is-rounded is-light" v-bind:href="'/comhealth/services/'+props.row.id+'/health-record'">
+                            <span class="icon">
+                                <i class="fas fa-list-ol"></i>
+                            </span>
+                                <span>Records</span>
+                            </a>
+                        </b-table-column>
+                    </template>
+                </b-table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript">
+        var vm = new Vue({
+            el: "#app",
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    services: {{ services|tojson|safe }},
+                    query: '',
+                }
+            },
+            computed: {}
+        });
+    </script>
+{% endblock %}

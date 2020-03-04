@@ -82,10 +82,14 @@
             </div>
             <div class="columns">
                 <div class="column">
-                    <b-table :data="fltRecords" :paginated="true" :per-page="10" default-sort="customer.firstname">
+                    <b-table :data="fltRecords"
+                             :paginated="true"
+                             :per-page="10"
+                             :loading="isLoading"
+                             default-sort="customer.firstname">
                         <template slot-scope="props">
-                            <b-table-column field="id" label="ID" width="10" numeric>
-                                <% props.row.id %>
+                            <b-table-column field="hn" label="ID" width="10" numeric>
+                                <% props.row.customer.hn %>
                             </b-table-column>
                             <b-table-column field="customer.firstname" label="First Name" sortable>
                                 <% props.row.customer.firstname %>
@@ -126,7 +130,14 @@
                                 <span class="icon">
                                     <i class="fas fa-receipt"></i>
                                 </span>
-                                <span>Receipts</span>
+                                </a>
+                            </b-table-column>
+                            <b-table-column field="" label="Info" sortable>
+                                <a class="button is-rounded is-light"
+                                   v-bind:href="'/comhealth/organizations/employees/info/'+props.row.customer.id">
+                                <span class="icon">
+                                    <i class="fas fa-notes-medical"></i>
+                                </span>
                                 </a>
                             </b-table-column>
                         </template>
@@ -144,15 +155,34 @@
             delimiters: ['<%', '%>'],
             data() {
                 return {
-                    records: {{ records|tojson|safe }},
+                    records: [],
+                    fltRecords: [],
                     query: '',
+                    isLoading: false,
                 }
             },
-            computed: {
-                fltRecords: function () {
+            methods: {
+                loadAsyncData: function() {
                     var self = this;
-                    return this.records.filter(function (item) {
-                        if (self.query !== "") {
+                    self.isLoading = true;
+                    axios.get('{{ url_for('comhealth.search_service_customer', service_id=service.id) }}')
+                        .then(function(response) {
+                        response.data.forEach((record) => {
+                            self.records.push(record);
+                            self.fltRecords.push(record);
+                        });
+                        self.isLoading = false;
+                    });
+                }
+            },
+            mounted() {
+                this.loadAsyncData();
+            },
+            watch: {
+                query: function () {
+                    var self = this;
+                    if (self.query !=="") {
+                        self.fltRecords = this.records.filter(function(item) {
                             var match = item.customer.firstname
                                 .toString()
                                 .toLowerCase()
@@ -175,10 +205,10 @@
                                 return match;
                             }
                             return match;
-                        } else {
-                            return self.records;
-                        }
-                    })
+                        });
+                    } else {
+                        self.fltRecords = self.records;
+                    }
                 }
             }
         });

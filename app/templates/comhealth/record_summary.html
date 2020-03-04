@@ -178,6 +178,14 @@
                                     </td>
                                 </tr>
                                 <tr>
+                                    <td><h1 class="subtitle">โทรศัพท์</h1></td>
+                                    <td>
+                                        {% if record.customer.phone %}
+                                            <h1 class="subtitle">{{ record.customer.phone }}</h1>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
                                     <td><h1 class="subtitle">การรายงานผล
                                         <a class="button is-rounded is-warning"
                                            href="{{ url_for('comhealth.update_delivery_status', record_id=record.id) }}">
@@ -193,6 +201,10 @@
                                             <h3 class="title has-text-success is-size-4">แบบปกติ</h3>
                                         {% endif %}
                                     </td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">สังกัด</h1></td>
+                                    <td>{% if record.customer.dept.name %}{{ record.customer.dept.name }} {% endif %}{{ record.customer.org.name }}</td>
                                 </tr>
                                 </tbody>
                             </table>

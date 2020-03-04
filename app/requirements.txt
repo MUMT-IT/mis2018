@@ -1,5 +1,6 @@
 alembic==0.9.6
 appnope==0.1.0
+APScheduler==3.6.3
 asn1crypto==0.24.0
 astroid==1.6.3
 backports-abc==0.5
@@ -32,6 +33,7 @@ Flask-Script==2.0.6
 Flask-SQLAlchemy==2.3.2
 Flask-WeasyPrint==0.6
 Flask-WTF==0.14.2
+funcsigs==1.0.2
 functools32==3.2.3.post2
 future==0.18.2
 futures==3.2.0
@@ -45,7 +47,7 @@ httplib2==0.11.3
 idna==2.6
 ipaddress==1.0.22
 ipykernel==4.8.2
-ipython==5.5.0
+ipython==5.8.0
 ipython-genutils==0.2.0
 isort==4.3.4
 itsdangerous==0.24
@@ -90,10 +92,12 @@ Pygments==2.2.0
 pylint==1.8.4
 pyOpenSSL==17.5.0
 pyparsing==2.2.0
+PyPDF2==1.26.0
 Pyphen==0.9.5
 pypng==0.0.18
 PyQRCode==1.2.1
 python-dateutil==2.6.1
+python-dotenv==0.10.3
 python-editor==1.0.3
 pytz==2017.3
 pyzmq==17.0.0
@@ -112,7 +116,9 @@ testpath==0.3.1
 tinycss2==0.6.1
 tornado==5.0.1
 traitlets==4.3.2
+typing==3.7.4.1
 tzlocal==1.5.1
+unicodecsv==0.14.1
 uritemplate==3.0.0
 urllib3==1.22
 wcwidth==0.1.7
@@ -122,3 +128,4 @@ Werkzeug==0.14.1
 wrapt==1.10.11
 WTForms==2.1
 xlrd==1.1.0
+XlsxWriter==1.2.7

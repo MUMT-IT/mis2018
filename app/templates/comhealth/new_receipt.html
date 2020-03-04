@@ -61,6 +61,17 @@
                         <th>การพิมพ์ใบเสร็จ</th>
                     </thead>
                     <tbody>
+                    <tr>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                        <td><input class="is-checkradio is-info"
+                                   id="all_reimbursable" type="checkbox"/> All</td>
+                        <td><input class="is-checkradio is-info" checked
+                                   id="all_billed" type="checkbox"/> All</td>
+                        <td><input class="is-checkradio is-info" checked
+                                   id="all_visible" type="checkbox"/> All</td>
+                    </tr>
                     {% for ti in record.ordered_tests %}
                     {% if ti.profile %}
                     <tr>
@@ -70,7 +81,7 @@
                         <td>
                             <div class="field">
                                 <input class="is-checkradio is-info"
-                                       id="{{ ti.test.code }}_reimbursable" value="yes"
+                                       id="{{ ti.test.code }}_reimbursable_profile" value="yes"
                                        type="checkbox" name="{{ ti.test.code }}_reimbursable"
                                        {% if ti.test.id in ref_profile_test_ids %}
                                        checked
@@ -82,7 +93,7 @@
                         <td>
                             <div class="field">
                                 <input class="is-checkradio is-info"
-                                    id="{{ ti.test.code }}_billed" value="yes" checked
+                                    id="{{ ti.test.code }}_billed_profile" value="yes" checked
                                     type="checkbox" name="{{ ti.test.code }}_billed"/>
                                 <label for="{{ ti.test.code }}_billed">รวมจำนวนเงิน</label>
                             </div>
@@ -90,7 +101,7 @@
                         <td>
                             <div class="field">
                                 <input class="is-checkradio is-info"
-                                    id="{{ ti.test.code }}_visible" value="yes" checked
+                                    id="{{ ti.test.code }}_visible_profile" value="yes" checked
                                     type="checkbox" name="{{ ti.test.code }}_visible"/>
                                 <label for="{{ ti.test.code }}_visible">แสดงรายการ</label>
                             </div>
@@ -133,6 +144,7 @@
                             <div class="field">
                                 <input class="is-checkradio is-info"
                                        id="{{ ti.test.code }}_reimbursable" value="yes"
+                                       rel="reimbursable"
                                        type="checkbox" name="{{ ti.test.code }}_reimbursable"/>
                                 <label for="{{ ti.test.code }}_reimbursable">เบิกได้</label>
                             </div>
@@ -165,7 +177,7 @@
                             <div class="select">
                                 <select name="issuer_id">
                                     {% for issuer in cashiers %}
-                                    <option value="{{ issuer.id }}">{{ issuer.fullname }}</option>
+                                    <option value="{{ issuer.id }}">{{ issuer.staff.personal_info }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -177,7 +189,7 @@
                             <div class="select">
                                 <select name="cashier_id">
                                     {% for cashier in cashiers %}
-                                    <option value="{{ cashier.id }}">{{ cashier.fullname }}</option>
+                                    <option value="{{ cashier.id }}">{{ cashier.staff.personal_info }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -189,4 +201,32 @@
         </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $("#all_reimbursable").change(function() {
+                if (this.checked) {
+                    $(":checkbox[id$=reimbursable_profile]").attr('checked', true);
+                } else {
+                    $(":checkbox[id$=reimbursable_profile]").attr('checked', false);
+                }
+            });
+            $("#all_billed").change(function() {
+                if (this.checked) {
+                    $(":checkbox[id$=billed_profile]").attr('checked', true);
+                } else {
+                    $(":checkbox[id$=billed_profile]").attr('checked', false);
+                }
+            });
+            $("#all_visible").change(function() {
+                if (this.checked) {
+                    $(":checkbox[id$=visible_profile]").attr('checked', true);
+                } else {
+                    $(":checkbox[id$=visible_profile]").attr('checked', false);
+                }
+            });
+        });
+    </script>
 {% endblock %}
