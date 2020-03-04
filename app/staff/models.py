@@ -162,6 +162,7 @@ class StaffLeaveRequest(db.Model):
                             backref=db.backref('leave_requests'))
 
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    country = db.Column('country', db.String())
 
     @property
     def duration(self):
