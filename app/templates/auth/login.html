@@ -2,39 +2,65 @@
 {% include 'nav.html' %}
 {% block page_content %}
 <section class="section">
-    <div class="container">
-    <h1 class="title">Log In Page</h1>
-    {% for message in get_flashed_messages() %}
-    <div class="notification">
-        <button class="delete"></button>
-        {{ message }}
-    </div>
-    {% endfor %}
-    <div>
-        <form action="" method="post">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-            <div class="field">
-                <div class="control">
-                    {{ form.email.label(class='label') }}
-                    {{ form.email(placeholder='Enter your email here', class='input') }}
+    <div class="container has-text-centered">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                {% for message in get_flashed_messages() %}
+                <div class="notification is-warning">
+                    {{ message }}
+                </div>
+                {% endfor %}
+                <div class="box">
+                    <h1 class="title">Log In</h1>
+                    {% for field, error in errors.iteritems() %}
+                    <div class="notification is-danger">
+                        <span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
+                        <span><strong>{{ field }}:</strong> {{ ', '.join(error) }}</span>
+                    </div>
+                    {% endfor %}
+                    <form action="" method="post">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="field has-addons">
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.email(placeholder='Email', class='input is-danger') }}
+                                <span class="icon is-small is-left">
+                                  <i class="fas fa-envelope"></i>
+                                </span>
+                            </div>
+                            <div class="control">
+                                <button class="button is-static">
+                                    @mahidol.ac.th
+                                </button>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="control has-icons-left is-expanded">
+                                {{ form.password(placeholder='Password', class='input is-danger') }}
+                                <span class="icon is-small is-left">
+                                  <i class="fas fa-lock"></i>
+                                </span>
+                            </div>
+                        </div>
+                        <br>
+                        {{ form.remember_me.label() }}
+                        {{ form.remember_me() }}
+                        <div class="field is-grouped">
+                            <div class="control">
+                                {{ form.submit(class='button is-info') }}
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('auth.line_login') }}" class="button is-success">
+                                    <span class="icon">
+                                        <i class="fab fa-line fa-2x"></i>
+                                    </span>
+                                    <span>Line login</span>
+                                </a>
+                            </div>
+                        </div>
+                    </form>
                 </div>
             </div>
-            <div class="field">
-                <div class="control">
-                    {{ form.password.label(class='label') }}
-                    {{ form.password(class='input') }}
-                </div>
-            </div>
-            <br>
-            {{ form.remember_me.label() }}
-            {{ form.remember_me() }}
-            <div class="field">
-                <div class="control">
-                    {{ form.submit(class='button is-primary') }}
-                </div>
-            </div>
-        </form>
-    </div>
+        </div>
     </div>
 </section>
 {% endblock %}

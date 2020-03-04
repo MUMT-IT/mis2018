@@ -1,17 +1,39 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-<h1>Welcome {{ current_user.personal_info }}</h1>
-<h4>
-    {% if current_user.personal_info.is_eligible_for_leave %}
-    You can request for a leave.
-    {% else %}
-    You cannot request for a leave.
-    {% endif %}
-</h4>
-</body>
-</html>
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">Welcome {{ current_user.personal_info }}</h1>
+        <h4 class="subtitle">สถานะการจ้าง {{ current_user.personal_info.employment.title }}</h4>
+        <table class="table is-fullwidth">
+            <thead>
+            <th>ประเภทการลา</th>
+            <th>จำนวนวันลาที่ใช้</th>
+            <th colspan="2">action</th>
+            </thead>
+            <tbody>
+            {% for type,quota in quota_days.iteritems() %}
+            <tr>
+                <td>
+                    <a href="{{ url_for('staff.request_for_leave_info', quota_id=quota.id) }}">
+                       {{ type }}
+                    </a>
+                </td>
+                <td>{{ cum_days[type] }}</td>
+                {% if quota.limit - cum_days[type] > 0 %}
+                <td><a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ขออนุมัติลาเต็มวัน</a></td>
+                <td><a class="button is-rounded is-warning is-light" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ขออนุมัติลาครึ่งวัน</a>
+                </td>
+                {% else %}
+                <td>วันลาเต็ม</td>
+                <td>วันลาเต็ม</td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <a href="{{ url_for('staff.show_leave_approval_info') }}" class="button is-link">สำหรับหัวหน้างาน</a>
+        </div>
+    </div>
+</section>
+{% endblock %}

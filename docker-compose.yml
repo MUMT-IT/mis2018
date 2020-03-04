@@ -31,9 +31,8 @@ services:
     environment:
       - FLASK_ENV
       - POSTGRES_PASSWORD
-      - DEV_DATABASE
-      - DEV_DATABASE_HOST
-      - DEV_DATABASE_PORT
+      - DATABASE
+      - SCOPUS_API_KEY
     volumes:
       - ./app:/mis2018/app
       - ./warehouse:/mis2018/warehouse
