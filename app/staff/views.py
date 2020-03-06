@@ -295,7 +295,6 @@ def leave_approve(req_id, approver_id):
     )
     db.session.add(approval)
     db.session.commit()
-    flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย')
     return redirect(url_for('staff.show_leave_approval_info'))
 
 
