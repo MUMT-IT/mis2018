@@ -1,6 +1,14 @@
+# -*- coding:utf-8 -*-
 from ..main import db
 from werkzeug import generate_password_hash, check_password_hash
 from datetime import datetime
+from pytz import timezone
+
+
+def local_datetime(dt):
+    bangkok = timezone('Asia/Bangkok')
+    datetime_format = u'%d/%m/%Y %H:%M'
+    return dt.astimezone(bangkok).strftime(datetime_format)
 
 
 class StaffAccount(db.Model):
@@ -175,6 +183,14 @@ class StaffLeaveRequest(db.Model):
         else:
             return delta.days + 1
 
+    def __str__(self):
+        if self.duration > 1:
+            return u'วันที่ {} ถึงวันที่ {}'.format(
+                local_datetime(self.start_datetime),
+                local_datetime(self.end_datetime))
+        else:
+            return u'วันที่ {}'.format(local_datetime(self.start_datetime))
+
 
 class StaffLeaveApprover(db.Model):
     __tablename__ = 'staff_leave_approvers'
@@ -199,4 +215,3 @@ class StaffLeaveApproval(db.Model):
     request  = db.relationship('StaffLeaveRequest', backref=db.backref('approvals'))
     approver = db.relationship('StaffLeaveApprover',
                                backref=db.backref('approved_requests'))
-    

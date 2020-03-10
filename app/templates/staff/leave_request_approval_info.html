@@ -6,7 +6,7 @@
         {% for msg in get_flashed_messages() %}
         <p class="notification is-warning">{{ msg }}</p>
         {% endfor %}
-        <h4 class="subtitle">รายการขออนุมัติลาของบุคลากรในสังกัดของ {{ current_user.personal_info }}</h4>
+        <h4 class="subtitle">รายการลาของบุคลากรในสังกัดของ {{ current_user.personal_info.fullname }}</h4>
 <table class="table is-bordered is-striped">
     <tbody>
         {% for approver in requesters %}
@@ -31,6 +31,15 @@
             </td>
             <td>
                 ในวันที่ {{ leave_req.start_datetime|localdatetime }} - {{ leave_req.end_datetime|localdatetime }}
+            </td>
+            <td>
+                {% if leave_req.approvals %}
+                {% for ap in leave_req.approvals %}
+                    {{ ap.approver.account.personal_info.fullname }} ({{ ap.is_approved }})
+                {% endfor %}
+                {% else %}
+                {{ leave_req.approvals|length }}
+                {% endif %}
             </td>
             <td>
                 รวม {{ leave_req.duration }} วัน

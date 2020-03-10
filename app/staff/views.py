@@ -9,6 +9,8 @@ from flask import jsonify, render_template, request, redirect, url_for, flash
 from datetime import datetime
 from collections import defaultdict, namedtuple
 import pytz
+from app.auth.views import line_bot_api
+from linebot.models import TextSendMessage
 
 tz = pytz.timezone('Asia/Bangkok')
 
@@ -289,6 +291,7 @@ def show_leave_approval_info():
 @staff.route('/leave/requests/approve/<int:req_id>/<int:approver_id>')
 @login_required
 def leave_approve(req_id, approver_id):
+    req = StaffLeaveRequest.query.get(req_id)
     approval = StaffLeaveApproval(
         request_id=req_id,
         approver_id=approver_id,
@@ -297,12 +300,18 @@ def leave_approve(req_id, approver_id):
     )
     db.session.add(approval)
     db.session.commit()
+    approve_msg = u'การขออนุมัติลา{} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว'\
+        .format(req, current_user.personal_info.fullname)
+    line_bot_api.push_message(to=req.staff.line_id,
+                              messages=TextSendMessage(text=approve_msg))
+    flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย')
     return redirect(url_for('staff.show_leave_approval_info'))
 
 
 @staff.route('/leave/requests/reject/<int:req_id>/<int:approver_id>')
 @login_required
 def leave_reject(req_id, approver_id):
+    req = StaffLeaveRequest.query.get(req_id)
     approval = StaffLeaveApproval(
         request_id=req_id,
         approver_id=approver_id,
@@ -311,6 +320,10 @@ def leave_reject(req_id, approver_id):
     )
     db.session.add(approval)
     db.session.commit()
+    approve_msg = u'การขออนุมัติลา{} ไม่ได้รับการอนุมัติ กรุณาติดต่อ {}' \
+        .format(req, current_user.personal_info.fullname)
+    line_bot_api.push_message(to=req.staff.line_id,
+                              messages=TextSendMessage(text=approve_msg))
     return redirect(url_for('staff.show_leave_approval_info'))
 
 
