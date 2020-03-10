@@ -51,18 +51,23 @@
                     <p>ชื่อ <strong>{{ receipt.record.customer.title or
                         '' }}{{ receipt.record.customer.firstname }} {{ receipt.record.customer.lastname }}</strong></p>
                 </div>
-                <div class="column has-text-centered">
+                <div class="column has-text-centered is-two-thirds">
                     <img width="80" src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png')}}">
-                    <h4 class="title is-size-4">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h4>
+                    <h4 class="title is-size-4">คณะเทคนิคการแพทย์<br/>มหาวิทยาลัยมหิดล</h4>
                 </div>
-                <div class="column has-text-right">
-                    <p>เลขที่ {{ receipt.book_number }}</p>
+                <div class="column has-text-left">
+                    <p>พิมพ์ไปแล้ว {{ receipt.copy_number - 1 }} ครั้ง</p>
+                    <p>เล่มที่ {{ receipt.book_number[:3] }}</p>
+                    <p>เลขที่ {{ receipt.book_number[3:] }}</p>
                     <p>วันที่ {{ receipt.created_datetime|localdate }}</p>
                     <p>ออกที่ {{ receipt.issued_at }}</p>
                 </div>
             </div>
             <hr>
             <div class="columns">
+                {% if receipt.print_profile_how == 'consolidated' %}
+                การตรวจสุขภาพทางห้องปฏิบัติการ
+                {% endif %}
                 {% if visible_profile_tests %}
                 <div class="column">
                     <p><strong>รายการทดสอบ</strong></p>
@@ -201,8 +206,7 @@
             </div>
             <div class="columns">
                 <div class="column">
-                    <button class="button is-info is-rounded"
-                                @click="printJS('{{url_for('comhealth.export_receipt_pdf', receipt_id=receipt.id)}}')"
+                    <button class="button is-info is-rounded" @click="printReceipt()"
                         {% if receipt.cancelled or not receipt.paid %}disabled{% endif %}
                                 >
                         <span class="icon">
@@ -232,6 +236,16 @@
             delimiters: ['<%', '%>'],
             data() {
                 return {
+                    copy_number: {{ receipt.copy_number|tojson|safe }},
+                }
+            },
+            methods: {
+                printReceipt: function() {
+                    if (this.copy_number <= 2) {
+                        printJS('{{url_for('comhealth.export_receipt_pdf', receipt_id=receipt.id)}}');
+                    } else {
+                        alert('Print quota exceeds the maximum of 2 copies.');
+                    }
                 }
             },
             computed: {}
