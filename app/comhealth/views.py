@@ -1195,6 +1195,7 @@ def create_receipt(record_id):
         cashier_id = request.form.get('cashier_id', None)
         print_profile = request.form.get('print_profile', '')
         print_profile = request.form.get('print_profile', '')
+        #TODO: new receipt only includes unpaid tests
         valid_receipts = [rcp for rcp in record.receipts if not rcp.cancelled]
         if not valid_receipts:  # not active receipt
             receipt = ComHealthReceipt(
@@ -1207,6 +1208,8 @@ def create_receipt(record_id):
                 book_number=receipt_code.next,
                 issued_at=session.get('receipt_venue', ''),
                 )
+            receipt.print_profile_note = True if print_profile else False
+            receipt.print_profile_how = print_profile
             db.session.add(receipt)
             receipt_code.count += 1
             receipt_code.updated_at = datetime.now(tz=bangkok)
@@ -1361,9 +1364,6 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', align
 @comhealth.route('/receipts/pdf/<int:receipt_id>')
 def export_receipt_pdf(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
-    receipt.copy_number += 1
-    db.session.add(receipt)
-    db.session.commit()
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -1564,7 +1564,7 @@ def export_receipt_pdf(receipt_id):
 
     number_of_copies = 2 if receipt.copy_number == 1 else 1
     for i in range(number_of_copies):
-        if receipt.copy_number == 1:
+        if i == 0 and receipt.copy_number == 1:
             data.append(header_ori)
         else:
             data.append(header_copy)
@@ -1583,6 +1583,11 @@ def export_receipt_pdf(receipt_id):
         data.append(notice)
         data.append(PageBreak())
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+
+    # updated the copy number
+    receipt.copy_number += 1
+    db.session.add(receipt)
+    db.session.commit()
 
     return send_file('receipt.pdf')
 
