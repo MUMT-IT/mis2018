@@ -123,7 +123,8 @@ def request_for_leave(quota_id=None):
                         end_datetime=tz.localize(end_datetime),
                         reason=form.get('reason'),
                         contact_address=form.get('contact_addr'),
-                        contact_phone=form.get('contact_phone')
+                        contact_phone=form.get('contact_phone'),
+                        country=form.get('country')
                     )
                 req_duration = req.duration
                 delta = start_datetime.date() - current_user.personal_info.employed_date
@@ -243,7 +244,8 @@ def edit_leave_request(req_id=None):
         req.end_datetime = tz.localize(end_datetime),
         req.reason = request.form.get('reason')
         req.contact_address = request.form.get('contact_addr'),
-        req.contact_phone = request.form.get('contact_phone')
+        req.contact_phone = request.form.get('contact_phone'),
+        req.country = request.form.get('country')
         db.session.add(req)
         db.session.commit()
         return redirect(url_for('staff.show_leave_info'))
