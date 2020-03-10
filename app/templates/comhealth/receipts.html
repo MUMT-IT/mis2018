@@ -68,6 +68,7 @@
                                             <i class="fas fa-receipt"></i>
                                         </span>
                                         <span>View</span>
+                                    </a>
                                 </td>
                                 <td>{{ r.comment or '' }}</td>
                                 <td>
@@ -94,7 +95,7 @@
                         ออกใบเสร็จใหม่
                     </a>
                     <a class="button is-rounded is-primary"
-                        href="{{ url_for('comhealth.display_service_customers', service_id=record.service.id)}}">
+                        href="{{ url_for('comhealth.show_finance_records', service_id=record.service.id)}}">
                         กลับ
                     </a>
                 </div>

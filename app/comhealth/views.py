@@ -125,8 +125,8 @@ def health_record_index(service_id):
                            org=org)
 
 
-@comhealth.route('/services/<int:service_id>/records')
-def finance_record(service_id):
+@comhealth.route('/services/<int:service_id>/finance/records')
+def show_finance_records(service_id):
     service = ComHealthService.query.get(service_id)
     return render_template('comhealth/finance_records.html', service=service)
 
