@@ -1193,8 +1193,8 @@ def create_receipt(record_id):
         record = ComHealthRecord.query.get(record_id)
         issuer_id = request.form.get('issuer_id', None)
         cashier_id = request.form.get('cashier_id', None)
-        print_profile_item = True if request.form.getlist('print_profile_items') else False
-        print_profile_note = True if request.form.getlist('print_profile_note') else False
+        print_profile = request.form.get('print_profile', '')
+        print_profile = request.form.get('print_profile', '')
         valid_receipts = [rcp for rcp in record.receipts if not rcp.cancelled]
         if not valid_receipts:  # not active receipt
             receipt = ComHealthReceipt(
@@ -1203,7 +1203,7 @@ def create_receipt(record_id):
                 record=record,
                 issuer_id=int(issuer_id) if issuer_id is not None else None,
                 cashier_id=int(cashier_id) if cashier_id is not None else None,
-                print_profile_note=print_profile_note,
+                print_profile_note=(True if print_profile == 'consolidated' else False),
                 book_number=receipt_code.next,
                 issued_at=session.get('receipt_venue', ''),
                 )
@@ -1212,7 +1212,7 @@ def create_receipt(record_id):
             receipt_code.updated_at = datetime.now(tz=bangkok)
             db.session.add(receipt_code)
         for test_item in record.ordered_tests:
-            if test_item.profile and not print_profile_item:
+            if test_item.profile and print_profile != 'individual':
                 continue
             visible = test_item.test.code + '_visible'
             billed = test_item.test.code + '_billed'
