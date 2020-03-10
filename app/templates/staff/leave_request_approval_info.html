@@ -6,13 +6,13 @@
         {% for msg in get_flashed_messages() %}
         <p class="notification is-warning">{{ msg }}</p>
         {% endfor %}
-        <h4 class="subtitle">รายการลาของบุคลากรในสังกัดของ {{ current_user.personal_info.th_firstname }}</h4>
+        <h4 class="subtitle">รายการลาของบุคลากรในสังกัดของ {{ current_user.personal_info.fullname }}</h4>
 <table class="table">
     <tbody>
         {% for approver in requesters %}
         {% if not approver.requester.leave_requests|sort(attribute='start_datetime')|checkallapprovals(approver.id) %}
         <tr>
-            <td colspan="4">
+            <td colspan="5">
                 {{ approver.requester.personal_info }}
             </td>
         </tr>
@@ -27,6 +27,15 @@
             </td>
             <td>
                 {{ leave_req.start_datetime|localdatetime }} - {{ leave_req.end_datetime|localdatetime }}
+            </td>
+            <td>
+                {% if leave_req.approvals %}
+                {% for ap in leave_req.approvals %}
+                    {{ ap.approver.account.personal_info.fullname }} ({{ ap.is_approved }})
+                {% endfor %}
+                {% else %}
+                {{ leave_req.approvals|length }}
+                {% endif %}
             </td>
             <td>
                 <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id) }}" class="button is-info">อนุมัติ</a>
