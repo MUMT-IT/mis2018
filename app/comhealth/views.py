@@ -1194,26 +1194,29 @@ def create_receipt(record_id):
         issuer_id = request.form.get('issuer_id', None)
         cashier_id = request.form.get('cashier_id', None)
         print_profile = request.form.get('print_profile', '')
-        print_profile = request.form.get('print_profile', '')
+        address = request.form.get('receipt_address', None)
+        issued_for = request.form.get('issued_for', None)
         #TODO: new receipt only includes unpaid tests
-        valid_receipts = [rcp for rcp in record.receipts if not rcp.cancelled]
-        if not valid_receipts:  # not active receipt
-            receipt = ComHealthReceipt(
-                code=receipt_code.next,
-                created_datetime=datetime.now(tz=bangkok),
-                record=record,
-                issuer_id=int(issuer_id) if issuer_id is not None else None,
-                cashier_id=int(cashier_id) if cashier_id is not None else None,
-                print_profile_note=(True if print_profile == 'consolidated' else False),
-                book_number=receipt_code.next,
-                issued_at=session.get('receipt_venue', ''),
-                )
-            receipt.print_profile_note = True if print_profile else False
-            receipt.print_profile_how = print_profile
-            db.session.add(receipt)
-            receipt_code.count += 1
-            receipt_code.updated_at = datetime.now(tz=bangkok)
-            db.session.add(receipt_code)
+        receipt = ComHealthReceipt(
+            code=receipt_code.next,
+            created_datetime=datetime.now(tz=bangkok),
+            record=record,
+            issuer_id=int(issuer_id) if issuer_id is not None else None,
+            cashier_id=int(cashier_id) if cashier_id is not None else None,
+            print_profile_note=(True if print_profile == 'consolidated' else False),
+            book_number=receipt_code.next,
+            issued_at=session.get('receipt_venue', ''),
+            )
+        if address:
+            receipt.address = address
+        if issued_for:
+            receipt.issued_for = issued_for
+        receipt.print_profile_note = True if print_profile else False
+        receipt.print_profile_how = print_profile
+        db.session.add(receipt)
+        receipt_code.count += 1
+        receipt_code.updated_at = datetime.now(tz=bangkok)
+        db.session.add(receipt_code)
         for test_item in record.ordered_tests:
             if test_item.profile and print_profile != 'individual':
                 continue
@@ -1258,12 +1261,16 @@ def pay_receipt(receipt_id):
     pay_method = request.form.get('pay_method')
     if pay_method == 'card':
         card_number = request.form.get('card_number')
+    if pay_method == 'cash':
+        paid_amount = request.form.get('paid_amount', 0.0)
     receipt = ComHealthReceipt.query.get(receipt_id)
     if not receipt.paid:
         receipt.paid = True
         receipt.payment_method = pay_method
         if pay_method == 'card':
             receipt.card_number = card_number
+        if pay_method == 'cash':
+            receipt.paid_amount = paid_amount
         db.session.add(receipt)
         db.session.commit()
     return redirect(url_for('comhealth.show_receipt_detail',
@@ -1281,13 +1288,23 @@ def show_receipt_detail(receipt_id):
 
     total_cost = sum([t.test_item.price or t.test_item.test.default_price
                         for t in receipt.invoices if t.billed])
+    total_cost_float = float(total_cost)
     total_special_cost = sum([t.test_item.price or t.test_item.test.default_price
                         for t in receipt.invoices if t.billed and t.test_item.group])
+
+    total_special_cost_reimbursable = sum([t.test_item.price or t.test_item.test.default_price
+                              for t in receipt.invoices if t.billed and t.reimbursable and t.test_item.group])
 
     total_profile_cost = sum([t.test_item.price or t.test_item.test.default_price
                         for t in receipt.invoices if t.billed and t.test_item.profile])
 
-    total_special_cost_thai = bahttext(total_special_cost)
+    total_profile_cost_reimbursable = sum([t.test_item.price or t.test_item.test.default_price
+                              for t in receipt.invoices if t.billed and t.reimbursable and t.test_item.profile])
+
+    total_profile_cost_not_reimbursable = total_profile_cost - total_profile_cost_reimbursable
+    total_special_cost_not_reimbursable = total_special_cost - total_special_cost_reimbursable
+
+    total_cost_thai = bahttext(total_cost)
     
     visible_special_tests = [t for t in receipt.invoices if t.visible and t.test_item.group]
     visible_profile_tests = [t for t in receipt.invoices if t.visible and t.test_item.profile]
@@ -1295,9 +1312,14 @@ def show_receipt_detail(receipt_id):
     return render_template('comhealth/receipt_detail.html',
                            receipt=receipt,
                            total_cost=total_cost,
-                           total_special_cost=total_special_cost,
+                           total_cost_float=total_cost_float,
                            total_profile_cost=total_profile_cost,
-                           total_special_cost_thai=total_special_cost_thai,
+                           total_profile_cost_reimbursable=total_profile_cost_reimbursable,
+                           total_profile_cost_not_reimbursable=total_profile_cost_not_reimbursable,
+                           total_special_cost=total_special_cost,
+                           total_cost_thai=total_cost_thai,
+                           total_special_cost_not_reimbursable=total_special_cost_not_reimbursable,
+                           total_special_cost_reimbursable=total_special_cost_reimbursable,
                            visible_special_tests=visible_special_tests,
                            visible_profile_tests=visible_profile_tests)
 
