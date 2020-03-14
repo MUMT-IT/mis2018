@@ -343,9 +343,12 @@ class ComHealthReceipt(db.Model):
     cashier_id = db.Column('cashier_id', db.ForeignKey('comhealth_cashier.id'))
     cashier = db.relationship('ComHealthCashier', foreign_keys=[cashier_id])
     payment_method = db.Column('payment_method', db.String(64))
+    paid_amount = db.Column('paid_amount', db.Numeric(), default=0.0)
     card_number = db.Column('card_number', db.String(16))
     print_profile_note = db.Column('print_profile_note', db.Boolean(), default=False)
     print_profile_how = db.Column('print_profile_how', db.String(), default=False)
+    issued_for = db.Column('issued_for', db.String())
+    address = db.Column('address', db.Text())
 
 
 class ComHealthReferenceTestProfile(db.Model):
