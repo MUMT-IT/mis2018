@@ -229,6 +229,9 @@ class ComHealthTestProfile(db.Model):
     def __str__(self):
         return self.name
 
+    def __len__(self):
+        return len(self.test_items)
+
     @property
     def quote_price(self):
         total_price = 0
