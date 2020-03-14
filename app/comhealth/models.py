@@ -280,8 +280,19 @@ class ComHealthTestItem(db.Model):
     group_id = db.Column('group_id', db.ForeignKey('comhealth_test_groups.id'))
     group = db.relationship('ComHealthTestGroup', backref=db.backref('test_items'))
 
-    price = db.Column('price', db.Numeric())
+    price_ = db.Column('price', db.Numeric())
     receipts = association_proxy('invoices', 'receipt')
+
+    @property
+    def price(self):
+        if self.price_ is None:
+            return self.test.default_price
+        else:
+            return self.price_
+
+    @price.setter
+    def price(self, price):
+        self.price_ = price
 
 
 class ComHealthTestProfileItem(db.Model):
