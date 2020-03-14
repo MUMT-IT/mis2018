@@ -124,11 +124,11 @@
                                     <td>{{ t.test_item.test.gov_code or '-' }}</td>
                                     {% if t.billed %}
                                         {% if t.reimbursable %}
-                                        <td class="has-text-right">{{ t.test_item.test.default_price|moneyformat }}</td>
+                                        <td class="has-text-right">{{ t.test_item.price|moneyformat }}</td>
                                         <td class="has-text-right">0.00</td>
                                         {% else %}
                                         <td class="has-text-right">0.00</td>
-                                        <td class="has-text-right">{{ t.test_item.test.default_price|moneyformat }}</td>
+                                        <td class="has-text-right">{{ t.test_item.price|moneyformat }}</td>
                                         {% endif %}
                                     {% else %}
                                     <td class="has-text-right">0.00</td>
@@ -167,11 +167,11 @@
                                 <td>{{ t.test_item.test.gov_code or '-' }}</td>
                                 {% if t.billed %}
                                     {% if t.reimbursable %}
-                                    <td class="has-text-right">{{ t.test_item.price|moneyformat or t.test_item.test.default_price|moneyformat }}</td>
+                                    <td class="has-text-right">{{ t.test_item.price|moneyformat }}</td>
                                     <td class="has-text-right">0.00</td>
                                     {% else %}
                                     <td class="has-text-right">0.00</td>
-                                    <td class="has-text-right">{{ t.test_item.price|moneyformat or t.test_item.test.default_price|moneyformat }}</td>
+                                    <td class="has-text-right">{{ t.test_item.price|moneyformat }}</td>
                                     {% endif %}
                                 {% else %}
                                 <td class="has-text-right">0.00</td>
