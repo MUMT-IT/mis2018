@@ -105,12 +105,6 @@ def request_for_leave(quota_id=None):
         if quota_id:
             quota = StaffLeaveQuota.query.get(quota_id)
             if quota:
-                # retrieve cum periods
-                cum_periods = 0
-                for req in current_user.leave_requests:
-                    if req.quota == quota:
-                        cum_periods += req.duration
-
                 start_dt, end_dt = form.get('dates').split(' - ')
                 start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
                 end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
@@ -118,6 +112,13 @@ def request_for_leave(quota_id=None):
                 if delta.days > 0 and not quota.leave_type.request_in_advance:
                     flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
                     return redirect(request.referrer)
+                    # retrieve cum periods
+                cum_periods = 0
+                for req in current_user.leave_requests:
+                    if req.quota == quota:
+                        if req.cancelled_at is None:
+                            cum_periods += req.duration
+
                 req = StaffLeaveRequest(
                         staff=current_user,
                         quota=quota,
@@ -152,6 +153,7 @@ def request_for_leave(quota_id=None):
                     db.session.commit()
                     return redirect(url_for('staff.show_leave_info'))
                 else:
+                    print(cum_periods, req_duration)
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
                     return redirect(request.referrer)
             else:
@@ -227,8 +229,9 @@ def request_for_leave_info(quota_id=None):
             leaves.append(leave)
             cum_leave = leave.duration
 
+    requester = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id)
 
-    return render_template('staff/request_info.html', leaves=leaves, cum_leave=cum_leave)
+    return render_template('staff/request_info.html', leaves=leaves, cum_leave=cum_leave, reqester=requester)
 
 
 @staff.route('/leave/request/edit/<int:req_id>',
@@ -237,7 +240,7 @@ def request_for_leave_info(quota_id=None):
 def edit_leave_request(req_id=None):
     req = StaffLeaveRequest.query.get(req_id)
     if req.duration == 0.5:
-        return  redirect(url_for("staff.edit_leave_request_period", req_id=req_id))
+        return redirect(url_for("staff.edit_leave_request_period", req_id=req_id))
     if request.method == 'POST':
         start_dt, end_dt = request.form.get('dates').split(' - ')
         start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
@@ -288,6 +291,14 @@ def show_leave_approval_info():
     return render_template('staff/leave_request_approval_info.html', requesters=requesters)
 
 
+@staff.route('/leave/requests/approval/pending/<int:req_id>')
+@login_required
+def pending_leave_approval(req_id):
+    req = StaffLeaveRequest.query.get(req_id)
+    approver = StaffLeaveApprover.query.filter_by(account=current_user).first()
+    return render_template('staff/leave_request_pending_approval.html', req=req, approver=approver)
+
+
 @staff.route('/leave/requests/approve/<int:req_id>/<int:approver_id>')
 @login_required
 def leave_approve(req_id, approver_id):
@@ -300,10 +311,8 @@ def leave_approve(req_id, approver_id):
     )
     db.session.add(approval)
     db.session.commit()
-    approve_msg = u'การขออนุมัติลา{} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว'\
-        .format(req, current_user.personal_info.fullname)
-    line_bot_api.push_message(to=req.staff.line_id,
-                              messages=TextSendMessage(text=approve_msg))
+    #approve_msg = u'การขออนุมัติลา{} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว'.format(req, current_user.personal_info.fullname)
+    #line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
     flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย')
     return redirect(url_for('staff.show_leave_approval_info'))
 
@@ -320,10 +329,8 @@ def leave_reject(req_id, approver_id):
     )
     db.session.add(approval)
     db.session.commit()
-    approve_msg = u'การขออนุมัติลา{} ไม่ได้รับการอนุมัติ กรุณาติดต่อ {}' \
-        .format(req, current_user.personal_info.fullname)
-    line_bot_api.push_message(to=req.staff.line_id,
-                              messages=TextSendMessage(text=approve_msg))
+    #approve_msg = u'การขออนุมัติลา{} ไม่ได้รับการอนุมัติ กรุณาติดต่อ {}'.format(req, current_user.personal_info.fullname)
+    #line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
     return redirect(url_for('staff.show_leave_approval_info'))
 
 
@@ -343,3 +350,5 @@ def cancel_leave_request(req_id):
     db.session.add(req)
     db.session.commit()
     return redirect(request.referrer)
+
+
