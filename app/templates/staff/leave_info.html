@@ -9,7 +9,7 @@
             <thead>
             <th>ประเภทการลา</th>
             <th>จำนวนวันลาที่ใช้</th>
-            <th colspan="2">action</th>
+            <th colspan="2">ขออนุมัติ</th>
             </thead>
             <tbody>
             {% for type,quota in quota_days.iteritems() %}
@@ -19,10 +19,10 @@
                        {{ type }}
                     </a>
                 </td>
-                <td>{{ cum_days[type] }}</td>
+                <td>{{ cum_days[type] }} ({{ quota.limit }})</td>
                 {% if quota.limit - cum_days[type] > 0 %}
-                <td><a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ขออนุมัติลาเต็มวัน</a></td>
-                <td><a class="button is-rounded is-warning is-light" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ขออนุมัติลาครึ่งวัน</a>
+                <td><a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ลาเต็มวัน</a>
+                <a class="button is-rounded is-warning is-light" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ลาครึ่งวัน</a>
                 </td>
                 {% else %}
                 <td>วันลาเต็ม</td>
