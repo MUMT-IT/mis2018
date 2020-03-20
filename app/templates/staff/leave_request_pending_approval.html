@@ -38,8 +38,8 @@
                                  <label class="label">ระหว่างลาสามารถติดต่อได้ที่</label>
                             </td>
                             <td>
-                                {{ req.contact_address }}
-                                {{ req.contact_phone }}
+                                <p>{{ req.contact_address }}</p>
+                                <p>{{ req.contact_phone }}</p>
                             </td>
                         </tr>
                         <tr>
@@ -53,11 +53,11 @@
                         </tr>
                     </table>
                     <div class="field is-grouped">
+                        <a href="{{ url_for('staff.show_leave_approval_info') }}" class="button is-info is-light is-rounded">กลับหน้าสรุป</a>
                         <div class="control">
-                            <a href="{{ url_for('staff.leave_approve', req_id=req.id, approver_id=approver.id) }}" class="button is-info">อนุมัติ</a>
+                            <a href="{{ url_for('staff.leave_approve', req_id=req.id, approver_id=approver.id) }}" class="button is-success">อนุมัติ</a>
                             <a href="{{ url_for('staff.leave_reject', req_id=req.id, approver_id=approver.id) }}" class="button is-danger">ไม่อนุมัติ</a>
                         </div>
-                        <a href="{{ url_for('staff.show_leave_approval_info') }}" class="button is-info is-light">กลับหน้าสรุป</a>
                     </div>
                 </div>
             </div>
