@@ -2,7 +2,7 @@
 from flask_login import login_required, current_user
 
 from models import (StaffAccount, StaffPersonalInfo,
-                    StaffLeaveRequest, StaffLeaveQuota, StaffLeaveApprover, StaffLeaveApproval)
+                    StaffLeaveRequest, StaffLeaveQuota, StaffLeaveApprover, StaffLeaveApproval, StaffLeaveType)
 from . import staffbp as staff
 from app.main import db
 from flask import jsonify, render_template, request, redirect, url_for, flash
@@ -153,7 +153,6 @@ def request_for_leave(quota_id=None):
                     db.session.commit()
                     return redirect(url_for('staff.show_leave_info'))
                 else:
-                    print(cum_periods, req_duration)
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
                     return redirect(request.referrer)
             else:
@@ -175,7 +174,8 @@ def request_for_leave_period(quota_id=None):
                 cum_periods = 0
                 for req in current_user.leave_requests:
                     if req.quota == quota:
-                        cum_periods += req.duration
+                        if req.cancelled_at is None:
+                            cum_periods += req.duration
 
                 start_t, end_t = form.get('times').split(' - ')
                 start_dt = '{} {}'.format(form.get('dates'), start_t)
@@ -287,15 +287,27 @@ def edit_leave_request_period(req_id=None):
 @staff.route('/leave/requests/approval/info')
 @login_required
 def show_leave_approval_info():
+    leave_types = StaffLeaveType.query.all()
     requesters = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).all()
-    return render_template('staff/leave_request_approval_info.html', requesters=requesters)
+    requester_cum_periods = {}
+    for requester in requesters:
+        cum_periods = defaultdict(float)
+        for leave_request in requester.requester.leave_requests:
+            if leave_request.cancelled_at is None and leave_request.get_approved:
+                cum_periods[leave_request.quota.leave_type] += leave_request.duration
+        requester_cum_periods[requester] = cum_periods
+
+    return render_template('staff/leave_request_approval_info.html',
+                           requesters=requesters,
+                           requester_cum_periods=requester_cum_periods,
+                           leave_types=leave_types)
 
 
 @staff.route('/leave/requests/approval/pending/<int:req_id>')
 @login_required
 def pending_leave_approval(req_id):
     req = StaffLeaveRequest.query.get(req_id)
-    approver = StaffLeaveApprover.query.filter_by(account=current_user).first()
+    approver = StaffLeaveApprover.query.filter_by(account=current_user, requester=req.staff).first()
     return render_template('staff/leave_request_pending_approval.html', req=req, approver=approver)
 
 
