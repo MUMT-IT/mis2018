@@ -3,8 +3,11 @@
 {% block page_content %}
 <section class="section" id="app">
     <div class="container">
-        <h1 class="title">Welcome {{ current_user.personal_info }}</h1>
-        <h4 class="subtitle">สถานะการจ้าง {{ current_user.personal_info.employment.title }}</h4>
+        <h1 class="title">{{ quota.leave_type }}
+            <a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ลาเต็มวัน</a>
+            <a class="button is-rounded is-warning is-light" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ลาครึ่งวัน</a>
+        </h1>
+        <h4 class="subtitle">{{ current_user.personal_info }} สถานะการจ้าง {{ current_user.personal_info.employment.title }} </h4>
         <div class="table-container">
         <table class="table is-fullwidth">
             <thead>
