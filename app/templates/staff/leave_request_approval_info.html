@@ -7,7 +7,7 @@
         {% for msg in get_flashed_messages() %}
         <p class="notification is-warning">{{ msg }}</p>
         {% endfor %}
-        <h4 class="subtitle">รายการลาของบุคลากรในสังกัดของ {{ current_user.personal_info.fullname }}</h4>
+        <h4 class="subtitle">รายการขออนุมัติลาบุคลากรในสังกัดของ {{ current_user.personal_info.fullname }}</h4>
 <table class="table is-bordered">
     <tbody>
         {% for approver in requesters %}
@@ -25,9 +25,9 @@
                 {{ leave_req.created_at|localdatetime}}
             </td>
             <td>
-                {{ leave_req.quota.leave_type}} ตั้งแต่วันที่ {{ leave_req.start_datetime|localdatetime }} ({{ leave_req.duration }} วัน)
+                [{{ leave_req.quota.leave_type}}] ตั้งแต่ {{ leave_req.start_datetime|localdatetime }} ({{ leave_req.duration }} วัน)
             </td>
-            <td>
+            <td>ความเห็นผู้บังคับบัญชา:
                 {% if leave_req.approvals %}
                 {% for ap in leave_req.approvals %}
                     {{ ap.approver.account.personal_info.fullname }} ({{ ap.is_approved }})
@@ -51,7 +51,7 @@
     </tbody>
 </table>
 
-        <h4 class="subtitle">จำนวนวันลาที่ถูกอนุมัติแล้ว</h4>
+<h4 class="subtitle">สถิติการลา</h4>
 <table class="table is-bordered is-striped">
     <thead>
     <th>Name</th>
@@ -63,7 +63,9 @@
         {% for requester in requester_cum_periods %}
         <tr>
             <td>
-                {{ requester.requester.personal_info }} ({{ requester.requester.personal_info.org }})
+                <a href="{{ url_for('staff.show_leave_approval_info_each_person', requester_id=requester.requester.id) }}">
+                {{ requester.requester.personal_info }} ({{ requester.requester.personal_info.org }}) {{ requester.requester.id }}
+                </a>
             </td>
             {% for leave_type in leave_types %}
             <td>{{ requester_cum_periods[requester][leave_type] }}</td>
