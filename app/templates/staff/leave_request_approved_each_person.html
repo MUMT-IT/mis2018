@@ -7,17 +7,19 @@
         {% for msg in get_flashed_messages() %}
         <p class="notification is-warning">{{ msg }}</p>
         {% endfor %}
-            <h4 class="subtitle">รายการลาของ</h4>
+            <h4 class="subtitle">รายการลาของ
+              {{ requester[0].staff.personal_info }}
+            </h4>
+            <h4>*หากต้องการแก้ไขสถานะการอนุมัติโปรดติดต่อ หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่ ต่อ 2824(ศาลายา)</h4>
 <table class="table is-bordered is-striped">
     <thead>
     <th>วันที่เริ่มลา</th>
     <th>วันที่สิ้นสุดลา</th>
     <th>ประเภท</th>
     <th>สถานะการอนุมัติ</th>
-    <th>แก้ไขสถานะการอนุมัติ</th>
     </thead>
     <tbody>
-    {% for requester in requester %}
+    {% for requester in requester|sort(attribute='start_datetime') %}
     {% if not requester.cancelled_at and requester.get_approved %}
         <tr>
             <td>
@@ -38,9 +40,6 @@
                 {{ leave_req.approvals|length }}
                 {% endif %}
             </td>
-            <td>
-                <a class="button is-warning">แก้ไขสถานะ</a>
-            </td>
         </tr>
     {% endif %}
     {% endfor %}
@@ -48,11 +47,12 @@
 </table>
 
     <a href="{{ request.referrer }}" class="button is-rounded is-info is-light">
-            <span class="icon">
-                <i class="fas fa-arrow-left"></i>
-            </span>
-            กลับ
+        <span class="icon">
+            <i class="fas fa-arrow-left"></i>
+        </span>
+        กลับ
     </a>
+
     </div>
     </div>
 </section>
