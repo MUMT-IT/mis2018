@@ -93,9 +93,6 @@ def show_leave_info():
     return render_template('staff/leave_info.html', cum_days=cum_days, quota_days=quota_days)
 
 
-#TODO: If employed for more than  6 months, can leave for 10 days max.
-#TODO: If employed fewer than 10 years, can accumulate up to 20 days max per year, otherwise 30 days.
-#TODO: Temporary employed staff can accumulate up to 20 days.
 @staff.route('/leave/request/quota/<int:quota_id>',
              methods=['GET', 'POST'])
 @login_required
@@ -231,7 +228,7 @@ def request_for_leave_info(quota_id=None):
 
     requester = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id)
 
-    return render_template('staff/request_info.html', leaves=leaves, cum_leave=cum_leave, reqester=requester)
+    return render_template('staff/request_info.html', leaves=leaves, cum_leave=cum_leave, reqester=requester, quota=quota)
 
 
 @staff.route('/leave/request/edit/<int:req_id>',
@@ -364,3 +361,20 @@ def cancel_leave_request(req_id):
     return redirect(request.referrer)
 
 
+@staff.route('/leave/requests/approved/info/<int:requester_id>')
+@login_required
+def show_leave_approval_info_each_person(requester_id):
+    requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id)
+    return render_template('staff/leave_request_approved_each_person.html',requester=requester)
+
+
+@staff.route('/wfh')
+@login_required
+def show_work_from_home():
+    return render_template('staff/wfh_info.html')
+
+
+@staff.route('/wfh/request')
+@login_required
+def request_work_from_home():
+    return render_template('staff/wfh_request.html')

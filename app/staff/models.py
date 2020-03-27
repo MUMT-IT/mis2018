@@ -183,6 +183,14 @@ class StaffLeaveRequest(db.Model):
         else:
             return delta.days + 1
 
+    @property
+    def get_approved(self):
+        return [a for a in self.approvals if a.is_approved]
+
+    @property
+    def get_unapproved(self):
+        return [a for a in self.approvals if a.is_approved==False]
+
     def __str__(self):
         if self.duration > 1:
             return u'วันที่ {} ถึงวันที่ {}'.format(
@@ -190,6 +198,7 @@ class StaffLeaveRequest(db.Model):
                 local_datetime(self.end_datetime))
         else:
             return u'วันที่ {}'.format(local_datetime(self.start_datetime))
+
 
 
 class StaffLeaveApprover(db.Model):
@@ -215,3 +224,25 @@ class StaffLeaveApproval(db.Model):
     request  = db.relationship('StaffLeaveRequest', backref=db.backref('approvals'))
     approver = db.relationship('StaffLeaveApprover',
                                backref=db.backref('approved_requests'))
+
+
+class StaffWorkFromHomeRequest(db.Model):
+    __tablename__ = 'staff_work_from_home_requests'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    start_datetime = db.Column('start_date', db.DateTime(timezone=True))
+    end_datetime = db.Column('end_date', db.DateTime(timezone=True))
+    created_at = db.Column('created_at',
+                           db.DateTime(timezone=True),
+                           default=datetime.now()
+                           )
+    contact_phone = db.Column('contact_phone', db.String())
+    detail = db.Column('detail', db.String())
+    deadline_date = db.Column('deadline_date', db.DateTime(timezone=True))
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+
+
+
+
+
+    
