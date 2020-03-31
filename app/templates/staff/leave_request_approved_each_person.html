@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="table-container">
+        {% for msg in get_flashed_messages() %}
+        <p class="notification is-warning">{{ msg }}</p>
+        {% endfor %}
+            <h4 class="subtitle">รายการลาของ
+              {{ requester[0].staff.personal_info }}
+            </h4>
+            <h4>*หากต้องการแก้ไขสถานะการอนุมัติโปรดติดต่อ หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่ ต่อ 2824(ศาลายา)</h4>
+<table class="table is-bordered is-striped">
+    <thead>
+    <th>วันที่เริ่มลา</th>
+    <th>วันที่สิ้นสุดลา</th>
+    <th>ประเภท</th>
+    <th>สถานะการอนุมัติ</th>
+    </thead>
+    <tbody>
+    {% for requester in requester|sort(attribute='start_datetime') %}
+    {% if not requester.cancelled_at and requester.get_approved or requester.get_unapproved %}
+        <tr>
+            <td>
+                {{ requester.start_datetime|localdatetime }}
+            </td>
+            <td>
+                {{ requester.end_datetime|localdatetime }}
+            </td>
+            <td>
+                {{ requester.quota.leave_type }}
+            </td>
+            <td>
+                {% if requester.approvals %}
+                {% for ap in requester.approvals %}
+                    {{ ap.approver.account.personal_info }} ({{ ap.is_approved }})
+                {% endfor %}
+                {% else %}
+                {{ leave_req.approvals|length }}
+                {% endif %}
+            </td>
+        </tr>
+    {% endif %}
+    {% endfor %}
+    </tbody>
+</table>
+
+    <a href="{{ request.referrer }}" class="button is-rounded is-info is-light">
+        <span class="icon">
+            <i class="fas fa-arrow-left"></i>
+        </span>
+        กลับ
+    </a>
+
+    </div>
+    </div>
+</section>
+{% endblock %}

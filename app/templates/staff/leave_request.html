@@ -26,6 +26,7 @@
                                         icon-pack="fa"
                                         :events="events"
                                         :indicators="indicators"
+                                        :mobile-native="false"
                                         placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                         icon="calendar-alt">
                                 </b-datepicker>
@@ -33,6 +34,7 @@
                         </div>
                     </div>
                     <b-field label="จุดประสงค์ในการขออนุมัติลา"
+                             type="is-danger"
                              message="กรณีลาพักผ่อน สามารถใส่เครื่องหมายขีด (-) ได้">
                         <b-input type="text"
                                  name="reason"
@@ -48,7 +50,7 @@
                                  placeholder="ที่อยู่">
                         </b-input>
                     </b-field>
-                    <b-field>
+                    <b-field type="is-danger">
                         <b-input type="text"
                                name="contact_phone"
                                icon-pack="fas"
@@ -96,7 +98,7 @@
         delimiters: ['<%', '%>'],
         computed: {
             indicators() {
-                return this.bars ? 'bars' : 'dots'
+                return this.bars ? 'bars' : 'bars'
             }
         },
         data() {
@@ -105,14 +107,13 @@
                 notifiedByLine: "yes",
                 events: [
                     {
-                        date: new Date(2020, thisMonth, 8),
+                        date: new Date(2020,1, 8),
                         type: 'is-danger'
                     },
                     {
-                        date: new Date(2020, thisMonth, 10),
+                        date: new Date(2020,1, 10),
                         type: 'is-danger'
                     }],
-                    bars: true
             }
         },
     });

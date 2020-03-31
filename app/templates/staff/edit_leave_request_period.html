@@ -46,6 +46,7 @@
                             </div>
                         </div>
                         <b-field label="จุดประสงค์ในการขออนุมัติลา"
+                                 type="is-danger"
                                  message="กรณีลาพักผ่อน สามารถใส่เครื่องหมายขีด (-) ได้">
                             <b-input type="text"
                                  name="reason"
@@ -61,7 +62,7 @@
                                  value="{{ req.contact_address }}">
                             </b-input>
                         </b-field>
-                        <b-field>
+                        <b-field type="is-danger">
                             <b-input type="text"
                                name="contact_phone"
                                icon-pack="fas"
@@ -81,7 +82,7 @@
                                 <input type="submit" value="submit" class="button is-primary"/>
                             </div>
                             <div class="control">
-                                <a href="{{ url_for('staff.show_leave_info') }}" class="button is-danger">Cancel</a>
+                                <a href="{{ request.referrer }}" class="button is-danger">Cancel</a>
                             </div>
                         </div>
                     </form>

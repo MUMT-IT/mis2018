@@ -20,6 +20,8 @@
                                             required
                                             name="dates"
                                             v-model="selectedDates"
+                                            :events="events"
+                                            :indicators="indicators"
                                             icon-pack="fa"
                                             placeholder="คลิ๊กเพื่อเปิดปฏิทิน..."
                                             icon="calendar-alt">
@@ -34,7 +36,8 @@
                             </b-select>
                         </b-field>
                         <b-field label="จุดประสงค์ในการขออนุมัติลา"
-                             message="กรณีลาพักผ่อน สามารถใส่เครื่องหมายขีด (-) ได้">
+                                 type="is-danger"
+                                 message="กรณีลาพักผ่อน สามารถใส่เครื่องหมายขีด (-) ได้">
                         <b-input type="text"
                                  name="reason"
                                  icon-pack="far"
@@ -49,7 +52,7 @@
                                  placeholder="ที่อยู่">
                             </b-input>
                         </b-field>
-                        <b-field>
+                        <b-field type="is-danger">
                             <b-input type="text"
                                name="contact_phone"
                                icon-pack="fas"
@@ -83,12 +86,26 @@
 <script>
 new Vue({
         el: '#app',
+        computed: {
+            indicators() {
+                return this.bars ? 'bars' : 'bars'
+            }
+        },
         data() {
             return {
                 selectedDates: [],
                 notifiedByLine: "yes",
+                events: [
+                    {
+                        date: new Date(2020,1, 8),
+                        type: 'is-danger'
+                    },
+                    {
+                        date: new Date(2020,1, 10),
+                        type: 'is-danger'
+                    }],
             }
-        }
+        },
     });
 </script>
 {% endblock %}
