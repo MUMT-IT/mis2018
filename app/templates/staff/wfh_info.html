@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title">Welcome {{ current_user.personal_info }}</h1>
+        <a href="{{ url_for('staff.request_work_from_home') }}" class="button" icon="laptop-house">
+            <span class="icon">
+                <i class="fas fa-laptop"></i>
+            </span>
+            <span>ขออนุญาตทำงานที่บ้าน</span>
+        </a>
+
+    </div>
+</section>
+{% endblock %}

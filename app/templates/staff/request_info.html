@@ -3,55 +3,77 @@
 {% block page_content %}
 <section class="section" id="app">
     <div class="container">
-        <h1 class="title">Welcome {{ current_user.personal_info }}</h1>
-        <h4 class="subtitle">สถานะการจ้าง {{ current_user.personal_info.employment.title }}</h4>
-        <table class="table is-striped is-fullwidth">
+        <h1 class="title">{{ quota.leave_type }}
+            <a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ลาเต็มวัน</a>
+            <a class="button is-rounded is-warning is-light" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ลาครึ่งวัน</a>
+        </h1>
+        <h4 class="subtitle">{{ current_user.personal_info }} สถานะการจ้าง {{ current_user.personal_info.employment.title }} </h4>
+        <div class="table-container">
+        <table class="table is-fullwidth">
             <thead>
-                <th>วันที่ขออนุมัติลา</th>
-                <th>ประเภทการลา</th>
-                <th>วันที่เริ่มลา</th>
-                <th>วันที่สิ้นสุดลา</th>
-                <th>เหตุผลในการลา</th>
-                <th>รวม(วัน)</th>
+                <th>วันที่เริ่มลา-สิ้นสุดลา</th>
                 <th>สถานะการอนุมัติ</th>
                 <th colspan="2"></th>
             </thead>
             <tbody>
             {% for request in leaves %}
-                <tr>
-                    <td>{{ request.created_at|localdatetime }}</td>
-                    <td>{{ request.quota.leave_type }}</td>
-                    <td>{{ request.start_datetime|localdatetime }}</td>
-                    <td>{{ request.end_datetime|localdatetime }}</td>
-                    <td>{{ request.reason }}</td>
-                    <td>{{ request.duration }}</td>
+                <tr {% if request.cancelled_at %}style="background-color: #D5DBDB  ;"{% endif %}>
+                    <td>{{ request.start_datetime|localdatetime }} - {{ request.end_datetime|localdatetime }} ({{ request.duration }} วัน)</td>
                     <td>
-                        <a class="button is-text" href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">ตรวจสอบสถานะ</a>
+                        {% if not request.cancelled_at %}
+                        <div class="field is-grouped is-grouped-multiline">
+                            <div class="control">
+                                <div class="tags has-addons">
+                                    <a class="button is-text" href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
+                                        <span class="tag is-dark">อนุมัติ</span>
+                                        <span class="tag is-info">{{ request.get_approved|length }}</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="control">
+                                <div class="tags has-addons">
+                                    <a class="button is-text" href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
+                                    <span class="tag is-dark">ไม่อนุมัติ</span>
+                                    <span class="tag is-danger">{{ request.get_unapproved|length }}</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <span class="is-light">ยกเลิกลา</span>
+                        {% endif %}
                     </td>
-                    {% if not request.cancelled_at %}
                     <td>
                         <b-tooltip label="แก้ไขการลา" type="is-light">
-                        <a class="button is-light" href="{{ url_for('staff.edit_leave_request', req_id=request.id) }}">
+                        <a class="button" href="{{ url_for('staff.edit_leave_request', req_id=request.id) }}"
+                        {% if request.cancelled_at %}
+                           disabled
+                           {% elif request.approvals %}
+                           disabled
+                           {% endif %}
+                        >
                         <span class="icon">
-                            <i class="fas fa-pencil-alt"></i>
+                            <i class="fas fa-pencil-alt has-text-dark"></i>
                         </span>
                         </a>
                         </b-tooltip>
                         <b-tooltip label="ยกเลิกการลา" type="is-light">
-                        <a class="button is-danger" @click="confirmCustomDelete({{ request.id }})">
+                        <a class="button" @click="confirmCustomDelete({{ request.id }})"
+                        {% if request.cancelled_at %}
+                           disabled
+                           {% endif %}
+                        >
                         <span class="icon">
-                            <i class="fas fa-window-close"></i>
+                            <i class="fas fa-trash has-text-danger"></i>
                         </span>
                         </a>
                         </b-tooltip>
                     </td>
-                    {% else %}
-                    <td>ยกเลิกการลานี้แล้ว</td>
-                    {% endif %}
                 </tr>
             {% endfor %}
             </tbody>
         </table>
+        </div>
         <a class="button is-rounded is-info is-light" href="{{ url_for('staff.show_leave_info') }}">
              <span class="icon">
                 <i class="fas fa-arrow-left"></i>
