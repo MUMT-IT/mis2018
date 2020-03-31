@@ -214,6 +214,9 @@ def edit_record(record_id):
         profile_item_cost += float(profile.quote)
 
     if request.method == 'POST':
+        selfpay_items = request.form.getlist('profile_selfpay')
+        print(selfpay_items)
+        return 'Done.'
         if request.form.get('phone'):
             record.customer.phone = request.form.get('phone')
         if not record.customer.dob and request.form.get('dob'):
