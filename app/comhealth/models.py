@@ -229,6 +229,9 @@ class ComHealthTestProfile(db.Model):
     def __str__(self):
         return self.name
 
+    def __len__(self):
+        return len(self.test_items)
+
     @property
     def quote_price(self):
         total_price = 0
@@ -277,8 +280,19 @@ class ComHealthTestItem(db.Model):
     group_id = db.Column('group_id', db.ForeignKey('comhealth_test_groups.id'))
     group = db.relationship('ComHealthTestGroup', backref=db.backref('test_items'))
 
-    price = db.Column('price', db.Numeric())
+    price_ = db.Column('price', db.Numeric())
     receipts = association_proxy('invoices', 'receipt')
+
+    @property
+    def price(self):
+        if self.price_ is None:
+            return self.test.default_price
+        else:
+            return self.price_
+
+    @price.setter
+    def price(self, price):
+        self.price_ = price
 
 
 class ComHealthTestProfileItem(db.Model):
@@ -343,8 +357,12 @@ class ComHealthReceipt(db.Model):
     cashier_id = db.Column('cashier_id', db.ForeignKey('comhealth_cashier.id'))
     cashier = db.relationship('ComHealthCashier', foreign_keys=[cashier_id])
     payment_method = db.Column('payment_method', db.String(64))
+    paid_amount = db.Column('paid_amount', db.Numeric(), default=0.0)
     card_number = db.Column('card_number', db.String(16))
     print_profile_note = db.Column('print_profile_note', db.Boolean(), default=False)
+    print_profile_how = db.Column('print_profile_how', db.String(), default=False)
+    issued_for = db.Column('issued_for', db.String())
+    address = db.Column('address', db.Text())
 
 
 class ComHealthReferenceTestProfile(db.Model):

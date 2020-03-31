@@ -46,7 +46,6 @@
             <div class="column">
                 <h1 class="title">ใบเสร็จรับเงิน</h1>
                 <h1 class="subtitle">กรุณาตรวจสอบรายละเอียดเพื่อการออกใบเสร็จรับเงิน</h1>
-                {% if not valid_receipts %}
                 <h1 class="title is-4">รายการตรวจเหมาจ่าย</h1>
                 <form method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -65,12 +64,27 @@
                         <td></td>
                         <td></td>
                         <td></td>
-                        <td><input class="is-checkradio is-info"
-                                   id="all_reimbursable" type="checkbox"/> All</td>
-                        <td><input class="is-checkradio is-info" checked
-                                   id="all_billed" type="checkbox"/> All</td>
-                        <td><input class="is-checkradio is-info" checked
-                                   id="all_visible" type="checkbox"/> All</td>
+                        <td>
+                            <div class="field">
+                                <input class="is-checkradio is-info"
+                                       id="all_reimbursable" checked type="checkbox"/>
+                                <label for="all_reimbursable">All</label>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="field">
+                                <input class="is-checkradio is-info"
+                                       checked id="all_billed" type="checkbox"/>
+                                <label for="all_billed">All</label>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="field">
+                                <input class="is-checkradio is-info"
+                                       checked id="all_visible" type="checkbox"/>
+                                <label for="all_visible">All</label>
+                            </div>
+                        </td>
                     </tr>
                     {% for ti in record.ordered_tests %}
                     {% if ti.profile %}
@@ -80,30 +94,27 @@
                         <td>{{ ti.test.default_price|moneyformat }}</td>
                         <td>
                             <div class="field">
-                                <input class="is-checkradio is-info"
-                                       id="{{ ti.test.code }}_reimbursable_profile" value="yes"
+                                <input class="is-checkradio is-info reimbursable"
+                                       checked id="{{ ti.test.code }}_reimbursable_profile" value="yes"
                                        type="checkbox" name="{{ ti.test.code }}_reimbursable"
-                                       {% if ti.test.id in ref_profile_test_ids %}
-                                       checked
-                                       {% endif %}
                                 />
-                                <label for="{{ ti.test.code }}_reimbursable">เบิกได้</label>
+                                <label for="{{ ti.test.code }}_reimbursable_profile">เบิกได้</label>
                             </div>
                         </td>
                         <td>
                             <div class="field">
-                                <input class="is-checkradio is-info"
-                                    id="{{ ti.test.code }}_billed_profile" value="yes" checked
+                                <input class="is-checkradio is-info billed" checked
+                                    id="{{ ti.test.code }}_billed_profile" value="yes"
                                     type="checkbox" name="{{ ti.test.code }}_billed"/>
-                                <label for="{{ ti.test.code }}_billed">รวมจำนวนเงิน</label>
+                                <label for="{{ ti.test.code }}_billed_profile">รวมจำนวนเงิน</label>
                             </div>
                         </td>
                         <td>
                             <div class="field">
-                                <input class="is-checkradio is-info"
-                                    id="{{ ti.test.code }}_visible_profile" value="yes" checked
+                                <input class="is-checkradio is-info visible" checked
+                                    id="{{ ti.test.code }}_visible_profile" value="yes"
                                     type="checkbox" name="{{ ti.test.code }}_visible"/>
-                                <label for="{{ ti.test.code }}_visible">แสดงรายการ</label>
+                                <label for="{{ ti.test.code }}_visible_profile">แสดงรายการ</label>
                             </div>
                         </td>
                     </tr>
@@ -113,15 +124,15 @@
                 </table>
                 <div class="field">
                     <input class="is-checkradio is-info"
-                           id="print_profile_items"
-                           value="yes" type="checkbox" name="print_profile_items"/>
-                    <label for="print_profile_items">แสดงรายการตรวจปกติทุกรายการ</label>
+                           id="profile_items"
+                           value="individual" type="radio" name="print_profile"/>
+                    <label for="profile_items">แสดงรายการตรวจปกติทุกรายการ</label>
                 </div>
                 <div class="field">
                     <input class="is-checkradio is-info"
-                           id="print_profile_note"
-                           value="profile_note" type="checkbox" name="print_profile_note"/>
-                    <label for="print_profile_note">แสดงรายการตรวจปกติแบบรวม</label>
+                           id="profile_consolidated"
+                           value="consolidated" type="radio" name="print_profile"/>
+                    <label for="profile_consolidated">แสดงรายการตรวจปกติแบบรวม (ตรวจสุขภาพ)</label>
                 </div>
                 <h1 class="title is-4">รายการตรวจพิเศษ</h1>
                 <table class="table is-narrow">
@@ -170,35 +181,56 @@
                     {% endif %}
                     {% endfor %}
                 </table>
-                {% endif %}
-                    <div class="field">
-                        <label class="label">ผู้ออกใบเสร็จ</label>
-                        <div class="control">
-                            <div class="select">
-                                <select name="issuer_id">
-                                    {% for issuer in cashiers %}
-                                    <option value="{{ issuer.id }}">{{ issuer.staff.personal_info }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">ผู้รับเงิน</label>
-                        <div class="control">
-                            <div class="select">
-                                <select name="cashier_id">
-                                    {% for cashier in cashiers %}
-                                    <option value="{{ cashier.id }}">{{ cashier.staff.personal_info }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                <input class="button is-success" type="submit"/>
-                </form>
             </div>
         </div>
+        <div class="columns">
+            <div class="column is-two-thirds">
+                <div class="field">
+                    <label class="label">ออกใบเสร็จในนาม</label>
+                    <div class="control">
+                        <input type="text" class="input"
+                               name="issued_for"
+                               placeholder="ถ้าว่างแสดงชื่อลูกค้าในใบเสร็จ">
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">ที่อยู่ในใบเสร็จรับเงิน</label>
+                    <div class="control">
+                        <input type="textarea" class="textarea" name="receipt_address">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds">
+                <div class="field">
+                    <label class="label">ผู้ออกใบเสร็จ</label>
+                    <div class="control">
+                        <div class="select">
+                            <select name="issuer_id">
+                                {% for issuer in cashiers %}
+                                <option value="{{ issuer.id }}">{{ issuer.staff.personal_info }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">ผู้รับเงิน</label>
+                    <div class="control">
+                        <div class="select">
+                            <select name="cashier_id">
+                                {% for cashier in cashiers %}
+                                <option value="{{ cashier.id }}">{{ cashier.staff.personal_info }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <input class="button is-success" type="submit"/>
+            </div>
+        </div>
+        </form>
         </div>
     </section>
 {% endblock %}
@@ -206,25 +238,58 @@
     {{ super() }}
     <script type="text/javascript">
         $(document).ready(function() {
-            $("#all_reimbursable").change(function() {
+            $("#all_reimbursable").on('click', function() {
                 if (this.checked) {
-                    $(":checkbox[id$=reimbursable_profile]").attr('checked', true);
+                    $(".reimbursable").each(function() {
+                        this.checked = true;
+                    });
                 } else {
-                    $(":checkbox[id$=reimbursable_profile]").attr('checked', false);
+                    $(".reimbursable").each(function() {
+                        this.checked = false;
+                    });
                 }
             });
-            $("#all_billed").change(function() {
-                if (this.checked) {
-                    $(":checkbox[id$=billed_profile]").attr('checked', true);
-                } else {
-                    $(":checkbox[id$=billed_profile]").attr('checked', false);
+            $(".reimbursable").on("click",function(){
+                if($(".reimbursable:checked").length == $(".reimbursable").length){
+                    $("#all_reimbursable").attr("checked",true);
+                }else{
+                    $("#all_reimbursable").attr("checked",false);
                 }
             });
-            $("#all_visible").change(function() {
+            $("#all_billed").on('click', function() {
                 if (this.checked) {
-                    $(":checkbox[id$=visible_profile]").attr('checked', true);
+                    $(".billed").each(function() {
+                        this.checked = true;
+                    });
                 } else {
-                    $(":checkbox[id$=visible_profile]").attr('checked', false);
+                    $(".billed").each(function() {
+                        this.checked = false;
+                    });
+                }
+            });
+            $(".billed").on("click",function(){
+                if($(".billed:checked").length == $(".billed").length){
+                    $("#all_billed").attr("checked",true);
+                }else{
+                    $("#all_billed").attr("checked",false);
+                }
+            });
+            $("#all_visible").on('click', function() {
+                if (this.checked) {
+                    $(".visible").each(function() {
+                        this.checked = true;
+                    });
+                } else {
+                    $(".visible").each(function() {
+                        this.checked = false;
+                    });
+                }
+            });
+            $(".visible").on("click",function(){
+                if($(".visible:checked").length == $(".visible").length){
+                    $("#all_visible").attr("checked",true);
+                }else{
+                    $("#all_visible").attr("checked",false);
                 }
             });
         });
