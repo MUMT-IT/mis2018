@@ -1,6 +1,7 @@
 alembic==0.9.6
 appnope==0.1.0
 APScheduler==3.6.3
+arrow==0.15.5
 asn1crypto==0.24.0
 astroid==1.6.3
 backports-abc==0.5
