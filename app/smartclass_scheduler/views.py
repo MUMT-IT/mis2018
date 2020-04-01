@@ -24,8 +24,8 @@ def list_resources(resource_type_id):
                            resource_type_id=resource_type_id)
 
 
-@smartclass.route('/api/online_account_events/<int:resource_type_id>')
-def get_online_account_events(resource_type_id):
+@smartclass.route('/api/resources/<int:resource_type_id>/events')
+def get_events(resource_type_id):
     events = SmartClassOnlineAccountEvent.query.filter(
         SmartClassOnlineAccountEvent.account.has(resource_type_id=resource_type_id)
     )
@@ -45,8 +45,8 @@ def get_online_account_events(resource_type_id):
     return jsonify(event_data)
 
 
-@smartclass.route('/api/online_account_resources')
-def get_online_account_resources():
+@smartclass.route('/api/resources')
+def get_resources():
     accounts = SmartClassOnlineAccount.query.all()
     account_data = []
     for a in accounts:
@@ -59,8 +59,8 @@ def get_online_account_resources():
     return jsonify(account_data)
 
 
-@smartclass.route('/online_accounts/event/new', methods=['GET', 'POST'])
-def add_online_account_event():
+@smartclass.route('/event/new', methods=['GET', 'POST'])
+def add_event():
     account_id = request.args.get('account_id')
     account = SmartClassOnlineAccount.query.get(int(account_id))
     if not account:
@@ -78,21 +78,22 @@ def add_online_account_event():
             db.session.add(new_event)
             db.session.commit()
             flash('The new request has been submitted.', 'success')
-            return redirect(url_for('smartclass_scheduler.list_online_accounts'))
+            return redirect(url_for('smartclass_scheduler.list_resources',
+                                    resource_type_id=account.resource_type.id))
 
     return render_template('smartclass_scheduler/add_online_account_event.html',
                            form=form,
                            account_id=account_id)
 
 
-@smartclass.route('/online_accounts/events/<int:event_id>')
-def show_online_account_event(event_id):
+@smartclass.route('/events/<int:event_id>')
+def show_event_detail(event_id):
     event = SmartClassOnlineAccountEvent.query.get(event_id)
     return render_template('smartclass_scheduler/online_account_event_detail.html', event=event)
 
 
-@smartclass.route('/online_accounts/event/<int:event_id>/edit', methods=['GET', 'POST'])
-def edit_online_account_event(event_id):
+@smartclass.route('/event/<int:event_id>/edit', methods=['GET', 'POST'])
+def edit_event(event_id):
     event = SmartClassOnlineAccountEvent.query.get(event_id)
     form = SmartClassOnlineAccountEventForm(obj=event)
     if request.method == 'POST':
@@ -104,11 +105,11 @@ def edit_online_account_event(event_id):
             db.session.add(event)
             db.session.commit()
             flash('The event has been updated.', 'success')
-            return redirect(url_for('smartclass_scheduler.show_online_account_event', event_id=event.id))
+            return redirect(url_for('smartclass_scheduler.show_event_detail', event_id=event.id))
     return render_template('smartclass_scheduler/edit_online_account_event.html', form=form, event=event)
 
 
-@smartclass.route('/online_accounts/event/<int:event_id>/cancel')
+@smartclass.route('/event/<int:event_id>/cancel')
 def cancel_event(event_id):
     event = SmartClassOnlineAccountEvent.query.get(event_id)
     if event:

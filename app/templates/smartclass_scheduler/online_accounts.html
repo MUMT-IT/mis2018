@@ -53,7 +53,7 @@
                     </div>
                     <div class="card-footer">
                         <div class="card-footer-item">
-                            <form method="get" action="{{ url_for('smartclass_scheduler.add_online_account_event') }}">
+                            <form method="get" action="{{ url_for('smartclass_scheduler.add_event') }}">
                                 <div class="field is-horizontal">
                                     <div class="field-label is-normal">
                                         <label class="label">Account</label>
@@ -117,9 +117,9 @@
             header: {
                 left: 'title',
             },
-            events: "{{ url_for('smartclass_scheduler.get_online_account_events', resource_type_id=resource_type_id) }}",
+            events: "{{ url_for('smartclass_scheduler.get_events', resource_type_id=resource_type_id) }}",
             eventLimit: true,
-            resources: "{{ url_for('smartclass_scheduler.get_online_account_resources') }}",
+            resources: "{{ url_for('smartclass_scheduler.get_resources') }}",
             resourceLabelText: 'Account',
             resourceGroupField: 'resource_type',
             resourceAreaWidth: '10%',
@@ -133,7 +133,7 @@
             ],
             slotWidth: 5,
             eventClick: function(calEvent, jsEvent, view) {
-                window.location = '/smartclass/online_accounts/events/' + calEvent.id;
+                window.location = '/smartclass/events/' + calEvent.id;
             }
         });
     });
