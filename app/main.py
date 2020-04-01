@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 import os
 import click
+import arrow
 import requests
 from pytz import timezone
 from flask.cli import AppGroup
@@ -371,6 +372,9 @@ def local_datetime(dt):
     datetime_format = '%d/%m/%Y %H:%M'
     return dt.astimezone(bangkok).strftime(datetime_format)
 
+@app.template_filter("humanizedt")
+def humanize_datetime(dt):
+    return arrow.get(dt).humanize()
 
 @app.template_filter("localdate")
 def local_datetime(dt):

@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Online Account Event Detail{% endblock %}
+{% include "smartclass_scheduler/nav.html" %}
+{% block page_content %}
+<section class="hero is-link">
+    <div class="hero-body">
+        <h1 class="title is-size-4">MUMT-MIS</h1>
+        <h1 class="subtitle is-size-5">ระบบบริหารจัดการทรัพยากร Online Learning และ Smart Classroom</h1>
+    </div>
+</section>
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                  {% if messages %}
+                    {% for category, message in messages %}
+                      <p class="notification is-{{ category }}">{{ message }}</p>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                <div class="card">
+                    <div class="card-image">
+                        <figure class="image is-3by2">
+                            <img src="{{ url_for('static', filename='img/meeting.jpg') }}">
+                        </figure>
+                    </div>
+                    <div class="card-content">
+                        <div class="content">
+                            <p><span class="title is-3">{{ event.account.resource_type }}</span></p>
+                            <p>
+                                <span class="title is-4">{{ event.title }}</span>
+                            </p>
+                            <p>
+                                <span class="icon">
+                                    <i class="far fa-id-badge"></i>
+                                </span>
+                                <span>
+                                    บัญชี {{ event.account.name }}
+                                </span>
+                            </p>
+                            <p>
+                                    <span class="subtitle is-6">
+                                        <span class="icon">
+                                            <i class="far fa-clock"></i>
+                                        </span>
+                                            &nbsp;{{ event.start.strftime('%d/%m/%Y') }} {{ event.start.strftime('%H:%M') }}
+                                        ถึง {{ event.end.strftime('%d/%m/%Y') }} {{ event.end.strftime('%H:%M') }}
+                                    </span>
+                            </p>
+                            <p>
+                                <span class="icon">
+                                    <i class="fas fa-users"></i>
+                                </span>
+                                <span class="subtitle is-6">
+                                    &nbsp;{{ event.occupancy }} คน
+                                </span>
+                            </p>
+                            <p>
+                                <span class="icon">
+                                    <i class="fas fa-edit"></i>
+                                </span>
+                                <span class="subtitle is-6">
+                                        &nbsp;แก้ไขเมื่อ {{ event.updated_at|humanizedt }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    <footer class="card-footer">
+                        <a href="{{ url_for('smartclass_scheduler.list_resources', resource_type_id=event.account.resource_type.id) }}"
+                           class="card-footer-item">
+                            <span class="icon">
+                               <i class="fas fa-chevron-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
+                        <a href="{{ url_for('smartclass_scheduler.edit_online_account_event', event_id=event.id) }}"
+                           class="card-footer-item">
+                            <span class="icon">
+                                <i class="fas fa-edit"></i>
+                            </span>
+                            <span>แก้ไข</span>
+                        </a>
+                        <a id="cancelButton"
+                           class="card-footer-item">
+                            <span class="icon has-text-danger">
+                                <i class="far fa-trash-alt"></i>
+                            </span>
+                            <span class="has-text-danger">ยกเลิก</span></a>
+                    </footer>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock page_content %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(function() {
+        $('#cancelButton').on('click', function() {
+            if(window.confirm('You really wanna cancel this this?')) {
+                window.location.href = "{{ url_for('smartclass_scheduler.cancel_event', event_id=event.id) }}";
+            }
+        });
+    });
+</script>
+{% endblock %}

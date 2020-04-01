@@ -17,7 +17,7 @@
                         Resources
                     </div>
                     {% for rsc in resources %}
-                    <a class="panel-block" href="{{ url_for('smartclass_scheduler.list_online_accounts', resouce_type_id=rsc.id) }}">
+                    <a class="panel-block" href="{{ url_for('smartclass_scheduler.list_resources', resource_type_id=rsc.id) }}">
                         <span class="panel-icon">
                             <i class="fas fa-wifi"></i>
                         </span>

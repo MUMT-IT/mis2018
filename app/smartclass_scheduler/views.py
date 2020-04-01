@@ -4,6 +4,7 @@ from .models import SmartClassOnlineAccount, SmartClassOnlineAccountEvent, Smart
 from .forms import SmartClassOnlineAccountEventForm
 from app.main import db
 import arrow
+from datetime import datetime
 from dateutil import tz
 
 localtz = tz.gettz('Asia/Bangkok')
@@ -15,11 +16,12 @@ def index():
     return render_template('smartclass_scheduler/index.html', resources=resources)
 
 
-@smartclass.route('/zoom_accounts')
-def list_online_accounts():
+@smartclass.route('/resources/<int:resource_type_id>')
+def list_resources(resource_type_id):
     accounts = SmartClassOnlineAccount.query.all()
     return render_template('smartclass_scheduler/online_accounts.html',
-                           resource_type_id=1, accounts=accounts)
+                           accounts=accounts,
+                           resource_type_id=resource_type_id)
 
 
 @smartclass.route('/api/online_account_events/<int:resource_type_id>')
@@ -29,16 +31,17 @@ def get_online_account_events(resource_type_id):
     )
     event_data = []
     for evt in events:
-        event_data.append({
-            'id': evt.id,
-            'start': evt.start.isoformat(),
-            'end': evt.end.isoformat(),
-            'title': evt.title,
-            'account': evt.account.name,
-            'occupancy': evt.occupancy,
-            'resourceId': evt.account.id,
-            'resourceType': str(evt.account.resource_type)
-        })
+        if not evt.cancelled_at:
+            event_data.append({
+                'id': evt.id,
+                'start': evt.start.isoformat(),
+                'end': evt.end.isoformat(),
+                'title': evt.title,
+                'account': evt.account.name,
+                'occupancy': evt.occupancy,
+                'resourceId': evt.account.id,
+                'resourceType': str(evt.account.resource_type)
+            })
     return jsonify(event_data)
 
 
@@ -68,14 +71,54 @@ def add_online_account_event():
         if form.validate_on_submit():
             new_event = SmartClassOnlineAccountEvent()
             form.populate_obj(new_event)
-            new_event.start = new_event.start
-            new_event.end = new_event.end
+            # probably not needed, but to make sure
+            new_event.start = arrow.get(new_event.start, 'Asia/Bangkok').datetime
+            new_event.end = arrow.get(new_event.end, 'Asia/Bangkok').datetime
             new_event.account = account
             db.session.add(new_event)
             db.session.commit()
             flash('The new request has been submitted.', 'success')
-            return redirect(url_for('smartclass_scheduler.zoom_accounts'))
+            return redirect(url_for('smartclass_scheduler.list_online_accounts'))
 
     return render_template('smartclass_scheduler/add_online_account_event.html',
                            form=form,
                            account_id=account_id)
+
+
+@smartclass.route('/online_accounts/events/<int:event_id>')
+def show_online_account_event(event_id):
+    event = SmartClassOnlineAccountEvent.query.get(event_id)
+    return render_template('smartclass_scheduler/online_account_event_detail.html', event=event)
+
+
+@smartclass.route('/online_accounts/event/<int:event_id>/edit', methods=['GET', 'POST'])
+def edit_online_account_event(event_id):
+    event = SmartClassOnlineAccountEvent.query.get(event_id)
+    form = SmartClassOnlineAccountEventForm(obj=event)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(event)
+            # need to convert a naive to a timezone-aware datetime
+            event.start = arrow.get(event.start, 'Asia/Bangkok').datetime
+            event.end = arrow.get(event.end, 'Asia/Bangkok').datetime
+            db.session.add(event)
+            db.session.commit()
+            flash('The event has been updated.', 'success')
+            return redirect(url_for('smartclass_scheduler.show_online_account_event', event_id=event.id))
+    return render_template('smartclass_scheduler/edit_online_account_event.html', form=form, event=event)
+
+
+@smartclass.route('/online_accounts/event/<int:event_id>/cancel')
+def cancel_event(event_id):
+    event = SmartClassOnlineAccountEvent.query.get(event_id)
+    if event:
+        event.cancelled_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(event)
+        db.session.commit()
+        flash('The event has been cancelled.', 'success')
+        return redirect(url_for('smartclass_scheduler.list_resources',
+                                resource_type_id=event.account.resource_type.id))
+    else:
+        flash('Resource not found.', 'warning')
+        return redirect(url_for('smartclass_scheduler.list_resources',
+                                resource_type_id=event.account.resource_type.id))

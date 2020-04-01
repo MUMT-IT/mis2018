@@ -35,6 +35,17 @@
             </div>
         </div>
         <div class="columns">
+            <div class="column">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <p class="notification is-{{ category }}">{{ message }}</p>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+        <div class="columns">
             <div class="column is-one-third is-offset-4">
                 <div class="card">
                     <div class="card-content">
@@ -122,7 +133,7 @@
             ],
             slotWidth: 5,
             eventClick: function(calEvent, jsEvent, view) {
-                window.location = '/room/events/' + calEvent.id;
+                window.location = '/smartclass/online_accounts/events/' + calEvent.id;
             }
         });
     });
