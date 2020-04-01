@@ -72,8 +72,8 @@ def add_event():
             new_event = SmartClassOnlineAccountEvent()
             form.populate_obj(new_event)
             # probably not needed, but to make sure
-            new_event.start = arrow.get(new_event.start, 'Asia/Bangkok').datetime
-            new_event.end = arrow.get(new_event.end, 'Asia/Bangkok').datetime
+            new_event.start = localtz.localize(new_event.start)
+            new_event.end = localtz.localize(new_event.end)
             new_event.account = account
             db.session.add(new_event)
             db.session.commit()
@@ -100,8 +100,8 @@ def edit_event(event_id):
         if form.validate_on_submit():
             form.populate_obj(event)
             # need to convert a naive to a timezone-aware datetime
-            event.start = arrow.get(event.start, 'Asia/Bangkok').datetime
-            event.end = arrow.get(event.end, 'Asia/Bangkok').datetime
+            event.start = localtz.localize(event.start)
+            event.end = localtz.localize(event.end)
             db.session.add(event)
             db.session.commit()
             flash('The event has been updated.', 'success')
