@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Resource List{% endblock %}
+{% include "smartclass_scheduler/nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                <h1 class="title is-size-4 has-text-centered">แบบบันทึกการใช้งานบัญชีออนไลน์</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-3">
+                <form method="post" id="app" class="box">
+                    {{ form.hidden_tag() }}
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">{{ form.title.label }}</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    {{ form.title(class="input") }}
+                                    <span class="icon is-small is-left">
+                                        <i class="far fa-comment-dots"></i>
+                                    </span>
+                                    <p class="help">โปรดใส่ชื่อรายวิชาหรือกิจกรรม เช่นประชุมส่วนงาน เป็นต้น</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">{{ form.start.label }}</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.start(class="input") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">{{ form.end.label }}</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.end(class="input") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">{{ form.note.label }}</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.note(class="textarea") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label"></div>
+                        <div class="field-body">
+                            <div class="field is-grouped">
+                                <div class="control">
+                                    <button class="button is-info" type="submit">Submit</button>
+                                </div>
+                                <div class="control">
+                                    <a href="{{ request.referrer }}" class="button is-danger">Cancel</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock page_content %}
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    $('input[name="start"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: true,
+        timePickerIncrement: 15,
+        timePicker24Hour: true,
+        startDate: moment().startOf('hour'),
+        endDate: moment().startOf('hour').add(32, 'hour'),
+        locale: {
+            format: 'YYYY-MM-DD HH:mm:ss'
+        }
+    });
+    $('input[name="end"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: true,
+        timePickerIncrement: 15,
+        timePicker24Hour: true,
+        startDate: moment().startOf('hour'),
+        endDate: moment().startOf('hour').add(32, 'hour'),
+        locale: {
+            format: 'YYYY-MM-DD HH:mm:ss'
+        }
+    });
+</script>
+{% endblock %}

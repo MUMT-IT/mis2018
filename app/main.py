@@ -273,9 +273,13 @@ admin.add_view(ComHealthDepartmentModelView(ComHealthDepartment, db.session, cat
 
 from smartclass_scheduler import smartclass_scheduler_blueprint
 app.register_blueprint(smartclass_scheduler_blueprint, url_prefix='/smartclass')
-from smartclass_scheduler.models import ZoomAccount
+from smartclass_scheduler.models import (SmartClassOnlineAccount,
+                                         SmartClassResourceType,
+                                         SmartClassOnlineAccountEvent)
 
-admin.add_view(ModelView(ZoomAccount, db.session, category='Smartclass'))
+admin.add_view(ModelView(SmartClassOnlineAccount, db.session, category='Smartclass'))
+admin.add_view(ModelView(SmartClassResourceType, db.session, category='Smartclass'))
+admin.add_view(ModelView(SmartClassOnlineAccountEvent, db.session, category='Smartclass'))
 
 from comhealth.views import CustomerEmploymentTypeUploadView
 
