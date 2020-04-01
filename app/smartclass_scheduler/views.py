@@ -5,9 +5,9 @@ from .forms import SmartClassOnlineAccountEventForm
 from app.main import db
 import arrow
 from datetime import datetime
-from dateutil import tz
+from pytz import timezone
 
-localtz = tz.gettz('Asia/Bangkok')
+localtz = timezone('Asia/Bangkok')
 
 
 @smartclass.route('/')
@@ -34,8 +34,8 @@ def get_events(resource_type_id):
         if not evt.cancelled_at:
             event_data.append({
                 'id': evt.id,
-                'start': evt.start.isoformat(),
-                'end': evt.end.isoformat(),
+                'start': evt.start.astimezone(localtz).isoformat(),
+                'end': evt.end.astimezone(localtz).isoformat(),
                 'title': evt.title,
                 'account': evt.account.name,
                 'occupancy': evt.occupancy,
