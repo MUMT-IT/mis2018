@@ -37,6 +37,12 @@
                             </p>
                             <p>
                                 <span class="icon">
+                                       <i class="far fa-user"></i>
+                                </span>
+                                <span>{{ event.creator or "ไม่ระบุ" }} ลงทะเบียนเมื่อ {{ event.created_at|humanizedt }}</span>
+                            </p>
+                            <p>
+                                <span class="icon">
                                     <i class="far fa-id-badge"></i>
                                 </span>
                                 <span>
