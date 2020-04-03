@@ -9,6 +9,17 @@
 <section class="section">
     <div class="container">
         <div class="columns">
+            <div class="column is-half is-offset-3">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <p class="notification is-{{ category }}">{{ message }}</p>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+        <div class="columns">
             <div class="column">
                 <h1 class="title is-size-4 has-text-centered">แบบบันทึกการใช้งาน</h1>
             </div>

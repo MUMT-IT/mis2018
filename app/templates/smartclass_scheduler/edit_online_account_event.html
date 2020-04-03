@@ -9,7 +9,18 @@
 <section class="section">
     <div class="container">
         <div class="columns">
-            <div class="column">
+            <div class="column is-half is-offset-3">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <p class="notification is-{{ category }}">{{ message }}</p>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-3">
                 <h1 class="title is-size-4 has-text-centered">แบบบันทึกการใช้งานบัญชีออนไลน์</h1>
             </div>
         </div>
@@ -133,7 +144,7 @@
         timePicker: true,
         timePickerIncrement: 15,
         timePicker24Hour: true,
-        startDate: {{ event.start.isoformat()|tojson|safe }},
+        startDate: {{ start.isoformat()|tojson|safe }},
         locale: {
             format: 'YYYY-MM-DD HH:mm:ss'
         }
@@ -143,7 +154,7 @@
         timePicker: true,
         timePickerIncrement: 15,
         timePicker24Hour: true,
-        startDate: {{ event.end.isoformat()|tojson|safe }},
+        startDate: {{ end.isoformat()|tojson|safe }},
         locale: {
             format: 'YYYY-MM-DD HH:mm:ss'
         }
