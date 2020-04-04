@@ -108,7 +108,7 @@
 <script>
     $(function() {
         $('#cancelButton').on('click', function() {
-            if(window.confirm('You really wanna cancel this this?')) {
+            if(window.confirm('ท่านแน่ใจว่าต้องการยกเลิกรายการจองนี้หรือไม่?')) {
                 window.location.href = "{{ url_for('smartclass_scheduler.cancel_event', event_id=event.id) }}";
             }
         });
