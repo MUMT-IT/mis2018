@@ -123,7 +123,8 @@
                                     <button class="button is-info" type="submit">Submit</button>
                                 </div>
                                 <div class="control">
-                                    <a href="{{ request.referrer }}" class="button is-danger">Cancel</a>
+                                    <a href="{{ url_for('smartclass_scheduler.list_resources', resource_type_id=resource_type_id) }}"
+                                       class="button is-danger">Cancel</a>
                                 </div>
                             </div>
                         </div>

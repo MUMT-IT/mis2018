@@ -66,27 +66,24 @@ def get_overlaps(account, start, end):
     overlaps = []
     # check for inner overlaps
     for ol in SmartClassOnlineAccountEvent.query.filter(and_(
-            SmartClassOnlineAccountEvent.start >= start,
-            SmartClassOnlineAccountEvent.end <= end)):
+            start >= SmartClassOnlineAccountEvent.start,
+            end <= SmartClassOnlineAccountEvent.end)):
         if ol.account.id == account.id and not ol.cancelled_at:
-            print(ol.account, ol.start, ol.end, 'inner')
             overlaps.append(ol)
 
     # check for outer overlaps
     for ol in SmartClassOnlineAccountEvent.query.filter(and_(
             start <= SmartClassOnlineAccountEvent.start,
-            end >= SmartClassOnlineAccountEvent.start,
+            end > SmartClassOnlineAccountEvent.start,
             end <= SmartClassOnlineAccountEvent.end)):
         if ol.account.id == account.id and not ol.cancelled_at:
-            print(ol.account, ol.start, ol.end, 'left outer')
             overlaps.append(ol)
 
     for ol in SmartClassOnlineAccountEvent.query.filter(and_(
             start >= SmartClassOnlineAccountEvent.start,
             end >= SmartClassOnlineAccountEvent.end,
-            start <= SmartClassOnlineAccountEvent.end)):
+            start < SmartClassOnlineAccountEvent.end)):
         if ol.account.id == account.id and not ol.cancelled_at:
-            print(ol.account, ol.start, ol.end, 'right outer')
             overlaps.append(ol)
 
     return overlaps
@@ -127,7 +124,8 @@ def add_event():
 
     return render_template('smartclass_scheduler/add_online_account_event.html',
                            form=form,
-                           account_id=account_id)
+                           account_id=account_id,
+                           resource_type_id=account.resource_type.id)
 
 
 @smartclass.route('/events/<int:event_id>')
