@@ -4,6 +4,7 @@ import click
 import arrow
 import requests
 from pytz import timezone
+from dateutil import tz
 from flask.cli import AppGroup
 from dotenv import load_dotenv
 from flask import Flask, render_template
@@ -374,7 +375,7 @@ def local_datetime(dt):
 
 @app.template_filter("humanizedt")
 def humanize_datetime(dt):
-    return arrow.get(dt).humanize()
+    return arrow.get(dt, tz.gettz('Asia/Bangkok')).humanize()
 
 @app.template_filter("localdate")
 def local_datetime(dt):
