@@ -373,9 +373,13 @@ def local_datetime(dt):
     datetime_format = '%d/%m/%Y %H:%M'
     return dt.astimezone(bangkok).strftime(datetime_format)
 
+
 @app.template_filter("humanizedt")
 def humanize_datetime(dt):
-    return arrow.get(dt, tz.gettz('Asia/Bangkok')).humanize()
+    bangkok = timezone('Asia/Bangkok')
+    dt = dt.astimezone(bangkok)
+    return arrow.get(dt).humanize()
+
 
 @app.template_filter("localdate")
 def local_datetime(dt):
@@ -388,7 +392,9 @@ def local_datetime(dt):
 def sort_test_item(tests):
     return sorted(tests, key=lambda x: x.test.name)
 
+
 import time
+
 
 @app.template_filter("tojsdatetime")
 def convert_date_to_js_datetime(select_dates):
