@@ -371,14 +371,18 @@ def money_format(value):
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
     datetime_format = '%d/%m/%Y %H:%M'
-    return dt.astimezone(bangkok).strftime(datetime_format)
+    if dt:
+        return dt.astimezone(bangkok).strftime(datetime_format)
+    else:
+        return None
 
 
 @app.template_filter("humanizedt")
 def humanize_datetime(dt):
-    bangkok = timezone('Asia/Bangkok')
-    dt = dt.astimezone(bangkok)
-    return arrow.get(dt).humanize()
+    if dt:
+        return arrow.get(dt, 'Asia/Bangkok').humanize()
+    else:
+        return None
 
 
 @app.template_filter("localdate")
