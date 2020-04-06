@@ -34,12 +34,13 @@
                             <p><span class="title is-3">{{ event.account.resource_type }}</span></p>
                             <p>
                                 <span class="title is-4">{{ event.title }}</span>
+                                <span class="subtitle is-5">จองเมื่อ {{ event.created_at|localdatetime }} น.</span>
                             </p>
                             <p>
                                 <span class="icon">
                                        <i class="far fa-user"></i>
                                 </span>
-                                <span>{{ event.creator or "ไม่ระบุ" }} ลงทะเบียนเมื่อ {{ event.created_at|humanizedt }}</span>
+                                <span>{{ event.creator or "ไม่ระบุ" }}</span>
                             </p>
                             <p>
                                 <span class="icon">
@@ -61,7 +62,11 @@
                                         <span class="icon">
                                             <i class="far fa-clock"></i>
                                         </span>
-                                            {{ event.start|localdatetime }} ถึง {{ event.end|localdatetime }}
+                                        {% if event.start.date() == event.end.date() %}
+                                            {{ event.start|localdate }} เวลา {{ event.start|localtime }} - {{ event.end|localtime }} น.
+                                        {% else %}
+                                            {{ event.start|localdatetime }} น. ถึง {{ event.end|localdatetime }} น.
+                                        {% endif %}
                                     </span>
                             </p>
                             <p>
@@ -78,7 +83,7 @@
                                     <i class="fas fa-edit"></i>
                                 </span>
                                 <span class="subtitle is-6">
-                                        &nbsp;แก้ไขเมื่อ {{ event.updated_at|humanizedt }}
+                                        &nbsp;แก้ไขเมื่อ {{ event.updated_at|localdatetime }} น.
                                 </span>
                             </p>
                             {% endif %}
