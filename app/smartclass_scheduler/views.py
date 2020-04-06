@@ -180,3 +180,9 @@ def cancel_event(event_id):
         flash('Resource not found.', 'warning')
         return redirect(url_for('smartclass_scheduler.list_resources',
                                 resource_type_id=event.account.resource_type.id))
+
+
+@smartclass.route('/logins/email/<int:event_id>')
+def show_login_email(event_id):
+    event = SmartClassOnlineAccountEvent.query.get(event_id)
+    return render_template('smartclass_scheduler/login_email.html', event=event)
