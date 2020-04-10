@@ -1,8 +1,10 @@
 # -*- coding:utf-8 -*-
-from ..main import db
+from ..main import db,ma
 from werkzeug import generate_password_hash, check_password_hash
 from datetime import datetime
 from pytz import timezone
+from marshmallow import fields
+from app.models import OrgSchema
 
 
 def local_datetime(dt):
@@ -226,21 +228,20 @@ class StaffLeaveApproval(db.Model):
                                backref=db.backref('approved_requests'))
 
 
-class StaffWorkFromHomeRequest(db.Model):
-    __tablename__ = 'staff_work_from_home_requests'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
-    start_datetime = db.Column('start_date', db.DateTime(timezone=True))
-    end_datetime = db.Column('end_date', db.DateTime(timezone=True))
-    created_at = db.Column('created_at',
-                           db.DateTime(timezone=True),
-                           default=datetime.now()
-                           )
-    contact_phone = db.Column('contact_phone', db.String())
-    detail = db.Column('detail', db.String())
-    deadline_date = db.Column('deadline_date', db.DateTime(timezone=True))
-    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+class StaffPersonalInfoSchema(ma.ModelSchema):
+    org = fields.Nested(OrgSchema)
+    class Meta:
+        model = StaffPersonalInfo
 
+
+class StaffAccountSchema(ma.ModelSchema):
+    personal_info = fields.Nested(StaffPersonalInfoSchema)
+
+
+class StaffLeaveRequestSchema(ma.ModelSchema):
+    staff = fields.Nested(StaffAccountSchema)
+    class Meta:
+        model = StaffLeaveRequest
 
 
 
