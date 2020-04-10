@@ -2,7 +2,7 @@
 from flask_login import login_required, current_user
 
 from models import (StaffAccount, StaffPersonalInfo,
-                    StaffLeaveRequest, StaffLeaveQuota, StaffLeaveApprover, StaffLeaveApproval, StaffLeaveType)
+                    StaffLeaveRequest, StaffLeaveQuota, StaffLeaveApprover, StaffLeaveApproval, StaffLeaveType, StaffWorkFromHomeRequest, StaffLeaveRequestSchema)
 from . import staffbp as staff
 from app.main import db
 from flask import jsonify, render_template, request, redirect, url_for, flash
@@ -368,13 +368,15 @@ def show_leave_approval_info_each_person(requester_id):
     return render_template('staff/leave_request_approved_each_person.html',requester=requester)
 
 
-@staff.route('/wfh')
+@staff.route('/leave/requests/search')
 @login_required
-def show_work_from_home():
-    return render_template('staff/wfh_info.html')
+def search_leave_request_info():
+    reqs = StaffLeaveRequest.query.all()
+    record_schema = StaffLeaveRequestSchema(many=True)
+    return jsonify(record_schema.dump(reqs).data)
 
 
-@staff.route('/wfh/request')
+@staff.route('/leave/requests')
 @login_required
-def request_work_from_home():
-    return render_template('staff/wfh_request.html')
+def leave_request_info():
+    return render_template('staff/leave_request_info.html')
