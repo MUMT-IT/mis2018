@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container"  id="app">
+        <div class="table-container">
+            <div class="columns">
+             <div class="column is-two-thirds is-offset-2">
+                    <input type="text" v-model="query" class="input is-large is-rounded"
+                           placeholder="ค้นหาชื่อหรือสังกัด">
+             </div>
+            </div>
+            <div class="columns">
+                <b-table :data="fltRecords"
+                             :paginated="true"
+                             :per-page="10"
+                             :loading="isLoading"
+                             default-sort="staff.personal_info.th_firstname">
+                    <template slot-scope="props">
+                        <b-table-column field="staff.personal_info.th_firstname" label="First Name" sortable>
+                            <% props.row.staff.personal_info.th_firstname %>
+                        </b-table-column>
+                        <b-table-column field="staff.personal_info.th_lastname" label="Last Name" sortable>
+                            <% props.row.staff.personal_info.th_lastname %>
+                        </b-table-column>
+                        <b-table-column field="staff.personal_info.org.name" label="Department" sortable>
+                            <% props.row.staff.personal_info.org.name %>
+                        </b-table-column>
+                    </template>
+                </b-table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#app",
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    records: [],
+                    fltRecords: [],
+                    query: '',
+                    isLoading: false,
+                }
+            },
+            methods: {
+                loadAsyncData: function() {
+                    var self = this;
+                    self.isLoading = true;
+                    axios.get( '{{ url_for('staff.search_leave_request_info') }}' )
+                        .then(function(response) {
+                        response.data.forEach((record) => {
+                            self.records.push(record);
+                            self.fltRecords.push(record);
+                        });
+                        self.isLoading = false;
+                    });
+                }
+            },
+            mounted() {
+                this.loadAsyncData();
+            },
+            watch: {
+                query: function () {
+                    var self = this;
+                    if (self.query !=="") {
+                        self.fltRecords = this.records.filter(function(item) {
+                            var match = item.staff.personal_info.th_firstname
+                                .toString()
+                                .toLowerCase()
+                                .indexOf(self.query.toLowerCase()) >= 0;
+                            return match;
+                        });
+                    } else {
+                        self.fltRecords = self.records;
+                    }
+                }
+            }
+        });
+    </script>
+{% endblock %}
