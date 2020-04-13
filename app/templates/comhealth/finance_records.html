@@ -21,7 +21,7 @@
             :per-page="perPage">
             <template slot-scope="props">
                 <b-table-column field="checkin_datetime" label="Checked In At" sortable>
-                    <% props.row.checkin_datetime.toLocaleString({timeZone: "UTC"}) %>
+                    <% moment(props.row.checkin_datetime.toLocaleString({timeZone: "UTC"})).format("LLL") %>
                 </b-table-column>
                 <b-table-column field="customer.firstname" label="First Name" sortable>
                     <% props.row.customer.firstname %>
