@@ -2,7 +2,8 @@
 from flask_login import login_required, current_user
 
 from models import (StaffAccount, StaffPersonalInfo,
-                    StaffLeaveRequest, StaffLeaveQuota, StaffLeaveApprover, StaffLeaveApproval, StaffLeaveType, StaffWorkFromHomeRequest, StaffLeaveRequestSchema)
+                    StaffLeaveRequest, StaffLeaveQuota, StaffLeaveApprover, StaffLeaveApproval, StaffLeaveType, StaffWorkFromHomeRequest, StaffLeaveRequestSchema,
+                    StaffWorkFromHomeJobDetail)
 from . import staffbp as staff
 from app.main import db
 from flask import jsonify, render_template, request, redirect, url_for, flash
@@ -380,3 +381,67 @@ def search_leave_request_info():
 @login_required
 def leave_request_info():
     return render_template('staff/leave_request_info.html')
+
+
+@staff.route('/wfh')
+@login_required
+def show_work_from_home():
+    req = StaffWorkFromHomeRequest.query.filter_by(staff_account_id=current_user.id).all()
+    return render_template('staff/wfh_info.html',req=req)
+
+
+@staff.route('/wfh/request',
+             methods=['GET','POST'])
+@login_required
+def request_work_from_home():
+    if request.method == 'POST':
+        form = request.form
+
+        start_dt, end_dt = form.get('dates').split(' - ')
+        start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
+        end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
+        delta = start_datetime.date() - datetime.today().date()
+        req = StaffWorkFromHomeRequest(
+                staff=current_user,
+                start_datetime=tz.localize(start_datetime),
+                end_datetime=tz.localize(end_datetime),
+                detail=form.get('detail'),
+                contact_phone=form.get('contact_phone'),
+                deadline_date=form.get('deadline_date')
+        )
+        db.session.add(req)
+        db.session.commit()
+        return redirect(url_for('staff.show_work_from_home'))
+
+    else:
+        return render_template('staff/wfh_request.html')
+
+
+@staff.route('/wfh/<int:request_id>/info',
+             methods=['GET', 'POST'])
+@login_required
+def wfh_show_request_info(request_id):
+
+    if request.method == 'POST':
+        form = request.form
+
+        req = StaffWorkFromHomeJobDetail(
+            wfh_id = request_id,
+            topic = form.get('activity')
+        )
+        db.session.add(req)
+        db.session.commit()
+        wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
+        detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
+        return render_template('staff/wfh_request_info.html', wfhreq=wfhreq, detail=detail)
+
+    else:
+        wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
+        detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
+        return render_template('staff/wfh_request_info.html', wfhreq=wfhreq, detail=detail)
+
+
+
+
+
+
