@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <h4 class="title">รายการขออนุญาตทำงานที่บ้าน</h4>
+        <div class="has-text-left">
+            <h4 class="subtitle">เรื่อง : {{ wfhreq.detail }}</h4>
+        </div>
+        <div class="has-text-right">
+            <h4 class="subtitle">วันที่ {{ wfhreq.start_datetime|localdatetime }} - {{ wfhreq.end_datetime|localdatetime }}</h4>
+        </div>
+        <b-progress type="is-success":value="0" show-value format="percent"></b-progress>
+        <div class="columns">
+        <table class="table is-fullwidth">
+            <thead>
+                <th>รายละเอียดงาน</th>
+                <th></th>
+            </thead>
+            <tbody>
+            {% for detail in detail %}
+                <tr>
+                    <td>{{ detail.topic }}</td>
+                    <td>แก้ไข/ยกเลิก</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        <hr>
+        <div class="control">
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                <b-field label="เพิ่ม" :label-position="labelPosition">
+                    <b-input placeholder="กิจกรรม" type="search" name="activity"></b-input>
+                        <button class="button is-primary" type="submit"><b-icon pack="fas" icon="plus"></b-icon></button>
+                </b-field>
+                </input>
+            </form>
+        </div>
+        <div class="columns">
+        <a href="{{ url_for('staff.show_work_from_home') }}" class="button is-rounded is-info is-light">
+            <span class="icon">
+                <i class="fas fa-arrow-left"></i>
+            </span>
+            กลับ
+        </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+new Vue({
+        el: '#app',
+        data() {
+            return{
+                labelPosition: 'on-border'
+            }
+        },
+    });
+</script>
+{% endblock %}
