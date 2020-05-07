@@ -1,16 +1,108 @@
 {% extends "base.html" %}
 {% include "nav.html" %}
 {% block page_content %}
-<section class="section">
+<section class="section" id="app">
     <div class="container">
-        <h1 class="title">Welcome {{ current_user.personal_info }}</h1>
-        <a href="{{ url_for('staff.request_work_from_home') }}" class="button" icon="laptop-house">
+        <div class="columns">
+        <h4><a href="{{ url_for('staff.request_work_from_home') }}" class="button is-info" icon="laptop-house">
             <span class="icon">
                 <i class="fas fa-laptop"></i>
             </span>
             <span>ขออนุญาตทำงานที่บ้าน</span>
         </a>
-
+        </h4>
+        </div>
+        <h4 class="title">รายการขออนุญาตทำงานที่บ้าน</h4>
+        <div class="columns">
+        <table class="table is-fullwidth">
+            <thead>
+                <th>วันเริ่มต้นwfh</th>
+                <th>วันสิ้นสุดwfh</th>
+                <th>เรื่อง</th>
+                <th>การอนุมัติ</th>
+                <th>รายละเอียดงาน</th>
+                <th>ยืมอุปกรณ์คณะ</th>
+                <th colspan="2"></th>
+            </thead>
+            <tbody>
+            {% for request in req |sort(attribute='start_datetime')%}
+                <tr>
+                    <td>{{ request.start_datetime|localdatetime }}</td>
+                    <td>{{ request.end_datetime|localdatetime }}</td>
+                    <td>{{ request.detail }}</td>
+                    <td>
+                        {% if not request.cancelled_at %}
+                        <div class="field is-grouped is-grouped-multiline">
+                            <div class="control">
+                                <div class="tags has-addons">
+                                    <a class="button is-text" href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
+                                        <span class="tag is-dark">อนุมัติ</span>
+                                        <span class="tag is-info">{{ request.get_approved|length }}</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="control">
+                                <div class="tags has-addons">
+                                    <a class="button is-text" href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
+                                    <span class="tag is-dark">ไม่อนุมัติ</span>
+                                    <span class="tag is-danger">{{ request.get_unapproved|length }}</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <span class="is-light">ยกเลิกลา</span>
+                        {% endif %}
+                    </td>
+                    <td><a href="{{ url_for('staff.wfh_show_request_info', request_id=request.id) }}" class="button">เพิ่มรายละเอียดงาน</a></td>
+                    <td>ยืมอุปกรณ์</td>
+                    <td>
+                        {% if not request.cancelled_at %}
+                        <b-tooltip label="แก้ไขการลา" type="is-light">
+                        <a class="button" href="{{ url_for('staff.edit_request_work_from_home', request_id=request.id) }}">
+                        <span class="icon">
+                            <i class="fas fa-pencil-alt has-text-dark"></i>
+                        </span>
+                        </a>
+                        </b-tooltip>
+                        <b-tooltip label="ยกเลิกการลา" type="is-light">
+                        <a class="button" @click="confirmWfhDelete({{ request.id }})">
+                        <span class="icon">
+                            <i class="fas fa-trash has-text-danger"></i>
+                        </span>
+                        </a>
+                        </b-tooltip>
+                    {% else %}
+                        <span class="is-light">ยกเลิกลา</span>
+                    {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}" class="button">สำหรับหัวหน้างาน</a>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        methods: {
+            confirmWfhDelete(request_id) {
+                this.$buefy.dialog.confirm({
+                    title: 'ยกเลิกคำขอที่' + request_id,
+                    message: 'แน่ใจหรือไม่ที่จะ<b>ยกเลิก</b>การลาครั้งนี้ หากยกเลิกแล้วจะไม่สามารถแก้ไขได้',
+                    confirmText: 'Delete this request',
+                    type: 'is-danger',
+                    hasIcon: true,
+                    onConfirm: () => window.location.href = "/staff/wfh/request/" + request_id + "/cancel"
+                })
+            }
+        }
+    });
+</script>
 {% endblock %}
