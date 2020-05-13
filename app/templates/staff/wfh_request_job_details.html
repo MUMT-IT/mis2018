@@ -14,14 +14,35 @@
         <div class="columns">
         <table class="table is-fullwidth">
             <thead>
-                <th>รายละเอียดงาน</th>
-                <th></th>
+                <th>รายละเอียดงาน
+                </th>
+                <th>
+                    ความคืบหน้า
+                </th>
             </thead>
             <tbody>
             {% for detail in detail %}
                 <tr>
-                    <td>{{ detail.topic }}</td>
-                    <td>แก้ไข/ยกเลิก</td>
+                    <td>
+                        {{ detail.topic }}
+                    </td>
+                    <td>
+                        <a href="" class="button is-rounded is-success is-light">
+                            <span class="icon">
+                                <i class="fas fa-check has-text-green"></i>
+                            </span>
+                        </a>
+                        <a href="" class="button is-rounded is-danger is-light">
+                            <span class="icon">
+                                <i class="fas fa-times has-text-red"></i>
+                            </span>
+                        </a>
+                        <a href="{{ url_for('staff.edit_wfh_job_detail', request_id=wfhreq.id) }}" class="button is-rounded is-warning is-light">
+                            <span class="icon">
+                                <i class="fas fa-edit has-text-red"></i>
+                            </span>
+                        </a>
+                    </td>
                 </tr>
             {% endfor %}
             </tbody>
