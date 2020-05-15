@@ -238,10 +238,96 @@ class StaffAccountSchema(ma.ModelSchema):
     personal_info = fields.Nested(StaffPersonalInfoSchema)
 
 
+class StaffLeaveTypeSchema(ma.ModelSchema):
+    class Meta:
+        model = StaffLeaveType
+
+
+class StaffLeaveQuotaSchema(ma.ModelSchema):
+    leave_type = fields.Nested(StaffLeaveTypeSchema)
+    class Meta:
+        model = StaffLeaveQuota
+
+
 class StaffLeaveRequestSchema(ma.ModelSchema):
     staff = fields.Nested(StaffAccountSchema)
+    quota = fields.Nested(StaffLeaveQuotaSchema)
     class Meta:
         model = StaffLeaveRequest
+
+
+class StaffWorkFromHomeRequest(db.Model):
+    __tablename__ = 'staff_work_from_home_requests'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    start_datetime = db.Column('start_date', db.DateTime(timezone=True))
+    end_datetime = db.Column('end_date', db.DateTime(timezone=True))
+    created_at = db.Column('created_at',
+                           db.DateTime(timezone=True),
+                           default=datetime.now()
+                           )
+    contact_phone = db.Column('contact_phone', db.String())
+    # want to change name detail to be topic
+    detail = db.Column('detail', db.String())
+    deadline_date = db.Column('deadline_date', db.DateTime(timezone=True))
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    staff = db.relationship('StaffAccount',
+                            backref=db.backref('wfh_requests'))
+
+    @property
+    def duration(self):
+        delta = self.end_datetime - self.start_datetime
+        if delta.days == 0:
+            if delta.seconds == 0:
+                return delta.days + 1
+            if delta.seconds / 3600 < 8:
+                return 0.5
+        else:
+            return delta.days + 1
+
+    @property
+    def get_approved(self):
+        return [a for a in self.wfh_approvals if a.is_approved]
+
+    @property
+    def get_unapproved(self):
+        return [a for a in self.wfh_approvals if a.is_approved == False]
+
+
+class StaffWorkFromHomeJobDetail(db.Model):
+    __tablename__ = 'staff_work_from_home_job_detail'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    #want to change topic to activity and activity to comment(for Approver)
+    topic = db.Column('topic', db.String(), nullable=False, unique=True)
+    activity = db.Column('activity', db.String())
+    #change status type from Integer to Boolean
+    status = db.Column('status', db.Integer())
+    wfh_id = db.Column('wfh_id', db.ForeignKey('staff_work_from_home_requests.id'))
+
+
+class StaffWorkFromHomeApprover(db.Model):
+    __tablename__ = 'staff_work_from_home_approvers'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    # staff account means staff under supervision
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    approver_account_id = db.Column('approver_account_id', db.ForeignKey('staff_account.id'))
+    is_active = db.Column('is_active', db.Boolean(), default=True)
+    requester = db.relationship('StaffAccount',
+                            foreign_keys=[staff_account_id])
+    account = db.relationship('StaffAccount',
+                               foreign_keys=[approver_account_id])
+
+
+class StaffWorkFromHomeApproval(db.Model):
+    __tablename__ = 'staff_work_from_home_approvals'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    request_id = db.Column('request_id', db.ForeignKey('staff_work_from_home_requests.id'))
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_work_from_home_approvers.id'))
+    is_approved = db.Column('is_approved', db.Boolean(), default=False)
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    request = db.relationship('StaffWorkFromHomeRequest', backref=db.backref('wfh_approvals'))
+    approver = db.relationship('StaffWorkFromHomeApprover',
+                               backref=db.backref('wfh_approved_requests'))
 
 
 
