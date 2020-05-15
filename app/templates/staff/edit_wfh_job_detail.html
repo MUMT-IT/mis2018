@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <div class="field">
+                        <h4 class="title">รายการขออนุญาตทำงานที่บ้าน</h4>
+                        <h4 class="subtitle">เรื่อง : {{ wfhreq.detail }}</h4>
+                        <h4 class="subtitle">วันที่ {{ wfhreq.start_datetime|localdatetime }} - {{ wfhreq.end_datetime|localdatetime }}</h4>
+                        <h4 class="subtitle">กำหนดส่ง {{ wfhreq.deadline_date }}</h4>
+                        <hr>
+                        <b-field>
+                        {% for detail in detail %}
+                            <b-input type="text"
+                                 name="topic"
+                                 value="{{ detail.topic }}"
+                                 expanded>
+                            </b-input>
+                            <p class="control">
+                                <a href="" class="button is-success"><i class="fas fa-check has-text-green"></i></a>
+                            </p>
+                            <p class="control">
+                                <a href="" class="button is-danger"><i class="fas fa-times has-text-red"></i></a>
+                            </p>
+                        </b-field>
+                        {% endfor %}
+                    </div>
+                </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        mounted() {
+            var self = this;
+            self.givenDates = {{ selected_dates|tojsdatetime }};
+            self.givenDates.forEach((d) => {
+                self.selectedDates.push(new Date(d));
+            });
+        }
+    });
+</script>
+{% endblock %}
+
