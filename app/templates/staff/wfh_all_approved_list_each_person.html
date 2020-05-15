@@ -45,6 +45,9 @@
     {% endif %}
     {% endfor %}
     </tbody>
+    {% for cal_duration in request.duration %}
+        {{ cal_duration.duration }}
+    {% endfor %}
 
 </table>
 
