@@ -26,7 +26,7 @@
             </thead>
             <tbody>
             {% for request in req |sort(attribute='start_datetime')%}
-                <tr>
+                <tr {% if request.cancelled_at %}style="background-color: #D5DBDB  ;"{% endif %}>
                     <td>{{ request.start_datetime|localdatetime }}</td>
                     <td>{{ request.end_datetime|localdatetime }}</td>
                     <td>{{ request.detail }}</td>
@@ -51,11 +51,22 @@
                             </div>
                         </div>
                         {% else %}
-                        <span class="is-light">ยกเลิกลา</span>
                         {% endif %}
                     </td>
-                    <td><a href="{{ url_for('staff.wfh_show_request_info', request_id=request.id) }}" class="button">เพิ่มรายละเอียดงาน</a></td>
-                    <td>ยืมอุปกรณ์</td>
+                    <td>
+                        {% if not request.cancelled_at %}
+                        <a href="{{ url_for('staff.wfh_show_request_info', request_id=request.id) }}" class="button">เพิ่มรายละเอียดงาน</a>
+                        {% else %}
+
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not request.cancelled_at %}
+                        ยืมอุปกรณ์
+                        {% else %}
+
+                        {% endif %}
+                    </td>
                     <td>
                         {% if not request.cancelled_at %}
                         <b-tooltip label="แก้ไขการลา" type="is-light">
@@ -73,7 +84,7 @@
                         </a>
                         </b-tooltip>
                     {% else %}
-                        <span class="is-light">ยกเลิกลา</span>
+                        <span class="has-text-danger">ยกเลิกลา</span>
                     {% endif %}
                     </td>
                 </tr>
