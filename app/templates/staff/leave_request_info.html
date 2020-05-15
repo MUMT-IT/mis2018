@@ -7,7 +7,7 @@
             <div class="columns">
              <div class="column is-two-thirds is-offset-2">
                     <input type="text" v-model="query" class="input is-large is-rounded"
-                           placeholder="ค้นหาชื่อหรือสังกัด">
+                           placeholder="ค้นหาชื่อ/สังกัด/ประเภทลา">
              </div>
             </div>
             <div class="columns">
@@ -45,9 +45,6 @@
                         </b-table-column>
                         <b-table-column field="duration" label="รวม(วัน)" sortable>
                             <% props.row.duration %>
-                        </b-table-column>
-                        <b-table-column field="" label="ยกเลิก" sortable>
-                            <% props.row.cancelled_at %>
                         </b-table-column>
                     </template>
                 </b-table>
