@@ -27,7 +27,10 @@
                         {{ detail.topic }}
                     </td>
                     <td>
-                        <a href="" class="button is-rounded is-success is-light">
+                        {{ wfhreq.id }}  {{ detail.id }}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('staff.add_wfh_job_detail', request_id=wfhreq.id, detail_id=detail.id) }}" class="button is-rounded is-success is-light">
                             <span class="icon">
                                 <i class="fas fa-check has-text-green"></i>
                             </span>
