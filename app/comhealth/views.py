@@ -50,8 +50,6 @@ def finance_landing():
 
 @comhealth.route('/services/finance')
 def finance_index():
-    if not session.get('receipt_code_id'):
-        return redirect(url_for('comhealth.finance_landing'))
     services = ComHealthService.query.all()
     services_data = []
     for sv in services:
@@ -1176,6 +1174,10 @@ def list_all_receipts(record_id):
 
 @comhealth.route('/checkin/records/<int:record_id>/receipts', methods=['POST', 'GET'])
 def create_receipt(record_id):
+    if not session.get('receipt_code_id'):
+        flash(u'กรุณาระบุเล่มใบเสร็จและสถานที่ออกใบเสร็จ', 'warning')
+        return redirect(url_for('comhealth.finance_landing'))
+
     if request.method == 'GET':
         record = ComHealthRecord.query.get(record_id)
         customer_age = record.customer.age.years if record.customer.age else 0
