@@ -67,7 +67,7 @@
                 {{ approver.requester.personal_info }} ({{ approver.requester.personal_info.org }})
                 </a>
             </td>
-            <td></td>
+            <td>{{ approver.requester.total_wfh_duration }}</td>
         </tr>
         {% endfor %}
     </tbody>
