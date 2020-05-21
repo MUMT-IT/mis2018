@@ -39,7 +39,7 @@
                                 :mobile-native="false"
                                 placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                 icon="calendar-alt"
-                                value="{{ req.deadline_date }}"
+                                v-model="selectedDeadlineDate"
                                 required>
                         </b-datepicker>
                     </b-field>
@@ -86,6 +86,7 @@
                 selectedDates: [],
                 notifiedByLine: "yes",
                 givenDates: [],
+                selectedDeadlineDate: new Date({{ deadline|tojsdatetime(single=True) }})
             }
         },
         mounted() {
