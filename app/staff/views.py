@@ -556,7 +556,7 @@ def finish_wfh_job_detail(request_id, detail_id):
     detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
     if detail:
         #change status=success/finish
-        detail.status = 1
+        detail.status = True
         db.session.add(detail)
         db.session.commit()
         return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
@@ -567,9 +567,7 @@ def finish_wfh_job_detail(request_id, detail_id):
 def cancel_wfh_job_detail(request_id, detail_id):
     detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
     if detail:
-        #change status=cancel
-        detail.status = 3
-        db.session.add(detail)
+        db.session.delete(detail)
         db.session.commit()
         return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
 
@@ -579,8 +577,7 @@ def cancel_wfh_job_detail(request_id, detail_id):
 def unfinish_wfh_job_detail(request_id, detail_id):
     detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
     if detail:
-        #change status=unfinish
-        detail.status = 2
+        detail.status = False
         db.session.add(detail)
         db.session.commit()
         return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))

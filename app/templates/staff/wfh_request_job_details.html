@@ -32,7 +32,7 @@
             <tbody>
             {% for detail in detail|sort(attribute='status') %}
                 <tr>
-                    <td {% if detail.status == 1 %}style="color: green  ;"{% elif detail.status == 2 %}style="color: red  ;"{% elif detail.status == 3 %}style="color: grey  ;"{% endif %}>
+                    <td {% if detail.status %}style="color: green;"{% elif not detail.status %}style="color: red;"{% endif %}>
                         {{ detail.activity }}
                     </td>
                     <td>
@@ -51,12 +51,10 @@
                                 </span>
                             </a>
                         </b-tooltip>
-                        {% elif detail.status == 1 %}
+                        {% elif detail.status %}
                         <span class="has-text-success">เสร็จ</span>
-                        {% elif detail.status == 2 %}
-                        <span class="has-text-light">ไม่เสร็จ</span>
                         {% else %}
-                        -
+                        <span class="has-text-light">ไม่เสร็จ</span>
                         {% endif %}
                     </td>
                     <td>
@@ -75,15 +73,11 @@
                                 </span>
                             </a>
                         </b-tooltip>
-                        {% elif detail.status == 3 %}
-                        <span class="has-text-grey">ยกเลิก</span>
                         {% endif %}
                     </td>
                     <td>
                         {% if detail.status %}
-                        {% if not detail.status == 3 %}
                         {{ detail.comment }}
-                        {% endif %}
                         {% endif %}
                     </td>
                 </tr>
