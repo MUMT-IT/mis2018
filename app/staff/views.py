@@ -505,7 +505,7 @@ def wfh_approve(req_id, approver_id):
     db.session.commit()
     #approve_msg = u'การขออนุมัติลา{} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว'.format(req, current_user.personal_info.fullname)
     #line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
-    flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย')
+    flash(u'อนุมัติขอทำงานที่บ้านให้บุคลากรในสังกัดเรียบร้อย')
     return redirect(url_for('staff.show_wfh_requests_for_approval'))
 
 

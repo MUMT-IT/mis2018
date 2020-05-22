@@ -15,7 +15,6 @@
                         <h4 class="subtitle">กำหนดส่ง {{ wfhreq.deadline_date }}</h4>
                         <hr>
                         <b-field>
-                        {% for detail in detail %}
                             <b-input type="text"
                                  name="topic"
                                  value="{{ detail.topic }}"
@@ -28,7 +27,6 @@
                                 <a href="" class="button is-danger"><i class="fas fa-times has-text-red"></i></a>
                             </p>
                         </b-field>
-                        {% endfor %}
                     </div>
                 </form>
                 </div>
