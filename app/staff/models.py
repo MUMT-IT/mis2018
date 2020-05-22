@@ -50,6 +50,10 @@ class StaffAccount(db.Model):
     def __str__(self):
         return u'{}'.format(self.email)
 
+    @property
+    def total_wfh_duration(self):
+        return sum([wfh.duration for wfh in self.wfh_requests if not wfh.cancelled_at and wfh.get_approved])
+
 
 class StaffPersonalInfo(db.Model):
     __tablename__ = 'staff_personal_info'
@@ -254,6 +258,7 @@ class StaffLeaveRequestSchema(ma.ModelSchema):
     quota = fields.Nested(StaffLeaveQuotaSchema)
     class Meta:
         model = StaffLeaveRequest
+    duration = fields.Float()
 
 
 class StaffWorkFromHomeRequest(db.Model):
@@ -298,9 +303,9 @@ class StaffWorkFromHomeJobDetail(db.Model):
     __tablename__ = 'staff_work_from_home_job_detail'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     #want to change topic to activity and activity to comment(for Approver)
-    topic = db.Column('topic', db.String(), nullable=False, unique=True)
-    activity = db.Column('activity', db.String())
-    #change status type from Integer to Boolean
+    activity = db.Column('topic', db.String(), nullable=False, unique=True)
+    comment = db.Column('activity', db.String())
+    #change status type from Integer to String (success,fail,cencel)
     status = db.Column('status', db.Integer())
     wfh_id = db.Column('wfh_id', db.ForeignKey('staff_work_from_home_requests.id'))
 
