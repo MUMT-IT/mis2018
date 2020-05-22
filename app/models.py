@@ -236,3 +236,9 @@ class IOCode(db.Model):
         return u'{}:{}'.format(self.id, self.name)
 
 
+class OrgSchema(ma.ModelSchema):
+    class Meta:
+        model = Org
+
+
+

@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="table-container">
+        {% for msg in get_flashed_messages() %}
+            <p class="notification is-warning">{{ msg }}</p>
+        {% endfor %}
+        <h4 class="subtitle">รายการขออนุมัติทำงานที่บ้าน</h4>
+        <table class="table is-bordered">
+            <tbody>
+            {% for approver in approvers %}
+            {% if not approver.requester.requests|sort(attribute='start_datetime') %}
+            <tr>
+                <td colspan="6">
+                    {{ approver.requester.personal_info }} ({{ approver.requester.personal_info.org }})
+                </td>
+            </tr>
+            {% for wfh_req in approver.requester.wfh_requests|sort(attribute='start_datetime') %}
+            {% if not wfh_req.cancelled_at %}
+            {% if not wfh_req|checkwfhapprovals(approver.id) %}
+            <tr>
+                <td>
+                    {{ wfh_req.created_at|localdatetime}}
+                </td>
+                <td>
+                    เรื่อง: {{ wfh_req.detail }}
+                </td>
+                <td>
+                    {{ wfh_req.start_datetime|localdatetime }} ({{ wfh_req.duration }} วัน)
+                </td>
+                <td>ความเห็นผู้บังคับบัญชา:
+                {% for ap in wfh_req.wfh_approvals %}
+                    {{ ap.approver.account.personal_info.fullname }} ({{ ap.is_approved }})
+                {% endfor %}
+                </td>
+                <td>
+                <a href="{{ url_for('staff.pending_wfh_request_for_approval', req_id=wfh_req.id) }}" class="button is-info is-rounded is-light">
+                    <span class="icon">
+                        <i class="fas fa-info"></i>
+                    </span>
+                </a>
+                <a href="{{ url_for('staff.wfh_approve', req_id=wfh_req.id,approver_id=approver.id) }}" class="button is-success">อนุมัติ</a>
+                <a href="{{ url_for('staff.wfh_reject', req_id=wfh_req.id,approver_id=approver.id) }}" class="button is-danger">ไม่อนุมัติ</a>
+                </td>
+            </tr>
+            {% endif %}
+            {% endif %}
+            {% endfor %}
+            {% endif %}
+            {% endfor %}
+            </tbody>
+    </table>
+
+<h4 class="subtitle">สถิติขอทำงานที่บ้าน</h4>
+<table class="table is-bordered is-striped">
+    <thead>
+    <th>ชื่อ</th>
+    <th>จำนวนวัน</th>
+    </thead>
+    <tbody>
+        {% for approver in approvers %}
+        <tr>
+            <td>
+                <a href="{{ url_for('staff.show_wfh_approved_list_each_person', requester_id=approver.requester.id) }}">
+                {{ approver.requester.personal_info }} ({{ approver.requester.personal_info.org }})
+                </a>
+            </td>
+            <td>{{ approver.requester.total_wfh_duration }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+
+    <a href="{{ url_for('staff.show_work_from_home') }}" class="button is-rounded is-info is-light">
+            <span class="icon">
+                <i class="fas fa-arrow-left"></i>
+            </span>
+            กลับ
+    </a>
+    </div>
+    </div>
+</section>
+{% endblock %}
