@@ -387,7 +387,8 @@ def leave_request_info():
 @login_required
 def show_work_from_home():
     req = StaffWorkFromHomeRequest.query.filter_by(staff_account_id=current_user.id).all()
-    return render_template('staff/wfh_info.html',req=req)
+    approvers = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id)
+    return render_template('staff/wfh_info.html',req=req, approvers=approvers)
 
 
 @staff.route('/wfh/request',
@@ -437,7 +438,8 @@ def edit_request_work_from_home(request_id):
         return redirect(url_for('staff.show_work_from_home'))
 
     selected_dates = [req.start_datetime, req.end_datetime]
-    return render_template('staff/edit_wfh_request.html', req=req, selected_dates=selected_dates)
+    deadline = req.deadline_date
+    return render_template('staff/edit_wfh_request.html', req=req, selected_dates=selected_dates, deadline=deadline)
 #deadline date ไม่มาตรงแก้ไข แล้วพอไปหน้าดูรายละเอียดเพื่อขออนุมัติเลยมีปัญหา
 
 @staff.route('/wfh/request/<int:request_id>/cancel')
@@ -460,7 +462,7 @@ def wfh_show_request_info(request_id):
 
         req = StaffWorkFromHomeJobDetail(
             wfh_id = request_id,
-            topic = form.get('activity')
+            activity = form.get('activity')
         )
         db.session.add(req)
         db.session.commit()
@@ -478,7 +480,6 @@ def wfh_show_request_info(request_id):
 @login_required
 def show_wfh_requests_for_approval():
     approvers = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=current_user.id).all()
-    #cannot calculate total wfh request of each person
 
     return render_template('staff/wfh_requests_approval_info.html', approvers=approvers)
 
@@ -532,36 +533,57 @@ def show_wfh_approved_list_each_person(requester_id):
     return render_template('staff/wfh_all_approved_list_each_person.html',requester=requester)
 
 
-@staff.route('/wfh/<int:request_id>/info/edit-detail',
+@staff.route('/wfh/requests/<int:request_id>/approvals')
+@login_required
+def show_wfh_approval(request_id):
+    request = StaffWorkFromHomeRequest.query.get(request_id)
+    approvers = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=current_user.id)
+    return render_template('staff/wfh_approval_status.html', request=request, approvers=approvers)
+
+
+@staff.route('/wfh/<int:request_id>/info/edit-detail/<detail_id>',
                                 methods=['GET', 'POST'])
 @login_required
-def edit_wfh_job_detail(request_id):
-    req = StaffWorkFromHomeRequest.query.get(request_id)
-    detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
-    if request.method == 'POST':
-        form = request.form
-
-        req = StaffWorkFromHomeJobDetail(
-            wfh_id=request_id,
-            topic=form.get('activity')
-        )
-        #db.session.add(req)
-        #db.session.commit()
-        return redirect(url_for('staff.wfh_show_request_info'))
-
-    selected_dates = [req.start_datetime, req.end_datetime]
-    return render_template('staff/edit_wfh_job_detail.html', wfhreq=req, detail=detail)
+def edit_wfh_job_detail(request_id,detail_id):
+    request = StaffWorkFromHomeRequest.query.get(request_id)
+    detail = StaffWorkFromHomeJobDetail.query.filter_by(id=detail_id)
+    return render_template('staff/edit_wfh_job_detail.html', wfhreq=request, detail=detail)
 
 
-@staff.route('/wfh/<int:request_id>/info/added-job-detail/<detail_id>')
+@staff.route('/wfh/<int:request_id>/info/finish-job-detail/<detail_id>')
 @login_required
-def add_wfh_job_detail(request_id, detail_id):
-    request = StaffWorkFromHomeJobDetail(
-        status=10
-    )
-    db.session.update(request)
-    db.session.commit()
-    return redirect(url_for('staff.wfh_show_request_info'))
+def finish_wfh_job_detail(request_id, detail_id):
+    detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
+    if detail:
+        #change status=success/finish
+        detail.status = 1
+        db.session.add(detail)
+        db.session.commit()
+        return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
+
+
+@staff.route('/wfh/<int:request_id>/info/cancel-job-detail/<detail_id>')
+@login_required
+def cancel_wfh_job_detail(request_id, detail_id):
+    detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
+    if detail:
+        #change status=cancel
+        detail.status = 3
+        db.session.add(detail)
+        db.session.commit()
+        return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
+
+
+@staff.route('/wfh/<int:request_id>/info/unfinish-job-detail/<detail_id>')
+@login_required
+def unfinish_wfh_job_detail(request_id, detail_id):
+    detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
+    if detail:
+        #change status=unfinish
+        detail.status = 2
+        db.session.add(detail)
+        db.session.commit()
+        return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
 
 
 
