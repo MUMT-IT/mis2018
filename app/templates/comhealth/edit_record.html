@@ -119,8 +119,11 @@
                                         {% endif %}
                                         <div class="field">
                                             <label class="label is-size-5"><strong><span class="help">Date of Birth</span>วัน/เดือน/ปีเกิด</strong></label>
+                                            <span v-if="birthday !== ''"><% age %></span>
                                             <div class="control">
-                                                <input class="input is-rounded is-medium" name='dob' type="text"
+                                                <input class="input is-medium" id="birthdate-input"
+                                                       v-model="birthday"
+                                                       name='dob' type="text"
                                                        value='{{ record.customer.thai_dob or "" }}'
                                                        placeholder="dd/mm/yyyy"
                                                         {% if record.customer.dob %}
@@ -135,7 +138,7 @@
                                         <div class="field">
                                             <label class="label is-size-4"><strong><span class="help">Telephone</span>เบอร์โทรศัพท์</strong></label>
                                             <div class="control">
-                                                <input class="input is-rounded is-medium"
+                                                <input class="input is-medium"
                                                        name='phone' type="text"
                                                        value='{{ record.customer.phone or "" }}'
                                                 />
@@ -292,9 +295,22 @@
             el: "#app",
             delimiters: ['<%', '%>'],
             data() {
-                return {}
+                return {
+                    birthday: '',
+                }
             },
-            computed: {}
+            computed: {
+                age: function() {
+                    let birthdayString = this.birthday.split("/");
+                    let birthdate = new Date(parseInt(birthdayString[2] - 543),
+                                        parseInt(birthdayString[1]), parseInt(birthdayString[0]));
+                    let nowdt = new Date();
+                    let ageInYears = ((nowdt.getTime() - birthdate.getTime()) / (1000 * 3600 * 24)) / 365;
+                    let months = (ageInYears - Math.floor(ageInYears)) * 12;
+                    let days = (months - Math.floor(months)) * 30;
+                    return Math.floor(ageInYears) + ' ปี ' + Math.floor(months) + ' เดือน ' + Math.floor(days) + ' วันโดยประมาณ';
+                }
+            }
         });
     </script>
   <script type="text/javascript">
