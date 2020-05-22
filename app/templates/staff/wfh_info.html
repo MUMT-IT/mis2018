@@ -26,7 +26,7 @@
             </thead>
             <tbody>
             {% for request in req |sort(attribute='start_datetime')%}
-                <tr {% if request.cancelled_at %}style="background-color: #D5DBDB  ;"{% endif %}>
+                <tr {% if request.cancelled_at %}style="color: #C0C0C0  ;"{% endif %}>
                     <td>{{ request.start_datetime|localdatetime }}</td>
                     <td>{{ request.end_datetime|localdatetime }}</td>
                     <td>{{ request.detail }}</td>
@@ -35,15 +35,17 @@
                         <div class="field is-grouped is-grouped-multiline">
                             <div class="control">
                                 <div class="tags has-addons">
-                                    <a class="button is-text" href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
+                                    <b-tooltip label="" type="is-light">
+                                    <a class="button is-text" href="{{ url_for('staff.show_wfh_approval', request_id=request.id) }}">
                                         <span class="tag is-dark">อนุมัติ</span>
                                         <span class="tag is-info">{{ request.get_approved|length }}</span>
                                     </a>
+                                    </b-tooltip>
                                 </div>
                             </div>
                             <div class="control">
                                 <div class="tags has-addons">
-                                    <a class="button is-text" href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
+                                    <a class="button is-text" href="{{ url_for('staff.show_wfh_approval', request_id=request.id) }}">
                                     <span class="tag is-dark">ไม่อนุมัติ</span>
                                     <span class="tag is-danger">{{ request.get_unapproved|length }}</span>
                                     </a>
@@ -54,8 +56,10 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if not request.cancelled_at %}
+                        {% if request.get_approved %}
                         <a href="{{ url_for('staff.wfh_show_request_info', request_id=request.id) }}" class="button">เพิ่มรายละเอียดงาน</a>
+                        {% elif not request.cancelled_at %}
+                        <h4>รอการอนุมัติ</h4>
                         {% else %}
 
                         {% endif %}
@@ -69,14 +73,14 @@
                     </td>
                     <td>
                         {% if not request.cancelled_at %}
-                        <b-tooltip label="แก้ไขการลา" type="is-light">
+                        <b-tooltip label="แก้ไข" type="is-light">
                         <a class="button" href="{{ url_for('staff.edit_request_work_from_home', request_id=request.id) }}">
                         <span class="icon">
                             <i class="fas fa-pencil-alt has-text-dark"></i>
                         </span>
                         </a>
                         </b-tooltip>
-                        <b-tooltip label="ยกเลิกการลา" type="is-light">
+                        <b-tooltip label="ยกเลิกการลา" type="is-danger">
                         <a class="button" @click="confirmWfhDelete({{ request.id }})">
                         <span class="icon">
                             <i class="fas fa-trash has-text-danger"></i>
