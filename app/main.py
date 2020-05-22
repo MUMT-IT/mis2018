@@ -124,7 +124,9 @@ app.register_blueprint(staff_blueprint, url_prefix='/staff')
 from staff.models import (StaffAccount, StaffPersonalInfo,
                           StaffLeaveApprover, StaffLeaveQuota,
                           StaffLeaveRequest, StaffLeaveType,
-                          StaffLeaveApproval, StaffEmployment)
+                          StaffLeaveApproval, StaffEmployment,
+                          StaffWorkFromHomeRequest, StaffWorkFromHomeJobDetail,
+                          StaffWorkFromHomeApprover, StaffWorkFromHomeApproval)
 
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
@@ -134,6 +136,10 @@ admin.add_views(ModelView(StaffLeaveRequest, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveQuota, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveApprover, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveApproval, db.session, category='Staff'))
+admin.add_views(ModelView(StaffWorkFromHomeRequest, db.session, category='Staff'))
+admin.add_views(ModelView(StaffWorkFromHomeJobDetail, db.session, category='Staff'))
+admin.add_views(ModelView(StaffWorkFromHomeApprover, db.session, category='Staff'))
+admin.add_views(ModelView(StaffWorkFromHomeApproval, db.session, category='Staff'))
 
 from room_scheduler import roombp as room_blueprint
 
@@ -439,7 +445,14 @@ def check_approval(leave_request, approver_id):
         return False
 
 
-
-
+@app.template_filter("checkwfhapprovals")
+def check_wfh_approval(wfh_request, approver_id):
+    approvals = StaffWorkFromHomeApproval.query.filter_by(request_id=wfh_request.id,
+                                                   approver_id=approver_id,
+                                                   ).first()
+    if approvals:
+        return True
+    else:
+        return False
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host="0.0.0.0")

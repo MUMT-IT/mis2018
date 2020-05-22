@@ -28,17 +28,19 @@
                              type="is-danger">
                         <b-input type="textarea"
                                  name="detail"
+                                 value="{{ req.detail }}"
                                  required>
                         </b-input>
                     </b-field>
                     <b-field label="กำหนดส่งงาน">
                         <b-datepicker
-                                required
                                 name="deadline_date"
                                 icon="calendar-check"
                                 :mobile-native="false"
                                 placeholder="คลิกเพื่อเปิดปฏิทิน..."
-                                icon="calendar-alt" required>
+                                icon="calendar-alt"
+                                v-model="selectedDeadlineDate"
+                                required>
                         </b-datepicker>
                     </b-field>
                     <b-field label="สามารถติดต่อท่านได้ที่" type="is-danger">
@@ -46,7 +48,9 @@
                                name="contact_phone"
                                icon-pack="fas"
                                icon="phone"
-                               placeholder="เบอร์โทรศัพท์" required>
+                               placeholder="เบอร์โทรศัพท์"
+                               value="{{ req.contact_phone }}"
+                               required>
                         </b-input>
                     </b-field>
                     <div class="field">
@@ -61,7 +65,7 @@
                             <input type="submit" value="submit" class="button is-primary"/>
                         </div>
                         <div class="control">
-                            <a href="{{ request.referrer }}"  class="button is-danger">Cancel</a>
+                            <a href="{{ url_for('staff.show_work_from_home') }}"  class="button is-danger">Cancel</a>
                         </div>
                     </div>
                 </form>
@@ -81,8 +85,17 @@
             return {
                 selectedDates: [],
                 notifiedByLine: "yes",
+                givenDates: [],
+                selectedDeadlineDate: new Date({{ deadline|tojsdatetime(single=True) }})
             }
         },
+        mounted() {
+            var self = this;
+            self.givenDates = {{ selected_dates|tojsdatetime }};
+            self.givenDates.forEach((d) => {
+                self.selectedDates.push(new Date(d));
+            });
+        }
     });
 </script>
 {% endblock %}

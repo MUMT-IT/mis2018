@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <h4 class="title">รายการขออนุญาตทำงานที่บ้าน</h4>
+        <div class="has-text-left">
+            <h4 class="subtitle">เรื่อง : {{ wfhreq.detail }}</h4>
+        </div>
+        <div >
+            <h4 class="subtitle">กำหนดส่ง : {{ wfhreq.deadline_date|localdate }}</h4>
+        </div>
+        <div class="has-text-right">
+            <h4 class="subtitle">วันที่ {{ wfhreq.start_datetime|localdate }} - {{ wfhreq.end_datetime|localdate }}</h4>
+        </div>
+        <b-progress type="is-success":value="0" show-value format="percent"></b-progress>
+        <div class="columns">
+        <table class="table is-fullwidth">
+            <thead>
+                <th>รายละเอียดงาน
+                </th>
+                <th>
+                    ความคืบหน้า
+                </th>
+                <th>
+                    แก้ไข/ยกเลิก
+                </th>
+                <th>
+                    ความคิดเห็นจากหัวหน้า
+                </th>
+            </thead>
+            <tbody>
+            {% for detail in detail|sort(attribute='status') %}
+                <tr>
+                    <td {% if detail.status == 1 %}style="color: green  ;"{% elif detail.status == 2 %}style="color: red  ;"{% elif detail.status == 3 %}style="color: grey  ;"{% endif %}>
+                        {{ detail.activity }}
+                    </td>
+                    <td>
+                        {% if not detail.status %}
+                        <b-tooltip label="เสร็จ" type="is-success">
+                            <a href="{{ url_for('staff.finish_wfh_job_detail', request_id=wfhreq.id, detail_id=detail.id) }}" class="button is-rounded is-success is-light">
+                                <span class="icon">
+                                    <i class="fas fa-check has-text-green"></i>
+                                </span>
+                            </a>
+                        </b-tooltip>
+                        <b-tooltip label="ไม่เสร็จ" type="is-light">
+                            <a href="{{ url_for('staff.unfinish_wfh_job_detail', request_id=wfhreq.id, detail_id=detail.id) }}" class="button is-rounded is-danger is-light">
+                                <span class="icon">
+                                    <i class="fas fa-times has-text-red"></i>
+                                </span>
+                            </a>
+                        </b-tooltip>
+                        {% elif detail.status == 1 %}
+                        <span class="has-text-success">เสร็จ</span>
+                        {% elif detail.status == 2 %}
+                        <span class="has-text-light">ไม่เสร็จ</span>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not detail.status %}
+                        <b-tooltip label="ยกเลิกรายการนี้" type="is-danger">
+                            <a href="{{ url_for('staff.cancel_wfh_job_detail', request_id=wfhreq.id, detail_id=detail.id) }}" class="button is-rounded is-light is-light">
+                                <span class="icon">
+                                    <i class="fas fa-trash"></i>
+                                </span>
+                            </a>
+                        </b-tooltip>
+                        <b-tooltip label="แก้ไข" type="is-warning">
+                            <a href="{{ url_for('staff.edit_wfh_job_detail', request_id=wfhreq.id, detail_id=detail.id) }}" class="button is-rounded is-warning is-light">
+                                <span class="icon">
+                                    <i class="fas fa-edit has-text-red"></i>
+                                </span>
+                            </a>
+                        </b-tooltip>
+                        {% elif detail.status == 3 %}
+                        <span class="has-text-grey">ยกเลิก</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if detail.status %}
+                        {% if not detail.status == 3 %}
+                        {{ detail.comment }}
+                        {% endif %}
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        <hr>
+        <div class="control">
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                <b-field label="เพิ่ม" :label-position="labelPosition">
+                    <b-input placeholder="กิจกรรม" type="search" name="activity"></b-input>
+                        <button class="button is-primary" type="submit"><b-icon pack="fas" icon="plus"></b-icon></button>
+                </b-field>
+                </input>
+            </form>
+        </div>
+        <hr>
+        <div class="columns">
+        <a href="{{ url_for('staff.show_work_from_home') }}" class="button is-rounded is-info is-light">
+            <span class="icon">
+                <i class="fas fa-arrow-left"></i>
+            </span>
+            กลับ
+        </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+new Vue({
+        el: '#app',
+        data() {
+            return{
+                labelPosition: 'on-border'
+            }
+        },
+    });
+</script>
+{% endblock %}

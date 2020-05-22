@@ -45,11 +45,15 @@
                     </td>
                     <td>
                         <b-tooltip label="แก้ไขการลา" type="is-light">
-                        <a class="button" href="{{ url_for('staff.edit_leave_request', req_id=request.id) }}"
+                        <a class="button"
                         {% if request.cancelled_at %}
                            disabled
+                           href="#"
                            {% elif request.approvals %}
                            disabled
+                           href="#"
+                           {% else %}
+                           href="{{ url_for('staff.edit_leave_request', req_id=request.id) }}"
                            {% endif %}
                         >
                         <span class="icon">
