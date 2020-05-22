@@ -417,8 +417,11 @@ import time
 
 
 @app.template_filter("tojsdatetime")
-def convert_date_to_js_datetime(select_dates):
-    return [int(time.mktime(d.timetuple())) * 1000 for d in select_dates]
+def convert_date_to_js_datetime(select_dates, single=False):
+    if single:
+        return int(time.mktime(select_dates.timetuple())) * 1000
+    else:
+        return [int(time.mktime(d.timetuple())) * 1000 for d in select_dates]
 
 
 @app.template_filter("checkallapprovals")
