@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}Resource List{% endblock %}
+{% include "smartclass_scheduler/nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-3">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <p class="notification is-{{ category }}">{{ message }}</p>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-3">
+                <h1 class="title is-size-4 has-text-centered">แบบบันทึกการใช้งานบัญชีออนไลน์</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-3">
+                <form method="post" id="app" class="box">
+                    {{ form.hidden_tag() }}
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">{{ form.creator.label }}</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    {{ form.creator(class="input", placeholder="สำหรับติดต่อในกรณีจำเป็น") }}
+                                    <span class="icon is-small is-left">
+                                       <i class="far fa-user"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">{{ form.title.label }}</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    {{ form.title(class="input", placeholder="เช่น MTID204 หรือประชุมส่วนงาน") }}
+                                    <span class="icon is-small is-left">
+                                        <i class="far fa-comment-dots"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">{{ form.start.label }}</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    {{ form.start(class="input", value=event.start) }}
+                                    <span class="icon is-small is-left">
+                                       <i class="far fa-calendar-alt"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">{{ form.end.label }}</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    {{ form.end(class="input", value=event.end) }}
+                                    <span class="icon is-small is-left">
+                                       <i class="far fa-calendar-alt"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">{{ form.occupancy.label }}</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    {{ form.occupancy(class="input") }}
+                                    <span class="icon is-small is-left">
+                                        <i class="fas fa-user-friends"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label">
+                            <label class="label">{{ form.note.label }}</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.note(class="textarea") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label"></div>
+                        <div class="field-body">
+                            <div class="field is-grouped">
+                                <div class="control">
+                                    <button class="button is-info" type="submit">Submit</button>
+                                </div>
+                                <div class="control">
+                                    <a href="{{ url_for('smartclass_scheduler.list_resources', resource_type_id=event.account.resource_type.id) }}" class="button is-danger">Cancel</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock page_content %}
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    $('input[name="start"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: true,
+        timePickerIncrement: 15,
+        timePicker24Hour: true,
+        startDate: {{ start.isoformat()|tojson|safe }},
+        locale: {
+            format: 'YYYY-MM-DD HH:mm:ss'
+        }
+    });
+    $('input[name="end"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: true,
+        timePickerIncrement: 15,
+        timePicker24Hour: true,
+        startDate: {{ end.isoformat()|tojson|safe }},
+        locale: {
+            format: 'YYYY-MM-DD HH:mm:ss'
+        }
+    });
+</script>
+{% endblock %}

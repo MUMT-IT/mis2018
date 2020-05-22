@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Resource List{% endblock %}
+{% include "smartclass_scheduler/nav.html" %}
+{% block page_content %}
+<section class="hero is-link">
+    <div class="hero-body">
+        <h1 class="title is-size-4">MUMT-MIS</h1>
+        <h1 class="subtitle is-size-5">ระบบบริหารจัดการทรัพยากร Online Learning และ Smart Classroom</h1>
+    </div>
+</section>
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                <article class="panel is-light">
+                    <div class="panel-heading">
+                        Resources
+                    </div>
+                    {% for rsc in resources %}
+                    <a class="panel-block" href="{{ url_for('smartclass_scheduler.list_resources', resource_type_id=rsc.id) }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-wifi"></i>
+                        </span>
+                            {{ rsc.resource_type }}
+                    </a>
+                    {% endfor %}
+                </article>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock page_content %}

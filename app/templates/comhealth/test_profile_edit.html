@@ -86,8 +86,11 @@
                                     <td>
                                         <div class="field has-addons">
                                             <div class="control">
-                                                <input type="number" step="1.0" class="input" name="test_{{ item.id }}"
-                                                       value="{{ item.price or item.test.default_price }}">
+                                                <input type="number"
+                                                       class="input"
+                                                       name="test_{{ item.id }}"
+                                                       value="{{ item.price }}"
+                                                >
                                             </div>
                                             <div class="control">
                                                 <button class="button is-static">บาท</button>

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Resource List{% endblock %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/scheduler.min.css') }}">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+<style>
+    #calendar {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .fc-view-container {
+        width: auto;
+    }
+    .fc-view-container .fc-view {
+        overflow-x: scroll;
+    }
+    .fc-view-container .fc-view > table {
+        width: 2500px;
+    }
+    .fc-now-indicator {
+        border: 0 solid #FFC107
+    }
+</style>
+{% endblock head %}
+{% include "smartclass_scheduler/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container box">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">New Schedule</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-3">
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <p class="notification is-{{ category }}">{{ message }}</p>
+                {% endfor %}
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                <div class="card">
+                    <div class="card-content">
+                        กรุณาตรวจสอบวันและเวลาเพื่อเลือกลงทะเบียนจองใช้งานบัญชีที่ท่านต้องการ โดยมีเงื่อนไขคือบัญชีเดียวกันไม่สามารถใช้งานในเวลาเดียวกันได้
+                    </div>
+                    <div class="card-footer">
+                        <div class="card-footer-item">
+                            <form method="get" action="{{ url_for('smartclass_scheduler.add_event') }}">
+                                <div class="field is-horizontal">
+                                    <div class="field-label is-normal">
+                                        <label class="label">Account</label>
+                                    </div>
+                                    <div class="field-body">
+                                        <div class="field is-grouped">
+                                            <div class="control is-expanded">
+                                                <div class="select is-info">
+                                                    <select name="account_id">
+                                                        {% for account in accounts %}
+                                                        <option value="{{ account.id }}">{{ account.name }}</option>
+                                                        {% endfor %}
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <div class="control">
+                                                <button class="button is-info" type="submit">Book</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-2 is-offset-5">
+                <div class="field">
+                    <div class="control has-icons-left">
+                        <input class="input" name="datePicker">
+                        <span class="icon is-small is-left">
+                            <i class="far fa-calendar-alt"></i>
+                        </span>
+                    </div>
+                </div>
+                <p>คลิกเพื่อเลื่อนไปวันที่ที่ต้องการ</p>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div id="calendar" class=""></div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock page_content %}
+{% block scripts %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
+<script src="{{ url_for('static', filename='js/scheduler.min.js') }}"></script>
+<script>
+    $(function() {
+        $('#calendar').fullCalendar({
+            schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
+            defaultView: 'timelineDay',
+            header: {
+                left: 'title',
+            },
+            events: "{{ url_for('smartclass_scheduler.get_events', resource_type_id=resource_type_id) }}",
+            eventLimit: true,
+            resources: "{{ url_for('smartclass_scheduler.get_resources') }}",
+            resourceLabelText: 'Account',
+            resourceGroupField: 'resource_type',
+            resourceAreaWidth: '10%',
+            minTime: '08:00:00',
+            maxTime: '23:00:00',
+            resourceColumns: [
+                {
+                    labelText: 'Account',
+                    field: 'title'
+                }
+            ],
+            slotWidth: 5,
+            eventClick: function(calEvent, jsEvent, view) {
+                window.location = '/smartclass/events/' + calEvent.id;
+            }
+        });
+    });
+    $('input[name="datePicker"]').daterangepicker({
+            singleDatePicker: true,
+            startDate: moment()
+        }, function(start, end, label) {
+            $('#calendar').fullCalendar('gotoDate', start);
+        }
+    );
+</script>
+{% endblock %}

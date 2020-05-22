@@ -1,81 +1,57 @@
 {% extends "base.html" %}
 {% block page_content %}
-    <section class="section hero is-info is-small">
-        <div class="hero-head">
-            <nav class="navbar">
-                <div class="container">
-                    <div class="navbar-brand">
-                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </span>
-                    </div>
-                    <div id="navbarMenuHeroA" class="navbar-menu">
-                        <div class="navbar-end">
-                            <a class="navbar-item is-active"
-                                href="/comhealth">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                                <span>Home</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/tests">
-                                <span>Tests</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/organizations">
-                                <span>Organizations</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-        </div>
-        <div class="hero-body">
-            <div class="container has-text-centered">
-                <img src="{{ url_for('static', filename='img/medical-history.png') }}" width="100">
-                <h1 class="title">Community Health Service Registration System</h1>
-            </div>
-        </div>
-    </section>
+{% include "comhealth/nav.html" %}
     <section class="section" id="app">
         <div class="container">
             <h3 class="title is-size-4">Lab no. {{ record.labno }}</h3>
             <h4 class="subtitle is-size-5">{{ record.customer.title or '' }}{{ record.customer.firstname }} {{ record.customer.lastname }}</h3>
             <div class="columns">
                 <div class="column">
-                    <table class="table">
+                    <table class="table is-fullwidth is-striped">
                         <thead>
-                            <th>Booking Number</th>
-                            <th>Issued Date</th>
-                            <th>Tests</th>
-                            <th>Detail</th>
-                            <th>Comment</th>
-                            <th>Valid</th>
-                            <th>Cancellation Comment</th>
+                            <th>หมายเลขเล่ม</th>
+                            <th>ออกวันที่</th>
+                            <th>จำนวนรายการ</th>
+                            <th>จำนวนครั้งที่พิมพ์</th>
+                            <th>การจ่ายเงิน</th>
+                            <th>รายละเอียด</th>
+                            <th>หมายเหตุ</th>
+                            <th>สถานะ</th>
+                            <th>สาเหตุของการยกเลิก</th>
                         </thead>
                         <tbody>
-                            {% for r in record.receipts %}
+                            {% for r in record.receipts|sort(attribute='created_datetime') %}
                             <tr>
                                 <td>{{ r.book_number }}</td>
-                                <td>{{ r.created_datetime }}</td>
+                                <td>{{ r.created_datetime|localdatetime }}</td>
                                 <td>{{ r.tests|length }}</td>
+                                <td>{{ r.copy_number - 1 }}</td>
+                                <td>
+                                    <span class="icon">
+                                    {% if r.paid %}
+                                        <i class="far fa-check-circle has-text-success"></i>
+                                    {% else %}
+                                        <i class="far fa-times-circle has-text-danger"></i>
+                                    {% endif %}
+                                    </span>
+                                </td>
                                 <td><a href="{{ url_for('comhealth.show_receipt_detail',
                                         receipt_id=r.id) }}">
                                         <span class="icon">
                                             <i class="fas fa-receipt"></i>
                                         </span>
                                         <span>View</span>
+                                    </a>
                                 </td>
                                 <td>{{ r.comment or '' }}</td>
                                 <td>
-                                    {% if r.cancelled %}
                                     <span class="icon">
+                                    {% if r.cancelled %}
                                         <i class="fas fa-times has-text-danger"></i>
-                                    </span>
+                                    {% else %}
+                                        <i class="far fa-check-circle has-text-success"></i>
                                     {% endif %}
+                                    </span>
                                 </td>
                                 <td>{{ r.cancel_comment or '' }}</td>
                             </tr>
@@ -94,7 +70,7 @@
                         ออกใบเสร็จใหม่
                     </a>
                     <a class="button is-rounded is-primary"
-                        href="{{ url_for('comhealth.display_service_customers', service_id=record.service.id)}}">
+                        href="{{ url_for('comhealth.show_finance_records', service_id=record.service.id)}}">
                         กลับ
                     </a>
                 </div>

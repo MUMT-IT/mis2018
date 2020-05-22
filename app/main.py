@@ -1,8 +1,10 @@
 # -*- coding:utf-8 -*-
 import os
 import click
+import arrow
 import requests
 from pytz import timezone
+from dateutil import tz
 from flask.cli import AppGroup
 from dotenv import load_dotenv
 from flask import Flask, render_template
@@ -277,6 +279,16 @@ admin.add_view(ComHealthContainerModelView(ComHealthContainer, db.session, categ
 admin.add_view(ComHealthDepartmentModelView(ComHealthDepartment, db.session, category='Com Health'))
 
 
+from smartclass_scheduler import smartclass_scheduler_blueprint
+app.register_blueprint(smartclass_scheduler_blueprint, url_prefix='/smartclass')
+from smartclass_scheduler.models import (SmartClassOnlineAccount,
+                                         SmartClassResourceType,
+                                         SmartClassOnlineAccountEvent)
+
+admin.add_view(ModelView(SmartClassOnlineAccount, db.session, category='Smartclass'))
+admin.add_view(ModelView(SmartClassResourceType, db.session, category='Smartclass'))
+admin.add_view(ModelView(SmartClassOnlineAccountEvent, db.session, category='Smartclass'))
+
 from comhealth.views import CustomerEmploymentTypeUploadView
 
 admin.add_view(CustomerEmploymentTypeUploadView(
@@ -361,17 +373,38 @@ def money_format(value):
     return '{:,.2f}'.format(value)
 
 
+@app.template_filter("localtime")
+def local_datetime(dt):
+    bangkok = timezone('Asia/Bangkok')
+    datetime_format = '%-H:%-M'
+    if dt:
+        return dt.astimezone(bangkok).strftime(datetime_format)
+    else:
+        return None
+
+
 @app.template_filter("localdatetime")
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
-    datetime_format = '%d/%m/%Y %H:%M'
-    return dt.astimezone(bangkok).strftime(datetime_format)
+    datetime_format = '%-d %b %Y %-H:%-M'
+    if dt:
+        return dt.astimezone(bangkok).strftime(datetime_format)
+    else:
+        return None
+
+
+@app.template_filter("humanizedt")
+def humanize_datetime(dt):
+    if dt:
+        return arrow.get(dt, 'Asia/Bangkok').humanize()
+    else:
+        return None
 
 
 @app.template_filter("localdate")
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
-    datetime_format = '%d/%m/%Y'
+    datetime_format = '%-d %b %Y'
     return dt.astimezone(bangkok).strftime(datetime_format)
 
 
@@ -379,7 +412,9 @@ def local_datetime(dt):
 def sort_test_item(tests):
     return sorted(tests, key=lambda x: x.test.name)
 
+
 import time
+
 
 @app.template_filter("tojsdatetime")
 def convert_date_to_js_datetime(select_dates, single=False):

@@ -1,6 +1,7 @@
 alembic==0.9.6
 appnope==0.1.0
 APScheduler==3.6.3
+arrow==0.15.5
 asn1crypto==0.24.0
 astroid==1.6.3
 backports-abc==0.5
@@ -45,8 +46,11 @@ gunicorn==19.7.1
 html5lib==1.0.1
 httplib2==0.11.3
 idna==2.6
+infinity==1.4
+intervals==0.8.1
 ipaddress==1.0.22
 ipykernel==4.8.2
+ipython==5.8.0
 ipython-genutils==0.2.0
 isort==4.3.4
 itsdangerous==0.24
@@ -91,6 +95,7 @@ Pygments==2.2.0
 pylint==1.8.4
 pyOpenSSL==17.5.0
 pyparsing==2.2.0
+PyPDF2==1.26.0
 Pyphen==0.9.5
 pypng==0.0.18
 PyQRCode==1.2.1
@@ -108,6 +113,7 @@ simplegeneric==0.8.1
 singledispatch==3.4.0.3
 six==1.11.0
 SQLAlchemy==1.2.0
+SQLAlchemy-Utils==0.36.3
 subprocess32==3.2.7
 terminado==0.8.1
 testpath==0.3.1
@@ -116,12 +122,17 @@ tornado==5.0.1
 traitlets==4.3.2
 typing==3.7.4.1
 tzlocal==1.5.1
+unicodecsv==0.14.1
 uritemplate==3.0.0
 urllib3==1.22
+validators==0.14.2
 wcwidth==0.1.7
 WeasyPrint==0.42
 webencodings==0.5.1
 Werkzeug==0.14.1
 wrapt==1.10.11
 WTForms==2.1
+WTForms-Alchemy==0.16.9
+WTForms-Components==0.10.4
 xlrd==1.1.0
+XlsxWriter==1.2.8

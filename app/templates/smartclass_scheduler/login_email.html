@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Login Instruction{% endblock %}
+{% include "smartclass_scheduler/nav.html" %}
+{% block page_content %}
+<section class="hero is-link">
+    <div class="hero-body">
+        <h1 class="title is-size-4">MUMT-MIS</h1>
+        <h1 class="subtitle is-size-5">ระบบบริหารจัดการทรัพยากร Online Learning และ Smart Classroom</h1>
+    </div>
+</section>
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                <div class="card">
+                    <div class="card-image">
+                        <figure class="image is-3by2">
+                            <img src="{{ url_for('static', filename='img/meeting.jpg') }}">
+                        </figure>
+                    </div>
+                    <div class="card-content">
+                        <div class="content">
+                            <h1 class="title is-size-4">Instruction</h1>
+                            <p>
+                                ท่านสามารถลงชื่อใช้งานในระบบ <a href="https://zoom.us/">Zoom.us</a> โดยใส่ชื่อบัญชี {{ event.account.name }} และรหัสผ่านในช่อง Email address และ Password ดังภาพ
+                                จากนั้นสร้าง Meeting Schedule ตามวันเวลาที่ท่านลงทะเบียนไว้
+                            </p>
+                            <p class="help is-link">รหัสผ่านท่านสามารถเช็ครหัสผ่านได้จากเอกสารชี้แจงของทางคณะฯ</p>
+                            <img src="{{ url_for('static', filename='img/login_email_zoom.jpg') }}">
+                        </div>
+                    </div>
+                    <footer class="card-footer">
+                        <a href="{{ url_for('smartclass_scheduler.show_event_detail', event_id=event.id) }}"
+                           class="card-footer-item">
+                            <span class="icon">
+                               <i class="fas fa-chevron-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
+                    </footer>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock page_content %}

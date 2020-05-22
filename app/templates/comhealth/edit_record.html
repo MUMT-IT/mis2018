@@ -66,18 +66,19 @@
                             <div class="card-content">
                                 <div class="columns">
                                     <div class="column">
-                                        <p>
-                                        <h1 class="subtitle is-size-5">
+                                        <p class="help"><strong>First and Last Name</strong></p>
+                                        <p class="is-size-4">
                                             <strong>ชื่อ</strong> {{ record.customer.title or '-' }} {{ record.customer.firstname or '-' }}
                                             <strong>นามสกุล</strong> {{ record.customer.lastname or '-' }}
+                                        </p>
+                                        <p class="help"><strong>Gender</strong></p>
+                                        <p class="is-size-4">
                                             <strong>เพศ</strong>
                                             {% if record.customer.gender == 1 %}ชาย{% else %} หญิง{% endif %}
-                                        </h1>
                                         </p>
-                                        <p>
-                                        <h1 class="subtitle is-size-5">
+                                        <p class="help"><strong>Affiliation</strong></p>
+                                        <p class="is-size-4">
                                             <strong>สังกัด</strong> {{ record.customer.org.name }}
-                                        </h1>
                                         </p>
                                         <div class="select">
                                             <select name="department_id">
@@ -91,9 +92,10 @@
                                                 {% endfor %}
                                             </select>
                                         </div>
-                                        <h1 class="subtitle is-size-5">
+                                        <p class="help"><strong>Employment</strong></p>
+                                        <p class="is-size-5">
                                             <strong>ประเภท</strong>
-                                        </h1>
+                                        </p>
                                         <div class="select">
                                             <select name="emptype_id">
                                                 {% for emptype in emptypes %}
@@ -108,18 +110,20 @@
                                     </div>
                                     <div class="column">
                                         {% if record.customer.dob %}
-                                            <p>
-                                            <h1 class="subtitle is-size-5">
-                                                <strong>อายุ</strong> {{ record.customer.age.years }}
-                                                ปี {{ record.customer.age.months }} เดือน {{ record.customer.age.days }}
-                                                วัน
-                                            </h1>
-                                            </p>
+                                        <p class="help"><strong>Age</strong></p>
+                                        <p class="is-size-5">
+                                            <strong>อายุ</strong> {{ record.customer.age.years }}
+                                            ปี {{ record.customer.age.months }} เดือน {{ record.customer.age.days }}
+                                            วัน
+                                        </p>
                                         {% endif %}
                                         <div class="field">
-                                            <label class="label is-size-4"><strong>วัน/เดือน/ปีเกิด</strong></label>
+                                            <label class="label is-size-5"><strong><span class="help">Date of Birth</span>วัน/เดือน/ปีเกิด</strong></label>
+                                            <span v-if="birthday !== ''"><% age %></span>
                                             <div class="control">
-                                                <input class="input is-rounded is-medium" name='dob' type="text"
+                                                <input class="input is-medium" id="birthdate-input"
+                                                       v-model="birthday"
+                                                       name='dob' type="text"
                                                        value='{{ record.customer.thai_dob or "" }}'
                                                        placeholder="dd/mm/yyyy"
                                                         {% if record.customer.dob %}
@@ -128,13 +132,13 @@
                                                 />
                                             </div>
                                             <p class="help has-text-info">
-                                                *ใช้ปีพุทธศักราช
+                                                *ใช้ปีพุทธศักราช / Buddhist year
                                             </p>
                                         </div>
                                         <div class="field">
-                                            <label class="label is-size-4"><strong>เบอร์โทรศัพท์</strong></label>
+                                            <label class="label is-size-4"><strong><span class="help">Telephone</span>เบอร์โทรศัพท์</strong></label>
                                             <div class="control">
-                                                <input class="input is-rounded is-medium"
+                                                <input class="input is-medium"
                                                        name='phone' type="text"
                                                        value='{{ record.customer.phone or "" }}'
                                                 />
@@ -155,6 +159,7 @@
                             <div class="card-content">
                                 <div class="field">
                                     <label class="label">หมายเหตุ เงื่อนไขหรือความต้องการเพิ่มเติม</label>
+                                    <p class="help"><strong>Special Requests</strong></p>
                                     <p class="control">
                                         <textarea class="textarea" name="comment" placeholder="Comment here..."></textarea>
                                     </p>
@@ -173,20 +178,37 @@
                                 </div>
                                 <div class="card-content">
                                     <p class="subtitle is-size-6">{{ profile.desc }}</p>
-                                    <a class="button is-link is-rounded"
-                                      rel="{{ profile.id }}" href="#check_{{profile.id}}">Check All</a>
-                                    <a class="button is-link is-rounded"
-                                      rel="{{ profile.id }}" href="#uncheck_{{profile.id}}">Uncheck All</a>
-                                    <ul id="{{ profile.id }}">
+                                    <div class="buttons">
+                                        <a class="button is-link is-rounded check_{{profile.id}}">Check All</a>
+                                        <a class="button is-link is-rounded uncheck_{{profile.id}}">Uncheck All</a>
+                                    </div>
+                                    <table id="{{ profile.id }}">
+                                        <thead>
+                                        <th class="has-text-centered">Test</th>
+                                        <th class="has-text-left">Self Pay</th>
+                                        </thead>
+                                        <tbody>
                                         {% for item in profile.test_items|sorttest %}
-                                            <li>
-                                                <label class="checkbox">
-                                                  <input type="checkbox" name="profile_{{ item.id }}">
+                                        <tr>
+                                            <td class="field">
+                                                <input class="is-checkradio is-block is-info is-large profile_{{profile.id}}_select"
+                                                       id="profile_{{ item.id }}_select"
+                                                       type="checkbox" name="profile_{{ item.id }}_select">
+                                                <label for="profile_{{ item.id }}_select">
                                                     <strong>{{ item.test.name }}</strong> {{ item.test.desc }}
                                                 </label>
-                                            </li>
+                                            </td>
+                                            <td class="field">
+                                                <input class="is-checkradio is-info" value="{{ item.id }}"
+                                                       id="profile_{{ item.id }}_selfpay"
+                                                       type="checkbox" name="profile_selfpay">
+                                                <label for="profile_{{ item.id }}_selfpay">
+                                                </label>
+                                            </td>
+                                        </tr>
                                         {% endfor %}
-                                    </ul>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -204,31 +226,54 @@
                     </div>
                 </div>
                 {% endif %}
+                <div class="columns">
+                    <div class="column">
+                        <h1 class="title is-size-4">รายการตรวจพิเศษ (Special Tests)</h1>
                 {% for group in record.service.groups %}
-                    <div class="columns">
-                        <div class="column">
-                            <div class="card">
-                                <div class="card-header">
-                                    <p class="card-header-title"><span>Group</span>&nbsp;{{ group.name }}</p>
-                                </div>
-                                <div class="card-content">
-                                    <p class="subtitle is-size-6">{{ group.desc }}</p>
-                                    <ul>
-                                        {% for item in group.test_items|sorttest %}
-                                            <li>
-                                                <label class="checkbox">
-                                                    <input type="checkbox" name="test_{{ item.id }}">
-                                                    <strong>{{ item.test.name }}</strong> {{ item.test.desc }}
-                                                    ({{ item.price or item.test.default_price }})
-                                                </label>
-                                            </li>
-                                        {% endfor %}
-                                    </ul>
-                                </div>
-                            </div>
+                <b-collapse class="card" animation="slide" :open="false" aria-id="contentIdForA11y3">
+                    <div
+                            slot="trigger"
+                            open="false"
+                            slot-scope="props"
+                            class="card-header"
+                            role="button"
+                            aria-controls="contentIdForA11y3">
+                        <p class="card-header-title">
+                            {{ group.name }}
+                        </p>
+                        <a class="card-header-icon">
+                            <b-icon
+                                    :icon="props.open ? 'menu-down' : 'menu-up'">
+                            </b-icon>
+                        </a>
+                    </div>
+                    <div class="card-content">
+                        <div class="content">
+                            <p class="subtitle is-size-6">{{ group.desc }}</p>
+                            <table>
+                                {% for item in group.test_items|sorttest %}
+                                <tr>
+                                    <td class="field">
+                                        <input type="checkbox" name="test_{{ item.id }}"
+                                               id="test_{{ item.id }}_chk"
+                                               class="is-checkradio is-large is-info is-block"
+                                        >
+                                        <label for="test_{{ item.id }}_chk">
+                                            <strong>{{ item.test.name }}</strong> {{ item.test.desc }}
+                                        </label>
+                                    </td>
+                                    <td class="is-size-4">
+                                        {{ item.price }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </table>
                         </div>
                     </div>
+                </b-collapse>
                 {% endfor %}
+                    </div>
+                </div>
                 <div class="columns">
                     <div class="column">
                         <div class="has-text-centered">
@@ -250,21 +295,36 @@
             el: "#app",
             delimiters: ['<%', '%>'],
             data() {
-                return {}
+                return {
+                    birthday: '',
+                }
             },
-            computed: {}
+            computed: {
+                age: function() {
+                    let birthdayString = this.birthday.split("/");
+                    let birthdate = new Date(parseInt(birthdayString[2] - 543),
+                                        parseInt(birthdayString[1]), parseInt(birthdayString[0]));
+                    let nowdt = new Date();
+                    let ageInYears = ((nowdt.getTime() - birthdate.getTime()) / (1000 * 3600 * 24)) / 365;
+                    let months = (ageInYears - Math.floor(ageInYears)) * 12;
+                    let days = (months - Math.floor(months)) * 30;
+                    return Math.floor(ageInYears) + ' ปี ' + Math.floor(months) + ' เดือน ' + Math.floor(days) + ' วันโดยประมาณ';
+                }
+            }
         });
     </script>
   <script type="text/javascript">
     $(document).ready(function() {
       {% for profile in record.service.profiles %}
-      $("A[href='#check_{{profile.id}}']").click(function() {
-        $("#" + $(this).attr('rel') + " INPUT[type='checkbox']").attr('checked', true);
-        return false;
+      $(".check_{{profile.id}}").on('click', function() {
+        $(".profile_{{profile.id}}_select").each(function(){
+            this.checked = true;
+        });
       });
-      $("A[href='#uncheck_{{profile.id}}']").click(function() {
-        $("#" + $(this).attr('rel') + " INPUT[type='checkbox']").attr('checked', false);
-        return false;
+      $(".uncheck_{{profile.id}}").on('click', function() {
+        $(".profile_{{profile.id}}_select").each(function(){
+            this.checked = false;
+        });
       });
       {% endfor %}
     });

@@ -8,6 +8,7 @@
             <div class="container has-text-centered">
                 <h2 class="title">ระบบการเงินงานบริการสุขภาพชุมชน</h2>
                 <h2 class="subtitle">กรุณาตรวจสอบความถูกต้องของข้อมูลและกรอกข้อมูลเพิ่มเติมให้สมบูรณ์</h2>
+                {% include "messages.html" %}
                 <form method="post">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="field is-horizontal">

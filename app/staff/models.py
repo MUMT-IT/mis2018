@@ -306,7 +306,7 @@ class StaffWorkFromHomeJobDetail(db.Model):
     activity = db.Column('topic', db.String(), nullable=False, unique=True)
     comment = db.Column('activity', db.String())
     #change status type from Integer to String (success,fail,cencel)
-    status = db.Column('status', db.Integer())
+    status = db.Column('status', db.Boolean(), default=False)
     wfh_id = db.Column('wfh_id', db.ForeignKey('staff_work_from_home_requests.id'))
 
 
