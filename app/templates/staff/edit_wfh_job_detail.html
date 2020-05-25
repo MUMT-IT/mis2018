@@ -9,25 +9,29 @@
                 <form method="post">
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <div class="field">
-                        <h4 class="title">รายการขออนุญาตทำงานที่บ้าน</h4>
-                        <h4 class="subtitle">เรื่อง : {{ wfhreq.detail }}</h4>
-                        <h4 class="subtitle">วันที่ {{ wfhreq.start_datetime|localdatetime }} - {{ wfhreq.end_datetime|localdatetime }}</h4>
-                        <h4 class="subtitle">กำหนดส่ง {{ wfhreq.deadline_date }}</h4>
+                        <h4 class="title">แก้ไขรายละเอียดงาน</h4>
                         <hr>
+                        <div class="control">
                         <b-field>
                             <b-input type="text"
-                                 name="topic"
-                                 value="{{ detail.topic }}"
+                                 name="activity"
+                                 value="{{ detail.activity }}"
                                  expanded>
                             </b-input>
-                            <p class="control">
-                                <a href="" class="button is-success"><i class="fas fa-check has-text-green"></i></a>
-                            </p>
-                            <p class="control">
-                                <a href="" class="button is-danger"><i class="fas fa-times has-text-red"></i></a>
-                            </p>
+                            <div class="control">
+                                <b-tooltip label="แก้ไข" type="is-light">
+                                    <input type="submit" value="แก้ไข" class="button is-primary"/>
+                                </b-tooltip>
+                            </div>
+                            <div class="control">
+                                <b-tooltip label="กลับ" type="is-light">
+                                <a href="{{ url_for('staff.wfh_show_request_info', request_id=request_id) }}" class="button is-warning"><i class="fas fa-times has-text-red"></i></a>
+                                </b-tooltip>
+                            </div>
                         </b-field>
+                        </div>
                     </div>
+
                 </form>
                 </div>
             </div>
@@ -42,10 +46,6 @@
         el: '#app',
         mounted() {
             var self = this;
-            self.givenDates = {{ selected_dates|tojsdatetime }};
-            self.givenDates.forEach((d) => {
-                self.selectedDates.push(new Date(d));
-            });
         }
     });
 </script>
