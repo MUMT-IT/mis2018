@@ -28,7 +28,7 @@
                     เรื่อง: {{ wfh_req.detail }}
                 </td>
                 <td>
-                    {{ wfh_req.start_datetime|localdatetime }} ({{ wfh_req.duration }} วัน)
+                    {{ wfh_req.start_datetime|localdate }} ({{ wfh_req.duration }} วัน)
                 </td>
                 <td>ความเห็นผู้บังคับบัญชา:
                 {% for ap in wfh_req.wfh_approvals %}

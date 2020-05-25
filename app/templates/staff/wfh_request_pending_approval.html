@@ -23,7 +23,7 @@
                                 วันที่ต้องการขออนุมัติ
                             </td>
                             <td>
-                                {{ req.start_datetime|localdatetime }} - {{ req.end_datetime|localdatetime }}
+                                {{ req.start_datetime|localdate }} - {{ req.end_datetime|localdate }}
                                 <p>({{ req.duration }} วัน)</p>
                             </td>
                         </tr>
@@ -40,7 +40,7 @@
                                 <label class="label">กำหนดส่งงาน</label>
                             </td>
                             <td>
-                                {{ req.deadline_date|localdatetime }}
+                                {{ req.deadline_date|localdate }}
                             </td>
                         </tr>
                         <tr>
