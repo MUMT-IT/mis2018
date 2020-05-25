@@ -14,10 +14,10 @@
             {% for approver in approvers %}
             <tr>
                 <td>{{ approver.account.personal_info }}</td>
-            {% if request.approvals %}
+            {% if request.wfh_approvals %}
             {% for status in request.wfh_approvals %}
             {% if status.approver_id==approver.id %}
-                <td>{{ status.updated_at|localdatetime }}</td>
+                <td>{{ status.updated_at|localdate }}</td>
                 <td>{{ status.is_approved }}</td>
             {% endif %}
             {% endfor %}
@@ -29,7 +29,7 @@
             {% endfor %}
             </tbody>
         </table>
-         <a href="{{ url_for('staff.show_work_from_home') }}" class="button is-link">กลับหน้าสรุปการขอทำงานที่บ้านของท่าน</a>
+         <a href="{{ url_for('staff.show_work_from_home') }}" class="button is-info">กลับหน้าสรุปการขอทำงานที่บ้านของท่าน</a>
     </div>
 </section>
 {% endblock %}
