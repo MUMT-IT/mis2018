@@ -421,7 +421,6 @@ def request_work_from_home():
 @staff.route('/wfh/request/<int:request_id>/edit',
              methods=['GET','POST'])
 @login_required
-#cannot get deadline date from request to show user to edit
 def edit_request_work_from_home(request_id):
     req = StaffWorkFromHomeRequest.query.get(request_id)
     if request.method == 'POST':
@@ -440,7 +439,7 @@ def edit_request_work_from_home(request_id):
     selected_dates = [req.start_datetime, req.end_datetime]
     deadline = req.deadline_date
     return render_template('staff/edit_wfh_request.html', req=req, selected_dates=selected_dates, deadline=deadline)
-#deadline date ไม่มาตรงแก้ไข แล้วพอไปหน้าดูรายละเอียดเพื่อขออนุมัติเลยมีปัญหา
+
 
 @staff.route('/wfh/request/<int:request_id>/cancel')
 @login_required
@@ -459,7 +458,6 @@ def wfh_show_request_info(request_id):
 
     if request.method == 'POST':
         form = request.form
-
         req = StaffWorkFromHomeJobDetail(
             wfh_id = request_id,
             activity = form.get('activity')
@@ -542,12 +540,18 @@ def show_wfh_approval(request_id):
 
 
 @staff.route('/wfh/<int:request_id>/info/edit-detail/<detail_id>',
-                                methods=['GET', 'POST'])
+                                            methods=['GET', 'POST'])
 @login_required
 def edit_wfh_job_detail(request_id,detail_id):
-    request = StaffWorkFromHomeRequest.query.get(request_id)
-    detail = StaffWorkFromHomeJobDetail.query.filter_by(id=detail_id)
-    return render_template('staff/edit_wfh_job_detail.html', wfhreq=request, detail=detail)
+    detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
+    if request.method == 'POST':
+        detail.activity =request.form.get('activity')
+        db.session.add(detail)
+        db.session.commit()
+        return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
+
+    detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
+    return render_template('staff/edit_wfh_job_detail.html', detail=detail, request_id=request_id)
 
 
 @staff.route('/wfh/<int:request_id>/info/finish-job-detail/<detail_id>')
@@ -555,7 +559,6 @@ def edit_wfh_job_detail(request_id,detail_id):
 def finish_wfh_job_detail(request_id, detail_id):
     detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
     if detail:
-        #change status=success/finish
         detail.status = True
         db.session.add(detail)
         db.session.commit()
