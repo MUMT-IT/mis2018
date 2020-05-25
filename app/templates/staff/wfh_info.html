@@ -72,24 +72,35 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if not request.cancelled_at %}
                         <b-tooltip label="แก้ไข" type="is-light">
-                        <a class="button" href="{{ url_for('staff.edit_request_work_from_home', request_id=request.id) }}">
+                        <a class="button"
+                           {% if request.cancelled_at %}
+                           disabled
+                           {% elif request.wfh_approvals %}
+                           disabled
+                           {% else %}
+                           href="{{ url_for('staff.edit_request_work_from_home', request_id=request.id) }}"
+                           {% endif %}
+                        >
                         <span class="icon">
                             <i class="fas fa-pencil-alt has-text-dark"></i>
                         </span>
                         </a>
                         </b-tooltip>
                         <b-tooltip label="ยกเลิกการลา" type="is-danger">
-                        <a class="button" @click="confirmWfhDelete({{ request.id }})">
+                        <a class="button"
+                        {% if request.cancelled_at %}
+                           disabled
+                           href="#"
+                        {% else %}
+                           @click="confirmWfhDelete({{ request.id }})"
+                        {% endif %}
+                        >
                         <span class="icon">
                             <i class="fas fa-trash has-text-danger"></i>
                         </span>
                         </a>
                         </b-tooltip>
-                    {% else %}
-                        <span class="has-text-danger">ยกเลิกลา</span>
-                    {% endif %}
                     </td>
                 </tr>
             {% endfor %}
