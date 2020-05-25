@@ -13,10 +13,10 @@
             <tbody>
             {% for approver in approvers %}
             <tr>
+                <td>{{ approver.account.personal_info }}</td>
                 {% if request.wfh_approvals %}
                 {% for status in request.wfh_approvals %}
                 {% if status.approver_id==approver.id %}
-                <td>{{ approver.account.personal_info }}</td>
                 <td>{{ status.updated_at|localdate }}</td>
                 <td>{{ status.is_approved }}</td>
                 {% endif %}
