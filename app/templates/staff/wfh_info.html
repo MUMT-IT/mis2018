@@ -27,15 +27,16 @@
             <tbody>
             {% for request in req |sort(attribute='start_datetime')%}
                 <tr {% if request.cancelled_at %}style="color: #C0C0C0  ;"{% endif %}>
-                    <td>{{ request.start_datetime|localdatetime }}</td>
-                    <td>{{ request.end_datetime|localdatetime }}</td>
+                    <td>{{ request.start_datetime|localdate }}</td>
+                    <td>{{ request.end_datetime|localdate }}</td>
                     <td>{{ request.detail }}</td>
                     <td>
                         {% if not request.cancelled_at %}
                         <div class="field is-grouped is-grouped-multiline">
                             <div class="control">
                                 <div class="tags has-addons">
-                                    <b-tooltip label="" type="is-light">
+                                    <b-tooltip
+                                            label="" type="is-light">
                                     <a class="button is-text" href="{{ url_for('staff.show_wfh_approval', request_id=request.id) }}">
                                         <span class="tag is-dark">อนุมัติ</span>
                                         <span class="tag is-info">{{ request.get_approved|length }}</span>
@@ -91,7 +92,6 @@
                         <a class="button"
                         {% if request.cancelled_at %}
                            disabled
-                           href="#"
                         {% else %}
                            @click="confirmWfhDelete({{ request.id }})"
                         {% endif %}
