@@ -25,9 +25,6 @@
                 <th>
                     แก้ไข/ยกเลิก
                 </th>
-                <th>
-                    ความคิดเห็นจากหัวหน้า
-                </th>
             </thead>
             <tbody>
             {% for detail in detail|sort(attribute='status') %}
@@ -36,7 +33,11 @@
                         {{ detail.activity }}
                     </td>
                     <td>
-                        {% if not detail.status %}
+                        {% if detail.status == True %}
+                        <span class="has-text-success">เสร็จ</span>
+                        {% elif detail.status == False %}
+                        <span class="has-text">ไม่เสร็จ</span>
+                        {% elif not detail.status %}
                         <b-tooltip label="เสร็จ" type="is-success">
                             <a href="{{ url_for('staff.finish_wfh_job_detail', request_id=wfhreq.id, detail_id=detail.id) }}" class="button is-rounded is-success is-light">
                                 <span class="icon">
@@ -51,10 +52,6 @@
                                 </span>
                             </a>
                         </b-tooltip>
-                        {% elif detail.status %}
-                        <span class="has-text-success">เสร็จ</span>
-                        {% else %}
-                        <span class="has-text-light">ไม่เสร็จ</span>
                         {% endif %}
                     </td>
                     <td>
@@ -75,11 +72,6 @@
                         </b-tooltip>
                         {% endif %}
                     </td>
-                    <td>
-                        {% if detail.status %}
-                        {{ detail.comment }}
-                        {% endif %}
-                    </td>
                 </tr>
             {% endfor %}
             </tbody>
@@ -87,14 +79,34 @@
         </div>
         <hr>
         <div class="control">
-            <form method="post">
-                <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
-                <b-field label="เพิ่ม" :label-position="labelPosition">
-                    <b-input placeholder="กิจกรรม" type="search" name="activity"></b-input>
-                        <button class="button is-primary" type="submit"><b-icon pack="fas" icon="plus"></b-icon></button>
-                </b-field>
-                </input>
-            </form>
+            <table class="table is-fullwidth">
+                <tr>
+                    <td>
+                       <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        <b-field label="เพิ่ม" :label-position="labelPosition">
+                            <b-input placeholder="กิจกรรม" type="search" name="activity"></b-input>
+                            <button class="button is-primary" type="submit"><b-icon pack="fas" icon="plus"></b-icon></button>
+                        </b-field>
+                        </input>
+                        </form>
+                    </td>
+                    <td>
+                        <div class="control">
+                            <b-field>
+                                <b-input type="textarea"
+                                 name="result"
+                                 placeholder="รายงานผลการดำเนินการ"
+                                 expanded>
+                                </b-input>
+                            <div class="control">
+                                    <a href="" class="button is-info"><i class="fas fa-paper-plane has-text-red">ส่งงาน</i></a>
+                            </div>
+                            </b-field>
+                        </div>
+                    </td>
+                </tr>
+            </table>
         </div>
         <hr>
         <div class="columns">
