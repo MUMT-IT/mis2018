@@ -66,7 +66,9 @@
                                  <label class="label">สรุปผลการดำเนินงาน</label>
                             </td>
                             <td>
-                                <p></p>
+                                {% for checkjob in checkjob %}
+                                <p>{{ checkjob.overall_result }}</p>
+                                {% endfor %}
                             </td>
                         </tr>
                         <tr>
@@ -75,7 +77,7 @@
                             </td>
                             <td>
                                 <b-input type="textarea"
-                                 name="result"
+                                 name="approval_comment"
                                  placeholder="โปรดระบุความคิดเห็น">
                                 </b-input>
                             </td>
@@ -84,7 +86,7 @@
                             <td></td>
                             <td>
                                 <div class="control">
-                                    <a href="" class="button is-success">ตรวจรับงาน</a>
+                                    <a href="{{ url_for('staff.comment_wfh_request', request_id=req.id) }}" class="button is-success">ตรวจรับงาน</a>
                                 </div>
                             </td>
                         </tr>
