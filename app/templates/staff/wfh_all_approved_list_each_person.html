@@ -30,7 +30,9 @@
                 {{ requester.duration }}
             </td>
             <td>
+                <a href="{{ url_for('staff.check_wfh_request', request_id=requester.id) }}" class="is-info is-light">
                 {{ requester.detail }}
+                </a>
             </td>
             <td>
                 {% if requester.wfh_approvals %}
@@ -51,7 +53,7 @@
 
 </table>
 
-    <a href="{{ request.referrer }}" class="button is-rounded is-info is-light">
+    <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}" class="button is-rounded is-info is-light">
         <span class="icon">
             <i class="fas fa-arrow-left"></i>
         </span>
