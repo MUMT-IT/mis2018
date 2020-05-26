@@ -3,7 +3,7 @@ from flask_login import login_required, current_user
 
 from models import (StaffAccount, StaffPersonalInfo,
                     StaffLeaveRequest, StaffLeaveQuota, StaffLeaveApprover, StaffLeaveApproval, StaffLeaveType, StaffWorkFromHomeRequest, StaffLeaveRequestSchema,
-                    StaffWorkFromHomeJobDetail, StaffWorkFromHomeApprover, StaffWorkFromHomeApproval)
+                    StaffWorkFromHomeJobDetail, StaffWorkFromHomeApprover, StaffWorkFromHomeApproval, StaffWorkFromHomeCheckedJob)
 from . import staffbp as staff
 from app.main import db
 from flask import jsonify, render_template, request, redirect, url_for, flash
@@ -455,7 +455,6 @@ def cancel_wfh_request(request_id):
              methods=['GET', 'POST'])
 @login_required
 def wfh_show_request_info(request_id):
-
     if request.method == 'POST':
         form = request.form
         req = StaffWorkFromHomeJobDetail(
@@ -592,14 +591,43 @@ def unfinish_wfh_job_detail(request_id, detail_id):
 def comment_wfh_request(request_id):
     if request.method == 'POST':
         form = request.form
+        comment = StaffWorkFromHomeCheckedJob(
+            approval_comment=form.get('approval_comment'),
+            finished_at=tz.localize(datetime.today()),
+            request_id=request_id
+        )
+        db.session.add(comment)
+        db.session.commit()
+        return redirect(url_for('staff.show_wfh_requests_for_approval'))
     else:
         req = StaffWorkFromHomeRequest.query.get(request_id)
         job_detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
+        checkjob = StaffWorkFromHomeCheckedJob.query.filter_by(request_id=request_id)
         approver = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id)
-        return render_template('staff/wfh_overall_result.html', req=req, job_detail=job_detail ,approver=approver)
+        return render_template('staff/wfh_approval_comment.html', req=req, job_detail=job_detail , checkjob=checkjob , approver=approver)
 
 
+@staff.route('/wfh/<int:request_id>/info/add-overall-result',
+                                        methods=['GET','POST'])
+@login_required
+def add_overall_result_work_from_home(request_id):
+    if request.method == 'POST':
+        form = request.form
+        result = StaffWorkFromHomeCheckedJob(
+                overall_result=form.get('overall_result'),
+                checked_at=tz.localize(datetime.today()),
+                request_id=request_id
+        )
+        db.session.add(result)
+        db.session.commit()
+        wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
+        detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
+        return render_template('staff/wfh_request_job_details.html', wfhreq=wfhreq, detail=detail)
 
+    else:
+        wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
+        detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
+        return render_template('staff/wfh_add_overall_result.html', wfhreq=wfhreq, detail=detail)
 
 
 
