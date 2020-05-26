@@ -53,16 +53,11 @@
                                 </div>
                             </div>
                         </div>
-                        {% else %}
                         {% endif %}
                     </td>
                     <td>
-                        {% if request.get_approved %}
+                        {% if not request.cancelled_at %}
                         <a href="{{ url_for('staff.wfh_show_request_info', request_id=request.id) }}" class="button">เพิ่มรายละเอียดงาน</a>
-                        {% elif not request.cancelled_at %}
-                        <h4>รอการอนุมัติ</h4>
-                        {% else %}
-
                         {% endif %}
                     </td>
                     <td>
