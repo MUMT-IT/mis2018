@@ -586,6 +586,20 @@ def unfinish_wfh_job_detail(request_id, detail_id):
         return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
 
 
+@staff.route('wfh/<int:request_id>/check',
+                    methods=['GET','POST'])
+@login_required
+def comment_wfh_request(request_id):
+    if request.method == 'POST':
+        form = request.form
+    else:
+        req = StaffWorkFromHomeRequest.query.get(request_id)
+        job_detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
+        approver = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id)
+        return render_template('staff/wfh_overall_result.html', req=req, job_detail=job_detail ,approver=approver)
+
+
+
 
 
 
