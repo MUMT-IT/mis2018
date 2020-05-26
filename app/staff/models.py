@@ -304,9 +304,7 @@ class StaffWorkFromHomeJobDetail(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     #want to change topic to activity and activity to comment(for Approver)
     activity = db.Column('topic', db.String(), nullable=False, unique=True)
-    comment = db.Column('activity', db.String())
-    #change status type from Integer to String (success,fail,cencel)
-    status = db.Column('status', db.Boolean(), default=False)
+    status = db.Column('status', db.Boolean())
     wfh_id = db.Column('wfh_id', db.ForeignKey('staff_work_from_home_requests.id'))
 
 
@@ -335,6 +333,15 @@ class StaffWorkFromHomeApproval(db.Model):
                                backref=db.backref('wfh_approved_requests'))
 
 
+class StaffWorkFromHomeCheckedJob(db.Model):
+    __tablename__ = 'staff_work_from_home_checked_job'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    overall_result = db.Column('overall_result', db.String())
+    approval_comment = db.Column('approval_comment', db.String())
+    request_id = db.Column('request_id', db.ForeignKey('staff_work_from_home_requests.id'))
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
+    finished_at = db.Column('finish_at', db.DateTime(timezone=True))
+    checked_at = db.Column('check_at', db.DateTime(timezone=True))
 
 
     
