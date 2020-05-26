@@ -3,7 +3,7 @@
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
-        <h4 class="title">รายการขออนุญาตทำงานที่บ้าน</h4>
+        <h4 class="title">รายละเอียดงาน</h4>
         <div class="has-text-left">
             <h4 class="subtitle">เรื่อง : {{ wfhreq.detail }}</h4>
         </div>
@@ -92,18 +92,11 @@
                         </form>
                     </td>
                     <td>
-                        <div class="control">
-                            <b-field>
-                                <b-input type="textarea"
-                                 name="result"
-                                 placeholder="รายงานผลการดำเนินการ"
-                                 expanded>
-                                </b-input>
-                            <div class="control">
-                                    <a href="" class="button is-info"><i class="fas fa-paper-plane has-text-red">ส่งงาน</i></a>
-                            </div>
-                            </b-field>
-                        </div>
+                        <a href="{{ url_for('staff.add_overall_result_work_from_home', request_id=wfhreq.id) }}" class="button is-info">
+                            <i class="fas fa-paper-plane has-text-red">
+                            ส่งงาน
+                            </i>
+                        </a>
                     </td>
                 </tr>
             </table>
