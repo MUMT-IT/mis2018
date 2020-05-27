@@ -342,6 +342,10 @@ class StaffWorkFromHomeCheckedJob(db.Model):
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
     finished_at = db.Column('finish_at', db.DateTime(timezone=True))
     checked_at = db.Column('check_at', db.DateTime(timezone=True))
+    wfh_request_id = db.relationship('StaffWorkFromHomeRequest',
+                            backref=db.backref('wfh_request'))
+    approval_account = db.relationship('StaffAccount',
+                              foreign_keys=[approver_id])
 
 
-    
+
