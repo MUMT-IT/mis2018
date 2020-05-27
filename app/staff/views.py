@@ -391,8 +391,8 @@ def leave_request_info():
 @login_required
 def show_work_from_home():
     req = StaffWorkFromHomeRequest.query.filter_by(staff_account_id=current_user.id).all()
-    approvers = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id)
-    return render_template('staff/wfh_info.html', req=req, approvers=approvers)
+    checkjob = StaffWorkFromHomeCheckedJob.query.all()
+    return render_template('staff/wfh_info.html', req=req, checkjob=checkjob)
 
 
 @staff.route('/wfh/request',
@@ -604,7 +604,8 @@ def add_overall_result_work_from_home(request_id):
         db.session.commit()
         wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
         detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
-        return render_template('staff/wfh_request_job_details.html', wfhreq=wfhreq, detail=detail)
+        check = StaffWorkFromHomeCheckedJob.query.filter_by(request_id=request_id)
+        return render_template('staff/wfh_record_info_each_request_subordinate.html', req=wfhreq, job_detail=detail, checkjob=check)
 
     else:
         wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
