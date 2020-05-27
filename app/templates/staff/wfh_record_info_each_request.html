@@ -50,6 +50,16 @@
                         </tr>
                         <tr>
                             <td>
+                                <label class="label">วันที่ส่งงาน</label>
+                            </td>
+                            <td>
+                                {% for checkjob in checkjob %}
+                                {{ checkjob.finished_at|localdate }}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
                                  <label class="label">รายละเอียดงาน</label>
                             </td>
                             <td>
