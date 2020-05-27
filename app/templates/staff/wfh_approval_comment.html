@@ -9,6 +9,8 @@
             {% endfor %}
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
+                    <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <table class="table">
                         <tr>
                             <td>
@@ -53,11 +55,21 @@
                         </tr>
                         <tr>
                             <td>
+                                <label class="label">วันที่ส่งงาน</label>
+                            </td>
+                            <td>
+                                {% for checkjob in checkjob %}
+                                {{ checkjob.finished_at|localdate }}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
                                  <label class="label">รายละเอียดงาน</label>
                             </td>
                             <td>
-                                {% for detail in job_detail %}
-                                <p>{{ detail.activity }} : {% if detail.status == True %}เสร็จ{% else %}ไม่เสร็จ{% endif %}</p>
+                                {% for detail in job_detail %}{% if detail.status==True or detail.status == False %}
+                                <p>{{ detail.activity }} : {% endif %}{% if detail.status == True %}เสร็จ{% elif detail.status == False %}ไม่เสร็จ{% else %}{% endif %}</p>
                                 {% endfor %}
                             </td>
                         </tr>
@@ -78,7 +90,8 @@
                             <td>
                                 <b-input type="textarea"
                                  name="approval_comment"
-                                 placeholder="โปรดระบุความคิดเห็น">
+                                 placeholder="โปรดระบุความคิดเห็น"
+                                 required>
                                 </b-input>
                             </td>
                         </tr>
@@ -86,14 +99,15 @@
                             <td></td>
                             <td>
                                 <div class="control">
-                                    <a href="{{ url_for('staff.comment_wfh_request', request_id=req.id) }}" class="button is-success">ตรวจรับงาน</a>
+                                    <input type="submit" value="ตรวจรับงาน" class="button is-primary"/>
                                 </div>
                             </td>
                         </tr>
                     </table>
+                    </form>
                     </div>
                     <hr>
-                    <a href="{{ request.referrer }}" class="button is-info is-light is-rounded">กลับ</a>
+                    <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}" class="button is-info is-light is-rounded">กลับ</a>
                 </div>
             </div>
         </div>
@@ -105,6 +119,10 @@
 <script>
 new Vue({
         el: '#app',
+        data() {
+            return {
+            }
+        },
     });
 </script>
 {% endblock %}
