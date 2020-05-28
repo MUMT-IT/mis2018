@@ -126,7 +126,8 @@ from staff.models import (StaffAccount, StaffPersonalInfo,
                           StaffLeaveRequest, StaffLeaveType,
                           StaffLeaveApproval, StaffEmployment,
                           StaffWorkFromHomeRequest, StaffWorkFromHomeJobDetail,
-                          StaffWorkFromHomeApprover, StaffWorkFromHomeApproval)
+                          StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
+                          StaffWorkFromHomeCheckedJob)
 
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
@@ -140,6 +141,7 @@ admin.add_views(ModelView(StaffWorkFromHomeRequest, db.session, category='Staff'
 admin.add_views(ModelView(StaffWorkFromHomeJobDetail, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkFromHomeApprover, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkFromHomeApproval, db.session, category='Staff'))
+admin.add_views(ModelView(StaffWorkFromHomeCheckedJob, db.session, category='Staff'))
 
 from room_scheduler import roombp as room_blueprint
 
