@@ -57,7 +57,7 @@
                     <td>
                         {% if not detail.status %}
                         <b-tooltip label="ยกเลิกรายการนี้" type="is-danger">
-                            <a href="{{ url_for('staff.cancel_wfh_job_detail', request_id=wfhreq.id, detail_id=detail.id) }}" class="button is-rounded is-light is-light">
+                            <a class="button is-rounded is-light is-light" @click="confirmWfhDelete({{ request.id,detail_id }})">
                                 <span class="icon">
                                     <i class="fas fa-trash"></i>
                                 </span>
@@ -123,6 +123,18 @@ new Vue({
                 labelPosition: 'on-border'
             }
         },
+        methods: {
+            confirmWfhDelete(request_id, detail_id) {
+                this.$buefy.dialog.confirm({
+                    title: 'ยกเลิกรายละเอียดงานนี้',
+                    message: 'แน่ใจหรือไม่ที่จะ<b>ยกเลิก</b>รายละเอียดงานนี้',
+                    confirmText: 'Delete this ่job detail',
+                    type: 'is-danger',
+                    hasIcon: true,
+                    onConfirm: () => window.location.href = "/staff/wfh/" + request_id + "/info/cancel-job-detail/" + detail_id
+                })
+            }
+        }
     });
 </script>
 {% endblock %}
