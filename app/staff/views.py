@@ -470,11 +470,14 @@ def wfh_show_request_info(request_id):
         wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
         detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
         return render_template('staff/wfh_request_job_details.html', wfhreq=wfhreq, detail=detail)
-
     else:
-        wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
-        detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
-        return render_template('staff/wfh_request_job_details.html', wfhreq=wfhreq, detail=detail)
+        check = StaffWorkFromHomeCheckedJob.query.filter_by(request_id=request_id).first()
+        if check:
+            return redirect(url_for("staff.record_each_request_wfh_request", request_id=request_id))
+        else:
+            wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
+            detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
+            return render_template('staff/wfh_request_job_details.html', wfhreq=wfhreq, detail=detail)
 
 
 @staff.route('/wfh/requests/approval')
