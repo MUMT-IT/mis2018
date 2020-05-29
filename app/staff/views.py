@@ -571,14 +571,14 @@ def finish_wfh_job_detail(request_id, detail_id):
         return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
 
 
-@staff.route('/wfh/<int:request_id>/info/cancel-job-detail/<detail_id>')
+@staff.route('/wfh/info/cancel-job-detail/<detail_id>')
 @login_required
-def cancel_wfh_job_detail(request_id, detail_id):
+def cancel_wfh_job_detail(detail_id):
     detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
     if detail:
         db.session.delete(detail)
         db.session.commit()
-        return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
+        return redirect(url_for('staff.wfh_show_request_info', request_id=detail.wfh_id))
 
 
 @staff.route('/wfh/<int:request_id>/info/unfinish-job-detail/<detail_id>')
