@@ -1,25 +1,36 @@
 # -*- coding: utf-8 -*-
 import json
-import pandas as pd
 import os
-from bahttext import bahttext
+import pytz
 from datetime import datetime
-from decimal import Decimal
+from collections import OrderedDict, defaultdict
+
+import pandas as pd
 from pandas import read_excel, isna
-from flask_weasyprint import HTML, render_pdf
+from bahttext import bahttext
+from decimal import Decimal
 from sqlalchemy.orm.attributes import flag_modified
 from flask import (render_template, flash, redirect,
                    url_for, session, stream_with_context,
                    request, send_file, send_from_directory,
                    Response, jsonify)
+from flask_admin import BaseView, expose
 from flask_login import login_required
-from collections import OrderedDict, defaultdict
-import pytz
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+from reportlab.lib.utils import ImageReader
+from reportlab.platypus import (SimpleDocTemplate, Table, Image,
+                                Spacer, Paragraph, TableStyle, PageBreak)
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfgen import canvas
+
 from . import comhealth
 from .forms import (ServiceForm, TestProfileForm, TestListForm,
                     TestForm, TestGroupForm, CustomerForm)
 from .models import *
-from flask_admin import BaseView, expose
+
 
 bangkok = pytz.timezone('Asia/Bangkok')
 
@@ -1330,59 +1341,6 @@ def show_receipt_detail(receipt_id):
                            total_special_cost_reimbursable=total_special_cost_reimbursable,
                            visible_special_tests=visible_special_tests,
                            visible_profile_tests=visible_profile_tests)
-
-
-@comhealth.route('/receipts/slip/<int:record_id>')
-def print_slip(record_id):
-    paidamt = request.args.get('paidamt', 0.0)
-    paidamt = Decimal(paidamt)
-    record = ComHealthRecord.query.get(record_id)
-
-    containers = set()
-    profile_item_cost = 0.0
-    group_item_cost = 0
-    for profile in record.service.profiles:
-        profile_item_cost += float(profile.quote)
-
-    special_tests = set(record.ordered_tests)
-
-    for profile in record.service.profiles:
-        # if all tests are ordered, the quote price is used.
-        # if some tests in the profile are ordered, subtract the price of the tests that are not ordered
-        if set(profile.test_items).intersection(record.ordered_tests):
-            for test_item in set(profile.test_items).difference(record.ordered_tests):
-                profile_item_cost -= float(test_item.price) or float(test_item.test.default_price)
-        else:  # in case no tests in the profile is ordered, subtract a quote price from the total price
-            profile_item_cost -= float(profile.quote)
-        special_tests.difference_update(set(profile.test_items))
-
-    group_item_cost = sum([item.price or item.test.default_price
-                           for item in record.ordered_tests if item.group])
-    special_item_cost = sum([item.price or item.test.default_price
-                             for item in special_tests])
-    containers = set([item.test.container for item in record.ordered_tests])
-    change = paidamt - special_item_cost
-
-    html = render_template('comhealth/slip.html',
-                           record=record,
-                           customer=record.customer,
-                           special_tests=special_tests,
-                           special_item_cost="{:10.2f}".format(special_item_cost),
-                           paidamt="{:10.2f}".format(paidamt),
-                           change="{:10.2f}".format(change)
-                           )
-    return render_pdf(HTML(string=html))
-
-
-from reportlab.lib import colors
-from reportlab.lib.enums import TA_RIGHT, TA_CENTER
-from reportlab.lib.utils import ImageReader
-from reportlab.platypus import (SimpleDocTemplate, Table, Image,
-                                Spacer, Paragraph, TableStyle, PageBreak)
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfgen import canvas
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
 pdfmetrics.registerFont(sarabun_font)
