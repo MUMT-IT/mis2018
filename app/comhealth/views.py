@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
 import os
-import pytz
-from datetime import datetime
 from collections import OrderedDict, defaultdict
 
 import pandas as pd
@@ -11,9 +9,8 @@ from bahttext import bahttext
 from decimal import Decimal
 from sqlalchemy.orm.attributes import flag_modified
 from flask import (render_template, flash, redirect,
-                   url_for, session, stream_with_context,
-                   request, send_file, send_from_directory,
-                   Response, jsonify)
+                   url_for, session, request, send_file,
+                   send_from_directory, jsonify)
 from flask_admin import BaseView, expose
 from flask_login import login_required
 from reportlab.lib import colors
@@ -38,11 +35,13 @@ ALLOWED_EXTENSIONS = ['xlsx', 'xls']
 
 
 @comhealth.route('/')
+@login_required
 def landing():
     return render_template('comhealth/landing.html')
 
 
 @comhealth.route('/finance', methods=('GET', 'POST'))
+@login_required
 def finance_landing():
     cur_year = datetime.today().date().year + 543
     receipt_ids = ComHealthReceiptID.query.filter_by(buddhist_year=cur_year)
@@ -60,6 +59,7 @@ def finance_landing():
 
 
 @comhealth.route('/services/finance')
+@login_required
 def finance_index():
     services = ComHealthService.query.all()
     services_data = []
@@ -76,6 +76,7 @@ def finance_index():
 
 
 @comhealth.route('/services/<int:service_id>/finance/summary')
+@login_required
 def finance_summary(service_id):
     service = ComHealthService.query.get(service_id)
     receipts = defaultdict(list)
@@ -99,6 +100,7 @@ def finance_summary(service_id):
 
 
 @comhealth.route('/api/services/<int:service_id>/records')
+@login_required
 def api_finance_record(service_id):
     service = ComHealthService.query.get(service_id)
     records = [rec for rec in service.records if rec.is_checked_in]
@@ -107,6 +109,7 @@ def api_finance_record(service_id):
 
 
 @comhealth.route('/services/health-record')
+@login_required
 def health_record_landing():
     services = ComHealthService.query.all()
     services_data = []
@@ -123,6 +126,7 @@ def health_record_landing():
 
 
 @comhealth.route('/services/<int:service_id>/health-record')
+@login_required
 def health_record_index(service_id):
     service = ComHealthService.query.get(service_id)
     employees = [r.customer for r in service.records]
@@ -137,12 +141,14 @@ def health_record_index(service_id):
 
 
 @comhealth.route('/services/<int:service_id>/finance/records')
+@login_required
 def show_finance_records(service_id):
     service = ComHealthService.query.get(service_id)
     return render_template('comhealth/finance_records.html', service=service)
 
 
 @comhealth.route('/customers')
+@login_required
 def index():
     services = ComHealthService.query.all()
     services_data = []
@@ -160,6 +166,7 @@ def index():
 
 
 @comhealth.route('/api/services/<int:service_id>/search')
+@login_required
 def search_service_customer(service_id):
     service = ComHealthService.query.get(service_id)
     record_schema = ComHealthRecordSchema(many=True)
@@ -167,6 +174,7 @@ def search_service_customer(service_id):
 
 
 @comhealth.route('/orgs/<int:org_id>/services/register')
+@login_required
 def register_service_to_org(org_id):
     services = ComHealthService.query.all()
     org = ComHealthOrg.query.get(org_id)
@@ -175,6 +183,7 @@ def register_service_to_org(org_id):
 
 
 @comhealth.route('/orgs/<int:org_id>/services/<int:service_id>/register')
+@login_required
 def register_customer_to_service_org(service_id, org_id):
     org = ComHealthOrg.query.get(org_id)
     service = ComHealthService.query.get(service_id)
@@ -193,12 +202,14 @@ def register_customer_to_service_org(service_id, org_id):
 
 
 @comhealth.route('/services/<int:service_id>')
+@login_required
 def display_service_customers(service_id):
     service = ComHealthService.query.get(service_id)
     return render_template('comhealth/service_customers.html', service=service)
 
 
 @comhealth.route('/checkin/<int:record_id>', methods=['GET', 'POST'])
+@login_required
 def edit_record(record_id):
     # TODO: use decimal in price calculation instead of float
     # TODO: add a page for editing personal information
@@ -301,6 +312,7 @@ def edit_record(record_id):
 
 
 @comhealth.route('/record/order/add-comment', methods=['GET', 'POST'])
+@login_required
 def add_comment_to_order():
     if request.method == 'POST':
         record_id = request.form.get('record_id')
@@ -314,6 +326,7 @@ def add_comment_to_order():
 
 
 @comhealth.route('/record/<int:record_id>/order/add-test-item/<int:item_id>')
+@login_required
 def add_item_to_order(record_id, item_id):
     if record_id and item_id:
         record = ComHealthRecord.query.get(record_id)
@@ -329,6 +342,7 @@ def add_item_to_order(record_id, item_id):
 
 
 @comhealth.route('/record/<int:record_id>/order/remove-test-item/<int:item_id>')
+@login_required
 def remove_item_from_order(record_id, item_id):
     if record_id and item_id:
         record = ComHealthRecord.query.get(record_id)
@@ -344,6 +358,7 @@ def remove_item_from_order(record_id, item_id):
 
 
 @comhealth.route('/record/<int:record_id>/update-delivery-status')
+@login_required
 def update_delivery_status(record_id):
     if record_id:
         record = ComHealthRecord.query.get(record_id)
@@ -356,6 +371,7 @@ def update_delivery_status(record_id):
 
 
 @comhealth.route('/tests')
+@login_required
 def test_index():
     profiles = ComHealthTestProfile.query.all()
     pf_schema = ComHealthTestProfileSchema(many=True)
@@ -365,6 +381,7 @@ def test_index():
 
 @comhealth.route('/test/groups')
 @comhealth.route('/test/groups/<int:group_id>')
+@login_required
 def test_group_index(group_id=None):
     if group_id:
         group = ComHealthTestGroup.query.get(group_id)
@@ -377,6 +394,7 @@ def test_group_index(group_id=None):
 
 
 @comhealth.route('/test/profiles/new', methods=['GET', 'POST'])
+@login_required
 def add_test_profile():
     form = TestProfileForm()
     if form.validate_on_submit():
@@ -401,6 +419,7 @@ def add_test_profile():
 
 
 @comhealth.route('/test/groups/new', methods=['GET', 'POST'])
+@login_required
 def add_test_group():
     form = TestGroupForm()
     if form.validate_on_submit():
@@ -424,6 +443,7 @@ def add_test_group():
 
 
 @comhealth.route('/test/tests/profile/menu/<int:profile_id>')
+@login_required
 def profile_test_menu(profile_id=None):
     '''Shows a menu of tests to be added to the profile.
 
@@ -444,8 +464,8 @@ def profile_test_menu(profile_id=None):
     return redirect(url_for('comhealth.test_index'))
 
 
-@comhealth.route('/test/profiles/<int:profile_id>/add-test',
-                 methods=['GET', 'POST'])
+@comhealth.route('/test/profiles/<int:profile_id>/add-test', methods=['GET', 'POST'])
+@login_required
 def add_test_to_profile(profile_id):
     '''Add tests selected from the menu to be added to the profile.
 
@@ -470,6 +490,7 @@ def add_test_to_profile(profile_id):
 
 
 @comhealth.route('/test/profiles/<int:profile_id>')
+@login_required
 def test_profile(profile_id):
     '''Main Test Index with Profile, Group and Test tabs.
 
@@ -481,6 +502,7 @@ def test_profile(profile_id):
 
 
 @comhealth.route('/test/profiles/<int:profile_id>/save', methods=['GET', 'POST'])
+@login_required
 def save_test_profile(profile_id):
     '''Generates a form for editing the price of the test item.
 
@@ -502,6 +524,7 @@ def save_test_profile(profile_id):
 
 
 @comhealth.route('/test/profiles/<int:profile_id>/tests/<int:item_id>/remove', methods=['GET', 'POST'])
+@login_required
 def remove_test_profile(profile_id, item_id):
     '''Delete the test item from the profile.
 
@@ -517,6 +540,7 @@ def remove_test_profile(profile_id, item_id):
 
 
 @comhealth.route('/test/tests/group/menu/<int:group_id>')
+@login_required
 def group_test_menu(group_id=None):
     '''Shows a menu of tests to be added to the profile.
 
@@ -539,6 +563,7 @@ def group_test_menu(group_id=None):
 
 @comhealth.route('/test/groups/<int:group_id>/add-test',
                  methods=['GET', 'POST'])
+@login_required
 def add_test_to_group(group_id):
     '''Add tests selected from the menu to be added to the group.
 
@@ -563,6 +588,7 @@ def add_test_to_group(group_id):
 
 
 @comhealth.route('/test/groups/<int:group_id>/save', methods=['GET', 'POST'])
+@login_required
 def save_test_group(group_id):
     '''Generates a form for editing the price of the test item.
 
@@ -582,6 +608,7 @@ def save_test_group(group_id):
 
 
 @comhealth.route('/test/groups/<int:group_id>/tests/<int:item_id>/remove', methods=['GET', 'POST'])
+@login_required
 def remove_group_test_item(group_id, item_id):
     '''Delete the test item from the group.
 
@@ -598,6 +625,7 @@ def remove_group_test_item(group_id, item_id):
 
 @comhealth.route('/test/tests')
 @comhealth.route('/test/tests/<int:test_id>')
+@login_required
 def test_test_index(test_id=None):
     if test_id:
         test = ComHealthTest.query.get(test_id)
@@ -611,6 +639,7 @@ def test_test_index(test_id=None):
 
 
 @comhealth.route('/test/tests/new', methods=['GET', 'POST'])
+@login_required
 def add_new_test():
     form = TestForm()
     containers = [(c.id, c.name) for c in ComHealthContainer.query.all()]
@@ -632,11 +661,13 @@ def add_new_test():
 
 
 @comhealth.route('/test/tests/edit/<int:test_id>', methods=['GET', 'POST'])
+@login_required
 def edit_test(test_id):
     return render_template('comhealth/edit_test.html')
 
 
 @comhealth.route('/services/new', methods=['GET', 'POST'])
+@login_required
 def add_service():
     form = ServiceForm()
     if form.validate_on_submit():
@@ -656,6 +687,7 @@ def add_service():
 
 
 @comhealth.route('/services/edit/<int:service_id>', methods=['GET', 'POST'])
+@login_required
 def edit_service(service_id=None):
     if service_id:
         service = ComHealthService.query.get(service_id)
@@ -664,6 +696,7 @@ def edit_service(service_id=None):
 
 @comhealth.route('/services/profiles/<int:service_id>')
 @comhealth.route('/services/profiles/<int:service_id>/<int:profile_id>')
+@login_required
 def add_service_profile(service_id=None, profile_id=None):
     if not (service_id and profile_id):
         service = ComHealthService.query.get(service_id)
@@ -682,6 +715,7 @@ def add_service_profile(service_id=None, profile_id=None):
 
 
 @comhealth.route('/services/profiles/delete/<int:service_id>/<int:profile_id>')
+@login_required
 def delete_service_profile(service_id=None, profile_id=None):
     if service_id and profile_id:
         service = ComHealthService.query.get(service_id)
@@ -701,6 +735,7 @@ def delete_service_profile(service_id=None, profile_id=None):
 
 @comhealth.route('/services/groups/<int:service_id>')
 @comhealth.route('/services/groups/<int:service_id>/<int:group_id>')
+@login_required
 def add_service_group(service_id=None, group_id=None):
     if not (service_id and group_id):
         service = ComHealthService.query.get(service_id)
@@ -719,6 +754,7 @@ def add_service_group(service_id=None, group_id=None):
 
 
 @comhealth.route('/services/groups/delete/<int:service_id>/<int:group_id>')
+@login_required
 def delete_service_group(service_id=None, group_id=None):
     if service_id and group_id:
         service = ComHealthService.query.get(service_id)
@@ -736,6 +772,7 @@ def delete_service_group(service_id=None, group_id=None):
 
 
 @comhealth.route('/services/<int:service_id>/specimens-summary')
+@login_required
 def summarize_specimens(service_id):
     containers = set()
     if service_id:
@@ -754,6 +791,7 @@ def summarize_specimens(service_id):
 
 
 @comhealth.route('/services/<int:service_id>/containers/<int:container_id>')
+@login_required
 def list_tests_in_container(service_id, container_id):
     tests = defaultdict(list)
     if service_id:
@@ -768,6 +806,7 @@ def list_tests_in_container(service_id, container_id):
 
 
 @comhealth.route('/organizations')
+@login_required
 def list_orgs():
     org_schema = ComHealthOrgSchema(many=True)
     orgs = ComHealthOrg.query.all()
@@ -776,6 +815,7 @@ def list_orgs():
 
 
 @comhealth.route('/services/add-to-org/<int:org_id>', methods=['GET', 'POST'])
+@login_required
 def add_service_to_org(org_id):
     form = ServiceForm()
     org = ComHealthOrg.query.get(org_id)
@@ -816,6 +856,7 @@ def add_service_to_org(org_id):
 
 
 @comhealth.route('/services/<int:service_id>/add-new-customer/<int:org_id>', methods=['GET', 'POST'])
+@login_required
 def add_customer_to_service_org(service_id, org_id):
     form = CustomerForm()
     if form.validate_on_submit():
@@ -856,6 +897,7 @@ def add_customer_to_service_org(service_id, org_id):
 # TODO: export the price of tests
 
 @comhealth.route('/services/<int:service_id>/to-csv')
+@login_required
 def export_csv(service_id):
     # TODO: add employment types (number)
     # TODO: add age, gender
@@ -907,6 +949,7 @@ def export_csv(service_id):
 
 
 @comhealth.route('/organizations/add', methods=['GET', 'POST'])
+@login_required
 def add_org():
     name = request.form.get('name', '')
     if name:
@@ -922,6 +965,7 @@ def add_org():
 
 
 @comhealth.route('/organizations/<int:orgid>/employees', methods=['GET', 'POST'])
+@login_required
 def list_employees(orgid):
     if orgid:
         org = ComHealthOrg.query.get(orgid)
@@ -937,6 +981,7 @@ def allowed_file(filename):
 
 
 @comhealth.route('/organizations/<int:orgid>/employees/info', methods=['POST', 'GET'])
+@login_required
 def add_employee_info(orgid):
     """Add employees info from a file.
     """
@@ -1013,6 +1058,7 @@ def add_employee_info(orgid):
 
 @comhealth.route('/organizations/employees/info/<int:custid>',
                  methods=["POST", "GET"])
+@login_required
 def show_employee_info(custid):
     info_items = ComHealthCustomerInfoItem.query.all()
     info_items = [(it.text, it) for it in info_items]
@@ -1058,6 +1104,7 @@ def show_employee_info(custid):
 
 
 @comhealth.route('/organizations/<int:orgid>/employees/addmany', methods=['GET', 'POST'])
+@login_required
 def add_many_employees(orgid):
     # TODO: All new customer needs to have their HN generated.
     """Add employees from Excel file.
@@ -1162,6 +1209,7 @@ def add_many_employees(orgid):
 
 
 @comhealth.route('/organizations/mudt/employees', methods=['GET', 'POST'])
+@login_required
 def search_employees():
     df = read_excel('app/static/data/mudt2019.xls')
     data = []
@@ -1178,12 +1226,14 @@ def search_employees():
 
 
 @comhealth.route('/checkin/<int:record_id>/receipts', methods=['GET', 'POST'])
+@login_required
 def list_all_receipts(record_id):
     record = ComHealthRecord.query.get(record_id)
     return render_template('comhealth/receipts.html', record=record)
 
 
 @comhealth.route('/checkin/records/<int:record_id>/receipts', methods=['POST', 'GET'])
+@login_required
 def create_receipt(record_id):
     if not session.get('receipt_code_id'):
         flash(u'กรุณาระบุเล่มใบเสร็จและสถานที่ออกใบเสร็จ', 'warning')
@@ -1259,6 +1309,7 @@ def create_receipt(record_id):
 
 
 @comhealth.route('/checkin/receipts/cancel/confirm/<int:receipt_id>', methods=['GET', 'POST'])
+@login_required
 def confirm_cancel_receipt(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
     if not receipt.cancelled:
@@ -1266,6 +1317,7 @@ def confirm_cancel_receipt(receipt_id):
 
 
 @comhealth.route('/checkin/receipts/cancel/<int:receipt_id>', methods=['POST'])
+@login_required
 def cancel_receipt(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
     receipt.cancelled = True
@@ -1277,6 +1329,7 @@ def cancel_receipt(receipt_id):
 
 
 @comhealth.route('/checkin/receipts/pay/<int:receipt_id>', methods=['POST'])
+@login_required
 def pay_receipt(receipt_id):
     pay_method = request.form.get('pay_method')
     if pay_method == 'card':
@@ -1298,6 +1351,7 @@ def pay_receipt(receipt_id):
 
 
 @comhealth.route('/checkin/receipts/<int:receipt_id>', methods=['GET', 'POST'])
+@login_required
 def show_receipt_detail(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
     action = request.args.get('action', None)
@@ -1351,6 +1405,7 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', align
 
 
 @comhealth.route('/receipts/pdf/<int:receipt_id>')
+@login_required
 def export_receipt_pdf(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
     logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
