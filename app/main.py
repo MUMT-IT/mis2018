@@ -4,21 +4,19 @@ import click
 import arrow
 import requests
 from pytz import timezone
-from dateutil import tz
 from flask.cli import AppGroup
 from dotenv import load_dotenv
 from flask import Flask, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
-from flask_login import LoginManager, current_user
+from flask_login import LoginManager
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from wtforms.validators import required
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
-DATABASE = os.environ.get('DATABASE')
 
 load_dotenv()
 
