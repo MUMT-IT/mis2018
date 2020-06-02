@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container"  id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                <div class="control">
+                    <h4 class="title">ค้นหาจากวันที่</h4>
+                    <b-field label="เลือกช่วงวันที่ต้องการค้นหา">
+                        <b-datepicker
+                                required
+                                name="dates"
+                                v-model="selectedDates"
+                                range
+                                icon-pack="fa"
+                                :mobile-native="false"
+                                placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                icon="calendar-alt">
+                        </b-datepicker>
+                    </b-field>
+                </div>
+                <div class="field is-grouped">
+                    <div class="control">
+                        <a href="{{ url_for('staff.leave_request_info') }}" class="button is-primary">ค้นหาจากชื่อ/ประเภทการลา</a>
+                    </div>
+                    <div class="control">
+                            <input type="submit" value="search" class="button is-info"/>
+                    </div>
+                    <div class="control">
+                            <a href="{{ url_for('staff.show_leave_info') }}" class="button is-danger">Cancel</a>
+                    </div>
+                </div>
+                </form>
+                </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+        return {
+            selectedDates: [],
+        }
+        }
+    });
+    </script>
+{% endblock %}

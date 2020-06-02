@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="table-container">
+            <div class="columns">
+                <div class="column">
+                <div class="has-text-right">
+                   จำนวน<span class="icon"><i class="fas fa-user"></i></span>
+                   : <span class="tag is-info"><% fltRecords.length %></span>
+                </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-fullwidth">
+                        <thead>
+                            <th>ชื่อ</th>
+                            <th>นามสกุล</th>
+                            <th>สังกัด</th>
+                            <th>ประเภทการลา</th>
+                            <th>วันที่เริ่มต้นลา</th>
+                            <th>วันที่สิ้นสุดลา</th>
+                            <th>รวม(วัน)</th>
+                        </thead>
+                        <tbody>
+                            {% for req in leaves|sort(attribute='start_datetime') %}
+                            <tr>
+                                <td>{{ req.staff.personal_info.th_firstname }}</td>
+                                <td>{{ req.staff.personal_info.th_lastname }}</td>
+                                <td>{{ req.staff.personal_info.org.name }}</td>
+                                <td>{{ req.quota.leave_type.type_ }}</td>
+                                <td>{{ req.start_datetime }}</td>
+                                <td>{{ req.end_datetime }}</td>
+                                <td>{{ req.duration }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        var vm = new Vue({
+            el: "#app",
+            data() {
+                return {
+                    fltRecords: [],
+                }
+            },
+            methods: {
+                loadAsyncData: function() {
+                    var self = this;
+                    self.isLoading = true;
+                        .then(function(response) {
+                        response.data.forEach((record) => {
+                            if(record.cancelled_at == null) {
+                            self.records.push(record);
+                            self.fltRecords.push(record);
+                            }
+                        });
+                        self.isLoading = false;
+                    });
+                }
+            },
+            mounted() {
+                this.loadAsyncData();
+            },
+            watch: {
+                query: function () {
+                    var self = this;
+                    if (self.query !=="") {
+                        self.fltRecords = this.records.filter(function(item) {}
+                        });
+                    } else {
+                        self.fltRecords = self.records;
+                    }
+                }
+            }
+        });
+    </script>
+{% endblock %}
