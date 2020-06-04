@@ -12,6 +12,7 @@ from flask import jsonify, render_template, request, redirect, url_for, flash
 from datetime import datetime
 from collections import defaultdict, namedtuple
 import pytz
+from sqlalchemy import and_
 from app.auth.views import line_bot_api
 from linebot.models import TextSendMessage
 
@@ -387,6 +388,24 @@ def leave_request_info():
     return render_template('staff/leave_request_info.html')
 
 
+@staff.route('/leave/requests/result-by-date',
+                    methods=['GET', 'POST'])
+@login_required
+def leave_request_result_by_date():
+    if request.method == 'POST':
+        form = request.form
+
+        start_dt, end_dt = form.get('dates').split(' - ')
+        start_date = datetime.strptime(start_dt, '%m/%d/%Y')
+        end_date = datetime.strptime(end_dt, '%m/%d/%Y')
+
+        leaves = StaffLeaveRequest.query.filter(and_(StaffLeaveRequest.start_datetime>=start_date,
+                                                     StaffLeaveRequest.end_datetime<=end_date))
+        return render_template('staff/leave_request_result_by_date.html', leaves=leaves,
+                               start_date=start_date.date(), end_date=end_date.date())
+    else:
+        return render_template('staff/leave_request_info_by_date.html')
+
 @staff.route('/wfh')
 @login_required
 def show_work_from_home():
@@ -645,3 +664,21 @@ def record_each_request_wfh_request(request_id):
     job_detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
     check = StaffWorkFromHomeCheckedJob.query.filter_by(request_id=request_id)
     return render_template('staff/wfh_record_info_each_request.html', req=req, job_detail=job_detail, checkjob=check)
+
+
+@staff.route('/wfh/requests/list',
+            methods=['GET', 'POST'])
+@login_required
+def wfh_requests_list():
+    if request.method == 'POST':
+        form = request.form
+        start_dt, end_dt = form.get('dates').split(' - ')
+        start_date = datetime.strptime(start_dt, '%m/%d/%Y')
+        end_date = datetime.strptime(end_dt, '%m/%d/%Y')
+
+        wfh_request = StaffWorkFromHomeRequest.query.filter(and_(StaffWorkFromHomeRequest.start_datetime >= start_date,
+                                                     StaffWorkFromHomeRequest.end_datetime <= end_date))
+        return render_template('staff/wfh_request_result_by_date.html', request=wfh_request,
+                               start_date=start_date.date(), end_date=end_date.date() )
+    else:
+        return render_template('staff/wfh_request_info_by_date.html')
