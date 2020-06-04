@@ -30,7 +30,7 @@
                             <input type="submit" value="search" class="button is-info"/>
                     </div>
                     <div class="control">
-                            <a href="{{ url_for('staff.show_work_from_home') }}" class="button is-danger">Cancel</a>
+                            <a href="{{ request.referrer }}" class="button is-danger">Cancel</a>
                     </div>
                 </div>
                 </form>
