@@ -6,11 +6,15 @@
         <div class="container">
             <div class="columns">
                 <div class="column is-half is-offset-one-quarter">
+                    <div class="control">
+                        <a href="{{ url_for('staff.leave_request_info') }}" class="button is-primary">ค้นหาจากชื่อ/ประเภทการลา</a>
+                    </div>
+                    <hr>
                 <div class="box">
                 <form method="post">
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                 <div class="control">
-                    <h4 class="title">ค้นหาจากวันที่</h4>
+                    <h4 class="title">ค้นหาประวัติการลาจากวันที่</h4>
                     <b-field label="เลือกช่วงวันที่ต้องการค้นหา">
                         <b-datepicker
                                 required
@@ -24,10 +28,8 @@
                         </b-datepicker>
                     </b-field>
                 </div>
+                    <hr>
                 <div class="field is-grouped">
-                    <div class="control">
-                        <a href="{{ url_for('staff.leave_request_info') }}" class="button is-primary">ค้นหาจากชื่อ/ประเภทการลา</a>
-                    </div>
                     <div class="control">
                             <input type="submit" value="search" class="button is-info"/>
                     </div>

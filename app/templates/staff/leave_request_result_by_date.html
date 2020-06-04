@@ -31,8 +31,8 @@
                                 <td>{{ req.staff.personal_info.th_lastname }}</td>
                                 <td>{{ req.staff.personal_info.org.name }}</td>
                                 <td>{{ req.quota.leave_type.type_ }}</td>
-                                <td>{{ req.start_datetime }}</td>
-                                <td>{{ req.end_datetime }}</td>
+                                <td>{{ req.start_datetime|localdatetime }}</td>
+                                <td>{{ req.end_datetime|localdatetime }}</td>
                                 <td>{{ req.duration }}</td>
                             </tr>
                             {% endfor %}
