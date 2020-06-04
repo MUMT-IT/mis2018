@@ -682,3 +682,9 @@ def wfh_requests_list():
                                start_date=start_date.date(), end_date=end_date.date() )
     else:
         return render_template('staff/wfh_request_info_by_date.html')
+
+
+@staff.route('/for-hr')
+@login_required
+def for_hr():
+    return render_template('staff/for_hr.html')
