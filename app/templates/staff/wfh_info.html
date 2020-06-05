@@ -38,7 +38,8 @@
                                 <div class="tags has-addons">
                                     <b-tooltip
                                             label="" type="is-light">
-                                    <a class="button is-text" href="{{ url_for('staff.show_wfh_approval', request_id=request.id) }}">
+                                    <a class="button is-text" href="{{ url_for('staff.show_wfh_approval',
+                                                                                request_id=request.id) }}">
                                         <span class="tag is-dark">อนุมัติ</span>
                                         <span class="tag is-info">{{ request.get_approved|length }}</span>
                                     </a>
@@ -47,7 +48,8 @@
                             </div>
                             <div class="control">
                                 <div class="tags has-addons">
-                                    <a class="button is-text" href="{{ url_for('staff.show_wfh_approval', request_id=request.id) }}">
+                                    <a class="button is-text" href="{{ url_for('staff.show_wfh_approval',
+                                                                                request_id=request.id) }}">
                                     <span class="tag is-dark">ไม่อนุมัติ</span>
                                     <span class="tag is-danger">{{ request.get_unapproved|length }}</span>
                                     </a>
@@ -58,7 +60,8 @@
                     </td>
                     <td>
                         {% if not request.cancelled_at %}
-                        <a href="{{ url_for('staff.wfh_show_request_info', request_id=request.id) }}" class="button">เพิ่มรายละเอียดงาน</a>
+                        <a href="{{ url_for('staff.wfh_show_request_info', request_id=request.id) }}" class="button">
+                                                                                                    เพิ่มรายละเอียดงาน</a>
                         {% endif %}
                     </td>
                     <td>

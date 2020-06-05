@@ -36,13 +36,16 @@
                 {% endfor %}
                 </td>
                 <td>
-                <a href="{{ url_for('staff.pending_wfh_request_for_approval', req_id=wfh_req.id) }}" class="button is-info is-rounded is-light">
+                <a href="{{ url_for('staff.pending_wfh_request_for_approval', req_id=wfh_req.id) }}"
+                                                            class="button is-info is-rounded is-light">
                     <span class="icon">
                         <i class="fas fa-info"></i>
                     </span>
                 </a>
-                <a href="{{ url_for('staff.wfh_approve', req_id=wfh_req.id,approver_id=approver.id) }}" class="button is-success">อนุมัติ</a>
-                <a href="{{ url_for('staff.wfh_reject', req_id=wfh_req.id,approver_id=approver.id) }}" class="button is-danger">ไม่อนุมัติ</a>
+                <a href="{{ url_for('staff.wfh_approve', req_id=wfh_req.id,approver_id=approver.id) }}"
+                                                                        class="button is-success">อนุมัติ</a>
+                <a href="{{ url_for('staff.wfh_reject', req_id=wfh_req.id,approver_id=approver.id) }}"
+                                                                        class="button is-danger">ไม่อนุมัติ</a>
                 </td>
             </tr>
             {% endif %}
@@ -61,7 +64,8 @@
     {% if not checkjob.approver_id %}
         <tr>
             <td>
-                <a href="{{ url_for('staff.comment_wfh_request', request_id=checkjob.request_id, check_id=checkjob.id) }}" class="is-info is-light">
+                <a href="{{ url_for('staff.comment_wfh_request', request_id=checkjob.request_id,
+                                                check_id=checkjob.id) }}" class="is-info is-light">
                 {{ checkjob.finished_at|localdatetime }}
                 </a>
             </td>

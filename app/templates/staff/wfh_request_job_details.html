@@ -29,7 +29,9 @@
             <tbody>
             {% for detail in detail|sort(attribute='status') %}
                 <tr>
-                    <td {% if detail.status %}style="color: green;"{% elif not detail.status %}style="color: red;"{% endif %}>
+                    <td {% if detail.status %}style="color: green;"
+                        {% elif not detail.status %}style="color: red;"
+                        {% endif %}>
                         {{ detail.activity }}
                     </td>
                     <td>
@@ -39,14 +41,16 @@
                         <span class="has-text">ไม่เสร็จ</span>
                         {% elif not detail.status %}
                         <b-tooltip label="เสร็จ" type="is-success">
-                            <a href="{{ url_for('staff.finish_wfh_job_detail', request_id=wfhreq.id, detail_id=detail.id) }}" class="button is-rounded is-success is-light">
+                            <a href="{{ url_for('staff.finish_wfh_job_detail', request_id=wfhreq.id,
+                                detail_id=detail.id) }}" class="button is-rounded is-success is-light">
                                 <span class="icon">
                                     <i class="fas fa-check has-text-green"></i>
                                 </span>
                             </a>
                         </b-tooltip>
                         <b-tooltip label="ไม่เสร็จ" type="is-light">
-                            <a href="{{ url_for('staff.unfinish_wfh_job_detail', request_id=wfhreq.id, detail_id=detail.id) }}" class="button is-rounded is-danger is-light">
+                            <a href="{{ url_for('staff.unfinish_wfh_job_detail', request_id=wfhreq.id,
+                                    detail_id=detail.id) }}" class="button is-rounded is-danger is-light">
                                 <span class="icon">
                                     <i class="fas fa-times has-text-red"></i>
                                 </span>
@@ -57,14 +61,16 @@
                     <td>
                         {% if not detail.status %}
                         <b-tooltip label="ยกเลิกรายการนี้" type="is-danger">
-                            <a class="button is-rounded is-light is-light" @click="confirmWFHJobDetailDelete({{ detail.id }})">
+                            <a class="button is-rounded is-light is-light"
+                               @click="confirmWFHJobDetailDelete({{ detail.id }})">
                                 <span class="icon">
                                     <i class="fas fa-trash"></i>
                                 </span>
                             </a>
                         </b-tooltip>
                         <b-tooltip label="แก้ไข" type="is-warning">
-                            <a href="{{ url_for('staff.edit_wfh_job_detail', request_id=wfhreq.id, detail_id=detail.id) }}" class="button is-rounded is-warning is-light">
+                            <a href="{{ url_for('staff.edit_wfh_job_detail', request_id=wfhreq.id,
+                                detail_id=detail.id) }}" class="button is-rounded is-warning is-light">
                                 <span class="icon">
                                     <i class="fas fa-edit has-text-red"></i>
                                 </span>
@@ -86,13 +92,15 @@
                         <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                         <b-field label="เพิ่ม" :label-position="labelPosition">
                             <b-input placeholder="กิจกรรม" type="search" name="activity"></b-input>
-                            <button class="button is-primary" type="submit"><b-icon pack="fas" icon="plus"></b-icon></button>
+                            <button class="button is-primary" type="submit"><b-icon pack="fas" icon="plus"></b-icon>
+                            </button>
                         </b-field>
                         </input>
                         </form>
                     </td>
                     <td>
-                        <a href="{{ url_for('staff.add_overall_result_work_from_home', request_id=wfhreq.id) }}" class="button is-info">
+                        <a href="{{ url_for('staff.add_overall_result_work_from_home', request_id=wfhreq.id) }}"
+                                                                                            class="button is-info">
                             <i class="fas fa-paper-plane has-text-red">
                             ส่งงาน
                             </i>

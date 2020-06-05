@@ -68,8 +68,14 @@
                                  <label class="label">รายละเอียดงาน</label>
                             </td>
                             <td>
-                                {% for detail in job_detail %}{% if detail.status==True or detail.status == False %}
-                                <p>{{ detail.activity }} : {% endif %}{% if detail.status == True %}เสร็จ{% elif detail.status == False %}ไม่เสร็จ{% else %}{% endif %}</p>
+                                {% for detail in job_detail %}
+                                    {% if detail.status==True or detail.status == False %}
+                                        <p>{{ detail.activity }} :
+                                    {% endif %}
+                                    {% if detail.status == True %}เสร็จ
+                                    {% elif detail.status == False %}ไม่เสร็จ
+                                    {% else %}
+                                    {% endif %}</p>
                                 {% endfor %}
                             </td>
                         </tr>
