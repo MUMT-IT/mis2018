@@ -236,7 +236,17 @@ def edit_record(record_id):
     if request.method == 'POST':
         selfpay_items = request.form.getlist('profile_selfpay')
         print(selfpay_items)
-        return 'Done.'
+
+        firstname = request.form.get('firstname')
+        lastname = request.form.get('lastname')
+        title = request.form.get('title')
+
+        if firstname:
+            record.customer.firstname = firstname
+        if lastname:
+            record.customer.lastname = lastname
+        if title:
+            record.customer.title = title
         if request.form.get('phone'):
             record.customer.phone = request.form.get('phone')
         if not record.customer.dob and request.form.get('dob'):
@@ -256,18 +266,22 @@ def edit_record(record_id):
 
         if not record.labno:
             labno = request.form.get('service_code')
+            existing_labno = ComHealthRecord.query.filter_by(labno=labno).first()
+            if existing_labno:
+                flash(u'หมายเลข Lab number มีในฐานข้อมูลแล้ว', 'warning')
+                return redirect(url_for('comhealth.edit_record', record_id=record_id))
             if labno.isdigit():
                 record.labno = labno
 
         for field in request.form:
             if field.startswith('test_'):
-                _, test_id = field.split('_')
+                _, test_id, _ = field.split('_')
                 test_item = ComHealthTestItem.query.get(int(test_id))
                 group_item_cost += float(test_item.price) or float(test_item.test.default_price)
                 containers.add(test_item.test.container)
                 record.ordered_tests.append(test_item)
             elif field.startswith('profile_'):
-                _, test_id = field.split('_')
+                _, test_id, _ = field.split('_')
                 test_item = ComHealthTestItem.query.get(int(test_id))
                 record.ordered_tests.append(test_item)
                 containers.add(test_item.test.container)
