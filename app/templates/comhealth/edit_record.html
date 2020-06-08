@@ -68,7 +68,7 @@
                                 <div class="columns">
                                     <div class="column">
                                         <div v-show="!nameEditing">
-                                            <p class="help"><strong>ชื่อ นามสกุล / Name</strong>
+                                            <p class="label"><strong>ชื่อ นามสกุล / Name</strong>
                                                 <span class="icon">
                                                     <i class="fas fa-pencil-alt" @click="nameEditing=true;"></i>
                                                 </span>
@@ -104,14 +104,14 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <p class="help"><strong>Gender</strong></p>
+                                        <p class="label"><strong>เพศ / Gender</strong></p>
                                         <p class="is-size-4">
-                                            <strong>เพศ</strong>
                                             {% if record.customer.gender == 1 %}ชาย{% else %} หญิง{% endif %}
                                         </p>
-                                        <p class="help"><strong>Affiliation</strong></p>
-                                        <p class="is-size-4">
-                                            <strong>สังกัด</strong> {{ record.customer.org.name }}
+                                        <br>
+                                        <p class="label"><strong>สังกัด / Affiliation</strong></p>
+                                        <p class="is-size-6">
+                                            {{ record.customer.org.name }}
                                         </p>
                                         <div class="select">
                                             <select name="department_id">
@@ -125,9 +125,9 @@
                                                 {% endfor %}
                                             </select>
                                         </div>
-                                        <p class="help"><strong>Employment</strong></p>
+                                        <br>
+                                        <p class="label"><strong>ประเภทการจ้าง / Employment</strong></p>
                                         <p class="is-size-5">
-                                            <strong>ประเภท</strong>
                                         </p>
                                         <div class="select">
                                             <select name="emptype_id">
@@ -142,17 +142,18 @@
                                         </div>
                                     </div>
                                     <div class="column">
+                                        <p class="label"><strong>อายุ / Age</strong></p>
                                         {% if record.customer.dob %}
-                                        <p class="help"><strong>Age</strong></p>
                                         <p class="is-size-5">
                                             <strong>อายุ</strong> {{ record.customer.age.years }}
                                             ปี {{ record.customer.age.months }} เดือน {{ record.customer.age.days }}
                                             วัน
                                         </p>
+                                        {% else %}
+                                        <span v-if="birthday !== ''"><% age %></span>
                                         {% endif %}
                                         <div class="field">
-                                            <label class="label is-size-5"><strong><span class="help">Date of Birth</span>วัน/เดือน/ปีเกิด</strong></label>
-                                            <span v-if="birthday !== ''"><% age %></span>
+                                            <label class="label">วันเกิด / Date of Birth</label>
                                             <div class="control">
                                                 <input class="input is-medium" id="birthdate-input"
                                                        v-model="birthday"
@@ -169,7 +170,7 @@
                                             </p>
                                         </div>
                                         <div class="field">
-                                            <label class="label is-size-4"><strong><span class="help">Telephone</span>เบอร์โทรศัพท์</strong></label>
+                                            <label class="label">เบอร์โทรศัพท์ / Telephone</label>
                                             <div class="control">
                                                 <input class="input is-medium"
                                                        name='phone' type="text"
@@ -251,9 +252,11 @@
                 <div class="columns">
                     <div class="column">
                         <div class="has-text-centered">
-                            <button class="button is-rounded is-medium is-link" type="submit">
+                            <button class="button is-medium is-link" type="submit">
                                 <span>Proceed</span>
-                                <span class="icon"><i class="far fa-hand-point-right"></i></span>
+                                <span class="icon">
+                                    <i class="fas fa-chevron-right"></i>
+                                </span>
                             </button>
                         </div>
                     </div>
@@ -310,9 +313,11 @@
                 <div class="columns">
                     <div class="column">
                         <div class="has-text-centered">
-                            <button class="button is-rounded is-medium is-link" type="submit">
+                            <button class="button is-medium is-link" type="submit">
                                 <span>Proceed</span>
-                                <span class="icon"><i class="far fa-hand-point-right"></i></span>
+                                <span class="icon">
+                                    <i class="fas fa-chevron-right"></i>
+                                </span>
                             </button>
                         </div>
                     </div>
