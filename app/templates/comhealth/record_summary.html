@@ -57,7 +57,7 @@
                 </div>
             </div>
             <div class="columns">
-                <div class="column is-2">
+                <div class="column is-3">
                     <aside class="menu">
                         <p class="menu-label">
                             General
@@ -83,9 +83,9 @@
                     </aside>
                 </div>
                 <a name="customer-info"></a>
-                <div class="column is-10">
+                <div class="column is-9">
                     <div class="columns">
-                        <div class="column is-two-thirds is-offset-2">
+                        <div class="column is-9 box">
                             <h1 class="title"><span class="icon">
                         {% if record.customer.gender == 1 %}
                             <i class="fas fa-male"></i></span>&nbsp;<span>ข้อมูลส่วนตัว</span></h1>
@@ -164,8 +164,9 @@
                         </div>
                     </div>
                     <a name="total-cost"></a>
+                    <br>
                     <div class="columns">
-                        <div class="column is-two-thirds is-offset-2">
+                        <div class="column is-9 box">
                             <h1 class="title"><span class="icon"><i
                                     class="fab fa-bitcoin"></i></span>&nbsp;<span>รวมค่าใช้จ่าย</span></h1>
                             <table class="table is-fullwidth">
@@ -193,8 +194,9 @@
                         </div>
                     </div>
                     <a name="container"></a>
+                    <br>
                     <div class="columns">
-                        <div class="column is-two-thirds is-offset-2">
+                        <div class="column is-9 box">
                             <h1 class="title"><span class="icon"><i class="fas fa-vial"></i></span>&nbsp;ภาชนะ</h1>
                             <table class="table is-fullwidth is-striped">
                                 <thead>
@@ -215,8 +217,9 @@
                         </div>
                     </div>
                     <a name="comment"></a>
+                    <br>
                     <div class="columns">
-                        <div class="column is-two-thirds is-offset-2">
+                        <div class="column is-9 box">
                             <article class="message is-light">
                                 <div class="message-header">
                                     <span>Footnote</span>
@@ -253,8 +256,9 @@
                         </div>
                     </div>
                     <a name="profiles"></a>
+                    <br>
                     <div class="columns">
-                        <div class="column is-two-thirds is-offset-2">
+                        <div class="column is-9 box">
                             <table class="table is-fullwidth is-hoverable">
                                 <col width="80%">
                                 <thead>
@@ -271,18 +275,28 @@
                                     {% for test_item in profile.test_items|sorttest %}
                                         <tr>
                                             {% if test_item in record.ordered_tests %}
-                                                <td>{{ test_item.test.name }}</td>
-                                                <td><a class="button is-rounded is-small is-warning"
-                                                       href="{{ url_for('comhealth.remove_item_from_order',
-                                                       record_id=record.id, item_id=test_item.id) }}"
-                                                >ยกเลิก</a></td>
+                                            <td class="is-link has-text-light">{{ test_item.test.name }} ({{ test_item.test.desc }})</td>
+                                            <td class="is-link">
+                                                <a class="button is-small is-danger"
+                                                   href="{{ url_for('comhealth.remove_item_from_order',
+                                                   record_id=record.id, item_id=test_item.id) }}">
+                                                    <span class="icon">
+                                                        <i class="fas fa-times"></i>
+                                                    </span>
+                                                </a>
+                                            </td>
                                             {% else %}
-                                                <td class="has-text-danger"><strike>{{ test_item.test.name }}</strike>
-                                                </td>
-                                                <td><a class="button is-rounded is-small is-success"
-                                                       href="{{ url_for('comhealth.add_item_to_order',
-                                                        record_id=record.id, item_id=test_item.id) }}">สั่งเพิ่ม</a>
-                                                </td>
+                                            <td>{{ test_item.test.name }} ({{ test_item.test.desc }})
+                                            </td>
+                                            <td>
+                                                <a class="button is-small is-success"
+                                                   href="{{ url_for('comhealth.add_item_to_order',
+                                                    record_id=record.id, item_id=test_item.id) }}">
+                                                    <span class="icon">
+                                                        <i class="fas fa-plus"></i>
+                                                    </span>
+                                                </a>
+                                            </td>
                                             {% endif %}
                                         </tr>
                                     {% endfor %}
@@ -292,8 +306,9 @@
                         </div>
                     </div>
                     <a name="groups"></a>
+                    <br>
                     <div class="columns">
-                        <div class="column is-two-thirds is-offset-2">
+                        <div class="column is-9 box">
                             <table class="table is-fullwidth is-hoverable">
                                 <col width="60%">
                                 <col width="20%">
@@ -314,23 +329,33 @@
                                     {% for test_item in group.test_items|sorttest %}
                                         <tr>
                                             {% if test_item in record.ordered_tests %}
-                                                <td>{{ test_item.test.name }}</td>
-                                                <td class="has-text-right">
+                                                <td class="is-link has-text-light">{{ test_item.test.name }} ({{ test_item.test.desc }})</td>
+                                                <td class="has-text-right is-link has-text-light">
                                                     -{{ test_item.price or test_item.test.default_price }} บาท
                                                 </td>
-                                                <td><a class="button is-rounded is-small is-warning"
+                                                <td class="is-link">
+                                                    <a class="button is-small is-danger"
                                                        href="{{ url_for('comhealth.remove_item_from_order',
-                                                       record_id=record.id, item_id=test_item.id) }}"
-                                                >ยกเลิก</a></td>
+                                                       record_id=record.id, item_id=test_item.id) }}">
+                                                        <span class="icon">
+                                                            <i class="fas fa-times"></i>
+                                                        </span>
+                                                    </a>
+                                                </td>
                                             {% else %}
-                                                <td class="has-text-danger"><strike>{{ test_item.test.name }}</strike>
+                                                <td>{{ test_item.test.name }} ({{ test_item.test.desc }})
                                                 </td>
                                                 <td class="has-text-right">
                                                     +{{ test_item.price or test_item.test.default_price }} บาท
                                                 </td>
-                                                <td><a class="button is-rounded is-small is-success"
+                                                <td><a class="button is-small is-success"
                                                        href="{{ url_for('comhealth.add_item_to_order',
-                                                       record_id=record.id, item_id=test_item.id) }}">สั่งเพิ่ม</a></td>
+                                                       record_id=record.id, item_id=test_item.id) }}">
+                                                    <span class="icon">
+                                                        <i class="fas fa-plus"></i>
+                                                    </span>
+                                                    </a>
+                                                </td>
                                             {% endif %}
                                         </tr>
                                     {% endfor %}
@@ -339,14 +364,15 @@
                             </table>
                         </div>
                     </div>
+                    <br>
                     <div class="columns">
-                        <div class="column">
+                        <div class="column is-9">
                             <div class="has-text-centered">
-                                <a class="button is-rounded is-medium is-link"
+                                <a class="button is-medium is-link"
                                    href="{{ url_for('comhealth.display_service_customers', service_id=record.service.id) }}">
-                            <span class="icon">
-                                <i class="far fa-hand-point-left"></i>
-                            </span>
+                                    <span class="icon">
+                                        <i class="fas fa-chevron-left"></i>
+                                    </span>
                                     <span>Back</span>
                                 </a>
                             </div>
