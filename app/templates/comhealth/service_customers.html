@@ -60,21 +60,21 @@
                 <div class="column">
                     <div class="has-text-right">
                       {% if service.records|length > 0 %}
-                        <a class="button is-rounded is-link"
+                        <a class="button is-link"
                             href="{{ url_for('comhealth.add_customer_to_service_org',
                                     service_id=service.id, org_id=service.records[0].customer.org_id) }}">
                             <span class="icon">
                                 <i class="fas fa-user-plus"></i>
                             </span>
-                            <span>Add Customer</span>
+                            <span>เพิ่มผู้รับบริการ</span>
                         </a>
                       {% else %}
-                        <a class="button is-rounded is-link"
+                        <a class="button is-link"
                            href="{{ url_for('comhealth.list_orgs') }}">
                             <span class="icon">
                                 <i class="fas fa-user-plus"></i>
                             </span>
-                            <span>Add Customer</span>
+                            <span>เพิ่มผู้รับบริการ</span>
                         </a>
                       {% endif %}
                     </div>
@@ -112,19 +112,27 @@
                                 <% props.row.labno %>
                             </b-table-column>
                             <b-table-column field="checkin_datetime" label="Checked-In Time" sortable centered>
-                                <% props.row.checkin_datetime %>
+                                <% props.row.checkin_datetime ? moment(props.row.checkin_datetime).format('lll') : '' %>
                             </b-table-column>
                             <b-table-column field="" label="Check In" sortable>
-                                <a class="button is-rounded is-light"
+                                <a class="button is-rounded is-small is-light"
                                    v-bind:href="'/comhealth/checkin/'+props.row.id">
-                                <span class="icon" v-if="props.row.checkin_datetime !== null">
-                                    <i class="fas fa-user-check"></i>
-                                </span>
-                                    <span>Check in</span>
+                                    <div v-if="props.row.checkin_datetime !== null">
+                                        <span class="icon">
+                                            <i class="fas fa-user-check has-text-success"></i>
+                                        </span>
+                                        <span>Check in</span>
+                                    </div>
+                                    <div v-else>
+                                        <span class="icon">
+                                            <i class="fas fa-user-alt"></i>
+                                        </span>
+                                        <span>Check in</span>
+                                    </div>
                                 </a>
                             </b-table-column>
                             <b-table-column field="" label="Receipts" sortable>
-                                <a class="button is-rounded is-light"
+                                <a class="button is-rounded is-small is-light"
                                     v-if="props.row.receipts.length > 0"
                                     v-bind:href="'/comhealth/checkin/'+props.row.id+'/receipts'">
                                 <span class="icon">
@@ -133,7 +141,7 @@
                                 </a>
                             </b-table-column>
                             <b-table-column field="" label="Info" sortable>
-                                <a class="button is-rounded is-light"
+                                <a class="button is-rounded is-small is-light"
                                    v-bind:href="'/comhealth/organizations/employees/info/'+props.row.customer.id">
                                 <span class="icon">
                                     <i class="fas fa-notes-medical"></i>
