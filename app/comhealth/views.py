@@ -1388,7 +1388,7 @@ def cancel_receipt(receipt_id):
 def pay_receipt(receipt_id):
     pay_method = request.form.get('pay_method')
     if pay_method == 'card':
-        card_number = request.form.get('card_number')
+        card_number = request.form.get('card_number').replace(' ', '')
     if pay_method == 'cash':
         paid_amount = request.form.get('paid_amount', 0.0)
     receipt = ComHealthReceipt.query.get(receipt_id)
@@ -1467,50 +1467,51 @@ def export_receipt_pdf(receipt_id):
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
-        logo_image = ImageReader('app/static/img/logo-MU_black-white-2-1-watermark.png')
-        canvas.drawImage(logo_image, 90, 200, mask='auto')
+        logo_image = ImageReader('app/static/img/mu-watermark.png')
+        canvas.drawImage(logo_image, 220, 400, mask='auto')
         canvas.restoreState()
 
     doc = SimpleDocTemplate("app/receipt.pdf",
                             rightMargin=20,
                             leftMargin=20,
-                            topMargin=10,
+                            topMargin=20,
                             bottomMargin=10,
                             )
     book_id = receipt.book_number[:3]
     receipt_number = receipt.book_number[3:]
     data = []
-    affiliation = '''<para align=center><font size=14>
-    คณะเทคนิคการแพทย์<br/>
-    มหาวิทยาลัยมหิดล<br/>
+    affiliation = '''<para align=center><font size=10>
+    คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+    FACULTY OF MEDICAL TECHNOLOGY, MAHIDOL UNIVERSITY
     </font></para>
     '''
     address = '''<font size=11>
-    เลขที่ 999 พุทธมณฑลสาย 4<br/>
-    ต.ศาลายา อ.พุทธมณฑล<br/>
-    จ.นครปฐม 73170<br/>
-    เลขประจำตัวผู้เสียภาษี 0994000158378
+    2 ถนนวังหลัง แขวงศิริราช<br/>
+    เขตบางกอกน้อย กทม. 10700<br/>
+    2 Wang Lang Road<br/>
+    Siriraj, Bangkok-Noi,<br/>
+    Bangkok 10700<br/><br/>
+    เลขประจำตัวผู้เสียภาษี / Tax ID Number<br/>
+    0994000158378
     </font>
     '''
 
     receipt_info = '''<font size=15>
-    {original} {copy_no}</font><br/>
+    {original}</font><br/><br/>
     <font size=11>
-    เล่มที่ {book_id}<br/>
-    เลขที่ {receipt_number}<br/>
-    วันที่ {issued_date}
+    เล่มที่ / Book No. {book_id}<br/>
+    เลขที่ / No. {receipt_number}<br/>
+    วันที่ / Date {issued_date}
     </font>
     '''
     issued_date = datetime.now().strftime('%d/%m/%Y')
-    receipt_info_ori = receipt_info.format(original=u'ต้นฉบับ'.encode('utf-8'),
-                                           copy_no=receipt.copy_number,
+    receipt_info_ori = receipt_info.format(original=u'ต้นฉบับ<br/>(Original)'.encode('utf-8'),
                                            book_id=book_id,
                                            receipt_number=receipt_number,
                                            issued_date=issued_date,
                                            )
 
-    receipt_info_copy = receipt_info.format(original=u'สำเนา'.encode('utf-8'),
-                                            copy_no=receipt.copy_number,
+    receipt_info_copy = receipt_info.format(original=u'สำเนา<br/>(Copy)'.encode('utf-8'),
                                             book_id=book_id,
                                             receipt_number=receipt_number,
                                             issued_date=issued_date,
@@ -1529,22 +1530,31 @@ def export_receipt_pdf(receipt_id):
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
     ])
 
-    header_ori = Table(header_content_ori, colWidths=[100, 300, 100])
-    header_copy = Table(header_content_copy, colWidths=[100, 300, 100])
+    header_ori = Table(header_content_ori, colWidths=[150, 200, 150])
+    header_copy = Table(header_content_copy, colWidths=[150, 200, 150])
 
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
 
     header_copy.hAlign = 'CENTER'
     header_copy.setStyle(header_styles)
-    customer_name = '''<para><font size=16>
-    ได้รับเงินจาก {customer_name}
-    </font></para>
-    '''.format(customer_name=receipt.record.customer.fullname.encode('utf-8'),
-               )
-    customer_labno = '''<para><font size=12>
-    หมายเลขรายการ {customer_labno}<br/>
-    สถานที่ออก {venue}
+    if receipt.issued_for:
+        customer_name = '''<para><font size=12>
+        ได้รับเงินจาก / RECEIVED FROM {customer_name}<br/>
+        ที่อยู่ / ADDRESS<br/>{address}
+        </font></para>
+        '''.format(customer_name=receipt.issued_for.encode('utf-8'),
+                   address=receipt.address.encode('utf-8'),
+                   )
+    else:
+        customer_name = '''<para><font size=12>
+        ได้รับเงินจาก / RECEIVED FROM {customer_name}
+        </font></para>
+        '''.format(customer_name=receipt.record.customer.fullname.encode('utf-8'),
+                   )
+    customer_labno = '''<para><font size=11>
+    หมายเลขรายการ / NUMBER {customer_labno}<br/>
+    สถานที่ออก / ISSUED AT {venue}
     </font></para>
     '''.format(customer_labno=receipt.record.labno,
                venue=receipt.issued_at.encode('utf-8'))
@@ -1554,11 +1564,11 @@ def export_receipt_pdf(receipt_id):
                      )
     customer.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                                   ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
-    items = [[Paragraph('<font size=13>ลำดับ</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=13>รายการ</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=13>เบิกได้ (บาท)*</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=13>เบิกไม่ได้ (บาท)*</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=13>รวม</font>', style=style_sheet['ThaiStyleCenter']),
+    items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>เบิกได้ (บาท)*<br/>Reimbursable (BAHT)</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>เบิกไม่ได้ (บาท)*<br/>Non-reimbursable (BAHT)</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>รวม / Total</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
     total = 0
     number_test = 0
@@ -1567,39 +1577,46 @@ def export_receipt_pdf(receipt_id):
     if receipt.print_profile_note:
         profile_tests = [t for t in receipt.record.ordered_tests if t.profile]
         if profile_tests:
-            number_test += 1
-            profile_price = profile_tests[0].profile.quote
-            item = [Paragraph('<font size=12>{}</font>'.format(number_test), style=style_sheet['ThaiStyleCenter']),
-                    Paragraph('<font size=12>การตรวจสุขภาพทางห้องปฏิบัติการ</font>', style=style_sheet['ThaiStyle']),
-                    Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
-                              style=style_sheet['ThaiStyleNumber']),
-                    Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']),
-                    Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
-                              style=style_sheet['ThaiStyleNumber']),
-                    ]
-            items.append(item)
-            total_profile_price += profile_price
+            if receipt.print_profile_how == 'consolidated':
+                number_test += 1
+                profile_price = profile_tests[0].profile.quote
+                item = [Paragraph('<font size=12>{}</font>'.format(number_test), style=style_sheet['ThaiStyleCenter']),
+                        Paragraph('<font size=12>การตรวจสุขภาพทางห้องปฏิบัติการ / Laboratory Tests</font>', style=style_sheet['ThaiStyle']),
+                        Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
+                                  style=style_sheet['ThaiStyleNumber']),
+                        Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']),
+                        Paragraph('<font size=12>{:,.2f}</font>'.format(profile_price),
+                                  style=style_sheet['ThaiStyleNumber']),
+                        ]
+                items.append(item)
+                total_profile_price += profile_price
+                total += profile_price
     for t in receipt.invoices:
         if t.visible:
             if t.billed:
                 number_test += 1
-                price = t.test_item.price or t.test_item.test.default_price
-                total_special_price += price
+                if t.test_item.price is None:
+                    price = t.test_item.test.default_price
+                else:
+                    price = t.test_item.price
+                if price == 0:
+                    continue
                 total += price
                 item = [Paragraph('<font size=12>{}</font>'.format(number_test), style=style_sheet['ThaiStyleCenter']),
-                        Paragraph('<font size=12>{} {} (รหัส {})</font>'
+                        Paragraph('<font size=12>{} ({})</font>'
                                   .format(t.test_item.test.name.encode('utf-8'),
-                                          t.test_item.test.desc.encode('utf-8'),
                                           t.test_item.test.gov_code or '-'),
                                   style=style_sheet['ThaiStyle'])
                         ]
                 if t.reimbursable:
+                    total_profile_price += price
                     item.append(
                         Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
                     item.append(Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']))
                     item.append(
                         Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
                 else:
+                    total_special_price += price
                     item.append(Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']))
                     item.append(
                         Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
@@ -1629,20 +1646,20 @@ def export_receipt_pdf(receipt_id):
     ]))
 
     total_thai = bahttext(total)
-    total_text = Paragraph('<font size=12>(ตัวอักษร) {}</font>'.format(total_thai.encode('utf-8')),
+    total_text = Paragraph('<font size=11>(ตัวอักษร / BAHT TEXT) {}</font>'.format(total_thai.encode('utf-8')),
                            style=style_sheet['ThaiStyle'])
-    total_number = Paragraph('<font size=12>{:,.2f}</font>'.format(total),
+    total_number = Paragraph('<font size=11>{:,.2f}</font>'.format(total),
                              style=style_sheet['ThaiStyleNumber'])
     if receipt.payment_method == 'cash':
-        payment_info = Paragraph('<font size=12>ชำระเงินด้วยเงินสด</font>', style=style_sheet['ThaiStyle'])
+        payment_info = Paragraph('<font size=11>ชำระเงินด้วย / PAID BY เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == 'card':
-        payment_info = Paragraph('<font size=12>ชำระเงินด้วยบัตรเครดิต หมายเลข {}</font>'.format(receipt.card_number),
+        payment_info = Paragraph('<font size=11>ชำระเงินด้วย / PAID BY บัตรเครดิต / CREDIT CARD หมายเลข / NUMBER {}-****-****-{}</font>'.format(receipt.card_number[:4], receipt.card_number[-4:]),
                                  style=style_sheet['ThaiStyle'])
     else:
-        payment_info = Paragraph('<font size=12>ยังไม่ชำระเงิน</font>', style=style_sheet['ThaiStyle'])
+        payment_info = Paragraph('<font size=11>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])
 
     total_content = [[total_text,
-                      Paragraph('<font size=12>รวมเงินทั้งสิ้น</font>',
+                      Paragraph('<font size=11>รวมเงินทั้งสิ้น / GRAND TOTAL</font>',
                                 style=style_sheet['ThaiStyle']),
                       total_number]]
     total_content.append([
@@ -1651,18 +1668,18 @@ def export_receipt_pdf(receipt_id):
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
     ])
 
-    total_table = Table(total_content, colWidths=[300, 100, 100])
+    total_table = Table(total_content, colWidths=[300, 150, 50])
 
-    notice_text = '''<para align=center><font size=12>
-    ใบเสร็จฉบับนี้จะสมบูรณ์เมื่อมีลายมือชื่อผู้รับเงินเท่านั้น
-    <br/>*สิทธิตามระเบียบกระทรวงการคลัง</font></para>
+    notice_text = '''<para align=center><font size=10>
+    ใบเสร็จฉบับนี้จะสมบูรณ์เมื่อมีลายมือชื่อผู้รับเงินเท่านั้น / The receipt is not completed without the cashier's signature.
+    <br/>*สิทธิตามระเบียบกระทรวงการคลัง / Reimbursement is in accordance with the regulation of the Ministry of Finance.</font></para>
     '''
     notice = Table([[Paragraph(notice_text, style=style_sheet['ThaiStyle'])]])
 
     sign_text = '''<para align=center><font size=12>
-    ลงชื่อ .........................................<br/>
+    ลงชื่อ ......................................... ผู้รับเงิน / Cashier<br/>
     ({})<br/>
-    ตำแหน่ง {}
+    ตำแหน่ง / Position {}
     </font></para>'''.format(receipt.issuer.staff.personal_info.fullname.encode('utf-8'),
                              receipt.issuer.position.encode('utf-8'))
 
@@ -1672,7 +1689,7 @@ def export_receipt_pdf(receipt_id):
             data.append(header_ori)
         else:
             data.append(header_copy)
-        data.append(Paragraph('<para align=center><font size=18>ใบเสร็จรับเงิน<br/><br/></font></para>',
+        data.append(Paragraph('<para align=center><font size=18>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
                               style=style_sheet['ThaiStyle']))
         data.append(customer)
         data.append(Spacer(1, 12))
