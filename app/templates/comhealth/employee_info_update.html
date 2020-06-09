@@ -44,18 +44,21 @@
     <section class="section" id="app">
         <div class="columns">
             <div class="column is-10 is-offset-1">
-                <div class="notification is-light">
-                    <p class="is-size-4"><strong>{{ customer.title }}{{ customer.firstname }} {{ customer.lastname }}</strong>
-                        <small>
-                        <span class="icon">
-                            <i class="fas fa-phone"></i>
-                        </span>
-                            <span>{{ customer.phone }}</span>
-                        </small>
-                    </p>
-                    {% if customer.info.updated_at %}
-                    <p class="is-size-6">{{ customer.info.updated_at|localdatetime }} น.</p>
-                    {% endif %}
+                <div class="box">
+                <div class="message is-link">
+                    <div class="message-header">
+                        ข้อมูลติดต่อ
+                    </div>
+                    <div class="message-body">
+                        <p class="is-size-4"><strong>{{ customer.title }}{{ customer.firstname }} {{ customer.lastname }}</strong></p>
+                        <p>
+                            โทรศัพท์ {{ customer.phone or '' }}
+                        </p>
+                        {% if customer.info.updated_at %}
+                        <p class="is-size-6">แก้ไขล่าสุด {{ customer.info.updated_at|localdatetime }} น.</p>
+                        {% endif %}
+                    </div>
+                </div>
                 </div>
                 <div class="box">
                     <table class="table is-narrow">
