@@ -234,9 +234,6 @@ def edit_record(record_id):
         profile_item_cost += float(profile.quote)
 
     if request.method == 'POST':
-        selfpay_items = request.form.getlist('profile_selfpay')
-        print(selfpay_items)
-
         firstname = request.form.get('firstname')
         lastname = request.form.get('lastname')
         title = request.form.get('title')

@@ -35,9 +35,12 @@
                                     <div class="column">
                                         <div v-show="!nameEditing">
                                             <p class="label"><strong>ชื่อ นามสกุล / Name</strong>
-                                                <span class="icon has-text-info">
-                                                    <i class="fas fa-pencil-alt" @click="nameEditing=true;"></i>
-                                                </span>
+                                                <a @click="nameEditing=true;">
+                                                    <span class="icon has-text-info">
+                                                        <i class="fas fa-pencil-alt"></i>
+                                                    </span>
+                                                    <span>แก้ไขชื่อ</span>
+                                                </a>
                                             </p>
                                             <p class="is-size-4">
                                                 <% fullname %>
@@ -72,11 +75,12 @@
                                         </div>
                                         <p class="label"><strong>เพศ / Gender</strong></p>
                                         <p class="is-size-4">
-                                            {% if record.customer.gender == 1 %}ชาย{% else %} หญิง{% endif %}
+                                            {% if record.customer.gender == 1 %}ชาย (Male) {% else %} หญิง (Female){% endif %}
                                         </p>
-                                        <br>
+                                    </div>
+                                    <div class="column">
                                         <p class="label"><strong>สังกัด / Affiliation</strong></p>
-                                        <p class="is-size-6">
+                                        <p class="is-size-4">
                                             {{ record.customer.org.name }}
                                         </p>
                                         <div class="select">
@@ -107,7 +111,7 @@
                                             </select>
                                         </div>
                                     </div>
-                                    <div class="column">
+                                    <div class="column is-3">
                                         <p class="label"><strong>อายุ / Age</strong></p>
                                         {% if record.customer.dob %}
                                         <p class="is-size-5">
@@ -121,7 +125,7 @@
                                         <div class="field">
                                             <label class="label">วันเกิด / Date of Birth</label>
                                             <div class="control">
-                                                <input class="input is-medium" id="birthdate-input"
+                                                <input class="input" id="birthdate-input"
                                                        v-model="birthday"
                                                        name='dob' type="text"
                                                        value='{{ record.customer.thai_dob or "" }}'
@@ -138,8 +142,7 @@
                                         <div class="field">
                                             <label class="label">เบอร์โทรศัพท์ / Telephone</label>
                                             <div class="control">
-                                                <input class="input is-medium"
-                                                       name='phone' type="text"
+                                                <input class="input" name='phone' type="text"
                                                        value='{{ record.customer.phone or "" }}'
                                                 />
                                             </div>
@@ -147,6 +150,18 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <div class="has-text-centered">
+                            <button class="button is-light is-medium" type="submit">
+                                <span>Proceed</span>
+                                <span class="icon">
+                                    <i class="fas fa-chevron-right"></i>
+                                </span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -178,15 +193,11 @@
                                 </div>
                                 <div class="card-content">
                                     <p class="subtitle is-size-6">{{ profile.desc }}</p>
-                                    <div class="buttons">
-                                        <a class="button is-link is-rounded check_{{profile.id}}">Check All</a>
-                                        <a class="button is-link is-rounded uncheck_{{profile.id}}">Uncheck All</a>
+                                    <div class="buttons has-addons">
+                                        <a class="button is-link is-small is-outlined check_{{profile.id}}"><strong>Check All</strong></a>
+                                        <a class="button is-link is-small is-outlined uncheck_{{profile.id}}"><strong>Uncheck All</strong></a>
                                     </div>
-                                    <table id="{{ profile.id }}">
-                                        <thead>
-                                        <th class="has-text-centered">Test</th>
-                                        <th class="has-text-left">Self Pay</th>
-                                        </thead>
+                                    <table>
                                         <tbody>
                                         {% for item in profile.test_items|sorttest %}
                                         <tr>
@@ -196,13 +207,6 @@
                                                            id="profile_{{ item.id }}_select"
                                                            type="checkbox" name="profile_{{ item.id }}_select">
                                                     <strong>{{ item.test.name }}</strong> {{ item.test.desc }}
-                                                </label>
-                                            </td>
-                                            <td>
-                                                <label for="profile_{{ item.id }}_selfpay" class="checkbox">
-                                                <input value="{{ item.id }}"
-                                                       id="profile_{{ item.id }}_selfpay"
-                                                       type="checkbox" name="profile_selfpay">
                                                 </label>
                                             </td>
                                         </tr>
@@ -321,7 +325,7 @@
                     let nowdt = new Date();
                     let ageInYears = ((nowdt.getTime() - birthdate.getTime()) / (1000 * 3600 * 24)) / 365;
                     let months = (ageInYears - Math.floor(ageInYears)) * 12;
-                    let days = (months - Math.floor(months)) * 30;
+                    let days = (months - Math.floor(months)) * 31;
                     return Math.floor(ageInYears) + ' ปี ' + Math.floor(months) + ' เดือน ' + Math.floor(days) + ' วันโดยประมาณ';
                 },
                 fullname: function() {
@@ -334,11 +338,15 @@
     $(document).ready(function() {
       {% for profile in record.service.profiles %}
       $(".check_{{profile.id}}").on('click', function() {
+          $(".check_{{profile.id}}").addClass('is-selected');
+          $(".uncheck_{{profile.id}}").removeClass('is-selected');
         $(".profile_{{profile.id}}_select").each(function(){
             this.checked = true;
         });
       });
       $(".uncheck_{{profile.id}}").on('click', function() {
+          $(".uncheck_{{profile.id}}").addClass('is-selected');
+          $(".check_{{profile.id}}").removeClass('is-selected');
         $(".profile_{{profile.id}}_select").each(function(){
             this.checked = false;
         });
