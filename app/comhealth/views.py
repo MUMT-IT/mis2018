@@ -1879,7 +1879,11 @@ def export_blank_receipt_pdf():
     ตำแหน่ง / Position {}
     </font></para>'''.format('-', '-')
 
-    data.append(header_ori)
+    if request.args.get('receipt_copy') == 'copy':
+        data.append(header_copy)
+    else:
+        data.append(header_ori)
+
     data.append(Paragraph('<para align=center><font size=18>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
                           style=style_sheet['ThaiStyle']))
     data.append(customer)
