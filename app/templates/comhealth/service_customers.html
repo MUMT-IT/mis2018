@@ -1,41 +1,10 @@
 {% extends "base.html" %}
 {% block page_content %}
-    <section class="hero is-info is-small">
-        <div class="hero-head">
-            <nav class="navbar">
-                <div class="container">
-                    <div class="navbar-brand">
-                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </span>
-                    </div>
-                    <div id="navbarMenuHeroA" class="navbar-menu">
-                        <div class="navbar-end">
-                            <a class="navbar-item is-active"
-                               href="/comhealth">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                                <span>Home</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/tests">
-                                <span>Tests</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/organizations">
-                                <span>Organizations</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-        </div>
+{% include "comhealth/nav.html" %}
+    <section class="hero is-light is-small">
         <div class="hero-body">
             <div class="container has-text-centered">
-                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="100">
+                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="80">
                 <h3 class="title">Customers Checkin</h3>
                 <h3 class="subtitle">วันที่ {{ service.date }} สถานที่ {{ service.location }}</h3>
             </div>
@@ -92,18 +61,16 @@
                                 <% props.row.customer.hn %>
                             </b-table-column>
                             <b-table-column field="customer.firstname" label="First Name" sortable>
-                                <% props.row.customer.firstname %>
+                                <% props.row.customer.title + props.row.customer.firstname %>
                             </b-table-column>
                             <b-table-column field="customer.lastname" label="Last Name" sortable>
                                 <% props.row.customer.lastname %>
                             </b-table-column>
                             <b-table-column field="customer.gender" label="Gender" sortable centered>
-                        <span class="icon">
-                            <i class="fas fa-venus" v-if="props.row.customer.gender===0"></i>
-                            <i class="fas fa-mars" v-if="props.row.customer.gender===1"></i>
-                        </span>
-                                <span v-if="props.row.customer.gender===0">Female</span>
-                                <span v-if="props.row.customer.gender===1">Male</span>
+                                <span class="icon">
+                                    <i class="fas fa-venus" v-if="props.row.customer.gender===0"></i>
+                                    <i class="fas fa-mars" v-if="props.row.customer.gender===1"></i>
+                                </span>
                             </b-table-column>
                             <b-table-column field="customer.dob" label="Birthdate" sortable centered>
                                 <% props.row.customer.dob %>

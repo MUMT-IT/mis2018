@@ -1,34 +1,7 @@
 {% extends "base.html" %}
 {% block page_content %}
+{% include "comhealth/nav.html" %}
     <section class="hero is-info is-small">
-        <div class="hero-head">
-            <nav class="navbar">
-                <div class="container">
-                    <div class="navbar-brand">
-                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </span>
-                    </div>
-                    <div id="navbarMenuHeroA" class="navbar-menu">
-                        <div class="navbar-end">
-                            <a class="navbar-item is-active"
-                               href="/comhealth">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                                <span>Home</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/tests">
-                                <span>Tests</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-        </div>
         <div class="hero-body">
             <div class="container has-text-centered">
                 <img src="{{ url_for('static', filename='img/interviews.png') }}" width="100">

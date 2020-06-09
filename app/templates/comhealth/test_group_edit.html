@@ -1,38 +1,12 @@
 {% extends "base.html" %}
 {% block page_content %}
-    <nav class="navbar is-info">
-        <div class="container">
-            <div class="navbar-brand">
-                <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                  </span>
-            </div>
-            <div id="navbarMenuHeroA" class="navbar-menu">
-                <div class="navbar-end">
-                    <a class="navbar-item"
-                       href="/comhealth">
-                        <span class="icon">
-                            <i class="fas fa-home"></i>
-                        </span>
-                        <span>Home</span>
-                    </a>
-                    <a class="navbar-item is-active"
-                       href="/comhealth/tests">
-                        <span>Tests</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
-    </section>
+{% include "comhealth/nav.html" %}
     <section class="section">
         <div class="container">
             <nav class="breadcrumb" aria-label="breadcrumbs">
                 <ul>
                     <li><a href="{{ url_for('comhealth.test_index') }}">Test Index</a></li>
-                    <li><a href="#">Test Edit</a></li>
+                    <li class="is-active"><a>Test Edit</a></li>
                 </ul>
             </nav>
             <div class="columns">
@@ -59,10 +33,10 @@
                 </div>
             </div>
             <div class="columns">
-                <div class="column box">
+                <div class="column">
                     <form method="post" action="{{ url_for('comhealth.save_test_group', group_id=group.id) }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <table class="table">
+                        <table class="table is-fullwidth">
                             <thead>
                             <th>Name</th>
                             <th>Description</th>

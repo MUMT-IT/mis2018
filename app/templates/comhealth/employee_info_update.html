@@ -1,56 +1,15 @@
 {% extends "base.html" %}
 {% block page_content %}
-    <section class="hero is-info is-small">
-        <div class="hero-head">
-            <nav class="navbar">
-                <div class="container">
-                    <div class="navbar-brand">
-                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </span>
-                    </div>
-                    <div id="navbarMenuHeroA" class="navbar-menu">
-                        <div class="navbar-end">
-                            <a class="navbar-item"
-                               href="/comhealth">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                                <span>Home</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/tests">
-                                <span>Tests</span>
-                            </a>
-                            <a class="navbar-item is-active"
-                            href="/comhealth/organizations">
-                                <span>Organizations</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-        </div>
-        <div class="hero-body">
-            <div class="container has-text-centered">
-                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="100">
-                <h3 class="title">Health Record</h3>
-                <h3 class="subtitle">ชื่อสถาบัน {{ customer.org.name }}</h3>
-            </div>
-        </div>
-    </section>
+{% include "comhealth/nav.html" %}
     <section class="section" id="app">
         <div class="columns">
             <div class="column is-10 is-offset-1">
                 <div class="box">
-                <div class="message is-link">
+                <div class="message is-info">
                     <div class="message-header">
-                        ข้อมูลติดต่อ
+                        <h1 class="title is-size-4 has-text-white">{{ customer.title }}{{ customer.firstname }} {{ customer.lastname }}</h1>
                     </div>
                     <div class="message-body">
-                        <p class="is-size-4"><strong>{{ customer.title }}{{ customer.firstname }} {{ customer.lastname }}</strong></p>
                         <p>
                             โทรศัพท์ {{ customer.phone or '' }}
                         </p>

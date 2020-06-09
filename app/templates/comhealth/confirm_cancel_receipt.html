@@ -1,63 +1,37 @@
 {% extends "base.html" %}
 {% block page_content %}
-<section class="section hero is-info is-small">
-    <div class="hero-head">
-        <nav class="navbar">
-            <div class="container">
-                <div class="navbar-brand">
-                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </span>
-                </div>
-                <div id="navbarMenuHeroA" class="navbar-menu">
-                    <div class="navbar-end">
-                        <a class="navbar-item is-active"
-                           href="/comhealth">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                            <span>Home</span>
-                        </a>
-                        <a class="navbar-item"
-                           href="/comhealth/tests">
-                            <span>Tests</span>
-                        </a>
-                        <a class="navbar-item"
-                           href="/comhealth/organizations">
-                            <span>Organizations</span>
-                        </a>
+{% include "comhealth/nav.html" %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-8 is-offset-2">
+                <div class="message is-warning">
+                    <div class="message-header">
+                        <h3 class="title">ท่านแน่ใจที่จะยกเลิกใบเสร็จเลขที่ {{ receipt.id }}?</h3>
+                    </div>
+                    <div class="message-body">
+                        <h3 class="subtitle">กรุณาระบุเหตุผลในการยกเลิก</h3>
+                        <form method="post" action="{{ url_for('comhealth.cancel_receipt', receipt_id=receipt.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="field">
+                                <div class="control">
+                                    <textarea class="textarea" name="comment"></textarea>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="control">
+                                    <div class="buttons is-centered">
+                                    <input class="button is-danger" type="submit">
+                                    <a href="{{ url_for('comhealth.show_receipt_detail', receipt_id=receipt.id) }}"
+                                       class="button is-light">Cancel</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
                     </div>
                 </div>
             </div>
-        </nav>
-    </div>
-    <div class="hero-body">
-        <div class="container has-text-centered">
-            <img src="{{ url_for('static', filename='img/medical-history.png') }}" width="100">
-            <h1 class="title">Community Health Service Registration System</h1>
         </div>
-    </div>
-</section>
-<section class="section">
-    <div class="container">
-        <h3 class="title">ท่านแน่ใจที่จะยกเลิกใบเสร็จเลขที่ {{ receipt.id }}?</h3>
-        <h3 class="subtitle">กรุณาระบุเหตุผลในการยกเลิก</h3>
-        <form method="post" action="{{ url_for('comhealth.cancel_receipt', receipt_id=receipt.id) }}">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="field">
-                <div class="control">
-                    <textarea class="textarea" name="comment"></textarea>
-                </div>
-            </div>
-            <div class="field">
-                <div class="control">
-                    <input class="button is-rounded is-primary" type="submit">
-                    <a href="{{ url_for('comhealth.show_receipt_detail', receipt_id=receipt.id) }}" class="button is-rounded is-text">Back</a>
-                </div>
-            </div>
-        </form>
     </div>
 </section>
 {% endblock %}

@@ -1,46 +1,12 @@
 {% extends "base.html" %}
 {% block page_content %}
-    <section class="section hero is-info is-small">
-        <div class="hero-head">
-            <nav class="navbar">
-                <div class="container">
-                    <div class="navbar-brand">
-                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </span>
-                    </div>
-                    <div id="navbarMenuHeroA" class="navbar-menu">
-                        <div class="navbar-end">
-                            <a class="navbar-item"
-                                href="/comhealth">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                                <span>Home</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/tests">
-                                <span>Tests</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/organizations">
-                                <span>Organizations</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-        </div>
-        <div class="hero-body">
-            <div class="container has-text-centered">
-                <h1 class="title">Community Health Service Registration System</h1>
-                <h1 class="subtitle is-size-3">Receipt Detail</h1>
+{% include "comhealth/nav.html" %}
+    <section class="section" id="app">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title is-size-3">ใบเสร็จรับเงิน</h1>
             </div>
         </div>
-    </section>
-    <section class="section" id="app">
         <div class="container box" id="receipt">
             <div class="columns">
                 <div class="column">

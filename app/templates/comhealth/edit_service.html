@@ -1,31 +1,6 @@
 {% extends "base.html" %}
 {% block page_content %}
-    <nav class="navbar is-info">
-        <div class="container">
-            <div class="navbar-brand">
-                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </span>
-            </div>
-            <div id="navbarMenuHeroA" class="navbar-menu">
-                <div class="navbar-end">
-                    <a class="navbar-item is-active"
-                       href="/comhealth">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                        <span>Home</span>
-                    </a>
-                    <a class="navbar-item"
-                       href="/comhealth/tests">
-                        <span>Tests</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
+{% include "comhealth/nav.html" %}
     <section class="section" id="app">
         <div class="container">
             <div class="columns">

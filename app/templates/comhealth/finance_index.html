@@ -11,7 +11,7 @@
                         <% props.row.id %>
                     </b-table-column>
                     <b-table-column field="date" label="Date" sortable centered>
-                        <% props.row.date.toLocaleString({timeZone: "UTC"}) %>
+                        <% moment(props.row.date).format('lll') %>
                     </b-table-column>
                     <b-table-column field="location" label="Location" sortable>
                         <% props.row.location %>
