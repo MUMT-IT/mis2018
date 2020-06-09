@@ -45,6 +45,7 @@
                 {% endwith %}
             </div>
         </div>
+        <div class="box">
         <h1 class="title has-text-centered">เพิ่มผู้รับบริการ</h1>
         <div class="columns">
             <div class="column is-two-thirds is-offset-1">
@@ -52,7 +53,7 @@
                     {{ form.hidden_tag() }}
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">คำนำหน้า</label>
+                            <label class="label">คำนำหน้า / Title</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
@@ -64,7 +65,7 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">ชื่อ นามสกุล</label>
+                            <label class="label">ชื่อ นามสกุล / Name</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
@@ -81,7 +82,7 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">วันเดือนปีเกิด</label>
+                            <label class="label">วันเดือนปีเกิด / Date of Birth</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
@@ -96,12 +97,12 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">เพศ</label>
+                            <label class="label">เพศ / Gender</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <div class="select is-rounded">
+                                    <div class="select">
                                         {{ form.gender(class="select") }}
                                     </div>
                                 </div>
@@ -115,13 +116,14 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control has-text-centered">
-                                    <button class="button is-rounded is-link" type="submit">Submit</button>
+                                    <button class="button is-success" type="submit">Submit</button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </form>
             </div>
+        </div>
         </div>
     </div>
 </section>
