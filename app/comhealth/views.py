@@ -1333,7 +1333,7 @@ def cancel_receipt(receipt_id):
 def pay_receipt(receipt_id):
     pay_method = request.form.get('pay_method')
     if pay_method == 'card':
-        card_number = request.form.get('card_number')
+        card_number = request.form.get('card_number').replace(' ', '')
     if pay_method == 'cash':
         paid_amount = request.form.get('paid_amount', 0.0)
     receipt = ComHealthReceipt.query.get(receipt_id)
@@ -1412,8 +1412,8 @@ def export_receipt_pdf(receipt_id):
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
-        logo_image = ImageReader('app/static/img/logo-MU_black-white-2-1-watermark.png')
-        canvas.drawImage(logo_image, 90, 200, mask='auto')
+        logo_image = ImageReader('app/static/img/mu-watermark.png')
+        canvas.drawImage(logo_image, 220, 400, mask='auto')
         canvas.restoreState()
 
     doc = SimpleDocTemplate("app/receipt.pdf",
@@ -1431,11 +1431,11 @@ def export_receipt_pdf(receipt_id):
     </font></para>
     '''
     address = '''<font size=11>
-    เลขที่ 999 พุทธมณฑลสาย 4<br/>
-    ต.ศาลายา อ.พุทธมณฑล<br/>
-    จ.นครปฐม 73170<br/>
-    999 Phutthamonthon 4 Road, Salaya,<br/>
-    Phutthamonthon, Nakhon Pathom, 73170<br/><br/>
+    2 ถนนวังหลัง แขวงศิริราช<br/>
+    เขตบางกอกน้อย กทม. 10700<br/>
+    2 Wang Lang Road<br/>
+    Siriraj, Bangkok-Noi,<br/>
+    Bangkok 10700<br/><br/>
     เลขประจำตัวผู้เสียภาษี / Tax ID Number<br/>
     0994000158378
     </font>
@@ -1535,12 +1535,17 @@ def export_receipt_pdf(receipt_id):
                         ]
                 items.append(item)
                 total_profile_price += profile_price
+                total += profile_price
     for t in receipt.invoices:
         if t.visible:
             if t.billed:
                 number_test += 1
-                price = t.test_item.price or t.test_item.test.default_price
-                total_special_price += price
+                if t.test_item.price is None:
+                    price = t.test_item.test.default_price
+                else:
+                    price = t.test_item.price
+                if price == 0:
+                    continue
                 total += price
                 item = [Paragraph('<font size=12>{}</font>'.format(number_test), style=style_sheet['ThaiStyleCenter']),
                         Paragraph('<font size=12>{} ({})</font>'
@@ -1549,12 +1554,14 @@ def export_receipt_pdf(receipt_id):
                                   style=style_sheet['ThaiStyle'])
                         ]
                 if t.reimbursable:
+                    total_profile_price += price
                     item.append(
                         Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
                     item.append(Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']))
                     item.append(
                         Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
                 else:
+                    total_special_price += price
                     item.append(Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']))
                     item.append(
                         Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
@@ -1591,7 +1598,7 @@ def export_receipt_pdf(receipt_id):
     if receipt.payment_method == 'cash':
         payment_info = Paragraph('<font size=11>ชำระเงินด้วย / PAID BY เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == 'card':
-        payment_info = Paragraph('<font size=11>ชำระเงินด้วย / PAID BY บัตรเครดิต / CREDIT CARD หมายเลข / NUMBER {}</font>'.format(receipt.card_number),
+        payment_info = Paragraph('<font size=11>ชำระเงินด้วย / PAID BY บัตรเครดิต / CREDIT CARD หมายเลข / NUMBER {}-****-****-{}</font>'.format(receipt.card_number[:4], receipt.card_number[-4:]),
                                  style=style_sheet['ThaiStyle'])
     else:
         payment_info = Paragraph('<font size=11>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])

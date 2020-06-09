@@ -214,7 +214,7 @@
                                 <span class="icon has-text-success">
                                     <i class="far fa-credit-card"></i>
                                 </span>
-                                <span class="has-text-success">ชำระด้วยบัตรเครดิต หมายเลข {{ receipt.card_number }}</span>
+                                <span class="has-text-success">ชำระด้วยบัตรเครดิตลงท้าย {{ receipt.card_number[-4:] }}</span>
                                 {% else %}
                                 <span class="has-text-danger">
                                     ยังไม่ได้ชำระเงิน
