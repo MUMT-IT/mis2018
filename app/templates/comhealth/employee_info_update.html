@@ -43,11 +43,18 @@
     </section>
     <section class="section" id="app">
         <div class="columns">
-            <div class="column">
+            <div class="column is-10 is-offset-1">
                 <div class="notification is-light">
-                    <h1 class="title">ชื่อ {{ customer.title }}{{ customer.firstname }} {{ customer.lastname }}</h1>
+                    <p class="is-size-4"><strong>{{ customer.title }}{{ customer.firstname }} {{ customer.lastname }}</strong>
+                        <small>
+                        <span class="icon">
+                            <i class="fas fa-phone"></i>
+                        </span>
+                            <span>{{ customer.phone }}</span>
+                        </small>
+                    </p>
                     {% if customer.info.updated_at %}
-                    <h1 class="subtitle">ปรับปรุงล่าสุดเมื่อ {{ customer.info.updated_at|localdatetime }} น.</h1>
+                    <p class="is-size-6">{{ customer.info.updated_at|localdatetime }} น.</p>
                     {% endif %}
                 </div>
                 <div class="box">
@@ -68,13 +75,13 @@
                     </table>
                     <div class="has-text-centered">
                         <a href="{{ request.referrer }}"
-                           class="button is-large is-rounded is-primary">กลับ</a>
+                           class="button is-large is-light">กลับ</a>
                     </div>
                 </div>
             </div>
         </div>
         <div class="columns">
-            <div class="column">
+            <div class="column is-10 is-offset-1">
                 <form method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="customer_id" value="{{ customer.id }}">
@@ -125,11 +132,15 @@
         </div>
         <div class="columns">
             <div class="column has-text-centered">
-                <button class="button is-primary is-large is-rounded"
-                        type="submit">Save</button>
-                <a class="button is-text is-large is-rounded"
-                    href="{{ url_for('comhealth.list_employees', orgid=customer.org.id)}}">
-                Cancel</a>
+                <div class="buttons is-centered">
+                    <button class="button is-success is-large" type="submit">
+                        Save
+                    </button>
+                    <a class="button is-light is-large"
+                       href="{{ url_for('comhealth.list_employees', orgid=customer.org.id)}}">
+                        Cancel
+                    </a>
+                </div>
             </div>
         </div>
         </form>
