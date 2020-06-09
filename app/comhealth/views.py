@@ -804,20 +804,81 @@ def summarize_specimens(service_id):
                                containers=sorted(containers, key=lambda x: x.name))
 
 
-@comhealth.route('/services/<int:service_id>/containers/<int:container_id>')
+@comhealth.route('/services/<int:service_id>/containers/<int:container_id>',
+                 methods=['GET', 'POST'])
 @login_required
 def list_tests_in_container(service_id, container_id):
+    if request.method == 'POST':
+        record = ComHealthRecord.query.filter_by(labno=request.form.get('labno')).first()
+        if record:
+            checkin_record = ComHealthSpecimensCheckinRecord.query.filter_by(record_id=record.id,
+                                                                         container_id=container_id).first()
+            if checkin_record:
+                checkin_record.checkin_datetime = datetime.now(tz=bangkok)
+                db.session.add(checkin_record)
+                db.session.commit()
+                flash("The container's check in has been updated.", 'success')
+            else:
+                record.container_checkins.append(ComHealthSpecimensCheckinRecord(
+                                                    record.id, container_id, datetime.now(tz=bangkok)))
+                db.session.add(record)
+                db.session.commit()
+                flash('The container has been checked in.', 'success')
+        else:
+            flash('The record no longer exists.', 'danger')
+
     tests = defaultdict(list)
-    if service_id:
-        service = ComHealthService.query.get(service_id)
+    service = ComHealthService.query.get(service_id)
+    if service:
         container = ComHealthContainer.query.get(container_id)
         for record in service.records:
             for test_item in record.ordered_tests:
                 if test_item.test.container_id == container_id:
                     tests[record].append(test_item.test.code)
-    return render_template('comhealth/container_tests.html',
+        records = sorted(tests.keys(), key=lambda x: x.labno)
+    else:
+        flash('The service no longer exists.', 'danger')
+    return render_template('comhealth/container_tests.html', records=records,
                            tests=tests, service=service, container=container)
 
+
+@comhealth.route('/services/<int:service_id>/records/<int:record_id>/containers/<int:container_id>/check')
+@login_required
+def check_container(service_id, record_id, container_id):
+    checkin_record = ComHealthSpecimensCheckinRecord.query\
+                            .filter_by(record_id=record_id, container_id=container_id).first()
+    if checkin_record:
+        checkin_record.checkin_datetime = datetime.now(tz=bangkok)
+        db.session.add(checkin_record)
+        db.session.commit()
+    else:
+        record = ComHealthRecord.query.get(record_id)
+        if record:
+            record.container_checkins.append(ComHealthSpecimensCheckinRecord(
+                record.id, container_id, datetime.now(tz=bangkok)))
+            db.session.add(record)
+            db.session.commit()
+            flash('The container has been checked in.', 'success')
+        else:
+            flash('The record no longer exists.', 'danger')
+    return redirect(url_for('comhealth.list_tests_in_container',
+                            service_id=service_id, container_id=container_id))
+
+
+@comhealth.route('/services/<int:service_id>/records/<int:record_id>/containers/<int:container_id>/uncheck')
+@login_required
+def uncheck_container(service_id, record_id, container_id):
+    checkin_record = ComHealthSpecimensCheckinRecord.query\
+                        .filter_by(record_id=record_id, container_id=container_id).first()
+    if checkin_record:
+        checkin_record.checkin_datetime = datetime.now(tz=bangkok)
+        db.session.delete(checkin_record)
+        db.session.commit()
+        flash('The container has been unchecked.', 'success')
+    else:
+        flash('The record no longer exists.', 'warning')
+    return redirect(url_for('comhealth.list_tests_in_container',
+                            service_id=service_id, container_id=container_id))
 
 @comhealth.route('/organizations')
 @login_required
@@ -1902,6 +1963,7 @@ def export_blank_receipt_pdf():
 
     return send_file('receipt.pdf')
 
+
 class CustomerEmploymentTypeUploadView(BaseView):
     @expose('/')
     def index(self):
@@ -1932,3 +1994,4 @@ class CustomerEmploymentTypeUploadView(BaseView):
                             db.session.add(rec)
                 db.session.commit()
         return request.method
+

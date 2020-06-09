@@ -268,6 +268,11 @@ class ComHealthRecord(db.Model):
     def is_checked_in(self):
         return self.checkin_datetime is not None
 
+    def get_container_checkin(self, container_id):
+        checkins = [chkin for chkin in self.container_checkins if chkin.container_id == container_id]
+        if checkins:
+            return checkins[0]
+
 
 class ComHealthTestItem(db.Model):
     __tablename__ = 'comhealth_test_items'
@@ -372,6 +377,21 @@ class ComHealthReferenceTestProfile(db.Model):
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     profile_id = db.Column('profile_id', db.ForeignKey('comhealth_test_profiles.id'))
     profile = db.relationship('ComHealthTestProfile')
+
+
+class ComHealthSpecimensCheckinRecord(db.Model):
+    __tablename__ = 'comhealth_specimens_checkin_records'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    record_id = db.Column('record_id', db.ForeignKey('comhealth_test_records.id'))
+    container_id = db.Column('container_id', db.ForeignKey('comhealth_containers.id'))
+    checkin_datetime = db.Column('checkin_datetime', db.DateTime(timezone=True), nullable=True)
+    record = db.relationship(ComHealthRecord, backref=db.backref('container_checkins'))
+    container = db.relationship(ComHealthContainer)
+
+    def __init__(self, record_id, container_id, chkdatetime):
+        self.record_id = record_id
+        self.container_id = container_id
+        self.checkin_datetime = chkdatetime
 
 
 class ComHealthCustomerInfoSchema(ma.ModelSchema):
