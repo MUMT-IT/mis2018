@@ -384,7 +384,7 @@ def local_datetime(dt):
 @app.template_filter("localdatetime")
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
-    datetime_format = '%-d %b %Y %-H:%-M'
+    datetime_format = '%-d %b %Y %H:%M'
     if dt:
         return dt.astimezone(bangkok).strftime(datetime_format)
     else:
