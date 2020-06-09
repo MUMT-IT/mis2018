@@ -375,7 +375,7 @@ def money_format(value):
 @app.template_filter("localtime")
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
-    datetime_format = '%-H:%-M'
+    datetime_format = '%-H:%M'
     if dt:
         return dt.astimezone(bangkok).strftime(datetime_format)
     else:
@@ -456,5 +456,7 @@ def check_wfh_approval(wfh_request, approver_id):
         return True
     else:
         return False
+
+
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host="0.0.0.0")

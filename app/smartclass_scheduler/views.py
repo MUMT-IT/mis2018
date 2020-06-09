@@ -114,7 +114,7 @@ def add_event():
             else:
                 new_event.start = start
                 new_event.end = end
-                new_event.created_at = localtz.localize(datetime.now())
+                new_event.created_at = datetime.now(localtz).astimezone(localtz)
                 new_event.account = account
                 db.session.add(new_event)
                 db.session.commit()

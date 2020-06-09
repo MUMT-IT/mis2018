@@ -31,11 +31,8 @@
                     </div>
                     <div class="card-content">
                         <div class="content">
-                            <p><span class="title is-3">{{ event.account.resource_type }}</span></p>
-                            <p>
-                                <span class="title is-4">{{ event.title }}</span>
-                                <span class="subtitle is-5">จองเมื่อ {{ event.created_at|localdatetime }} น.</span>
-                            </p>
+                            <h1 class="title is-4">{{ event.title }}</h1>
+                            <h1 class="subtitle is-6">จองเมื่อ {{ event.created_at|localdatetime }} น.</h1>
                             <p>
                                 <span class="icon">
                                        <i class="far fa-user"></i>
