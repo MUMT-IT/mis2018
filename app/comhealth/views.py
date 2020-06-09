@@ -908,6 +908,47 @@ def add_customer_to_service_org(service_id, org_id):
         return render_template('comhealth/new_customer_service_org.html', form=form)
 
 
+@comhealth.route('/services/<int:service_id>/orgs/<int:org_id>/customers/<int:customer_id>/edit',
+                 methods=['GET', 'POST'])
+@login_required
+def edit_customer_data(service_id, org_id, customer_id):
+    form = CustomerForm()
+    customer = ComHealthCustomer.query.get(customer_id)
+    if customer:
+        if request.method == 'POST':
+            if form.validate_on_submit():
+                customer.firstname = form.firstname.data
+                customer.lastname = form.lastname.data
+                customer.title = form.title.data
+                try:
+                    day, month, year = form.dob.data.split('/')
+                except ValueError:
+                    flash('Invalid date format', 'warning')
+                    return render_template('comhealth/edit_customer_data.html', form=form)
+
+                year = int(year) - 543
+                month = int(month)
+                day = int(day)
+                customer.dob = datetime(year, month, day)
+                customer.gender = form.gender.data
+                db.session.add(customer)
+                db.session.commit()
+                return redirect(request.args.get('next'))
+        else:
+            form.firstname.data = customer.firstname
+            form.lastname.data = customer.lastname
+            form.title.data = customer.title
+            buddhist_year = customer.dob.year + 543
+            month = customer.dob.month
+            day = customer.dob.day
+            form.dob.data = datetime(buddhist_year,month,day).strftime('%d/%m/%Y')
+            form.gender.data = customer.gender
+    else:
+        flash('Customer not found.', 'warning')
+        return redirect(request.args.get('next'))
+    return render_template('comhealth/edit_customer_data.html', form=form)
+
+
 # TODO: export the price of tests
 
 @comhealth.route('/services/<int:service_id>/to-csv')

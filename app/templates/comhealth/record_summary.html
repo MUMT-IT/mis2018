@@ -87,11 +87,12 @@
                     <div class="columns">
                         <div class="column is-9 box">
                             <h1 class="title"><span class="icon">
-                        {% if record.customer.gender == 1 %}
-                            <i class="fas fa-male"></i></span>&nbsp;<span>ข้อมูลส่วนตัว</span></h1>
-                        {% elif record.customer.gender == 0 %}
-                            <i class="fas fa-female"></i></span>&nbsp;<span>ข้อมูลส่วนตัว</span></h1>
-                        {% endif %}
+                            {% if record.customer.gender == 1 %}
+                                <i class="fas fa-male"></i></span>&nbsp;<span>ข้อมูลส่วนตัว</span>
+                            {% elif record.customer.gender == 0 %}
+                                <i class="fas fa-female"></i></span>&nbsp;<span>ข้อมูลส่วนตัว</span>
+                            {% endif %}
+                            </h1>
                             <table class="table is-fullwidth">
                                 <tbody>
                                 <tr>
@@ -162,6 +163,15 @@
                                 </tr>
                                 </tbody>
                             </table>
+                            <div class="has-text-centered">
+                                <a class="button is-link is-small"
+                                    href="{{ url_for('comhealth.edit_customer_data', service_id=record.service.id, org_id=record.customer.org.id, customer_id=record.customer.id, next=request.url) }}">
+                                    <span class="icon">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </span>
+                                    <span>แก้ไขข้อมูลผู้รับบริการ</span>
+                                </a>
+                            </div>
                         </div>
                     </div>
                     <a name="total-cost"></a>
