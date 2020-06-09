@@ -16,7 +16,7 @@
             </div>
             <div class="columns">
                 <div class="column has-text-right">
-                    <a class="button is-rounded is-link is-medium"
+                    <a class="button is-link is-medium"
                         href="{{ url_for('comhealth.list_orgs') }}">
                         <span class="icon">
                             <i class="fas fa-plus"></i>
@@ -33,7 +33,7 @@
                                 <% props.row.id %>
                             </b-table-column>
                             <b-table-column field="date" label="Date" sortable centered>
-                                <% props.row.date.toLocaleString({timeZone: "UTC"}) %>
+                                <% moment(props.row.date).format('lll') %>
                             </b-table-column>
                             <b-table-column field="location" label="Location" sortable>
                                 <% props.row.location %>
@@ -45,30 +45,32 @@
                                 <% props.row.checkedin %>
                             </b-table-column>
                             <b-table-column field="" label="Detail">
-                                <a class="button is-rounded is-light" v-bind:href="'/comhealth/services/'+props.row.id">
-                                    <span class="icon">
-                                        <i class="fas fa-user"></i>
-                                    </span>&nbsp;
-                                    <span>Customers</span>
-                                </a>
-                                <a class="button is-rounded is-light" v-bind:href="'/comhealth/services/edit/'+props.row.id">
-                                    <span class="icon">
-                                        <i class="fas fa-pencil-alt"></i>
-                                    </span>&nbsp;
-                                    <span>Edit</span>
-                                </a>
-                                <a class="button is-rounded is-light" v-bind:href="'/comhealth/services/'+props.row.id+'/specimens-summary'">
-                                    <span class="icon">
-                                        <i class="fas fa-vial"></i>
-                                    </span>&nbsp;
-                                    <span>Specimens</span>
-                                </a>
-                                <a class="button is-rounded is-light" v-bind:href="'/comhealth/services/'+props.row.id+'/to-csv'">
-                                    <span class="icon">
-                                        <i class="fas fa-cloud-download-alt"></i>
-                                    </span>&nbsp;
-                                    <span>Export</span>
-                                </a>
+                                <div class="buttons">
+                                    <a class="button is-small is-rounded" v-bind:href="'/comhealth/services/'+props.row.id">
+                                        <span class="icon">
+                                            <i class="fas fa-user"></i>
+                                        </span>
+                                        <span>Customers</span>
+                                    </a>
+                                    <a class="button is-small is-rounded" v-bind:href="'/comhealth/services/edit/'+props.row.id">
+                                        <span class="icon">
+                                            <i class="fas fa-pencil-alt"></i>
+                                        </span>
+                                        <span>Tests</span>
+                                    </a>
+                                    <a class="button is-small is-rounded" v-bind:href="'/comhealth/services/'+props.row.id+'/specimens-summary'">
+                                        <span class="icon">
+                                            <i class="fas fa-vial"></i>
+                                        </span>
+                                        <span>Specimens</span>
+                                    </a>
+                                    <a class="button is-small is-rounded" v-bind:href="'/comhealth/services/'+props.row.id+'/to-csv'">
+                                        <span class="icon">
+                                            <i class="fas fa-cloud-download-alt"></i>
+                                        </span>
+                                        <span>Export</span>
+                                    </a>
+                                </div>
                             </b-table-column>
                         </template>
                     </b-table>
