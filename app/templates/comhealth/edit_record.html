@@ -1,41 +1,6 @@
 {% extends "base.html" %}
 {% block page_content %}
-    <section class="section hero is-info is-small">
-        <div class="hero-head">
-            <nav class="navbar">
-                <div class="container">
-                    <div class="navbar-brand">
-                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </span>
-                    </div>
-                    <div id="navbarMenuHeroA" class="navbar-menu">
-                        <div class="navbar-end">
-                            <a class="navbar-item is-active"
-                               href="/comhealth">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                                <span>Home</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/tests">
-                                <span>Tests</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-        </div>
-        <div class="hero-body">
-            <div class="container has-text-centered">
-                <img src="{{ url_for('static', filename='img/medical-history.png') }}" width="100">
-                <h1 class="title">Customer Check In</h1>
-            </div>
-        </div>
-    </section>
+    {% include "comhealth/nav.html" %}
     <section class="section" id="app">
         <div class="container">
             <nav class="breadcrumb is-light is-centered" aria-label="breadcrumbs">
@@ -46,6 +11,7 @@
                 </ul>
             </nav>
             {% include "messages.html" %}
+            <h1 class="title has-text-centered">Customer Check In</h1>
             <form method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="record_id" value="{{ record.id }}">
@@ -224,19 +190,19 @@
                                         <tbody>
                                         {% for item in profile.test_items|sorttest %}
                                         <tr>
-                                            <td class="field">
-                                                <input class="is-checkradio is-block is-info is-large profile_{{profile.id}}_select"
-                                                       id="profile_{{ item.id }}_select"
-                                                       type="checkbox" name="profile_{{ item.id }}_select">
-                                                <label for="profile_{{ item.id }}_select">
+                                            <td>
+                                                <label class="checkbox">
+                                                    <input class="profile_{{profile.id}}_select"
+                                                           id="profile_{{ item.id }}_select"
+                                                           type="checkbox" name="profile_{{ item.id }}_select">
                                                     <strong>{{ item.test.name }}</strong> {{ item.test.desc }}
                                                 </label>
                                             </td>
-                                            <td class="field">
-                                                <input class="is-checkradio is-info" value="{{ item.id }}"
+                                            <td>
+                                                <label for="profile_{{ item.id }}_selfpay" class="checkbox">
+                                                <input value="{{ item.id }}"
                                                        id="profile_{{ item.id }}_selfpay"
                                                        type="checkbox" name="profile_selfpay">
-                                                <label for="profile_{{ item.id }}_selfpay">
                                                 </label>
                                             </td>
                                         </tr>
