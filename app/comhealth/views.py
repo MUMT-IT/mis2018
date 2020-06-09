@@ -981,13 +981,17 @@ def edit_customer_data(service_id, org_id, customer_id):
                 try:
                     day, month, year = form.dob.data.split('/')
                 except ValueError:
-                    flash('Invalid date format', 'warning')
+                    flash(u'รูปแบบวันที่ไม่ถูกต้อง', 'warning')
                     return render_template('comhealth/edit_customer_data.html', form=form)
 
                 year = int(year) - 543
                 month = int(month)
                 day = int(day)
-                customer.dob = datetime(year, month, day)
+                try:
+                    customer.dob = datetime(year, month, day)
+                except ValueError:
+                    flash(u'วันที่ไม่ถูกต้อง', 'warning')
+                    return render_template('comhealth/edit_customer_data.html', form=form)
                 customer.gender = form.gender.data
                 db.session.add(customer)
                 db.session.commit()
@@ -996,10 +1000,11 @@ def edit_customer_data(service_id, org_id, customer_id):
             form.firstname.data = customer.firstname
             form.lastname.data = customer.lastname
             form.title.data = customer.title
-            buddhist_year = customer.dob.year + 543
-            month = customer.dob.month
-            day = customer.dob.day
-            form.dob.data = datetime(buddhist_year,month,day).strftime('%d/%m/%Y')
+            if customer.dob:
+                buddhist_year = customer.dob.year + 543
+                month = customer.dob.month
+                day = customer.dob.day
+                form.dob.data = datetime(buddhist_year,month,day).strftime('%d/%m/%Y')
             form.gender.data = customer.gender
     else:
         flash('Customer not found.', 'warning')
