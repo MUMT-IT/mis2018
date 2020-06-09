@@ -45,7 +45,7 @@
                         <div class="card-header">
                             <p class="card-header-title">
                                 <span>Profile</span>&nbsp;
-                                <a class="button is-rounded is-link" href="{{ url_for('comhealth.add_service_profile', service_id=service.id) }}">
+                                <a class="button is-link" href="{{ url_for('comhealth.add_service_profile', service_id=service.id) }}">
                                     <span class="icon">
                                         <i class="fas fa-plus"></i>
                                     </span>
@@ -98,7 +98,7 @@
                         <div class="card-header">
                             <p class="card-header-title">
                                 <span>Group</span>&nbsp;
-                                <a class="button is-rounded is-link"
+                                <a class="button is-link"
                                     href="{{ url_for('comhealth.add_service_group', service_id=service.id) }}">
                                     <span class="icon">
                                         <i class="fas fa-plus"></i>
@@ -127,9 +127,11 @@
                                         <td>{{ group.age_max }}</td>
                                         <td>{{ group.gender }}</td>
                                         <td>
-                                            <span class="icon">
-                                                <i class="far fa-eye"></i>
-                                            </span>
+                                            <a href="{{ url_for('comhealth.test_group_index', group_id=group.id) }}">
+                                                <span class="icon">
+                                                    <i class="far fa-eye"></i>
+                                                </span>
+                                            </a>
                                         </td>
                                         <td>
                                             <a href="{{ url_for('comhealth.delete_service_group', service_id=service.id, group_id=group.id) }}">
