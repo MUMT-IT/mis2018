@@ -30,13 +30,23 @@
         <div class="container">
             <div class="columns">
                 <div class="column">
-                    {% with messages = get_flashed_messages() %}
-                        {% if messages %}
-                            {% for msg in messages %}
-                                <b-notification type="is-light">{{ msg }}</b-notification>
-                            {% endfor %}
-                        {% endif %}
-                    {% endwith %}
+                    {% include "messages.html" %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-two-thirds is-offset-2 has-text-centered">
+                    <h1 class="title">รายการทดสอบ</h1>
+                    <h1 class="subtitle">{{ service.location }}</h1>
+                    <h1>
+                    <span class="icon">
+                        <i class="far fa-calendar-alt"></i>
+                    </span>
+                        <span>
+                        {{ service.date }}
+                    </span>
+                    </h1>
+                    <a class="button is-text"
+                        href="{{ url_for('comhealth.list_all_tests', service_id=service.id) }}">ตรวจสอบรายการทดสอบทั้งหมด</a>
                 </div>
             </div>
             <div class="columns">

@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block page_content %}
+<nav class="navbar is-info">
+    <div class="container">
+        <div class="navbar-brand">
+                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                          </span>
+        </div>
+        <div id="navbarMenuHeroA" class="navbar-menu">
+            <div class="navbar-end">
+                <a class="navbar-item is-active"
+                   href="/comhealth">
+                                <span class="icon">
+                                    <i class="fas fa-home"></i>
+                                </span>
+                    <span>Home</span>
+                </a>
+                <a class="navbar-item"
+                   href="/comhealth/tests">
+                    <span>Tests</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
+<section class="section" id="app">
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                {% include "messages.html" %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2 has-text-centered">
+                <h1 class="title">รายการทดสอบ</h1>
+                <h1 class="subtitle">{{ service.location }}</h1>
+                <h1>
+                    <span class="icon">
+                        <i class="far fa-calendar-alt"></i>
+                    </span>
+                    <span>
+                        {{ service.date }}
+                    </span>
+                </h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <div class="card">
+                    <div class="card-header">
+                        <p class="card-header-title">
+                            <span>Profile</span>&nbsp;
+                        </p>
+                    </div>
+                    <div class="card-content">
+                        {% for profile in service.profiles %}
+                        <p class="notification is-light"><strong>{{ profile.name }}</strong> [ราคาชุด {{ profile.quote }} บาท]</p>
+                        <table class="table is-striped">
+                            <thead>
+                            <th>รหัส</th>
+                            <th>ชื่อ</th>
+                            <th>รายละเอียด</th>
+                            <th>รหัสกรมบัญชีกลาง</th>
+                            <th>ราคาตั้งต้น</th>
+                            <th>ราคานำเสนอ</th>
+                            </thead>
+                            <tbody>
+                            {% for t in profile.test_items %}
+                            <tr {% if t.test.default_price != t.price %} bgcolor="#f4a460" {% endif %}>
+                                <td>{{ t.test.code }}</td>
+                                <td>{{ t.test.name }}</td>
+                                <td>{{ t.test.desc }}</td>
+                                <td>{{ t.test.gov_code or '' }}</td>
+                                <td>{{ t.test.default_price }}</td>
+                                <td>{{ t.price }}</td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <div class="card">
+                    <div class="card-header">
+                        <p class="card-header-title">
+                            <span>Group</span>&nbsp;
+                        </p>
+                    </div>
+                    <div class="card-content">
+                        {% for group in service.groups %}
+                        <p class="notification is-light"><strong>{{ group.name }}</strong></p>
+                        <table class="table is-striped">
+                            <thead>
+                            <th>รหัส</th>
+                            <th>ชื่อ</th>
+                            <th>รายละเอียด</th>
+                            <th>รหัสกรมบัญชีกลาง</th>
+                            <th>ราคาตั้งต้น</th>
+                            <th>ราคานำเสนอ</th>
+                            </thead>
+                            <tbody>
+                            {% for t in group.test_items %}
+                            <tr {% if t.test.default_price != t.price %} bgcolor="#f4a460" {% endif %}>
+                                <td>{{ t.test.code }}</td>
+                                <td>{{ t.test.name }}</td>
+                                <td>{{ t.test.desc }}</td>
+                                <td>{{ t.test.gov_code or '' }}</td>
+                                <td>{{ t.test.default_price }}</td>
+                                <td>{{ t.price }}</td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1995,3 +1995,8 @@ class CustomerEmploymentTypeUploadView(BaseView):
                 db.session.commit()
         return request.method
 
+@comhealth.route('/services/<int:service_id>/all-tests')
+@login_required
+def list_all_tests(service_id):
+    service = ComHealthService.query.get(service_id)
+    return render_template('/comhealth/all_tests.html', service=service)
