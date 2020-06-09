@@ -1,0 +1,7 @@
+{% with messages = get_flashed_messages(with_categories=True) %}
+{% if messages %}
+    {% for cat, msg in messages %}
+    <p class="notification is-{{ cat }}">{{ msg }}</p>
+    {% endfor %}
+{% endif %}
+{% endwith %}
