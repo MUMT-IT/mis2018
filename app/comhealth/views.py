@@ -1582,10 +1582,12 @@ def export_receipt_pdf(receipt_id):
 
     header_content_ori = [[Paragraph(address, style=style_sheet['ThaiStyle']),
                            [logo, Paragraph(affiliation, style=style_sheet['ThaiStyle'])],
+                           [],
                            Paragraph(receipt_info_ori, style=style_sheet['ThaiStyle'])]]
 
     header_content_copy = [[Paragraph(address, style=style_sheet['ThaiStyle']),
                             [logo, Paragraph(affiliation, style=style_sheet['ThaiStyle'])],
+                            [],
                             Paragraph(receipt_info_copy, style=style_sheet['ThaiStyle'])]]
 
     header_styles = TableStyle([
@@ -1593,8 +1595,8 @@ def export_receipt_pdf(receipt_id):
         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
     ])
 
-    header_ori = Table(header_content_ori, colWidths=[150, 200, 150])
-    header_copy = Table(header_content_copy, colWidths=[150, 200, 150])
+    header_ori = Table(header_content_ori, colWidths=[150, 200, 50, 100])
+    header_copy = Table(header_content_copy, colWidths=[150, 200, 50, 100])
 
     header_ori.hAlign = 'CENTER'
     header_ori.setStyle(header_styles)
