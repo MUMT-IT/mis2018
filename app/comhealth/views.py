@@ -272,7 +272,7 @@ def edit_record(record_id):
 
         for field in request.form:
             if field.startswith('test_'):
-                _, test_id, _ = field.split('_')
+                _, test_id = field.split('_')
                 test_item = ComHealthTestItem.query.get(int(test_id))
                 group_item_cost += float(test_item.price) or float(test_item.test.default_price)
                 containers.add(test_item.test.container)
