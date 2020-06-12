@@ -682,17 +682,11 @@ def edit_test(test_id):
 def add_service():
     form = ServiceForm()
     if form.validate_on_submit():
-        try:
-            service_date = datetime.strptime(form.service_date.data, '%Y-%m-%d')
-        except ValueError:
-            flash('Date data not valid.')
-        else:
-            new_service = ComHealthService(location=form.location.data,
-                                           date=service_date)
-            db.session.add(new_service)
-            db.session.commit()
-            flash('The schedule has been updated.')
-            return redirect(url_for('comhealth.index'))
+        new_service = ComHealthService(location=form.location.data, date=form.service_date.data)
+        db.session.add(new_service)
+        db.session.commit()
+        flash('The schedule has been updated.')
+        return redirect(url_for('comhealth.index'))
 
     return render_template('comhealth/new_schedule.html', form=form)
 
@@ -892,33 +886,30 @@ def add_service_to_org(org_id):
     form = ServiceForm()
     org = ComHealthOrg.query.get(org_id)
     if form.validate_on_submit():
-        try:
-            service_date = datetime.strptime(form.service_date.data, '%Y-%m-%d')
-        except ValueError:
-            flash('Date data not valid.')
+        existing_service = ComHealthService.query \
+            .filter_by(date=form.service_date.data, location=form.location.data).first()
+        if not existing_service:
+            new_service = ComHealthService(date=form.service_date.data,
+                                           location=form.location.data)
+            db.session.add(new_service)
+            for employee in org.employees:
+                new_record = ComHealthRecord(date=form.service_date.data,
+                                             service=new_service,
+                                             customer=employee)
+                db.session.add(new_record)
+            db.session.commit()
         else:
-            existing_service = ComHealthService.query \
-                .filter_by(date=service_date, location=form.location.data).first()
-            if not existing_service:
-                new_service = ComHealthService(date=service_date, location=form.location.data)
-                db.session.add(new_service)
-                for employee in org.employees:
-                    new_record = ComHealthRecord(date=service_date, service=new_service,
+            for employee in org.employees:
+                services = set([rec.service for rec in employee.records])
+                if existing_service not in services:
+                    new_record = ComHealthRecord(date=form.service_date.data,
+                                                 service=existing_service,
                                                  customer=employee)
                     db.session.add(new_record)
-                db.session.commit()
-            else:
-                for employee in org.employees:
-                    services = set([rec.service for rec in employee.records])
-                    if existing_service not in services:
-                        new_record = ComHealthRecord(date=service_date,
-                                                     service=existing_service,
-                                                     customer=employee)
-                        db.session.add(new_record)
-                        db.session.commit()
+                    db.session.commit()
 
-            flash('New service has been added to the organization.')
-            return redirect(url_for('comhealth.index'))
+        flash('New service has been added to the organization.')
+        return redirect(url_for('comhealth.index'))
     else:
         for field, errors in form.errors.items():
             for error in errors:

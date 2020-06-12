@@ -5,7 +5,7 @@ from wtforms.validators import DataRequired, optional
 
 class ServiceForm(FlaskForm):
     location = StringField('Location', validators=[DataRequired()])
-    service_date = StringField('Service Date', validators=[DataRequired()])
+    service_date = DateField('Service Date', validators=[DataRequired()])
 
 
 class TestProfileForm(FlaskForm):
