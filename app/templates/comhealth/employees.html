@@ -47,8 +47,8 @@
                 <div class="column">
                     <b-table :data="fltRecords" :paginated="true" :per-page="10" default-sort="customer.firstname">
                         <template slot-scope="props">
-                            <b-table-column field="id" label="ID" width="10" numeric>
-                                <% props.row.id %>
+                            <b-table-column field="hn" label="HN" sortable>
+                                <% props.row.hn %>
                             </b-table-column>
                             <b-table-column field="firstname" label="First Name" sortable>
                                 <% props.row.firstname %>

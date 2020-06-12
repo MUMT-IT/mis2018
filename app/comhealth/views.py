@@ -1228,7 +1228,7 @@ def add_many_employees(orgid):
     """Add employees from Excel file.
 
     Note that the birthdate is in Thai year.
-    The columns are labno, title, firstname, lastname, dob, gender, and servicedate
+    The columns are title, firstname, lastname, dob, and gender
     :type orgid: int
     """
     org = ComHealthOrg.query.get(orgid)
@@ -1243,10 +1243,9 @@ def add_many_employees(orgid):
             flash('No file selected')
             return redirect(request.url)
         if file and allowed_file(file.filename):
-            service = None
             df = read_excel(file)
             for idx, rec in df.iterrows():
-                labno, title, firstname, lastname, dob, gender, servicedate = rec
+                title, firstname, lastname, dob, gender = rec
                 if not firstname or not lastname:
                     continue
                 try:
@@ -1254,49 +1253,15 @@ def add_many_employees(orgid):
                 except Exception as e:
                     if isna(dob) or isinstance(e, ValueError):
                         dob = None
-                    elif isinstance(e, AttributeError):
-                        day, month, year = map(int, [dob.day, dob.month, dob.year])
-                        year = year - 543
-                        dob = date(year, month, day)
                 else:
                     year = year - 543
                     dob = date(year, month, day)
 
-                if not service:
-                    service = ComHealthService.query.filter_by(date=servicedate).first()
-                    if not service:
-                        service = ComHealthService(date=servicedate,
-                                                   location=org.name)
-                        db.session.add(service)
-                        db.session.commit()
-
-                customer_ = ComHealthCustomer.query.filter_by(
-                    firstname=firstname, lastname=lastname).first()
-                if customer_:
-                    record_ = ComHealthRecord.query.filter_by(
-                        service=service, customer=customer_).first()
-                    if record_:
-                        # print(u'Record exists. Continue..{} {}'.format(firstname, lastname))
-                        continue
-
-                    # A new customer is created for this org even when the name exists in the db.
-                    # This helps resolve the issue of redundant names.
-                    if dob:
-                        cdob = dob
-                    else:
-                        cdob = customer_.dob
-
+                customer_ = ComHealthCustomer.query.filter_by(firstname=firstname,
+                                                              lastname=lastname,
+                                                              org=org).first()
+                if not customer_:
                     gender = int(gender) if not isna(gender) else None
-
-                    new_customer = ComHealthCustomer(
-                        title=customer_.title,
-                        firstname=customer_.firstname,
-                        lastname=customer_.lastname,
-                        dob=cdob,
-                        org=org,
-                        gender=gender,
-                    )
-                else:
                     new_customer = ComHealthCustomer(
                         title=title,
                         firstname=firstname,
@@ -1305,13 +1270,15 @@ def add_many_employees(orgid):
                         org=org,
                         gender=gender
                     )
-                db.session.add(new_customer)
+                    db.session.add(new_customer)
+                    db.session.commit()
+                    new_customer.generate_hn()
+                    db.session.add(new_customer)
+                    db.session.commit()
 
+                # temporarily disable creation of a new record with predefined labno
+                '''
                 if labno_included == 'true' and labno:
-                    labno = '{}{:02}{:02}2{:04}'.format(str(service.date.year)[-1],
-                                                        service.date.month,
-                                                        service.date.day,
-                                                        labno)
                     new_record = ComHealthRecord(
                         date=service.date,
                         labno=labno,
@@ -1319,8 +1286,8 @@ def add_many_employees(orgid):
                         customer=new_customer,
                     )
                     db.session.add(new_record)
+                '''
 
-            db.session.commit()
             return redirect(url_for('comhealth.list_employees', orgid=org.id))
 
     return render_template('comhealth/employee_upload.html', org=org)

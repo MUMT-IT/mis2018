@@ -10,24 +10,53 @@
             </div>
         </div>
     </section>
+    <section class="section">
+        <article class="message is-info">
+            <div class="message-header">
+                Upload Instruction
+            </div>
+            <div class="message-body">
+                <p>
+                    เตรียมข้อมูลในไฟล์ Excel โดยมีชื่อคอลัมน์ดังตัวอย่างในตาราง
+                </p>
+                <table class="table is-narrow is-striped">
+                    <thead>
+                    <th>title</th>
+                    <th>firstname</th>
+                    <th>lastname</th>
+                    <th>dob</th>
+                    <th>gender</th>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>นาย</td>
+                        <td>สมจิตร</td>
+                        <td>จงจอหอ</td>
+                        <td>5/6/2500</td>
+                        <td>1</td>
+                    </tr>
+                    </tbody>
+                </table>
+                <p>โดยวันเดือนปีเกิดให้ตั้งค่าเซลล์ใน Excel เป็นชนิดตัวหนังสือ (Text) และใช้ format (mm/dd/yyyy) ดังตาราง</p>
+                <p>เพศ ระบุเป็นตัวเลข 0 คือเพศหญิงและ 1 คือเพศชาย</p>
+            </div>
+        </article>
+    </section>
     <section class="section" id="app">
         <div class="container">
             <div class="columns">
                 <div class="column box is-one-third has-text-right is-offset-4">
                     <form method="post" enctype="multipart/form-data">
-                        <div class="file">
-                            <label class="file-label">
-                                <input class="file-input" type="file" name="file">
-                                <span class="file-cta">
-                                    <span class="file-icon">
-                                        <i class="fas fa-upload"></i>
-                                    </span>
-                                    <span class="file-label">
-                                        Choose a file...
-                                    </span>
-                                </span>
-                            </label>
-                        </div>
+                        <b-field class="file">
+                            <b-upload v-model="file" type="file" name="file">
+                                <a class="button is-info">
+                                    <b-icon icon="upload"></b-icon>
+                                    <span>Click to upload</span>
+                                </a>
+                            </b-upload>
+                            <span class="file-name" v-if="file"><% file.name %></span>
+                            <span class="file-name" v-else>กรุณาเลือกไฟล์เพื่ออัพโหลด</span>
+                        </b-field>
                         <br>
                         <div class="field">
                             <div class="control">
@@ -44,4 +73,18 @@
             </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var vm = new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                file: null
+            }
+        }
+    });
+</script>
 {% endblock %}
