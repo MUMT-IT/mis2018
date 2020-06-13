@@ -9,6 +9,18 @@
             </div>
         </div>
         <div class="columns">
+            <div class="column">
+                <nav class="breadcrumb has-bullet-separator is-centered" aria-label="breadcrumbs">
+                    <ul>
+                        <li><a href="{{ url_for('comhealth.index') }}">Services</a></li>
+                        <li><a href="{{ url_for('comhealth.display_service_customers', service_id=service.id) }}">รายชื่อผู้รับบริการ</a></li>
+                        <li><a href="{{ url_for('comhealth.edit_service', service_id=service.id) }}" aria-current="page">รายการทดสอบที่ให้บริการ</a></li>
+                        <li class="is-active"><a href="#" aria-current="page">ราคา</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        <div class="columns">
             <div class="column is-two-thirds is-offset-2 has-text-centered">
                 <h1 class="title">รายการทดสอบ</h1>
                 <h1 class="subtitle">{{ service.location }}</h1>
