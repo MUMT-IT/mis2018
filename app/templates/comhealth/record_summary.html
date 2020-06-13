@@ -10,17 +10,11 @@
                 <li class="is-active"><a>Record Summary</a></li>
             </ul>
         </nav>
-            <div class="columns">
-                <div class="column">
-                    {% with messages = get_flashed_messages() %}
-                        {% if messages %}
-                            {% for msg in messages %}
-                                <b-notification type="is-success">{{ msg }}</b-notification>
-                            {% endfor %}
-                        {% endif %}
-                    {% endwith %}
-                </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                {% include "messages.html" %}
             </div>
+        </div>
             <div class="columns">
                 <div class="column has-text-centered">
                     <h1 class="title">Record Summary</h1>
@@ -377,15 +371,7 @@
             data() {
                 return {
                     commentEdit: false,
-                    prepaid: 0,
-                    special_item_cost: {{ special_item_cost|tojson|safe }},
-                    recordId: {{ record.id|tojson|safe }}
                 }
-            },
-            computed: {
-              printUrl: function() {
-                return "/comhealth/receipts/slip/"+this.recordId+"?paidamt="+this.prepaid;
-              }
             },
             methods: {
                 toggleComment: function () {
