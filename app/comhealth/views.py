@@ -1383,6 +1383,8 @@ def create_receipt(record_id):
         record = ComHealthRecord.query.get(record_id)
         issuer_id = request.form.get('issuer_id', None)
         cashier_id = request.form.get('cashier_id', None)
+        session['cashier_id'] = int(cashier_id)
+        session['issuer_id'] = int(issuer_id)
         print_profile = request.form.get('print_profile', '')
         address = request.form.get('receipt_address', None)
         issued_for = request.form.get('issued_for', None)
