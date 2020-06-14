@@ -957,10 +957,9 @@ def add_customer_to_service_org(service_id, org_id):
         return render_template('comhealth/new_customer_service_org.html', form=form)
 
 
-@comhealth.route('/services/<int:service_id>/orgs/<int:org_id>/customers/<int:customer_id>/edit',
-                 methods=['GET', 'POST'])
+@comhealth.route('/customers/<int:customer_id>/edit', methods=['GET', 'POST'])
 @login_required
-def edit_customer_data(service_id, org_id, customer_id):
+def edit_customer_data(customer_id):
     form = CustomerForm()
     customer = ComHealthCustomer.query.get(customer_id)
     if customer:
@@ -969,6 +968,7 @@ def edit_customer_data(service_id, org_id, customer_id):
                 customer.firstname = form.firstname.data
                 customer.lastname = form.lastname.data
                 customer.title = form.title.data
+                customer.phone = form.phone.data
                 try:
                     day, month, year = form.dob.data.split('/')
                 except ValueError:
