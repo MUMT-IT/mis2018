@@ -64,10 +64,12 @@
                     <b-table :data="fltRecords"
                              :paginated="true"
                              :per-page="10"
+                             :narrowed="true"
+                             :striped="true"
                              :loading="isLoading"
                              default-sort="customer.firstname">
                         <template slot-scope="props">
-                            <b-table-column field="hn" label="ID" width="10" numeric>
+                            <b-table-column field="hn" label="HN" width="20" numeric>
                                 <% props.row.customer.hn %>
                             </b-table-column>
                             <b-table-column field="customer.firstname" label="First Name" sortable>
@@ -82,17 +84,14 @@
                                     <i class="fas fa-mars" v-if="props.row.customer.gender===1"></i>
                                 </span>
                             </b-table-column>
-                            <b-table-column field="customer.dob" label="Birthdate" sortable centered>
-                                <% props.row.customer.dob %>
-                            </b-table-column>
                             <b-table-column field="labno" label="Lab Number" sortable numeric centered>
                                 <% props.row.labno %>
                             </b-table-column>
-                            <b-table-column field="checkin_datetime" label="Checked-In Time" sortable centered>
+                            <b-table-column field="checkin_datetime" label="Checked in" sortable centered>
                                 <% props.row.checkin_datetime ? moment(props.row.checkin_datetime).format('lll') : '' %>
                             </b-table-column>
                             <b-table-column field="" label="Check In" sortable>
-                                <a class="button is-rounded is-small is-light"
+                                <a class="button is-rounded is-light"
                                    v-bind:href="'/comhealth/checkin/'+props.row.id">
                                     <div v-if="props.row.checkin_datetime !== null">
                                         <span class="icon">
@@ -108,20 +107,11 @@
                                     </div>
                                 </a>
                             </b-table-column>
-                            <b-table-column field="" label="Receipts" sortable>
-                                <a class="button is-rounded is-small is-light"
-                                    v-if="props.row.receipts.length > 0"
-                                    v-bind:href="'/comhealth/checkin/'+props.row.id+'/receipts'">
-                                <span class="icon">
-                                    <i class="fas fa-receipt"></i>
-                                </span>
-                                </a>
-                            </b-table-column>
                             <b-table-column field="" label="Info" sortable>
-                                <a class="button is-rounded is-small is-light"
-                                   v-bind:href="'/comhealth/organizations/employees/info/'+props.row.customer.id">
+                                <a class="button is-rounded is-light"
+                                   v-bind:href="'/comhealth/customers/' + props.row.customer.id + '/edit?next=' + requestUrl">
                                 <span class="icon">
-                                    <i class="fas fa-notes-medical"></i>
+                                    <i class="fas fa-pencil-alt"></i>
                                 </span>
                                 </a>
                             </b-table-column>
@@ -144,6 +134,7 @@
                     fltRecords: [],
                     query: '',
                     isLoading: false,
+                    requestUrl: {{ request.url|tojson|safe }},
                 }
             },
             methods: {
