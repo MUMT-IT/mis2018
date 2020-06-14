@@ -922,6 +922,7 @@ def add_service_to_org(org_id):
 @login_required
 def add_customer_to_service_org(service_id, org_id):
     form = CustomerForm()
+    form.emptype.choices = [(e.id, e.name) for e in ComHealthCustomerEmploymentType.query.all()]
     if form.validate_on_submit():
         service_id = form.service_id.data
         org_id = form.org_id.data
@@ -934,6 +935,8 @@ def add_customer_to_service_org(service_id, org_id):
                                      firstname=form.firstname.data,
                                      lastname=form.lastname.data,
                                      gender=form.gender.data,
+                                     emptype_id=form.emptype.data,
+                                     phone=form.phone.data,
                                      dob=dob,
                                      org_id=org_id)
         new_record = ComHealthRecord(service_id=service_id, customer=customer)
@@ -955,6 +958,43 @@ def add_customer_to_service_org(service_id, org_id):
         form.org_id.default = org_id
         form.process()
         return render_template('comhealth/new_customer_service_org.html', form=form)
+
+
+@comhealth.route('/orgs/<int:org_id>/employees/add', methods=['GET', 'POST'])
+@login_required
+def add_employee(org_id):
+    form = CustomerForm()
+    form.emptype.choices = [(e.id, e.name) for e in ComHealthCustomerEmploymentType.query.all()]
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            customer = ComHealthCustomer()
+            customer.org_id = org_id
+            customer.firstname = form.firstname.data
+            customer.lastname = form.lastname.data
+            customer.title = form.title.data
+            customer.phone = form.phone.data
+            customer.emptype_id = form.emptype.data
+            try:
+                day, month, year = form.dob.data.split('/')
+            except ValueError:
+                flash(u'รูปแบบวันที่ไม่ถูกต้อง', 'warning')
+                return render_template('comhealth/edit_customer_data.html', form=form)
+
+            year = int(year) - 543
+            month = int(month)
+            day = int(day)
+            try:
+                customer.dob = datetime(year, month, day)
+            except ValueError:
+                flash(u'วันที่ไม่ถูกต้อง', 'warning')
+                return render_template('comhealth/edit_customer_data.html', form=form)
+            customer.gender = form.gender.data
+            db.session.add(customer)
+            db.session.commit()
+            return redirect(request.args.get('next'))
+        else:
+            flash(form.errors, 'warning')
+    return render_template('comhealth/edit_customer_data.html', form=form)
 
 
 @comhealth.route('/customers/<int:customer_id>/edit', methods=['GET', 'POST'])

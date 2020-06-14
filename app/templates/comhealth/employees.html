@@ -20,7 +20,7 @@
             <div class="columns">
                 <div class="column">
                     <div class="has-text-right">
-                        <a class="button is-rounded is-link" href="">
+                        <a class="button is-rounded is-link" href="{{ url_for('comhealth.add_employee', org_id=org.id, next=request.url) }}">
                             <span class="icon">
                                 <i class="fas fa-user-plus"></i>
                             </span>
