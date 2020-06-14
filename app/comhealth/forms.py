@@ -55,3 +55,4 @@ class CustomerForm(FlaskForm):
     gender = SelectField('Gender', choices=[(0, 'Female'), (1, 'Male')],
                          coerce=int, default=0)
     phone = StringField('Phone', validators=[optional()])
+    emptype = SelectField('Employment Type', validators=[DataRequired()], coerce=int)

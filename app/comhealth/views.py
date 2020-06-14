@@ -962,6 +962,7 @@ def add_customer_to_service_org(service_id, org_id):
 def edit_customer_data(customer_id):
     form = CustomerForm()
     customer = ComHealthCustomer.query.get(customer_id)
+    form.emptype.choices = [(e.id, e.name) for e in ComHealthCustomerEmploymentType.query.all()]
     if customer:
         if request.method == 'POST':
             if form.validate_on_submit():
@@ -969,6 +970,7 @@ def edit_customer_data(customer_id):
                 customer.lastname = form.lastname.data
                 customer.title = form.title.data
                 customer.phone = form.phone.data
+                customer.emptype_id = form.emptype.data
                 try:
                     day, month, year = form.dob.data.split('/')
                 except ValueError:
@@ -991,6 +993,8 @@ def edit_customer_data(customer_id):
             form.firstname.data = customer.firstname
             form.lastname.data = customer.lastname
             form.title.data = customer.title
+            form.phone.data = customer.phone
+            form.emptype.data = customer.emptype_id
             if customer.dob:
                 buddhist_year = customer.dob.year + 543
                 month = customer.dob.month
