@@ -63,7 +63,7 @@ class ComHealthCashier(db.Model):
 
     @property
     def fullname(self):
-        return u'{} {}'.format(self.firstname, self.lastname)
+        return self.staff.personal_info.fullname
 
     def __str__(self):
         return self.fullname
