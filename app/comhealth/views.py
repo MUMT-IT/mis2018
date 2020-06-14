@@ -1405,7 +1405,7 @@ def create_receipt(record_id):
         receipt.print_profile_how = print_profile
         db.session.add(receipt)
         receipt_code.count += 1
-        receipt_code.updated_at = datetime.now(tz=bangkok)
+        receipt_code.updated_datetime = datetime.now(tz=bangkok)
         db.session.add(receipt_code)
         for test_item in record.ordered_tests:
             if test_item.profile and print_profile != 'individual':
