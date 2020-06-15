@@ -12,7 +12,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="field">
                     <div class="control">
-                        <input type="text" name="labno" id="labno-entry"
+                        <input type="text" name="specimens_no" id="specimens-no-entry"
                                class="input is-large is-rounded"
                                placeholder="Lab No." v-model="labno">
                     </div>
@@ -84,13 +84,13 @@
         },
         watch: {
             labno: function(newValue, oldValue) {
-                if(newValue.length === 10) {
+                if(newValue.length === 13) {
                     this.$refs.form.submit();
                 }
             }
         },
         mounted() {
-            document.getElementById("labno-entry").focus();
+            document.getElementById("specimens-no-entry").focus();
         }
     });
 </script>

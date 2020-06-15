@@ -800,7 +800,9 @@ def summarize_specimens(service_id):
 @login_required
 def list_tests_in_container(service_id, container_id):
     if request.method == 'POST':
-        record = ComHealthRecord.query.filter_by(labno=request.form.get('labno')).first()
+        specimens_no = request.form.get('specimens_no')
+        labno = specimens_no[3:]
+        record = ComHealthRecord.query.filter_by(labno=labno).first()
         if record:
             checkin_record = ComHealthSpecimensCheckinRecord.query.filter_by(record_id=record.id,
                                                                          container_id=container_id).first()
@@ -816,7 +818,7 @@ def list_tests_in_container(service_id, container_id):
                 db.session.commit()
                 flash('The container has been checked in.', 'success')
         else:
-            flash('The record no longer exists.', 'danger')
+            flash('The lab number is not valid or it no longer exists.', 'danger')
 
     tests = defaultdict(list)
     service = ComHealthService.query.get(service_id)
