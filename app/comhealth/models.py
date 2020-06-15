@@ -142,6 +142,7 @@ class ComHealthCustomerEmploymentType(db.Model):
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     emptype_id = db.Column('emptype_id', db.String(), nullable=False)
     name = db.Column('name', db.String(), nullable=False)
+    finance_comment = db.Column('finance_comment', db.String(), nullable=False)
 
     def __str__(self):
         return self.name
@@ -407,8 +408,14 @@ class ComHealthCustomerInfoSchema(ma.ModelSchema):
         model = ComHealthCustomerInfo
 
 
+class ComHealthCustomerEmploymentTypeSchema(ma.ModelSchema):
+    class Meta:
+        model = ComHealthCustomerEmploymentType
+
+
 class ComHealthCustomerSchema(ma.ModelSchema):
     info = fields.Nested(ComHealthCustomerInfoSchema)
+    emptype = fields.Nested(ComHealthCustomerEmploymentTypeSchema)
     class Meta:
         model = ComHealthCustomer
 
