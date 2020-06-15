@@ -1055,7 +1055,6 @@ def edit_customer_data(customer_id):
 @login_required
 def export_csv(service_id):
     # TODO: add employment types (number)
-    # TODO: add age, gender
     # TODO: add organization + dept + unit
     service = ComHealthService.query.get(service_id)
     rows = []
@@ -1064,13 +1063,13 @@ def export_csv(service_id):
             continue
         tests = ','.join([item.test.code for item in record.ordered_tests])
         department = record.customer.dept.name if record.customer.dept else ''
-        emptype = record.customer.emptype.name if record.customer.emptype else ''
+        emptype = record.customer.emptype.emptype_id if record.customer.emptype else ''
         rows.append({'hn': u'{}'.format(record.customer.hn or ''),
                      'title': u'{}'.format(record.customer.title),
                      'firstname': u'{}'.format(record.customer.firstname),
                      'lastname': u'{}'.format(record.customer.lastname),
                      'employmentType': u'{}'.format(emptype),
-                     'age': u'{}'.format(record.customer.age),
+                     'age': u'{}'.format(record.customer.age.years),
                      'gender': u'{}'.format(record.customer.gender),
                      'phone': u'{}'.format(record.customer.phone),
                      'organization': u'{}'.format(record.customer.org.name),
