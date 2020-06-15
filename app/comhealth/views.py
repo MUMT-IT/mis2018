@@ -1069,7 +1069,7 @@ def export_csv(service_id):
                      'firstname': u'{}'.format(record.customer.firstname),
                      'lastname': u'{}'.format(record.customer.lastname),
                      'employmentType': u'{}'.format(emptype),
-                     'age': u'{}'.format(record.customer.age.years),
+                     'age': u'{}'.format(record.customer.age_years or ''),
                      'gender': u'{}'.format(record.customer.gender),
                      'phone': u'{}'.format(record.customer.phone),
                      'organization': u'{}'.format(record.customer.org.name),

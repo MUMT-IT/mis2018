@@ -133,6 +133,14 @@ class ComHealthCustomer(db.Model):
             return None
 
     @property
+    def age_years(self):
+        if self.dob:
+            rdelta = relativedelta(date.today(), self.dob)
+            return rdelta.years
+        else:
+            return None
+
+    @property
     def fullname(self):
         return u'{}{} {}'.format(self.title, self.firstname, self.lastname)
 
