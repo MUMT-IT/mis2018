@@ -42,7 +42,7 @@
                     <span class="icon">
                         <i class="fas fa-check-circle has-text-success"></i>
                     </span>
-                    <span class="help">{{ rec.get_container_checkin(container.id).checkin_datetime|humanizedt }}</span>
+                    <span class="help">{{ rec.get_container_checkin(container.id).checkin_datetime|localdatetime }}</span>
                     {% endif %}
                 </td>
                 <td>{{','.join(tests[rec])}}</td>
@@ -84,7 +84,7 @@
         },
         watch: {
             labno: function(newValue, oldValue) {
-                if(newValue.length === 13) {
+                if(newValue.length === 12) {
                     this.$refs.form.submit();
                 }
             }

@@ -801,7 +801,7 @@ def summarize_specimens(service_id):
 def list_tests_in_container(service_id, container_id):
     if request.method == 'POST':
         specimens_no = request.form.get('specimens_no')
-        labno = specimens_no[3:]
+        labno = u'{}{}'.format(str(datetime.today().year)[-1], specimens_no[3:])
         record = ComHealthRecord.query.filter_by(labno=labno).first()
         if record:
             checkin_record = ComHealthSpecimensCheckinRecord.query.filter_by(record_id=record.id,
