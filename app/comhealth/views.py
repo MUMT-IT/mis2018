@@ -1077,7 +1077,8 @@ def export_csv(service_id):
                      'unit': u'{}'.format(record.customer.unit),
                      'labno': u'{}'.format(record.labno),
                      'tests': u'{}'.format(tests),
-                     'urgent': record.urgent})
+                     'urgent': record.urgent,
+                     'note': u'{}'.format(record.comment)})
     if rows:
         pd.DataFrame(rows).to_excel('export.xlsx',
                                     header=True,
@@ -1094,7 +1095,8 @@ def export_csv(service_id):
                                              'unit',
                                              'employmentType',
                                              'tests',
-                                             'urgent'],
+                                             'urgent',
+                                             'note'],
                                     index=False,
                                     encoding='utf-8')
         return send_from_directory(os.getcwd(), filename='export.xlsx')
