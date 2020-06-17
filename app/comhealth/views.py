@@ -1288,7 +1288,7 @@ def add_many_employees(orgid):
                     firstname = None
                 if isna(lastname):
                     lastname = None
-                if not firstname or not lastname:
+                if isna(firstname) and isna(lastname):
                     continue
                 try:
                     day, month, year = map(int, dob.split('/'))
