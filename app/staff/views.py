@@ -5,7 +5,7 @@ from models import (StaffAccount, StaffPersonalInfo,
                     StaffLeaveRequest, StaffLeaveQuota, StaffLeaveApprover, StaffLeaveApproval, StaffLeaveType,
                     StaffWorkFromHomeRequest, StaffLeaveRequestSchema,
                     StaffWorkFromHomeJobDetail, StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
-                    StaffWorkFromHomeCheckedJob)
+                    StaffWorkFromHomeCheckedJob, StaffWorkFromHomeRequestSchema)
 from . import staffbp as staff
 from app.main import db
 from flask import jsonify, render_template, request, redirect, url_for, flash
@@ -388,6 +388,20 @@ def leave_request_info():
     return render_template('staff/leave_request_info.html')
 
 
+@staff.route('/wfh/requests/search')
+@login_required
+def search_wfh_request_info():
+    reqs = StaffWorkFromHomeRequest.query.all()
+    record_schema = StaffWorkFromHomeRequestSchema(many=True)
+    return jsonify(record_schema.dump(reqs).data)
+
+
+@staff.route('/wfh/requests')
+@login_required
+def wfh_request_info():
+    return render_template('staff/wfh_list.html')
+
+
 @staff.route('/leave/requests/result-by-date',
                     methods=['GET', 'POST'])
 @login_required
@@ -528,7 +542,7 @@ def wfh_approve(req_id, approver_id):
     db.session.commit()
     # approve_msg = u'การขออนุมัติลา{} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว'.format(req, current_user.personal_info.fullname)
     # line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
-    flash(u'อนุมัติขอทำงานที่บ้านให้บุคลากรในสังกัดเรียบร้อย')
+    flash(u'อนุมัติขอทำงานที่บ้านให้บุคลากรในสังกัดเรียบร้อยแล้ว')
     return redirect(url_for('staff.show_wfh_requests_for_approval'))
 
 
@@ -545,6 +559,7 @@ def wfh_reject(req_id, approver_id):
     db.session.commit()
     # approve_msg = u'การขออนุมัติลา{} ไม่ได้รับการอนุมัติ กรุณาติดต่อ {}'.format(req, current_user.personal_info.fullname)
     # line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
+    flash(u'ไม่อนุมัติขอทำงานที่บ้านให้บุคลากรในสังกัดเรียบร้อยแล้ว')
     return redirect(url_for('staff.show_wfh_requests_for_approval'))
 
 
@@ -627,7 +642,8 @@ def add_overall_result_work_from_home(request_id):
         wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
         detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
         check = StaffWorkFromHomeCheckedJob.query.filter_by(request_id=request_id)
-        return render_template('staff/wfh_record_info_each_request_subordinate.html', req=wfhreq, job_detail=detail, checkjob=check)
+        return render_template('staff/wfh_record_info_each_request_subordinate.html',
+                                        req=wfhreq, job_detail=detail, checkjob=check)
 
     else:
         wfhreq = StaffWorkFromHomeRequest.query.get(request_id)

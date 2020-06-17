@@ -267,10 +267,8 @@ class StaffWorkFromHomeRequest(db.Model):
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     start_datetime = db.Column('start_date', db.DateTime(timezone=True))
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
-    created_at = db.Column('created_at',
-                           db.DateTime(timezone=True),
-                           default=datetime.now()
-                           )
+    created_at = db.Column('created_at',db.DateTime(timezone=True),
+                           default=datetime.now())
     contact_phone = db.Column('contact_phone', db.String())
     # want to change name detail to be topic
     detail = db.Column('detail', db.String())
@@ -282,13 +280,7 @@ class StaffWorkFromHomeRequest(db.Model):
     @property
     def duration(self):
         delta = self.end_datetime - self.start_datetime
-        if delta.days == 0:
-            if delta.seconds == 0:
-                return delta.days + 1
-            if delta.seconds / 3600 < 8:
-                return 0.5
-        else:
-            return delta.days + 1
+        return delta.days + 1
 
     @property
     def get_approved(self):
@@ -348,4 +340,8 @@ class StaffWorkFromHomeCheckedJob(db.Model):
                               foreign_keys=[approver_id])
 
 
-
+class StaffWorkFromHomeRequestSchema(ma.ModelSchema):
+    staff = fields.Nested(StaffAccountSchema)
+    class Meta:
+        model = StaffWorkFromHomeRequest
+    duration = fields.Int()
