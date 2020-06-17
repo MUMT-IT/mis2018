@@ -1284,6 +1284,10 @@ def add_many_employees(orgid):
             df = read_excel(file)
             for idx, rec in df.iterrows():
                 title, firstname, lastname, dob, gender = rec
+                if isna(firstname):
+                    firstname = None
+                if isna(lastname):
+                    lastname = None
                 if not firstname or not lastname:
                     continue
                 try:
