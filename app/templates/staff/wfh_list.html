@@ -35,13 +35,10 @@
                             <% props.row.staff.personal_info.org.name %>
                         </b-table-column>
                         <b-table-column field="start_datetime" label="เริ่ม" sortable>
-                            <% props.row.start_datetime %>
+                            <% moment(props.row.start_datetime.toLocaleString({timeZone: 'UTC'})).format("LLL") %>
                         </b-table-column>
                         <b-table-column field="end_datetime" label="สิ้นสุด" sortable>
-                            <% props.row.end_datetime %>
-                        </b-table-column>
-                        <b-table-column field="cancelled_at" label="ยกเลิก" sortable>
-                            <% props.row.cancelled_at %>
+                            <% moment(props.row.end_datetime.toLocaleString({timeZone: 'UTC'})).format("LLL") %>
                         </b-table-column>
                         <b-table-column field="duration" label="ระยะเวลา" sortable>
                             <% props.row.duration %>
