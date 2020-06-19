@@ -169,7 +169,8 @@ def index():
 @login_required
 def search_service_customer(service_id):
     service = ComHealthService.query.get(service_id)
-    record_schema = ComHealthRecordSchema(many=True)
+    record_schema = ComHealthRecordSchema(many=True,
+                                          only=("labno", "checkin_datetime", "customer"))
     return jsonify(record_schema.dump(service.records).data)
 
 
@@ -1265,8 +1266,9 @@ def add_many_employees(orgid):
     # TODO: All new customer needs to have their HN generated.
     """Add employees from Excel file.
 
-    Note that the birthdate is in Thai year.
-    The columns are title, firstname, lastname, dob, and gender
+    Note that the birthdate is in Thai year and in dd/mm/yyyy.
+    The columns are title, first name, last name, dob, and gender
+    A record with no first name and last name is skipped.
     :type orgid: int
     """
     org = ComHealthOrg.query.get(orgid)
