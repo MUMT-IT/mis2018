@@ -429,7 +429,13 @@ class ComHealthCustomerSchema(ma.ModelSchema):
 
 
 class ComHealthRecordSchema(ma.ModelSchema):
-    customer = fields.Nested(ComHealthCustomerSchema(only=("firstname", "lastname", "hn")))
+    customer = fields.Nested(ComHealthCustomerSchema)
+    class Meta:
+        model = ComHealthRecord
+
+
+class ComHealthRecordCustomerSchema(ma.ModelSchema):
+    customer = fields.Nested(ComHealthCustomerSchema(only=("id", "firstname", "lastname", "hn")))
     class Meta:
         model = ComHealthRecord
 

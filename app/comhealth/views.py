@@ -169,8 +169,8 @@ def index():
 @login_required
 def search_service_customer(service_id):
     service = ComHealthService.query.get(service_id)
-    record_schema = ComHealthRecordSchema(many=True,
-                                          only=("labno", "checkin_datetime", "customer"))
+    record_schema = ComHealthRecordCustomerSchema(many=True,
+                                          only=("id", "labno", "checkin_datetime", "customer"))
     return jsonify(record_schema.dump(service.records).data)
 
 
