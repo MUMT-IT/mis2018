@@ -7,7 +7,7 @@
             <div class="columns">
              <div class="column is-two-thirds is-offset-2">
                     <input type="text" v-model="query" class="input is-large is-rounded"
-                           placeholder="ค้นหาชื่อ/สังกัด/ประเภทลา">
+                           placeholder="ค้นหาชื่อ/สังกัด">
              </div>
             </div>
             <div class="columns">
@@ -34,20 +34,17 @@
                         <b-table-column field="staff.personal_info.org.name" label="สังกัด" sortable>
                             <% props.row.staff.personal_info.org.name %>
                         </b-table-column>
-                        <b-table-column field="staff.quota" label="ประเภทการลา" sortable>
-                            <% props.row.quota.leave_type.type_ %>
+                        <b-table-column field="start_datetime" label="เริ่ม" sortable>
+                            <% moment(props.row.start_datetime.toLocaleString({timeZone: 'UTC'})).format("LLL") %>
                         </b-table-column>
-                        <b-table-column field="start_datetime" label="วันที่เริ่มลา" sortable>
-                           <% moment(props.row.start_datetime.toLocaleString({timeZone: 'UTC'})).format("LLL") %>
-                        </b-table-column>
-                        <b-table-column field="end_datetime" label="วันที่สิ้นสุดลา" sortable>
+                        <b-table-column field="end_datetime" label="สิ้นสุด" sortable>
                             <% moment(props.row.end_datetime.toLocaleString({timeZone: 'UTC'})).format("LLL") %>
                         </b-table-column>
-                        <b-table-column field="duration" label="รวม(วัน)" sortable>
+                        <b-table-column field="duration" label="ระยะเวลา" sortable>
                             <% props.row.duration %>
                         </b-table-column>
-                        <b-table-column field="country" label="ประเทศ" sortable>
-                            <% props.row.country %>
+                        <b-table-column field="contact_phone" label="เบอร์โทรศัพท์" sortable>
+                            <% props.row.contact_phone %>
                         </b-table-column>
                     </template>
                 </b-table>
@@ -75,7 +72,7 @@
                 loadAsyncData: function() {
                     var self = this;
                     self.isLoading = true;
-                    axios.get( '{{ url_for('staff.search_leave_request_info') }}' )
+                    axios.get( '{{ url_for('staff.search_wfh_request_info') }}' )
                         .then(function(response) {
                         response.data.forEach((record) => {
                             if(record.cancelled_at == null) {
@@ -109,13 +106,6 @@
                                             .toString()
                                             .toLowerCase()
                                             .indexOf(self.query.toLowerCase()) >= 0;
-                                            if(!match){
-                                                match = item.quota.leave_type.type_
-                                                .toString()
-                                                .toLowerCase()
-                                                .indexOf(self.query.toLowerCase()) >= 0;
-                                            return match;
-                                            }
                                     return match;
                                     }
                                 return match;
