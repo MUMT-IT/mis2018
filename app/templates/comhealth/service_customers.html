@@ -10,17 +10,17 @@
         </div>
     </section>
     <section class="section" id="app">
-        <div class="columns">
-            <div class="column">
-                <nav class="breadcrumb has-bullet-separator is-centered" aria-label="breadcrumbs">
-                    <ul>
-                        <li><a href="{{ url_for('comhealth.index') }}">Services</a></li>
-                        <li class="is-active"><a aria-current="page">รายชื่อผู้รับบริการ</a></li>
-                    </ul>
-                </nav>
+        <div class="container box">
+            <div class="columns">
+                <div class="column">
+                    <nav class="breadcrumb has-bullet-separator is-centered" aria-label="breadcrumbs">
+                        <ul>
+                            <li><a href="{{ url_for('comhealth.index') }}">Services</a></li>
+                            <li class="is-active"><a aria-current="page">รายชื่อผู้รับบริการ</a></li>
+                        </ul>
+                    </nav>
+                </div>
             </div>
-        </div>
-        <div class="container">
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
                     <input type="text" v-model="query" class="input is-large is-rounded"
