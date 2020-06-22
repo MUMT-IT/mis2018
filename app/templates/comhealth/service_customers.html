@@ -4,8 +4,7 @@
     <section class="hero is-light is-small">
         <div class="hero-body">
             <div class="container has-text-centered">
-                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="80">
-                <h3 class="title">Customers Checkin</h3>
+                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="60">
                 <h3 class="subtitle">วันที่ {{ service.date }} สถานที่ {{ service.location }}</h3>
             </div>
         </div>
@@ -69,19 +68,14 @@
                              :loading="isLoading"
                              default-sort="customer.firstname">
                         <template slot-scope="props">
-                            <b-table-column field="hn" label="HN" width="20" numeric>
-                                <% props.row.customer.hn %>
-                            </b-table-column>
                             <b-table-column field="customer.firstname" label="First Name" sortable>
+                                <span class="is-size-4">
                                 <% props.row.customer.firstname %>
+                                </span>
                             </b-table-column>
                             <b-table-column field="customer.lastname" label="Last Name" sortable>
+                                <span class="is-size-4">
                                 <% props.row.customer.lastname %>
-                            </b-table-column>
-                            <b-table-column field="customer.gender" label="Gender" sortable centered>
-                                <span class="icon">
-                                    <i class="fas fa-venus" v-if="props.row.customer.gender===0"></i>
-                                    <i class="fas fa-mars" v-if="props.row.customer.gender===1"></i>
                                 </span>
                             </b-table-column>
                             <b-table-column field="labno" label="Lab Number" sortable numeric centered>

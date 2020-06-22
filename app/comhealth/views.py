@@ -824,16 +824,23 @@ def list_tests_in_container(service_id, container_id):
     tests = defaultdict(list)
     service = ComHealthService.query.get(service_id)
     if service:
+        #TODO: refactor the code to reduce load time
         container = ComHealthContainer.query.get(container_id)
-        for record in service.records:
-            for test_item in record.ordered_tests:
-                if test_item.test.container_id == container_id:
-                    tests[record].append(test_item.test.code)
+        checked_in_records = ComHealthRecord.query.filter(ComHealthRecord.service_id==service.id,
+                                                          ComHealthRecord.checkin_datetime != None).all()
+        checked_in_records = set([c.id for c in checked_in_records])
+        test_items = ComHealthTestItem.query.join(test_item_record_table)\
+            .filter(ComHealthTestItem.test.has(container_id=container_id),
+                    test_item_record_table.c.record_id.in_(checked_in_records)).all()
+        for test_item in test_items:
+            for rec in test_item.records:
+                tests[rec].append(test_item.test.code)
         records = sorted(tests.keys(), key=lambda x: x.labno)
     else:
         flash('The service no longer exists.', 'danger')
-    return render_template('comhealth/container_tests.html', records=records,
-                           tests=tests, service=service, container=container)
+    return render_template('comhealth/container_tests.html',
+                           records=records, tests=tests,
+                           service=service, container=container)
 
 
 @comhealth.route('/services/<int:service_id>/records/<int:record_id>/containers/<int:container_id>/check')
