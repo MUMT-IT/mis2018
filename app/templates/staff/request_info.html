@@ -16,7 +16,7 @@
                 <th colspan="2"></th>
             </thead>
             <tbody>
-            {% for request in leaves %}
+            {% for request in leaves|sort(attribute='start_datetime') %}
                 <tr {% if request.cancelled_at %}style="background-color: #D5DBDB  ;"{% endif %}>
                     <td>{{ request.start_datetime|localdatetime }} - {{ request.end_datetime|localdatetime }} ({{ request.duration }} วัน)</td>
                     <td>
@@ -48,10 +48,8 @@
                         <a class="button"
                         {% if request.cancelled_at %}
                            disabled
-                           href="#"
                            {% elif request.approvals %}
                            disabled
-                           href="#"
                            {% else %}
                            href="{{ url_for('staff.edit_leave_request', req_id=request.id) }}"
                            {% endif %}
@@ -62,10 +60,12 @@
                         </a>
                         </b-tooltip>
                         <b-tooltip label="ยกเลิกการลา" type="is-light">
-                        <a class="button" @click="confirmCustomDelete({{ request.id }})"
+                        <a class="button"
                         {% if request.cancelled_at %}
                            disabled
-                           {% endif %}
+                        {% else %}
+                           @click="confirmCustomDelete({{ request.id }})"
+                        {% endif %}
                         >
                         <span class="icon">
                             <i class="fas fa-trash has-text-danger"></i>

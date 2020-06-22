@@ -23,7 +23,7 @@
                                 วันที่ต้องการขออนุมัติ
                             </td>
                             <td>
-                                {{ req.start_datetime|localdatetime }} - {{ req.end_datetime|localdatetime }}
+                                {{ req.start_datetime|localdate }} - {{ req.end_datetime|localdate }}
                                 <p>({{ req.duration }} วัน)</p>
                             </td>
                         </tr>
@@ -40,7 +40,7 @@
                                 <label class="label">กำหนดส่งงาน</label>
                             </td>
                             <td>
-                                {{ req.deadline_date|localdatetime }}
+                                {{ req.deadline_date|localdate }}
                             </td>
                         </tr>
                         <tr>
@@ -53,10 +53,13 @@
                         </tr>
                     </table>
                     <div class="field is-grouped">
-                        <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}" class="button is-info is-light is-rounded">กลับหน้าสรุป</a>
+                        <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}"
+                                    class="button is-info is-light is-rounded">กลับหน้าสรุป</a>
                         <div class="control">
-                            <a href="{{ url_for('staff.wfh_approve', req_id=req.id, approver_id=approver.id) }}" class="button is-success">อนุมัติ</a>
-                            <a href="{{ url_for('staff.wfh_reject', req_id=req.id, approver_id=approver.id) }}" class="button is-danger">ไม่อนุมัติ</a>
+                            <a href="{{ url_for('staff.wfh_approve', req_id=req.id, approver_id=approver.id) }}"
+                                                                                class="button is-success">อนุมัติ</a>
+                            <a href="{{ url_for('staff.wfh_reject', req_id=req.id, approver_id=approver.id) }}"
+                                                                                class="button is-danger">ไม่อนุมัติ</a>
                         </div>
                     </div>
                 </div>
