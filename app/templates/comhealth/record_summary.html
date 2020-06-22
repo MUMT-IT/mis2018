@@ -359,13 +359,20 @@
                     <br>
                     <div class="columns">
                         <div class="column is-9">
-                            <div class="has-text-centered">
+                            <div class="buttons is-centered">
                                 <a class="button is-medium is-link"
                                    href="{{ url_for('comhealth.display_service_customers', service_id=record.service.id) }}">
-                                    <span class="icon">
-                                        <i class="fas fa-chevron-left"></i>
-                                    </span>
+                                <span class="icon">
+                                    <i class="fas fa-chevron-left"></i>
+                                </span>
                                     <span>Back</span>
+                                </a>
+                                <a class="button is-medium is-danger"
+                                   href="{{ url_for('comhealth.cancel_checkin_record', record_id=record.id, confirm='no') }}">
+                                    <span class="icon">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </span>
+                                    <span>Cancel</span>
                                 </a>
                             </div>
                         </div>

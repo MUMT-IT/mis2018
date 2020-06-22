@@ -44,7 +44,7 @@
                             <span class="icon">
                                 <i class="fas fa-user-plus"></i>
                             </span>
-                            <span>เพิ่มผู้รับบริการ</span>
+                            <span>เพิ่มผู้รับบริการ walk in</span>
                         </a>
                       {% else %}
                         <a class="button is-link"
@@ -52,7 +52,7 @@
                             <span class="icon">
                                 <i class="fas fa-user-plus"></i>
                             </span>
-                            <span>เพิ่มผู้รับบริการ</span>
+                            <span>เพิ่มผู้รับบริการ walk in</span>
                         </a>
                       {% endif %}
                     </div>
@@ -79,10 +79,14 @@
                                 </span>
                             </b-table-column>
                             <b-table-column field="labno" label="Lab Number" sortable numeric centered>
+                                <span class="is-size-4">
                                 <% props.row.labno %>
+                                </span>
                             </b-table-column>
                             <b-table-column field="checkin_datetime" label="Checked in" sortable centered>
+                                <span class="is-size-4">
                                 <% props.row.checkin_datetime ? moment(props.row.checkin_datetime).format('lll') : '' %>
+                                </span>
                             </b-table-column>
                             <b-table-column field="" label="Check In" sortable>
                                 <a class="button is-rounded is-light"

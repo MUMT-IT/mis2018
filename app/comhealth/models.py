@@ -122,7 +122,10 @@ class ComHealthCustomer(db.Model):
 
     @property
     def thai_dob(self):
-        return u'{}/{}/{}'.format(self.dob.day, self.dob.month, self.dob.year + 543)
+        if self.dob:
+            return u'{:02}/{:02}/{}'.format(self.dob.day, self.dob.month, self.dob.year + 543)
+        else:
+            return None
 
     @property
     def age(self):

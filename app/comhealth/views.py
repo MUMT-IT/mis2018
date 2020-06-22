@@ -247,7 +247,7 @@ def edit_record(record_id):
             record.customer.title = title
         if request.form.get('phone'):
             record.customer.phone = request.form.get('phone')
-        if not record.customer.dob and request.form.get('dob'):
+        if request.form.get('dob'):
             try:
                 day, month, year = request.form.get('dob', '').split('/')
                 year = int(year) - 543
@@ -380,6 +380,31 @@ def update_delivery_status(record_id):
         db.session.commit()
         flash('Delivery request has been updated.')
         return redirect(url_for('comhealth.edit_record', record_id=record.id))
+
+
+@comhealth.route('/record/<int:record_id>/cancel')
+@login_required
+def cancel_checkin_record(record_id):
+    record = ComHealthRecord.query.get(record_id)
+    if not record:
+        flash('Record does not exist.', 'warning')
+        return redirect(request.referrer)
+    if request.args.get('confirm') == 'no':
+        return render_template('comhealth/confirm_record_cancel.html',
+                               next=request.referrer, record=record)
+    elif request.args.get('confirm') == 'yes':
+        service_id = record.service_id
+        record.labno = None
+        record.checkin_datetime = None
+        record.ordered_tests = []
+        record.updated_at = datetime.now(tz=bangkok)
+        record.urgent = False
+        record.comment = ''
+        db.session.add(record)
+        db.session.commit()
+        flash('The record has been cancelled.', 'success')
+        return redirect(url_for('comhealth.display_service_customers',
+                                service_id=service_id))
 
 
 @comhealth.route('/tests')
