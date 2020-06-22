@@ -18,7 +18,16 @@ from linebot.models import TextSendMessage
 
 tz = pytz.timezone('Asia/Bangkok')
 
+#TODO: remove hardcoded annual quota soon
 LEAVE_ANNUAL_QUOTA = 10
+
+today = datetime.today()
+if today.month >= 10:
+    START_FISCAL_DATE = datetime(today.year,10,1)
+    END_FISCAL_DATE = datetime(today.year+1,9,30)
+else:
+    START_FISCAL_DATE = datetime(today.year-1,10,1)
+    END_FISCAL_DATE = datetime(today.year,9,30)
 
 
 @staff.route('/')
@@ -106,6 +115,20 @@ def request_for_leave(quota_id=None):
         if quota_id:
             quota = StaffLeaveQuota.query.get(quota_id)
             if quota:
+                employed_period = current_user.personal_info.get_employed_period
+                if employed_period.years <= 1:
+                    this_year_quota = quota.first_year
+                else:
+                    this_year_quota = quota.max_per_year
+
+                #TODO: get a quota from last year
+                total_cum_quota = 15 # this year quota + last year quota
+                max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
+                total_cum_quota = max_cum_quota if max_cum_quota < total_cum_quota else total_cum_quota
+                remaining_quota = total_cum_quota - current_user.personal_info.get_total_leaves(
+                    start_date=START_FISCAL_DATE,
+                    end_date=END_FISCAL_DATE
+                )
                 start_dt, end_dt = form.get('dates').split(' - ')
                 start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
                 end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
@@ -131,6 +154,11 @@ def request_for_leave(quota_id=None):
                     country=form.get('country')
                 )
                 req_duration = req.duration
+
+                #TODO: check if it works
+                if remaining_quota < req_duration:
+                    return False
+
                 delta = start_datetime.date() - current_user.personal_info.employed_date
                 if quota.max_per_leave:
                     if req_duration > quota.max_per_leave:

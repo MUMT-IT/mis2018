@@ -2,6 +2,7 @@
 from ..main import db,ma
 from werkzeug import generate_password_hash, check_password_hash
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from marshmallow import fields
 from app.models import OrgSchema
@@ -86,12 +87,40 @@ class StaffPersonalInfo(db.Model):
 
     def get_employ_period(self):
         today = datetime.now().date()
-        period = today - self.employed_date
-        return period.days
+        period = relativedelta(today, self.employed_date)
+        return period
 
     @property
     def is_eligible_for_leave(self, minmonth=6.0):
-        return (self.get_employ_period()/12.0) > minmonth
+        period = self.get_employ_period()
+        if period.years > 0:
+            return True
+        elif period.years == 0 and period.months > minmonth:
+            return True
+        else:
+            return False
+
+    def get_max_cum_quota_per_year(self, leave_quota):
+        period = self.get_employ_period()
+        if self.is_eligible_for_leave:
+            if period.years < 20:
+                return leave_quota.cum_max_per_year1
+            else:
+                return leave_quota.cum_max_per_year2
+        else:
+            return 0
+
+        def get_total_leaves(leave_quota_id, start_date=None, end_date=None):
+            total_leaves = []
+            for req in self.staff_account.leave_requests:
+                if req.quota_id == leave_quota_id:
+                    if start_date is None or end_date is None:
+                        total_leaves.append(req.duration)
+                    else:
+                        if req.start_date >= start_date and req.end_date <= end_date:
+                            total_leaves.append(req.duration)
+            return sum(total_leaves)
+            #return len([req for req in self.staff_account.leave_requests if req.quota_id == leave_quota_id])
 
 
 class StaffEduDegree(db.Model):
