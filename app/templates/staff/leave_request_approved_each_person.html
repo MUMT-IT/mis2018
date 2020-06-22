@@ -34,7 +34,16 @@
             <td>
                 {% if requester.approvals %}
                 {% for ap in requester.approvals %}
-                    {{ ap.approver.account.personal_info }} ({{ ap.is_approved }})
+                    {{ ap.approver.account.personal_info }}
+                    {% if ap.is_approved %}
+                        <span class="icon">
+                            <i class="fas has-text-success fa-check-circle"></i>
+                        </span>
+                    {% else %}
+                        <span class="icon">
+                            <i class="far has-text-danger fa-times-circle"></i>
+                        </span>
+                    {% endif %}
                 {% endfor %}
                 {% else %}
                 {{ leave_req.approvals|length }}
@@ -50,7 +59,7 @@
         <span class="icon">
             <i class="fas fa-arrow-left"></i>
         </span>
-        กลับ
+        <span>กลับ</span>
     </a>
 
     </div>
