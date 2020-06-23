@@ -161,7 +161,7 @@ def index():
             'checkedin': len([r for r in sv.records if r.checkin_datetime is not None])
         }
         services_data.append(d)
-    # sv_schema = ComHealthServiceSchema(many=True)
+    services_data = sorted(services_data, key=lambda x: x['date'], reverse=True)
     return render_template('comhealth/index.html', services=services_data)
 
 
