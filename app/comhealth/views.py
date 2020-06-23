@@ -913,6 +913,41 @@ def uncheck_container(service_id, record_id, container_id):
     return redirect(url_for('comhealth.list_tests_in_container',
                             service_id=service_id, container_id=container_id))
 
+
+@comhealth.route('/services/<int:service_id>/containers/<int:container_id>/scan',
+                 methods=['GET', 'POST'])
+@login_required
+def scan_container(service_id, container_id):
+    container = ComHealthContainer.query.get(container_id)
+    service = ComHealthService.query.get(service_id)
+    recents = list(ComHealthSpecimensCheckinRecord.query.filter(ComHealthSpecimensCheckinRecord.container.has(id=container_id))\
+                   .order_by(ComHealthSpecimensCheckinRecord.checkin_datetime.desc()).limit(5))
+    if request.method == 'POST':
+        specimens_no = request.form.get('specimens_no')
+        labno = u'{}{}'.format(str(datetime.today().year)[-1], specimens_no[3:])
+        record = ComHealthRecord.query.filter_by(labno=labno).first()
+        checkin_record = ComHealthSpecimensCheckinRecord.query \
+            .filter_by(record_id=record.id, container_id=container_id).first()
+        if checkin_record:
+            checkin_record.checkin_datetime = datetime.now(tz=bangkok)
+            db.session.add(checkin_record)
+            db.session.commit()
+        else:
+            if record:
+                checkin_record = ComHealthSpecimensCheckinRecord(
+                                        record.id, container_id, datetime.now(tz=bangkok))
+                record.container_checkins.append(checkin_record)
+                db.session.add(record)
+                db.session.commit()
+            else:
+                flash('The container no longer exists.', 'danger')
+        return render_template('comhealth/scan_container.html', service=service,
+                               container=container, specimens_no=specimens_no,
+                               checkin_record=checkin_record, recents=recents)
+
+    return render_template('comhealth/scan_container.html', service=service, container=container, recents=recents)
+
+
 @comhealth.route('/organizations')
 @login_required
 def list_orgs():
