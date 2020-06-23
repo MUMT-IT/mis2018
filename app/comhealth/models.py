@@ -153,7 +153,7 @@ class ComHealthCustomerEmploymentType(db.Model):
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     emptype_id = db.Column('emptype_id', db.String(), nullable=False)
     name = db.Column('name', db.String(), nullable=False)
-    finance_comment = db.Column('finance_comment', db.String(), nullable=False)
+    finance_comment = db.Column('finance_comment', db.String())
 
     def __str__(self):
         return self.name
@@ -195,6 +195,7 @@ class ComHealthContainer(db.Model):
     detail = db.Column('name', db.String(64), index=True)
     desc = db.Column('desc', db.Text())
     volume = db.Column('volume', db.Numeric(), default=0)
+    group = db.Column('group', db.String())
 
 
     def __str__(self):
