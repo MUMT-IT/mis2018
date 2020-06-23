@@ -309,10 +309,14 @@
             },
             computed: {
                 age: function() {
-                    let birthdayString = this.birthday.split("/");
-                    let birthdate = moment([parseInt(birthdayString[2] - 543),
-                                        parseInt(birthdayString[1]), parseInt(birthdayString[0])]);
-                    return birthdate.fromNow(true);
+                    if (this.birthday === null) {
+                        return '-';
+                    } else {
+                        let birthdayString = this.birthday.split("/");
+                        let birthdate = moment([parseInt(birthdayString[2] - 543),
+                            parseInt(birthdayString[1]), parseInt(birthdayString[0])]);
+                        return birthdate.fromNow(true);
+                    }
                 },
                 fullname: function() {
                     return this.title + this.firstname + " " + this.lastname;
