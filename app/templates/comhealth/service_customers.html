@@ -83,7 +83,7 @@
                                 <% props.row.labno %>
                                 </span>
                             </b-table-column>
-                            <b-table-column field="checkin_datetime" label="Checked in" sortable centered>
+                            <b-table-column field="checkin_datetime" label="Check-In Time" sortable centered>
                                 <span class="is-size-4">
                                 <% props.row.checkin_datetime ? moment(props.row.checkin_datetime).format('lll') : '' %>
                                 </span>
@@ -105,7 +105,7 @@
                                     </div>
                                 </a>
                             </b-table-column>
-                            <b-table-column field="" label="Info" sortable>
+                            <b-table-column field="" label="Customer Info">
                                 <a class="button is-rounded is-light"
                                    v-bind:href="'/comhealth/customers/' + props.row.customer.id + '/edit?next=' + requestUrl">
                                 <span class="icon">
