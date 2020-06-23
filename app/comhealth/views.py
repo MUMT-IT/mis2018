@@ -235,6 +235,19 @@ def edit_record(record_id):
         profile_item_cost += float(profile.quote)
 
     if request.method == 'POST':
+        if not record.labno:
+            labno = request.form.get('service_code', '')
+            if len(labno) != 10 or not labno.isdigit():
+                flash(u'กรุณาระบุหมายเลข lab number ด้วยการแสกนบาร์โค้ด', 'warning')
+                return redirect(request.referrer)
+            else:
+                existing_rec = ComHealthRecord.query.filter_by(labno=labno).first()
+                if existing_rec:
+                    flash(u'หมายเลข lab number นี้มีการลงทะเบียนแล้ว ไม่สามารถใช้ซ้ำได้', 'warning')
+                    return redirect(request.referrer)
+
+            record.labno = labno  # assign a valid and unique lab number
+
         firstname = request.form.get('firstname')
         lastname = request.form.get('lastname')
         title = request.form.get('title')
@@ -254,22 +267,12 @@ def edit_record(record_id):
                 month = int(month)
                 day = int(day)
             except:
-                flash('Date of birth is not valid.')
-                pass
+                flash(u'วันเดือนปีเกิดไม่ถูกต้อง', 'warning')
             else:
                 record.customer.dob = date(year, month, day)
 
         if not record.checkin_datetime:
             record.checkin_datetime = datetime.now(tz=bangkok)
-
-        if not record.labno:
-            labno = request.form.get('service_code')
-            existing_labno = ComHealthRecord.query.filter_by(labno=labno).first()
-            if existing_labno:
-                flash(u'หมายเลข Lab number มีในฐานข้อมูลแล้ว', 'warning')
-                return redirect(url_for('comhealth.edit_record', record_id=record_id))
-            if labno.isdigit():
-                record.labno = labno
 
         for field in request.form:
             if field.startswith('test_'):
@@ -283,6 +286,10 @@ def edit_record(record_id):
                 test_item = ComHealthTestItem.query.get(int(test_id))
                 record.ordered_tests.append(test_item)
                 containers.add(test_item.test.container)
+
+        if len(record.ordered_tests) == 0:
+            flash(u'กรุณาเลือกรายการทดสอบอย่างน้อยหนึ่งรายการ', 'warning')
+            return redirect(request.referrer)
 
         record.comment = request.form.get('comment')
         emptype_id = int(request.form.get('emptype_id', 0))
