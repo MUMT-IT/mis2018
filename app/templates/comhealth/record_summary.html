@@ -190,19 +190,29 @@
                     <div class="columns">
                         <div class="column is-9 box">
                             <h1 class="title"><span class="icon"><i class="fas fa-vial"></i></span>&nbsp;ภาชนะ</h1>
-                            <table class="table is-fullwidth is-striped">
+                            <table class="table is-fullwidth">
                                 <thead>
                                 <th>Name</th>
-                                <th>Detail</th>
                                 <th>Description</th>
                                 </thead>
                                 <tbody>
-                                {% for ct in containers %}
+                                {% for gr, cts in containers|groupby("group") %}
                                     <tr>
-                                        <td>{{ ct.name }}</td>
-                                        <td>{{ ct.detail }}</td>
-                                        <td>{{ ct.desc }}</td>
+                                        <td colspan="2" bgcolor="#d3d3d3"><strong>{{ gr|upper }}</strong></td>
                                     </tr>
+                                    {% for ct in cts %}
+                                        {% if gr != 'extra' %}
+                                        <tr>
+                                            <td><strong>{{ ct.name }}</strong></td>
+                                            <td>{{ ct.desc }}</td>
+                                        </tr>
+                                        {% else %}
+                                        <tr>
+                                            <td bgcolor="yellow"><strong>{{ ct.name }}</strong></td>
+                                            <td bgcolor="yellow">{{ ct.desc }}</td>
+                                        </tr>
+                                        {% endif %}
+                                    {% endfor %}
                                 {% endfor %}
                                 </tbody>
                             </table>

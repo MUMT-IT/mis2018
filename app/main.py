@@ -267,6 +267,11 @@ class ComHealthContainerModelView(ModelView):
             'validators': [required()]
         }
     }
+    form_choices = {
+        'group': [('basic', u'พื้นฐาน'), ('extra', u'เพิ่ม')]
+    }
+
+    form_columns = ['name', 'detail', 'desc', 'volume', 'group']
 
 
 class ComHealthDepartmentModelView(ModelView):
