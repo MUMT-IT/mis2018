@@ -236,12 +236,14 @@
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                                     <input type="hidden" name="record_id" value="{{ record.id }}"/>
                                     <div class="has-text-centered">
-                                        <button class="button is-dark is-rounded" type="submit">
-                                    <span class="icon">
-                                        <i class="fas fa-save"></i>
-                                    </span>
-                                            <span>Save</span>
-                                        </button>
+                                        <div class="field">
+                                            <button class="button is-success" type="submit">
+                                                <span class="icon">
+                                                    <i class="fas fa-save"></i>
+                                                </span>
+                                                <span>Save</span>
+                                            </button>
+                                        </div>
                                     </div>
                                 </form>
                             </article>
