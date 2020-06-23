@@ -15,7 +15,7 @@
             </span>
             <span>Scan Barcode</span>
         </a>
-        <table class="table is-fullwidth is-striped">
+        <table class="table is-fullwidth is-striped" id="containerTable">
             <thead>
             <th>Lab No.</th>
             <th>HN</th>
@@ -66,4 +66,12 @@
             class="button is-light">Back</a>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+    $(document).ready(function() {
+        $('#containerTable').DataTable();
+    })
+    </script>
 {% endblock %}
