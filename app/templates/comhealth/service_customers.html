@@ -85,7 +85,7 @@
                             </b-table-column>
                             <b-table-column field="checkin_datetime" label="Check-In Time" sortable centered>
                                 <span class="is-size-4">
-                                <% props.row.checkin_datetime ? moment(props.row.checkin_datetime).format('lll') : '' %>
+                                <% props.row.checkin_datetime ? moment(props.row.checkin_datetime).fromNow() : '' %>
                                 </span>
                             </b-table-column>
                             <b-table-column field="" label="Check In" sortable>
