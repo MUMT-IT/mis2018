@@ -113,26 +113,16 @@
                                     </div>
                                     <div class="column is-3">
                                         <p class="label"><strong>อายุ / Age</strong></p>
-                                        {% if record.customer.dob %}
                                         <p class="is-size-5">
-                                            <strong>อายุ</strong> {{ record.customer.age.years }}
-                                            ปี {{ record.customer.age.months }} เดือน {{ record.customer.age.days }}
-                                            วัน
+                                            <strong><span><% age %></span></strong>
                                         </p>
-                                        {% else %}
-                                        <span v-if="birthday !== ''"><% age %></span>
-                                        {% endif %}
                                         <div class="field">
                                             <label class="label">วันเกิด / Date of Birth</label>
                                             <div class="control">
                                                 <input class="input" id="birthdate-input"
                                                        v-model="birthday"
                                                        name='dob' type="text"
-                                                       value='{{ record.customer.thai_dob or "" }}'
                                                        placeholder="dd/mm/yyyy"
-                                                        {% if record.customer.dob %}
-                                                       readonly
-                                                        {% endif %}
                                                 />
                                             </div>
                                             <p class="help has-text-info">
@@ -304,7 +294,7 @@
             delimiters: ['<%', '%>'],
             data() {
                 return {
-                    birthday: '',
+                    birthday: {{ record.customer.thai_dob|tojson|safe }},
                     firstname: {{ record.customer.firstname|tojson|safe }},
                     lastname: {{ record.customer.lastname|tojson|safe }},
                     title: {{ record.customer.title|tojson|safe }},
@@ -319,14 +309,14 @@
             },
             computed: {
                 age: function() {
-                    let birthdayString = this.birthday.split("/");
-                    let birthdate = new Date(parseInt(birthdayString[2] - 543),
-                                        parseInt(birthdayString[1]), parseInt(birthdayString[0]));
-                    let nowdt = new Date();
-                    let ageInYears = ((nowdt.getTime() - birthdate.getTime()) / (1000 * 3600 * 24)) / 365;
-                    let months = (ageInYears - Math.floor(ageInYears)) * 12;
-                    let days = (months - Math.floor(months)) * 31;
-                    return Math.floor(ageInYears) + ' ปี ' + Math.floor(months) + ' เดือน ' + Math.floor(days) + ' วันโดยประมาณ';
+                    if (this.birthday === null) {
+                        return '-';
+                    } else {
+                        let birthdayString = this.birthday.split("/");
+                        let birthdate = moment([parseInt(birthdayString[2] - 543),
+                            parseInt(birthdayString[1]), parseInt(birthdayString[0])]);
+                        return birthdate.fromNow(true);
+                    }
                 },
                 fullname: function() {
                     return this.title + this.firstname + " " + this.lastname;

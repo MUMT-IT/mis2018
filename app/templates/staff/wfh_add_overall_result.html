@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            {% for msg in get_flashed_messages() %}
+            <p class="notification is-warning">{{ msg }}</p>
+            {% endfor %}
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <h4 class="title">รายงานผลการทำงานที่บ้าน</h4>
+                    <table class="table">
+                        <tr>
+                            <td class="title is-size-6">
+                                วันที่ปฏิบัติงานที่บ้าน
+                            </td>
+                            <td>
+                                {{ wfhreq.start_datetime|localdate }} - {{ wfhreq.end_datetime|localdate }}
+                                <p>({{ wfhreq.duration }} วัน)</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">กำหนดส่งงาน</label>
+                            </td>
+                            <td>
+                                {{ wfhreq.deadline_date|localdate }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                 <label class="label">รายละเอียดงาน</label>
+                            </td>
+                            <td>
+                                {% for detail in detail %}
+                                    {% if detail.status==True or detail.status == False %}
+                                        <p>{{ detail.activity }} :
+                                    {% endif %}
+                                    {% if detail.status == True %}เสร็จ
+                                    {% elif detail.status == False %} ไม่เสร็จ
+                                    {% else %}
+                                    {% endif %}</p>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                 <label class="label">สรุปผลการดำเนินงาน</label>
+                            </td>
+                            <td>
+                                <div class="control">
+                                <p>
+                                    <b-input type="textarea"
+                                             name="overall_result"
+                                             placeholder="โปรดระบุผลการดำเนินงาน"
+                                             required>
+                                    </b-input>
+                                </p>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td></td>
+                            <td>
+                                <div class="control">
+                                    <input type="submit" value="ส่งงาน" class="button is-primary"/>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                    </form>
+                    </div>
+                    <hr>
+                    <a href="{{ url_for('staff.wfh_show_request_info', request_id=wfhreq.id) }}"
+                                                class="button is-info is-light is-rounded">กลับ</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+new Vue({
+        el: '#app',
+    });
+</script>
+{% endblock %}
+
+

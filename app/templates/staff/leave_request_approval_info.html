@@ -27,15 +27,26 @@
             <td>
                 [{{ leave_req.quota.leave_type}}] ตั้งแต่ {{ leave_req.start_datetime|localdatetime }} ({{ leave_req.duration }} วัน)
             </td>
+            {% if leave_req.approvals|length %}
             <td>ความเห็นผู้บังคับบัญชา:
-                {% if leave_req.approvals %}
                 {% for ap in leave_req.approvals %}
-                    {{ ap.approver.account.personal_info.fullname }} ({{ ap.is_approved }})
+                    {{ ap.approver.account.personal_info.fullname }}
+                    {% if ap.is_approved %}
+                        <span class="icon">
+                            <i class="fas has-text-success fa-check-circle"></i>
+                        </span>
+                    {% else %}
+                        <span class="icon">
+                            <i class="far has-text-danger fa-times-circle"></i>
+                        </span>
+                    {% endif %}
                 {% endfor %}
-                {% else %}
-                {{ leave_req.approvals|length }}
-                {% endif %}
             </td>
+            {% else %}
+            <td>
+                รอผลการอนุมัติ
+            </td>
+            {% endif %}
             <td>
                 <a href="{{ url_for('staff.pending_leave_approval', req_id=leave_req.id) }}" class="button is-info is-rounded is-light">รายละเอียด</a>
                 <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id) }}" class="button is-success">อนุมัติ</a>
@@ -80,7 +91,7 @@
             <span class="icon">
                 <i class="fas fa-arrow-left"></i>
             </span>
-            กลับหน้าสรุปการลาของท่าน
+        <span>กลับหน้าสรุปการลาของท่าน</span>
     </a>
     </div>
     </div>

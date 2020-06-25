@@ -124,7 +124,8 @@ from staff.models import (StaffAccount, StaffPersonalInfo,
                           StaffLeaveRequest, StaffLeaveType,
                           StaffLeaveApproval, StaffEmployment,
                           StaffWorkFromHomeRequest, StaffWorkFromHomeJobDetail,
-                          StaffWorkFromHomeApprover, StaffWorkFromHomeApproval)
+                          StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
+                          StaffWorkFromHomeCheckedJob)
 
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
@@ -138,6 +139,7 @@ admin.add_views(ModelView(StaffWorkFromHomeRequest, db.session, category='Staff'
 admin.add_views(ModelView(StaffWorkFromHomeJobDetail, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkFromHomeApprover, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkFromHomeApproval, db.session, category='Staff'))
+admin.add_views(ModelView(StaffWorkFromHomeCheckedJob, db.session, category='Staff'))
 
 from room_scheduler import roombp as room_blueprint
 
@@ -244,6 +246,8 @@ admin.add_view(ModelView(ComHealthCustomerEmploymentType, db.session, category='
 admin.add_view(ModelView(ComHealthReferenceTestProfile, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCustomerInfo, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthSpecimensCheckinRecord, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthReceipt, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthInvoice, db.session, category='Com Health'))
 
 class ComHealthTestModelView(ModelView):
     form_args = {
@@ -263,6 +267,11 @@ class ComHealthContainerModelView(ModelView):
             'validators': [required()]
         }
     }
+    form_choices = {
+        'group': [('basic', u'พื้นฐาน'), ('extra', u'เพิ่ม')]
+    }
+
+    form_columns = ['name', 'detail', 'desc', 'volume', 'group']
 
 
 class ComHealthDepartmentModelView(ModelView):

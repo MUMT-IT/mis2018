@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <table class="table">
+                        <tr>
+                            <td>
+                               <label class="label">เรื่อง</label>
+                            </td>
+                            <td>
+                                {{ req.detail }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">ชื่อ</label>
+                            </td>
+                            <td>
+                                {{ req.staff.personal_info }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">สังกัด</label>
+                            </td>
+                            <td>
+                                {{ req.staff.personal_info.org }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="title is-size-6">
+                                วันที่ปฏิบัติงานที่บ้าน
+                            </td>
+                            <td>
+                                {{ req.start_datetime|localdate }} - {{ req.end_datetime|localdate }}
+                                <p>({{ req.duration }} วัน)</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">กำหนดส่งงาน</label>
+                            </td>
+                            <td>
+                                {{ req.deadline_date|localdate }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">วันที่ส่งงาน</label>
+                            </td>
+                            <td>
+                                {% for checkjob in checkjob %}
+                                {{ checkjob.finished_at|localdate }}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                 <label class="label">รายละเอียดงาน</label>
+                            </td>
+                            <td>
+                                {% for detail in job_detail %}
+                                {% if detail.status==True or detail.status == False %}
+                                    <p>{{ detail.activity }} :
+                                {% endif %}
+                                {% if detail.status == True %}เสร็จ
+                                {% elif detail.status == False %}ไม่เสร็จ
+                                {% else %}
+                                {% endif %}</p>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                 <label class="label">สรุปผลการดำเนินงาน</label>
+                            </td>
+                            <td>
+                                {% for checkjob in checkjob %}
+                                <p>{{ checkjob.overall_result }}</p>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                 <label class="label">ความคิดเห็นหัวหน้างาน</label>
+                            </td>
+                            <td>
+                                {% for checkjob in checkjob %}
+                                {{ checkjob.approval_comment }}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    </table>
+                    </div>
+                    <hr>
+                    <a href="{{ url_for('staff.show_work_from_home') }}" class="button is-info is-light is-rounded">กลับ</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+new Vue({
+        el: '#app',
+    });
+</script>
+{% endblock %}
+
+

@@ -2,6 +2,7 @@
 from ..main import db,ma
 from werkzeug import generate_password_hash, check_password_hash
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from marshmallow import fields
 from app.models import OrgSchema
@@ -86,12 +87,40 @@ class StaffPersonalInfo(db.Model):
 
     def get_employ_period(self):
         today = datetime.now().date()
-        period = today - self.employed_date
-        return period.days
+        period = relativedelta(today, self.employed_date)
+        return period
 
     @property
     def is_eligible_for_leave(self, minmonth=6.0):
-        return (self.get_employ_period()/12.0) > minmonth
+        period = self.get_employ_period()
+        if period.years > 0:
+            return True
+        elif period.years == 0 and period.months > minmonth:
+            return True
+        else:
+            return False
+
+    def get_max_cum_quota_per_year(self, leave_quota):
+        period = self.get_employ_period()
+        if self.is_eligible_for_leave:
+            if period.years < 20:
+                return leave_quota.cum_max_per_year1
+            else:
+                return leave_quota.cum_max_per_year2
+        else:
+            return 0
+
+        def get_total_leaves(leave_quota_id, start_date=None, end_date=None):
+            total_leaves = []
+            for req in self.staff_account.leave_requests:
+                if req.quota_id == leave_quota_id:
+                    if start_date is None or end_date is None:
+                        total_leaves.append(req.duration)
+                    else:
+                        if req.start_date >= start_date and req.end_date <= end_date:
+                            total_leaves.append(req.duration)
+            return sum(total_leaves)
+            #return len([req for req in self.staff_account.leave_requests if req.quota_id == leave_quota_id])
 
 
 class StaffEduDegree(db.Model):
@@ -267,10 +296,8 @@ class StaffWorkFromHomeRequest(db.Model):
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     start_datetime = db.Column('start_date', db.DateTime(timezone=True))
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
-    created_at = db.Column('created_at',
-                           db.DateTime(timezone=True),
-                           default=datetime.now()
-                           )
+    created_at = db.Column('created_at',db.DateTime(timezone=True),
+                           default=datetime.now())
     contact_phone = db.Column('contact_phone', db.String())
     # want to change name detail to be topic
     detail = db.Column('detail', db.String())
@@ -282,13 +309,7 @@ class StaffWorkFromHomeRequest(db.Model):
     @property
     def duration(self):
         delta = self.end_datetime - self.start_datetime
-        if delta.days == 0:
-            if delta.seconds == 0:
-                return delta.days + 1
-            if delta.seconds / 3600 < 8:
-                return 0.5
-        else:
-            return delta.days + 1
+        return delta.days + 1
 
     @property
     def get_approved(self):
@@ -304,9 +325,7 @@ class StaffWorkFromHomeJobDetail(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     #want to change topic to activity and activity to comment(for Approver)
     activity = db.Column('topic', db.String(), nullable=False, unique=True)
-    comment = db.Column('activity', db.String())
-    #change status type from Integer to String (success,fail,cencel)
-    status = db.Column('status', db.Boolean(), default=False)
+    status = db.Column('status', db.Boolean())
     wfh_id = db.Column('wfh_id', db.ForeignKey('staff_work_from_home_requests.id'))
 
 
@@ -335,6 +354,23 @@ class StaffWorkFromHomeApproval(db.Model):
                                backref=db.backref('wfh_approved_requests'))
 
 
+class StaffWorkFromHomeCheckedJob(db.Model):
+    __tablename__ = 'staff_work_from_home_checked_job'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    overall_result = db.Column('overall_result', db.String())
+    approval_comment = db.Column('approval_comment', db.String())
+    request_id = db.Column('request_id', db.ForeignKey('staff_work_from_home_requests.id'))
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
+    finished_at = db.Column('finish_at', db.DateTime(timezone=True))
+    checked_at = db.Column('check_at', db.DateTime(timezone=True))
+    wfh_request_id = db.relationship('StaffWorkFromHomeRequest',
+                            backref=db.backref('wfh_request'))
+    approval_account = db.relationship('StaffAccount',
+                              foreign_keys=[approver_id])
 
 
-    
+class StaffWorkFromHomeRequestSchema(ma.ModelSchema):
+    staff = fields.Nested(StaffAccountSchema)
+    class Meta:
+        model = StaffWorkFromHomeRequest
+    duration = fields.Int()

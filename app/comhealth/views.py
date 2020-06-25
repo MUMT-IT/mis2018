@@ -161,7 +161,7 @@ def index():
             'checkedin': len([r for r in sv.records if r.checkin_datetime is not None])
         }
         services_data.append(d)
-    # sv_schema = ComHealthServiceSchema(many=True)
+    services_data = sorted(services_data, key=lambda x: x['date'], reverse=True)
     return render_template('comhealth/index.html', services=services_data)
 
 
@@ -169,7 +169,8 @@ def index():
 @login_required
 def search_service_customer(service_id):
     service = ComHealthService.query.get(service_id)
-    record_schema = ComHealthRecordSchema(many=True)
+    record_schema = ComHealthRecordCustomerSchema(many=True,
+                                          only=("id", "labno", "checkin_datetime", "customer"))
     return jsonify(record_schema.dump(service.records).data)
 
 
@@ -225,6 +226,19 @@ def edit_record(record_id):
     containers = set()
     group_item_cost = Decimal(0.0)
     if request.method == 'POST':
+        if not record.labno:
+            labno = request.form.get('service_code', '')
+            if len(labno) != 10 or not labno.isdigit():
+                flash(u'กรุณาระบุหมายเลข lab number ด้วยการแสกนบาร์โค้ด', 'warning')
+                return redirect(request.referrer)
+            else:
+                existing_rec = ComHealthRecord.query.filter_by(labno=labno).first()
+                if existing_rec:
+                    flash(u'หมายเลข lab number นี้มีการลงทะเบียนแล้ว ไม่สามารถใช้ซ้ำได้', 'warning')
+                    return redirect(request.referrer)
+
+            record.labno = labno  # assign a valid and unique lab number
+
         firstname = request.form.get('firstname')
         lastname = request.form.get('lastname')
         title = request.form.get('title')
@@ -237,15 +251,14 @@ def edit_record(record_id):
             record.customer.title = title
         if request.form.get('phone'):
             record.customer.phone = request.form.get('phone')
-        if not record.customer.dob and request.form.get('dob'):
+        if request.form.get('dob'):
             try:
                 day, month, year = request.form.get('dob', '').split('/')
                 year = int(year) - 543
                 month = int(month)
                 day = int(day)
             except:
-                flash('Date of birth is not valid.')
-                pass
+                flash(u'วันเดือนปีเกิดไม่ถูกต้อง', 'warning')
             else:
                 record.customer.dob = date(year, month, day)
 
@@ -276,6 +289,10 @@ def edit_record(record_id):
                 test_item = ComHealthTestItem.query.get(int(test_id))
                 record.ordered_tests.append(test_item)
                 containers.add(test_item.test.container)
+
+        if len(record.ordered_tests) == 0:
+            flash(u'กรุณาเลือกรายการทดสอบอย่างน้อยหนึ่งรายการ', 'warning')
+            return redirect(request.referrer)
 
         record.comment = request.form.get('comment')
         emptype_id = int(request.form.get('emptype_id', 0))
@@ -373,6 +390,31 @@ def update_delivery_status(record_id):
         db.session.commit()
         flash('Delivery request has been updated.')
         return redirect(url_for('comhealth.edit_record', record_id=record.id))
+
+
+@comhealth.route('/record/<int:record_id>/cancel')
+@login_required
+def cancel_checkin_record(record_id):
+    record = ComHealthRecord.query.get(record_id)
+    if not record:
+        flash('Record does not exist.', 'warning')
+        return redirect(request.referrer)
+    if request.args.get('confirm') == 'no':
+        return render_template('comhealth/confirm_record_cancel.html',
+                               next=request.referrer, record=record)
+    elif request.args.get('confirm') == 'yes':
+        service_id = record.service_id
+        record.labno = None
+        record.checkin_datetime = None
+        record.ordered_tests = []
+        record.updated_at = datetime.now(tz=bangkok)
+        record.urgent = False
+        record.comment = ''
+        db.session.add(record)
+        db.session.commit()
+        flash('The record has been cancelled.', 'success')
+        return redirect(url_for('comhealth.display_service_customers',
+                                service_id=service_id))
 
 
 @comhealth.route('/tests')
@@ -794,7 +836,9 @@ def summarize_specimens(service_id):
 @login_required
 def list_tests_in_container(service_id, container_id):
     if request.method == 'POST':
-        record = ComHealthRecord.query.filter_by(labno=request.form.get('labno')).first()
+        specimens_no = request.form.get('specimens_no')
+        labno = u'{}{}'.format(str(datetime.today().year)[-1], specimens_no[3:])
+        record = ComHealthRecord.query.filter_by(labno=labno).first()
         if record:
             checkin_record = ComHealthSpecimensCheckinRecord.query.filter_by(record_id=record.id,
                                                                          container_id=container_id).first()
@@ -810,21 +854,28 @@ def list_tests_in_container(service_id, container_id):
                 db.session.commit()
                 flash('The container has been checked in.', 'success')
         else:
-            flash('The record no longer exists.', 'danger')
+            flash('The lab number is not valid or it no longer exists.', 'danger')
 
     tests = defaultdict(list)
     service = ComHealthService.query.get(service_id)
     if service:
+        #TODO: refactor the code to reduce load time
         container = ComHealthContainer.query.get(container_id)
-        for record in service.records:
-            for test_item in record.ordered_tests:
-                if test_item.test.container_id == container_id:
-                    tests[record].append(test_item.test.code)
+        checked_in_records = ComHealthRecord.query.filter(ComHealthRecord.service_id==service.id,
+                                                          ComHealthRecord.checkin_datetime != None).all()
+        checked_in_records = set([c.id for c in checked_in_records])
+        test_items = ComHealthTestItem.query.join(test_item_record_table)\
+            .filter(ComHealthTestItem.test.has(container_id=container_id),
+                    test_item_record_table.c.record_id.in_(checked_in_records)).all()
+        for test_item in test_items:
+            for rec in test_item.records:
+                tests[rec].append(test_item.test.code)
         records = sorted(tests.keys(), key=lambda x: x.labno)
     else:
         flash('The service no longer exists.', 'danger')
-    return render_template('comhealth/container_tests.html', records=records,
-                           tests=tests, service=service, container=container)
+    return render_template('comhealth/container_tests.html',
+                           records=records, tests=tests,
+                           service=service, container=container)
 
 
 @comhealth.route('/services/<int:service_id>/records/<int:record_id>/containers/<int:container_id>/check')
@@ -864,6 +915,41 @@ def uncheck_container(service_id, record_id, container_id):
         flash('The record no longer exists.', 'warning')
     return redirect(url_for('comhealth.list_tests_in_container',
                             service_id=service_id, container_id=container_id))
+
+
+@comhealth.route('/services/<int:service_id>/containers/<int:container_id>/scan',
+                 methods=['GET', 'POST'])
+@login_required
+def scan_container(service_id, container_id):
+    container = ComHealthContainer.query.get(container_id)
+    service = ComHealthService.query.get(service_id)
+    recents = list(ComHealthSpecimensCheckinRecord.query.filter(ComHealthSpecimensCheckinRecord.container.has(id=container_id))\
+                   .order_by(ComHealthSpecimensCheckinRecord.checkin_datetime.desc()).limit(5))
+    if request.method == 'POST':
+        specimens_no = request.form.get('specimens_no')
+        labno = u'{}{}'.format(str(datetime.today().year)[-1], specimens_no[3:])
+        record = ComHealthRecord.query.filter_by(labno=labno).first()
+        checkin_record = ComHealthSpecimensCheckinRecord.query \
+            .filter_by(record_id=record.id, container_id=container_id).first()
+        if checkin_record:
+            checkin_record.checkin_datetime = datetime.now(tz=bangkok)
+            db.session.add(checkin_record)
+            db.session.commit()
+        else:
+            if record:
+                checkin_record = ComHealthSpecimensCheckinRecord(
+                                        record.id, container_id, datetime.now(tz=bangkok))
+                record.container_checkins.append(checkin_record)
+                db.session.add(record)
+                db.session.commit()
+            else:
+                flash('The container no longer exists.', 'danger')
+        return render_template('comhealth/scan_container.html', service=service,
+                               container=container, specimens_no=specimens_no,
+                               checkin_record=checkin_record, recents=recents)
+
+    return render_template('comhealth/scan_container.html', service=service, container=container, recents=recents)
+
 
 @comhealth.route('/organizations')
 @login_required
@@ -916,6 +1002,7 @@ def add_service_to_org(org_id):
 @login_required
 def add_customer_to_service_org(service_id, org_id):
     form = CustomerForm()
+    form.emptype.choices = [(e.id, e.name) for e in ComHealthCustomerEmploymentType.query.all()]
     if form.validate_on_submit():
         service_id = form.service_id.data
         org_id = form.org_id.data
@@ -928,6 +1015,8 @@ def add_customer_to_service_org(service_id, org_id):
                                      firstname=form.firstname.data,
                                      lastname=form.lastname.data,
                                      gender=form.gender.data,
+                                     emptype_id=form.emptype.data,
+                                     phone=form.phone.data,
                                      dob=dob,
                                      org_id=org_id)
         new_record = ComHealthRecord(service_id=service_id, customer=customer)
@@ -951,18 +1040,57 @@ def add_customer_to_service_org(service_id, org_id):
         return render_template('comhealth/new_customer_service_org.html', form=form)
 
 
-@comhealth.route('/services/<int:service_id>/orgs/<int:org_id>/customers/<int:customer_id>/edit',
-                 methods=['GET', 'POST'])
+@comhealth.route('/orgs/<int:org_id>/employees/add', methods=['GET', 'POST'])
 @login_required
-def edit_customer_data(service_id, org_id, customer_id):
+def add_employee(org_id):
+    form = CustomerForm()
+    form.emptype.choices = [(e.id, e.name) for e in ComHealthCustomerEmploymentType.query.all()]
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            customer = ComHealthCustomer()
+            customer.org_id = org_id
+            customer.firstname = form.firstname.data
+            customer.lastname = form.lastname.data
+            customer.title = form.title.data
+            customer.phone = form.phone.data
+            customer.emptype_id = form.emptype.data
+            try:
+                day, month, year = form.dob.data.split('/')
+            except ValueError:
+                flash(u'รูปแบบวันที่ไม่ถูกต้อง', 'warning')
+                return render_template('comhealth/edit_customer_data.html', form=form)
+
+            year = int(year) - 543
+            month = int(month)
+            day = int(day)
+            try:
+                customer.dob = datetime(year, month, day)
+            except ValueError:
+                flash(u'วันที่ไม่ถูกต้อง', 'warning')
+                return render_template('comhealth/edit_customer_data.html', form=form)
+            customer.gender = form.gender.data
+            db.session.add(customer)
+            db.session.commit()
+            return redirect(request.args.get('next'))
+        else:
+            flash(form.errors, 'warning')
+    return render_template('comhealth/edit_customer_data.html', form=form)
+
+
+@comhealth.route('/customers/<int:customer_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_customer_data(customer_id):
     form = CustomerForm()
     customer = ComHealthCustomer.query.get(customer_id)
+    form.emptype.choices = [(e.id, e.name) for e in ComHealthCustomerEmploymentType.query.all()]
     if customer:
         if request.method == 'POST':
             if form.validate_on_submit():
                 customer.firstname = form.firstname.data
                 customer.lastname = form.lastname.data
                 customer.title = form.title.data
+                customer.phone = form.phone.data
+                customer.emptype_id = form.emptype.data
                 try:
                     day, month, year = form.dob.data.split('/')
                 except ValueError:
@@ -985,6 +1113,8 @@ def edit_customer_data(service_id, org_id, customer_id):
             form.firstname.data = customer.firstname
             form.lastname.data = customer.lastname
             form.title.data = customer.title
+            form.phone.data = customer.phone
+            form.emptype.data = customer.emptype_id
             if customer.dob:
                 buddhist_year = customer.dob.year + 543
                 month = customer.dob.month
@@ -1003,7 +1133,6 @@ def edit_customer_data(service_id, org_id, customer_id):
 @login_required
 def export_csv(service_id):
     # TODO: add employment types (number)
-    # TODO: add age, gender
     # TODO: add organization + dept + unit
     service = ComHealthService.query.get(service_id)
     rows = []
@@ -1012,13 +1141,13 @@ def export_csv(service_id):
             continue
         tests = ','.join([item.test.code for item in record.ordered_tests])
         department = record.customer.dept.name if record.customer.dept else ''
-        emptype = record.customer.emptype.name if record.customer.emptype else ''
+        emptype = record.customer.emptype.emptype_id if record.customer.emptype else ''
         rows.append({'hn': u'{}'.format(record.customer.hn or ''),
                      'title': u'{}'.format(record.customer.title),
                      'firstname': u'{}'.format(record.customer.firstname),
                      'lastname': u'{}'.format(record.customer.lastname),
                      'employmentType': u'{}'.format(emptype),
-                     'age': u'{}'.format(record.customer.age),
+                     'age': u'{}'.format(record.customer.age_years or ''),
                      'gender': u'{}'.format(record.customer.gender),
                      'phone': u'{}'.format(record.customer.phone),
                      'organization': u'{}'.format(record.customer.org.name),
@@ -1026,7 +1155,8 @@ def export_csv(service_id):
                      'unit': u'{}'.format(record.customer.unit),
                      'labno': u'{}'.format(record.labno),
                      'tests': u'{}'.format(tests),
-                     'urgent': record.urgent})
+                     'urgent': record.urgent,
+                     'note': u'{}'.format(record.comment)})
     if rows:
         pd.DataFrame(rows).to_excel('export.xlsx',
                                     header=True,
@@ -1043,7 +1173,8 @@ def export_csv(service_id):
                                              'unit',
                                              'employmentType',
                                              'tests',
-                                             'urgent'],
+                                             'urgent',
+                                             'note'],
                                     index=False,
                                     encoding='utf-8')
         return send_from_directory(os.getcwd(), filename='export.xlsx')
@@ -1212,8 +1343,9 @@ def add_many_employees(orgid):
     # TODO: All new customer needs to have their HN generated.
     """Add employees from Excel file.
 
-    Note that the birthdate is in Thai year.
-    The columns are title, firstname, lastname, dob, and gender
+    Note that the birthdate is in Thai year and in dd/mm/yyyy.
+    The columns are title, first name, last name, dob, and gender
+    A record with no first name and last name is skipped.
     :type orgid: int
     """
     org = ComHealthOrg.query.get(orgid)
@@ -1231,7 +1363,11 @@ def add_many_employees(orgid):
             df = read_excel(file)
             for idx, rec in df.iterrows():
                 title, firstname, lastname, dob, gender = rec
-                if not firstname or not lastname:
+                if isna(firstname):
+                    firstname = None
+                if isna(lastname):
+                    lastname = None
+                if isna(firstname) and isna(lastname):
                     continue
                 try:
                     day, month, year = map(int, dob.split('/'))
@@ -1333,6 +1469,8 @@ def create_receipt(record_id):
         record = ComHealthRecord.query.get(record_id)
         issuer_id = request.form.get('issuer_id', None)
         cashier_id = request.form.get('cashier_id', None)
+        session['cashier_id'] = int(cashier_id)
+        session['issuer_id'] = int(issuer_id)
         print_profile = request.form.get('print_profile', '')
         address = request.form.get('receipt_address', None)
         issued_for = request.form.get('issued_for', None)
@@ -1355,7 +1493,7 @@ def create_receipt(record_id):
         receipt.print_profile_how = print_profile
         db.session.add(receipt)
         receipt_code.count += 1
-        receipt_code.updated_at = datetime.now(tz=bangkok)
+        receipt_code.updated_datetime = datetime.now(tz=bangkok)
         db.session.add(receipt_code)
         for test_item in record.ordered_tests:
             if test_item.profile and print_profile != 'individual':

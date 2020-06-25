@@ -13,6 +13,7 @@
         </h4>
         </div>
         <h4 class="title">รายการขออนุญาตทำงานที่บ้าน</h4>
+        <div class="table-container">
         <div class="columns">
         <table class="table is-fullwidth">
             <thead>
@@ -27,16 +28,18 @@
             <tbody>
             {% for request in req |sort(attribute='start_datetime')%}
                 <tr {% if request.cancelled_at %}style="color: #C0C0C0  ;"{% endif %}>
-                    <td>{{ request.start_datetime|localdatetime }}</td>
-                    <td>{{ request.end_datetime|localdatetime }}</td>
+                    <td>{{ request.start_datetime|localdate }}</td>
+                    <td>{{ request.end_datetime|localdate }}</td>
                     <td>{{ request.detail }}</td>
                     <td>
                         {% if not request.cancelled_at %}
                         <div class="field is-grouped is-grouped-multiline">
                             <div class="control">
                                 <div class="tags has-addons">
-                                    <b-tooltip label="" type="is-light">
-                                    <a class="button is-text" href="{{ url_for('staff.show_wfh_approval', request_id=request.id) }}">
+                                    <b-tooltip
+                                            label="" type="is-light">
+                                    <a class="button is-text" href="{{ url_for('staff.show_wfh_approval',
+                                                                                request_id=request.id) }}">
                                         <span class="tag is-dark">อนุมัติ</span>
                                         <span class="tag is-info">{{ request.get_approved|length }}</span>
                                     </a>
@@ -45,23 +48,20 @@
                             </div>
                             <div class="control">
                                 <div class="tags has-addons">
-                                    <a class="button is-text" href="{{ url_for('staff.show_wfh_approval', request_id=request.id) }}">
+                                    <a class="button is-text" href="{{ url_for('staff.show_wfh_approval',
+                                                                                request_id=request.id) }}">
                                     <span class="tag is-dark">ไม่อนุมัติ</span>
                                     <span class="tag is-danger">{{ request.get_unapproved|length }}</span>
                                     </a>
                                 </div>
                             </div>
                         </div>
-                        {% else %}
                         {% endif %}
                     </td>
                     <td>
-                        {% if request.get_approved %}
-                        <a href="{{ url_for('staff.wfh_show_request_info', request_id=request.id) }}" class="button">เพิ่มรายละเอียดงาน</a>
-                        {% elif not request.cancelled_at %}
-                        <h4>รอการอนุมัติ</h4>
-                        {% else %}
-
+                        {% if not request.cancelled_at %}
+                        <a href="{{ url_for('staff.wfh_show_request_info', request_id=request.id) }}" class="button">
+                                                                                                    เพิ่มรายละเอียดงาน</a>
                         {% endif %}
                     </td>
                     <td>
@@ -72,29 +72,40 @@
                         {% endif %}
                     </td>
                     <td>
-                        {% if not request.cancelled_at %}
                         <b-tooltip label="แก้ไข" type="is-light">
-                        <a class="button" href="{{ url_for('staff.edit_request_work_from_home', request_id=request.id) }}">
+                        <a class="button"
+                           {% if request.cancelled_at %}
+                           disabled
+                           {% elif request.wfh_approvals %}
+                           disabled
+                           {% else %}
+                           href="{{ url_for('staff.edit_request_work_from_home', request_id=request.id) }}"
+                           {% endif %}
+                        >
                         <span class="icon">
                             <i class="fas fa-pencil-alt has-text-dark"></i>
                         </span>
                         </a>
                         </b-tooltip>
                         <b-tooltip label="ยกเลิกการลา" type="is-danger">
-                        <a class="button" @click="confirmWfhDelete({{ request.id }})">
+                        <a class="button"
+                        {% if request.cancelled_at %}
+                           disabled
+                        {% else %}
+                           @click="confirmWfhDelete({{ request.id }})"
+                        {% endif %}
+                        >
                         <span class="icon">
                             <i class="fas fa-trash has-text-danger"></i>
                         </span>
                         </a>
                         </b-tooltip>
-                    {% else %}
-                        <span class="has-text-danger">ยกเลิกลา</span>
-                    {% endif %}
                     </td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
+        </div>
         </div>
         <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}" class="button">สำหรับหัวหน้างาน</a>
     </div>

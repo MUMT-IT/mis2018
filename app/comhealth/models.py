@@ -63,7 +63,7 @@ class ComHealthCashier(db.Model):
 
     @property
     def fullname(self):
-        return u'{} {}'.format(self.firstname, self.lastname)
+        return self.staff.personal_info.fullname
 
     def __str__(self):
         return self.fullname
@@ -122,13 +122,24 @@ class ComHealthCustomer(db.Model):
 
     @property
     def thai_dob(self):
-        return u'{}/{}/{}'.format(self.dob.day, self.dob.month, self.dob.year + 543)
+        if self.dob:
+            return u'{:02}/{:02}/{}'.format(self.dob.day, self.dob.month, self.dob.year + 543)
+        else:
+            return None
 
     @property
     def age(self):
         if self.dob:
             rdelta = relativedelta(date.today(), self.dob)
             return rdelta
+        else:
+            return None
+
+    @property
+    def age_years(self):
+        if self.dob:
+            rdelta = relativedelta(date.today(), self.dob)
+            return rdelta.years
         else:
             return None
 
@@ -142,6 +153,7 @@ class ComHealthCustomerEmploymentType(db.Model):
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     emptype_id = db.Column('emptype_id', db.String(), nullable=False)
     name = db.Column('name', db.String(), nullable=False)
+    finance_comment = db.Column('finance_comment', db.String())
 
     def __str__(self):
         return self.name
@@ -183,6 +195,7 @@ class ComHealthContainer(db.Model):
     detail = db.Column('name', db.String(64), index=True)
     desc = db.Column('desc', db.Text())
     volume = db.Column('volume', db.Numeric(), default=0)
+    group = db.Column('group', db.String())
 
 
     def __str__(self):
@@ -407,14 +420,26 @@ class ComHealthCustomerInfoSchema(ma.ModelSchema):
         model = ComHealthCustomerInfo
 
 
+class ComHealthCustomerEmploymentTypeSchema(ma.ModelSchema):
+    class Meta:
+        model = ComHealthCustomerEmploymentType
+
+
 class ComHealthCustomerSchema(ma.ModelSchema):
     info = fields.Nested(ComHealthCustomerInfoSchema)
+    emptype = fields.Nested(ComHealthCustomerEmploymentTypeSchema)
     class Meta:
         model = ComHealthCustomer
 
 
 class ComHealthRecordSchema(ma.ModelSchema):
     customer = fields.Nested(ComHealthCustomerSchema)
+    class Meta:
+        model = ComHealthRecord
+
+
+class ComHealthRecordCustomerSchema(ma.ModelSchema):
+    customer = fields.Nested(ComHealthCustomerSchema(only=("id", "firstname", "lastname", "hn")))
     class Meta:
         model = ComHealthRecord
 

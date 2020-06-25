@@ -2,20 +2,32 @@
 from flask_login import login_required, current_user
 
 from models import (StaffAccount, StaffPersonalInfo,
-                    StaffLeaveRequest, StaffLeaveQuota, StaffLeaveApprover, StaffLeaveApproval, StaffLeaveType, StaffWorkFromHomeRequest, StaffLeaveRequestSchema,
-                    StaffWorkFromHomeJobDetail, StaffWorkFromHomeApprover, StaffWorkFromHomeApproval)
+                    StaffLeaveRequest, StaffLeaveQuota, StaffLeaveApprover, StaffLeaveApproval, StaffLeaveType,
+                    StaffWorkFromHomeRequest, StaffLeaveRequestSchema,
+                    StaffWorkFromHomeJobDetail, StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
+                    StaffWorkFromHomeCheckedJob, StaffWorkFromHomeRequestSchema)
 from . import staffbp as staff
 from app.main import db
 from flask import jsonify, render_template, request, redirect, url_for, flash
 from datetime import datetime
 from collections import defaultdict, namedtuple
 import pytz
+from sqlalchemy import and_
 from app.auth.views import line_bot_api
 from linebot.models import TextSendMessage
 
 tz = pytz.timezone('Asia/Bangkok')
 
+#TODO: remove hardcoded annual quota soon
 LEAVE_ANNUAL_QUOTA = 10
+
+today = datetime.today()
+if today.month >= 10:
+    START_FISCAL_DATE = datetime(today.year,10,1)
+    END_FISCAL_DATE = datetime(today.year+1,9,30)
+else:
+    START_FISCAL_DATE = datetime(today.year-1,10,1)
+    END_FISCAL_DATE = datetime(today.year,9,30)
 
 
 @staff.route('/')
@@ -58,7 +70,7 @@ def get_staff(account_id=None):
 
 @staff.route('/set_password', methods=['GET', 'POST'])
 def set_password():
-    if request.method=='POST':
+    if request.method == 'POST':
         email = request.form.get('email', None)
         return email
     return render_template('staff/set_password.html')
@@ -67,7 +79,7 @@ def set_password():
 @staff.route('/leave/info')
 @login_required
 def show_leave_info():
-    Quota = namedtuple('quota', ['id','limit'])
+    Quota = namedtuple('quota', ['id', 'limit'])
     cum_days = defaultdict(float)
     quota_days = defaultdict(float)
     for req in current_user.leave_requests:
@@ -103,6 +115,20 @@ def request_for_leave(quota_id=None):
         if quota_id:
             quota = StaffLeaveQuota.query.get(quota_id)
             if quota:
+                employed_period = current_user.personal_info.get_employed_period
+                if employed_period.years <= 1:
+                    this_year_quota = quota.first_year
+                else:
+                    this_year_quota = quota.max_per_year
+
+                #TODO: get a quota from last year
+                total_cum_quota = 15 # this year quota + last year quota
+                max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
+                total_cum_quota = max_cum_quota if max_cum_quota < total_cum_quota else total_cum_quota
+                remaining_quota = total_cum_quota - current_user.personal_info.get_total_leaves(
+                    start_date=START_FISCAL_DATE,
+                    end_date=END_FISCAL_DATE
+                )
                 start_dt, end_dt = form.get('dates').split(' - ')
                 start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
                 end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
@@ -118,20 +144,26 @@ def request_for_leave(quota_id=None):
                             cum_periods += req.duration
 
                 req = StaffLeaveRequest(
-                        staff=current_user,
-                        quota=quota,
-                        start_datetime=tz.localize(start_datetime),
-                        end_datetime=tz.localize(end_datetime),
-                        reason=form.get('reason'),
-                        contact_address=form.get('contact_addr'),
-                        contact_phone=form.get('contact_phone'),
-                        country=form.get('country')
-                    )
+                    staff=current_user,
+                    quota=quota,
+                    start_datetime=tz.localize(start_datetime),
+                    end_datetime=tz.localize(end_datetime),
+                    reason=form.get('reason'),
+                    contact_address=form.get('contact_addr'),
+                    contact_phone=form.get('contact_phone'),
+                    country=form.get('country')
+                )
                 req_duration = req.duration
+
+                #TODO: check if it works
+                if remaining_quota < req_duration:
+                    return False
+
                 delta = start_datetime.date() - current_user.personal_info.employed_date
                 if quota.max_per_leave:
                     if req_duration > quota.max_per_leave:
-                        flash(u'ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ กรุณาติดต่อหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่(HR)')
+                        flash(
+                            u'ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ กรุณาติดต่อหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่(HR)')
                         return redirect(request.referrer)
                     else:
                         if delta.days > 365:
@@ -163,7 +195,7 @@ def request_for_leave(quota_id=None):
 @login_required
 def request_for_leave_period(quota_id=None):
     if request.method == 'POST':
-        #return jsonify(request.form)
+        # return jsonify(request.form)
         form = request.form
         if quota_id:
             quota = StaffLeaveQuota.query.get(quota_id)
@@ -203,7 +235,7 @@ def request_for_leave_period(quota_id=None):
                 else:
                     quota_limit = quota.first_year
 
-                if cum_periods+req_duration <= quota_limit:
+                if cum_periods + req_duration <= quota_limit:
                     db.session.add(req)
                     db.session.commit()
                     return redirect(url_for('staff.show_leave_info'))
@@ -229,7 +261,8 @@ def request_for_leave_info(quota_id=None):
 
     requester = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id)
 
-    return render_template('staff/request_info.html', leaves=leaves, cum_leave=cum_leave, reqester=requester, quota=quota)
+    return render_template('staff/request_info.html', leaves=leaves, cum_leave=cum_leave, reqester=requester,
+                           quota=quota)
 
 
 @staff.route('/leave/request/edit/<int:req_id>',
@@ -321,8 +354,8 @@ def leave_approve(req_id, approver_id):
     )
     db.session.add(approval)
     db.session.commit()
-    #approve_msg = u'การขออนุมัติลา{} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว'.format(req, current_user.personal_info.fullname)
-    #line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
+    # approve_msg = u'การขออนุมัติลา{} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว'.format(req, current_user.personal_info.fullname)
+    # line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
     flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย')
     return redirect(url_for('staff.show_leave_approval_info'))
 
@@ -339,8 +372,8 @@ def leave_reject(req_id, approver_id):
     )
     db.session.add(approval)
     db.session.commit()
-    #approve_msg = u'การขออนุมัติลา{} ไม่ได้รับการอนุมัติ กรุณาติดต่อ {}'.format(req, current_user.personal_info.fullname)
-    #line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
+    # approve_msg = u'การขออนุมัติลา{} ไม่ได้รับการอนุมัติ กรุณาติดต่อ {}'.format(req, current_user.personal_info.fullname)
+    # line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
     return redirect(url_for('staff.show_leave_approval_info'))
 
 
@@ -366,7 +399,7 @@ def cancel_leave_request(req_id):
 @login_required
 def show_leave_approval_info_each_person(requester_id):
     requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id)
-    return render_template('staff/leave_request_approved_each_person.html',requester=requester)
+    return render_template('staff/leave_request_approved_each_person.html', requester=requester)
 
 
 @staff.route('/leave/requests/search')
@@ -383,16 +416,48 @@ def leave_request_info():
     return render_template('staff/leave_request_info.html')
 
 
+@staff.route('/wfh/requests/search')
+@login_required
+def search_wfh_request_info():
+    reqs = StaffWorkFromHomeRequest.query.all()
+    record_schema = StaffWorkFromHomeRequestSchema(many=True)
+    return jsonify(record_schema.dump(reqs).data)
+
+
+@staff.route('/wfh/requests')
+@login_required
+def wfh_request_info():
+    return render_template('staff/wfh_list.html')
+
+
+@staff.route('/leave/requests/result-by-date',
+                    methods=['GET', 'POST'])
+@login_required
+def leave_request_result_by_date():
+    if request.method == 'POST':
+        form = request.form
+
+        start_dt, end_dt = form.get('dates').split(' - ')
+        start_date = datetime.strptime(start_dt, '%m/%d/%Y')
+        end_date = datetime.strptime(end_dt, '%m/%d/%Y')
+
+        leaves = StaffLeaveRequest.query.filter(and_(StaffLeaveRequest.start_datetime>=start_date,
+                                                     StaffLeaveRequest.end_datetime<=end_date))
+        return render_template('staff/leave_request_result_by_date.html', leaves=leaves,
+                               start_date=start_date.date(), end_date=end_date.date())
+    else:
+        return render_template('staff/leave_request_info_by_date.html')
+
 @staff.route('/wfh')
 @login_required
 def show_work_from_home():
     req = StaffWorkFromHomeRequest.query.filter_by(staff_account_id=current_user.id).all()
-    approvers = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id)
-    return render_template('staff/wfh_info.html',req=req, approvers=approvers)
+    checkjob = StaffWorkFromHomeCheckedJob.query.all()
+    return render_template('staff/wfh_info.html', req=req, checkjob=checkjob)
 
 
 @staff.route('/wfh/request',
-             methods=['GET','POST'])
+             methods=['GET', 'POST'])
 @login_required
 def request_work_from_home():
     if request.method == 'POST':
@@ -403,12 +468,12 @@ def request_work_from_home():
         end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
         delta = start_datetime.date() - datetime.today().date()
         req = StaffWorkFromHomeRequest(
-                staff=current_user,
-                start_datetime=tz.localize(start_datetime),
-                end_datetime=tz.localize(end_datetime),
-                detail=form.get('detail'),
-                contact_phone=form.get('contact_phone'),
-                deadline_date=form.get('deadline_date')
+            staff=current_user,
+            start_datetime=tz.localize(start_datetime),
+            end_datetime=tz.localize(end_datetime),
+            detail=form.get('detail'),
+            contact_phone=form.get('contact_phone'),
+            deadline_date=form.get('deadline_date')
         )
         db.session.add(req)
         db.session.commit()
@@ -419,9 +484,8 @@ def request_work_from_home():
 
 
 @staff.route('/wfh/request/<int:request_id>/edit',
-             methods=['GET','POST'])
+             methods=['GET', 'POST'])
 @login_required
-#cannot get deadline date from request to show user to edit
 def edit_request_work_from_home(request_id):
     req = StaffWorkFromHomeRequest.query.get(request_id)
     if request.method == 'POST':
@@ -440,7 +504,7 @@ def edit_request_work_from_home(request_id):
     selected_dates = [req.start_datetime, req.end_datetime]
     deadline = req.deadline_date
     return render_template('staff/edit_wfh_request.html', req=req, selected_dates=selected_dates, deadline=deadline)
-#deadline date ไม่มาตรงแก้ไข แล้วพอไปหน้าดูรายละเอียดเพื่อขออนุมัติเลยมีปัญหา
+
 
 @staff.route('/wfh/request/<int:request_id>/cancel')
 @login_required
@@ -456,32 +520,33 @@ def cancel_wfh_request(request_id):
              methods=['GET', 'POST'])
 @login_required
 def wfh_show_request_info(request_id):
-
     if request.method == 'POST':
         form = request.form
-
         req = StaffWorkFromHomeJobDetail(
-            wfh_id = request_id,
-            activity = form.get('activity')
+            wfh_id=request_id,
+            activity=form.get('activity')
         )
         db.session.add(req)
         db.session.commit()
         wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
         detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
         return render_template('staff/wfh_request_job_details.html', wfhreq=wfhreq, detail=detail)
-
     else:
-        wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
-        detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
-        return render_template('staff/wfh_request_job_details.html', wfhreq=wfhreq, detail=detail)
+        check = StaffWorkFromHomeCheckedJob.query.filter_by(request_id=request_id).first()
+        if check:
+            return redirect(url_for("staff.record_each_request_wfh_request", request_id=request_id))
+        else:
+            wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
+            detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
+            return render_template('staff/wfh_request_job_details.html', wfhreq=wfhreq, detail=detail)
 
 
 @staff.route('/wfh/requests/approval')
 @login_required
 def show_wfh_requests_for_approval():
     approvers = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=current_user.id).all()
-
-    return render_template('staff/wfh_requests_approval_info.html', approvers=approvers)
+    checkjob = StaffWorkFromHomeCheckedJob.query.all()
+    return render_template('staff/wfh_requests_approval_info.html', approvers=approvers, checkjob=checkjob)
 
 
 @staff.route('/wfh/requests/approval/pending/<int:req_id>')
@@ -503,9 +568,9 @@ def wfh_approve(req_id, approver_id):
     )
     db.session.add(approval)
     db.session.commit()
-    #approve_msg = u'การขออนุมัติลา{} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว'.format(req, current_user.personal_info.fullname)
-    #line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
-    flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย')
+    # approve_msg = u'การขออนุมัติลา{} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว'.format(req, current_user.personal_info.fullname)
+    # line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
+    flash(u'อนุมัติขอทำงานที่บ้านให้บุคลากรในสังกัดเรียบร้อยแล้ว')
     return redirect(url_for('staff.show_wfh_requests_for_approval'))
 
 
@@ -520,8 +585,9 @@ def wfh_reject(req_id, approver_id):
     )
     db.session.add(approval)
     db.session.commit()
-    #approve_msg = u'การขออนุมัติลา{} ไม่ได้รับการอนุมัติ กรุณาติดต่อ {}'.format(req, current_user.personal_info.fullname)
-    #line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
+    # approve_msg = u'การขออนุมัติลา{} ไม่ได้รับการอนุมัติ กรุณาติดต่อ {}'.format(req, current_user.personal_info.fullname)
+    # line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
+    flash(u'ไม่อนุมัติขอทำงานที่บ้านให้บุคลากรในสังกัดเรียบร้อยแล้ว')
     return redirect(url_for('staff.show_wfh_requests_for_approval'))
 
 
@@ -530,7 +596,7 @@ def wfh_reject(req_id, approver_id):
 def show_wfh_approved_list_each_person(requester_id):
     requester = StaffWorkFromHomeRequest.query.filter_by(staff_account_id=requester_id)
 
-    return render_template('staff/wfh_all_approved_list_each_person.html',requester=requester)
+    return render_template('staff/wfh_all_approved_list_each_person.html', requester=requester)
 
 
 @staff.route('/wfh/requests/<int:request_id>/approvals')
@@ -542,12 +608,18 @@ def show_wfh_approval(request_id):
 
 
 @staff.route('/wfh/<int:request_id>/info/edit-detail/<detail_id>',
-                                methods=['GET', 'POST'])
+             methods=['GET', 'POST'])
 @login_required
-def edit_wfh_job_detail(request_id,detail_id):
-    request = StaffWorkFromHomeRequest.query.get(request_id)
-    detail = StaffWorkFromHomeJobDetail.query.filter_by(id=detail_id)
-    return render_template('staff/edit_wfh_job_detail.html', wfhreq=request, detail=detail)
+def edit_wfh_job_detail(request_id, detail_id):
+    detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
+    if request.method == 'POST':
+        detail.activity = request.form.get('activity')
+        db.session.add(detail)
+        db.session.commit()
+        return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
+
+    detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
+    return render_template('staff/edit_wfh_job_detail.html', detail=detail, request_id=request_id)
 
 
 @staff.route('/wfh/<int:request_id>/info/finish-job-detail/<detail_id>')
@@ -555,21 +627,20 @@ def edit_wfh_job_detail(request_id,detail_id):
 def finish_wfh_job_detail(request_id, detail_id):
     detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
     if detail:
-        #change status=success/finish
         detail.status = True
         db.session.add(detail)
         db.session.commit()
         return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
 
 
-@staff.route('/wfh/<int:request_id>/info/cancel-job-detail/<detail_id>')
+@staff.route('/wfh/info/cancel-job-detail/<detail_id>')
 @login_required
-def cancel_wfh_job_detail(request_id, detail_id):
+def cancel_wfh_job_detail(detail_id):
     detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
     if detail:
         db.session.delete(detail)
         db.session.commit()
-        return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
+        return redirect(url_for('staff.wfh_show_request_info', request_id=detail.wfh_id))
 
 
 @staff.route('/wfh/<int:request_id>/info/unfinish-job-detail/<detail_id>')
@@ -583,9 +654,81 @@ def unfinish_wfh_job_detail(request_id, detail_id):
         return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
 
 
+@staff.route('/wfh/<int:request_id>/info/add-overall-result',
+             methods=['GET', 'POST'])
+@login_required
+def add_overall_result_work_from_home(request_id):
+    if request.method == 'POST':
+        form = request.form
+        result = StaffWorkFromHomeCheckedJob(
+            overall_result=form.get('overall_result'),
+            finished_at=tz.localize(datetime.today()),
+            request_id=request_id
+        )
+        db.session.add(result)
+        db.session.commit()
+        wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
+        detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
+        check = StaffWorkFromHomeCheckedJob.query.filter_by(request_id=request_id)
+        return render_template('staff/wfh_record_info_each_request_subordinate.html',
+                                        req=wfhreq, job_detail=detail, checkjob=check)
+
+    else:
+        wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
+        detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
+        return render_template('staff/wfh_add_overall_result.html', wfhreq=wfhreq, detail=detail)
 
 
+@staff.route('wfh/<int:request_id>/check/<int:check_id>',
+                                    methods=['GET', 'POST'])
+@login_required
+def comment_wfh_request(request_id, check_id):
+    checkjob = StaffWorkFromHomeCheckedJob.query.get(check_id)
+    if request.method == 'POST':
+        checkjob.id = check_id,
+        checkjob.approval_comment = request.form.get('approval_comment'),
+        checkjob.checked_at = tz.localize(datetime.today()),
+        checkjob.approver_id = current_user.id
+        db.session.add(checkjob)
+        db.session.commit()
+        return redirect(url_for('staff.show_wfh_requests_for_approval'))
+
+    else:
+        req = StaffWorkFromHomeRequest.query.get(request_id)
+        job_detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
+        check = StaffWorkFromHomeCheckedJob.query.filter_by(id=check_id)
+        return render_template('staff/wfh_approval_comment.html', req=req, job_detail=job_detail, checkjob=check)
 
 
+@staff.route('wfh/<int:request_id>/record/info',
+             methods=['GET', 'POST'])
+@login_required
+def record_each_request_wfh_request(request_id):
+    req = StaffWorkFromHomeRequest.query.get(request_id)
+    job_detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
+    check = StaffWorkFromHomeCheckedJob.query.filter_by(request_id=request_id)
+    return render_template('staff/wfh_record_info_each_request.html', req=req, job_detail=job_detail, checkjob=check)
 
 
+@staff.route('/wfh/requests/list',
+            methods=['GET', 'POST'])
+@login_required
+def wfh_requests_list():
+    if request.method == 'POST':
+        form = request.form
+        start_dt, end_dt = form.get('dates').split(' - ')
+        start_date = datetime.strptime(start_dt, '%m/%d/%Y')
+        end_date = datetime.strptime(end_dt, '%m/%d/%Y')
+
+        wfh_request = StaffWorkFromHomeRequest.query.filter(and_(StaffWorkFromHomeRequest.start_datetime >= start_date,
+                                                     StaffWorkFromHomeRequest.end_datetime <= end_date))
+        return render_template('staff/wfh_request_result_by_date.html', request=wfh_request,
+                               start_date=start_date.date(), end_date=end_date.date() )
+    else:
+        return render_template('staff/wfh_request_info_by_date.html')
+
+
+@staff.route('/for-hr')
+@login_required
+def for_hr():
+    return render_template('staff/for_hr.html')

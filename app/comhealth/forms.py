@@ -47,10 +47,12 @@ class TestForm(FlaskForm):
 class CustomerForm(FlaskForm):
     org_id = HiddenField('org_id')
     service_id = HiddenField('service_id')
-    title = StringField('title')
-    firstname = StringField('firstname')
-    lastname = StringField('lastname')
-    dob = StringField('dob', validators=[optional()])
-    age = IntegerField('age', validators=[optional()])
+    title = StringField('Title')
+    firstname = StringField('First Name')
+    lastname = StringField('Last Name')
+    dob = StringField('Date of Birth', validators=[optional()])
+    age = IntegerField('Age', validators=[optional()])
     gender = SelectField('Gender', choices=[(0, 'Female'), (1, 'Male')],
                          coerce=int, default=0)
+    phone = StringField('Phone', validators=[optional()])
+    emptype = SelectField('Employment Type', validators=[DataRequired()], coerce=int)

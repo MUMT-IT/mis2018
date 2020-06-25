@@ -12,20 +12,18 @@
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
-                    <b-notification type="is-light" has-icon>กรุณาเลือกวันหรือช่วงของวันที่ต้องการลา ทั้งนี้วันหยุดและเสาร์ อาทิตย์จะไม่ถือเป็นวันลา</b-notification>
+                    <b-notification type="is-info" has-icon>กรุณาเลือกวันหรือช่วงของวันที่ต้องการลา ทั้งนี้วันหยุดและเสาร์ อาทิตย์จะไม่ถือเป็นวันลา</b-notification>
                 <form method="post">
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <div class="field">
                         <div class="control">
-                            <b-field label="เลือกวันที่ต้องการขออนุมัติลา">
+                            <b-field label="เลือกวันที่ต้องการขออนุมัติลา" message="หากต้องการเลือก 1 วัน ให้ดับเบิ้ลคลิ๊กวันที่ต้องการ">
                                 <b-datepicker
                                         required
                                         name="dates"
                                         v-model="selectedDates"
                                         range
                                         icon-pack="fa"
-                                        :events="events"
-                                        :indicators="indicators"
                                         :mobile-native="false"
                                         placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                         icon="calendar-alt">
@@ -96,24 +94,10 @@
     new Vue({
         el: '#app',
         delimiters: ['<%', '%>'],
-        computed: {
-            indicators() {
-                return this.bars ? 'bars' : 'bars'
-            }
-        },
         data() {
             return {
                 selectedDates: [],
                 notifiedByLine: "yes",
-                events: [
-                    {
-                        date: new Date(2020,1, 8),
-                        type: 'is-danger'
-                    },
-                    {
-                        date: new Date(2020,1, 10),
-                        type: 'is-danger'
-                    }],
             }
         },
     });
