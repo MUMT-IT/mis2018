@@ -5,7 +5,7 @@ from models import (StaffAccount, StaffPersonalInfo,
                     StaffLeaveRequest, StaffLeaveQuota, StaffLeaveApprover, StaffLeaveApproval, StaffLeaveType,
                     StaffWorkFromHomeRequest, StaffLeaveRequestSchema,
                     StaffWorkFromHomeJobDetail, StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
-                    StaffWorkFromHomeCheckedJob, StaffWorkFromHomeRequestSchema)
+                    StaffWorkFromHomeCheckedJob, StaffWorkFromHomeRequestSchema, StaffLeaveRemainQuota)
 from . import staffbp as staff
 from app.main import db
 from flask import jsonify, render_template, request, redirect, url_for, flash
@@ -88,19 +88,28 @@ def show_leave_info():
             cum_days[leave_type] += req.duration
 
     for quota in current_user.personal_info.employment.quota:
-        delta = datetime.today().date() - current_user.personal_info.employed_date
-        if delta.days > 3650:
-            quota_limit = quota.cum_max_per_year2 if quota.cum_max_per_year2 else quota.max_per_year
-        elif delta.days > 365:
-            quota_limit = quota.cum_max_per_year1 if quota.cum_max_per_year1 else quota.max_per_year
-        else:
-            if quota.min_employed_months:
-                if delta.days > 180:
-                    quota_limit = quota.first_year
-                else:
-                    quota_limit = 0
+        print(quota.id, 'quota id')
+        delta = current_user.personal_info.get_employ_period()
+        max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
+        last = StaffLeaveRemainQuota.query.filter(and_(StaffLeaveRemainQuota.leave_quota_id==quota.id,
+                                                       StaffLeaveRemainQuota.year==2018)).first()
+        if last:
+            last_year_quota = last.last_year_quota
+            print(last_year_quota)
+        # used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
+        if delta.years > 0:
+            # test: assume last year cum quota =5
+            last_cum_quota = 5
+            before_get_max_quota = last_cum_quota + LEAVE_ANNUAL_QUOTA
+            if max_cum_quota:
+                quota_limit = max_cum_quota if max_cum_quota < before_get_max_quota else before_get_max_quota
             else:
+                quota_limit = quota.max_per_year
+        else:
+            if delta.months > 5:
                 quota_limit = quota.first_year
+            else:
+                quota_limit = quota.first_year if not quota.min_employed_months else 0
         quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit)
 
     return render_template('staff/leave_info.html', cum_days=cum_days, quota_days=quota_days)
@@ -115,7 +124,7 @@ def request_for_leave(quota_id=None):
         if quota_id:
             quota = StaffLeaveQuota.query.get(quota_id)
             if quota:
-                employed_period = current_user.personal_info.get_employed_period
+                employed_period = current_user.personal_info.get_employed_period()
                 if employed_period.years <= 1:
                     this_year_quota = quota.first_year
                 else:
