@@ -88,20 +88,15 @@ def show_leave_info():
             cum_days[leave_type] += req.duration
 
     for quota in current_user.personal_info.employment.quota:
-        print(quota.id, 'quota id')
         delta = current_user.personal_info.get_employ_period()
         max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
-        last = StaffLeaveRemainQuota.query.filter(and_(StaffLeaveRemainQuota.leave_quota_id==quota.id,
-                                                       StaffLeaveRemainQuota.year==2018)).first()
-        if last:
-            last_year_quota = last.last_year_quota
-            print(last_year_quota)
-        # used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
+        last_quota = StaffLeaveRemainQuota.query.filter(and_(StaffLeaveRemainQuota.leave_quota_id == quota.id,
+                                            StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
         if delta.years > 0:
-            # test: assume last year cum quota =5
-            last_cum_quota = 5
-            before_get_max_quota = last_cum_quota + LEAVE_ANNUAL_QUOTA
             if max_cum_quota:
+                if last_quota:
+                    last_year_quota = last_quota.last_year_quota
+                before_get_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                 quota_limit = max_cum_quota if max_cum_quota < before_get_max_quota else before_get_max_quota
             else:
                 quota_limit = quota.max_per_year
@@ -124,34 +119,20 @@ def request_for_leave(quota_id=None):
         if quota_id:
             quota = StaffLeaveQuota.query.get(quota_id)
             if quota:
-                employed_period = current_user.personal_info.get_employed_period()
-                if employed_period.years <= 1:
-                    this_year_quota = quota.first_year
-                else:
-                    this_year_quota = quota.max_per_year
-
-                #TODO: get a quota from last year
-                total_cum_quota = 15 # this year quota + last year quota
-                max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
-                total_cum_quota = max_cum_quota if max_cum_quota < total_cum_quota else total_cum_quota
-                remaining_quota = total_cum_quota - current_user.personal_info.get_total_leaves(
-                    start_date=START_FISCAL_DATE,
-                    end_date=END_FISCAL_DATE
-                )
                 start_dt, end_dt = form.get('dates').split(' - ')
                 start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
                 end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
+                if start_datetime <= END_FISCAL_DATE and end_datetime > END_FISCAL_DATE :
+                    flash(u'ไม่สามารถลาข้ามปีงบประมาณได้ กรุณาส่งคำร้องแยกกัน 2 ครั้ง โดยแยกตามปีงบประมาณ')
+                    return redirect(request.referrer)
+
                 delta = start_datetime.date() - datetime.today().date()
                 if delta.days > 0 and not quota.leave_type.request_in_advance:
                     flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
                     return redirect(request.referrer)
                     # retrieve cum periods
-                cum_periods = 0
-                for req in current_user.leave_requests:
-                    if req.quota == quota:
-                        if req.cancelled_at is None:
-                            cum_periods += req.duration
-
+                used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
+                                                                         tz.localize(END_FISCAL_DATE))
                 req = StaffLeaveRequest(
                     staff=current_user,
                     quota=quota,
@@ -163,31 +144,35 @@ def request_for_leave(quota_id=None):
                     country=form.get('country')
                 )
                 req_duration = req.duration
-
-                #TODO: check if it works
-                if remaining_quota < req_duration:
-                    return False
-
-                delta = start_datetime.date() - current_user.personal_info.employed_date
+                delta = current_user.personal_info.get_employ_period()
                 if quota.max_per_leave:
                     if req_duration > quota.max_per_leave:
                         flash(
                             u'ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ กรุณาติดต่อหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่(HR)')
                         return redirect(request.referrer)
                     else:
-                        if delta.days > 365:
+                        if delta.years > 0:
                             quota_limit = quota.max_per_year
                         else:
                             quota_limit = quota.first_year
                 else:
-                    if delta.days > 3650:
-                        quota_limit = quota.cum_max_per_year2 if quota.cum_max_per_year2 else quota.max_per_year
-                    elif delta.days > 365:
-                        quota_limit = quota.cum_max_per_year1 if quota.cum_max_per_year1 else quota.max_per_year
+                    last_quota = StaffLeaveRemainQuota.query.filter(and_
+                                                        (StaffLeaveRemainQuota.leave_quota_id == quota.id,
+                                                    StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
+                    max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
+                    if delta.years > 0:
+                        if max_cum_quota:
+                            if last_quota:
+                                last_year_quota = last_quota.last_year_quota
+                            before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
+                            quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                        else:
+                            quota_limit = quota.max_per_year
                     else:
+                        #skip min employ month of annual leave because leave req button doesn't appear
                         quota_limit = quota.first_year
 
-                if cum_periods + req_duration <= quota_limit:
+                if used_quota + req_duration <= quota_limit:
                     db.session.add(req)
                     db.session.commit()
                     return redirect(url_for('staff.show_leave_info'))
@@ -210,12 +195,8 @@ def request_for_leave_period(quota_id=None):
             quota = StaffLeaveQuota.query.get(quota_id)
             if quota:
                 # retrieve cum periods
-                cum_periods = 0
-                for req in current_user.leave_requests:
-                    if req.quota == quota:
-                        if req.cancelled_at is None:
-                            cum_periods += req.duration
-
+                used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
+                                                                         tz.localize(END_FISCAL_DATE))
                 start_t, end_t = form.get('times').split(' - ')
                 start_dt = '{} {}'.format(form.get('dates'), start_t)
                 end_dt = '{} {}'.format(form.get('dates'), end_t)
@@ -235,16 +216,26 @@ def request_for_leave_period(quota_id=None):
                     contact_phone=form.get('contact_phone')
                 )
                 req_duration = req.duration
+
                 # if duration not exceeds quota
-                delta = start_datetime.date() - current_user.personal_info.employed_date
-                if delta.days > 3650:
-                    quota_limit = quota.cum_max_per_year2 if quota.cum_max_per_year2 else quota.max_per_year
-                elif delta.days > 365:
-                    quota_limit = quota.cum_max_per_year1 if quota.cum_max_per_year1 else quota.max_per_year
+                delta = current_user.personal_info.get_employ_period()
+                last_quota = StaffLeaveRemainQuota.query.filter(and_
+                                                                (StaffLeaveRemainQuota.leave_quota_id == quota.id,
+                                                    StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
+                max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
+                if delta.years > 0:
+                    if max_cum_quota:
+                        if last_quota:
+                            last_year_quota = last_quota.last_year_quota
+                        before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
+                        quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                    else:
+                        quota_limit = quota.max_per_year
                 else:
+                    # skip min employ month of annual leave because leave req button doesn't appear
                     quota_limit = quota.first_year
 
-                if cum_periods + req_duration <= quota_limit:
+                if used_quota + req_duration <= quota_limit:
                     db.session.add(req)
                     db.session.commit()
                     return redirect(url_for('staff.show_leave_info'))
