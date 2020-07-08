@@ -29,7 +29,10 @@
                 {{ requester.end_datetime|localdatetime }}
             </td>
             <td>
+                <a href="{{ url_for('staff.record_each_request_leave_request', request_id=requester.id) }}"
+                                                                                class="is-info is-light">
                 {{ requester.quota.leave_type }}
+                </a>
             </td>
             <td>
                 {% if requester.approvals %}
