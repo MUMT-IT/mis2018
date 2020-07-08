@@ -265,6 +265,28 @@ def request_for_leave_info(quota_id=None):
     return render_template('staff/request_info.html', leaves=leaves, reqester=requester, quota=quota)
 
 
+@staff.route('/leave/request/info/<int:quota_id>/others_year/<int:fiscal_year>')
+@login_required
+def request_for_leave_info_others_fiscal(quota_id=None, fiscal_year=None):
+    quota = StaffLeaveQuota.query.get(quota_id)
+    leaves = []
+    for leave in current_user.leave_requests:
+        if fiscal_year < START_FISCAL_DATE.year:
+            if leave.start_datetime < tz.localize(START_FISCAL_DATE):
+                if leave.quota == quota:
+                    leaves.append(leave)
+                    fiscal_year = fiscal_year
+        if fiscal_year > START_FISCAL_DATE.year:
+            if leave.start_datetime > tz.localize(END_FISCAL_DATE):
+                if leave.quota == quota:
+                    leaves.append(leave)
+                    fiscal_year = fiscal_year
+    requester = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id)
+
+    return render_template('staff/leave_info_others_fiscal_year.html', leaves=leaves, reqester=requester, quota=quota,
+                           fiscal_year=fiscal_year)
+
+
 @staff.route('/leave/request/edit/<int:req_id>',
              methods=['GET', 'POST'])
 @login_required
