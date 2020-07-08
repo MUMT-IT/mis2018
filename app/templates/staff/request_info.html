@@ -84,6 +84,21 @@
             </span>
             <span>กลับหน้าการลา</span>
         </a>
+         <b-dropdown hoverable aria-role="list">
+            <button class="button is-info" slot="trigger">
+                <span>กรุณาเลือกปีงบประมาณอื่น</span>
+                <b-icon icon="menu-down"></b-icon>
+            </button>
+            <b-dropdown-item aria-role="listitem" href="
+                            {{ url_for('staff.request_for_leave_info_others_fiscal',
+                                            quota_id=quota.id, fiscal_year=2018) }}">
+                            ปีงบประมาณ 2561</b-dropdown-item>
+            <b-dropdown-item aria-role="listitem" href="
+                            {{ url_for('staff.request_for_leave_info_others_fiscal',
+                                            quota_id=quota.id, fiscal_year=2020) }}">
+                            ปีงบประมาณ 2563</b-dropdown-item>
+        </b-dropdown>
+
     </div>
 </section>
 {% endblock %}
