@@ -126,7 +126,6 @@ def request_for_leave(quota_id=None):
                 if start_datetime <= END_FISCAL_DATE and end_datetime > END_FISCAL_DATE :
                     flash(u'ไม่สามารถลาข้ามปีงบประมาณได้ กรุณาส่งคำร้องแยกกัน 2 ครั้ง โดยแยกตามปีงบประมาณ')
                     return redirect(request.referrer)
-
                 delta = start_datetime.date() - datetime.today().date()
                 if delta.days > 0 and not quota.leave_type.request_in_advance:
                     flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
@@ -257,16 +256,13 @@ def request_for_leave_period(quota_id=None):
 def request_for_leave_info(quota_id=None):
     quota = StaffLeaveQuota.query.get(quota_id)
     leaves = []
-    cum_leave = 0
     for leave in current_user.leave_requests:
-        if leave.quota == quota:
-            leaves.append(leave)
-            cum_leave = leave.duration
-
+        if leave.start_datetime >= tz.localize(START_FISCAL_DATE) and leave.end_datetime <= tz.localize(END_FISCAL_DATE):
+            if leave.quota == quota:
+                leaves.append(leave)
     requester = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id)
 
-    return render_template('staff/request_info.html', leaves=leaves, cum_leave=cum_leave, reqester=requester,
-                           quota=quota)
+    return render_template('staff/request_info.html', leaves=leaves, reqester=requester, quota=quota)
 
 
 @staff.route('/leave/request/edit/<int:req_id>',
