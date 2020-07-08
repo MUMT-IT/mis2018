@@ -424,6 +424,14 @@ def show_leave_approval_info_each_person(requester_id):
     return render_template('staff/leave_request_approved_each_person.html', requester=requester)
 
 
+@staff.route('leave/<int:request_id>/record/info',
+             methods=['GET', 'POST'])
+@login_required
+def record_each_request_leave_request(request_id):
+    req = StaffLeaveRequest.query.get(request_id)
+    return render_template('staff/leave_record_info.html', req=req)
+
+
 @staff.route('/leave/requests/search')
 @login_required
 def search_leave_request_info():
