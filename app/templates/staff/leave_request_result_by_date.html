@@ -12,7 +12,7 @@
                     </h4>
                 <div class="has-text-right">
                    จำนวน<span class="icon"><i class="fas fa-user"></i></span>
-                   : <span class="tag is-info"><% fltRecords.length %></span>
+                   : <span class="tag is-info">Hi</span>
                 </div>
                 </div>
             </div>
@@ -54,39 +54,7 @@
         var vm = new Vue({
             el: "#app",
             data() {
-                return {
-                    fltRecords: [],
-                }
-            },
-            methods: {
-                loadAsyncData: function() {
-                    var self = this;
-                    self.isLoading = true;
-                        .then(function(response) {
-                        response.data.forEach((record) => {
-                            if(record.cancelled_at == null) {
-                            self.records.push(record);
-                            self.fltRecords.push(record);
-                            }
-                        });
-                        self.isLoading = false;
-                    });
-                }
-            },
-            mounted() {
-                this.loadAsyncData();
-            },
-            watch: {
-                query: function () {
-                    var self = this;
-                    if (self.query !=="") {
-                        self.fltRecords = this.records.filter(function(item) {}
-                        });
-                    } else {
-                        self.fltRecords = self.records;
-                    }
-                }
-            }
+
         });
     </script>
 {% endblock %}
