@@ -77,6 +77,7 @@
             {% endfor %}
             </tbody>
         </table>
+            *หากการลาได้รับอนุมัติจากผู้บังคับบัญชาแล้ว จะไม่สามารถแก้ไขได้
         </div>
         <a class="button is-rounded is-info is-light" href="{{ url_for('staff.show_leave_info') }}">
              <span class="icon">
@@ -86,7 +87,7 @@
         </a>
          <b-dropdown hoverable aria-role="list">
             <button class="button is-info" slot="trigger">
-                <span>กรุณาเลือกปีงบประมาณอื่น</span>
+                <span>ปีงบประมาณอื่น</span>
                 <b-icon icon="menu-down"></b-icon>
             </button>
             <b-dropdown-item aria-role="listitem" href="
