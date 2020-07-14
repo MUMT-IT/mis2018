@@ -7,7 +7,7 @@ from models import (StaffAccount, StaffPersonalInfo,
                     StaffWorkFromHomeJobDetail, StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
                     StaffWorkFromHomeCheckedJob, StaffWorkFromHomeRequestSchema, StaffLeaveRemainQuota)
 from . import staffbp as staff
-from app.main import db
+from app.main import db, get_weekdays
 from flask import jsonify, render_template, request, redirect, url_for, flash
 from datetime import datetime
 from collections import defaultdict, namedtuple
@@ -174,7 +174,6 @@ def request_for_leave(quota_id=None):
                     else:
                         #skip min employ month of annual leave because leave req button doesn't appear
                         quota_limit = quota.first_year
-                print used_quota, req_duration, quota_limit
                 if used_quota + req_duration <= quota_limit:
                     db.session.add(req)
                     db.session.commit()
@@ -235,12 +234,14 @@ def request_for_leave_period(quota_id=None):
                     else:
                         quota_limit = quota.max_per_year
                 else:
-                    # skip min employ month of annual leave because leave req button doesn't appear
                     quota_limit = quota.first_year
 
                 if used_quota + req_duration <= quota_limit:
                     db.session.add(req)
                     db.session.commit()
+                    # approver = StaffLeaveApprover.query.fiter_by(staff_account_id=current_user.id)
+                    # req_msg = u'{} ขออนุมัติลา รายละเอียดเพิ่มเติม LINK :'.format(current_user.personal_info.fullname)
+                    # line_bot_api.push_message(to=approver.account.line_id,messages=TextSendMessage(text=req_msg))
                     return redirect(url_for('staff.show_leave_info'))
                 else:
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
@@ -256,13 +257,18 @@ def request_for_leave_period(quota_id=None):
 def request_for_leave_info(quota_id=None):
     quota = StaffLeaveQuota.query.get(quota_id)
     leaves = []
+    fiscal_years = set()
     for leave in current_user.leave_requests:
         if leave.start_datetime >= tz.localize(START_FISCAL_DATE) and leave.end_datetime <= tz.localize(END_FISCAL_DATE):
             if leave.quota == quota:
                 leaves.append(leave)
+        if leave.start_datetime.month in [10,11,12]:
+            fiscal_years.add(leave.start_datetime.year + 1)
+        else:
+            fiscal_years.add(leave.start_datetime.year)
     requester = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id)
 
-    return render_template('staff/request_info.html', leaves=leaves, reqester=requester, quota=quota)
+    return render_template('staff/request_info.html', leaves=leaves, reqester=requester, quota=quota, fiscal_years=fiscal_years)
 
 
 @staff.route('/leave/request/info/<int:quota_id>/others_year/<int:fiscal_year>')
@@ -598,7 +604,7 @@ def wfh_approve(req_id, approver_id):
     )
     db.session.add(approval)
     db.session.commit()
-    # approve_msg = u'การขออนุมัติลา{} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว'.format(req, current_user.personal_info.fullname)
+    # approve_msg = u'การขออนุมัติWFH {} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว'.format(approval, current_user.personal_info.fullname)
     # line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
     flash(u'อนุมัติขอทำงานที่บ้านให้บุคลากรในสังกัดเรียบร้อยแล้ว')
     return redirect(url_for('staff.show_wfh_requests_for_approval'))
@@ -615,7 +621,7 @@ def wfh_reject(req_id, approver_id):
     )
     db.session.add(approval)
     db.session.commit()
-    # approve_msg = u'การขออนุมัติลา{} ไม่ได้รับการอนุมัติ กรุณาติดต่อ {}'.format(req, current_user.personal_info.fullname)
+    # approve_msg = u'การขออนุมัติWFH {} ไม่ได้รับการอนุมัติ กรุณาติดต่อ {}'.format(approval, current_user.personal_info.fullname)
     # line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
     flash(u'ไม่อนุมัติขอทำงานที่บ้านให้บุคลากรในสังกัดเรียบร้อยแล้ว')
     return redirect(url_for('staff.show_wfh_requests_for_approval'))
