@@ -212,9 +212,6 @@ def display_service_customers(service_id):
 @comhealth.route('/checkin/<int:record_id>', methods=['GET', 'POST'])
 @login_required
 def edit_record(record_id):
-    # TODO: use decimal in price calculation instead of float
-    # TODO: add a page for editing personal information
-
     record = ComHealthRecord.query.get(record_id)
     if not record.service.profiles and not record.service.groups:
         return redirect(url_for('comhealth.edit_service', service_id=record.service.id))
@@ -225,15 +222,9 @@ def edit_record(record_id):
         if not record.checkin_datetime:
             return render_template('comhealth/edit_record.html',
                                    record=record,
-                                   emptypes=emptypes,
-                                   )
-
+                                   emptypes=emptypes)
     containers = set()
-    profile_item_cost = 0.0
-    group_item_cost = 0
-    for profile in record.service.profiles:
-        profile_item_cost += float(profile.quote)
-
+    group_item_cost = Decimal(0.0)
     if request.method == 'POST':
         if not record.labno:
             labno = request.form.get('service_code', '')
@@ -274,11 +265,23 @@ def edit_record(record_id):
         if not record.checkin_datetime:
             record.checkin_datetime = datetime.now(tz=bangkok)
 
+        if not record.labno:
+            labno = request.form.get('service_code')
+            existing_labno = ComHealthRecord.query.filter_by(labno=labno).first()
+            if existing_labno:
+                flash(u'หมายเลข Lab number มีในฐานข้อมูลแล้ว', 'warning')
+                return redirect(url_for('comhealth.edit_record', record_id=record_id))
+            if labno.isdigit() and len(labno) == 10:
+                record.labno = labno
+            else:
+                flash(u'หมายเลข lab number ไม่ถูกต้อง', 'warning')
+                return redirect(url_for('comhealth.edit_record', record_id=record_id))
+
         for field in request.form:
             if field.startswith('test_'):
                 _, test_id = field.split('_')
                 test_item = ComHealthTestItem.query.get(int(test_id))
-                group_item_cost += float(test_item.price) or float(test_item.test.default_price)
+                group_item_cost += test_item.price
                 containers.add(test_item.test.container)
                 record.ordered_tests.append(test_item)
             elif field.startswith('profile_'):
@@ -304,30 +307,30 @@ def edit_record(record_id):
 
     special_tests = set(record.ordered_tests)
 
+    profile_item_cost = Decimal(0.0)
     for profile in record.service.profiles:
-        # if all tests are ordered, the quote price is used.
-        # if some tests in the profile are ordered, subtract the price of the tests that are not ordered
-        if set(profile.test_items).intersection(record.ordered_tests):
-            for test_item in set(profile.test_items).difference(record.ordered_tests):
-                profile_item_cost -= float(test_item.price) or float(test_item.test.default_price)
-        else:  # in case no tests in the profile is ordered, subtract a quote price from the total price
-            profile_item_cost -= float(profile.quote)
+        ordered_profile_tests = set(profile.test_items).intersection(record.ordered_tests)
+        if len(ordered_profile_tests) == len(profile.test_items):
+            # if all tests are ordered, the quote price is used.
+            profile_item_cost += profile.quote
+        elif len(ordered_profile_tests) < len(profile.test_items):
+            # if some tests in the profile are ordered,
+            # subtract the price of the tests that are not ordered
+            for test_item in ordered_profile_tests:
+                profile_item_cost += test_item.price
         special_tests.difference_update(set(profile.test_items))
 
-    group_item_cost = sum([item.price or item.test.default_price
-                           for item in record.ordered_tests if item.group])
-    special_item_cost = sum([item.price or item.test.default_price
-                             for item in special_tests])
+    group_item_cost = sum([item.price for item in record.ordered_tests if item.group])
+    special_item_cost = sum([item.price for item in special_tests])
     containers = set([item.test.container for item in record.ordered_tests])
 
     return render_template('comhealth/record_summary.html',
                            record=record,
                            containers=containers,
                            profile_item_cost=profile_item_cost,
-                           group_item_cost=float(group_item_cost),
+                           group_item_cost=group_item_cost,
                            special_tests=special_tests,
-                           special_item_cost=float(special_item_cost),
-                           )
+                           special_item_cost=special_item_cost)
 
 
 @comhealth.route('/record/order/add-comment', methods=['GET', 'POST'])
@@ -356,7 +359,7 @@ def add_item_to_order(record_id, item_id):
             record.updated_at = datetime.now(tz=bangkok)
             db.session.add(record)
             db.session.commit()
-            flash('{} has been added to the order.'.format(item.test.name))
+            flash('{} has been added to the order.'.format(item.test.name), 'success')
             return redirect(url_for('comhealth.edit_record', record_id=record.id))
 
 
@@ -372,7 +375,7 @@ def remove_item_from_order(record_id, item_id):
             record.updated_at = datetime.now(tz=bangkok)
             db.session.add(record)
             db.session.commit()
-            flash('{} has been removed from the order.'.format(item.test.name))
+            flash('{} has been removed from the order.'.format(item.test.name), 'success')
             return redirect(url_for('comhealth.edit_record', record_id=record.id))
 
 
