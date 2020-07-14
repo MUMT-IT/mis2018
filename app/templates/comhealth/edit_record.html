@@ -114,7 +114,7 @@
                                     <div class="column is-3">
                                         <p class="label"><strong>อายุ / Age</strong></p>
                                         <p class="is-size-5">
-                                            <strong><span><% age %></span></strong>
+                                            <strong><span><% age.years %> ปี <% age.months %> เดือน <% age.days %> วัน</span></strong>
                                         </p>
                                         <div class="field">
                                             <label class="label">วันเกิด / Date of Birth</label>
@@ -314,8 +314,10 @@
                     } else {
                         let birthdayString = this.birthday.split("/");
                         let birthdate = moment([parseInt(birthdayString[2] - 543),
-                            parseInt(birthdayString[1]), parseInt(birthdayString[0])]);
-                        return birthdate.fromNow(true);
+                            parseInt(birthdayString[1])-1, parseInt(birthdayString[0])]);
+                        var diff = moment().diff(birthdate, 'milliseconds');
+                        var duration = moment.duration(diff);
+                        return {'years': duration.years(), 'months': duration.months(), 'days': duration.days()}
                     }
                 },
                 fullname: function() {
