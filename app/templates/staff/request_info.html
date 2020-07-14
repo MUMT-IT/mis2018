@@ -90,14 +90,12 @@
                 <span>ปีงบประมาณอื่น</span>
                 <b-icon icon="menu-down"></b-icon>
             </button>
+             {% for fy in fiscal_years %}
             <b-dropdown-item aria-role="listitem" href="
                             {{ url_for('staff.request_for_leave_info_others_fiscal',
-                                            quota_id=quota.id, fiscal_year=2018) }}">
-                            ปีงบประมาณ 2561</b-dropdown-item>
-            <b-dropdown-item aria-role="listitem" href="
-                            {{ url_for('staff.request_for_leave_info_others_fiscal',
-                                            quota_id=quota.id, fiscal_year=2020) }}">
-                            ปีงบประมาณ 2563</b-dropdown-item>
+                                            quota_id=quota.id, fiscal_year=fy) }}">
+                            ปีงบประมาณ {{ fy+543 }}</b-dropdown-item>
+             {% endfor %}
         </b-dropdown>
 
     </div>
