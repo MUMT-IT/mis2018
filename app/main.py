@@ -15,6 +15,7 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from wtforms.validators import required
+from datetime import timedelta
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -57,6 +58,25 @@ def create_app():
 
 
 app = create_app()
+
+
+def get_weekdays(req):
+    delta = req.end_datetime - req.start_datetime
+    n = 0
+    weekdays = 0
+    while n <= delta.days:
+        d = req.start_datetime + timedelta(n)
+        if d.weekday() < 5:
+            #if holidays and d not in holidays:
+            weekdays += 1
+        n += 1
+    if delta.days == 0:
+        if delta.seconds == 0:
+            return delta.days + 1
+        if delta.seconds/3600 < 8:
+            return 0.5
+    else:
+        return weekdays
 
 
 @login.user_loader
@@ -467,6 +487,12 @@ def check_wfh_approval(wfh_request, approver_id):
     else:
         return False
 
+
+
+
+@app.template_filter("getweekdays")
+def count_weekdays(req):
+    return get_weekdays(req)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host="0.0.0.0")
