@@ -6,6 +6,8 @@ from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from marshmallow import fields
 from app.models import OrgSchema
+from datetime import datetime, timedelta
+import numpy as np
 
 
 def local_datetime(dt):
@@ -208,17 +210,6 @@ class StaffLeaveRequest(db.Model):
 
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     country = db.Column('country', db.String())
-
-    @property
-    def duration(self):
-        delta = self.end_datetime - self.start_datetime
-        if delta.days == 0:
-            if delta.seconds == 0:
-                return delta.days + 1
-            if delta.seconds/3600 < 8:
-                return 0.5
-        else:
-            return delta.days + 1
 
     @property
     def get_approved(self):
