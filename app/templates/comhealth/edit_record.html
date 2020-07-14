@@ -113,7 +113,7 @@
                                     </div>
                                     <div class="column is-3">
                                         <p class="label"><strong>อายุ / Age</strong></p>
-                                        <p class="is-size-5">
+                                        <p class="is-size-5" v-if="age.years || age.months || age.days">
                                             <strong><span><% age.years %> ปี <% age.months %> เดือน <% age.days %> วัน</span></strong>
                                         </p>
                                         <div class="field">
