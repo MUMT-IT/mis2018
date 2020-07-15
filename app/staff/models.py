@@ -7,6 +7,7 @@ from pytz import timezone
 from marshmallow import fields
 from app.models import OrgSchema
 from datetime import datetime, timedelta
+from app.main import get_weekdays
 import numpy as np
 
 
@@ -118,11 +119,11 @@ class StaffPersonalInfo(db.Model):
             if req.quota.id == leave_quota_id:
                 if start_date is None or end_date is None:
                     if not req.cancelled_at:
-                        total_leaves.append(req.duration)
+                        total_leaves.append(get_weekdays(req))
                 else:
                     if req.start_datetime >= start_date and req.end_datetime <= end_date:
                         if not req.cancelled_at:
-                            total_leaves.append(req.duration)
+                            total_leaves.append(get_weekdays(req))
         return sum(total_leaves)
         #return len([req for req in self.staff_account.leave_requests if req.quota_id == leave_quota_id])
 
