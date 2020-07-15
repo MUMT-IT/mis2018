@@ -37,7 +37,7 @@
                                 <td>{{ req.quota.leave_type.type_ }}</td>
                                 <td>{{ req.start_datetime|localdatetime }}</td>
                                 <td>{{ req.end_datetime|localdatetime }}</td>
-                                <td>{{ req.duration }}</td>
+                                <td>{{ req|getweekdays }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
