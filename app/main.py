@@ -188,7 +188,8 @@ app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
 from models import (Student, Class, ClassCheckIn,
                     Org, Mission, IOCode, CostCenter,
-                    StudentCheckInRecord)
+                    StudentCheckInRecord, Holidays)
+admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
 
 from line import linebot_bp as linebot_blueprint
 
