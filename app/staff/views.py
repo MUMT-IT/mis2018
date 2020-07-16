@@ -143,7 +143,7 @@ def request_for_leave(quota_id=None):
                     contact_phone=form.get('contact_phone'),
                     country=form.get('country')
                 )
-                req_duration = req.duration
+                req_duration = get_weekdays(req)
                 delta = current_user.personal_info.get_employ_period()
                 if quota.max_per_leave:
                     if req_duration > quota.max_per_leave:
@@ -217,7 +217,7 @@ def request_for_leave_period(quota_id=None):
                     contact_address=form.get('contact_addr'),
                     contact_phone=form.get('contact_phone')
                 )
-                req_duration = req.duration
+                req_duration = get_weekdays(req)
 
                 # if duration not exceeds quota
                 delta = current_user.personal_info.get_employ_period()
@@ -277,16 +277,16 @@ def request_for_leave_info_others_fiscal(quota_id=None, fiscal_year=None):
     quota = StaffLeaveQuota.query.get(quota_id)
     leaves = []
     for leave in current_user.leave_requests:
-        if fiscal_year < START_FISCAL_DATE.year:
-            if leave.start_datetime < tz.localize(START_FISCAL_DATE):
-                if leave.quota == quota:
-                    leaves.append(leave)
-                    fiscal_year = fiscal_year
-        if fiscal_year > START_FISCAL_DATE.year:
-            if leave.start_datetime > tz.localize(END_FISCAL_DATE):
-                if leave.quota == quota:
-                    leaves.append(leave)
-                    fiscal_year = fiscal_year
+        if leave.start_datetime.month in [10,11,12]:
+            fiscal_years = leave.start_datetime.year + 1
+        else:
+            fiscal_years = leave.start_datetime.year
+
+        if fiscal_year == fiscal_years:
+            if leave.quota == quota:
+                leaves.append(leave)
+                fiscal_year = fiscal_year
+
     requester = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id)
 
     return render_template('staff/leave_info_others_fiscal_year.html', leaves=leaves, reqester=requester, quota=quota,
@@ -298,7 +298,7 @@ def request_for_leave_info_others_fiscal(quota_id=None, fiscal_year=None):
 @login_required
 def edit_leave_request(req_id=None):
     req = StaffLeaveRequest.query.get(req_id)
-    if req.duration == 0.5:
+    if get_weekdays(req) == 0.5:
         return redirect(url_for("staff.edit_leave_request_period", req_id=req_id))
     if request.method == 'POST':
         start_dt, end_dt = request.form.get('dates').split(' - ')
@@ -353,7 +353,7 @@ def show_leave_approval_info():
         cum_periods = defaultdict(float)
         for leave_request in requester.requester.leave_requests:
             if leave_request.cancelled_at is None and leave_request.get_approved:
-                cum_periods[leave_request.quota.leave_type] += leave_request.duration
+                cum_periods[leave_request.quota.leave_type] += get_weekdays(leave_request)
         requester_cum_periods[requester] = cum_periods
 
     return render_template('staff/leave_request_approval_info.html',
