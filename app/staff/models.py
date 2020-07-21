@@ -211,6 +211,7 @@ class StaffLeaveRequest(db.Model):
 
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     country = db.Column('country', db.String())
+    total_leave_days = db.Column('total_leave_days', db.Float())
 
     @property
     def get_approved(self):
