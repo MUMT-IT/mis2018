@@ -217,6 +217,10 @@ def request_for_leave_period(quota_id=None):
                 if delta.days > 0 and not quota.leave_type.request_in_advance:
                     flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
                     return redirect(request.referrer)
+                holidays = Holidays.query.filter(Holidays.holiday_date == start_datetime.date()).all()
+                if len(holidays) > 0:
+                    flash(u'วันลาตรงกับวันหยุด')
+                    return redirect(request.referrer)
                 req = StaffLeaveRequest(
                     staff=current_user,
                     quota=quota,
@@ -245,7 +249,7 @@ def request_for_leave_period(quota_id=None):
                         quota_limit = quota.max_per_year
                 else:
                     quota_limit = quota.first_year
-
+                req.total_leave_days = req_duration
                 if used_quota + req_duration <= quota_limit:
                     db.session.add(req)
                     db.session.commit()
