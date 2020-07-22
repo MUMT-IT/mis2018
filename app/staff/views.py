@@ -8,6 +8,7 @@ from models import (StaffAccount, StaffPersonalInfo,
                     StaffWorkFromHomeCheckedJob, StaffWorkFromHomeRequestSchema, StaffLeaveRemainQuota)
 from . import staffbp as staff
 from app.main import db, get_weekdays
+from app.models import Holidays
 from flask import jsonify, render_template, request, redirect, url_for, flash
 from datetime import datetime
 from collections import defaultdict, namedtuple
@@ -133,18 +134,19 @@ def request_for_leave(quota_id=None):
                     # retrieve cum periods
                 used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                          tz.localize(END_FISCAL_DATE))
+
                 req = StaffLeaveRequest(
-                    staff=current_user,
-                    quota=quota,
                     start_datetime=tz.localize(start_datetime),
-                    end_datetime=tz.localize(end_datetime),
-                    reason=form.get('reason'),
-                    contact_address=form.get('contact_addr'),
-                    contact_phone=form.get('contact_phone'),
-                    country=form.get('country')
+                    end_datetime=tz.localize(end_datetime)
                 )
                 req_duration = get_weekdays(req)
+                holidays = Holidays.query.filter(and_(Holidays.holiday_date >= start_datetime,
+                                                      Holidays.holiday_date <= end_datetime)).all()
+                req_duration = req_duration - len(holidays)
                 delta = current_user.personal_info.get_employ_period()
+                if req_duration == 0:
+                    flash(u'วันลาตรงกับวันหยุด')
+                    return redirect(request.referrer)
                 if quota.max_per_leave:
                     if req_duration > quota.max_per_leave:
                         flash(
@@ -163,8 +165,8 @@ def request_for_leave(quota_id=None):
                                 quota_limit = LEAVE_ANNUAL_QUOTA
                             else:
                                 last_quota = StaffLeaveRemainQuota.query.filter(and_
-                                            (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                            StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
+                                        (StaffLeaveRemainQuota.leave_quota_id == quota.id,
+                                        StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
                                 if last_quota:
                                     last_year_quota = last_quota.last_year_quota
                                 before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
@@ -172,8 +174,15 @@ def request_for_leave(quota_id=None):
                         else:
                             quota_limit = quota.max_per_year
                     else:
-                        #skip min employ month of annual leave because leave req button doesn't appear
+                        # skip min employ month of annual leave because leave req button doesn't appear
                         quota_limit = quota.first_year
+                req.quota = quota
+                req.staff = current_user
+                req.reason = form.get('reason')
+                req.contact_address = form.get('contact_addr')
+                req.contact_phone = form.get('contact_phone')
+                req.country = form.get('country')
+                req.total_leave_days = req_duration
                 if used_quota + req_duration <= quota_limit:
                     db.session.add(req)
                     db.session.commit()
@@ -215,7 +224,8 @@ def request_for_leave_period(quota_id=None):
                     end_datetime=tz.localize(end_datetime),
                     reason=form.get('reason'),
                     contact_address=form.get('contact_addr'),
-                    contact_phone=form.get('contact_phone')
+                    contact_phone=form.get('contact_phone'),
+                    country=form.get('country')
                 )
                 req_duration = get_weekdays(req)
 
