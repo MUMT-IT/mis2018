@@ -72,9 +72,12 @@ def get_weekdays(req):
         n += 1
     if delta.days == 0:
         if delta.seconds == 0:
-            return delta.days + 1
+            return weekdays
         if delta.seconds/3600 < 8:
-            return 0.5
+            if weekdays == 0:
+                return 0
+            else:
+                return 0.5
     else:
         return weekdays
 
