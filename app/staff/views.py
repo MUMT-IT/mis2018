@@ -194,7 +194,8 @@ def request_for_leave(quota_id=None):
             else:
                 return 'Error happened'
     else:
-        return render_template('staff/leave_request.html', errors={})
+        quota = StaffLeaveQuota.query.get(quota_id)
+        return render_template('staff/leave_request.html', errors={}, quota=quota)
 
 
 @staff.route('/leave/request/quota/period/<int:quota_id>', methods=["POST", "GET"])
@@ -265,7 +266,8 @@ def request_for_leave_period(quota_id=None):
             else:
                 return 'Error happened'
     else:
-        return render_template('staff/leave_request_period.html', errors={})
+        quota = StaffLeaveQuota.query.get(quota_id)
+        return render_template('staff/leave_request_period.html', errors={}, quota=quota)
 
 
 @staff.route('/leave/request/info/<int:quota_id>')
