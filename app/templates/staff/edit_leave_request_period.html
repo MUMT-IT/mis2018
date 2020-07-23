@@ -82,7 +82,7 @@
                                 <input type="submit" value="submit" class="button is-primary"/>
                             </div>
                             <div class="control">
-                                <a href="{{ request.referrer }}" class="button is-danger">Cancel</a>
+                                <a href="{{ url_for('staff.request_for_leave_info', quota_id=req.quota.id) }}" class="button is-danger">Cancel</a>
                             </div>
                         </div>
                     </form>
