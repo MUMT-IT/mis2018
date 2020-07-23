@@ -16,7 +16,7 @@
             <tbody>
             {% for request in leaves|sort(attribute='start_datetime') %}
                 <tr {% if request.cancelled_at %}style="background-color: #D5DBDB  ;"{% endif %}>
-                    <td>{{ request.start_datetime|localdatetime }} - {{ request.end_datetime|localdatetime }} ({{ request|getweekdays }} วัน)</td>
+                    <td>{{ request.start_datetime|localdatetime }} - {{ request.end_datetime|localdatetime }} ({{ request.total_leave_days }} วัน)</td>
                     <td>
                         {% if not request.cancelled_at %}
                         <div class="field is-grouped is-grouped-multiline">
