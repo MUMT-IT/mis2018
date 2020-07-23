@@ -315,18 +315,75 @@ def edit_leave_request(req_id=None):
     if req.total_leave_days == 0.5:
         return redirect(url_for("staff.edit_leave_request_period", req_id=req_id))
     if request.method == 'POST':
-        start_dt, end_dt = request.form.get('dates').split(' - ')
-        start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
-        end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
-        req.start_datetime = tz.localize(start_datetime),
-        req.end_datetime = tz.localize(end_datetime),
-        req.reason = request.form.get('reason')
-        req.contact_address = request.form.get('contact_addr'),
-        req.contact_phone = request.form.get('contact_phone'),
-        req.country = request.form.get('country')
-        db.session.add(req)
-        db.session.commit()
-        return redirect(url_for('staff.show_leave_info'))
+        quota = req.quota
+        if quota:
+            start_dt, end_dt = request.form.get('dates').split(' - ')
+            start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
+            end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
+            if start_datetime <= END_FISCAL_DATE and end_datetime > END_FISCAL_DATE:
+                flash(u'ไม่สามารถลาข้ามปีงบประมาณได้ กรุณาส่งคำร้องแยกกัน 2 ครั้ง โดยแยกตามปีงบประมาณ')
+                return redirect(request.referrer)
+            delta = start_datetime.date() - datetime.today().date()
+            if delta.days > 0 and not quota.leave_type.request_in_advance:
+                flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
+                return redirect(request.referrer)
+                # retrieve cum periods
+            used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
+                                                                     tz.localize(END_FISCAL_DATE))
+
+            req.start_datetime = tz.localize(start_datetime)
+            req.end_datetime = tz.localize(end_datetime)
+            req_duration = get_weekdays(req)
+            holidays = Holidays.query.filter(and_(Holidays.holiday_date >= start_datetime,
+                                                  Holidays.holiday_date <= end_datetime)).all()
+            req_duration = req_duration - len(holidays)
+            delta = current_user.personal_info.get_employ_period()
+            if req_duration == 0:
+                flash(u'วันลาตรงกับวันหยุด')
+                return redirect(request.referrer)
+            if quota.max_per_leave:
+                if req_duration > quota.max_per_leave:
+                    flash(
+                        u'ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ กรุณาติดต่อหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่(HR)')
+                    return redirect(request.referrer)
+                else:
+                    if delta.years > 0:
+                        quota_limit = quota.max_per_year
+                    else:
+                        quota_limit = quota.first_year
+            else:
+                max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
+                if delta.years > 0:
+                    if max_cum_quota:
+                        if start_datetime > END_FISCAL_DATE:
+                            quota_limit = LEAVE_ANNUAL_QUOTA
+                        else:
+                            last_quota = StaffLeaveRemainQuota.query.filter(and_
+                                        (StaffLeaveRemainQuota.leave_quota_id == quota.id,
+                                        StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
+                            if last_quota:
+                                last_year_quota = last_quota.last_year_quota
+                            before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
+                            quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                    else:
+                        quota_limit = quota.max_per_year
+                else:
+                    quota_limit = quota.first_year
+
+            req.reason = request.form.get('reason')
+            req.contact_address = request.form.get('contact_addr'),
+            req.contact_phone = request.form.get('contact_phone'),
+            req.country = request.form.get('country'),
+            req.total_leave_days = req_duration
+            if used_quota + req_duration <= quota_limit:
+                db.session.add(req)
+                db.session.commit()
+                return redirect(url_for('staff.show_leave_info'))
+            else:
+                flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
+                return redirect(request.referrer)
+        else:
+            return 'Error happened'
 
     selected_dates = [req.start_datetime, req.end_datetime]
     return render_template('staff/edit_leave_request.html', selected_dates=selected_dates, req=req, errors={})
