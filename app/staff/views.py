@@ -200,7 +200,7 @@ def request_for_leave(quota_id=None):
 @login_required
 def request_for_leave_period(quota_id=None):
     if request.method == 'POST':
-        # return jsonify(request.form)
+
         form = request.form
         if quota_id:
             quota = StaffLeaveQuota.query.get(quota_id)
@@ -312,7 +312,7 @@ def request_for_leave_info_others_fiscal(quota_id=None, fiscal_year=None):
 @login_required
 def edit_leave_request(req_id=None):
     req = StaffLeaveRequest.query.get(req_id)
-    if get_weekdays(req) == 0.5:
+    if req.total_leave_days == 0.5:
         return redirect(url_for("staff.edit_leave_request_period", req_id=req_id))
     if request.method == 'POST':
         start_dt, end_dt = request.form.get('dates').split(' - ')
@@ -347,7 +347,8 @@ def edit_leave_request_period(req_id=None):
         req.end_datetime = tz.localize(end_datetime),
         req.reason = request.form.get('reason')
         req.contact_address = request.form.get('contact_addr'),
-        req.contact_phone = request.form.get('contact_phone')
+        req.contact_phone = request.form.get('contact_phone'),
+        req.country = request.form.get('country')
         db.session.add(req)
         db.session.commit()
         return redirect(url_for('staff.show_leave_info'))
@@ -367,7 +368,7 @@ def show_leave_approval_info():
         cum_periods = defaultdict(float)
         for leave_request in requester.requester.leave_requests:
             if leave_request.cancelled_at is None and leave_request.get_approved:
-                cum_periods[leave_request.quota.leave_type] += get_weekdays(leave_request)
+                cum_periods[leave_request.quota.leave_type] += leave_request.total_leave_days
         requester_cum_periods[requester] = cum_periods
 
     return render_template('staff/leave_request_approval_info.html',
