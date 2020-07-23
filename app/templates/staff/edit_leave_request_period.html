@@ -11,6 +11,7 @@
         {% endfor %}
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
+                    <button class="button is-warning">แก้ไขการ{{ req.quota.leave_type }}</button>
                     <form method="post">
                         <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                         <div class="field">
