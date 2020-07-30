@@ -10,9 +10,13 @@
         <p>{{ err }} : {{ msg }}</p>
         {% endfor %}
         <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">แบบฟอร์มขออนุมัติ{{ quota.leave_type }}</h1>
+            </div>
+        </div>
+        <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
-                    <button class="button is-warning">{{ quota.leave_type }}</button>
                     <b-notification type="is-info" has-icon>กรุณาเลือกวันหรือช่วงของวันที่ต้องการลา ทั้งนี้วันหยุดและเสาร์ อาทิตย์จะไม่ถือเป็นวันลา</b-notification>
                 <form method="post">
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">

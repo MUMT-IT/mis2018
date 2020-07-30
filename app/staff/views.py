@@ -96,6 +96,7 @@ def show_leave_info():
                                             StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
         if delta.years > 0:
             if max_cum_quota:
+                #TODO: deal with no last_quota
                 if last_quota:
                     last_year_quota = last_quota.last_year_quota
                 before_get_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
