@@ -93,12 +93,13 @@ def show_leave_info():
         delta = current_user.personal_info.get_employ_period()
         max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
         last_quota = StaffLeaveRemainQuota.query.filter(and_(StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                            StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
+                                            StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
         if delta.years > 0:
             if max_cum_quota:
-                #TODO: deal with no last_quota
                 if last_quota:
                     last_year_quota = last_quota.last_year_quota
+                else:
+                    last_year_quota = 0
                 before_get_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                 quota_limit = max_cum_quota if max_cum_quota < before_get_max_quota else before_get_max_quota
             else:
