@@ -6,6 +6,9 @@ from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from marshmallow import fields
 from app.models import OrgSchema
+from datetime import datetime, timedelta
+from app.main import get_weekdays
+import numpy as np
 
 
 def local_datetime(dt):
@@ -103,24 +106,27 @@ class StaffPersonalInfo(db.Model):
     def get_max_cum_quota_per_year(self, leave_quota):
         period = self.get_employ_period()
         if self.is_eligible_for_leave:
-            if period.years < 20:
+            if period.years < 10:
                 return leave_quota.cum_max_per_year1
             else:
                 return leave_quota.cum_max_per_year2
         else:
             return 0
 
-        def get_total_leaves(leave_quota_id, start_date=None, end_date=None):
-            total_leaves = []
-            for req in self.staff_account.leave_requests:
-                if req.quota_id == leave_quota_id:
-                    if start_date is None or end_date is None:
-                        total_leaves.append(req.duration)
-                    else:
-                        if req.start_date >= start_date and req.end_date <= end_date:
-                            total_leaves.append(req.duration)
-            return sum(total_leaves)
-            #return len([req for req in self.staff_account.leave_requests if req.quota_id == leave_quota_id])
+    def get_total_leaves(self, leave_quota_id, start_date=None, end_date=None):
+        total_leaves = []
+        for req in self.staff_account.leave_requests:
+            if req.quota.id == leave_quota_id:
+                if start_date is None or end_date is None:
+                    if not req.cancelled_at:
+                        total_leaves.append(req.total_leave_days)
+                else:
+                    if req.start_datetime >= start_date and req.end_datetime <= end_date:
+                        if not req.cancelled_at:
+                            total_leaves.append(req.total_leave_days)
+
+        return sum(total_leaves)
+        #return len([req for req in self.staff_account.leave_requests if req.quota_id == leave_quota_id])
 
 
 class StaffEduDegree(db.Model):
@@ -206,17 +212,7 @@ class StaffLeaveRequest(db.Model):
 
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     country = db.Column('country', db.String())
-
-    @property
-    def duration(self):
-        delta = self.end_datetime - self.start_datetime
-        if delta.days == 0:
-            if delta.seconds == 0:
-                return delta.days + 1
-            if delta.seconds/3600 < 8:
-                return 0.5
-        else:
-            return delta.days + 1
+    total_leave_days = db.Column('total_leave_days', db.Float())
 
     @property
     def get_approved(self):
@@ -234,6 +230,17 @@ class StaffLeaveRequest(db.Model):
         else:
             return u'วันที่ {}'.format(local_datetime(self.start_datetime))
 
+
+class StaffLeaveRemainQuota(db.Model):
+    _tablename_ = 'staff_leave_remain_quota'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    leave_quota_id = db.Column('leave_quota_id', db.ForeignKey('staff_leave_quota.id'))
+    year = db.Column('year', db.Integer())
+    last_year_quota = db.Column('last_year_quota', db.Float())
+    staff = db.relationship('StaffAccount',
+                            backref=db.backref('remain_quota'))
+    quota = db.relationship('StaffLeaveQuota', backref=db.backref('leave_quota'))
 
 
 class StaffLeaveApprover(db.Model):
@@ -256,7 +263,7 @@ class StaffLeaveApproval(db.Model):
     approver_id = db.Column('approver_id', db.ForeignKey('staff_leave_approvers.id'))
     is_approved = db.Column('is_approved', db.Boolean(), default=False)
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
-    request  = db.relationship('StaffLeaveRequest', backref=db.backref('approvals'))
+    request = db.relationship('StaffLeaveRequest', backref=db.backref('approvals'))
     approver = db.relationship('StaffLeaveApprover',
                                backref=db.backref('approved_requests'))
 
@@ -374,3 +381,4 @@ class StaffWorkFromHomeRequestSchema(ma.ModelSchema):
     class Meta:
         model = StaffWorkFromHomeRequest
     duration = fields.Int()
+

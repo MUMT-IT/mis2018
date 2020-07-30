@@ -11,6 +11,7 @@
         {% endfor %}
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
+                    <button class="button is-warning">แก้ไขการ{{ req.quota.leave_type }}</button>
                     <form method="post">
                         <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                         <div class="field">
@@ -82,7 +83,7 @@
                                 <input type="submit" value="submit" class="button is-primary"/>
                             </div>
                             <div class="control">
-                                <a href="{{ request.referrer }}" class="button is-danger">Cancel</a>
+                                <a href="{{ url_for('staff.request_for_leave_info', quota_id=req.quota.id) }}" class="button is-danger">Cancel</a>
                             </div>
                         </div>
                     </form>

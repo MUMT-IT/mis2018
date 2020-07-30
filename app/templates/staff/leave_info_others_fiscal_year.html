@@ -3,9 +3,7 @@
 {% block page_content %}
 <section class="section" id="app">
     <div class="container">
-        <h1 class="title">{{ quota.leave_type }}
-            <a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ลาเต็มวัน</a>
-            <a class="button is-rounded is-warning is-light" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ลาครึ่งวัน</a>
+        <h1 class="title">{{ quota.leave_type }} {{ fiscal_year }}
         </h1>
         <h4 class="subtitle">{{ current_user.personal_info }} สถานะการจ้าง {{ current_user.personal_info.employment.title }} </h4>
         <div class="table-container">
@@ -77,27 +75,13 @@
             {% endfor %}
             </tbody>
         </table>
-            *หากการลาได้รับอนุมัติจากผู้บังคับบัญชาแล้ว จะไม่สามารถแก้ไขได้
         </div>
-        <a class="button is-rounded is-info is-light" href="{{ url_for('staff.show_leave_info') }}">
+        <a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave_info', quota_id=quota.id) }}">
              <span class="icon">
                 <i class="fas fa-arrow-left"></i>
             </span>
-            <span>กลับหน้าการลา</span>
+            <span>กลับ</span>
         </a>
-         <b-dropdown hoverable aria-role="list">
-            <button class="button is-info" slot="trigger">
-                <span>ปีงบประมาณอื่น</span>
-                <b-icon icon="menu-down"></b-icon>
-            </button>
-             {% for fy in fiscal_years %}
-            <b-dropdown-item aria-role="listitem" href="
-                            {{ url_for('staff.request_for_leave_info_others_fiscal',
-                                            quota_id=quota.id, fiscal_year=fy) }}">
-                            ปีงบประมาณ {{ fy+543 }}</b-dropdown-item>
-             {% endfor %}
-        </b-dropdown>
-
     </div>
 </section>
 {% endblock %}
