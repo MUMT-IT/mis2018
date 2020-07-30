@@ -15,6 +15,7 @@
     <thead>
     <th>วันที่เริ่มลา</th>
     <th>วันที่สิ้นสุดลา</th>
+    <th>จำนวนวัน</th>
     <th>ประเภท</th>
     <th>สถานะการอนุมัติ</th>
     </thead>
@@ -23,13 +24,19 @@
     {% if not requester.cancelled_at and requester.get_approved or requester.get_unapproved %}
         <tr>
             <td>
-                {{ requester.start_datetime|localdatetime }}
+                {{ requester.start_datetime|localdate }}
             </td>
             <td>
-                {{ requester.end_datetime|localdatetime }}
+                {{ requester.end_datetime|localdate }}
             </td>
             <td>
+                {{ requester.total_leave_days }}
+            </td>
+            <td>
+                <a href="{{ url_for('staff.record_each_request_leave_request', request_id=requester.id) }}"
+                                                                                class="is-info is-light">
                 {{ requester.quota.leave_type }}
+                </a>
             </td>
             <td>
                 {% if requester.approvals %}
@@ -55,7 +62,7 @@
     </tbody>
 </table>
 
-    <a href="{{ request.referrer }}" class="button is-rounded is-info is-light">
+    <a href="{{ url_for('staff.show_leave_approval_info') }}" class="button is-rounded is-info is-light">
         <span class="icon">
             <i class="fas fa-arrow-left"></i>
         </span>

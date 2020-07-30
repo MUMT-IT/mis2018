@@ -25,10 +25,10 @@
                 {{ leave_req.created_at|localdatetime}}
             </td>
             <td>
-                [{{ leave_req.quota.leave_type}}] ตั้งแต่ {{ leave_req.start_datetime|localdatetime }} ({{ leave_req.duration }} วัน)
+                [{{ leave_req.quota.leave_type}}] ตั้งแต่ {{ leave_req.start_datetime|localdatetime }} ({{ leave_req.total_leave_days }} วัน)
             </td>
             {% if leave_req.approvals|length %}
-            <td>ความเห็นผู้บังคับบัญชา:
+            <td>
                 {% for ap in leave_req.approvals %}
                     {{ ap.approver.account.personal_info.fullname }}
                     {% if ap.is_approved %}

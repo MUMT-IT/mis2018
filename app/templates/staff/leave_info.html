@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% include "nav.html" %}
 {% block page_content %}
-<section class="section">
+<section class="section" id="app">
     <div class="container">
         <h1 class="title">Welcome {{ current_user.personal_info }}</h1>
         <h4 class="subtitle">สถานะการจ้าง {{ current_user.personal_info.employment.title }}</h4>
@@ -15,9 +15,11 @@
             {% for type,quota in quota_days.iteritems() %}
             <tr>
                 <td>
+                    <b-tooltip label="คลิ๊กเพื่อดูประวัติ" type="is-light">
                     <a href="{{ url_for('staff.request_for_leave_info', quota_id=quota.id) }}">
                        {{ type }}
                     </a>
+                    </b-tooltip>
                 </td>
                 <td>{{ cum_days[type] }} ({{ quota.limit }})</td>
                 {% if quota.limit - cum_days[type] > 0 %}
@@ -35,4 +37,12 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+    });
+</script>
 {% endblock %}
