@@ -19,7 +19,8 @@
                 </div>
             </div>
             <div class="columns">
-                <b-table :data="fltRecords"
+                <div class="column">
+                    <b-table :data="fltRecords"
                              :paginated="true"
                              :per-page="10"
                              :loading="isLoading"
@@ -51,6 +52,7 @@
                         </b-table-column>
                     </template>
                 </b-table>
+                </div>
             </div>
         </div>
     </div>
