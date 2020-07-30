@@ -44,7 +44,7 @@
                             <% moment(props.row.end_datetime.toLocaleString({timeZone: 'UTC'})).format("LLL") %>
                         </b-table-column>
                         <b-table-column field="duration" label="รวม(วัน)" sortable>
-                            <% props.row.duration %>
+                            <% props.row.total_leave_days %>
                         </b-table-column>
                         <b-table-column field="country" label="ประเทศ" sortable>
                             <% props.row.country %>
