@@ -169,9 +169,11 @@ def request_for_leave(quota_id=None):
                             else:
                                 last_quota = StaffLeaveRemainQuota.query.filter(and_
                                         (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                        StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
+                                        StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
                                 if last_quota:
                                     last_year_quota = last_quota.last_year_quota
+                                else:
+                                    last_year_quota = 0
                                 before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                                 quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
                         else:
@@ -236,12 +238,14 @@ def request_for_leave_period(quota_id=None):
                 delta = current_user.personal_info.get_employ_period()
                 last_quota = StaffLeaveRemainQuota.query.filter(and_
                                                                 (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                                    StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
+                                                    StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
                 max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
                 if delta.years > 0:
                     if max_cum_quota:
                         if last_quota:
                             last_year_quota = last_quota.last_year_quota
+                        else:
+                            last_year_quota = 0
                         before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                         quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
                     else:
@@ -286,9 +290,28 @@ def request_for_leave_info(quota_id=None):
             fiscal_years.add(leave.start_datetime.year + 1)
         else:
             fiscal_years.add(leave.start_datetime.year)
-    requester = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id)
+    used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
+                                                                 tz.localize(END_FISCAL_DATE))
 
-    return render_template('staff/request_info.html', leaves=leaves, reqester=requester, quota=quota, fiscal_years=fiscal_years)
+    delta = current_user.personal_info.get_employ_period()
+    max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
+    if delta.years > 0:
+        if max_cum_quota:
+            last_quota = StaffLeaveRemainQuota.query.filter(and_
+                            (StaffLeaveRemainQuota.leave_quota_id == quota.id,
+                            StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
+            if last_quota:
+                last_year_quota = last_quota.last_year_quota
+            else:
+                last_year_quota = 0
+            before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
+            quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+        else:
+            quota_limit = quota.max_per_year
+    else:
+        quota_limit = quota.first_year
+    return render_template('staff/request_info.html', leaves=leaves, quota=quota,
+                           fiscal_years=fiscal_years, quota_limit=quota_limit, used_quota=used_quota)
 
 
 @staff.route('/leave/request/info/<int:quota_id>/others_year/<int:fiscal_year>')
@@ -366,9 +389,11 @@ def edit_leave_request(req_id=None):
                         else:
                             last_quota = StaffLeaveRemainQuota.query.filter(and_
                                         (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                        StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
+                                        StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
                             if last_quota:
                                 last_year_quota = last_quota.last_year_quota
+                            else:
+                                last_year_quota = 0
                             before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                             quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
                     else:
@@ -428,12 +453,14 @@ def edit_leave_request_period(req_id=None):
             delta = current_user.personal_info.get_employ_period()
             last_quota = StaffLeaveRemainQuota.query.filter(and_
                                                             (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                                             StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
+                                                             StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
             max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
             if delta.years > 0:
                 if max_cum_quota:
                     if last_quota:
                         last_year_quota = last_quota.last_year_quota
+                    else:
+                        last_year_quota = 0
                     before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                     quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
                 else:
