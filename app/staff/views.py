@@ -649,7 +649,6 @@ def request_work_from_home():
         start_dt, end_dt = form.get('dates').split(' - ')
         start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
         end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
-        delta = start_datetime.date() - datetime.today().date()
         req = StaffWorkFromHomeRequest(
             staff=current_user,
             start_datetime=tz.localize(start_datetime),
@@ -869,7 +868,10 @@ def comment_wfh_request(request_id, check_id):
     checkjob = StaffWorkFromHomeCheckedJob.query.get(check_id)
     if request.method == 'POST':
         checkjob.id = check_id,
-        checkjob.approval_comment = request.form.get('approval_comment'),
+        if not checkjob.approval_comment:
+            checkjob.approval_comment = request.form.get('approval_comment')
+        else:
+            checkjob.approval_comment += "," + request.form.get('approval_comment')
         checkjob.checked_at = tz.localize(datetime.today()),
         checkjob.approver_id = current_user.id
         db.session.add(checkjob)
