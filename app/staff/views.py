@@ -866,14 +866,15 @@ def add_overall_result_work_from_home(request_id):
 @login_required
 def comment_wfh_request(request_id, check_id):
     checkjob = StaffWorkFromHomeCheckedJob.query.get(check_id)
+    approval = StaffWorkFromHomeApproval.query.filter(and_(StaffWorkFromHomeApproval.request_id==request_id,
+                                                StaffWorkFromHomeApproval.approver.has(account=current_user))).first()
     if request.method == 'POST':
         checkjob.id = check_id,
-        if not checkjob.approval_comment:
-            checkjob.approval_comment = request.form.get('approval_comment')
+        if not approval.approval_comment:
+            approval.approval_comment = request.form.get('approval_comment')
         else:
-            checkjob.approval_comment += "," + request.form.get('approval_comment')
-        checkjob.checked_at = tz.localize(datetime.today()),
-        checkjob.approver_id = current_user.id
+            approval.approval_comment += "," + request.form.get('approval_comment')
+        approval.checked_at = tz.localize(datetime.today())
         db.session.add(checkjob)
         db.session.commit()
         return redirect(url_for('staff.show_wfh_requests_for_approval'))
@@ -882,7 +883,8 @@ def comment_wfh_request(request_id, check_id):
         req = StaffWorkFromHomeRequest.query.get(request_id)
         job_detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
         check = StaffWorkFromHomeCheckedJob.query.filter_by(id=check_id)
-        return render_template('staff/wfh_approval_comment.html', req=req, job_detail=job_detail, checkjob=check)
+        return render_template('staff/wfh_approval_comment.html', req=req, job_detail=job_detail,
+                               checkjob=check)
 
 
 @staff.route('wfh/<int:request_id>/record/info',
@@ -892,7 +894,8 @@ def record_each_request_wfh_request(request_id):
     req = StaffWorkFromHomeRequest.query.get(request_id)
     job_detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
     check = StaffWorkFromHomeCheckedJob.query.filter_by(request_id=request_id)
-    return render_template('staff/wfh_record_info_each_request.html', req=req, job_detail=job_detail, checkjob=check)
+    return render_template('staff/wfh_record_info_each_request.html', req=req, job_detail=job_detail,
+                           checkjob=check)
 
 
 @staff.route('/wfh/requests/list',
