@@ -1,10 +1,29 @@
 {% extends "base.html" %}
+{% block head %}
+{{ super() }}
+<style>
+    div.dataTables_wrapper {
+        width: 1000px;
+        margin: 0 auto;
+    }
+</style>
+{% endblock %}
 {% block title %}Chemicals Database{% endblock %}
 {% include "chemdb/nav.html" %}
 {% block page_content %}
     <section class="section">
     <div class="container">
-        <h1 class="title">Chemicals</h1>
+        <div class="has-text-centered">
+            <h1 class="title">Chemicals Stock</h1>
+            <a href="{{ url_for('chemdb.add_item') }}" class="button is-success">
+            <span class="icon">
+                <i class="fas fa-plus-circle"></i>
+            </span>
+                <span>
+                เพิ่มรายการใหม่
+            </span>
+            </a>
+        </div>
         <table class="table is-striped" id="table">
             <thead>
                 <th>No.</th>
@@ -19,19 +38,20 @@
                 <th>Location</th>
                 <th>Contact Person</th>
                 <th>Email</th>
+                <th></th>
             </thead>
             <tbody>
                 {% for item in items %}
                     <tr>
                         <td>{{ loop.index }}</td>
-                        <td>{{ item.desc|upper }}</td>
+                        <td>{{ item.name|upper }}</td>
                         <td>{{ item.desc|upper }}</td>
                         <td>{{ item.company_code }}</td>
                         <td>{{ item.vendor }}</td>
                         <td>{{ item.cas }}</td>
                         <td>{{ item.container_size }}</td>
                         <td>{{ item.container_unit }}</td>
-                        <td>{{ item.expiration_date }}</td>
+                        <td>{{ item.expire_date }}</td>
                         <td>{{ item.location }}</td>
                         {% if item.contact %}
                             <td>{{ item.contact.personal_info.en_firstname }} {{ item.contact.personal_info.en_lastname }}</td>
@@ -40,6 +60,13 @@
                             <td></td>
                             <td></td>
                         {% endif %}
+                        <td>
+                            <a href="{{ url_for('chemdb.edit_item', item_id=item.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </span>
+                            </a>
+                        </td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -51,7 +78,11 @@
     {{ super() }}
     <script>
         $(document).ready(function() {
-            $('#table').DataTable();
+            $('#table').DataTable({
+                "scrollY": 600,
+                "scrollX": true,
+                "pageLength": 50,
+            });
         });
     </script>
 {% endblock %}
