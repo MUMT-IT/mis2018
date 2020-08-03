@@ -89,8 +89,8 @@
                                  <label class="label">ความคิดเห็นหัวหน้างาน</label>
                             </td>
                             <td>
-                                {% for checkjob in checkjob %}
-                                {{ checkjob.approval_comment }}
+                                {% for approval in req.wfh_approvals %}
+                                {{ approval.approval_comment }}
                                 {% endfor %}
                             </td>
                         </tr>
