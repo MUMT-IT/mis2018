@@ -7,7 +7,9 @@
             <div class="columns">
                 <div class="column is-half is-offset-one-quarter">
                     <div class="control">
-                        <a href="{{ url_for('staff.wfh_request_info') }}" class="button is-primary">ค้นหาจากชื่อ/สังกัด</a>
+                        <div class="column">
+                            <a href="{{ url_for('staff.wfh_request_info') }}" class="button is-primary">ค้นหาจากชื่อ/สังกัด</a>
+                        </div>
                     </div>
                 <div class="box">
                 <form method="post">
@@ -33,7 +35,7 @@
                             <input type="submit" value="search" class="button is-info"/>
                     </div>
                     <div class="control">
-                            <a href="{{ request.referrer }}" class="button is-danger">Cancel</a>
+                        <a href="{{ url_for('staff.for_hr') }}" class="button is-danger">Cancel</a>
                     </div>
                 </div>
                 </form>

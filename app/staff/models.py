@@ -222,15 +222,6 @@ class StaffLeaveRequest(db.Model):
     def get_unapproved(self):
         return [a for a in self.approvals if a.is_approved==False]
 
-    def __str__(self):
-        if self.duration > 1:
-            return u'วันที่ {} ถึงวันที่ {}'.format(
-                local_datetime(self.start_datetime),
-                local_datetime(self.end_datetime))
-        else:
-            return u'วันที่ {}'.format(local_datetime(self.start_datetime))
-
-
 class StaffLeaveRemainQuota(db.Model):
     _tablename_ = 'staff_leave_remain_quota'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -356,6 +347,8 @@ class StaffWorkFromHomeApproval(db.Model):
     approver_id = db.Column('approver_id', db.ForeignKey('staff_work_from_home_approvers.id'))
     is_approved = db.Column('is_approved', db.Boolean(), default=False)
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    approval_comment = db.Column('approval_comment', db.String())
+    checked_at = db.Column('check_at', db.DateTime(timezone=True))
     request = db.relationship('StaffWorkFromHomeRequest', backref=db.backref('wfh_approvals'))
     approver = db.relationship('StaffWorkFromHomeApprover',
                                backref=db.backref('wfh_approved_requests'))
@@ -365,15 +358,14 @@ class StaffWorkFromHomeCheckedJob(db.Model):
     __tablename__ = 'staff_work_from_home_checked_job'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     overall_result = db.Column('overall_result', db.String())
-    approval_comment = db.Column('approval_comment', db.String())
     request_id = db.Column('request_id', db.ForeignKey('staff_work_from_home_requests.id'))
-    approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
     finished_at = db.Column('finish_at', db.DateTime(timezone=True))
-    checked_at = db.Column('check_at', db.DateTime(timezone=True))
-    wfh_request_id = db.relationship('StaffWorkFromHomeRequest',
-                            backref=db.backref('wfh_request'))
-    approval_account = db.relationship('StaffAccount',
-                              foreign_keys=[approver_id])
+    request = db.relationship('StaffWorkFromHomeRequest', backref=db.backref('checked_jobs'))
+
+    def check_comment(self, account_id):
+        for approval in self.request.wfh_approvals:
+            if approval.approver.account.id == account_id:
+                return approval.approval_comment
 
 
 class StaffWorkFromHomeRequestSchema(ma.ModelSchema):

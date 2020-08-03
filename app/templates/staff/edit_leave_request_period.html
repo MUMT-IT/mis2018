@@ -9,9 +9,13 @@
         {% for err, msg in errors.iteritems() %}
         <p>{{ err }} : {{ msg }}</p>
         {% endfor %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">แบบฟอร์มขออนุมัติ{{ req.quota.leave_type }}</h1>
+            </div>
+        </div>
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
-                    <button class="button is-warning">แก้ไขการ{{ req.quota.leave_type }}</button>
                     <form method="post">
                         <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                         <div class="field">

@@ -93,12 +93,13 @@ def show_leave_info():
         delta = current_user.personal_info.get_employ_period()
         max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
         last_quota = StaffLeaveRemainQuota.query.filter(and_(StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                            StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
+                                            StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
         if delta.years > 0:
             if max_cum_quota:
-                #TODO: deal with no last_quota
                 if last_quota:
                     last_year_quota = last_quota.last_year_quota
+                else:
+                    last_year_quota = 0
                 before_get_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                 quota_limit = max_cum_quota if max_cum_quota < before_get_max_quota else before_get_max_quota
             else:
@@ -168,9 +169,11 @@ def request_for_leave(quota_id=None):
                             else:
                                 last_quota = StaffLeaveRemainQuota.query.filter(and_
                                         (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                        StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
+                                        StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
                                 if last_quota:
                                     last_year_quota = last_quota.last_year_quota
+                                else:
+                                    last_year_quota = 0
                                 before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                                 quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
                         else:
@@ -235,12 +238,14 @@ def request_for_leave_period(quota_id=None):
                 delta = current_user.personal_info.get_employ_period()
                 last_quota = StaffLeaveRemainQuota.query.filter(and_
                                                                 (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                                    StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
+                                                    StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
                 max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
                 if delta.years > 0:
                     if max_cum_quota:
                         if last_quota:
                             last_year_quota = last_quota.last_year_quota
+                        else:
+                            last_year_quota = 0
                         before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                         quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
                     else:
@@ -285,9 +290,28 @@ def request_for_leave_info(quota_id=None):
             fiscal_years.add(leave.start_datetime.year + 1)
         else:
             fiscal_years.add(leave.start_datetime.year)
-    requester = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id)
+    used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
+                                                                 tz.localize(END_FISCAL_DATE))
 
-    return render_template('staff/request_info.html', leaves=leaves, reqester=requester, quota=quota, fiscal_years=fiscal_years)
+    delta = current_user.personal_info.get_employ_period()
+    max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
+    if delta.years > 0:
+        if max_cum_quota:
+            last_quota = StaffLeaveRemainQuota.query.filter(and_
+                            (StaffLeaveRemainQuota.leave_quota_id == quota.id,
+                            StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
+            if last_quota:
+                last_year_quota = last_quota.last_year_quota
+            else:
+                last_year_quota = 0
+            before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
+            quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+        else:
+            quota_limit = quota.max_per_year
+    else:
+        quota_limit = quota.first_year
+    return render_template('staff/request_info.html', leaves=leaves, quota=quota,
+                           fiscal_years=fiscal_years, quota_limit=quota_limit, used_quota=used_quota)
 
 
 @staff.route('/leave/request/info/<int:quota_id>/others_year/<int:fiscal_year>')
@@ -365,9 +389,11 @@ def edit_leave_request(req_id=None):
                         else:
                             last_quota = StaffLeaveRemainQuota.query.filter(and_
                                         (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                        StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
+                                        StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
                             if last_quota:
                                 last_year_quota = last_quota.last_year_quota
+                            else:
+                                last_year_quota = 0
                             before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                             quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
                     else:
@@ -427,12 +453,14 @@ def edit_leave_request_period(req_id=None):
             delta = current_user.personal_info.get_employ_period()
             last_quota = StaffLeaveRemainQuota.query.filter(and_
                                                             (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                                             StaffLeaveRemainQuota.year == START_FISCAL_DATE.year - 1)).first()
+                                                             StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
             max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
             if delta.years > 0:
                 if max_cum_quota:
                     if last_quota:
                         last_year_quota = last_quota.last_year_quota
+                    else:
+                        last_year_quota = 0
                     before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
                     quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
                 else:
@@ -621,7 +649,6 @@ def request_work_from_home():
         start_dt, end_dt = form.get('dates').split(' - ')
         start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
         end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
-        delta = start_datetime.date() - datetime.today().date()
         req = StaffWorkFromHomeRequest(
             staff=current_user,
             start_datetime=tz.localize(start_datetime),
@@ -839,11 +866,15 @@ def add_overall_result_work_from_home(request_id):
 @login_required
 def comment_wfh_request(request_id, check_id):
     checkjob = StaffWorkFromHomeCheckedJob.query.get(check_id)
+    approval = StaffWorkFromHomeApproval.query.filter(and_(StaffWorkFromHomeApproval.request_id==request_id,
+                                                StaffWorkFromHomeApproval.approver.has(account=current_user))).first()
     if request.method == 'POST':
         checkjob.id = check_id,
-        checkjob.approval_comment = request.form.get('approval_comment'),
-        checkjob.checked_at = tz.localize(datetime.today()),
-        checkjob.approver_id = current_user.id
+        if not approval.approval_comment:
+            approval.approval_comment = request.form.get('approval_comment')
+        else:
+            approval.approval_comment += "," + request.form.get('approval_comment')
+        approval.checked_at = tz.localize(datetime.today())
         db.session.add(checkjob)
         db.session.commit()
         return redirect(url_for('staff.show_wfh_requests_for_approval'))
@@ -852,7 +883,8 @@ def comment_wfh_request(request_id, check_id):
         req = StaffWorkFromHomeRequest.query.get(request_id)
         job_detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
         check = StaffWorkFromHomeCheckedJob.query.filter_by(id=check_id)
-        return render_template('staff/wfh_approval_comment.html', req=req, job_detail=job_detail, checkjob=check)
+        return render_template('staff/wfh_approval_comment.html', req=req, job_detail=job_detail,
+                               checkjob=check)
 
 
 @staff.route('wfh/<int:request_id>/record/info',
@@ -862,7 +894,8 @@ def record_each_request_wfh_request(request_id):
     req = StaffWorkFromHomeRequest.query.get(request_id)
     job_detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
     check = StaffWorkFromHomeCheckedJob.query.filter_by(request_id=request_id)
-    return render_template('staff/wfh_record_info_each_request.html', req=req, job_detail=job_detail, checkjob=check)
+    return render_template('staff/wfh_record_info_each_request.html', req=req, job_detail=job_detail,
+                           checkjob=check)
 
 
 @staff.route('/wfh/requests/list',

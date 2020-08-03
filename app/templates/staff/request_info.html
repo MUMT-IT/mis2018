@@ -77,7 +77,19 @@
             {% endfor %}
             </tbody>
         </table>
-            *หากการลาได้รับอนุมัติจากผู้บังคับบัญชาแล้ว จะไม่สามารถแก้ไขได้
+            <hr>
+            <span>*หากการลาได้รับอนุมัติจากผู้บังคับบัญชาแล้ว จะไม่สามารถแก้ไขได้</span>
+        </div>
+
+        <div class="columns">
+            <div class="column has-text-right">
+                <span>วันลาสะสม  {{ quota_limit }} วันทำการ</span>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-right">
+                <span>ลามาแล้ว {{ used_quota }} วันทำการ</span>
+            </div>
         </div>
         <a class="button is-rounded is-info is-light" href="{{ url_for('staff.show_leave_info') }}">
              <span class="icon">
