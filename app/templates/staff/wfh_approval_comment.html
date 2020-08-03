@@ -94,11 +94,11 @@
                                  <label class="label">ความคิดเห็นจากหัวหน้าท่านอื่น</label>
                             </td>
                             <td>
-                                {% for checkjob in checkjob %}
-                                {% if checkjob.approval_comment %}
-                                <p>{{ checkjob.approval_comment }}</p>
+                                {% for approval in req.wfh_approvals %}
+                                {% if approval.approval_comment %}
+                                    <p>{{ approval.approval_comment }}</p>
                                 {% else %}
-                                <p>ยังไม่มีความคิดเห็นจากท่านอื่น</p>
+                                    <p>ยังไม่มีความคิดเห็นจากท่านอื่น</p>
                                 {% endif %}
                                 {% endfor %}
                             </td>
