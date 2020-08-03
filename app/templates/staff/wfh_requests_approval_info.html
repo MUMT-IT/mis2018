@@ -75,8 +75,7 @@
 <h4 class="subtitle">รายงานผลการทำงาน</h4>
 <table class="table is-bordered">
     <tbody>
-    {% for checkjob in checkjob %}
-    {% if not checkjob.approver_id %}
+    {% for checkjob in checkjob |sort(attribute='finished_at')%}
         <tr>
             <td>
                 <a href="{{ url_for('staff.comment_wfh_request', request_id=checkjob.request_id,
@@ -88,7 +87,6 @@
                 {{ checkjob.wfh_request_id.staff.personal_info }}
             </td>
         </tr>
-    {% endif %}
     {% endfor %}
     </tbody>
 </table>
