@@ -222,15 +222,6 @@ class StaffLeaveRequest(db.Model):
     def get_unapproved(self):
         return [a for a in self.approvals if a.is_approved==False]
 
-    def __str__(self):
-        if self.duration > 1:
-            return u'วันที่ {} ถึงวันที่ {}'.format(
-                local_datetime(self.start_datetime),
-                local_datetime(self.end_datetime))
-        else:
-            return u'วันที่ {}'.format(local_datetime(self.start_datetime))
-
-
 class StaffLeaveRemainQuota(db.Model):
     _tablename_ = 'staff_leave_remain_quota'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
