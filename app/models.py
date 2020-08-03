@@ -241,4 +241,10 @@ class OrgSchema(ma.ModelSchema):
         model = Org
 
 
+class Holidays(db.Model):
+    __tablename__ = 'holidays'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    holiday_date = db.Column('holiday_date', db.DateTime(timezone=True))
+    holiday_name = db.Column('holiday_name', db.String())
+
 

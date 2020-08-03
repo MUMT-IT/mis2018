@@ -64,7 +64,7 @@
                             <a class="button is-rounded is-light is-light"
                                @click="confirmWFHJobDetailDelete({{ detail.id }})">
                                 <span class="icon">
-                                    <i class="fas fa-trash"></i>
+                                    <i class="fas fa-trash has-text-danger"></i>
                                 </span>
                             </a>
                         </b-tooltip>
@@ -72,7 +72,7 @@
                             <a href="{{ url_for('staff.edit_wfh_job_detail', request_id=wfhreq.id,
                                 detail_id=detail.id) }}" class="button is-rounded is-warning is-light">
                                 <span class="icon">
-                                    <i class="fas fa-edit has-text-red"></i>
+                                    <i class="fas fa-pencil-alt"></i>
                                 </span>
                             </a>
                         </b-tooltip>
@@ -91,7 +91,7 @@
                        <form method="post">
                         <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                         <b-field label="เพิ่ม" :label-position="labelPosition">
-                            <b-input placeholder="กิจกรรม" type="search" name="activity"></b-input>
+                            <b-input placeholder="กิจกรรม" type="search" name="activity" expanded></b-input>
                             <button class="button is-primary" type="submit"><b-icon pack="fas" icon="plus"></b-icon>
                             </button>
                         </b-field>
@@ -115,7 +115,7 @@
             <span class="icon">
                 <i class="fas fa-arrow-left"></i>
             </span>
-            กลับ
+            <span>กลับ</span>
         </a>
         </div>
     </div>

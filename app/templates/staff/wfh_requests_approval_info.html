@@ -30,11 +30,26 @@
                 <td>
                     {{ wfh_req.start_datetime|localdate }} ({{ wfh_req.duration }} วัน)
                 </td>
-                <td>ความเห็นผู้บังคับบัญชา:
-                {% for ap in wfh_req.wfh_approvals %}
-                    {{ ap.approver.account.personal_info.fullname }} ({{ ap.is_approved }})
-                {% endfor %}
+                {% if wfh_req.wfh_approvals|length %}
+                <td>
+                    {% for ap in wfh_req.wfh_approvals %}
+                        {{ ap.approver.account.personal_info.fullname }}
+                        {% if ap.is_approved %}
+                        <span class="icon">
+                            <i class="fas has-text-success fa-check-circle"></i>
+                        </span>
+                        {% else %}
+                        <span class="icon">
+                            <i class="far has-text-danger fa-times-circle"></i>
+                        </span>
+                        {% endif %}
+                    {% endfor %}
                 </td>
+                {% else %}
+                <td>
+                    รอผลอนุมัติ
+                </td>
+                {% endif %}
                 <td>
                 <a href="{{ url_for('staff.pending_wfh_request_for_approval', req_id=wfh_req.id) }}"
                                                             class="button is-info is-rounded is-light">
@@ -104,7 +119,7 @@
             <span class="icon">
                 <i class="fas fa-arrow-left"></i>
             </span>
-            กลับ
+            <span>กลับ</span>
     </a>
     </div>
     </div>

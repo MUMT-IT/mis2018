@@ -15,6 +15,7 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from wtforms.validators import required
+from datetime import timedelta
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -57,6 +58,28 @@ def create_app():
 
 
 app = create_app()
+
+
+def get_weekdays(req):
+    delta = req.end_datetime - req.start_datetime
+    n = 0
+    weekdays = 0
+    while n <= delta.days:
+        d = req.start_datetime + timedelta(n)
+        if d.weekday() < 5:
+            #if holidays and d not in holidays:
+            weekdays += 1
+        n += 1
+    if delta.days == 0:
+        if delta.seconds == 0:
+            return weekdays
+        if delta.seconds/3600 < 8:
+            if weekdays == 0:
+                return 0
+            else:
+                return 0.5
+    else:
+        return weekdays
 
 
 @login.user_loader
@@ -125,7 +148,7 @@ from staff.models import (StaffAccount, StaffPersonalInfo,
                           StaffLeaveApproval, StaffEmployment,
                           StaffWorkFromHomeRequest, StaffWorkFromHomeJobDetail,
                           StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
-                          StaffWorkFromHomeCheckedJob)
+                          StaffWorkFromHomeCheckedJob, StaffLeaveRemainQuota)
 
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
@@ -140,6 +163,7 @@ admin.add_views(ModelView(StaffWorkFromHomeJobDetail, db.session, category='Staf
 admin.add_views(ModelView(StaffWorkFromHomeApprover, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkFromHomeApproval, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkFromHomeCheckedJob, db.session, category='Staff'))
+admin.add_views(ModelView(StaffLeaveRemainQuota, db.session, category='Staff'))
 
 from room_scheduler import roombp as room_blueprint
 
@@ -167,7 +191,8 @@ app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
 from models import (Student, Class, ClassCheckIn,
                     Org, Mission, IOCode, CostCenter,
-                    StudentCheckInRecord)
+                    StudentCheckInRecord, Holidays)
+admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
 
 from line import linebot_bp as linebot_blueprint
 
@@ -466,6 +491,12 @@ def check_wfh_approval(wfh_request, approver_id):
     else:
         return False
 
+
+
+
+@app.template_filter("getweekdays")
+def count_weekdays(req):
+    return get_weekdays(req)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host="0.0.0.0")

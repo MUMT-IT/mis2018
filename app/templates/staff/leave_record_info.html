@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <table class="table">
+                        <tr>
+                            <td>
+                                {{ req.created_at|localdatetime }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">เรื่อง</label>
+                            </td>
+                            <td>
+                                {{ req.quota.leave_type }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">ชื่อ</label>
+                            </td>
+                            <td>
+                                {{ req.staff.personal_info }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">สังกัด</label>
+                            </td>
+                            <td>
+                                {{ req.staff.personal_info.org }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">เริ่มลา</label>
+                            </td>
+                            <td>
+                                {{ req.start_datetime|localdatetime }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">สิ้นสุด</label>
+                            </td>
+                            <td>
+                                {{ req.end_datetime|localdatetime }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">จำนวนวัน</label>
+                            </td>
+                            <td>
+                                {{ req.total_leave_days }} วัน
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">เหตุผล</label>
+                            </td>
+                            <td>
+                                {{ req.reason }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">ติดต่อได้ที่</label>
+                            </td>
+                            <td>
+                                {{ req.contact_phone }}
+                            </td>
+                            <td>
+                                {{ req.contact_address }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">ประเทศ (กรณีลาไปต่างประเทศ)</label>
+                            </td>
+                            <td>
+                                {{ req.country }}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <hr>
+                    <a href="{{ request.referrer }}" class="button is-info is-light is-rounded">กลับ</a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
