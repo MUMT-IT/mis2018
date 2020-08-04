@@ -27,6 +27,7 @@
         <table class="table is-striped" id="table">
             <thead>
                 <th>No.</th>
+                <th></th>
                 <th>Name</th>
                 <th>Description</th>
                 <th>Company Code</th>
@@ -38,12 +39,18 @@
                 <th>Location</th>
                 <th>Contact Person</th>
                 <th>Email</th>
-                <th></th>
             </thead>
             <tbody>
                 {% for item in items %}
                     <tr>
                         <td>{{ loop.index }}</td>
+                        <td>
+                            <a href="{{ url_for('chemdb.edit_item', item_id=item.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </span>
+                            </a>
+                        </td>
                         <td>{{ item.name|upper }}</td>
                         <td>{{ item.desc|upper }}</td>
                         <td>{{ item.company_code }}</td>
@@ -60,14 +67,8 @@
                             <td></td>
                             <td></td>
                         {% endif %}
-                        <td>
-                            <a href="{{ url_for('chemdb.edit_item', item_id=item.id) }}">
-                                <span class="icon">
-                                    <i class="fas fa-pencil-alt"></i>
-                                </span>
-                            </a>
-                        </td>
                     </tr>
+                
                 {% endfor %}
             </tbody>
         </table>
