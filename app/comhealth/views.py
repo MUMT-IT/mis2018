@@ -1510,8 +1510,6 @@ def create_receipt(record_id):
                                        reimbursable=reimbursable,
                                        visible=visible)
             db.session.add(invoice)
-        receipt_code.count += 1
-        db.session.add(receipt_code)
         db.session.commit()
         return redirect(url_for('comhealth.list_all_receipts', record_id=record.id))
 
