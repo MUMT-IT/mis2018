@@ -64,7 +64,7 @@
                 return {
                     data: [],
                     total: 0,
-                    loading: false,
+                    loading: true,
                     page: 1,
                     perPage: 20
                 }
@@ -76,6 +76,7 @@
                         .then(function(response) {
                             self.data = response.data;
                             self.total = response.data.length;
+                            self.loading = false;
                         });
                 }
             },
