@@ -8,6 +8,7 @@ import pytz
 
 bangkok = pytz.timezone('Asia/Bangkok')
 
+
 class SmartNested(fields.Nested):
     def serialize(self, attr, obj, accessor=None):
         if attr not in obj.__dict__:
@@ -38,11 +39,11 @@ test_item_record_table = db.Table('comhealth_test_item_records',
 class ComHealthInvoice(db.Model):
     __tablename__ = 'comhealth_invoice'
     test_item_id = db.Column('test_item_id', db.Integer,
-                        db.ForeignKey('comhealth_test_items.id'),
-                        primary_key=True)
+                             db.ForeignKey('comhealth_test_items.id'),
+                             primary_key=True)
     receipt_id = db.Column('receipt_id', db.Integer,
-                        db.ForeignKey('comhealth_test_receipts.id'),
-                        primary_key=True)
+                           db.ForeignKey('comhealth_test_receipts.id'),
+                           primary_key=True)
     visible = db.Column('visible', db.Boolean(), default=True)
     reimbursable = db.Column('reimbursable', db.Boolean(), default=True)
     billed = db.Column('billed', db.Boolean(), default=True)
@@ -197,7 +198,6 @@ class ComHealthContainer(db.Model):
     volume = db.Column('volume', db.Numeric(), default=0)
     group = db.Column('group', db.String())
 
-
     def __str__(self):
         return self.name
 
@@ -337,7 +337,7 @@ class ComHealthService(db.Model):
     date = db.Column('date', db.Date())
     location = db.Column('location', db.String(255))
     groups = db.relationship('ComHealthTestGroup', backref=db.backref('services'),
-                            secondary=group_service_assoc_table)
+                             secondary=group_service_assoc_table)
     profiles = db.relationship('ComHealthTestProfile', backref=db.backref('services'),
                                secondary=profile_service_assoc_table)
 
@@ -355,7 +355,7 @@ class ComHealthReceiptID(db.Model):
 
     @property
     def next(self):
-        return u'{}{}{:06}'.format(self.code,str(self.buddhist_year)[-2:], self.count+1)
+        return u'{}{}{:06}'.format(self.code, str(self.buddhist_year)[-2:], self.count + 1)
 
 
 class ComHealthReceipt(db.Model):
@@ -428,24 +428,32 @@ class ComHealthCustomerEmploymentTypeSchema(ma.ModelSchema):
 class ComHealthCustomerSchema(ma.ModelSchema):
     info = fields.Nested(ComHealthCustomerInfoSchema)
     emptype = fields.Nested(ComHealthCustomerEmploymentTypeSchema)
+
     class Meta:
         model = ComHealthCustomer
 
 
+class ComHealthReceiptSchema(ma.ModelSchema):
+    class Meta:
+        model = ComHealthReceipt
+
 class ComHealthRecordSchema(ma.ModelSchema):
     customer = fields.Nested(ComHealthCustomerSchema)
+    receipts = fields.List(fields.Nested(ComHealthReceiptSchema(only=('paid', 'cancelled'))))
     class Meta:
         model = ComHealthRecord
 
 
 class ComHealthRecordCustomerSchema(ma.ModelSchema):
     customer = fields.Nested(ComHealthCustomerSchema(only=("id", "firstname", "lastname", "hn")))
+
     class Meta:
         model = ComHealthRecord
 
 
 class ComHealthServiceSchema(ma.ModelSchema):
     records = fields.Nested(ComHealthRecordSchema, many=True)
+
     class Meta:
         model = ComHealthService
 
@@ -457,6 +465,7 @@ class ComHealthServiceOnlySchema(ma.ModelSchema):
 
 class ComHealthTestProfileSchema(ma.ModelSchema):
     quote = fields.String()
+
     class Meta:
         model = ComHealthTestProfile
 
@@ -468,6 +477,7 @@ class ComHealthTestGroupSchema(ma.ModelSchema):
 
 class ComHealthTestSchema(ma.ModelSchema):
     default_price = fields.String()
+
     class Meta:
         model = ComHealthTest
 

@@ -37,16 +37,15 @@
                 <b-table-column field="labno" label="Lab No." sortable numeric>
                     <% props.row.labno %>
                 </b-table-column>
-                <b-table-column field="ordered_tests" label="Tests" sortable numeric>
-                    <% props.row.ordered_tests.length %>
+                <b-table-column field="unpaid" label="Unpaid">
+                    <% props.row.receipts.filter(rec=>rec.paid===false && rec.cancelled===false).length %>
                 </b-table-column>
                 <b-table-column field="" label="Receipts">
-                    <a class="button is-rounded is-light"
+                    <a class="button is-light is-rounded is-small"
                        v-bind:href="'/comhealth/checkin/'+props.row.id+'/receipts'">
                         <span class="icon">
                             <i class="fas fa-receipt"></i>
                         </span>
-                        <span>Receipts</span>
                     </a>
                 </b-table-column>
             </template>
@@ -66,7 +65,7 @@
                     total: 0,
                     loading: true,
                     page: 1,
-                    perPage: 20
+                    perPage: 10
                 }
             },
             methods: {
