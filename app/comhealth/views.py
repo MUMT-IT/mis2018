@@ -1614,12 +1614,12 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', align
 @login_required
 def export_receipt_pdf(receipt_id):
     receipt = ComHealthReceipt.query.get(receipt_id)
-    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
         logo_image = ImageReader('app/static/img/mu-watermark.png')
-        canvas.drawImage(logo_image, 220, 400, mask='auto')
+        canvas.drawImage(logo_image, 140, 290, mask='auto')
         canvas.restoreState()
 
     doc = SimpleDocTemplate("app/receipt.pdf",
@@ -1693,10 +1693,11 @@ def export_receipt_pdf(receipt_id):
     header_copy.setStyle(header_styles)
     if receipt.issued_for:
         customer_name = '''<para><font size=12>
-        ได้รับเงินจาก / RECEIVED FROM {customer_name}<br/>
-        ที่อยู่ / ADDRESS<br/>{address}
+        ได้รับเงินจาก / RECEIVED FROM {issued_for} ({customer_name})<br/>
+        ที่อยู่ / ADDRESS {address}
         </font></para>
-        '''.format(customer_name=receipt.issued_for.encode('utf-8'),
+        '''.format(issued_for=receipt.issued_for.encode('utf-8'),
+                   customer_name=receipt.record.customer.fullname.encode('utf-8'),
                    address=receipt.address.encode('utf-8'),
                    )
     else:
@@ -1713,9 +1714,9 @@ def export_receipt_pdf(receipt_id):
                venue=receipt.issued_at.encode('utf-8'))
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
                        Paragraph(customer_labno, style=style_sheet['ThaiStyle'])]],
-                     colWidths=[260, 140]
+                     colWidths=[300, 200]
                      )
-    customer.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+    customer.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'LEFT'),
                                   ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
     items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
@@ -1747,7 +1748,6 @@ def export_receipt_pdf(receipt_id):
     for t in receipt.invoices:
         if t.visible:
             if t.billed:
-                number_test += 1
                 if t.test_item.price is None:
                     price = t.test_item.test.default_price
                 else:
@@ -1755,6 +1755,7 @@ def export_receipt_pdf(receipt_id):
                 if price == 0:
                     continue
                 total += price
+                number_test += 1
                 item = [Paragraph('<font size=12>{}</font>'.format(number_test), style=style_sheet['ThaiStyleCenter']),
                         Paragraph('<font size=12>{} ({})</font>'
                                   .format(t.test_item.test.name.encode('utf-8'),
@@ -1777,8 +1778,21 @@ def export_receipt_pdf(receipt_id):
                         Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
                 items.append(item)
 
+    n = len(items)
+    while n <=22:
+        items.append([
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+        ])
+        n += 1
+
+    total_thai = bahttext(total)
+    total_text = "รวมเงินทั้งสิ้น {}".format(total_thai.encode('utf-8'))
     items.append([
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{}</font>'.format(total_text), style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(total_profile_price), style=style_sheet['ThaiStyleNumber']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price), style=style_sheet['ThaiStyleNumber']),
@@ -1797,24 +1811,18 @@ def export_receipt_pdf(receipt_id):
         ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
         ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
     ]))
+    item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
+    item_table.setStyle([('SPAN', (0, -1), (1, -1))])
 
-    total_thai = bahttext(total)
-    total_text = Paragraph('<font size=11>(ตัวอักษร / BAHT TEXT) {}</font>'.format(total_thai.encode('utf-8')),
-                           style=style_sheet['ThaiStyle'])
-    total_number = Paragraph('<font size=11>{:,.2f}</font>'.format(total),
-                             style=style_sheet['ThaiStyleNumber'])
     if receipt.payment_method == 'cash':
-        payment_info = Paragraph('<font size=11>ชำระเงินด้วย / PAID BY เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
+        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == 'card':
-        payment_info = Paragraph('<font size=11>ชำระเงินด้วย / PAID BY บัตรเครดิต / CREDIT CARD หมายเลข / NUMBER {}-****-****-{}</font>'.format(receipt.card_number[:4], receipt.card_number[-4:]),
+        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD บัตรเครดิต / CREDIT CARD หมายเลข / NUMBER {}-****-****-{}</font>'.format(receipt.card_number[:4], receipt.card_number[-4:]),
                                  style=style_sheet['ThaiStyle'])
     else:
         payment_info = Paragraph('<font size=11>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])
 
-    total_content = [[total_text,
-                      Paragraph('<font size=11>รวมเงินทั้งสิ้น / GRAND TOTAL</font>',
-                                style=style_sheet['ThaiStyle']),
-                      total_number]]
+    total_content = []
     total_content.append([
         payment_info,
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -1825,12 +1833,12 @@ def export_receipt_pdf(receipt_id):
 
     notice_text = '''<para align=center><font size=10>
     ใบเสร็จฉบับนี้จะสมบูรณ์เมื่อมีลายมือชื่อผู้รับเงินเท่านั้น / The receipt is not completed without the cashier's signature.
-    <br/>*สิทธิตามระเบียบกระทรวงการคลัง / Reimbursement is in accordance with the regulation of the Ministry of Finance.</font></para>
+    <br/>*สิทธิการเบิกตามระเบียบกระทรวงการคลัง / Reimbursement is in accordance with the regulation of the Ministry of Finance.</font></para>
     '''
     notice = Table([[Paragraph(notice_text, style=style_sheet['ThaiStyle'])]])
 
     sign_text = '''<para align=center><font size=12>
-    ลงชื่อ ......................................... ผู้รับเงิน / Cashier<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbspลงชื่อ ............................................ ผู้รับเงิน / Cashier<br/>
     ({})<br/>
     ตำแหน่ง / Position {}
     </font></para>'''.format(receipt.issuer.staff.personal_info.fullname.encode('utf-8'),
@@ -1869,12 +1877,12 @@ def export_receipt_pdf(receipt_id):
 @comhealth.route('/receipts/pdf/blank')
 @login_required
 def export_blank_receipt_pdf():
-    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 40, 40)
+    logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
         logo_image = ImageReader('app/static/img/mu-watermark.png')
-        canvas.drawImage(logo_image, 220, 400, mask='auto')
+        canvas.drawImage(logo_image, 140, 300, mask='auto')
         canvas.restoreState()
 
     doc = SimpleDocTemplate("app/receipt.pdf",
@@ -1957,7 +1965,7 @@ def export_blank_receipt_pdf():
     '''.format(customer_labno='-', venue='-')
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
                        Paragraph(customer_labno, style=style_sheet['ThaiStyle'])]],
-                     colWidths=[260, 140]
+                     colWidths=[300, 200]
                      )
     customer.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                                   ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
@@ -1987,6 +1995,27 @@ def export_blank_receipt_pdf():
         Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price), style=style_sheet['ThaiStyleNumber']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(total), style=style_sheet['ThaiStyleNumber'])
     ])
+
+    n = len(items)
+    while n <=25:
+        items.append([
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+        ])
+        n += 1
+
+    total_thai = bahttext(total)
+    total_text = "รวมเงินทั้งสิ้น {}".format(total_thai.encode('utf-8'))
+    items.append([
+        Paragraph('<font size=12>{}</font>'.format(total_text), style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(total_profile_price), style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(total_special_price), style=style_sheet['ThaiStyleNumber']),
+        Paragraph('<font size=12>{:,.2f}</font>'.format(total), style=style_sheet['ThaiStyleNumber'])
+    ])
     item_table = Table(items, colWidths=[40, 240, 70, 70, 70])
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
@@ -2000,34 +2029,25 @@ def export_blank_receipt_pdf():
         ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
         ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
     ]))
+    item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
+    item_table.setStyle([('SPAN', (0, -1), (1, -1))])
 
-    total_thai = bahttext(total)
-    total_text = Paragraph('<font size=11>(ตัวอักษร / BAHT TEXT) {}</font>'.format(total_thai.encode('utf-8')),
-                           style=style_sheet['ThaiStyle'])
-    total_number = Paragraph('<font size=11>{:,.2f}</font>'.format(total),
-                             style=style_sheet['ThaiStyleNumber'])
-    payment_info = Paragraph('<font size=11>ชำระเงินด้วย / PAID BY เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
+    payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
 
-    total_content = [[total_text,
-                      Paragraph('<font size=11>รวมเงินทั้งสิ้น / GRAND TOTAL</font>',
-                                style=style_sheet['ThaiStyle']),
-                      total_number]]
-    total_content.append([
-        payment_info,
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-    ])
+    total_content = [[payment_info,
+                      Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+                      Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
 
     total_table = Table(total_content, colWidths=[300, 150, 50])
 
     notice_text = '''<para align=center><font size=10>
     ใบเสร็จฉบับนี้จะสมบูรณ์เมื่อมีลายมือชื่อผู้รับเงินเท่านั้น / The receipt is not completed without the cashier's signature.
-    <br/>*สิทธิตามระเบียบกระทรวงการคลัง / Reimbursement is in accordance with the regulation of the Ministry of Finance.</font></para>
+    <br/>*สิทธิการเบิกตามระเบียบกระทรวงการคลัง / Reimbursement is in accordance with the regulation of the Ministry of Finance.</font></para>
     '''
     notice = Table([[Paragraph(notice_text, style=style_sheet['ThaiStyle'])]])
 
     sign_text = '''<para align=center><font size=12>
-    ลงชื่อ ......................................... ผู้รับเงิน / Cashier<br/>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbspลงชื่อ ............................................ ผู้รับเงิน / Cashier<br/>
     ({})<br/>
     ตำแหน่ง / Position {}
     </font></para>'''.format('-', '-')
