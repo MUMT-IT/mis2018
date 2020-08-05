@@ -13,6 +13,7 @@
             <thead>
                 <th>วันที่เริ่มลา-สิ้นสุดลา</th>
                 <th>สถานะการอนุมัติ</th>
+                <th>ความคิดเห็นหัวหน้างาน</th>
                 <th colspan="2"></th>
             </thead>
             <tbody>
@@ -44,6 +45,9 @@
                         {% endif %}
                     </td>
                     <td>
+                        comment
+                    </td>
+                    <td>
                         <b-tooltip label="แก้ไขการลา" type="is-light">
                         <a class="button"
                         {% if request.cancelled_at %}
@@ -63,6 +67,8 @@
                         <a class="button"
                         {% if request.cancelled_at %}
                            disabled
+                        {% elif request.approvals %}
+                           disabled
                         {% else %}
                            @click="confirmCustomDelete({{ request.id }})"
                         {% endif %}
@@ -78,7 +84,7 @@
             </tbody>
         </table>
             <hr>
-            <span>*หากการลาได้รับอนุมัติจากผู้บังคับบัญชาแล้ว จะไม่สามารถแก้ไขได้</span>
+            <span>*หากการลาได้รับอนุมัติจากผู้บังคับบัญชาแล้ว จะไม่สามารถแก้ไขหรือยกเลิกเองได้</span>
         </div>
 
         <div class="columns">
