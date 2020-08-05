@@ -8,6 +8,7 @@ from pandas import read_excel, isna
 from bahttext import bahttext
 from decimal import Decimal
 from sqlalchemy.orm.attributes import flag_modified
+from sqlalchemy.sql import and_
 from flask import (render_template, flash, redirect,
                    url_for, session, request, send_file,
                    send_from_directory, jsonify)
@@ -861,15 +862,17 @@ def list_tests_in_container(service_id, container_id):
     if service:
         #TODO: refactor the code to reduce load time
         container = ComHealthContainer.query.get(container_id)
-        checked_in_records = ComHealthRecord.query.filter(ComHealthRecord.service_id==service.id,
-                                                          ComHealthRecord.checkin_datetime != None).all()
+        checked_in_records = ComHealthRecord.query.filter(
+            and_(ComHealthRecord.service_id==service.id,
+                 ComHealthRecord.checkin_datetime!=None)).all()
         checked_in_records = set([c.id for c in checked_in_records])
         test_items = ComHealthTestItem.query.join(test_item_record_table)\
-            .filter(ComHealthTestItem.test.has(container_id=container_id),
-                    test_item_record_table.c.record_id.in_(checked_in_records)).all()
+            .filter(and_(ComHealthTestItem.test.has(container_id=container_id),
+                    test_item_record_table.c.record_id.in_(checked_in_records))).all()
         for test_item in test_items:
             for rec in test_item.records:
-                tests[rec].append(test_item.test.code)
+                if rec.id in checked_in_records:
+                    tests[rec].append(test_item.test.code)
         records = sorted(tests.keys(), key=lambda x: x.labno)
     else:
         flash('The service no longer exists.', 'danger')
