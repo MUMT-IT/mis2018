@@ -170,15 +170,20 @@
                     var self = this;
                     if (self.query !=="") {
                         self.fltRecords = this.records.filter(function(item) {
-                            var match = item.customer.firstname
-                                .toString()
-                                .toLowerCase()
-                                .indexOf(self.query.toLowerCase()) >= 0;
-                            if (!match) {
-                                match = item.customer.lastname
+                            var match = false;
+                            if (item.customer.firsname!==null) {
+                                match = item.customer.firstname
                                     .toString()
                                     .toLowerCase()
                                     .indexOf(self.query.toLowerCase()) >= 0;
+                            }
+                            if (!match) {
+                                if(item.customer.lastname!==null) {
+                                    match = item.customer.lastname
+                                        .toString()
+                                        .toLowerCase()
+                                        .indexOf(self.query.toLowerCase()) >= 0;
+                                }
                                 if (!match) {
                                     if (item.labno !== null) {
                                         match = item.labno
