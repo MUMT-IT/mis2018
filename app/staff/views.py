@@ -513,39 +513,29 @@ def pending_leave_approval(req_id):
     return render_template('staff/leave_request_pending_approval.html', req=req, approver=approver)
 
 
-@staff.route('/leave/requests/approve/<int:req_id>/<int:approver_id>')
+@staff.route('/leave/requests/approve/<int:req_id>/<int:approver_id>', methods=['GET','POST'])
 @login_required
 def leave_approve(req_id, approver_id):
-    approval = StaffLeaveApproval(
-        request_id=req_id,
-        approver_id=approver_id,
-        is_approved=True,
-        updated_at=tz.localize(datetime.today())
-        #TODO: approval_comment = request.form.get('approval_comment')
+    approved = request.args.get("approved")
+    if request.method == 'POST':
+        comment = request.form.get('approval_comment')
+        approval = StaffLeaveApproval(
+            request_id=req_id,
+            approver_id=approver_id,
+            is_approved=True if approved == 'yes' else False,
+            updated_at=tz.localize(datetime.today()),
+            approval_comment = comment if comment != "" else None
         )
-    db.session.add(approval)
-    db.session.commit()
-    # approve_msg = u'การขออนุมัติลา{} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว'.format(req, current_user.personal_info.fullname)
-    # line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
-    flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย')
-    return redirect(url_for('staff.show_leave_approval_info'))
-
-
-@staff.route('/leave/requests/reject/<int:req_id>/<int:approver_id>')
-@login_required
-def leave_reject(req_id, approver_id):
-    req = StaffLeaveRequest.query.get(req_id)
-    approval = StaffLeaveApproval(
-        request_id=req_id,
-        approver_id=approver_id,
-        is_approved=False,
-        updated_at=tz.localize(datetime.today())
-    )
-    db.session.add(approval)
-    db.session.commit()
-    # approve_msg = u'การขออนุมัติลา{} ไม่ได้รับการอนุมัติ กรุณาติดต่อ {}'.format(req, current_user.personal_info.fullname)
-    # line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
-    return redirect(url_for('staff.show_leave_approval_info'))
+        db.session.add(approval)
+        db.session.commit()
+        # approve_msg = u'การขออนุมัติลา{} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว'.format(req, current_user.personal_info.fullname)
+        # line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
+        #flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย')
+        return redirect(url_for('staff.show_leave_approval_info'))
+    if approved is not None:
+        return render_template('staff/leave_request_approval_comment.html')
+    else:
+        return redirect(url_for('staff.pending_leave_approval', req_id=req_id))
 
 
 @staff.route('/leave/requests/<int:req_id>/approvals')
