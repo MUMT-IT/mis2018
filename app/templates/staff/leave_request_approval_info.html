@@ -49,9 +49,9 @@
             {% endif %}
             <td>
                 <a href="{{ url_for('staff.pending_leave_approval', req_id=leave_req.id) }}" class="button is-info is-rounded is-light">รายละเอียด</a>
-                <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id) }}" class="button is-success">อนุมัติ</a>
+                <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id, approved='yes') }}" class="button is-success">อนุมัติ</a>
 
-                <a href="{{ url_for('staff.leave_reject', req_id=leave_req.id,approver_id=approver.id) }}" class="button is-danger">ไม่อนุมัติ</a>
+                <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id, approved='no') }}" class="button is-danger">ไม่อนุมัติ</a>
             </td>
         </tr>
         {% endif %}
