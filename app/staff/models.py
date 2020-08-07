@@ -205,6 +205,7 @@ class StaffLeaveRequest(db.Model):
     reason = db.Column('reason', db.String())
     contact_address = db.Column('contact_address', db.String())
     contact_phone = db.Column('contact_phone', db.String())
+    #TODO: travel_datetime = db.Column('travel_datetime', db.DateTime(timezone=True))
     staff = db.relationship('StaffAccount',
                             backref=db.backref('leave_requests'))
     quota = db.relationship('StaffLeaveQuota',
@@ -213,6 +214,7 @@ class StaffLeaveRequest(db.Model):
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     country = db.Column('country', db.String())
     total_leave_days = db.Column('total_leave_days', db.Float())
+    upload_file_url =  db.Column('upload_file_url', db.String())
 
     @property
     def get_approved(self):
