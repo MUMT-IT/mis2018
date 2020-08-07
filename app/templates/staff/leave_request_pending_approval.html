@@ -52,6 +52,14 @@
                                 <p class="help">ส่งหนังสือขออนุญาตเดินทางไปต่างประเทศที่หน่วยทรัพยากรบุคคล</p>
                             </td>
                         </tr>
+                        <tr>
+                            <td>
+                                <label class="label">Link เอกสารแนบใบลา (กรณีลาป่วยเกิน 3 วัน)</label>
+                            </td>
+                            <td>
+                                {{ req.upload_file_url }}
+                            </td>
+                        </tr>
                         </table>
                         <div class="control has-text-centered">
                             <a href="{{ url_for('staff.leave_approve', req_id=req.id, approver_id=approver.id, approved='yes') }}"
