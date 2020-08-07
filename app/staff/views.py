@@ -151,9 +151,9 @@ def request_for_leave(quota_id=None):
                     flash(u'วันลาตรงกับวันหยุด')
                     return redirect(request.referrer)
                 if quota.max_per_leave:
-                    if req_duration > quota.max_per_leave:
+                    if req_duration >= quota.max_per_leave:
                         flash(
-                            u'ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ กรุณาติดต่อหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่(HR)')
+                            u'ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ')
                         return redirect(request.referrer)
                     else:
                         if delta.years > 0:
@@ -186,7 +186,6 @@ def request_for_leave(quota_id=None):
                 req.reason = form.get('reason')
                 req.contact_address = form.get('contact_addr')
                 req.contact_phone = form.get('contact_phone')
-                req.country = form.get('country')
                 req.total_leave_days = req_duration
                 if used_quota + req_duration <= quota_limit:
                     db.session.add(req)
@@ -257,7 +256,6 @@ def request_for_leave_period(quota_id=None):
                 req.reason = form.get('reason')
                 req.contact_address = form.get('contact_addr')
                 req.contact_phone = form.get('contact_phone')
-                req.country = form.get('country')
                 req.total_leave_days = req_duration
                 if used_quota + req_duration <= quota_limit:
                     db.session.add(req)
@@ -404,7 +402,6 @@ def edit_leave_request(req_id=None):
             req.reason = request.form.get('reason')
             req.contact_address = request.form.get('contact_addr'),
             req.contact_phone = request.form.get('contact_phone'),
-            req.country = request.form.get('country'),
             req.total_leave_days = req_duration
             if used_quota + req_duration <= quota_limit:
                 db.session.add(req)
@@ -470,7 +467,6 @@ def edit_leave_request_period(req_id=None):
             req.reason = request.form.get('reason')
             req.contact_address = request.form.get('contact_addr')
             req.contact_phone = request.form.get('contact_phone')
-            req.country = request.form.get('country')
             req.total_leave_days = req_duration
             if used_quota + req_duration <= quota_limit:
                 db.session.add(req)
@@ -520,13 +516,13 @@ def pending_leave_approval(req_id):
 @staff.route('/leave/requests/approve/<int:req_id>/<int:approver_id>')
 @login_required
 def leave_approve(req_id, approver_id):
-    req = StaffLeaveRequest.query.get(req_id)
     approval = StaffLeaveApproval(
         request_id=req_id,
         approver_id=approver_id,
         is_approved=True,
         updated_at=tz.localize(datetime.today())
-    )
+        #TODO: approval_comment = request.form.get('approval_comment')
+        )
     db.session.add(approval)
     db.session.commit()
     # approve_msg = u'การขออนุมัติลา{} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว'.format(req, current_user.personal_info.fullname)
