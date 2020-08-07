@@ -2,11 +2,12 @@
 {% include "nav.html" %}
 {% block page_content %}
 <section class="section">
-    <div class="container" id="app">
+    <div class="container">
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
-                    <table class="table">
+                    <form>
+                        <table class="table">
                         <tr>
                             <td>
                                <label class="label">ผู้ขออนุมัติลา</label>
@@ -51,18 +52,26 @@
                                 <p class="help">ส่งหนังสือขออนุญาตเดินทางไปต่างประเทศที่หน่วยทรัพยากรบุคคล</p>
                             </td>
                         </tr>
-                    </table>
-                    <div class="field is-grouped">
-                        <a href="{{ url_for('staff.show_leave_approval_info') }}" class="button is-info is-light is-rounded">กลับหน้าสรุป</a>
-                        <div class="control">
-                            <a href="{{ url_for('staff.leave_approve', req_id=req.id, approver_id=approver.id) }}" class="button is-success">อนุมัติ</a>
-                            <a href="{{ url_for('staff.leave_reject', req_id=req.id, approver_id=approver.id) }}" class="button is-danger">ไม่อนุมัติ</a>
+                        </table>
+                        <div class="control has-text-centered">
+                            <a href="{{ url_for('staff.leave_approve', req_id=req.id, approver_id=approver.id, approved='yes') }}"
+                               class="button is-success">อนุมัติ</a>
+                            <a href="{{ url_for('staff.leave_approve', req_id=req.id, approver_id=approver.id, approved='no') }}"
+                               class="button is-danger">ไม่อนุมัติ</a>
                         </div>
-                    </div>
+                        <a href="{{ url_for('staff.show_leave_approval_info') }}"
+                                                        class="button is-info is-light is-rounded">
+                            <span class="icon">
+                            <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับหน้าสรุป</span>
+                         </a>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 </section>
 {% endblock %}
+
 
