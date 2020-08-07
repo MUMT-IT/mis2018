@@ -14,8 +14,19 @@ from datetime import datetime
 from collections import defaultdict, namedtuple
 import pytz
 from sqlalchemy import and_
+from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
 from linebot.models import TextSendMessage
+from pydrive.auth import ServiceAccountCredentials, GoogleAuth
+from pydrive.drive import GoogleDrive
+import requests
+import os
+
+gauth = GoogleAuth()
+keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+scopes = ['https://www.googleapis.com/auth/drive']
+gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scopes)
+drive = GoogleDrive(gauth)
 
 tz = pytz.timezone('Asia/Bangkok')
 
@@ -126,7 +137,17 @@ def request_for_leave(quota_id=None):
                 start_dt, end_dt = form.get('dates').split(' - ')
                 start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
                 end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
-
+                upload_file = request.files['document']
+                if upload_file:
+                    upload_file_name = secure_filename(upload_file.filename)
+                    upload_file.save(upload_file_name)
+                    file_drive = drive.CreateFile({'title':upload_file_name, 'parents':['106Dg12ecMn7_nnY8eF5veQoWrCP-xDXx']})
+                    file_drive.SetContentFile(upload_file_name)
+                    file_drive.Upload()
+                    permission = file_drive.InsertPermission({'type':'anyone','value':'anyone','role':'reader'})
+                    upload_file_id = file_drive['webViewLink']
+                else:
+                    upload_file_id = None
                 if start_datetime <= END_FISCAL_DATE and end_datetime > END_FISCAL_DATE :
                     flash(u'ไม่สามารถลาข้ามปีงบประมาณได้ กรุณาส่งคำร้องแยกกัน 2 ครั้ง โดยแยกตามปีงบประมาณ')
                     return redirect(request.referrer)
@@ -151,7 +172,7 @@ def request_for_leave(quota_id=None):
                     flash(u'วันลาตรงกับวันหยุด')
                     return redirect(request.referrer)
                 if quota.max_per_leave:
-                    if req_duration >= quota.max_per_leave:
+                    if req_duration >= quota.max_per_leave and upload_file_id is None:
                         flash(
                             u'ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ')
                         return redirect(request.referrer)
@@ -187,6 +208,7 @@ def request_for_leave(quota_id=None):
                 req.contact_address = form.get('contact_addr')
                 req.contact_phone = form.get('contact_phone')
                 req.total_leave_days = req_duration
+                req.upload_file_url = upload_file_id
                 if used_quota + req_duration <= quota_limit:
                     db.session.add(req)
                     db.session.commit()
