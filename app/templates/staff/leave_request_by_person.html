@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+            <div class="columns">
+                <div class="column">
+                    <div class="field">
+                        <label class="label">ปีงบประมาณ</label>
+                        <div class="select">
+                        <select v-model="year" v-on:change="proceed()">
+                            <option v-for="y in years" v-bind:value="y">
+                            <% y+543 %>
+                            </option>
+                        </select>
+                        </div>
+                        <label class="label">สังกัด</label>
+                        <div class="select">
+                        <select v-model="department" v-on:change="proceed()">
+                            <option v-for="d in departments" v-bind:value="d.id" key="d.id">
+                            <% d.name %>
+                            </option>
+                        </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-bordered is-striped" id="leaveTable">
+                    <thead>
+                        <th>ชื่อ</th>
+                        {% for leave_type in leave_types %}
+                        <th>{{ leave_type }}</th>
+                        {% endfor %}
+                        <th>Total</th>
+                    </thead>
+                    <tbody>
+                    {% for record in leaves_list %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('staff.show_leave_approval_info_each_person', requester_id=record['staffid']) }}">
+                            {{ record["fullname"] }}
+                            </a>
+                        </td>
+                        {% for leave_type in leave_types %}
+                        <td>{{ record[leave_type] }}</td>
+                        {% endfor %}
+                        <td>
+                            {{ record["total"] }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#leaveTable').DataTable();
+    });
+</script>
+<script>
+    new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                departments : {{ departments|tojson|safe }},
+                department : {{ sel_dept|tojson|safe }},
+                years : {{ years|tojson|safe }},
+                year : {{ year|tojson|safe }}
+            }
+        },
+        methods: {
+            proceed: function() {
+                if (this.year === null && this.department !== null){
+                    window.location.href = "/staff/leave/requests/result-by-person?deptid="+this.department;
+                }
+                if (this.year !== null && this.department !== null){
+                    window.location.href = "/staff/leave/requests/result-by-person?deptid="+this.department+"&fiscal_year="+this.year;
+                }
+            }
+        }
+    })
+</script>
+{% endblock %}
