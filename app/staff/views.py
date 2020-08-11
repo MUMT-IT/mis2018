@@ -8,9 +8,9 @@ from models import (StaffAccount, StaffPersonalInfo,
                     StaffWorkFromHomeCheckedJob, StaffWorkFromHomeRequestSchema, StaffLeaveRemainQuota)
 from . import staffbp as staff
 from app.main import db, get_weekdays
-from app.models import Holidays
+from app.models import Holidays, Org
 from flask import jsonify, render_template, request, redirect, url_for, flash
-from datetime import datetime
+from datetime import date, datetime
 from collections import defaultdict, namedtuple
 import pytz
 from sqlalchemy import and_
@@ -40,6 +40,18 @@ if today.month >= 10:
 else:
     START_FISCAL_DATE = datetime(today.year-1,10,1)
     END_FISCAL_DATE = datetime(today.year,9,30)
+
+
+
+def get_start_end_date_for_fiscal_year(fiscal_year):
+    '''Find start and end date from a given fiscal year.
+
+    :param fiscal_year:  fiscal year
+    :return: date
+    '''
+    start_date = date(fiscal_year - 1, 10, 1)
+    end_date = date(fiscal_year, 9, 30)
+    return start_date, end_date
 
 
 @staff.route('/')
@@ -137,7 +149,7 @@ def request_for_leave(quota_id=None):
                 start_dt, end_dt = form.get('dates').split(' - ')
                 start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
                 end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
-                upload_file = request.files['document']
+                upload_file = request.files.get('document')
                 if upload_file:
                     upload_file_name = secure_filename(upload_file.filename)
                     upload_file.save(upload_file_name)
@@ -145,7 +157,7 @@ def request_for_leave(quota_id=None):
                     file_drive.SetContentFile(upload_file_name)
                     file_drive.Upload()
                     permission = file_drive.InsertPermission({'type':'anyone','value':'anyone','role':'reader'})
-                    upload_file_id = file_drive['webViewLink']
+                    upload_file_id = file_drive['id']
                 else:
                     upload_file_id = None
                 if start_datetime <= END_FISCAL_DATE and end_datetime > END_FISCAL_DATE :
@@ -638,6 +650,57 @@ def leave_request_result_by_date():
                                start_date=start_date.date(), end_date=end_date.date())
     else:
         return render_template('staff/leave_request_info_by_date.html')
+
+
+@staff.route('/leave/requests/result-by-person',
+                    methods=['GET', 'POST'])
+@login_required
+def leave_request_result_by_person():
+    org_id = request.args.get('deptid')
+    fiscal_year = request.args.get('fiscal_year')
+    if fiscal_year is not None:
+        start_date, end_date = get_start_end_date_for_fiscal_year(int(fiscal_year))
+    else:
+        start_date = None
+        end_date = None
+    years = set()
+    leaves_list = []
+    departments = Org.query.all()
+    leave_types = [t.type_ for t in StaffLeaveType.query.all()]
+    if org_id is None:
+        account_query = StaffAccount.query.all()
+    else:
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id))
+
+    for account in account_query:
+        record = {}
+        record["staffid"] = account.id
+        record["fullname"] = account.personal_info.fullname
+        record["total"] = 0
+        if account.personal_info.org:
+            record["org"] = account.personal_info.org.name
+        else:
+            record["org"] = ""
+        for leave_type in leave_types:
+            record[leave_type] = 0
+        for req in account.leave_requests:
+            years.add(req.start_datetime.year)
+            if start_date and end_date:
+                if req.start_datetime.date()<start_date or req.start_datetime.date()>end_date:
+                    continue
+            leave_type = req.quota.leave_type.type_
+            record[leave_type] += req.total_leave_days
+            record["total"] += req.total_leave_days
+        leaves_list.append(record)
+    years = sorted(years)
+    if len(years) > 0:
+        years.append(years[-1]+1)
+        years.insert(0, years[0]-1)
+    return render_template('staff/leave_request_by_person.html', leave_types = leave_types,
+                           sel_dept=org_id, year=fiscal_year,
+                           leaves_list=leaves_list, departments=[{'id': d.id, 'name': d.name}
+                                                                 for d in departments], years=years)
+
 
 @staff.route('/wfh')
 @login_required
