@@ -39,7 +39,7 @@
                     {% for record in leaves_list %}
                     <tr>
                         <td>
-                            <a href="{{ url_for('staff.show_leave_approval_info_each_person', requester_id=record['staffid']) }}">
+                            <a href="{{ url_for('staff.leave_request_by_person_detail', requester_id=record['staffid']) }}">
                             {{ record["fullname"] }}
                             </a>
                         </td>
