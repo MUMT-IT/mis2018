@@ -3,33 +3,34 @@
 {% block page_content %}
 <section class="section">
     <div class="container">
-        <h4 class="subtitle">สถานะการอนุมัติการลา</h4>
+        <h4 class="subtitle">สถานะการอนุมัติการลา {{ req.quota.leave_type.type_ }}</h4>
         <table class="table is-fullwidth">
             <thead>
             <th>ผู้อนุมัติ</th>
             <th>วันที่</th>
-            <th>สถานะ</th>
+            <th>สถานะอนุมัติ</th>
+            <th>ความคิดเห็น</th>
             </thead>
             <tbody>
-            {% for approver in approvers %}
-            <tr>
-                <td>{{ approver.account.personal_info }}</td>
-            {% if req.approvals %}
             {% for status in req.approvals %}
-            {% if status.approver_id==approver.id %}
+            <tr>
+                <td>{{ status.approver.account.personal_info }}</td>
                 <td>{{ status.updated_at|localdatetime }}</td>
-                <td>{{ status.is_approved }}</td>
-            {% endif %}
-            {% endfor %}
-            {% else %}
-                <td></td>
-                <td></td>
-            {% endif %}
+                <td>
+                    <span class="icon">
+                    {% if status.is_approved %}
+                        <i class="fas fa-check-circle has-text-success"></i>
+                    {% else %}
+                        <i class="fas fa-times-circle has-text-danger"></i>
+                    {% endif %}
+                    </span>
+                </td>
+                <td>{{ status.approval_comment }}</td>
             </tr>
             {% endfor %}
             </tbody>
         </table>
-         <a href="{{ request.referrer }}" class="button is-link">กลับหน้าสรุปการลาของท่าน</a>
+         <a href="{{ url_for('staff.request_for_leave_info', quota_id=req.quota.id) }}" class="button is-link">กลับหน้าสรุปการลาของท่าน</a>
     </div>
 </section>
 {% endblock %}
