@@ -198,6 +198,8 @@ class StaffLeaveRequest(db.Model):
     #TODO: fixed offset-naive and offset-timezone comparison error.
     start_datetime = db.Column('start_date', db.DateTime(timezone=True))
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
+    start_travel_datetime = db.Column('start_travel_datetime', db.DateTime(timezone=True))
+    end_travel_datetime = db.Column('end_travel_datetime', db.DateTime(timezone=True))
     created_at = db.Column('created_at',
                            db.DateTime(timezone=True),
                            default=datetime.now()
@@ -215,6 +217,7 @@ class StaffLeaveRequest(db.Model):
     country = db.Column('country', db.String())
     total_leave_days = db.Column('total_leave_days', db.Float())
     upload_file_url =  db.Column('upload_file_url', db.String())
+    after_hour = db.Column("after_hour", db.Boolean())
 
     @property
     def get_approved(self):
