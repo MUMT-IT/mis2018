@@ -173,7 +173,7 @@ def request_for_leave(quota_id=None):
                 if upload_file:
                     upload_file_name = secure_filename(upload_file.filename)
                     upload_file.save(upload_file_name)
-                    file_drive = drive.CreateFile({'title':upload_file_name, 'parents':['106Dg12ecMn7_nnY8eF5veQoWrCP-xDXx']})
+                    file_drive = drive.CreateFile({'title':upload_file_name})
                     file_drive.SetContentFile(upload_file_name)
                     file_drive.Upload()
                     permission = file_drive.InsertPermission({'type':'anyone','value':'anyone','role':'reader'})
@@ -250,10 +250,11 @@ def request_for_leave(quota_id=None):
                                 line_bot_api.push_message(to=approver.account.line_id,messages=TextSendMessage(text=req_msg))
                             else:
                                 print(req_msg, approver.account.id)
-                        req_title = u'แจ้งการขออนุมัติ'+req.quota.leave_type.type_
+                        req_title = u'ทดสอบแจ้งการขออนุมัติ'+req.quota.leave_type.type_
                         req_msg = u'{} ขออนุมัติลา คลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} \n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่'\
                             .format(current_user.personal_info.fullname,
                                         url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
+                        #print approver.account.email
                         send_msg = send_mail(approver.account.email+"@mahidol.ac.th", req_title, req_msg)
                     return redirect(url_for('staff.show_leave_info'))
                 else:
@@ -341,7 +342,7 @@ def request_for_leave_period(quota_id=None):
                         req_msg = u'{} ขออนุมัติลา คลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} \n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่'\
                             .format(current_user.personal_info.fullname,
                                         url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
-                        send_msg = send_mail(approver.account.email+"@mahidol.ac.th", req_title, req_msg)
+                        #send_msg = send_mail(approver.account.email+"@mahidol.ac.th", req_title, req_msg)
                     return redirect(url_for('staff.show_leave_info'))
                 else:
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
@@ -587,7 +588,11 @@ def show_leave_approval_info():
 def pending_leave_approval(req_id):
     req = StaffLeaveRequest.query.get(req_id)
     approver = StaffLeaveApprover.query.filter_by(account=current_user, requester=req.staff).first()
-    return render_template('staff/leave_request_pending_approval.html', req=req, approver=approver)
+    upload_file = drive.CreateFile({'id': req.upload_file_url})
+    upload_file.FetchMetadata()
+    upload_file_url = upload_file.get('embedLink')
+    return render_template('staff/leave_request_pending_approval.html', req=req, approver=approver,
+                           upload_file_url=upload_file_url)
 
 
 @staff.route('/leave/requests/approve/<int:req_id>/<int:approver_id>', methods=['GET','POST'])
