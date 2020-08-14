@@ -250,7 +250,6 @@ def request_for_leave(quota_id=None):
                                 line_bot_api.push_message(to=approver.account.line_id,messages=TextSendMessage(text=req_msg))
                             else:
                                 print(req_msg, approver.account.id)
-                    for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
                         req_title = u'แจ้งการขออนุมัติ'+req.quota.leave_type.type_
                         req_msg = u'{} ขออนุมัติลา คลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} \n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่'\
                             .format(current_user.personal_info.fullname,
@@ -338,6 +337,11 @@ def request_for_leave_period(quota_id=None):
                                                           messages=TextSendMessage(text=req_msg))
                             else:
                                 print(req_msg, approver.account.id)
+                        req_title = u'แจ้งการขออนุมัติ'+req.quota.leave_type.type_
+                        req_msg = u'{} ขออนุมัติลา คลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} \n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่'\
+                            .format(current_user.personal_info.fullname,
+                                        url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
+                        send_msg = send_mail(approver.account.email+"@mahidol.ac.th", req_title, req_msg)
                     return redirect(url_for('staff.show_leave_info'))
                 else:
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
@@ -611,6 +615,12 @@ def leave_approve(req_id, approver_id):
                 line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=approve_msg))
             else:
                 print(approve_msg, req.staff.id)
+        approve_title = u'แจ้งสถานะการอนุมัติ' + req.quota.leave_type.type_
+        approve_msg = u'การขออนุมัติลา{} ได้รับการพิจารณาโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}'.format(
+            req.quota.leave_type.type_,
+            current_user.personal_info.fullname,
+            url_for("staff.show_leave_approval", req_id=req_id, _external=True))
+        send_msg = send_mail(req.staff.email + "@mahidol.ac.th", approve_title, approve_msg)
         return redirect(url_for('staff.show_leave_approval_info'))
     if approved is not None:
         return render_template('staff/leave_request_approval_comment.html')
