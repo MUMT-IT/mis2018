@@ -25,7 +25,8 @@
                                             required
                                             name="dates"
                                             v-model="selectedDates"
-                                            :indicators="indicators"
+                                            :events="events"
+                                            :indicators="'dots'"
                                             icon-pack="fa"
                                             placeholder="คลิ๊กเพื่อเปิดปฏิทิน..."
                                             icon="calendar-alt">
@@ -97,17 +98,16 @@ new Vue({
         data() {
             return {
                 selectedDates: [],
-                events: [
-                    {
-                        date: new Date(2020,1, 8),
-                        type: 'is-danger'
-                    },
-                    {
-                        date: new Date(2020,1, 10),
-                        type: 'is-danger'
-                    }],
+                events: [],
+                raw_events: {{ holidays|tojsdatetime|tojson|safe }},
             }
         },
+        mounted() {
+            this.raw_events.forEach((d)=>{
+                let e = new Date(d);
+                this.events.push(e);
+            })
+        }
     });
 </script>
 {% endblock %}
