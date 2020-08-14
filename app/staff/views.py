@@ -7,7 +7,7 @@ from models import (StaffAccount, StaffPersonalInfo,
                     StaffWorkFromHomeJobDetail, StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
                     StaffWorkFromHomeCheckedJob, StaffWorkFromHomeRequestSchema, StaffLeaveRemainQuota)
 from . import staffbp as staff
-from app.main import db, get_weekdays
+from app.main import db, get_weekdays, mail
 from app.models import Holidays, Org
 from flask import jsonify, render_template, request, redirect, url_for, flash
 from datetime import date, datetime
@@ -21,6 +21,7 @@ from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 import requests
 import os
+from flask_mail import Message
 
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -52,6 +53,10 @@ def get_start_end_date_for_fiscal_year(fiscal_year):
     start_date = date(fiscal_year - 1, 10, 1)
     end_date = date(fiscal_year, 9, 30)
     return start_date, end_date
+
+def send_mail(recp, title, message):
+    message = Message(subject=title, body=message, recipients=[recp])
+    mail.send(message)
 
 
 @staff.route('/')
@@ -233,16 +238,24 @@ def request_for_leave(quota_id=None):
                 req.upload_file_url = upload_file_id
                 req.after_hour = after_hour
                 if used_quota + req_duration <= quota_limit:
+                    if form.getlist('notified_by_line'):
+                        req.notify_to_line = True
                     db.session.add(req)
                     db.session.commit()
-                    if form.getlist('notified_by_line'):
-                        for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
-                            req_msg = u'{} ขออนุมัติลา รายละเอียดเพิ่มเติม {} :'.format(current_user.personal_info.fullname,
+                    for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
+                        if approver.account.notified_by_line:
+                            req_msg = u'{} ขออนุมัติลา คลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} :'.format(current_user.personal_info.fullname,
                                                 url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
                             if os.environ["FLASK_ENV"] == "production":
                                 line_bot_api.push_message(to=approver.account.line_id,messages=TextSendMessage(text=req_msg))
                             else:
                                 print(req_msg, approver.account.id)
+                    for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
+                        req_title = u'แจ้งการขออนุมัติ'+req.quota.leave_type.type_
+                        req_msg = u'{} ขออนุมัติลา คลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} \n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่'\
+                            .format(current_user.personal_info.fullname,
+                                        url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
+                        send_msg = send_mail(approver.account.email+"@mahidol.ac.th", req_title, req_msg)
                     return redirect(url_for('staff.show_leave_info'))
                 else:
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
@@ -251,14 +264,14 @@ def request_for_leave(quota_id=None):
                 return 'Error happened'
     else:
         quota = StaffLeaveQuota.query.get(quota_id)
-        return render_template('staff/leave_request.html', errors={}, quota=quota)
+        holidays = [h.tojson()['date'] for h in Holidays.query.all()]
+        return render_template('staff/leave_request.html', errors={}, quota=quota, holidays=holidays)
 
 
 @staff.route('/leave/request/quota/period/<int:quota_id>', methods=["POST", "GET"])
 @login_required
 def request_for_leave_period(quota_id=None):
     if request.method == 'POST':
-
         form = request.form
         if quota_id:
             quota = StaffLeaveQuota.query.get(quota_id)
@@ -311,6 +324,8 @@ def request_for_leave_period(quota_id=None):
                 req.contact_phone = form.get('contact_phone')
                 req.total_leave_days = req_duration
                 if used_quota + req_duration <= quota_limit:
+                    if form.getlist('notified_by_line'):
+                        req.notify_to_line = True
                     db.session.add(req)
                     db.session.commit()
                     if form.getlist('notified_by_line'):
@@ -331,7 +346,8 @@ def request_for_leave_period(quota_id=None):
                 return 'Error happened'
     else:
         quota = StaffLeaveQuota.query.get(quota_id)
-        return render_template('staff/leave_request_period.html', errors={}, quota=quota)
+        holidays = [h.tojson()['date'] for h in Holidays.query.all()]
+        return render_template('staff/leave_request_period.html', errors={}, quota=quota, holidays=holidays)
 
 
 @staff.route('/leave/request/info/<int:quota_id>')
@@ -587,13 +603,14 @@ def leave_approve(req_id, approver_id):
         db.session.commit()
         flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย')
         req = StaffLeaveRequest.query.get(req_id)
-        approve_msg = u'การขออนุมัติลา{} ได้รับการพิจารณาโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}'.format(req.quota.leave_type.type_,
+        if req.notify_to_line:
+            approve_msg = u'การขออนุมัติลา{} ได้รับการพิจารณาโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}'.format(req.quota.leave_type.type_,
                                                                         current_user.personal_info.fullname,
                                                     url_for("staff.show_leave_approval" ,req_id=req_id, _external=True))
-        if os.environ["FLASK_ENV"] == "production":
-            line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=approve_msg))
-        else:
-            print(approve_msg, req.staff.id)
+            if os.environ["FLASK_ENV"] == "production":
+                line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=approve_msg))
+            else:
+                print(approve_msg, req.staff.id)
         return redirect(url_for('staff.show_leave_approval_info'))
     if approved is not None:
         return render_template('staff/leave_request_approval_comment.html')
