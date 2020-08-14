@@ -21,7 +21,7 @@
                 <form method="post" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <div class="field">
-                        {% if quota.leave_type.type_ == "ลาพักร้อน" %}
+                        {% if quota.leave_type.type_ == "ลาพักผ่อน" %}
                         <div class="block">
                             <b-radio native-value="domestic" v-model="destination" name="destination">ในประเทศ</b-radio>
                             <b-radio native-value="international" v-model="destination" name="destination">ต่างประเทศ</b-radio>
