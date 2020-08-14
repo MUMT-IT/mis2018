@@ -38,6 +38,8 @@
                                         range
                                         icon-pack="fa"
                                         :mobile-native="false"
+                                        :events="events"
+                                        :indicators="'dots'"
                                         placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                         icon="calendar-alt">
                                 </b-datepicker>
@@ -57,6 +59,8 @@
                                         range
                                         icon-pack="fa"
                                         :mobile-native="false"
+                                        :events="events"
+                                        :indicators="'dots'"
                                         placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                         icon="calendar-alt">
                                 </b-datepicker>
@@ -137,15 +141,28 @@
 
     new Vue({
         el: '#app',
+        computed: {
+            indicators() {
+                return this.bars ? 'bars' : 'bars'
+            }
+        },
         delimiters: ['<%', '%>'],
         data() {
             return {
                 travelDates: [],
                 selectedDates: [],
+                events: [],
+                raw_events: {{ holidays|tojsdatetime|tojson|safe }},
                 file: null,
                 destination: "domestic",
             }
         },
+        mounted() {
+            this.raw_events.forEach((d)=>{
+                let e = new Date(d);
+                this.events.push(e);
+            })
+        }
     });
 </script>
 {% endblock %}
