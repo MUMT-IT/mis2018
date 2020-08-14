@@ -85,6 +85,9 @@
                 if (this.year !== null && this.department !== null){
                     window.location.href = "/staff/leave/requests/result-by-person?deptid="+this.department+"&fiscal_year="+this.year;
                 }
+                if (this.year != null && this.department == null){
+                    window.location.href = "/staff/leave/requests/result-by-person?"+"&fiscal_year="+this.year;
+                }
             }
         }
     })
