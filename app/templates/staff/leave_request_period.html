@@ -25,7 +25,6 @@
                                             required
                                             name="dates"
                                             v-model="selectedDates"
-                                            :events="events"
                                             :indicators="indicators"
                                             icon-pack="fa"
                                             placeholder="คลิ๊กเพื่อเปิดปฏิทิน..."
@@ -66,11 +65,10 @@
                             </b-input>
                         </b-field>
                         <div class="field">
-                            <b-checkbox true-value="yes"
-                                    false-value="no"
-                                    v-model="notifiedByLine"
-                                    name="notified_by_line">ส่งข้อความเตือนในไลน์เมื่อได้รับการพิจารณาจากหัวหน้างาน
-                            </b-checkbox>
+                            <label class="checkbox">
+                                <input type="checkbox" value="yes" name="notified_by_line" checked>
+                                ส่งข้อความเตือนในไลน์เมื่อได้รับการพิจารณาจากหัวหน้างาน
+                            </label>
                         </div>
                         <div class="field is-grouped">
                             <div class="control">
@@ -99,7 +97,6 @@ new Vue({
         data() {
             return {
                 selectedDates: [],
-                notifiedByLine: "yes",
                 events: [
                     {
                         date: new Date(2020,1, 8),
