@@ -247,4 +247,7 @@ class Holidays(db.Model):
     holiday_date = db.Column('holiday_date', db.DateTime(timezone=True))
     holiday_name = db.Column('holiday_name', db.String())
 
+    def tojson(self):
+        return { "date": self.holiday_date, "name" : self.holiday_name }
+
 
