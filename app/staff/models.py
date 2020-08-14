@@ -25,6 +25,7 @@ class StaffAccount(db.Model):
     personal_info = db.relationship("StaffPersonalInfo", backref=db.backref("staff_account", uselist=False))
     line_id = db.Column('line_id', db.String(), index=True, unique=True)
     __password_hash = db.Column('password', db.String(255), nullable=True)
+    notified_by_line = db.Column('notified_by_line', db.Boolean(), default=False)
 
     @property
     def password(self):
@@ -218,6 +219,7 @@ class StaffLeaveRequest(db.Model):
     total_leave_days = db.Column('total_leave_days', db.Float())
     upload_file_url =  db.Column('upload_file_url', db.String())
     after_hour = db.Column("after_hour", db.Boolean())
+    notify_to_line = db.Column('notify_to_line', db.Boolean(), default=False)
 
     @property
     def get_approved(self):
