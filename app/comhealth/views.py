@@ -1336,8 +1336,10 @@ def show_employee_info(custid):
             db.session.commit()
         else:
             flash('Customer ID not found.')
-        return redirect(url_for('comhealth.list_employees',
-                                orgid=customer.org.id))
+        kiosk_mode = request.args.get('kiosk_mode', 'no')
+        if kiosk_mode == 'yes':
+            return redirect(url_for('comhealth.employee_kiosk_mode'))
+        return redirect(url_for('comhealth.list_employees', orgid=customer.org.id))
 
 
 @comhealth.route('/organizations/<int:orgid>/employees/addmany', methods=['GET', 'POST'])
@@ -2115,3 +2117,17 @@ class CustomerEmploymentTypeUploadView(BaseView):
 def list_all_tests(service_id):
     service = ComHealthService.query.get(service_id)
     return render_template('/comhealth/all_tests.html', service=service)
+
+
+@comhealth.route('/health-record/kiosk', methods=['GET', 'POST'])
+@login_required
+def employee_kiosk_mode():
+    if request.method == 'POST':
+        labno = request.form['labno']
+        record = ComHealthRecord.query.filter_by(labno=labno).first()
+        if record:
+            return redirect(url_for('comhealth.show_employee_info',
+                                    custid=record.customer.id, kiosk_mode='yes'))
+        else:
+            flash(u'ไม่พบหมายเลขบริการ กรุณาตรวจสอบใหม่อีกครั้ง', 'danger')
+    return render_template('comhealth/employee_kiosk_mode.html')

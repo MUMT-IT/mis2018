@@ -12,6 +12,12 @@
     <section class="section" id="app">
         <div class="container">
             <div class="columns">
+                <div class="column has-text-centered">
+                    <a href="{{ url_for('comhealth.employee_kiosk_mode') }}"
+                       class="button is-link is-rounded">Kiosk Mode</a>
+                </div>
+            </div>
+            <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
                     <input type="text" v-model="query" class="input is-large is-rounded"
                            placeholder="ค้นหาชื่อพนักงาน">
