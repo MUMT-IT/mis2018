@@ -30,12 +30,16 @@
                 <b-table-column field="customer.lastname" label="Last Name" sortable>
                     <% props.row.customer.lastname %>
                 </b-table-column>
-                <b-table-column field="customer.lastname" label="Employment" sortable>
+                <b-table-column field="customer.employment" label="Employment" sortable>
                     <% props.row.customer.emptype.name %>
                     <p class="help is-danger"><% props.row.customer.emptype.finance_comment %></p>
                 </b-table-column>
                 <b-table-column field="labno" label="Lab No." sortable numeric>
                     <% props.row.labno %>
+                </b-table-column>
+                <b-table-column field="contact_reason" label="Contact for" sortable>
+                    <% props.row.finance_contact.reason %>
+                    <p class="help is-danger"><% props.row.customer.emptype.finance_comment %></p>
                 </b-table-column>
                 <b-table-column field="unpaid" label="Unpaid">
                     <% props.row.receipts.filter(rec=>rec.paid===false && rec.cancelled===false).length %>

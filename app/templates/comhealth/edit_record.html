@@ -96,9 +96,8 @@
                                             </select>
                                         </div>
                                         <br>
+                                        <br>
                                         <p class="label"><strong>ประเภทการจ้าง / Employment</strong></p>
-                                        <p class="is-size-5">
-                                        </p>
                                         <div class="select">
                                             <select name="emptype_id">
                                                 {% for emptype in emptypes %}
@@ -107,6 +106,21 @@
                                                         selected
                                                         {% endif %}
                                                     >{{ emptype }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <br>
+                                        <br>
+                                        <p class="label"><strong>โปรดติดต่อเจ้าหน้าที่การเงินเพื่อ / Please contact finance staff for</strong></p>
+                                        <div class="select">
+                                            <select name="finance_contact">
+                                                <option value="0">ไม่ระบุ</option>
+                                                {% for reason in finance_contact_reasons %}
+                                                <option value="{{ reason.id }}"
+                                                        {% if reason.id == record.finance_contact_id %}
+                                                        selected
+                                                        {% endif %}
+                                                >{{ reason.reason }}</option>
                                                 {% endfor %}
                                             </select>
                                         </div>

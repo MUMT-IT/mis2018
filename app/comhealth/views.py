@@ -104,7 +104,7 @@ def finance_summary(service_id):
 @login_required
 def api_finance_record(service_id):
     service = ComHealthService.query.get(service_id)
-    records = [rec for rec in service.records if rec.is_checked_in]
+    records = [rec for rec in service.records if rec.is_checked_in and rec.finance_contact_id is not None]
     record_schema = ComHealthRecordSchema(many=True)
     return jsonify(record_schema.dump(records).data)
 
@@ -214,6 +214,7 @@ def display_service_customers(service_id):
 @login_required
 def edit_record(record_id):
     record = ComHealthRecord.query.get(record_id)
+    finance_contact_reasons = ComHealthFinanceContactReason.query.all()
     if not record.service.profiles and not record.service.groups:
         return redirect(url_for('comhealth.edit_service', service_id=record.service.id))
 
@@ -222,6 +223,7 @@ def edit_record(record_id):
     if request.method == 'GET':
         if not record.checkin_datetime:
             return render_template('comhealth/edit_record.html',
+                                   finance_contact_reasons=finance_contact_reasons,
                                    record=record,
                                    emptypes=emptypes)
     containers = set()
@@ -243,6 +245,10 @@ def edit_record(record_id):
         firstname = request.form.get('firstname')
         lastname = request.form.get('lastname')
         title = request.form.get('title')
+        finance_contact_reason_id = request.form.get('finance_contact', '0')
+
+        if finance_contact_reason_id != '0':
+            record.finance_contact_id = int(finance_contact_reason_id)
 
         if firstname:
             record.customer.firstname = firstname

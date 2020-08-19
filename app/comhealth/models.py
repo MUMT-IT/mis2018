@@ -258,6 +258,12 @@ class ComHealthTestProfile(db.Model):
         return total_price
 
 
+class ComHealthFinanceContactReason(db.Model):
+    __tablename__ = 'comhealth_finance_contact_reason'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    reason = db.Column('reason', db.String())
+
+
 class ComHealthRecord(db.Model):
     __tablename__ = 'comhealth_test_records'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
@@ -275,6 +281,9 @@ class ComHealthRecord(db.Model):
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     urgent = db.Column('urgent', db.Boolean(), default=False)
     comment = db.Column('comment', db.Text())
+    finance_contact_id = db.Column('finance_contact_id',
+                                   db.ForeignKey('comhealth_finance_contact_reason.id'))
+    finance_contact = db.relationship(ComHealthFinanceContactReason, backref=db.backref('records'))
 
     @property
     def container_set(self):
@@ -438,8 +447,15 @@ class ComHealthReceiptSchema(ma.ModelSchema):
     class Meta:
         model = ComHealthReceipt
 
+
+class ComHealthFinanceContactReasonSchema(ma.ModelSchema):
+    class Meta:
+        model = ComHealthFinanceContactReason
+
+
 class ComHealthRecordSchema(ma.ModelSchema):
     customer = fields.Nested(ComHealthCustomerSchema)
+    finance_contact = fields.Nested(ComHealthFinanceContactReasonSchema)
     receipts = fields.List(fields.Nested(ComHealthReceiptSchema(only=('paid', 'cancelled'))))
     class Meta:
         model = ComHealthRecord
@@ -486,3 +502,4 @@ class ComHealthTestSchema(ma.ModelSchema):
 class ComHealthOrgSchema(ma.ModelSchema):
     class Meta:
         model = ComHealthOrg
+
