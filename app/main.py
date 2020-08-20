@@ -274,6 +274,7 @@ admin.add_view(ModelView(ComHealthSpecimensCheckinRecord, db.session, category='
 admin.add_view(ModelView(ComHealthReceipt, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthInvoice, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthFinanceContactReason, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthCustomerGroup, db.session, category='Com Health'))
 
 
 class ComHealthTestModelView(ModelView):

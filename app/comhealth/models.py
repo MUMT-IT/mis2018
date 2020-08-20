@@ -1,3 +1,5 @@
+from sqlalchemy import func
+
 from ..main import db, ma
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.associationproxy import association_proxy
@@ -34,6 +36,12 @@ test_item_record_table = db.Table('comhealth_test_item_records',
                                   db.Column('record_id', db.Integer, db.ForeignKey('comhealth_test_records.id'),
                                             primary_key=True),
                                   )
+
+group_customer_table = db.Table('comhealth_group_customers',
+                                  db.Column('customer_id', db.Integer,
+                                            db.ForeignKey('comhealth_customer_groups.id'), primary_key=True),
+                                  db.Column('group_id', db.Integer,
+                                            db.ForeignKey('comhealth_customers.id'), primary_key=True))
 
 
 class ComHealthInvoice(db.Model):
@@ -112,6 +120,8 @@ class ComHealthCustomer(db.Model):
     emptype_id = db.Column('emptype_id', db.ForeignKey('comhealth_customer_employment_types.id'))
     emptype = db.relationship('ComHealthCustomerEmploymentType',
                               backref=db.backref('customers'))
+    groups = db.relationship('ComHealthCustomerGroup', backref=db.backref('customers'),
+                                    secondary=group_customer_table)
 
     def __str__(self):
         return u'{}{} {} {}'.format(self.title, self.firstname,
@@ -188,6 +198,17 @@ class ComHealthCustomerInfoItem(db.Model):
     multiple_selection = db.Column('multiple_selection', db.Boolean(), default=False)
     order = db.Column('order', db.Integer, nullable=False)
     unit = db.Column('unit', db.String(32))
+
+
+class ComHealthCustomerGroup(db.Model):
+    __tablename__ = 'comhealth_customer_groups'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    name = db.Column('name', db.String(), nullable=False)
+    desc = db.Column('desc', db.Text())
+    created_at = db.Column('created_at', db.Date(), server_default=func.now())
+
+    def __str__(self):
+        return self.name
 
 
 class ComHealthContainer(db.Model):
