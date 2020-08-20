@@ -104,7 +104,7 @@ def finance_summary(service_id):
 @login_required
 def api_finance_record(service_id):
     service = ComHealthService.query.get(service_id)
-    records = [rec for rec in service.records if rec.is_checked_in and rec.finance_contact_id is not None]
+    records = [rec for rec in service.records if rec.is_checked_in]
     record_schema = ComHealthRecordSchema(many=True)
     return jsonify(record_schema.dump(records).data)
 
@@ -1328,7 +1328,6 @@ def show_employee_info(custid):
     if request.method == 'POST':
         customer_id = request.form.get('customer_id')
         email = request.form.get('email')
-        print(email)
         if customer_id:
             customer = ComHealthCustomer.query.get(int(customer_id))
             customer.email = email

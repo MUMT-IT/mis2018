@@ -12,8 +12,13 @@
             </button>
         </div>
         <br>
+        <div class="field">
+            <b-switch v-model="isAll">
+                All
+            </b-switch>
+        </div>
         <b-table
-            :data="data"
+            :data="filteredData"
             :loading="loading"
             paginated
             :total="total"
@@ -38,7 +43,7 @@
                     <% props.row.labno %>
                 </b-table-column>
                 <b-table-column field="contact_reason" label="Contact for" sortable>
-                    <% props.row.finance_contact.reason %>
+                    <% props.row.finance_contact ? props.row.finance_contact.reason : '' %>
                     <p class="help is-danger"><% props.row.customer.emptype.finance_comment %></p>
                 </b-table-column>
                 <b-table-column field="unpaid" label="Unpaid">
@@ -69,7 +74,23 @@
                     total: 0,
                     loading: true,
                     page: 1,
-                    perPage: 10
+                    perPage: 10,
+                    isAll: false
+                }
+            },
+            computed: {
+                filteredData: function() {
+                    if(this.isAll) {
+                        return this.data;
+                    } else {
+                        return this.data.filter((d)=>{
+                            if (d.finance_contact) {
+                                return true
+                            } else {
+                                return false
+                            }
+                        })
+                    }
                 }
             },
             methods: {
