@@ -39,10 +39,6 @@
                         </tr>
                         {% endfor %}
                     </table>
-                    <div class="has-text-centered">
-                        <a href="{{ request.referrer }}"
-                           class="button is-large is-light">กลับ</a>
-                    </div>
                 </div>
             </div>
         </div>
@@ -51,6 +47,23 @@
             <div class="column is-10 is-offset-1">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="customer_id" value="{{ customer.id }}">
+                <div class="box">
+                    <div class="message is-info">
+                        <div class="message-header">
+                            <h1 class="title is-size-4 has-text-white">หากท่านต้องการรับผลการตรวจสุขภาพทางอีเมลกรุณาระบุอีเมลของท่าน</h1>
+                        </div>
+                        <div class="message-body">
+                            <input class="input is-large" name="email" value="{{ customer.email or '' }}" placeholder="E-mail">
+                        </div>
+                    </div>
+                    <div class="buttons is-centered">
+                        <button class="button is-success is-large" type="submit">
+                            บันทึกผล
+                        </button>
+                        <a href="{{ request.referrer }}"
+                           class="button is-large is-light">ปิด</a>
+                    </div>
+                </div>
                 {% for k in info_items %}
                     <div class="box">
                         {% if info_items[k].choices %}
@@ -98,7 +111,7 @@
             <div class="column has-text-centered">
                 <div class="buttons is-centered">
                     <button class="button is-success is-large" type="submit">
-                        Save
+                        บันทึกผล
                     </button>
                     <a class="button is-light is-large"
                        href="{{ url_for('comhealth.list_employees', orgid=customer.org.id)}}">

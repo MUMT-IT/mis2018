@@ -1327,9 +1327,11 @@ def show_employee_info(custid):
 
     if request.method == 'POST':
         customer_id = request.form.get('customer_id')
-        print('customer id is {}'.format(customer_id))
+        email = request.form.get('email')
+        print(email)
         if customer_id:
             customer = ComHealthCustomer.query.get(int(customer_id))
+            customer.email = email
             for k, item in info_items.items():
                 if not item.multiple_selection:
                     customer.info.data[k] = request.form.get(k)
