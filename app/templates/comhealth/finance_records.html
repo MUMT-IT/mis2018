@@ -19,9 +19,9 @@
         </div>
         <b-table
             :data="filteredData"
-            :loading="loading"
-            paginated
-            :total="total"
+            :paginated="true"
+            :loading="isLoading"
+            :total="filteredData.length"
             default-sort="checkin_datetime"
             default-sort-direction="desc"
             :per-page="perPage">
@@ -58,6 +58,18 @@
                     </a>
                 </b-table-column>
             </template>
+            <template slot="empty">
+                <section class="section">
+                    <div class="content has-text-grey has-text-centered">
+                        <p>
+                            <b-icon
+                                    icon="emoticon-sad" size="is-large">
+                            </b-icon>
+                        </p>
+                        <p>Loading data, please wait...</p>
+                    </div>
+                </section>
+            </template>
         </b-table>
     </div>
 </section>
@@ -65,48 +77,43 @@
 {% block scripts %}
 {{ super() }}
 <script type="text/javascript">
-        var vm = new Vue({
-            el: "#app",
-            delimiters: ['<%', '%>'],
-            data() {
-                return {
-                    data: [],
-                    total: 0,
-                    loading: true,
-                    page: 1,
-                    perPage: 10,
-                    isAll: false
-                }
-            },
-            computed: {
-                filteredData: function() {
-                    if(this.isAll) {
-                        return this.data;
-                    } else {
-                        return this.data.filter((d)=>{
-                            if (d.finance_contact) {
-                                return true
-                            } else {
-                                return false
-                            }
-                        })
-                    }
-                }
-            },
-            methods: {
-                loadAsyncData() {
-                    var self = this;
-                    axios.get('/comhealth/api/services/{{service.id}}/records')
-                        .then(function(response) {
-                            self.data = response.data;
-                            self.total = response.data.length;
-                            self.loading = false;
-                        });
-                }
-            },
-            mounted() {
-                this.loadAsyncData();
+    let vm = new Vue({
+        el: "#app",
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                data: [],
+                isLoading: false,
+                page: 1,
+                perPage: 10,
+                isAll: false
             }
-        });
-    </script>
+        },
+        computed: {
+            filteredData: function () {
+                if (this.isAll) {
+                    return this.data;
+                } else {
+                    return this.data.filter((d) => {
+                        return !!d.finance_contact;
+                    })
+                }
+            }
+        },
+        methods: {
+            loadAsyncData() {
+                const self = this;
+                self.isLoading = true;
+                axios.get('/comhealth/api/services/{{service.id}}/records')
+                    .then(function (response) {
+                        self.data = response.data;
+                        self.isLoading = false;
+                    });
+            }
+        },
+        mounted() {
+            this.loadAsyncData();
+        }
+    });
+</script>
 {% endblock %}
