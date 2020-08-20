@@ -109,6 +109,16 @@
                                     </td>
                                 </tr>
                                 <tr>
+                                    <td><h1 class="subtitle">สังกัด / Affiliation</h1></td>
+                                    <td>{% if record.customer.dept.name %}{{ record.customer.dept.name }} {% endif %}{{ record.customer.org.name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">ประเภทพนักงาน / Employment</h1></td>
+                                    <td>
+                                        <h1 class="subtitle">{{ record.customer.emptype }}</h1>
+                                    </td>
+                                </tr>
+                                <tr>
                                     <td><h1 class="subtitle">การรายงานผล / Report Mode
                                         <a class="button is-small is-warning"
                                            href="{{ url_for('comhealth.update_delivery_status', record_id=record.id) }}">
@@ -120,20 +130,34 @@
                                     </td>
                                     <td>
                                         {% if record.urgent %}
-                                            <h3 class="title has-text-danger is-size-4">แบบด่วน / Urget</h3>
+                                        <h3 class="title has-text-danger is-size-4">แบบด่วน / Urget</h3>
                                         {% else %}
-                                            <h3 class="title has-text-success is-size-4">แบบปกติ / Normal</h3>
+                                        <h3 class="title has-text-success is-size-4">แบบปกติ / Normal</h3>
                                         {% endif %}
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td><h1 class="subtitle">สังกัด / Affiliation</h1></td>
-                                    <td>{% if record.customer.dept.name %}{{ record.customer.dept.name }} {% endif %}{{ record.customer.org.name }}</td>
-                                </tr>
-                                <tr>
-                                    <td><h1 class="subtitle">ประเภทพนักงาน / Employment</h1></td>
+                                    <td><h1 class="subtitle">ติดต่อการเงิน / Contact Cashier</h1>
+                                        <form method="post" action="{{ url_for('comhealth.update_finance_contact') }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="record_id" value="{{ record.id }}">
+                                            <div class="select">
+                                                <select name="finance_contact">
+                                                    <option value="0">ไม่ระบุ</option>
+                                                    {% for reason in finance_contact_reasons %}
+                                                    <option value="{{ reason.id }}"
+                                                            {% if reason.id == record.finance_contact_id %}
+                                                            selected
+                                                            {% endif %}
+                                                    >{{ reason.reason }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <button class="button is-success" type="submit">Save</button>
+                                        </form>
+                                    </td>
                                     <td>
-                                        <h1 class="subtitle">{{ record.customer.emptype }}</h1>
+                                        <h3 class="title is-size-4">{{ record.finance_contact.reason }}</h3>
                                     </td>
                                 </tr>
                                 </tbody>

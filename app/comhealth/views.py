@@ -340,7 +340,25 @@ def edit_record(record_id):
                            profile_item_cost=profile_item_cost,
                            group_item_cost=group_item_cost,
                            special_tests=special_tests,
+                           finance_contact_reasons=finance_contact_reasons,
                            special_item_cost=special_item_cost)
+
+
+@comhealth.route('/record/update-finance-contact/', methods=['GET', 'POST'])
+@login_required
+def update_finance_contact():
+    if request.method == 'POST':
+        record_id = request.form.get('record_id')
+        record = ComHealthRecord.query.get(int(record_id))
+        contact_reason_id = request.form.get('finance_contact')
+        if contact_reason_id == '0':
+            record.finance_contact_id = None
+        else:
+            record.finance_contact_id = int(contact_reason_id)
+        db.session.add(record)
+        db.session.commit()
+        flash(u'ข้อมูลการติดต่อการเงินได้รับการเปลี่ยนแปลงแล้ว', 'success')
+    return redirect(request.referrer)
 
 
 @comhealth.route('/record/order/add-comment', methods=['GET', 'POST'])
