@@ -435,9 +435,16 @@ class ComHealthCustomerEmploymentTypeSchema(ma.ModelSchema):
         model = ComHealthCustomerEmploymentType
 
 
+class ComHealthCustomerSimpleSchema(ma.ModelSchema):
+    emptype = fields.Nested(ComHealthCustomerEmploymentTypeSchema(only=('name',)))
+
+    class Meta:
+        model = ComHealthCustomer
+
+
 class ComHealthCustomerSchema(ma.ModelSchema):
     info = fields.Nested(ComHealthCustomerInfoSchema)
-    emptype = fields.Nested(ComHealthCustomerEmploymentTypeSchema)
+    emptype = fields.Nested(ComHealthCustomerEmploymentTypeSchema(only=('name',)))
 
     class Meta:
         model = ComHealthCustomer
@@ -454,9 +461,11 @@ class ComHealthFinanceContactReasonSchema(ma.ModelSchema):
 
 
 class ComHealthRecordSchema(ma.ModelSchema):
-    customer = fields.Nested(ComHealthCustomerSchema)
-    finance_contact = fields.Nested(ComHealthFinanceContactReasonSchema)
+    customer = fields.Nested(ComHealthCustomerSimpleSchema(only=('title', 'firstname',
+                                                                 'lastname', 'emptype')))
+    finance_contact = fields.Nested(ComHealthFinanceContactReasonSchema(only=('reason',)))
     receipts = fields.List(fields.Nested(ComHealthReceiptSchema(only=('paid', 'cancelled'))))
+
     class Meta:
         model = ComHealthRecord
 

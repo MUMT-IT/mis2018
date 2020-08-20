@@ -105,7 +105,10 @@ def finance_summary(service_id):
 def api_finance_record(service_id):
     service = ComHealthService.query.get(service_id)
     records = [rec for rec in service.records if rec.is_checked_in]
-    record_schema = ComHealthRecordSchema(many=True)
+    record_schema = ComHealthRecordSchema(many=True,
+                                          only=('labno', 'customer',
+                                                'checkin_datetime', 'finance_contact',
+                                                'receipts'))
     return jsonify(record_schema.dump(records).data)
 
 
