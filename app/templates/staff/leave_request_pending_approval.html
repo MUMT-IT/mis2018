@@ -64,9 +64,11 @@
                             <td>
                                 <label class="label">Link เอกสารแนบใบลา (กรณีลาป่วยเกิน 3 วัน)</label>
                             </td>
+                            {% if upload_file_url %}
                             <td>
                                 <a href="{{ upload_file_url }}">คลิกเพื่อดูใบรับรองแพทย์</a>
                             </td>
+                            {% endif %}
                         </tr>
                         </table>
                         <div class="control has-text-centered">
