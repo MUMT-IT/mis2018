@@ -33,6 +33,25 @@
                                 <p>({{ req.total_leave_days }} วัน)</p>
                             </td>
                         </tr>
+                        {% if req.start_travel_date %}
+                        <tr>
+                            <td class="title is-size-6">
+                                ช่วงเวลาเดินทาง
+                            </td>
+                            <td>
+                                {{ req.start_travel_datetime|localdate }} - {{ req.end_travel_datetime|localdate }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">ประเทศที่ไป</label>
+                            </td>
+                            <td>
+                                {{ req.country }}
+                                <p class="help">ส่งหนังสือขออนุญาตเดินทางไปต่างประเทศที่หน่วยทรัพยากรบุคคล</p>
+                            </td>
+                        </tr>
+                        {% endif %}
                         <tr>
                             <td>
                                 <label class="label">จุดประสงค์ในการขออนุมัติลา</label>
@@ -51,15 +70,7 @@
                                 <p>{{ req.contact_phone }}</p>
                             </td>
                         </tr>
-                        <tr>
-                            <td>
-                                <label class="label">ประเทศที่ไป(กรณีพักผ่อนต่างประเทศ)</label>
-                            </td>
-                            <td>
-                                {{ req.country }}
-                                <p class="help">ส่งหนังสือขออนุญาตเดินทางไปต่างประเทศที่หน่วยทรัพยากรบุคคล</p>
-                            </td>
-                        </tr>
+                        {% if req.quota.leave_type.type_ == 'ลาป่วย' %}
                         <tr>
                             <td>
                                 <label class="label">Link เอกสารแนบใบลา (กรณีลาป่วยเกิน 3 วัน)</label>
@@ -70,6 +81,7 @@
                             </td>
                             {% endif %}
                         </tr>
+                        {% endif %}
                         </table>
                         <div class="control has-text-centered">
                             <a href="{{ url_for('staff.leave_approve', req_id=req.id, approver_id=approver.id, approved='yes') }}"
