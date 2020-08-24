@@ -52,15 +52,16 @@
                             </td>
                         </tr>
                         {% endif %}
+                        {% if req.quota.leave_type.type_ != 'ลาพักผ่อน' %}
                         <tr>
                             <td>
                                 <label class="label">จุดประสงค์ในการขออนุมัติลา</label>
                             </td>
                             <td>
                                 {{ req.reason }}
-                                <p class="help">กรณีลาพักผ่อน สามารถใส่เครื่องหมายขีด (-) ได้</p>
                             </td>
                         </tr>
+                        {% endif %}
                         <tr>
                             <td>
                                  <label class="label">ระหว่างลาสามารถติดต่อได้ที่</label>
