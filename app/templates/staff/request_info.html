@@ -75,6 +75,15 @@
                         </a>
                         </b-tooltip>
                     </td>
+                    <td>
+                        <b-tooltip label="บันทึกการลา" type="is-light">
+                            <a href="{{ url_for('staff.record_each_request_leave_request', request_id=request.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-receipt"></i>
+                                </span>
+                            </a>
+                        </b-tooltip>
+                    </td>
                 </tr>
             {% endfor %}
             </tbody>
