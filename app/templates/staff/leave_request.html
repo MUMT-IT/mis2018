@@ -65,6 +65,7 @@
                                         icon="calendar-alt">
                                 </b-datepicker>
                             </b-field>
+                    {% if quota.leave_type.type_ != "ลาพักผ่อน" %}
                     <b-field label="จุดประสงค์ในการขออนุมัติลา"
                              type="is-danger"
                              message="กรณีลาพักผ่อน สามารถใส่เครื่องหมายขีด (-) ได้">
@@ -75,7 +76,7 @@
                                  placeholder="ขออนุมัติลาเนื่องจาก" required>
                         </b-input>
                     </b-field>
-
+                    {% endif %}
                     <b-field label="ประเทศ" v-if="destination === 'international'"
                              type="is-danger">
                         <b-input type="text"
@@ -96,7 +97,7 @@
                                name="contact_phone"
                                icon-pack="fas"
                                icon="phone"
-                               placeholder="เบอร์โทรศัพท์" required>
+                               placeholder="เบอร์โทรศัพท์/e-mail" required>
                         </b-input>
                     </b-field>
                     {% if quota.leave_type.type_ == "ลาป่วย" %}
