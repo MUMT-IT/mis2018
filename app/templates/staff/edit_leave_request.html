@@ -46,7 +46,11 @@
                     </div>
                     <div class="field" v-if="destination === 'international'">
                         <label class="checkbox">
-                            <input type="checkbox" value="yes" name="after_hour"> เดินทางหลังเวลาราชการ
+                            <input type="checkbox" name="after_hour"
+                                   {% if req.after_hour %}
+                                   checked
+                                   {% endif %}
+                            > เดินทางหลังเวลาราชการ
                         </label>
                     </div>
                     <div class="field">
@@ -65,9 +69,9 @@
                             </b-field>
                         </div>
                     </div>
+                    {% if req.quota.leave_type.type_ != 'ลาพักผ่อน' %}
                     <b-field label="จุดประสงค์ในการขออนุมัติลา"
-                             type="is-danger"
-                             message="กรณีลาพักผ่อน สามารถใส่เครื่องหมายขีด (-) ได้">
+                             type="is-danger">
                         <b-input type="text"
                                  name="reason"
                                  icon-pack="far"
@@ -75,6 +79,7 @@
                                  value="{{ req.reason }}" required>
                         </b-input>
                     </b-field>
+                    {% endif %}
                     <b-field label="ระหว่างลาสามารถติดต่อท่านได้ที่">
                         <b-input name="contact_addr"
                                  icon-pack="fas"
@@ -88,7 +93,7 @@
                                name="contact_phone"
                                icon-pack="fas"
                                icon="phone" value="{{ req.contact_phone }}"
-                               placeholder="เบอร์โทรศัพท์" required>
+                               placeholder="เบอร์โทรศัพท์/e-mail" required>
                         </b-input>
                     </b-field>
                     {% if req.quota.leave_type.type_ == 'ลาป่วย' %}
@@ -103,9 +108,7 @@
                             v-if="file">
                             <% file.name %>
                         </span>
-
                         <a class="button is-warning" href="{{ upload_file_url }}">คลิกเพื่อดูเอกสารประกอบ</a>
-
                     {% endif %}
                     </b-field>
                     <div class="field">
