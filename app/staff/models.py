@@ -25,6 +25,7 @@ class StaffAccount(db.Model):
     personal_info = db.relationship("StaffPersonalInfo", backref=db.backref("staff_account", uselist=False))
     line_id = db.Column('line_id', db.String(), index=True, unique=True)
     __password_hash = db.Column('password', db.String(255), nullable=True)
+    notified_by_line = db.Column('notified_by_line', db.Boolean(), default=False)
 
     @property
     def password(self):
@@ -165,6 +166,8 @@ class StaffLeaveType(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     type_ = db.Column('type', db.String(), nullable=False, unique=True)
     request_in_advance = db.Column('request_in_advance', db.Boolean())
+    document_required = db.Column('document_required', db.Boolean(), default=False)
+    reason_required = db.Column('reason_required', db.Boolean())
 
     def __str__(self):
         return self.type_
@@ -198,6 +201,8 @@ class StaffLeaveRequest(db.Model):
     #TODO: fixed offset-naive and offset-timezone comparison error.
     start_datetime = db.Column('start_date', db.DateTime(timezone=True))
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
+    start_travel_datetime = db.Column('start_travel_datetime', db.DateTime(timezone=True))
+    end_travel_datetime = db.Column('end_travel_datetime', db.DateTime(timezone=True))
     created_at = db.Column('created_at',
                            db.DateTime(timezone=True),
                            default=datetime.now()
@@ -205,6 +210,7 @@ class StaffLeaveRequest(db.Model):
     reason = db.Column('reason', db.String())
     contact_address = db.Column('contact_address', db.String())
     contact_phone = db.Column('contact_phone', db.String())
+    #TODO: travel_datetime = db.Column('travel_datetime', db.DateTime(timezone=True))
     staff = db.relationship('StaffAccount',
                             backref=db.backref('leave_requests'))
     quota = db.relationship('StaffLeaveQuota',
@@ -213,6 +219,9 @@ class StaffLeaveRequest(db.Model):
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     country = db.Column('country', db.String())
     total_leave_days = db.Column('total_leave_days', db.Float())
+    upload_file_url =  db.Column('upload_file_url', db.String())
+    after_hour = db.Column("after_hour", db.Boolean())
+    notify_to_line = db.Column('notify_to_line', db.Boolean(), default=False)
 
     @property
     def get_approved(self):
@@ -245,6 +254,7 @@ class StaffLeaveApprover(db.Model):
                             foreign_keys=[staff_account_id])
     account = db.relationship('StaffAccount',
                                foreign_keys=[approver_account_id])
+    notified_by_line = db.Column('notified_by_line', db.Boolean(), default=True)
 
 
 class StaffLeaveApproval(db.Model):
@@ -255,6 +265,7 @@ class StaffLeaveApproval(db.Model):
     is_approved = db.Column('is_approved', db.Boolean(), default=False)
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     request = db.relationship('StaffLeaveRequest', backref=db.backref('approvals'))
+    approval_comment = db.Column('approval_comment', db.String())
     approver = db.relationship('StaffLeaveApprover',
                                backref=db.backref('approved_requests'))
 

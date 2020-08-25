@@ -18,11 +18,40 @@
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
                     <b-notification type="is-info" has-icon>กรุณาเลือกวันหรือช่วงของวันที่ต้องการลา ทั้งนี้วันหยุดและเสาร์ อาทิตย์จะไม่ถือเป็นวันลา</b-notification>
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <div class="field">
+                        {% if quota.leave_type.type_ == "ลาพักผ่อน" %}
+                        <div class="block">
+                            <b-radio native-value="domestic" v-model="destination" name="destination">ในประเทศ</b-radio>
+                            <b-radio native-value="international" v-model="destination" name="destination">ต่างประเทศ</b-radio>
+                        </div>
+                         {% endif %}
+                    </div>
+                    <div class="field">
                         <div class="control">
-                            <b-field label="เลือกวันที่ต้องการขออนุมัติลา" message="หากต้องการเลือก 1 วัน ให้ดับเบิ้ลคลิ๊กวันที่ต้องการ">
+                            <b-field label="ช่วงเวลาที่เดินทางไป-กลับ" v-if="destination === 'international'">
+                                <b-datepicker
+                                        required
+                                        name="traveldates"
+                                        v-model="travelDates"
+                                        range
+                                        icon-pack="fa"
+                                        :mobile-native="false"
+                                        :events="events"
+                                        :indicators="'dots'"
+                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                        icon="calendar-alt">
+                                </b-datepicker>
+                            </b-field>
+                        </div>
+                    </div>
+                    <div class="field" v-if="destination === 'international'">
+                        <label class="checkbox">
+                            <input type="checkbox" value="yes" name="after_hour"> เดินทางหลังเวลาราชการ
+                        </label>
+                    </div>
+                    <b-field label="วันที่ต้องการขออนุมัติลา" message="หากต้องการเลือก 1 วัน ให้ดับเบิ้ลคลิ๊กวันที่ต้องการ">
                                 <b-datepicker
                                         required
                                         name="dates"
@@ -30,12 +59,13 @@
                                         range
                                         icon-pack="fa"
                                         :mobile-native="false"
+                                        :events="events"
+                                        :indicators="'dots'"
                                         placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                         icon="calendar-alt">
                                 </b-datepicker>
                             </b-field>
-                        </div>
-                    </div>
+                    {% if quota.leave_type.type_ != "ลาพักผ่อน" %}
                     <b-field label="จุดประสงค์ในการขออนุมัติลา"
                              type="is-danger"
                              message="กรณีลาพักผ่อน สามารถใส่เครื่องหมายขีด (-) ได้">
@@ -44,6 +74,15 @@
                                  icon-pack="far"
                                  icon="comment"
                                  placeholder="ขออนุมัติลาเนื่องจาก" required>
+                        </b-input>
+                    </b-field>
+                    {% endif %}
+                    <b-field label="ประเทศ" v-if="destination === 'international'"
+                             type="is-danger">
+                        <b-input type="text"
+                                 name="country"
+                                 icon-pack="far"
+                                 icon="comment">
                         </b-input>
                     </b-field>
                     <b-field label="ระหว่างลาสามารถติดต่อท่านได้ที่">
@@ -58,23 +97,28 @@
                                name="contact_phone"
                                icon-pack="fas"
                                icon="phone"
-                               placeholder="เบอร์โทรศัพท์" required>
+                               placeholder="เบอร์โทรศัพท์/e-mail" required>
                         </b-input>
                     </b-field>
-                    <b-field label="สำหรับลาพักผ่อนไปต่างประเทศ" message="กรุณาส่งหนังสือขออนุญาตเดินทางไปต่างประเทศที่หน่วยทรัยากรบุคคล">
-                            <b-input type="text"
-                               name="country"
-                               icon-pack="fas"
-                               icon="flag"
-                               placeholder="ประเทศที่ไป">
-                            </b-input>
-                        </b-field>
+                    {% if quota.leave_type.type_ == "ลาป่วย" %}
+                    <b-field class="file">
+                        <b-upload v-model="file" name="document">
+                            <a class="button is-primary">
+                                <b-icon icon="upload"></b-icon>
+                                <span>อัพโหลดใบรับรองแพทย์</span>
+                            </a>
+                        </b-upload>
+                            <span class="file-name"
+                            v-if="file">
+                                <% file.name %>
+                            </span>
+                    {% endif %}
+                    </b-field>
                     <div class="field">
-                        <b-checkbox true-value="yes"
-                                    false-value="no"
-                                    v-model="notifiedByLine"
-                                    name="notified_by_line">ส่งข้อความเตือนในไลน์เมื่อได้รับการพิจารณาจากหัวหน้างาน
-                        </b-checkbox>
+                        <label class="checkbox">
+                            <input type="checkbox" value="yes" name="notified_by_line" checked>
+                            ส่งข้อความเตือนในไลน์เมื่อได้รับการพิจารณาจากหัวหน้างาน
+                        </label>
                     </div>
                     <div class="field is-grouped">
                         <div class="control">
@@ -98,13 +142,28 @@
 
     new Vue({
         el: '#app',
+        computed: {
+            indicators() {
+                return this.bars ? 'bars' : 'bars'
+            }
+        },
         delimiters: ['<%', '%>'],
         data() {
             return {
+                travelDates: [],
                 selectedDates: [],
-                notifiedByLine: "yes",
+                events: [],
+                raw_events: {{ holidays|tojsdatetime|tojson|safe }},
+                file: null,
+                destination: "domestic",
             }
         },
+        mounted() {
+            this.raw_events.forEach((d)=>{
+                let e = new Date(d);
+                this.events.push(e);
+            })
+        }
     });
 </script>
 {% endblock %}

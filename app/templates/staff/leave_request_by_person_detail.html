@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="table-container">
+            <h4 class="subtitle">รายการลาของ
+              {{ requester[0].staff.personal_info }}
+            </h4>
+            <table class="table is-bordered is-striped">
+                <thead>
+                    <th>วันที่เริ่มลา</th>
+                    <th>วันที่สิ้นสุดลา</th>
+                    <th>จำนวนวัน</th>
+                    <th>ประเภท</th>
+                    <th>สถานะการอนุมัติ</th>
+                </thead>
+                <tbody>
+                {% for requester in requester|sort(attribute='start_datetime') %}
+                    {% if not requester.cancelled_at and requester.get_approved or requester.get_unapproved %}
+                    <tr>
+                        <td>
+                            {{ requester.start_datetime|localdate }}
+                        </td>
+                        <td>
+                            {{ requester.end_datetime|localdate }}
+                        </td>
+                        <td>
+                            {{ requester.total_leave_days }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('staff.record_each_request_leave_request', request_id=requester.id) }}"
+                                                                                class="is-info is-light">
+                            {{ requester.quota.leave_type }}
+                            </a>
+                        </td>
+                        <td>
+                            {% if requester.approvals %}
+                                {% for ap in requester.approvals %}
+                                {{ ap.approver.account.personal_info }}
+                                    {% if ap.is_approved %}
+                                    <span class="icon">
+                                        <i class="fas has-text-success fa-check-circle"></i>
+                                    </span>
+                                    {% else %}
+                                    <span class="icon">
+                                        <i class="far has-text-danger fa-times-circle"></i>
+                                    </span>
+                                    {% endif %}
+                                {% endfor %}
+                            {% else %}
+                                {{ leave_req.approvals|length }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                {% endfor %}
+                </tbody>
+            </table>
+            <a href="{{ url_for('staff.leave_request_result_by_person') }}" class="button is-rounded is-info is-light">
+            <span class="icon">
+            <i class="fas fa-arrow-left"></i>
+            </span>
+            <span>กลับ</span>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

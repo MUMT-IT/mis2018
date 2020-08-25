@@ -2,12 +2,16 @@
 {% include "nav.html" %}
 {% block page_content %}
 <section class="section">
-    <div class="container">
+    <div class="container" id="app">
         <div class="table-container">
         {% for msg in get_flashed_messages() %}
         <p class="notification is-warning">{{ msg }}</p>
         {% endfor %}
-        <h4 class="subtitle">รายการขออนุมัติลาบุคลากรในสังกัดของ {{ current_user.personal_info.fullname }}</h4>
+            <div class="has-text-right">
+                 <input type="hidden" name="lineNotified" v-model="lineNotified">
+                <b-switch v-model="lineNotified" @input="changeLineNotified">เปิดแจ้งเตือนผ่านไลน์</b-switch>
+            </div>
+            <h4 class="subtitle">รายการขออนุมัติลาบุคลากรในสังกัดของ {{ current_user.personal_info.fullname }}</h4>
 <table class="table is-bordered">
     <tbody>
         {% for approver in requesters %}
@@ -49,9 +53,9 @@
             {% endif %}
             <td>
                 <a href="{{ url_for('staff.pending_leave_approval', req_id=leave_req.id) }}" class="button is-info is-rounded is-light">รายละเอียด</a>
-                <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id) }}" class="button is-success">อนุมัติ</a>
+                <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id, approved='yes') }}" class="button is-success">อนุมัติ</a>
 
-                <a href="{{ url_for('staff.leave_reject', req_id=leave_req.id,approver_id=approver.id) }}" class="button is-danger">ไม่อนุมัติ</a>
+                <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id, approved='no') }}" class="button is-danger">ไม่อนุมัติ</a>
             </td>
         </tr>
         {% endif %}
@@ -96,4 +100,28 @@
     </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+var vm = new Vue({
+    el: '#app',
+    data() {
+        return {
+             lineNotified: {{ line_notified|tojson|safe }}
+        }
+    },
+    methods: {
+        changeLineNotified: function (){
+            let self = this
+            axios.get('/staff/api/leave/requests/linenotified?notified='+self.lineNotified).then(function (response){
+              if (response.data.status === 'failed'){
+                alert("Failed to save to database")
+                self.lineNotified = !self.lineNotified
+              }
+            })
+        }
+    }
+})
+</script>
 {% endblock %}

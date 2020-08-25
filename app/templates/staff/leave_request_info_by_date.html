@@ -6,8 +6,15 @@
         <div class="container">
             <div class="columns">
                 <div class="column is-half is-offset-one-quarter">
+                <div class="control">
+                    <a href="{{ url_for('staff.leave_request_result_by_person') }}" class="button is-info">ค้นหาจากชื่อ/ประเภทการลา</a>
+                </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
                     <div class="control">
-                        <a href="{{ url_for('staff.leave_request_info') }}" class="button is-primary">ค้นหาจากชื่อ/ประเภทการลา</a>
+                        <a href="{{ url_for('staff.leave_request_info') }}" class="button is-primary">ค้นหารายครั้ง</a>
                     </div>
                     <hr>
                 <div class="box">

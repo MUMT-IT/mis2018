@@ -63,6 +63,8 @@
                         <a class="button"
                         {% if request.cancelled_at %}
                            disabled
+                        {% elif request.approvals %}
+                           disabled
                         {% else %}
                            @click="confirmCustomDelete({{ request.id }})"
                         {% endif %}
@@ -73,12 +75,21 @@
                         </a>
                         </b-tooltip>
                     </td>
+                    <td>
+                        <b-tooltip label="บันทึกการลา" type="is-light">
+                            <a href="{{ url_for('staff.record_each_request_leave_request', request_id=request.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-receipt"></i>
+                                </span>
+                            </a>
+                        </b-tooltip>
+                    </td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
             <hr>
-            <span>*หากการลาได้รับอนุมัติจากผู้บังคับบัญชาแล้ว จะไม่สามารถแก้ไขได้</span>
+            <span>*หากการลาได้รับอนุมัติจากผู้บังคับบัญชาแล้ว จะไม่สามารถแก้ไขหรือยกเลิกเองได้</span>
         </div>
 
         <div class="columns">

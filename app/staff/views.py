@@ -7,15 +7,27 @@ from models import (StaffAccount, StaffPersonalInfo,
                     StaffWorkFromHomeJobDetail, StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
                     StaffWorkFromHomeCheckedJob, StaffWorkFromHomeRequestSchema, StaffLeaveRemainQuota)
 from . import staffbp as staff
-from app.main import db, get_weekdays
-from app.models import Holidays
+from app.main import db, get_weekdays, mail
+from app.models import Holidays, Org
 from flask import jsonify, render_template, request, redirect, url_for, flash
-from datetime import datetime
+from datetime import date, datetime
 from collections import defaultdict, namedtuple
 import pytz
 from sqlalchemy import and_
+from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
 from linebot.models import TextSendMessage
+from pydrive.auth import ServiceAccountCredentials, GoogleAuth
+from pydrive.drive import GoogleDrive
+import requests
+import os
+from flask_mail import Message
+
+gauth = GoogleAuth()
+keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+scopes = ['https://www.googleapis.com/auth/drive']
+gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(keyfile_dict, scopes)
+drive = GoogleDrive(gauth)
 
 tz = pytz.timezone('Asia/Bangkok')
 
@@ -29,6 +41,22 @@ if today.month >= 10:
 else:
     START_FISCAL_DATE = datetime(today.year-1,10,1)
     END_FISCAL_DATE = datetime(today.year,9,30)
+
+
+
+def get_start_end_date_for_fiscal_year(fiscal_year):
+    '''Find start and end date from a given fiscal year.
+
+    :param fiscal_year:  fiscal year
+    :return: date
+    '''
+    start_date = date(fiscal_year - 1, 10, 1)
+    end_date = date(fiscal_year, 9, 30)
+    return start_date, end_date
+
+def send_mail(recp, title, message):
+    message = Message(subject=title, body=message, recipients=recp)
+    mail.send(message)
 
 
 @staff.route('/')
@@ -126,8 +154,33 @@ def request_for_leave(quota_id=None):
                 start_dt, end_dt = form.get('dates').split(' - ')
                 start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
                 end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
-
-                if start_datetime <= END_FISCAL_DATE and end_datetime > END_FISCAL_DATE :
+                req = StaffLeaveRequest(
+                    start_datetime=tz.localize(start_datetime),
+                    end_datetime=tz.localize(end_datetime)
+                )
+                if form.get('traveldates'):
+                    start_travel_dt, end_travel_dt = form.get('traveldates').split(' - ')
+                    start_travel_datetime = datetime.strptime(start_travel_dt, '%m/%d/%Y')
+                    end_travel_datetime = datetime.strptime(end_travel_dt, '%m/%d/%Y')
+                    if not (start_travel_datetime <= start_datetime and end_travel_datetime >= end_datetime):
+                        flash(u'ช่วงเวลาเดินทาง ไม่ครอบคลุมวันที่ต้องการขอลา กรุณาตรวจสอบอีกครั้ง', "danger")
+                        return redirect(request.referrer)
+                    else:
+                        req.start_travel_datetime = tz.localize(start_travel_datetime)
+                        req.end_travel_datetime = tz.localize(end_travel_datetime)
+                upload_file = request.files.get('document')
+                after_hour = True if form.getlist("after_hour") else False
+                if upload_file:
+                    upload_file_name = secure_filename(upload_file.filename)
+                    upload_file.save(upload_file_name)
+                    file_drive = drive.CreateFile({'title':upload_file_name})
+                    file_drive.SetContentFile(upload_file_name)
+                    file_drive.Upload()
+                    permission = file_drive.InsertPermission({'type':'anyone','value':'anyone','role':'reader'})
+                    upload_file_id = file_drive['id']
+                else:
+                    upload_file_id = None
+                if start_datetime.date() <= END_FISCAL_DATE.date() and end_datetime.date() > END_FISCAL_DATE.date() :
                     flash(u'ไม่สามารถลาข้ามปีงบประมาณได้ กรุณาส่งคำร้องแยกกัน 2 ครั้ง โดยแยกตามปีงบประมาณ')
                     return redirect(request.referrer)
                 delta = start_datetime.date() - datetime.today().date()
@@ -137,11 +190,6 @@ def request_for_leave(quota_id=None):
                     # retrieve cum periods
                 used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                          tz.localize(END_FISCAL_DATE))
-
-                req = StaffLeaveRequest(
-                    start_datetime=tz.localize(start_datetime),
-                    end_datetime=tz.localize(end_datetime)
-                )
                 req_duration = get_weekdays(req)
                 holidays = Holidays.query.filter(and_(Holidays.holiday_date >= start_datetime,
                                                       Holidays.holiday_date <= end_datetime)).all()
@@ -151,9 +199,9 @@ def request_for_leave(quota_id=None):
                     flash(u'วันลาตรงกับวันหยุด')
                     return redirect(request.referrer)
                 if quota.max_per_leave:
-                    if req_duration > quota.max_per_leave:
+                    if req_duration >= quota.max_per_leave and upload_file_id is None:
                         flash(
-                            u'ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ กรุณาติดต่อหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่(HR)')
+                            u'ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ')
                         return redirect(request.referrer)
                     else:
                         if delta.years > 0:
@@ -164,7 +212,7 @@ def request_for_leave(quota_id=None):
                     max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
                     if delta.years > 0:
                         if max_cum_quota:
-                            if start_datetime > END_FISCAL_DATE:
+                            if start_datetime.date() > END_FISCAL_DATE.date():
                                 quota_limit = LEAVE_ANNUAL_QUOTA
                             else:
                                 last_quota = StaffLeaveRemainQuota.query.filter(and_
@@ -186,11 +234,35 @@ def request_for_leave(quota_id=None):
                 req.reason = form.get('reason')
                 req.contact_address = form.get('contact_addr')
                 req.contact_phone = form.get('contact_phone')
-                req.country = form.get('country')
                 req.total_leave_days = req_duration
+                req.upload_file_url = upload_file_id
+                req.after_hour = after_hour
                 if used_quota + req_duration <= quota_limit:
+                    if form.getlist('notified_by_line'):
+                        req.notify_to_line = True
                     db.session.add(req)
                     db.session.commit()
+                    mails = []
+                    for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
+                        if approver.account.notified_by_line:
+                            req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
+                                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                                format(current_user.personal_info.fullname, req.quota.leave_type.type_,
+                                       start_datetime, end_datetime,
+                                       url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
+                            if os.environ["FLASK_ENV"] == "production":
+                                line_bot_api.push_message(to=approver.account.line_id,
+                                                          messages=TextSendMessage(text=req_msg))
+                            else:
+                                print(req_msg, approver.account.id)
+                        req_title = u'ทดสอบแจ้งการขออนุมัติ'+req.quota.leave_type.type_
+                        req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
+                                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.\
+                            format(current_user.personal_info.fullname,req.quota.leave_type.type_,
+                                   start_datetime,end_datetime,
+                                   url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
+                        mails.append(approver.account.email+"@mahidol.ac.th")
+                    send_mail(mails, req_title, req_msg)
                     return redirect(url_for('staff.show_leave_info'))
                 else:
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
@@ -199,14 +271,14 @@ def request_for_leave(quota_id=None):
                 return 'Error happened'
     else:
         quota = StaffLeaveQuota.query.get(quota_id)
-        return render_template('staff/leave_request.html', errors={}, quota=quota)
+        holidays = [h.tojson()['date'] for h in Holidays.query.all()]
+        return render_template('staff/leave_request.html', errors={}, quota=quota, holidays=holidays)
 
 
 @staff.route('/leave/request/quota/period/<int:quota_id>', methods=["POST", "GET"])
 @login_required
 def request_for_leave_period(quota_id=None):
     if request.method == 'POST':
-
         form = request.form
         if quota_id:
             quota = StaffLeaveQuota.query.get(quota_id)
@@ -257,14 +329,33 @@ def request_for_leave_period(quota_id=None):
                 req.reason = form.get('reason')
                 req.contact_address = form.get('contact_addr')
                 req.contact_phone = form.get('contact_phone')
-                req.country = form.get('country')
                 req.total_leave_days = req_duration
                 if used_quota + req_duration <= quota_limit:
+                    if form.getlist('notified_by_line'):
+                        req.notify_to_line = True
                     db.session.add(req)
                     db.session.commit()
-                    # approver = StaffLeaveApprover.query.fiter_by(staff_account_id=current_user.id)
-                    # req_msg = u'{} ขออนุมัติลา รายละเอียดเพิ่มเติม LINK :'.format(current_user.personal_info.fullname)
-                    # line_bot_api.push_message(to=approver.account.line_id,messages=TextSendMessage(text=req_msg))
+                    mails = []
+                    for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
+                        if approver.account.notified_by_line:
+                            req_msg = u'{} ขออนุมัติ{}ครึ่งวัน ในวันที่ {} ถึง {} \nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
+                                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์' \
+                                .format(current_user.personal_info.fullname,
+                                        req.quota.leave_type.type_, start_datetime, end_datetime,
+                                        url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
+                        if os.environ["FLASK_ENV"] == "production":
+                            line_bot_api.push_message(to=approver.account.line_id,
+                                                      messages=TextSendMessage(text=req_msg))
+                        else:
+                            print(req_msg, approver.account.id)
+                        req_title = u'ทดสอบแจ้งการขออนุมัติ'+req.quota.leave_type.type_
+                        req_msg = u'{} ขออนุมัติ{}ครึ่งวัน ในวันที่ {} ถึง {} \nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
+                                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่'\
+                            .format(current_user.personal_info.fullname,
+                                    req.quota.leave_type.type_,start_datetime,end_datetime,
+                                    url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
+                        mails.append(approver.account.email + "@mahidol.ac.th")
+                    send_mail(mails, req_title, req_msg)
                     return redirect(url_for('staff.show_leave_info'))
                 else:
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
@@ -273,7 +364,8 @@ def request_for_leave_period(quota_id=None):
                 return 'Error happened'
     else:
         quota = StaffLeaveQuota.query.get(quota_id)
-        return render_template('staff/leave_request_period.html', errors={}, quota=quota)
+        holidays = [h.tojson()['date'] for h in Holidays.query.all()]
+        return render_template('staff/leave_request_period.html', errors={}, quota=quota, holidays=holidays)
 
 
 @staff.route('/leave/request/info/<int:quota_id>')
@@ -349,9 +441,39 @@ def edit_leave_request(req_id=None):
             start_dt, end_dt = request.form.get('dates').split(' - ')
             start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
             end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
+            req.start_datetime =tz.localize(start_datetime)
+            req.end_datetime=tz.localize(end_datetime)
             if start_datetime <= END_FISCAL_DATE and end_datetime > END_FISCAL_DATE:
                 flash(u'ไม่สามารถลาข้ามปีงบประมาณได้ กรุณาส่งคำร้องแยกกัน 2 ครั้ง โดยแยกตามปีงบประมาณ')
                 return redirect(request.referrer)
+            if request.form.get('traveldates'):
+                start_travel_dt, end_travel_dt = request.form.get('traveldates').split(' - ')
+                start_travel_datetime = datetime.strptime(start_travel_dt, '%m/%d/%Y')
+                end_travel_datetime = datetime.strptime(end_travel_dt, '%m/%d/%Y')
+                if not (start_travel_datetime <= start_datetime and end_travel_datetime >= end_datetime):
+                    flash(u'ช่วงเวลาเดินทาง ไม่ครอบคลุมวันที่ต้องการขอลา กรุณาตรวจสอบอีกครั้ง', "danger")
+                    return redirect(request.referrer)
+                else:
+                    req.start_travel_datetime = tz.localize(start_travel_datetime)
+                    req.end_travel_datetime = tz.localize(end_travel_datetime)
+            else:
+                req.start_travel_datetime = None
+                req.end_travel_datetime = None
+            upload_file = request.files.get('document')
+            after_hour = True if request.form.getlist("after_hour") else False
+            if upload_file:
+                upload_file_name = secure_filename(upload_file.filename)
+                upload_file.save(upload_file_name)
+                file_drive = drive.CreateFile({'title': upload_file_name})
+                file_drive.SetContentFile(upload_file_name)
+                file_drive.Upload()
+                permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
+                upload_file_id = file_drive['id']
+            else:
+                if req.upload_file_url:
+                    upload_file_id = req.upload_file_url
+                else:
+                    upload_file_id = None
             delta = start_datetime.date() - datetime.today().date()
             if delta.days > 0 and not quota.leave_type.request_in_advance:
                 flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
@@ -359,9 +481,6 @@ def edit_leave_request(req_id=None):
                 # retrieve cum periods
             used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                      tz.localize(END_FISCAL_DATE))
-
-            req.start_datetime = tz.localize(start_datetime)
-            req.end_datetime = tz.localize(end_datetime)
             req_duration = get_weekdays(req)
             holidays = Holidays.query.filter(and_(Holidays.holiday_date >= start_datetime,
                                                   Holidays.holiday_date <= end_datetime)).all()
@@ -371,9 +490,9 @@ def edit_leave_request(req_id=None):
                 flash(u'วันลาตรงกับวันหยุด')
                 return redirect(request.referrer)
             if quota.max_per_leave:
-                if req_duration > quota.max_per_leave:
+                if req_duration > quota.max_per_leave and upload_file_id is None:
                     flash(
-                        u'ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ กรุณาติดต่อหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่(HR)')
+                        u'ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ')
                     return redirect(request.referrer)
                 else:
                     if delta.years > 0:
@@ -400,13 +519,14 @@ def edit_leave_request(req_id=None):
                         quota_limit = quota.max_per_year
                 else:
                     quota_limit = quota.first_year
-
             req.reason = request.form.get('reason')
             req.contact_address = request.form.get('contact_addr'),
             req.contact_phone = request.form.get('contact_phone'),
-            req.country = request.form.get('country'),
             req.total_leave_days = req_duration
+            req.upload_file_url = upload_file_id
+            req.after_hour = after_hour
             if used_quota + req_duration <= quota_limit:
+                req.notify_to_line = True if request.form.getlist("notified_by_line") else False
                 db.session.add(req)
                 db.session.commit()
                 return redirect(url_for('staff.show_leave_info'))
@@ -415,9 +535,17 @@ def edit_leave_request(req_id=None):
                 return redirect(request.referrer)
         else:
             return 'Error happened'
-
     selected_dates = [req.start_datetime, req.end_datetime]
-    return render_template('staff/edit_leave_request.html', selected_dates=selected_dates, req=req, errors={})
+    travel_dates = [req.start_travel_datetime, req.end_travel_datetime]
+    holidays = [h.tojson()['date'] for h in Holidays.query.all()]
+    if req.upload_file_url:
+        upload_file = drive.CreateFile({'id': req.upload_file_url})
+        upload_file.FetchMetadata()
+        upload_file_url = upload_file.get('embedLink')
+    else:
+        upload_file_url = None
+    return render_template('staff/edit_leave_request.html', selected_dates=selected_dates, req=req, errors={},
+                           travel_dates=travel_dates, holidays=holidays, upload_file_url=upload_file_url)
 
 
 @staff.route('/leave/request/edit/period/<int:req_id>',
@@ -470,14 +598,12 @@ def edit_leave_request_period(req_id=None):
             req.reason = request.form.get('reason')
             req.contact_address = request.form.get('contact_addr')
             req.contact_phone = request.form.get('contact_phone')
-            req.country = request.form.get('country')
             req.total_leave_days = req_duration
             if used_quota + req_duration <= quota_limit:
+                if request.form.getlist('notified_by_line'):
+                    req.notify_to_line = True
                 db.session.add(req)
                 db.session.commit()
-                # approver = StaffLeaveApprover.query.fiter_by(staff_account_id=current_user.id)
-                # req_msg = u'{} ขออนุมัติลา รายละเอียดเพิ่มเติม LINK :'.format(current_user.personal_info.fullname)
-                # line_bot_api.push_message(to=approver.account.line_id,messages=TextSendMessage(text=req_msg))
                 return redirect(url_for('staff.show_leave_info'))
             else:
                 flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
@@ -502,11 +628,25 @@ def show_leave_approval_info():
             if leave_request.cancelled_at is None and leave_request.get_approved:
                 cum_periods[leave_request.quota.leave_type] += leave_request.total_leave_days
         requester_cum_periods[requester] = cum_periods
-
+    line_notified = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first().notified_by_line
     return render_template('staff/leave_request_approval_info.html',
                            requesters=requesters,
                            requester_cum_periods=requester_cum_periods,
-                           leave_types=leave_types)
+                           leave_types=leave_types, line_notified=line_notified)
+
+
+@staff.route('/api/leave/requests/linenotified')
+@login_required
+def update_line_notification():
+    notified = request.args.get("notified")
+    if notified:
+        is_notified = True if notified == "true" else False
+        for approver in StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id):
+            approver.notified_by_line = is_notified
+            db.session.add(approver)
+        db.session.commit()
+        return jsonify({"status": "success"})
+    return jsonify({"status": "failed"})
 
 
 @staff.route('/leave/requests/approval/pending/<int:req_id>')
@@ -514,42 +654,53 @@ def show_leave_approval_info():
 def pending_leave_approval(req_id):
     req = StaffLeaveRequest.query.get(req_id)
     approver = StaffLeaveApprover.query.filter_by(account=current_user, requester=req.staff).first()
-    return render_template('staff/leave_request_pending_approval.html', req=req, approver=approver)
+    if req.upload_file_url:
+        upload_file = drive.CreateFile({'id': req.upload_file_url})
+        upload_file.FetchMetadata()
+        upload_file_url = upload_file.get('embedLink')
+    else:
+        upload_file_url = None
+    return render_template('staff/leave_request_pending_approval.html', req=req, approver=approver,
+                           upload_file_url=upload_file_url)
 
 
-@staff.route('/leave/requests/approve/<int:req_id>/<int:approver_id>')
+@staff.route('/leave/requests/approve/<int:req_id>/<int:approver_id>', methods=['GET','POST'])
 @login_required
 def leave_approve(req_id, approver_id):
-    req = StaffLeaveRequest.query.get(req_id)
-    approval = StaffLeaveApproval(
-        request_id=req_id,
-        approver_id=approver_id,
-        is_approved=True,
-        updated_at=tz.localize(datetime.today())
-    )
-    db.session.add(approval)
-    db.session.commit()
-    # approve_msg = u'การขออนุมัติลา{} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว'.format(req, current_user.personal_info.fullname)
-    # line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
-    flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย')
-    return redirect(url_for('staff.show_leave_approval_info'))
-
-
-@staff.route('/leave/requests/reject/<int:req_id>/<int:approver_id>')
-@login_required
-def leave_reject(req_id, approver_id):
-    req = StaffLeaveRequest.query.get(req_id)
-    approval = StaffLeaveApproval(
-        request_id=req_id,
-        approver_id=approver_id,
-        is_approved=False,
-        updated_at=tz.localize(datetime.today())
-    )
-    db.session.add(approval)
-    db.session.commit()
-    # approve_msg = u'การขออนุมัติลา{} ไม่ได้รับการอนุมัติ กรุณาติดต่อ {}'.format(req, current_user.personal_info.fullname)
-    # line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
-    return redirect(url_for('staff.show_leave_approval_info'))
+    approved = request.args.get("approved")
+    if request.method == 'POST':
+        comment = request.form.get('approval_comment')
+        approval = StaffLeaveApproval(
+            request_id=req_id,
+            approver_id=approver_id,
+            is_approved=True if approved == 'yes' else False,
+            updated_at=tz.localize(datetime.today()),
+            approval_comment = comment if comment != "" else None
+        )
+        db.session.add(approval)
+        db.session.commit()
+        flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย')
+        req = StaffLeaveRequest.query.get(req_id)
+        if req.notify_to_line:
+            approve_msg = u'การขออนุมัติ{} ได้รับการพิจารณาโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
+                          u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
+                                                                        current_user.personal_info.fullname,
+                                                    url_for("staff.show_leave_approval" ,req_id=req_id, _external=True))
+            if os.environ["FLASK_ENV"] == "production":
+                line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=approve_msg))
+            else:
+                print(approve_msg, req.staff.id)
+        approve_title = u'ทดสอบแจ้งสถานะการอนุมัติ' + req.quota.leave_type.type_
+        approve_msg = u'การขออนุมัติ{} ได้รับการพิจารณาโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}'.format(
+            req.quota.leave_type.type_,
+            current_user.personal_info.fullname,
+            url_for("staff.show_leave_approval", req_id=req_id, _external=True))
+        send_mail([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
+        return redirect(url_for('staff.show_leave_approval_info'))
+    if approved is not None:
+        return render_template('staff/leave_request_approval_comment.html')
+    else:
+        return redirect(url_for('staff.pending_leave_approval', req_id=req_id))
 
 
 @staff.route('/leave/requests/<int:req_id>/approvals')
@@ -577,12 +728,18 @@ def show_leave_approval_info_each_person(requester_id):
     return render_template('staff/leave_request_approved_each_person.html', requester=requester)
 
 
-@staff.route('leave/<int:request_id>/record/info',
-             methods=['GET', 'POST'])
+@staff.route('leave/<int:request_id>/record/info')
 @login_required
 def record_each_request_leave_request(request_id):
     req = StaffLeaveRequest.query.get(request_id)
-    return render_template('staff/leave_record_info.html', req=req)
+    approvers = StaffLeaveApproval.query.filter_by(request_id=request_id)
+    if req.upload_file_url:
+        upload_file = drive.CreateFile({'id': req.upload_file_url})
+        upload_file.FetchMetadata()
+        upload_file_url = upload_file.get('embedLink')
+    else:
+        upload_file_url = None
+    return render_template('staff/leave_record_info.html', req=req, approvers=approvers, upload_file_url=upload_file_url)
 
 
 @staff.route('/leave/requests/search')
@@ -630,6 +787,64 @@ def leave_request_result_by_date():
                                start_date=start_date.date(), end_date=end_date.date())
     else:
         return render_template('staff/leave_request_info_by_date.html')
+
+
+@staff.route('/leave/requests/result-by-person',
+                    methods=['GET', 'POST'])
+@login_required
+def leave_request_result_by_person():
+    org_id = request.args.get('deptid')
+    fiscal_year = request.args.get('fiscal_year')
+    if fiscal_year is not None:
+        start_date, end_date = get_start_end_date_for_fiscal_year(int(fiscal_year))
+    else:
+        start_date = None
+        end_date = None
+    years = set()
+    leaves_list = []
+    departments = Org.query.all()
+    leave_types = [t.type_ for t in StaffLeaveType.query.all()]
+    if org_id is None:
+        account_query = StaffAccount.query.all()
+    else:
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id))
+
+    for account in account_query:
+        record = {}
+        record["staffid"] = account.id
+        record["fullname"] = account.personal_info.fullname
+        record["total"] = 0
+        if account.personal_info.org:
+            record["org"] = account.personal_info.org.name
+        else:
+            record["org"] = ""
+        for leave_type in leave_types:
+            record[leave_type] = 0
+        for req in account.leave_requests:
+            years.add(req.start_datetime.year)
+            if start_date and end_date:
+                if req.start_datetime.date()<start_date or req.start_datetime.date()>end_date:
+                    continue
+            leave_type = req.quota.leave_type.type_
+            record[leave_type] += req.total_leave_days
+            record["total"] += req.total_leave_days
+        leaves_list.append(record)
+    years = sorted(years)
+    if len(years) > 0:
+        years.append(years[-1]+1)
+        years.insert(0, years[0]-1)
+    return render_template('staff/leave_request_by_person.html', leave_types = leave_types,
+                           sel_dept=org_id, year=fiscal_year,
+                           leaves_list=leaves_list, departments=[{'id': d.id, 'name': d.name}
+                                                                 for d in departments], years=years)
+
+
+@staff.route('leave/requests/result-by-person/<int:requester_id>')
+@login_required
+def leave_request_by_person_detail(requester_id):
+    requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id)
+    return render_template('staff/leave_request_by_person_detail.html', requester=requester)
+
 
 @staff.route('/wfh')
 @login_required

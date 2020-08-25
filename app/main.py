@@ -16,6 +16,7 @@ from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from wtforms.validators import required
 from datetime import timedelta
+from flask_mail import Mail
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -29,6 +30,7 @@ login.login_view = 'auth.login'
 ma = Marshmallow()
 csrf = CSRFProtect()
 admin = Admin()
+mail = Mail()
 
 dbutils = AppGroup('dbutils')
 
@@ -47,6 +49,12 @@ def create_app():
         os.environ.get('LINE_MESSAGE_API_ACCESS_TOKEN')
     app.config['LINE_MESSAGE_API_CLIENT_SECRET'] = \
         os.environ.get('LINE_MESSAGE_API_CLIENT_SECRET')
+    app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+    app.config['MAIL_PORT'] = 587
+    app.config['MAIL_USE_TLS'] = True
+    app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
+    app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
+    app.config['MAIL_DEFAULT_SENDER'] = ('MUMT-MIS', os.environ.get('MAIL_USERNAME'))
 
     db.init_app(app)
     ma.init_app(app)
@@ -54,6 +62,7 @@ def create_app():
     migrate.init_app(app, db)
     csrf.init_app(app)
     admin.init_app(app)
+    mail.init_app(app)
     return app
 
 
@@ -457,7 +466,10 @@ def convert_date_to_js_datetime(select_dates, single=False):
     if single:
         return int(time.mktime(select_dates.timetuple())) * 1000
     else:
-        return [int(time.mktime(d.timetuple())) * 1000 for d in select_dates]
+        if select_dates:
+            return [int(time.mktime(d.timetuple())) * 1000 for d in select_dates if d]
+        else:
+            return []
 
 
 @app.template_filter("checkallapprovals")

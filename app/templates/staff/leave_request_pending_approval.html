@@ -2,17 +2,26 @@
 {% include "nav.html" %}
 {% block page_content %}
 <section class="section">
-    <div class="container" id="app">
+    <div class="container">
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
-                    <table class="table">
+                    <form>
+                        <table class="table">
                         <tr>
                             <td>
                                <label class="label">ผู้ขออนุมัติลา</label>
                             </td>
                             <td>
                                 {{ req.staff.personal_info }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">ประเภทการลา</label>
+                            </td>
+                            <td>
+                                {{ req.quota.leave_type }}
                             </td>
                         </tr>
                         <tr>
@@ -24,15 +33,35 @@
                                 <p>({{ req.total_leave_days }} วัน)</p>
                             </td>
                         </tr>
+                        {% if req.start_travel_datetime %}
+                        <tr>
+                            <td class="title is-size-6">
+                                ช่วงเวลาเดินทาง
+                            </td>
+                            <td>
+                                {{ req.start_travel_datetime|localdate }} - {{ req.end_travel_datetime|localdate }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">ประเทศที่ไป</label>
+                            </td>
+                            <td>
+                                {{ req.country }}
+                                <p class="help">ส่งหนังสือขออนุญาตเดินทางไปต่างประเทศที่หน่วยทรัพยากรบุคคล</p>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if req.quota.leave_type.type_ != 'ลาพักผ่อน' %}
                         <tr>
                             <td>
                                 <label class="label">จุดประสงค์ในการขออนุมัติลา</label>
                             </td>
                             <td>
                                 {{ req.reason }}
-                                <p class="help">กรณีลาพักผ่อน สามารถใส่เครื่องหมายขีด (-) ได้</p>
                             </td>
                         </tr>
+                        {% endif %}
                         <tr>
                             <td>
                                  <label class="label">ระหว่างลาสามารถติดต่อได้ที่</label>
@@ -42,27 +71,38 @@
                                 <p>{{ req.contact_phone }}</p>
                             </td>
                         </tr>
+                        {% if req.quota.leave_type.type_ == 'ลาป่วย' %}
                         <tr>
                             <td>
-                                <label class="label">ประเทศที่ไป(กรณีพักผ่อนต่างประเทศ)</label>
+                                <label class="label">Link เอกสารแนบใบลา (กรณีลาป่วยเกิน 3 วัน)</label>
                             </td>
+                            {% if upload_file_url %}
                             <td>
-                                {{ req.country }}
-                                <p class="help">ส่งหนังสือขออนุญาตเดินทางไปต่างประเทศที่หน่วยทรัพยากรบุคคล</p>
+                                <a href="{{ upload_file_url }}">คลิกเพื่อดูใบรับรองแพทย์</a>
                             </td>
+                            {% endif %}
                         </tr>
-                    </table>
-                    <div class="field is-grouped">
-                        <a href="{{ url_for('staff.show_leave_approval_info') }}" class="button is-info is-light is-rounded">กลับหน้าสรุป</a>
-                        <div class="control">
-                            <a href="{{ url_for('staff.leave_approve', req_id=req.id, approver_id=approver.id) }}" class="button is-success">อนุมัติ</a>
-                            <a href="{{ url_for('staff.leave_reject', req_id=req.id, approver_id=approver.id) }}" class="button is-danger">ไม่อนุมัติ</a>
+                        {% endif %}
+                        </table>
+                        <div class="control has-text-centered">
+                            <a href="{{ url_for('staff.leave_approve', req_id=req.id, approver_id=approver.id, approved='yes') }}"
+                               class="button is-success">อนุมัติ</a>
+                            <a href="{{ url_for('staff.leave_approve', req_id=req.id, approver_id=approver.id, approved='no') }}"
+                               class="button is-danger">ไม่อนุมัติ</a>
                         </div>
-                    </div>
+                        <a href="{{ url_for('staff.show_leave_approval_info') }}"
+                                                        class="button is-info is-light is-rounded">
+                            <span class="icon">
+                            <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับหน้าสรุป</span>
+                         </a>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 </section>
 {% endblock %}
+
 

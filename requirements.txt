@@ -9,6 +9,7 @@ backports.functools-lru-cache==1.5
 backports.shutil-get-terminal-size==1.0.0
 bahttext==1.0.1
 bleach==2.1.3
+blinker==1.4
 cachetools==2.1.0
 cairocffi==0.9.0
 CairoSVG==1.0.22
@@ -28,10 +29,12 @@ Flask==1.0.2
 Flask-Admin==1.5.1
 Flask-Cors==3.0.7
 Flask-Login==0.4.1
+Flask-Mail==0.9.1
 flask-marshmallow==0.8.0
 Flask-Migrate==2.1.1
 Flask-Script==2.0.6
 Flask-SQLAlchemy==2.3.2
+Flask-WeasyPrint==0.6
 Flask-WTF==0.14.2
 funcsigs==1.0.2
 functools32==3.2.3.post2
@@ -90,6 +93,7 @@ ptyprocess==0.5.2
 pyasn1==0.4.2
 pyasn1-modules==0.2.1
 pycparser==2.18
+PyDrive==1.3.1
 Pygments==2.2.0
 pylint==1.8.4
 pyOpenSSL==17.5.0
@@ -102,6 +106,7 @@ python-dateutil==2.6.1
 python-dotenv==0.10.3
 python-editor==1.0.3
 pytz==2017.3
+PyYAML==5.3.1
 pyzmq==17.0.0
 reportlab==3.5.32
 requests==2.18.4
@@ -126,6 +131,7 @@ uritemplate==3.0.0
 urllib3==1.22
 validators==0.14.2
 wcwidth==0.1.7
+WeasyPrint==0.42
 webencodings==0.5.1
 Werkzeug==0.14.1
 wrapt==1.10.11
