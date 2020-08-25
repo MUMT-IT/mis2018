@@ -252,6 +252,7 @@ class StaffLeaveApprover(db.Model):
                             foreign_keys=[staff_account_id])
     account = db.relationship('StaffAccount',
                                foreign_keys=[approver_account_id])
+    notified_by_line = db.Column('notified_by_line', db.Boolean(), default=True)
 
 
 class StaffLeaveApproval(db.Model):
