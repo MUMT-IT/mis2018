@@ -244,7 +244,7 @@ def request_for_leave(quota_id=None):
                     db.session.commit()
                     mails = []
                     for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
-                        if approver.account.notified_by_line:
+                        if approver.notified_by_line:
                             req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
                                       u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                                 format(current_user.personal_info.fullname, req.quota.leave_type.type_,
@@ -262,7 +262,10 @@ def request_for_leave(quota_id=None):
                                    start_datetime,end_datetime,
                                    url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
                         mails.append(approver.account.email+"@mahidol.ac.th")
-                    send_mail(mails, req_title, req_msg)
+                    if os.environ["FLASK_ENV"] == "production":
+                        send_mail(mails, req_title, req_msg)
+                    else:
+                        print req_msg
                     return redirect(url_for('staff.show_leave_info'))
                 else:
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
@@ -337,7 +340,7 @@ def request_for_leave_period(quota_id=None):
                     db.session.commit()
                     mails = []
                     for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
-                        if approver.account.notified_by_line:
+                        if approver.notified_by_line:
                             req_msg = u'{} ขออนุมัติ{}ครึ่งวัน ในวันที่ {} ถึง {} \nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
                                       u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์' \
                                 .format(current_user.personal_info.fullname,
