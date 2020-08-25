@@ -166,6 +166,8 @@ class StaffLeaveType(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     type_ = db.Column('type', db.String(), nullable=False, unique=True)
     request_in_advance = db.Column('request_in_advance', db.Boolean())
+    document_required = db.Column('document_required', db.Boolean(), default=False)
+    reason_required = db.Column('reason_required', db.Boolean())
 
     def __str__(self):
         return self.type_
