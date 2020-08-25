@@ -339,7 +339,7 @@ def request_for_leave_period(quota_id=None):
                     for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
                         if approver.account.notified_by_line:
                             req_msg = u'{} ขออนุมัติ{}ครึ่งวัน ในวันที่ {} ถึง {} \nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
-                                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่' \
+                                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์' \
                                 .format(current_user.personal_info.fullname,
                                         req.quota.leave_type.type_, start_datetime, end_datetime,
                                         url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
@@ -524,9 +524,9 @@ def edit_leave_request(req_id=None):
             req.contact_phone = request.form.get('contact_phone'),
             req.total_leave_days = req_duration
             req.upload_file_url = upload_file_id
+            req.after_hour = after_hour
             if used_quota + req_duration <= quota_limit:
-                if request.form.getlist('notified_by_line'):
-                    req.notify_to_line = True
+                req.notify_to_line = True if request.form.getlist("notified_by_line") else False
                 db.session.add(req)
                 db.session.commit()
                 return redirect(url_for('staff.show_leave_info'))
@@ -628,11 +628,25 @@ def show_leave_approval_info():
             if leave_request.cancelled_at is None and leave_request.get_approved:
                 cum_periods[leave_request.quota.leave_type] += leave_request.total_leave_days
         requester_cum_periods[requester] = cum_periods
-
+    line_notified = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first().notified_by_line
     return render_template('staff/leave_request_approval_info.html',
                            requesters=requesters,
                            requester_cum_periods=requester_cum_periods,
-                           leave_types=leave_types)
+                           leave_types=leave_types, line_notified=line_notified)
+
+
+@staff.route('/api/leave/requests/linenotified')
+@login_required
+def update_line_notification():
+    notified = request.args.get("notified")
+    if notified:
+        is_notified = True if notified == "true" else False
+        for approver in StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id):
+            approver.notified_by_line = is_notified
+            db.session.add(approver)
+        db.session.commit()
+        return jsonify({"status": "success"})
+    return jsonify({"status": "failed"})
 
 
 @staff.route('/leave/requests/approval/pending/<int:req_id>')
@@ -714,12 +728,18 @@ def show_leave_approval_info_each_person(requester_id):
     return render_template('staff/leave_request_approved_each_person.html', requester=requester)
 
 
-@staff.route('leave/<int:request_id>/record/info',
-             methods=['GET', 'POST'])
+@staff.route('leave/<int:request_id>/record/info')
 @login_required
 def record_each_request_leave_request(request_id):
     req = StaffLeaveRequest.query.get(request_id)
-    return render_template('staff/leave_record_info.html', req=req)
+    approvers = StaffLeaveApproval.query.filter_by(request_id=request_id)
+    if req.upload_file_url:
+        upload_file = drive.CreateFile({'id': req.upload_file_url})
+        upload_file.FetchMetadata()
+        upload_file_url = upload_file.get('embedLink')
+    else:
+        upload_file_url = None
+    return render_template('staff/leave_record_info.html', req=req, approvers=approvers, upload_file_url=upload_file_url)
 
 
 @staff.route('/leave/requests/search')
