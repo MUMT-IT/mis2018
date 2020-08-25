@@ -69,7 +69,7 @@
                             </b-field>
                         </div>
                     </div>
-                    {% if req.quota.leave_type.type_ != 'ลาพักผ่อน' %}
+                    {% if req.quota.leave_type.reason_required %}
                     <b-field label="จุดประสงค์ในการขออนุมัติลา"
                              type="is-danger">
                         <b-input type="text"
@@ -96,7 +96,7 @@
                                placeholder="เบอร์โทรศัพท์/e-mail" required>
                         </b-input>
                     </b-field>
-                    {% if req.quota.leave_type.type_ == 'ลาป่วย' %}
+                    {% if req.quota.leave_type.document_required %}
                     <b-field class="file">
                         <b-upload v-model="file" name="document">
                             <a class="button is-primary">
