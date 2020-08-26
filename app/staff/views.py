@@ -256,16 +256,9 @@ def request_for_leave(quota_id=None):
                             else:
                                 print(req_msg, approver.account.id)
                         req_title = u'ทดสอบแจ้งการขออนุมัติ'+req.quota.leave_type.type_
-                        req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
-                                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.\
-                            format(current_user.personal_info.fullname,req.quota.leave_type.type_,
-                                   start_datetime,end_datetime,
-                                   url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
                         mails.append(approver.account.email+"@mahidol.ac.th")
                     if os.environ["FLASK_ENV"] == "production":
                         send_mail(mails, req_title, req_msg)
-                    else:
-                        print req_msg
                     return redirect(url_for('staff.show_leave_info'))
                 else:
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
@@ -346,19 +339,15 @@ def request_for_leave_period(quota_id=None):
                                 .format(current_user.personal_info.fullname,
                                         req.quota.leave_type.type_, start_datetime, end_datetime,
                                         url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
-                        if os.environ["FLASK_ENV"] == "production":
-                            line_bot_api.push_message(to=approver.account.line_id,
+                            if os.environ["FLASK_ENV"] == "production":
+                                line_bot_api.push_message(to=approver.account.line_id,
                                                       messages=TextSendMessage(text=req_msg))
-                        else:
-                            print(req_msg, approver.account.id)
+                            else:
+                                print(req_msg, approver.account.id)
                         req_title = u'ทดสอบแจ้งการขออนุมัติ'+req.quota.leave_type.type_
-                        req_msg = u'{} ขออนุมัติ{}ครึ่งวัน ในวันที่ {} ถึง {} \nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
-                                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่'\
-                            .format(current_user.personal_info.fullname,
-                                    req.quota.leave_type.type_,start_datetime,end_datetime,
-                                    url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
                         mails.append(approver.account.email + "@mahidol.ac.th")
-                    send_mail(mails, req_title, req_msg)
+                    if os.environ["FLASK_ENV"] == "production":
+                        send_mail(mails, req_title, req_msg)
                     return redirect(url_for('staff.show_leave_info'))
                 else:
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
@@ -694,11 +683,8 @@ def leave_approve(req_id, approver_id):
             else:
                 print(approve_msg, req.staff.id)
         approve_title = u'ทดสอบแจ้งสถานะการอนุมัติ' + req.quota.leave_type.type_
-        approve_msg = u'การขออนุมัติ{} ได้รับการพิจารณาโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}'.format(
-            req.quota.leave_type.type_,
-            current_user.personal_info.fullname,
-            url_for("staff.show_leave_approval", req_id=req_id, _external=True))
-        send_mail([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
+        if os.environ["FLASK_ENV"] == "production":
+            send_mail([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
         return redirect(url_for('staff.show_leave_approval_info'))
     if approved is not None:
         return render_template('staff/leave_request_approval_comment.html')
