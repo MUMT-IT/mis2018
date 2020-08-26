@@ -29,6 +29,16 @@
                         <i class="fas fa-quote-right"></i>
                     </span>
                 </p>
+                {% else %}
+                <a class="button is-success"
+                   href="{{ url_for('auth.link_line_account') }}">
+                    <span class="icon">
+                        <i class="fab fa-line fa-2x"></i>
+                    </span>
+                    <span>
+                        เชื่อมต่อบัญชี Line
+                    </span>
+                </a>
                 {% endif %}
             </div>
             <hr>
