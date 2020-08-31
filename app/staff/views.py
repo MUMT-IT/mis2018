@@ -257,6 +257,11 @@ def request_for_leave(quota_id=None):
                             else:
                                 print(req_msg, approver.account.id)
                         req_title = u'ทดสอบแจ้งการขออนุมัติ'+req.quota.leave_type.type_
+                        req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
+                                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                            format(current_user.personal_info.fullname, req.quota.leave_type.type_,
+                                   start_datetime, end_datetime,
+                                   url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
                         mails.append(approver.account.email+"@mahidol.ac.th")
                     if os.environ["FLASK_ENV"] == "production":
                         send_mail(mails, req_title, req_msg)
@@ -347,6 +352,11 @@ def request_for_leave_period(quota_id=None):
                             else:
                                 print(req_msg, approver.account.id)
                         req_title = u'ทดสอบแจ้งการขออนุมัติ'+req.quota.leave_type.type_
+                        req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
+                                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                            format(current_user.personal_info.fullname, req.quota.leave_type.type_,
+                                   start_datetime, end_datetime,
+                                   url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
                         mails.append(approver.account.email + "@mahidol.ac.th")
                     if os.environ["FLASK_ENV"] == "production":
                         send_mail(mails, req_title, req_msg)
@@ -687,6 +697,10 @@ def leave_approve(req_id, approver_id):
             else:
                 print(approve_msg, req.staff.id)
         approve_title = u'ทดสอบแจ้งสถานะการอนุมัติ' + req.quota.leave_type.type_
+        approve_msg = u'การขออนุมัติ{} ได้รับการพิจารณาโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
+                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
+                    current_user.personal_info.fullname,url_for("staff.show_leave_approval",
+                    req_id=req_id,_external=True))
         if os.environ["FLASK_ENV"] == "production":
             send_mail([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
         return redirect(url_for('staff.show_leave_approval_info'))
@@ -1129,3 +1143,51 @@ def wfh_requests_list():
 def for_hr():
     return render_template('staff/for_hr.html')
 
+
+@staff.route('/for-hr/time-scan')
+@login_required
+def time_scan():
+    return render_template('staff/scan_data_upload_and_report.html')
+
+
+@staff.route('/for-hr/time-scan/calculate')
+@login_required
+def calculate_time_scan(workdata):
+        DATETIME_FORMAT = '%d/%m/%Y %H:%M'
+        if workdata.Time:
+            start, end = workdata.Time.split()[0], workdata.Time.split()[-1]
+            if start != end:
+                start_dt = datetime.strptime(u'{} {}'.format(workdata.Date, start), DATETIME_FORMAT)
+                end_dt = datetime.strptime(u'{} {}'.format(workdata.Date, end), DATETIME_FORMAT)
+            else:
+                other_dt = datetime.strptime(u'{} {}'.format(workdata.Date, start), DATETIME_FORMAT)
+                status = "Unidentified"
+            office_starttime = '09:00'
+            office_endtime = '16:30'
+            office_startdt = datetime.strptime(u'{} {}'.format(workdata.Date, office_starttime), DATETIME_FORMAT)
+            office_enddt = datetime.strptime(u'{} {}'.format(workdata.Date, office_endtime), DATETIME_FORMAT)
+            if start_dt:
+                if office_startdt > start_dt:
+                    morning = office_startdt - start_dt
+                    morning = (morning.seconds / 60.0) * -1
+                else:
+                    morning = start_dt - office_startdt
+                    morning = morning.seconds / 60.0
+                #status = "Late" if morning > 0 else "On time"
+            if end_dt:
+                if office_enddt < end_dt:
+                    evening = end_dt - office_enddt
+                    evening = evening.seconds / 60.0
+                else:
+                    evening = office_enddt - end_dt
+                    evening = (evening.seconds / 60.0) * -1
+                #status = "Off early" if evening < 0 else "On time"
+        else:
+            d = datetime.strptime(workdata.Date, '%d/%m/%Y')
+            if d.weekday() >= 5:
+                status = "Weekend"
+            holidays = Holidays.query.filter_by(Holidays.holiday_date >= d).all()
+            if len(holidays) >0:
+                status = "Holiday"
+            else:
+                status = "No scan"
