@@ -25,6 +25,7 @@
                                             required
                                             name="dates"
                                             v-model="selectedDates"
+                                            :date-formatter="formatDate"
                                             :events="events"
                                             :indicators="'dots'"
                                             icon-pack="fa"
@@ -107,6 +108,12 @@ new Vue({
                 let e = new Date(d);
                 this.events.push(e);
             })
+        },
+        methods: {
+            formatDate(dates){
+                let date = new moment(dates).format("DD/MM/YYYY")
+                return date + ' - ' + date
+            }
         }
     });
 </script>

@@ -152,16 +152,16 @@ def request_for_leave(quota_id=None):
             quota = StaffLeaveQuota.query.get(quota_id)
             if quota:
                 start_dt, end_dt = form.get('dates').split(' - ')
-                start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
-                end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
+                start_datetime = datetime.strptime(start_dt, '%d/%m/%Y')
+                end_datetime = datetime.strptime(end_dt, '%d/%m/%Y')
                 req = StaffLeaveRequest(
                     start_datetime=tz.localize(start_datetime),
                     end_datetime=tz.localize(end_datetime)
                 )
                 if form.get('traveldates'):
                     start_travel_dt, end_travel_dt = form.get('traveldates').split(' - ')
-                    start_travel_datetime = datetime.strptime(start_travel_dt, '%m/%d/%Y')
-                    end_travel_datetime = datetime.strptime(end_travel_dt, '%m/%d/%Y')
+                    start_travel_datetime = datetime.strptime(start_travel_dt, '%d/%m/%Y')
+                    end_travel_datetime = datetime.strptime(end_travel_dt, '%d/%m/%Y')
                     if not (start_travel_datetime <= start_datetime and end_travel_datetime >= end_datetime):
                         flash(u'ช่วงเวลาเดินทาง ไม่ครอบคลุมวันที่ต้องการขอลา กรุณาตรวจสอบอีกครั้ง', "danger")
                         return redirect(request.referrer)
@@ -232,6 +232,7 @@ def request_for_leave(quota_id=None):
                 req.quota = quota
                 req.staff = current_user
                 req.reason = form.get('reason')
+                req.country = form.get('country')
                 req.contact_address = form.get('contact_addr')
                 req.contact_phone = form.get('contact_phone')
                 req.total_leave_days = req_duration
@@ -244,7 +245,7 @@ def request_for_leave(quota_id=None):
                     db.session.commit()
                     mails = []
                     for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
-                        if approver.account.notified_by_line:
+                        if approver.notified_by_line:
                             req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
                                       u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                                 format(current_user.personal_info.fullname, req.quota.leave_type.type_,
@@ -256,13 +257,9 @@ def request_for_leave(quota_id=None):
                             else:
                                 print(req_msg, approver.account.id)
                         req_title = u'ทดสอบแจ้งการขออนุมัติ'+req.quota.leave_type.type_
-                        req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
-                                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.\
-                            format(current_user.personal_info.fullname,req.quota.leave_type.type_,
-                                   start_datetime,end_datetime,
-                                   url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
                         mails.append(approver.account.email+"@mahidol.ac.th")
-                    send_mail(mails, req_title, req_msg)
+                    if os.environ["FLASK_ENV"] == "production":
+                        send_mail(mails, req_title, req_msg)
                     return redirect(url_for('staff.show_leave_info'))
                 else:
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
@@ -287,10 +284,11 @@ def request_for_leave_period(quota_id=None):
                 used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                          tz.localize(END_FISCAL_DATE))
                 start_t, end_t = form.get('times').split(' - ')
-                start_dt = '{} {}'.format(form.get('dates'), start_t)
-                end_dt = '{} {}'.format(form.get('dates'), end_t)
-                start_datetime = datetime.strptime(start_dt, '%m/%d/%Y %H:%M')
-                end_datetime = datetime.strptime(end_dt, '%m/%d/%Y %H:%M')
+                start_d, end_d = form.get('dates').split(' - ')
+                start_dt = '{} {}'.format(start_d, start_t)
+                end_dt = '{} {}'.format(end_d, end_t)
+                start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
+                end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
                 if not quota.leave_type.request_in_advance:
                     flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
                     return redirect(request.referrer)
@@ -337,25 +335,21 @@ def request_for_leave_period(quota_id=None):
                     db.session.commit()
                     mails = []
                     for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
-                        if approver.account.notified_by_line:
+                        if approver.notified_by_line:
                             req_msg = u'{} ขออนุมัติ{}ครึ่งวัน ในวันที่ {} ถึง {} \nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
                                       u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์' \
                                 .format(current_user.personal_info.fullname,
                                         req.quota.leave_type.type_, start_datetime, end_datetime,
                                         url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
-                        if os.environ["FLASK_ENV"] == "production":
-                            line_bot_api.push_message(to=approver.account.line_id,
+                            if os.environ["FLASK_ENV"] == "production":
+                                line_bot_api.push_message(to=approver.account.line_id,
                                                       messages=TextSendMessage(text=req_msg))
-                        else:
-                            print(req_msg, approver.account.id)
+                            else:
+                                print(req_msg, approver.account.id)
                         req_title = u'ทดสอบแจ้งการขออนุมัติ'+req.quota.leave_type.type_
-                        req_msg = u'{} ขออนุมัติ{}ครึ่งวัน ในวันที่ {} ถึง {} \nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
-                                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่'\
-                            .format(current_user.personal_info.fullname,
-                                    req.quota.leave_type.type_,start_datetime,end_datetime,
-                                    url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
                         mails.append(approver.account.email + "@mahidol.ac.th")
-                    send_mail(mails, req_title, req_msg)
+                    if os.environ["FLASK_ENV"] == "production":
+                        send_mail(mails, req_title, req_msg)
                     return redirect(url_for('staff.show_leave_info'))
                 else:
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
@@ -439,8 +433,8 @@ def edit_leave_request(req_id=None):
         quota = req.quota
         if quota:
             start_dt, end_dt = request.form.get('dates').split(' - ')
-            start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
-            end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
+            start_datetime = datetime.strptime(start_dt, '%d/%m/%Y')
+            end_datetime = datetime.strptime(end_dt, '%d/%m/%Y')
             req.start_datetime =tz.localize(start_datetime)
             req.end_datetime=tz.localize(end_datetime)
             if start_datetime <= END_FISCAL_DATE and end_datetime > END_FISCAL_DATE:
@@ -448,8 +442,8 @@ def edit_leave_request(req_id=None):
                 return redirect(request.referrer)
             if request.form.get('traveldates'):
                 start_travel_dt, end_travel_dt = request.form.get('traveldates').split(' - ')
-                start_travel_datetime = datetime.strptime(start_travel_dt, '%m/%d/%Y')
-                end_travel_datetime = datetime.strptime(end_travel_dt, '%m/%d/%Y')
+                start_travel_datetime = datetime.strptime(start_travel_dt, '%d/%m/%Y')
+                end_travel_datetime = datetime.strptime(end_travel_dt, '%d/%m/%Y')
                 if not (start_travel_datetime <= start_datetime and end_travel_datetime >= end_datetime):
                     flash(u'ช่วงเวลาเดินทาง ไม่ครอบคลุมวันที่ต้องการขอลา กรุณาตรวจสอบอีกครั้ง', "danger")
                     return redirect(request.referrer)
@@ -520,6 +514,7 @@ def edit_leave_request(req_id=None):
                 else:
                     quota_limit = quota.first_year
             req.reason = request.form.get('reason')
+            req.country = request.form.get('country')
             req.contact_address = request.form.get('contact_addr'),
             req.contact_phone = request.form.get('contact_phone'),
             req.total_leave_days = req_duration
@@ -559,10 +554,11 @@ def edit_leave_request_period(req_id=None):
             used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                      tz.localize(END_FISCAL_DATE))
             start_t, end_t = request.form.get('times').split(' - ')
-            start_dt = '{} {}'.format(request.form.get('dates'), start_t)
-            end_dt = '{} {}'.format(request.form.get('dates'), end_t)
-            start_datetime = datetime.strptime(start_dt, '%m/%d/%Y %H:%M')
-            end_datetime = datetime.strptime(end_dt, '%m/%d/%Y %H:%M')
+            start_d, end_d = request.form.get('dates').split(' - ')
+            start_dt = '{} {}'.format(start_d, start_t)
+            end_dt = '{} {}'.format(end_d, end_t)
+            start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
+            end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
             delta = start_datetime - datetime.today()
             if delta.days > 0 and not quota.leave_type.request_in_advance:
                 flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
@@ -611,7 +607,7 @@ def edit_leave_request_period(req_id=None):
         else:
             return 'Error happened'
 
-    selected_dates = [req.start_datetime]
+    selected_dates = req.start_datetime
 
     return render_template('staff/edit_leave_request_period.html', req=req, selected_dates=selected_dates, errors={})
 
@@ -691,11 +687,8 @@ def leave_approve(req_id, approver_id):
             else:
                 print(approve_msg, req.staff.id)
         approve_title = u'ทดสอบแจ้งสถานะการอนุมัติ' + req.quota.leave_type.type_
-        approve_msg = u'การขออนุมัติ{} ได้รับการพิจารณาโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}'.format(
-            req.quota.leave_type.type_,
-            current_user.personal_info.fullname,
-            url_for("staff.show_leave_approval", req_id=req_id, _external=True))
-        send_mail([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
+        if os.environ["FLASK_ENV"] == "production":
+            send_mail([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
         return redirect(url_for('staff.show_leave_approval_info'))
     if approved is not None:
         return render_template('staff/leave_request_approval_comment.html')
@@ -778,8 +771,8 @@ def leave_request_result_by_date():
         form = request.form
 
         start_dt, end_dt = form.get('dates').split(' - ')
-        start_date = datetime.strptime(start_dt, '%m/%d/%Y')
-        end_date = datetime.strptime(end_dt, '%m/%d/%Y')
+        start_date = datetime.strptime(start_dt, '%d/%m/%Y')
+        end_date = datetime.strptime(end_dt, '%d/%m/%Y')
 
         leaves = StaffLeaveRequest.query.filter(and_(StaffLeaveRequest.start_datetime>=start_date,
                                                      StaffLeaveRequest.end_datetime<=end_date))
@@ -862,8 +855,8 @@ def request_work_from_home():
         form = request.form
 
         start_dt, end_dt = form.get('dates').split(' - ')
-        start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
-        end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
+        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y')
+        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y')
         req = StaffWorkFromHomeRequest(
             staff=current_user,
             start_datetime=tz.localize(start_datetime),
@@ -887,8 +880,8 @@ def edit_request_work_from_home(request_id):
     req = StaffWorkFromHomeRequest.query.get(request_id)
     if request.method == 'POST':
         start_dt, end_dt = request.form.get('dates').split(' - ')
-        start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
-        end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
+        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y')
+        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y')
         req.start_datetime = tz.localize(start_datetime),
         req.end_datetime = tz.localize(end_datetime),
         req.detail = request.form.get('detail'),
@@ -1120,8 +1113,8 @@ def wfh_requests_list():
     if request.method == 'POST':
         form = request.form
         start_dt, end_dt = form.get('dates').split(' - ')
-        start_date = datetime.strptime(start_dt, '%m/%d/%Y')
-        end_date = datetime.strptime(end_dt, '%m/%d/%Y')
+        start_date = datetime.strptime(start_dt, '%d/%m/%Y')
+        end_date = datetime.strptime(end_dt, '%d/%m/%Y')
 
         wfh_request = StaffWorkFromHomeRequest.query.filter(and_(StaffWorkFromHomeRequest.start_datetime >= start_date,
                                                      StaffWorkFromHomeRequest.end_datetime <= end_date))
@@ -1135,3 +1128,4 @@ def wfh_requests_list():
 @login_required
 def for_hr():
     return render_template('staff/for_hr.html')
+

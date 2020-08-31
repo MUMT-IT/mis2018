@@ -37,6 +37,7 @@
                                         v-model="travelDates"
                                         range
                                         icon-pack="fa"
+                                        :date-formatter="formatDate"
                                         :mobile-native="false"
                                         :events="events"
                                         :indicators="'dots'"
@@ -58,6 +59,7 @@
                                         v-model="selectedDates"
                                         range
                                         icon-pack="fa"
+                                        :date-formatter="formatDate"
                                         :mobile-native="false"
                                         :events="events"
                                         :indicators="'dots'"
@@ -65,10 +67,9 @@
                                         icon="calendar-alt">
                                 </b-datepicker>
                             </b-field>
-                    {% if quota.leave_type.type_ != "ลาพักผ่อน" %}
+                    {% if quota.leave_type.reason_required %}
                     <b-field label="จุดประสงค์ในการขออนุมัติลา"
-                             type="is-danger"
-                             message="กรณีลาพักผ่อน สามารถใส่เครื่องหมายขีด (-) ได้">
+                             type="is-danger">
                         <b-input type="text"
                                  name="reason"
                                  icon-pack="far"
@@ -100,7 +101,7 @@
                                placeholder="เบอร์โทรศัพท์/e-mail" required>
                         </b-input>
                     </b-field>
-                    {% if quota.leave_type.type_ == "ลาป่วย" %}
+                    {% if quota.leave_type.document_required %}
                     <b-field class="file">
                         <b-upload v-model="file" name="document">
                             <a class="button is-primary">
@@ -112,8 +113,8 @@
                             v-if="file">
                                 <% file.name %>
                             </span>
-                    {% endif %}
                     </b-field>
+                    {% endif %}
                     <div class="field">
                         <label class="checkbox">
                             <input type="checkbox" value="yes" name="notified_by_line" checked>
@@ -163,6 +164,19 @@
                 let e = new Date(d);
                 this.events.push(e);
             })
+        },
+        methods: {
+            formatDate(dates){
+                if (dates.length===2){
+                    let start = new moment(dates[0]).format("DD/MM/YYYY")
+                    let end = new moment(dates[1]).format("DD/MM/YYYY")
+                    return start + ' - ' + end
+                }
+                else{
+                    let date = new moment(dates).format("DD/MM/YYYY")
+                    return date + ' - ' + date
+                }
+            }
         }
     });
 </script>

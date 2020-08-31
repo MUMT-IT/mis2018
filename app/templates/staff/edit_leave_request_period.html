@@ -25,6 +25,7 @@
                                             required
                                             name="dates"
                                             v-model="selectedDates"
+                                            :date-formatter="formatDate"
                                             icon-pack="fa"
                                             placeholder="คลิ๊กเพื่อเปิดปฏิทิน..."
                                             icon="calendar-alt">
@@ -104,17 +105,19 @@ var vm = new Vue({
         delimiters: ['<%', '%>'],
         data() {
             return {
-                selectedDates: [],
+                selectedDates: null,
                 notifiedByLine: "yes",
-                givenDates: [],
             }
         },
         mounted() {
             var self = this;
-            self.givenDates = {{ selected_dates|tojsdatetime }};
-            self.givenDates.forEach((d) => {
-                self.selectedDates.push(new Date(d));
-            });
+            self.selectedDates = new Date({{ selected_dates|tojsdatetime(single=True) }})
+        },
+        methods: {
+            formatDate(dates){
+                let date = new moment(dates).format("DD/MM/YYYY")
+                return date + ' - ' + date
+            }
         }
     });
 </script>

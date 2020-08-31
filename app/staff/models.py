@@ -25,7 +25,6 @@ class StaffAccount(db.Model):
     personal_info = db.relationship("StaffPersonalInfo", backref=db.backref("staff_account", uselist=False))
     line_id = db.Column('line_id', db.String(), index=True, unique=True)
     __password_hash = db.Column('password', db.String(255), nullable=True)
-    notified_by_line = db.Column('notified_by_line', db.Boolean(), default=False)
 
     @property
     def password(self):
