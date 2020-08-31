@@ -152,16 +152,16 @@ def request_for_leave(quota_id=None):
             quota = StaffLeaveQuota.query.get(quota_id)
             if quota:
                 start_dt, end_dt = form.get('dates').split(' - ')
-                start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
-                end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
+                start_datetime = datetime.strptime(start_dt, '%d/%m/%Y')
+                end_datetime = datetime.strptime(end_dt, '%d/%m/%Y')
                 req = StaffLeaveRequest(
                     start_datetime=tz.localize(start_datetime),
                     end_datetime=tz.localize(end_datetime)
                 )
                 if form.get('traveldates'):
                     start_travel_dt, end_travel_dt = form.get('traveldates').split(' - ')
-                    start_travel_datetime = datetime.strptime(start_travel_dt, '%m/%d/%Y')
-                    end_travel_datetime = datetime.strptime(end_travel_dt, '%m/%d/%Y')
+                    start_travel_datetime = datetime.strptime(start_travel_dt, '%d/%m/%Y')
+                    end_travel_datetime = datetime.strptime(end_travel_dt, '%d/%m/%Y')
                     if not (start_travel_datetime <= start_datetime and end_travel_datetime >= end_datetime):
                         flash(u'ช่วงเวลาเดินทาง ไม่ครอบคลุมวันที่ต้องการขอลา กรุณาตรวจสอบอีกครั้ง', "danger")
                         return redirect(request.referrer)
@@ -232,6 +232,7 @@ def request_for_leave(quota_id=None):
                 req.quota = quota
                 req.staff = current_user
                 req.reason = form.get('reason')
+                req.country = form.get('country')
                 req.contact_address = form.get('contact_addr')
                 req.contact_phone = form.get('contact_phone')
                 req.total_leave_days = req_duration
@@ -283,10 +284,11 @@ def request_for_leave_period(quota_id=None):
                 used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                          tz.localize(END_FISCAL_DATE))
                 start_t, end_t = form.get('times').split(' - ')
-                start_dt = '{} {}'.format(form.get('dates'), start_t)
-                end_dt = '{} {}'.format(form.get('dates'), end_t)
-                start_datetime = datetime.strptime(start_dt, '%m/%d/%Y %H:%M')
-                end_datetime = datetime.strptime(end_dt, '%m/%d/%Y %H:%M')
+                start_d, end_d = form.get('dates').split(' - ')
+                start_dt = '{} {}'.format(start_d, start_t)
+                end_dt = '{} {}'.format(end_d, end_t)
+                start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
+                end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
                 if not quota.leave_type.request_in_advance:
                     flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
                     return redirect(request.referrer)
@@ -431,8 +433,8 @@ def edit_leave_request(req_id=None):
         quota = req.quota
         if quota:
             start_dt, end_dt = request.form.get('dates').split(' - ')
-            start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
-            end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
+            start_datetime = datetime.strptime(start_dt, '%d/%m/%Y')
+            end_datetime = datetime.strptime(end_dt, '%d/%m/%Y')
             req.start_datetime =tz.localize(start_datetime)
             req.end_datetime=tz.localize(end_datetime)
             if start_datetime <= END_FISCAL_DATE and end_datetime > END_FISCAL_DATE:
@@ -440,8 +442,8 @@ def edit_leave_request(req_id=None):
                 return redirect(request.referrer)
             if request.form.get('traveldates'):
                 start_travel_dt, end_travel_dt = request.form.get('traveldates').split(' - ')
-                start_travel_datetime = datetime.strptime(start_travel_dt, '%m/%d/%Y')
-                end_travel_datetime = datetime.strptime(end_travel_dt, '%m/%d/%Y')
+                start_travel_datetime = datetime.strptime(start_travel_dt, '%d/%m/%Y')
+                end_travel_datetime = datetime.strptime(end_travel_dt, '%d/%m/%Y')
                 if not (start_travel_datetime <= start_datetime and end_travel_datetime >= end_datetime):
                     flash(u'ช่วงเวลาเดินทาง ไม่ครอบคลุมวันที่ต้องการขอลา กรุณาตรวจสอบอีกครั้ง', "danger")
                     return redirect(request.referrer)
@@ -512,6 +514,7 @@ def edit_leave_request(req_id=None):
                 else:
                     quota_limit = quota.first_year
             req.reason = request.form.get('reason')
+            req.country = request.form.get('country')
             req.contact_address = request.form.get('contact_addr'),
             req.contact_phone = request.form.get('contact_phone'),
             req.total_leave_days = req_duration
@@ -551,10 +554,11 @@ def edit_leave_request_period(req_id=None):
             used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                      tz.localize(END_FISCAL_DATE))
             start_t, end_t = request.form.get('times').split(' - ')
-            start_dt = '{} {}'.format(request.form.get('dates'), start_t)
-            end_dt = '{} {}'.format(request.form.get('dates'), end_t)
-            start_datetime = datetime.strptime(start_dt, '%m/%d/%Y %H:%M')
-            end_datetime = datetime.strptime(end_dt, '%m/%d/%Y %H:%M')
+            start_d, end_d = request.form.get('dates').split(' - ')
+            start_dt = '{} {}'.format(start_d, start_t)
+            end_dt = '{} {}'.format(end_d, end_t)
+            start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
+            end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
             delta = start_datetime - datetime.today()
             if delta.days > 0 and not quota.leave_type.request_in_advance:
                 flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
@@ -603,7 +607,7 @@ def edit_leave_request_period(req_id=None):
         else:
             return 'Error happened'
 
-    selected_dates = [req.start_datetime]
+    selected_dates = req.start_datetime
 
     return render_template('staff/edit_leave_request_period.html', req=req, selected_dates=selected_dates, errors={})
 
@@ -767,8 +771,8 @@ def leave_request_result_by_date():
         form = request.form
 
         start_dt, end_dt = form.get('dates').split(' - ')
-        start_date = datetime.strptime(start_dt, '%m/%d/%Y')
-        end_date = datetime.strptime(end_dt, '%m/%d/%Y')
+        start_date = datetime.strptime(start_dt, '%d/%m/%Y')
+        end_date = datetime.strptime(end_dt, '%d/%m/%Y')
 
         leaves = StaffLeaveRequest.query.filter(and_(StaffLeaveRequest.start_datetime>=start_date,
                                                      StaffLeaveRequest.end_datetime<=end_date))
@@ -851,8 +855,8 @@ def request_work_from_home():
         form = request.form
 
         start_dt, end_dt = form.get('dates').split(' - ')
-        start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
-        end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
+        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y')
+        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y')
         req = StaffWorkFromHomeRequest(
             staff=current_user,
             start_datetime=tz.localize(start_datetime),
@@ -876,8 +880,8 @@ def edit_request_work_from_home(request_id):
     req = StaffWorkFromHomeRequest.query.get(request_id)
     if request.method == 'POST':
         start_dt, end_dt = request.form.get('dates').split(' - ')
-        start_datetime = datetime.strptime(start_dt, '%m/%d/%Y')
-        end_datetime = datetime.strptime(end_dt, '%m/%d/%Y')
+        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y')
+        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y')
         req.start_datetime = tz.localize(start_datetime),
         req.end_datetime = tz.localize(end_datetime),
         req.detail = request.form.get('detail'),
@@ -1109,8 +1113,8 @@ def wfh_requests_list():
     if request.method == 'POST':
         form = request.form
         start_dt, end_dt = form.get('dates').split(' - ')
-        start_date = datetime.strptime(start_dt, '%m/%d/%Y')
-        end_date = datetime.strptime(end_dt, '%m/%d/%Y')
+        start_date = datetime.strptime(start_dt, '%d/%m/%Y')
+        end_date = datetime.strptime(end_dt, '%d/%m/%Y')
 
         wfh_request = StaffWorkFromHomeRequest.query.filter(and_(StaffWorkFromHomeRequest.start_datetime >= start_date,
                                                      StaffWorkFromHomeRequest.end_datetime <= end_date))
@@ -1124,3 +1128,4 @@ def wfh_requests_list():
 @login_required
 def for_hr():
     return render_template('staff/for_hr.html')
+
