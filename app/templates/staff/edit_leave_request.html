@@ -35,6 +35,7 @@
                                         v-model="travelDates"
                                         range
                                         icon-pack="fa"
+                                        :date-formatter="formatDate"
                                         :mobile-native="false"
                                         :events="events"
                                         :indicators="'dots'"
@@ -62,6 +63,7 @@
                                         v-model="selectedDates"
                                         range
                                         icon-pack="fa"
+                                        :date-formatter="formatDate"
                                         :mobile-native="false"
                                         placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                         icon="calendar-alt">
@@ -80,6 +82,15 @@
                         </b-input>
                     </b-field>
                     {% endif %}
+                    <b-field label="ประเทศ" v-if="destination === 'international'"
+                             type="is-danger">
+                        <b-input type="text"
+                                 name="country"
+                                 icon-pack="far"
+                                 icon="comment"
+                                 value="{{ req.country }}">
+                        </b-input>
+                    </b-field>
                     <b-field label="ระหว่างลาสามารถติดต่อท่านได้ที่">
                         <b-input name="contact_addr"
                                  icon-pack="fas"
@@ -158,6 +169,17 @@
         methods: {
             removeTravelDate: function() {
                 this.travelDates = []
+            },
+            formatDate(dates){
+                if (dates.length===2){
+                    let start = new moment(dates[0]).format("DD/MM/YYYY")
+                    let end = new moment(dates[1]).format("DD/MM/YYYY")
+                    return start + ' - ' + end
+                }
+                else{
+                    let date = new moment(dates).format("DD/MM/YYYY")
+                    return date + ' - ' + date
+                }
             }
         },
         mounted() {

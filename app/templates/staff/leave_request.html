@@ -37,6 +37,7 @@
                                         v-model="travelDates"
                                         range
                                         icon-pack="fa"
+                                        :date-formatter="formatDate"
                                         :mobile-native="false"
                                         :events="events"
                                         :indicators="'dots'"
@@ -58,6 +59,7 @@
                                         v-model="selectedDates"
                                         range
                                         icon-pack="fa"
+                                        :date-formatter="formatDate"
                                         :mobile-native="false"
                                         :events="events"
                                         :indicators="'dots'"
@@ -111,8 +113,8 @@
                             v-if="file">
                                 <% file.name %>
                             </span>
-                    {% endif %}
                     </b-field>
+                    {% endif %}
                     <div class="field">
                         <label class="checkbox">
                             <input type="checkbox" value="yes" name="notified_by_line" checked>
@@ -162,6 +164,19 @@
                 let e = new Date(d);
                 this.events.push(e);
             })
+        },
+        methods: {
+            formatDate(dates){
+                if (dates.length===2){
+                    let start = new moment(dates[0]).format("DD/MM/YYYY")
+                    let end = new moment(dates[1]).format("DD/MM/YYYY")
+                    return start + ' - ' + end
+                }
+                else{
+                    let date = new moment(dates).format("DD/MM/YYYY")
+                    return date + ' - ' + date
+                }
+            }
         }
     });
 </script>
