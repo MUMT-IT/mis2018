@@ -7,10 +7,12 @@
         {% for msg in get_flashed_messages() %}
         <p class="notification is-warning">{{ msg }}</p>
         {% endfor %}
+        {% if current_user.line_id %}
             <div class="has-text-right">
                  <input type="hidden" name="lineNotified" v-model="lineNotified">
                 <b-switch v-model="lineNotified" @input="changeLineNotified">เปิดแจ้งเตือนผ่านไลน์</b-switch>
             </div>
+        {% endif %}
             <h4 class="subtitle">รายการขออนุมัติลาบุคลากรในสังกัดของ {{ current_user.personal_info.fullname }}</h4>
 <table class="table is-bordered">
     <tbody>
