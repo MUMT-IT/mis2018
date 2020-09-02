@@ -84,12 +84,18 @@
                         </tr>
                         {% endif %}
                         </table>
+                        {% if not req.cancelled_at %}
                         <div class="control has-text-centered">
                             <a href="{{ url_for('staff.leave_approve', req_id=req.id, approver_id=approver.id, approved='yes') }}"
                                class="button is-success">อนุมัติ</a>
                             <a href="{{ url_for('staff.leave_approve', req_id=req.id, approver_id=approver.id, approved='no') }}"
                                class="button is-danger">ไม่อนุมัติ</a>
                         </div>
+                        {% else %}
+                        <div class="has-text-centered" >
+                            <span>การลาครั้งนี้ถูกยกเลิกแล้ว</span>
+                        </div>
+                        {% endif %}
                         <a href="{{ url_for('staff.show_leave_approval_info') }}"
                                                         class="button is-info is-light is-rounded">
                             <span class="icon">
