@@ -289,7 +289,8 @@ def request_for_leave_period(quota_id=None):
                 end_dt = '{} {}'.format(end_d, end_t)
                 start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
                 end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
-                if not quota.leave_type.request_in_advance:
+                delta = start_datetime.date() - datetime.today().date()
+                if delta.days > 0 and not quota.leave_type.request_in_advance:
                     flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
                     return redirect(request.referrer)
                 req = StaffLeaveRequest(
