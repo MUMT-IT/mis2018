@@ -724,6 +724,19 @@ def cancel_leave_request(req_id):
     req.cancelled_at = tz.localize(datetime.today())
     db.session.add(req)
     db.session.commit()
+    cancelled_msg = u'การขออนุมัติ{} วันที่ใน {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
+                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
+                                                                        req.start_datetime,req.end_datetime,
+                                                                        current_user.personal_info.fullname
+                                                                        ,_external=True)
+    if req.notify_to_line and req.staff.line_id:
+        if os.environ["FLASK_ENV"] == "production":
+            line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=cancelled_msg))
+        else:
+            print(cancelled_msg, req.staff.id)
+    cancelled_title = u'ทดสอบแจ้งยกเลิกการขอ' + req.quota.leave_type.type_
+    if os.environ["FLASK_ENV"] == "production":
+        send_mail([req.staff.email + "@mahidol.ac.th"], cancelled_title, cancelled_msg)
     return redirect(request.referrer)
 
 
