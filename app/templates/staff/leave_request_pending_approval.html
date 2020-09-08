@@ -117,15 +117,19 @@
                             <span>การลาครั้งนี้ถูกยกเลิกแล้ว</span>
                         </div>
                         {% endif %}
-                        <a href="{{ url_for('staff.show_leave_approval_info') }}"
-                                                        class="button is-info is-light is-rounded">
-                            <span class="icon">
-                            <i class="fas fa-arrow-left"></i>
-                            </span>
-                            <span>กลับหน้าสรุป</span>
-                         </a>
                     </form>
                 </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <a href="{{ url_for('staff.show_leave_approval_info') }}"
+                   class="button is-info is-light is-rounded">
+                        <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                        </span>
+                    <span>กลับหน้าสรุป</span>
+                </a>
             </div>
         </div>
     </div>

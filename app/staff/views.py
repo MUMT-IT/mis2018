@@ -1204,3 +1204,43 @@ def calculate_time_scan(workdata):
                 status = "Holiday"
             else:
                 status = "No scan"
+
+
+@staff.route('/summary')
+@login_required
+def summary_index():
+    depts = Org.query.filter_by(head=current_user.email)
+    curr_dept_id = request.args.get('curr_dept_id')
+    tab = request.args.get('tab', 'all')
+    if curr_dept_id is None:
+        curr_dept_id = depts[0].id
+    employees = StaffPersonalInfo.query.filter_by(org_id=int(curr_dept_id))
+    leaves = []
+    wfhs = []
+    #TODO: add code to load leave requests filtering by years
+    #TODO: query only requests that are active
+    for emp in employees:
+        for req in emp.staff_account.leave_requests:
+            if req.get_approved:
+                text_color = '#ffffff'
+                bg_color = '#2b8c36'
+                border_color = '#ffffff'
+            else:
+                text_color = '#000000'
+                bg_color = '#e6ffe6'
+                border_color = '#2b8c36'
+            leaves.append({
+                'id': req.id,
+                'start': req.start_datetime.astimezone(tz).isoformat(),
+                'end': req.end_datetime.astimezone(tz).isoformat(),
+                'title': emp.fullname,
+                'type': req.quota.leave_type.type_,
+                'backgroundColor': bg_color,
+                'borderColor': border_color,
+                'textColor': text_color,
+                'type': 'leave'
+            })
+    all = wfhs + leaves
+    return render_template('staff/summary_index.html',
+                           depts=depts, curr_dept_id=int(curr_dept_id),
+                           all=all, tab=tab)
