@@ -13,7 +13,7 @@ from flask import jsonify, render_template, request, redirect, url_for, flash
 from datetime import date, datetime
 from collections import defaultdict, namedtuple
 import pytz
-from sqlalchemy import and_
+from sqlalchemy import and_, desc
 from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
 from linebot.models import TextSendMessage
@@ -651,14 +651,26 @@ def update_line_notification():
 def pending_leave_approval(req_id):
     req = StaffLeaveRequest.query.get(req_id)
     approver = StaffLeaveApprover.query.filter_by(account=current_user, requester=req.staff).first()
+    approve = StaffLeaveApproval.query.filter_by(approver=approver, request=req).first()
+    if approve:
+        return render_template('staff/leave_approve_status.html',approve=approve, req=req)
     if req.upload_file_url:
         upload_file = drive.CreateFile({'id': req.upload_file_url})
         upload_file.FetchMetadata()
         upload_file_url = upload_file.get('embedLink')
     else:
         upload_file_url = None
+    used_quota = current_user.personal_info.get_total_leaves(req.quota.id, tz.localize(START_FISCAL_DATE),
+                                                             tz.localize(END_FISCAL_DATE))
+    last_req = None
+    for last_req in StaffLeaveRequest.query.filter_by(staff=current_user, cancelled_at=None).\
+                                                order_by(desc(StaffLeaveRequest.start_datetime)):
+        if last_req.get_approved:
+            break
+        else:
+            last_req = None
     return render_template('staff/leave_request_pending_approval.html', req=req, approver=approver,
-                           upload_file_url=upload_file_url)
+                           upload_file_url=upload_file_url, used_quota=used_quota, last_req=last_req)
 
 
 @staff.route('/leave/requests/approve/<int:req_id>/<int:approver_id>', methods=['GET','POST'])
