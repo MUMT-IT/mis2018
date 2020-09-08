@@ -676,7 +676,7 @@ def leave_approve(req_id, approver_id):
         )
         db.session.add(approval)
         db.session.commit()
-        flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย')
+        flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที')
         req = StaffLeaveRequest.query.get(req_id)
         approve_msg = u'การขออนุมัติ{} ได้รับการพิจารณาโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
                       u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
