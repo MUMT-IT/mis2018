@@ -15,12 +15,22 @@
                 </div>
             </div>
         </div>
-        <div class="column">
+         <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                <a href="{{ url_for('staff.time_scan') }}">
+                    <span class="icon is-large"><i class="far fa-clock fa-4x"></i></span><br><br>
+                    <span class="is-size-4">ข้อมูลเวลาเข้า-ออกงาน</span>
+                </a>
+                </div>
+            </div>
+        </div>
+         <div class="column">
             <div class="container has-text-centered">
                 <div class="box">
                 <a href="{{ url_for('staff.wfh_requests_list') }}">
                     <span class="icon is-large"><i class="fas fa-laptop fa-4x"></i></span><br><br>
-                    <span class="is-size-4">ข้อมูลการทำงานที่บ้าน (Work from home)</span>
+                    <span class="is-size-4">ข้อมูลการทำงานที่บ้าน (WFH)</span>
                 </a>
                 </div>
             </div>
