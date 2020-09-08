@@ -1209,7 +1209,7 @@ def calculate_time_scan(workdata):
 @login_required
 def summary_index():
     depts = Org.query.filter_by(head=current_user.email)
-    curr_dept_id = request.args.get('dept_id')
+    curr_dept_id = request.args.get('curr_dept_id')
     tab = request.args.get('tab', 'all')
     if curr_dept_id is None:
         curr_dept_id = depts[0].id
@@ -1240,4 +1240,6 @@ def summary_index():
                 'type': 'leave'
             })
     all = wfhs + leaves
-    return render_template('staff/summary_index.html', depts=depts, curr_dept_id=curr_dept_id, all=all)
+    return render_template('staff/summary_index.html',
+                           depts=depts, curr_dept_id=int(curr_dept_id),
+                           all=all, tab=tab)

@@ -17,7 +17,7 @@
                 <ul class="menu-list">
                     {% for dept in depts %}
                     <li>
-                        <a href="{{ url_for('staff.summary_index', curr_dept_id=curr_dept_id) }}"
+                        <a href="{{ url_for('staff.summary_index', curr_dept_id=dept.id, tab=tab) }}"
                            {% if dept.id == curr_dept_id %}
                            class="is-active"
                            {% endif %}
@@ -28,7 +28,15 @@
                     <li>
                         <ul class="menu-list">
                             {% for child in dept.children %}
-                            <li>{{ child.name }}</li>
+                            <li>
+                                <a href="{{ url_for('staff.summary_index', curr_dept_id=child.id, tab=tab) }}"
+                                    {% if child.id == curr_dept_id %}
+                                    class="is-active"
+                                    {% endif %}
+                                >
+                                    {{ child.name }}
+                                </a>
+                            </li>
                             {% endfor %}
                         </ul>
                     </li>
@@ -40,17 +48,17 @@
             <div class="container has-text-centered">
                 <div class="tabs">
                     <ul>
-                        <li>
+                        <li {% if tab == "all" %} class="is-active" {% endif %}>
                             <a href="{{ url_for('staff.summary_index', tab='all', curr_dept_id=curr_dept_id) }}">
                                 ทั้งหมด
                             </a>
                         </li>
-                        <li>
+                        <li {% if tab == "leave" %} class="is-active" {% endif %}>
                             <a href="{{ url_for('staff.summary_index', tab='leave', curr_dept_id=curr_dept_id) }}">
                                 วันลา
                             </a>
                         </li>
-                        <li>
+                        <li {% if tab == "wfh" %} class="is-active" {% endif %}>
                             <a href="{{ url_for('staff.summary_index', tab='wfh', curr_dept_id=curr_dept_id) }}">
                                 WFH
                             </a>
