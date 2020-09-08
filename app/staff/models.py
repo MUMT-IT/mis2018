@@ -171,6 +171,9 @@ class StaffLeaveType(db.Model):
     def __str__(self):
         return self.type_
 
+    def __repr__(self):
+        return self.type_
+
 
 class StaffLeaveQuota(db.Model):
     __tablename__ = 'staff_leave_quota'

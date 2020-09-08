@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
+{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    <h1 class="title">Staff Page</h1>
+    <div class="columns">
+        <div class="column is-3">
+            <aside class="menu">
+                <p class="menu-label">Department</p>
+                <ul class="menu-list">
+                    {% for dept in depts %}
+                    <li>
+                        <a href="{{ url_for('staff.summary_index', curr_dept_id=curr_dept_id) }}"
+                           {% if dept.id == curr_dept_id %}
+                           class="is-active"
+                           {% endif %}
+                        >
+                            {{ dept.name }}
+                        </a>
+                    </li>
+                    <li>
+                        <ul class="menu-list">
+                            {% for child in dept.children %}
+                            <li>{{ child.name }}</li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </aside>
+        </div>
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="tabs">
+                    <ul>
+                        <li>
+                            <a href="{{ url_for('staff.summary_index', tab='all', curr_dept_id=curr_dept_id) }}">
+                                ทั้งหมด
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('staff.summary_index', tab='leave', curr_dept_id=curr_dept_id) }}">
+                                วันลา
+                            </a>
+                        </li>
+                        <li>
+                            <a href="{{ url_for('staff.summary_index', tab='wfh', curr_dept_id=curr_dept_id) }}">
+                                WFH
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
+<script>
+    $(function() {
+        $('#calendar').fullCalendar({
+            schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
+            header: {
+                left: 'title',
+            },
+            events: {{ all|tojson|safe }},
+            eventClick: function(calEvent, jsEvent, view) {
+                if(calEvent.type === 'leave') {
+                    window.location = '/staff/leave/requests/approval/pending/' + calEvent.id;
+                }
+            }
+        })
+        $('#prev_btn').on('click', function() {
+            $('#calendar').fullCalendar('prev');
+        });
+        $('#next_btn').on('click', function() {
+            $('#calendar').fullCalendar('next');
+        });
+    });
+</script>
+{% endblock %}
