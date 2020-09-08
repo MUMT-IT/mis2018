@@ -21,7 +21,7 @@
                                <label class="label">ประเภทการลา</label>
                             </td>
                             <td>
-                                {{ req.quota.leave_type }}
+                                <p class="is-size-5"><strong>{{ req.quota.leave_type }}</strong></p>
                             </td>
                         </tr>
                         <tr>
@@ -71,7 +71,28 @@
                                 <p>{{ req.contact_phone }}</p>
                             </td>
                         </tr>
-                        {% if req.quota.leave_type.type_ == 'ลาป่วย' %}
+                        <tr>
+                            <td>
+                               <label class="label">{{ req.quota.leave_type }}มาแล้ว</label>
+                            </td>
+                            <td>
+                                <p>{{ used_quota }} วันทำการ</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">ลาครั้งสุดท้ายเมื่อ</label>
+                            </td>
+                            <td>
+                                {% if last_req %}
+                                <p>{{ last_req.start_datetime|localdate }} - {{ last_req.end_datetime|localdate }}
+                                    ({{ last_req.quota.leave_type }})</p>
+                                {% else %}
+                                <p>ไม่มีรายการ</p>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if req.quota.leave_type.type_ == 'ลาป่วย' and req.upload_file_url %}
                         <tr>
                             <td>
                                 <label class="label">Link เอกสารแนบใบลา (กรณีลาป่วยเกิน 3 วัน)</label>
