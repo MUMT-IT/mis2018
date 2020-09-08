@@ -13,7 +13,7 @@ from flask import jsonify, render_template, request, redirect, url_for, flash
 from datetime import date, datetime
 from collections import defaultdict, namedtuple
 import pytz
-from sqlalchemy import and_
+from sqlalchemy import and_, desc
 from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
 from linebot.models import TextSendMessage
@@ -289,7 +289,8 @@ def request_for_leave_period(quota_id=None):
                 end_dt = '{} {}'.format(end_d, end_t)
                 start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
                 end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
-                if not quota.leave_type.request_in_advance:
+                delta = start_datetime.date() - datetime.today().date()
+                if delta.days > 0 and not quota.leave_type.request_in_advance:
                     flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
                     return redirect(request.referrer)
                 req = StaffLeaveRequest(
@@ -650,14 +651,26 @@ def update_line_notification():
 def pending_leave_approval(req_id):
     req = StaffLeaveRequest.query.get(req_id)
     approver = StaffLeaveApprover.query.filter_by(account=current_user, requester=req.staff).first()
+    approve = StaffLeaveApproval.query.filter_by(approver=approver, request=req).first()
+    if approve:
+        return render_template('staff/leave_approve_status.html',approve=approve, req=req)
     if req.upload_file_url:
         upload_file = drive.CreateFile({'id': req.upload_file_url})
         upload_file.FetchMetadata()
         upload_file_url = upload_file.get('embedLink')
     else:
         upload_file_url = None
+    used_quota = current_user.personal_info.get_total_leaves(req.quota.id, tz.localize(START_FISCAL_DATE),
+                                                             tz.localize(END_FISCAL_DATE))
+    last_req = None
+    for last_req in StaffLeaveRequest.query.filter_by(staff=current_user, cancelled_at=None).\
+                                                order_by(desc(StaffLeaveRequest.start_datetime)):
+        if last_req.get_approved:
+            break
+        else:
+            last_req = None
     return render_template('staff/leave_request_pending_approval.html', req=req, approver=approver,
-                           upload_file_url=upload_file_url)
+                           upload_file_url=upload_file_url, used_quota=used_quota, last_req=last_req)
 
 
 @staff.route('/leave/requests/approve/<int:req_id>/<int:approver_id>', methods=['GET','POST'])
@@ -675,7 +688,7 @@ def leave_approve(req_id, approver_id):
         )
         db.session.add(approval)
         db.session.commit()
-        flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย')
+        flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที')
         req = StaffLeaveRequest.query.get(req_id)
         approve_msg = u'การขออนุมัติ{} ได้รับการพิจารณาโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
                       u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
@@ -711,6 +724,19 @@ def cancel_leave_request(req_id):
     req.cancelled_at = tz.localize(datetime.today())
     db.session.add(req)
     db.session.commit()
+    cancelled_msg = u'การขออนุมัติ{} วันที่ใน {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
+                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
+                                                                        req.start_datetime,req.end_datetime,
+                                                                        current_user.personal_info.fullname
+                                                                        ,_external=True)
+    if req.notify_to_line and req.staff.line_id:
+        if os.environ["FLASK_ENV"] == "production":
+            line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=cancelled_msg))
+        else:
+            print(cancelled_msg, req.staff.id)
+    cancelled_title = u'ทดสอบแจ้งยกเลิกการขอ' + req.quota.leave_type.type_
+    if os.environ["FLASK_ENV"] == "production":
+        send_mail([req.staff.email + "@mahidol.ac.th"], cancelled_title, cancelled_msg)
     return redirect(request.referrer)
 
 

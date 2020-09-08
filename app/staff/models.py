@@ -118,11 +118,11 @@ class StaffPersonalInfo(db.Model):
         for req in self.staff_account.leave_requests:
             if req.quota.id == leave_quota_id:
                 if start_date is None or end_date is None:
-                    if not req.cancelled_at:
+                    if not req.cancelled_at and req.get_approved:
                         total_leaves.append(req.total_leave_days)
                 else:
                     if req.start_datetime >= start_date and req.end_datetime <= end_date:
-                        if not req.cancelled_at:
+                        if not req.cancelled_at and req.get_approved:
                             total_leaves.append(req.total_leave_days)
 
         return sum(total_leaves)
