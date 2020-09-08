@@ -58,6 +58,7 @@
                         </tr>
                         {% endfor %}
                     </table>
+                    {% if not req.cancelled_at %}
                     <div class="has-text-centered">
                         <a class="button is-danger" @click="confirmCustomDelete({{ req.id }})">
                             <span class="icon">
@@ -67,6 +68,11 @@
                             <span>ยกเลิกการลา</span>
                         </a>
                     </div>
+                    {% else %}
+                    <div class="has-text-centered">
+                        <p class="is-size-5"><strong>การลานี้ถูกเลิกแล้ว</strong></p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
