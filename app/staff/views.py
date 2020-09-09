@@ -151,9 +151,13 @@ def request_for_leave(quota_id=None):
         if quota_id:
             quota = StaffLeaveQuota.query.get(quota_id)
             if quota:
-                start_dt, end_dt = form.get('dates').split(' - ')
-                start_datetime = datetime.strptime(start_dt, '%d/%m/%Y')
-                end_datetime = datetime.strptime(end_dt, '%d/%m/%Y')
+                start_t = "08:30"
+                end_t = "16:30"
+                start_d, end_d = form.get('dates').split(' - ')
+                start_dt = '{} {}'.format(start_d, start_t)
+                end_dt = '{} {}'.format(end_d, end_t)
+                start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
+                end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
                 req = StaffLeaveRequest(
                     start_datetime=tz.localize(start_datetime),
                     end_datetime=tz.localize(end_datetime)
@@ -191,8 +195,8 @@ def request_for_leave(quota_id=None):
                 used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                          tz.localize(END_FISCAL_DATE))
                 req_duration = get_weekdays(req)
-                holidays = Holidays.query.filter(and_(Holidays.holiday_date >= start_datetime,
-                                                      Holidays.holiday_date <= end_datetime)).all()
+                holidays = Holidays.query.filter(and_(Holidays.holiday_date >= start_datetime.date(),
+                                                      Holidays.holiday_date <= end_datetime.date())).all()
                 req_duration = req_duration - len(holidays)
                 delta = current_user.personal_info.get_employ_period()
                 if req_duration == 0:
