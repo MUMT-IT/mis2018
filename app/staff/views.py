@@ -730,8 +730,8 @@ def cancel_leave_request(req_id):
     db.session.commit()
     cancelled_msg = u'การขออนุมัติ{} วันที่ใน {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
-                                                                        tz.localize(req.start_datetime),
-                                                                        tz.localize(req.end_datetime),
+                                                                        req.start_datetime,
+                                                                        req.end_datetime,
                                                                         current_user.personal_info.fullname
                                                                         ,_external=True)
     if req.notify_to_line and req.staff.line_id:
@@ -1213,37 +1213,60 @@ def calculate_time_scan(workdata):
 @staff.route('/summary')
 @login_required
 def summary_index():
-    depts = Org.query.filter_by(head=current_user.email)
+    depts = Org.query.filter_by(head=current_user.email).all()
+    if len(depts)==0:
+        return redirect(request.referrer)
     curr_dept_id = request.args.get('curr_dept_id')
-    tab = request.args.get('tab', 'all')
+    tab = request.args.get('tab')
     if curr_dept_id is None:
         curr_dept_id = depts[0].id
     employees = StaffPersonalInfo.query.filter_by(org_id=int(curr_dept_id))
     leaves = []
     wfhs = []
     #TODO: add code to load leave requests filtering by years
-    #TODO: query only requests that are active
     for emp in employees:
-        for req in emp.staff_account.leave_requests:
-            if req.get_approved:
-                text_color = '#ffffff'
-                bg_color = '#2b8c36'
-                border_color = '#ffffff'
-            else:
-                text_color = '#000000'
-                bg_color = '#e6ffe6'
-                border_color = '#2b8c36'
-            leaves.append({
-                'id': req.id,
-                'start': req.start_datetime.astimezone(tz).isoformat(),
-                'end': req.end_datetime.astimezone(tz).isoformat(),
-                'title': emp.fullname,
-                'type': req.quota.leave_type.type_,
-                'backgroundColor': bg_color,
-                'borderColor': border_color,
-                'textColor': text_color,
-                'type': 'leave'
-            })
+        if tab == 'leave' or tab == 'all':
+            for leave_req in emp.staff_account.leave_requests:
+                if not leave_req.cancelled_at:
+                    if leave_req.get_approved:
+                        text_color = '#ffffff'
+                        bg_color = '#2b8c36'
+                        border_color = '#ffffff'
+                    else:
+                        text_color = '#989898'
+                        bg_color = '#e6ffe6'
+                        border_color = '#ffffff'
+                    leaves.append({
+                        'id': leave_req.id,
+                        'start': leave_req.start_datetime.astimezone(tz).isoformat(),
+                        'end': leave_req.end_datetime.astimezone(tz).isoformat(),
+                        'title': emp.fullname,
+                        'backgroundColor': bg_color,
+                        'borderColor': border_color,
+                        'textColor': text_color,
+                        'type' : 'leave'
+                    })
+        if tab == 'wfh' or tab == 'all':
+            for wfh_req in emp.staff_account.wfh_requests:
+                if not wfh_req.cancelled_at:
+                    if wfh_req.get_approved:
+                        text_color = '#ffffff'
+                        bg_color = '#109AD3'
+                        border_color = '#ffffff'
+                    else:
+                        text_color = '#989898'
+                        bg_color = '#90B7C7'
+                        border_color = '#ffffff'
+                    wfhs.append({
+                        'id' : wfh_req.id,
+                        'start': wfh_req.start_datetime.astimezone(tz).isoformat(),
+                        'end': wfh_req.end_datetime.astimezone(tz).isoformat(),
+                        'title': emp.fullname,
+                        'backgroundColor': bg_color,
+                        'borderColor': border_color,
+                        'textColor': text_color,
+                        'type': 'wfh'
+                    })
     all = wfhs + leaves
     return render_template('staff/summary_index.html',
                            depts=depts, curr_dept_id=int(curr_dept_id),
