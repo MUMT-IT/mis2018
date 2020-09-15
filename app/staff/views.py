@@ -437,9 +437,13 @@ def edit_leave_request(req_id=None):
     if request.method == 'POST':
         quota = req.quota
         if quota:
-            start_dt, end_dt = request.form.get('dates').split(' - ')
-            start_datetime = datetime.strptime(start_dt, '%d/%m/%Y')
-            end_datetime = datetime.strptime(end_dt, '%d/%m/%Y')
+            start_t = "08:30"
+            end_t = "16:30"
+            start_d, end_d = request.form.get('dates').split(' - ')
+            start_dt = '{} {}'.format(start_d, start_t)
+            end_dt = '{} {}'.format(end_d, end_t)
+            start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
+            end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
             req.start_datetime =tz.localize(start_datetime)
             req.end_datetime=tz.localize(end_datetime)
             if start_datetime <= END_FISCAL_DATE and end_datetime > END_FISCAL_DATE:
@@ -885,9 +889,13 @@ def request_work_from_home():
     if request.method == 'POST':
         form = request.form
 
-        start_dt, end_dt = form.get('dates').split(' - ')
-        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y')
-        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y')
+        start_t = "08:30"
+        end_t = "16:30"
+        start_d, end_d = form.get('dates').split(' - ')
+        start_dt = '{} {}'.format(start_d, start_t)
+        end_dt = '{} {}'.format(end_d, end_t)
+        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
+        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
         req = StaffWorkFromHomeRequest(
             staff=current_user,
             start_datetime=tz.localize(start_datetime),
@@ -1217,7 +1225,7 @@ def summary_index():
     if len(depts)==0:
         return redirect(request.referrer)
     curr_dept_id = request.args.get('curr_dept_id')
-    tab = request.args.get('tab')
+    tab = request.args.get('tab', 'all')
     if curr_dept_id is None:
         curr_dept_id = depts[0].id
     employees = StaffPersonalInfo.query.filter_by(org_id=int(curr_dept_id))
@@ -1255,7 +1263,7 @@ def summary_index():
                         border_color = '#ffffff'
                     else:
                         text_color = '#989898'
-                        bg_color = '#90B7C7'
+                        bg_color = '#F3FBFE'
                         border_color = '#ffffff'
                     wfhs.append({
                         'id' : wfh_req.id,
