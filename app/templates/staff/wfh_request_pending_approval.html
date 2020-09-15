@@ -9,7 +9,7 @@
             {% endfor %}
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
-                    <table class="table">
+                    <table class="table is-fullwidth">
                         <tr>
                             <td>
                                <label class="label">ผู้ขออนุมัติทำงานที่บ้าน</label>
@@ -52,15 +52,29 @@
                             </td>
                         </tr>
                     </table>
-                    <div class="field is-grouped">
-                        <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}"
-                                    class="button is-info is-light is-rounded">กลับหน้าสรุป</a>
-                        <div class="control">
-                            <a href="{{ url_for('staff.wfh_approve', req_id=req.id, approver_id=approver.id) }}"
+                    <div class="control has-text-centered">
+                        <a href="{{ url_for('staff.wfh_approve', req_id=req.id, approver_id=approver.id) }}"
                                                                                 class="button is-success">อนุมัติ</a>
-                            <a href="{{ url_for('staff.wfh_reject', req_id=req.id, approver_id=approver.id) }}"
+                        <a href="{{ url_for('staff.wfh_reject', req_id=req.id, approver_id=approver.id) }}"
                                                                                 class="button is-danger">ไม่อนุมัติ</a>
-                        </div>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}" class="button is-rounded is-info is-light">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับหน้าสรุปการขอ WFH</span>
+                        </a>
+                    </div>
+                    <div class="column">
+                        <a href="{{ url_for('staff.summary_index') }}" class="button is-rounded is-info is-light">
+                            <span>กลับหน้าตารางสรุปการเข้างาน</span>
+                            <span class="icon">
+                                <i class="fas fa-arrow-right"></i>
+                            </span>
+                        </a>
                     </div>
                 </div>
             </div>
