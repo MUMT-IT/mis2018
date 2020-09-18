@@ -894,7 +894,6 @@ def show_work_from_home():
 def request_work_from_home():
     if request.method == 'POST':
         form = request.form
-
         start_t = "08:30"
         end_t = "16:30"
         start_d, end_d = form.get('dates').split(' - ')
@@ -902,13 +901,14 @@ def request_work_from_home():
         end_dt = '{} {}'.format(end_d, end_t)
         start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
+        deadline_date = datetime.strptime(form.get('deadline_date'), '%d/%m/%Y')
         req = StaffWorkFromHomeRequest(
             staff=current_user,
             start_datetime=tz.localize(start_datetime),
             end_datetime=tz.localize(end_datetime),
             detail=form.get('detail'),
             contact_phone=form.get('contact_phone'),
-            deadline_date=form.get('deadline_date')
+            deadline_date= deadline_date
         )
         db.session.add(req)
         db.session.commit()
