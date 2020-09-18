@@ -42,16 +42,17 @@
                                 <option value="13:00 - 16:30">ช่วงบ่าย 13:00 - 16:30 น.</option>
                             </b-select>
                         </b-field>
+                        {% if quota.leave_type.reason_required %}
                         <b-field label="จุดประสงค์ในการขออนุมัติลา"
-                                 type="is-danger"
-                                 message="กรณีลาพักผ่อน สามารถใส่เครื่องหมายขีด (-) ได้">
+                                 type="is-danger">
                         <b-input type="text"
                                  name="reason"
                                  icon-pack="far"
                                  icon="comment"
                                  placeholder="ขออนุมัติลาเนื่องจาก" required>
                         </b-input>
-                    </b-field>
+                        </b-field>
+                        {% endif %}
                         <b-field label="ระหว่างลาสามารถติดต่อท่านได้ที่">
                             <b-input name="contact_addr"
                                  icon-pack="fas"

@@ -87,6 +87,8 @@ def get_weekdays(req):
                 return 0
             else:
                 return 0.5
+        else:
+            return weekdays
     else:
         return weekdays
 

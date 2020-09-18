@@ -13,7 +13,7 @@ from flask import jsonify, render_template, request, redirect, url_for, flash
 from datetime import date, datetime
 from collections import defaultdict, namedtuple
 import pytz
-from sqlalchemy import and_, desc
+from sqlalchemy import and_, desc, func
 from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
 from linebot.models import TextSendMessage
@@ -42,6 +42,12 @@ else:
     START_FISCAL_DATE = datetime(today.year-1,10,1)
     END_FISCAL_DATE = datetime(today.year,9,30)
 
+
+def convert_to_fiscal_year(date):
+    if date.month in [10,11,12]:
+        return date.year + 1
+    else:
+        return date.year
 
 
 def get_start_end_date_for_fiscal_year(fiscal_year):
@@ -151,9 +157,13 @@ def request_for_leave(quota_id=None):
         if quota_id:
             quota = StaffLeaveQuota.query.get(quota_id)
             if quota:
-                start_dt, end_dt = form.get('dates').split(' - ')
-                start_datetime = datetime.strptime(start_dt, '%d/%m/%Y')
-                end_datetime = datetime.strptime(end_dt, '%d/%m/%Y')
+                start_t = "08:30"
+                end_t = "16:30"
+                start_d, end_d = form.get('dates').split(' - ')
+                start_dt = '{} {}'.format(start_d, start_t)
+                end_dt = '{} {}'.format(end_d, end_t)
+                start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
+                end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
                 req = StaffLeaveRequest(
                     start_datetime=tz.localize(start_datetime),
                     end_datetime=tz.localize(end_datetime)
@@ -191,8 +201,8 @@ def request_for_leave(quota_id=None):
                 used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                          tz.localize(END_FISCAL_DATE))
                 req_duration = get_weekdays(req)
-                holidays = Holidays.query.filter(and_(Holidays.holiday_date >= start_datetime,
-                                                      Holidays.holiday_date <= end_datetime)).all()
+                holidays = Holidays.query.filter(and_(Holidays.holiday_date >= start_datetime.date(),
+                                                      Holidays.holiday_date <= end_datetime.date())).all()
                 req_duration = req_duration - len(holidays)
                 delta = current_user.personal_info.get_employ_period()
                 if req_duration == 0:
@@ -433,9 +443,13 @@ def edit_leave_request(req_id=None):
     if request.method == 'POST':
         quota = req.quota
         if quota:
-            start_dt, end_dt = request.form.get('dates').split(' - ')
-            start_datetime = datetime.strptime(start_dt, '%d/%m/%Y')
-            end_datetime = datetime.strptime(end_dt, '%d/%m/%Y')
+            start_t = "08:30"
+            end_t = "16:30"
+            start_d, end_d = request.form.get('dates').split(' - ')
+            start_dt = '{} {}'.format(start_d, start_t)
+            end_dt = '{} {}'.format(end_d, end_t)
+            start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
+            end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
             req.start_datetime =tz.localize(start_datetime)
             req.end_datetime=tz.localize(end_datetime)
             if start_datetime <= END_FISCAL_DATE and end_datetime > END_FISCAL_DATE:
@@ -726,7 +740,8 @@ def cancel_leave_request(req_id):
     db.session.commit()
     cancelled_msg = u'การขออนุมัติ{} วันที่ใน {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
-                                                                        req.start_datetime,req.end_datetime,
+                                                                        req.start_datetime,
+                                                                        req.end_datetime,
                                                                         current_user.personal_info.fullname
                                                                         ,_external=True)
     if req.notify_to_line and req.staff.line_id:
@@ -880,9 +895,13 @@ def request_work_from_home():
     if request.method == 'POST':
         form = request.form
 
-        start_dt, end_dt = form.get('dates').split(' - ')
-        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y')
-        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y')
+        start_t = "08:30"
+        end_t = "16:30"
+        start_d, end_d = form.get('dates').split(' - ')
+        start_dt = '{} {}'.format(start_d, start_t)
+        end_dt = '{} {}'.format(end_d, end_t)
+        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
+        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
         req = StaffWorkFromHomeRequest(
             staff=current_user,
             start_datetime=tz.localize(start_datetime),
@@ -1208,7 +1227,17 @@ def calculate_time_scan(workdata):
 @staff.route('/summary')
 @login_required
 def summary_index():
-    depts = Org.query.filter_by(head=current_user.email)
+    depts = Org.query.filter_by(head=current_user.email).all()
+    fiscal_year = request.args.get('fiscal_year')
+    if fiscal_year is None:
+        if today.month in [10, 11, 12]:
+            fiscal_year = today.year + 1
+        else:
+            fiscal_year = today.year
+    else:
+        fiscal_year = int(fiscal_year)
+    if len(depts)==0:
+        return redirect(request.referrer)
     curr_dept_id = request.args.get('curr_dept_id')
     tab = request.args.get('tab', 'all')
     if curr_dept_id is None:
@@ -1216,30 +1245,57 @@ def summary_index():
     employees = StaffPersonalInfo.query.filter_by(org_id=int(curr_dept_id))
     leaves = []
     wfhs = []
-    #TODO: add code to load leave requests filtering by years
-    #TODO: query only requests that are active
     for emp in employees:
-        for req in emp.staff_account.leave_requests:
-            if req.get_approved:
-                text_color = '#ffffff'
-                bg_color = '#2b8c36'
-                border_color = '#ffffff'
-            else:
-                text_color = '#000000'
-                bg_color = '#e6ffe6'
-                border_color = '#2b8c36'
-            leaves.append({
-                'id': req.id,
-                'start': req.start_datetime.astimezone(tz).isoformat(),
-                'end': req.end_datetime.astimezone(tz).isoformat(),
-                'title': emp.fullname,
-                'type': req.quota.leave_type.type_,
-                'backgroundColor': bg_color,
-                'borderColor': border_color,
-                'textColor': text_color,
-                'type': 'leave'
-            })
+        if tab == 'leave' or tab == 'all':
+            fiscal_years = StaffLeaveRequest.query.distinct(func.date_part('YEAR', StaffLeaveRequest.start_datetime))
+            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
+            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
+            for leave_req in StaffLeaveRequest.query.filter_by(staff=emp).filter(StaffLeaveRequest.start_datetime.between(start_fiscal_date,end_fiscal_date)):
+                if not leave_req.cancelled_at:
+                    if leave_req.get_approved:
+                        text_color = '#ffffff'
+                        bg_color = '#2b8c36'
+                        border_color = '#ffffff'
+                    else:
+                        text_color = '#989898'
+                        bg_color = '#e6ffe6'
+                        border_color = '#ffffff'
+                    leaves.append({
+                        'id': leave_req.id,
+                        'start': leave_req.start_datetime.astimezone(tz).isoformat(),
+                        'end': leave_req.end_datetime.astimezone(tz).isoformat(),
+                        'title': emp.fullname,
+                        'backgroundColor': bg_color,
+                        'borderColor': border_color,
+                        'textColor': text_color,
+                        'type' : 'leave'
+                    })
+        if tab == 'wfh' or tab == 'all':
+            fiscal_years = StaffWorkFromHomeRequest.query.distinct(func.date_part('YEAR', StaffWorkFromHomeRequest.start_datetime))
+            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
+            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
+            for wfh_req in StaffWorkFromHomeRequest.query.filter_by(staff=emp).filter(
+                    StaffWorkFromHomeRequest.start_datetime.between(start_fiscal_date, end_fiscal_date)):
+                if not wfh_req.cancelled_at:
+                    if wfh_req.get_approved:
+                        text_color = '#ffffff'
+                        bg_color = '#109AD3'
+                        border_color = '#ffffff'
+                    else:
+                        text_color = '#989898'
+                        bg_color = '#F3FBFE'
+                        border_color = '#ffffff'
+                    wfhs.append({
+                        'id' : wfh_req.id,
+                        'start': wfh_req.start_datetime.astimezone(tz).isoformat(),
+                        'end': wfh_req.end_datetime.astimezone(tz).isoformat(),
+                        'title': emp.fullname,
+                        'backgroundColor': bg_color,
+                        'borderColor': border_color,
+                        'textColor': text_color,
+                        'type': 'wfh'
+                    })
     all = wfhs + leaves
     return render_template('staff/summary_index.html',
                            depts=depts, curr_dept_id=int(curr_dept_id),
-                           all=all, tab=tab)
+                           all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
