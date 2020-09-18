@@ -18,6 +18,7 @@
                                         range
                                         icon-pack="fa"
                                         :mobile-native="false"
+                                        :date-formatter="formatDate"
                                         placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                         icon="calendar-alt">
                                 </b-datepicker>
@@ -83,6 +84,19 @@
                 notifiedByLine: "yes",
             }
         },
+        methods: {
+            formatDate(dates){
+                if (dates.length===2){
+                    let start = new moment(dates[0]).format("DD/MM/YYYY")
+                    let end = new moment(dates[1]).format("DD/MM/YYYY")
+                    return start + ' - ' + end
+                }
+                else{
+                    let date = new moment(dates).format("DD/MM/YYYY")
+                    return date
+                }
+            }
+        }
     });
 </script>
 {% endblock %}
