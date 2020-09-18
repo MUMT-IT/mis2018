@@ -13,7 +13,7 @@ from flask import jsonify, render_template, request, redirect, url_for, flash
 from datetime import date, datetime
 from collections import defaultdict, namedtuple
 import pytz
-from sqlalchemy import and_, desc
+from sqlalchemy import and_, desc, func
 from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
 from linebot.models import TextSendMessage
@@ -42,6 +42,12 @@ else:
     START_FISCAL_DATE = datetime(today.year-1,10,1)
     END_FISCAL_DATE = datetime(today.year,9,30)
 
+
+def convert_to_fiscal_year(date):
+    if date.month in [10,11,12]:
+        return date.year + 1
+    else:
+        return date.year
 
 
 def get_start_end_date_for_fiscal_year(fiscal_year):
@@ -1222,6 +1228,14 @@ def calculate_time_scan(workdata):
 @login_required
 def summary_index():
     depts = Org.query.filter_by(head=current_user.email).all()
+    fiscal_year = request.args.get('fiscal_year')
+    if fiscal_year is None:
+        if today.month in [10, 11, 12]:
+            fiscal_year = today.year + 1
+        else:
+            fiscal_year = today.year
+    else:
+        fiscal_year = int(fiscal_year)
     if len(depts)==0:
         return redirect(request.referrer)
     curr_dept_id = request.args.get('curr_dept_id')
@@ -1231,10 +1245,12 @@ def summary_index():
     employees = StaffPersonalInfo.query.filter_by(org_id=int(curr_dept_id))
     leaves = []
     wfhs = []
-    #TODO: add code to load leave requests filtering by years
     for emp in employees:
         if tab == 'leave' or tab == 'all':
-            for leave_req in emp.staff_account.leave_requests:
+            fiscal_years = StaffLeaveRequest.query.distinct(func.date_part('YEAR', StaffLeaveRequest.start_datetime))
+            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
+            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
+            for leave_req in StaffLeaveRequest.query.filter_by(staff=emp).filter(StaffLeaveRequest.start_datetime.between(start_fiscal_date,end_fiscal_date)):
                 if not leave_req.cancelled_at:
                     if leave_req.get_approved:
                         text_color = '#ffffff'
@@ -1255,7 +1271,11 @@ def summary_index():
                         'type' : 'leave'
                     })
         if tab == 'wfh' or tab == 'all':
-            for wfh_req in emp.staff_account.wfh_requests:
+            fiscal_years = StaffWorkFromHomeRequest.query.distinct(func.date_part('YEAR', StaffWorkFromHomeRequest.start_datetime))
+            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
+            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
+            for wfh_req in StaffWorkFromHomeRequest.query.filter_by(staff=emp).filter(
+                    StaffWorkFromHomeRequest.start_datetime.between(start_fiscal_date, end_fiscal_date)):
                 if not wfh_req.cancelled_at:
                     if wfh_req.get_approved:
                         text_color = '#ffffff'
@@ -1278,4 +1298,4 @@ def summary_index():
     all = wfhs + leaves
     return render_template('staff/summary_index.html',
                            depts=depts, curr_dept_id=int(curr_dept_id),
-                           all=all, tab=tab)
+                           all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
