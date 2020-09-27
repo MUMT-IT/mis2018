@@ -3,78 +3,76 @@
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
-        <div class="table-container">
         {% for msg in get_flashed_messages() %}
         <p class="notification is-warning">{{ msg }}</p>
         {% endfor %}
-            <h4 class="subtitle">รายการลาของ
-              {{ requester[0].staff.personal_info }}
-            </h4>
-            <h4>*หากต้องการแก้ไขสถานะการอนุมัติโปรดติดต่อ หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่ ต่อ 2824(ศาลายา)</h4>
-<table class="table is-bordered is-striped">
-    <thead>
-    <th>วันที่เริ่มลา</th>
-    <th>วันที่สิ้นสุดลา</th>
-    <th>จำนวนวัน</th>
-    <th>ประเภท</th>
-    <th>สถานะการอนุมัติ</th>
-    <th>ยกเลิกลา</th>
-    </thead>
-    <tbody>
-    {% for requester in requester|sort(attribute='start_datetime') %}
-    {% if not requester.cancelled_at and requester.get_approved or requester.get_unapproved %}
-        <tr>
-            <td>
-                {{ requester.start_datetime|localdate }}
-            </td>
-            <td>
-                {{ requester.end_datetime|localdate }}
-            </td>
-            <td>
-                {{ requester.total_leave_days }}
-            </td>
-            <td>
-                <a href="{{ url_for('staff.record_each_request_leave_request', request_id=requester.id) }}"
-                                                                                class="is-info is-light">
-                {{ requester.quota.leave_type }}
-                </a>
-            </td>
-            <td>
-                {% if requester.approvals %}
-                {% for ap in requester.approvals %}
+        <h4 class="title is-size-3">รายการลาของ
+            {{ requester[0].staff.personal_info }}
+        </h4>
+        <h4 class="help">*หากต้องการแก้ไขสถานะการอนุมัติโปรดติดต่อ หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่ ต่อ
+            2824(ศาลายา)</h4>
+        <table class="table box is-bordered is-striped">
+            <thead>
+            <th>วันที่เริ่มลา</th>
+            <th>วันที่สิ้นสุดลา</th>
+            <th>จำนวนวัน</th>
+            <th>ประเภท</th>
+            <th>สถานะการอนุมัติ</th>
+            <th>ยกเลิกลา</th>
+            </thead>
+            <tbody>
+            {% for requester in requester|sort(attribute='start_datetime') %}
+            {% if not requester.cancelled_at and requester.get_approved or requester.get_unapproved %}
+            <tr>
+                <td>
+                    {{ requester.start_datetime|localdate }}
+                </td>
+                <td>
+                    {{ requester.end_datetime|localdate }}
+                </td>
+                <td>
+                    {{ requester.total_leave_days }}
+                </td>
+                <td>
+                    <a href="{{ url_for('staff.record_each_request_leave_request', request_id=requester.id) }}"
+                       class="is-info is-light">
+                        {{ requester.quota.leave_type }}
+                    </a>
+                </td>
+                <td>
+                    {% if requester.approvals %}
+                    {% for ap in requester.approvals %}
                     {{ ap.approver.account.personal_info }}
                     {% if ap.is_approved %}
-                        <span class="icon">
+                    <span class="icon">
                             <i class="fas has-text-success fa-check-circle"></i>
                         </span>
                     {% else %}
-                        <span class="icon">
+                    <span class="icon">
                             <i class="far has-text-danger fa-times-circle"></i>
                         </span>
                     {% endif %}
-                {% endfor %}
-                {% else %}
-                {{ leave_req.approvals|length }}
-                {% endif %}
-            </td>
-            <td>
-                <a class="button is-danger" @click="confirmCustomDelete({{ requester.id }})">ยกเลิกการลา</a>
-            </td>
-        </tr>
-    {% endif %}
-    {% endfor %}
-    </tbody>
-</table>
-
-    <a href="{{ url_for('staff.show_leave_approval_info') }}" class="button is-rounded is-info is-light">
-        <span class="icon">
-            <i class="fas fa-arrow-left"></i>
-        </span>
-        <span>กลับ</span>
-    </a>
-
+                    {% endfor %}
+                    {% else %}
+                    {{ leave_req.approvals|length }}
+                    {% endif %}
+                </td>
+                <td>
+                    <a class="button is-danger" @click="confirmCustomDelete({{ requester.id }})">ยกเลิกการลา</a>
+                </td>
+            </tr>
+            {% endif %}
+            {% endfor %}
+            </tbody>
+        </table>
+        <a href="{{ url_for('staff.show_leave_approval_info') }}" class="button is-rounded is-info is-light">
+            <span class="icon">
+                <i class="fas fa-arrow-left"></i>
+            </span>
+            <span>กลับ</span>
+        </a>
     </div>
-    </div>
+</div>
 </section>
 {% endblock %}
 {% block scripts %}
