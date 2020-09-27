@@ -11,18 +11,25 @@
                 </div>
                 {% endfor %}
                 <div class="box">
-                    <h1 class="title">Log In</h1>
+                    <h1 class="title">ลงชื่อเข้าระบบ</h1>
                     {% for field, error in errors.iteritems() %}
                     <div class="notification is-danger">
                         <span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
                         <span><strong>{{ field }}:</strong> {{ ', '.join(error) }}</span>
                     </div>
                     {% endfor %}
+                    <p class="notification is-warning">
+                    {% if linking_line %}
+                        กรุณาใส่ข้อมูลเพื่อเชื่อมบัญชีไลน์กับบัญชีระบบของท่าน โปรดติดต่อหน่วยไอทีหากท่านไม่ทราบรหัสผ่าน
+                    {% else %}
+                        โปรดติดต่อหน่วยไอทีหรือภาควิชาหากไม่ทราบรหัสผ่านเข้าระบบ
+                    {% endif %}
+                    </p>
                     <form action="" method="post">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                         <div class="field has-addons">
                             <div class="control has-icons-left is-expanded">
-                                {{ form.email(placeholder='Email', class='input is-danger') }}
+                                {{ form.email(placeholder='Email มหิดลเฉพาะก่อนเครื่องหมาย @', class='input') }}
                                 <span class="icon is-small is-left">
                                   <i class="fas fa-envelope"></i>
                                 </span>
@@ -35,19 +42,21 @@
                         </div>
                         <div class="field">
                             <div class="control has-icons-left is-expanded">
-                                {{ form.password(placeholder='Password', class='input is-danger') }}
+                                {{ form.password(placeholder='Password', class='input') }}
                                 <span class="icon is-small is-left">
                                   <i class="fas fa-lock"></i>
                                 </span>
                             </div>
                         </div>
-                        <br>
                         {{ form.remember_me.label() }}
                         {{ form.remember_me() }}
-                        <div class="field is-grouped">
+                        <br>
+                        <br>
+                        <div class="field is-grouped is-grouped-centered">
                             <div class="control">
                                 {{ form.submit(class='button is-info') }}
                             </div>
+                            {% if not linking_line %}
                             <div class="control">
                                 <a href="{{ url_for('auth.line_login') }}" class="button is-success">
                                     <span class="icon">
@@ -56,6 +65,7 @@
                                     <span>Line login</span>
                                 </a>
                             </div>
+                            {% endif %}
                         </div>
                     </form>
                 </div>
