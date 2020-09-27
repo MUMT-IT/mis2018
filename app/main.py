@@ -159,7 +159,7 @@ from staff.models import (StaffAccount, StaffPersonalInfo,
                           StaffLeaveApproval, StaffEmployment,
                           StaffWorkFromHomeRequest, StaffWorkFromHomeJobDetail,
                           StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
-                          StaffWorkFromHomeCheckedJob, StaffLeaveRemainQuota)
+                          StaffWorkFromHomeCheckedJob, StaffLeaveRemainQuota, StaffWorkLogin)
 
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
@@ -175,6 +175,15 @@ admin.add_views(ModelView(StaffWorkFromHomeApprover, db.session, category='Staff
 admin.add_views(ModelView(StaffWorkFromHomeApproval, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkFromHomeCheckedJob, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveRemainQuota, db.session, category='Staff'))
+admin.add_views(ModelView(StaffWorkLogin, db.session, category='Staff'))
+
+from app.staff.views import LoginDataUploadView
+
+admin.add_view(LoginDataUploadView(
+    name='Upload login data',
+    endpoint='login_data',
+    category='Human Resource')
+)
 
 from room_scheduler import roombp as room_blueprint
 

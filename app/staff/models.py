@@ -78,6 +78,7 @@ class StaffPersonalInfo(db.Model):
                               db.ForeignKey('staff_employments.id'))
     employment = db.relationship('StaffEmployment',
                                  backref=db.backref('staff'))
+    finger_scan_id = db.Column('finger_scan_id', db.Integer)
 
     def __str__(self):
         return u'{} {}'.format(self.th_firstname, self.th_lastname)
@@ -387,3 +388,13 @@ class StaffWorkFromHomeRequestSchema(ma.ModelSchema):
         model = StaffWorkFromHomeRequest
     duration = fields.Int()
 
+
+class StaffWorkLogin(db.Model):
+    __tablename__ = 'staff_work_logins'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', backref=db.backref('work_logins'))
+    start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
+    end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
+    checkin_mins = db.Column('checkin_mins', db.Integer())
+    checkout_mins = db.Column('checkout_mins', db.Integer())

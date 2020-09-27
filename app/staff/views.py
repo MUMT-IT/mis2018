@@ -1,11 +1,8 @@
 # -*- coding:utf-8 -*-
 from flask_login import login_required, current_user
+from pandas import read_excel, isna
 
-from models import (StaffAccount, StaffPersonalInfo,
-                    StaffLeaveRequest, StaffLeaveQuota, StaffLeaveApprover, StaffLeaveApproval, StaffLeaveType,
-                    StaffWorkFromHomeRequest, StaffLeaveRequestSchema,
-                    StaffWorkFromHomeJobDetail, StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
-                    StaffWorkFromHomeCheckedJob, StaffWorkFromHomeRequestSchema, StaffLeaveRemainQuota)
+from models import *
 from . import staffbp as staff
 from app.main import db, get_weekdays, mail
 from app.models import Holidays, Org
@@ -22,6 +19,9 @@ from pydrive.drive import GoogleDrive
 import requests
 import os
 from flask_mail import Message
+from flask_admin import BaseView, expose
+
+from ..comhealth.views import allowed_file
 
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -1181,22 +1181,32 @@ def time_scan():
     return render_template('staff/scan_data_upload_and_report.html')
 
 
-@staff.route('/for-hr/time-scan/calculate')
-@login_required
-def calculate_time_scan(workdata):
+class LoginDataUploadView(BaseView):
+    @expose('/')
+    def index(self):
+        return self.render('staff/login_datetime_upload.html')
+
+    def calculate(self, row):
         DATETIME_FORMAT = '%d/%m/%Y %H:%M'
-        if workdata.Time:
-            start, end = workdata.Time.split()[0], workdata.Time.split()[-1]
+        office_starttime = '09:00'
+        office_endtime = '16:30'
+
+        if not isna(row.Time):
+            account = StaffPersonalInfo.query.filter_by(finger_scan_id=row.ID).first()
+            if not account:
+                return
+
+            start, end = row.Time.split()[0], row.Time.split()[-1]
+
             if start != end:
-                start_dt = datetime.strptime(u'{} {}'.format(workdata.Date, start), DATETIME_FORMAT)
-                end_dt = datetime.strptime(u'{} {}'.format(workdata.Date, end), DATETIME_FORMAT)
+                start_dt = datetime.strptime(u'{} {}'.format(row.Date, start), DATETIME_FORMAT)
+                end_dt = datetime.strptime(u'{} {}'.format(row.Date, end), DATETIME_FORMAT)
             else:
-                other_dt = datetime.strptime(u'{} {}'.format(workdata.Date, start), DATETIME_FORMAT)
-                status = "Unidentified"
-            office_starttime = '09:00'
-            office_endtime = '16:30'
-            office_startdt = datetime.strptime(u'{} {}'.format(workdata.Date, office_starttime), DATETIME_FORMAT)
-            office_enddt = datetime.strptime(u'{} {}'.format(workdata.Date, office_endtime), DATETIME_FORMAT)
+                start_dt = datetime.strptime(u'{} {}'.format(row.Date, start), DATETIME_FORMAT)
+                end_dt = None
+            office_startdt = datetime.strptime(u'{} {}'.format(row.Date, office_starttime), DATETIME_FORMAT)
+            office_enddt = datetime.strptime(u'{} {}'.format(row.Date, office_endtime), DATETIME_FORMAT)
+
             if start_dt:
                 if office_startdt > start_dt:
                     morning = office_startdt - start_dt
@@ -1204,7 +1214,7 @@ def calculate_time_scan(workdata):
                 else:
                     morning = start_dt - office_startdt
                     morning = morning.seconds / 60.0
-                #status = "Late" if morning > 0 else "On time"
+                # status = "Late" if morning > 0 else "On time"
             if end_dt:
                 if office_enddt < end_dt:
                     evening = end_dt - office_enddt
@@ -1212,16 +1222,39 @@ def calculate_time_scan(workdata):
                 else:
                     evening = office_enddt - end_dt
                     evening = (evening.seconds / 60.0) * -1
-                #status = "Off early" if evening < 0 else "On time"
-        else:
-            d = datetime.strptime(workdata.Date, '%d/%m/%Y')
-            if d.weekday() >= 5:
-                status = "Weekend"
-            holidays = Holidays.query.filter_by(Holidays.holiday_date >= d).all()
-            if len(holidays) >0:
-                status = "Holiday"
+                # status = "Off early" if evening < 0 else "On time"
+            if start_dt and end_dt:
+                record = StaffWorkLogin(
+                    staff=account.staff_account,
+                    start_datetime=tz.localize(start_dt),
+                    end_datetime=tz.localize(end_dt),
+                    checkin_mins=morning,
+                    checkout_mins=evening
+                )
             else:
-                status = "No scan"
+                record = StaffWorkLogin(
+                    staff=account.staff_account,
+                    start_datetime=tz.localize(start_dt),
+                    checkin_mins=morning,
+                )
+            db.session.add(record)
+            db.session.commit()
+
+
+    @expose('/upload', methods=['GET', 'POST'])
+    def upload(self):
+        if request.method == 'POST':
+            if 'file' not in request.files:
+                flash('No file alert')
+                return redirect(request.url)
+            file = request.files['file']
+            if file.filename == '':
+                flash('No file selected')
+                return redirect(request.url)
+            if file and allowed_file(file.filename):
+                df = read_excel(file, dtype=object)
+                df.apply(self.calculate, axis=1)
+        return 'Done'
 
 
 @staff.route('/summary')
