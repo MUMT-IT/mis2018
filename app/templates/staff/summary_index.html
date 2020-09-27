@@ -69,6 +69,11 @@
                                 ทั้งหมด
                             </a>
                         </li>
+                        <li {% if tab =="wfh" %} class="is-active" {% endif %}>
+                            <a href="{{ url_for('staff.summary_index', tab='login', curr_dept_id=curr_dept_id, fiscal_year=fiscal_year) }}">
+                                แสกนเข้าทำงาน
+                            </a>
+                        </li>
                         <li {% if tab =="leave" %} class="is-active" {% endif %}>
                             <a href="{{ url_for('staff.summary_index', tab='leave', curr_dept_id=curr_dept_id, fiscal_year=fiscal_year) }}">
                                 วันลา

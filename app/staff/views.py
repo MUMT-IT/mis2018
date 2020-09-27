@@ -1278,12 +1278,52 @@ def summary_index():
     employees = StaffPersonalInfo.query.filter_by(org_id=int(curr_dept_id))
     leaves = []
     wfhs = []
+    logins = []
     for emp in employees:
+        if tab == 'login' or tab == 'all':
+            fiscal_years = StaffWorkLogin.query.distinct(func.date_part('YEAR', StaffWorkLogin.start_datetime))
+            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
+            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
+            border_color = '#ffffff'
+            for rec in StaffWorkLogin.query.filter_by(staff=emp) \
+                    .filter(StaffWorkLogin.start_datetime.between(start_fiscal_date, end_fiscal_date)):
+                text_color = '#ffffff'
+                if (rec.checkin_mins < 0) or (rec.checkout_mins > 0):
+                    bg_color = '#4da6ff'
+                    status = ''
+                if rec.end_datetime is None:
+                    status = '???'
+                    text_color = '#000000'
+                    bg_color = '#ffff66'
+                elif rec.checkin_mins > 0 and rec.checkout_mins < 0:
+                    status = u'สาย/ออกก่อน'
+                    bg_color = '#ff5c33'
+                elif rec.checkin_mins > 0:
+                    status = u'เข้าสาย'
+                    text_color = '#000000'
+                    bg_color = '#ffff66'
+                elif rec.checkout_mins < 0:
+                    status = u'ออกก่อน'
+                    text_color = '#000000'
+                    bg_color = '#ffff66'
+                logins.append({
+                    'id': rec.id,
+                    'start': rec.start_datetime.astimezone(tz).isoformat(),
+                    'end': None if rec.end_datetime is None else rec.end_datetime.astimezone(tz).isoformat(),
+                    'title': u'{} {}'.format(emp.th_firstname, status),
+                    'backgroundColor': bg_color,
+                    'borderColor': border_color,
+                    'textColor': text_color,
+                    'type': 'login'
+                })
+            all = logins
+
         if tab == 'leave' or tab == 'all':
             fiscal_years = StaffLeaveRequest.query.distinct(func.date_part('YEAR', StaffLeaveRequest.start_datetime))
             fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
             start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
-            for leave_req in StaffLeaveRequest.query.filter_by(staff=emp).filter(StaffLeaveRequest.start_datetime.between(start_fiscal_date,end_fiscal_date)):
+            for leave_req in StaffLeaveRequest.query.filter_by(staff=emp)\
+                    .filter(StaffLeaveRequest.start_datetime.between(start_fiscal_date,end_fiscal_date)):
                 if not leave_req.cancelled_at:
                     if leave_req.get_approved:
                         text_color = '#ffffff'
@@ -1291,18 +1331,20 @@ def summary_index():
                         border_color = '#ffffff'
                     else:
                         text_color = '#989898'
-                        bg_color = '#e6ffe6'
+                        bg_color = '#d1e0e0'
                         border_color = '#ffffff'
                     leaves.append({
                         'id': leave_req.id,
                         'start': leave_req.start_datetime.astimezone(tz).isoformat(),
                         'end': leave_req.end_datetime.astimezone(tz).isoformat(),
-                        'title': emp.fullname,
+                        'title': u'{} {}'.format(emp.th_firstname, leave_req.quota.leave_type),
                         'backgroundColor': bg_color,
                         'borderColor': border_color,
                         'textColor': text_color,
-                        'type' : 'leave'
+                        'type': 'leave'
                     })
+            all = leaves
+
         if tab == 'wfh' or tab == 'all':
             fiscal_years = StaffWorkFromHomeRequest.query.distinct(func.date_part('YEAR', StaffWorkFromHomeRequest.start_datetime))
             fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
@@ -1322,13 +1364,17 @@ def summary_index():
                         'id' : wfh_req.id,
                         'start': wfh_req.start_datetime.astimezone(tz).isoformat(),
                         'end': wfh_req.end_datetime.astimezone(tz).isoformat(),
-                        'title': emp.fullname,
+                        'title': emp.th_firstname,
                         'backgroundColor': bg_color,
                         'borderColor': border_color,
                         'textColor': text_color,
                         'type': 'wfh'
                     })
-    all = wfhs + leaves
+            all = wfhs
+
+    if tab == 'all':
+        all = wfhs + leaves + logins
+
     return render_template('staff/summary_index.html',
                            depts=depts, curr_dept_id=int(curr_dept_id),
                            all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
