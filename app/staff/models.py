@@ -387,3 +387,22 @@ class StaffWorkFromHomeRequestSchema(ma.ModelSchema):
         model = StaffWorkFromHomeRequest
     duration = fields.Int()
 
+
+class StaffSeminar(db.Model):
+    __tablename__ = 'staff_seminar'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    start_datetime = db.Column('start_date', db.DateTime(timezone=True))
+    end_datetime = db.Column('end_date', db.DateTime(timezone=True))
+    created_at = db.Column('created_at',db.DateTime(timezone=True),
+                           default=datetime.now())
+    topic_type = db.Column('topic_type', db.String())
+    topic = db.Column('topic', db.String())
+    role = db.Column('role', db.String())
+    location = db.Column('location', db.String())
+    country = db.Column('country', db.String())
+    budget_type = db.Column('budget_type', db.String())
+    budget = db.Column('budget', db.Float())
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    staff = db.relationship('StaffAccount',
+                            backref=db.backref('seminar_request'))
