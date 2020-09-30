@@ -5,7 +5,7 @@ from models import (StaffAccount, StaffPersonalInfo,
                     StaffLeaveRequest, StaffLeaveQuota, StaffLeaveApprover, StaffLeaveApproval, StaffLeaveType,
                     StaffWorkFromHomeRequest, StaffLeaveRequestSchema,
                     StaffWorkFromHomeJobDetail, StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
-                    StaffWorkFromHomeCheckedJob, StaffWorkFromHomeRequestSchema, StaffLeaveRemainQuota)
+                    StaffWorkFromHomeCheckedJob, StaffWorkFromHomeRequestSchema, StaffLeaveRemainQuota, StaffSeminar)
 from . import staffbp as staff
 from app.main import db, get_weekdays, mail
 from app.models import Holidays, Org
@@ -1299,3 +1299,55 @@ def summary_index():
     return render_template('staff/summary_index.html',
                            depts=depts, curr_dept_id=int(curr_dept_id),
                            all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
+
+@staff.route('/api/staffids')
+def get_staffid():
+    staff = []
+    for sid in StaffPersonalInfo.query.all():
+        staff.append({
+            'id': sid.id,
+            'fullname': sid.fullname
+        })
+
+    return jsonify(staff)
+
+
+@staff.route('/seminar/record', methods=['GET', 'POST'])
+@login_required
+def seminar_record():
+    if request.method == 'POST':
+        form = request.form
+        start_t = "08:30"
+        end_t = "16:30"
+        start_d, end_d = form.get('dates').split(' - ')
+        start_dt = '{} {}'.format(start_d, start_t)
+        end_dt = '{} {}'.format(end_d, end_t)
+        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
+        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
+        req = StaffSeminar(
+            start_datetime=tz.localize(start_datetime),
+            end_datetime=tz.localize(end_datetime)
+        )
+        if start_datetime.date() <= END_FISCAL_DATE.date() and end_datetime.date() > END_FISCAL_DATE.date():
+            flash(u'ไม่สามารถบันทึกข้ามปีงบประมาณได้ กรุณาบันทึกแยกปีงบประมาณ')
+            return redirect(request.referrer)
+        #personal_info = StaffPersonalInfo.query.filter_by(fullname=form.get('staffname')).first()
+        #req.staff = personal_info.staff_account
+        req.staff_account_id = form.get('staffname')
+        req.topic_type = form.get('topic_type')
+        req.topic = form.get('topic')
+        req.role = form.get('role')
+        req.location = form.get('location')
+        req.country = form.get('country')
+        req.budget_type = form.get('budget_type')
+        req.budget = form.get('budget')
+        db.session.add(req)
+        db.session.commit()
+        return redirect(url_for('staff.seminar_records'))
+    return render_template('staff/seminar_request.html')
+
+
+@staff.route('/seminar/all-records')
+@login_required
+def seminar_records():
+    return render_template('staff/seminar_records.html')
