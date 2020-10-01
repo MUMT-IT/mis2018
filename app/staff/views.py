@@ -1229,14 +1229,6 @@ def calculate_time_scan(workdata):
 @login_required
 def summary_index():
     depts = Org.query.filter_by(head=current_user.email).all()
-    fiscal_year = request.args.get('fiscal_year')
-    if fiscal_year is None:
-        if today.month in [10, 11, 12]:
-            fiscal_year = today.year + 1
-        else:
-            fiscal_year = today.year
-    else:
-        fiscal_year = int(fiscal_year)
     if len(depts)==0:
         return redirect(request.referrer)
     curr_dept_id = request.args.get('curr_dept_id')
@@ -1246,12 +1238,10 @@ def summary_index():
     employees = StaffPersonalInfo.query.filter_by(org_id=int(curr_dept_id))
     leaves = []
     wfhs = []
+    seminars = []
     for emp in employees:
         if tab == 'leave' or tab == 'all':
-            fiscal_years = StaffLeaveRequest.query.distinct(func.date_part('YEAR', StaffLeaveRequest.start_datetime))
-            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
-            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
-            for leave_req in StaffLeaveRequest.query.filter_by(staff=emp).filter(StaffLeaveRequest.start_datetime.between(start_fiscal_date,end_fiscal_date)):
+            for leave_req in StaffLeaveRequest.query.filter_by(staff=emp):
                 if not leave_req.cancelled_at:
                     if leave_req.get_approved:
                         text_color = '#ffffff'
@@ -1272,11 +1262,7 @@ def summary_index():
                         'type' : 'leave'
                     })
         if tab == 'wfh' or tab == 'all':
-            fiscal_years = StaffWorkFromHomeRequest.query.distinct(func.date_part('YEAR', StaffWorkFromHomeRequest.start_datetime))
-            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
-            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
-            for wfh_req in StaffWorkFromHomeRequest.query.filter_by(staff=emp).filter(
-                    StaffWorkFromHomeRequest.start_datetime.between(start_fiscal_date, end_fiscal_date)):
+            for wfh_req in StaffWorkFromHomeRequest.query.filter_by(staff=emp):
                 if not wfh_req.cancelled_at:
                     if wfh_req.get_approved:
                         text_color = '#ffffff'
@@ -1296,10 +1282,26 @@ def summary_index():
                         'textColor': text_color,
                         'type': 'wfh'
                     })
-    all = wfhs + leaves
+        if tab == 'smr' or tab == 'all':
+            for smr in StaffSeminar.query.filter_by(staff=emp):
+                if not smr.cancelled_at:
+                    text_color = '#ffffff'
+                    bg_color = '#EF0062'
+                    border_color = '#ffffff'
+                    seminars.append({
+                        'id' : smr.id,
+                        'start': smr.start_datetime.astimezone(tz).isoformat(),
+                        'end': smr.end_datetime.astimezone(tz).isoformat(),
+                        'title': emp.fullname,
+                        'backgroundColor': bg_color,
+                        'borderColor': border_color,
+                        'textColor': text_color,
+                        'type': 'smr'
+                    })
+    all = wfhs + leaves + seminars
     return render_template('staff/summary_index.html',
                            depts=depts, curr_dept_id=int(curr_dept_id),
-                           all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
+                           all=all, tab=tab)
 
 @staff.route('/api/staffids')
 def get_staffid():
