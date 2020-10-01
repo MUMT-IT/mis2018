@@ -34,7 +34,7 @@
                                         <br>
                                         <small>
                                             รหัส: <%props.option.id%>,
-                                            ชื่อ-นามสกุล: <%props.option.fullname%>
+                                            สังกัด: <%props.option.org%>
                                         </small>
                                     </div>
                                 </div>
@@ -165,6 +165,9 @@
                     self.data = []
                     resp.data.forEach(function(item) {
                         if (item.fullname.indexOf(self.staffquery) !== -1) {
+                            self.data.push(item)
+                        }
+                        if (item.org.indexOf(self.staffquery) !== -1) {
                             self.data.push(item)
                         }
                     })

@@ -1,10 +1,93 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
-
-</body>
-</html>
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+            <div class="columns">
+                <div class="column">
+                    <div class="field">
+                        <label class="label">ปีงบประมาณ</label>
+                        <div class="select">
+                        <select v-model="year" v-on:change="proceed()">
+                            <option v-for="y in years" v-bind:value="y">
+                            <% y+543 %>
+                            </option>
+                        </select>
+                        </div>
+                        <label class="label">สังกัด</label>
+                        <div class="select">
+                        <select v-model="department" v-on:change="proceed()">
+                            <option v-for="d in departments" v-bind:value="d.id" key="d.id">
+                            <% d.name %>
+                            </option>
+                        </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-bordered is-striped" id="seminarTable">
+                    <thead>
+                        <th>ชื่อ</th>
+                        <th>จำนวนครั้ง</th>
+                        <th>จำนวนวัน</th>
+                    </thead>
+                    <tbody>
+                    {% for record in seminar_list %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('staff.leave_request_by_person_detail', requester_id=record['staffid']) }}">
+                            {{ record["fullname"] }}
+                            </a>
+                        </td>
+                        <td>
+                            {{ record["total"] }}
+                        </td>
+                        <td>
+                            {{ record["total"] }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#seminarTable').DataTable();
+    });
+</script>
+<script>
+    new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                departments : {{ departments|tojson|safe }},
+                department : {{ org_id|tojson|safe }},
+                years : {{ years|tojson|safe }},
+                year : {{ year|tojson|safe }}
+            }
+        },
+        methods: {
+            proceed: function() {
+                if (this.year === null && this.department !== null){
+                    window.location.href = "/staff/seminar/all-records?deptid="+this.department;
+                }
+                if (this.year !== null && this.department !== null){
+                    window.location.href = "/staff/seminar/all-records?deptid="+this.department+"&fiscal_year="+this.year;
+                }
+                if (this.year != null && this.department == null){
+                    window.location.href = "/staff/seminar/all-records?"+"&fiscal_year="+this.year;
+                }
+            }
+        }
+    })
+</script>
+{% endblock %}

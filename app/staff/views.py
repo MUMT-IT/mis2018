@@ -855,13 +855,14 @@ def leave_request_result_by_person():
         for leave_type in leave_types:
             record[leave_type] = 0
         for req in account.leave_requests:
-            years.add(req.start_datetime.year)
-            if start_date and end_date:
-                if req.start_datetime.date()<start_date or req.start_datetime.date()>end_date:
-                    continue
-            leave_type = req.quota.leave_type.type_
-            record[leave_type] += req.total_leave_days
-            record["total"] += req.total_leave_days
+            if not req.cancelled_at:
+                years.add(req.start_datetime.year)
+                if start_date and end_date:
+                    if req.start_datetime.date()<start_date or req.start_datetime.date()>end_date:
+                        continue
+                leave_type = req.quota.leave_type.type_
+                record[leave_type] += req.total_leave_days
+                record["total"] += req.total_leave_days
         leaves_list.append(record)
     years = sorted(years)
     if len(years) > 0:
@@ -1306,7 +1307,8 @@ def get_staffid():
     for sid in StaffPersonalInfo.query.all():
         staff.append({
             'id': sid.id,
-            'fullname': sid.fullname
+            'fullname': sid.fullname,
+            'org': sid.org.name if sid.org else 'ไม่มีต้นสังกัด'
         })
 
     return jsonify(staff)
@@ -1314,7 +1316,7 @@ def get_staffid():
 
 @staff.route('/seminar/record', methods=['GET', 'POST'])
 @login_required
-def seminar_record():
+def add_seminar_record():
     if request.method == 'POST':
         form = request.form
         start_t = "08:30"
@@ -1328,11 +1330,6 @@ def seminar_record():
             start_datetime=tz.localize(start_datetime),
             end_datetime=tz.localize(end_datetime)
         )
-        if start_datetime.date() <= END_FISCAL_DATE.date() and end_datetime.date() > END_FISCAL_DATE.date():
-            flash(u'ไม่สามารถบันทึกข้ามปีงบประมาณได้ กรุณาบันทึกแยกปีงบประมาณ')
-            return redirect(request.referrer)
-        #personal_info = StaffPersonalInfo.query.filter_by(fullname=form.get('staffname')).first()
-        #req.staff = personal_info.staff_account
         req.staff_account_id = form.get('staffname')
         req.topic_type = form.get('topic_type')
         req.topic = form.get('topic')
@@ -1347,7 +1344,50 @@ def seminar_record():
     return render_template('staff/seminar_request.html')
 
 
-@staff.route('/seminar/all-records')
+@staff.route('/seminar/all-records', methods=['GET', 'POST'])
 @login_required
 def seminar_records():
-    return render_template('staff/seminar_records.html')
+    org_id = request.args.get('deptid')
+    fiscal_year = request.args.get('fiscal_year')
+    if fiscal_year is not None:
+        start_date, end_date = get_start_end_date_for_fiscal_year(int(fiscal_year))
+    else:
+        start_date = None
+        end_date = None
+    years = set()
+    seminar_list = []
+    departments = Org.query.all()
+    if org_id is None:
+        account_query = StaffAccount.query.all()
+    else:
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id))
+    for account in account_query:
+        record = {}
+        record["staffid"] = account.id
+        record["fullname"] = account.personal_info.fullname
+        record["total"] = 0
+        if account.personal_info.org:
+            record["org"] = account.personal_info.org.name
+        else:
+            record["org"] = ""
+        for seminar in account.seminar_request:
+            if not seminar.cancelled_at:
+                years.add(seminar.start_datetime.year)
+                if start_date and end_date:
+                    if seminar.start_datetime.date() < start_date or seminar.start_datetime.date() > end_date:
+                        continue
+                total_day = seminar.end_datetime.date() - seminar.start_datetime.date()
+                record["total"] += total_day.days + 1
+        seminar_list.append(record)
+    years = sorted(years)
+    if len(years) > 0:
+        years.append(years[-1] + 1)
+        years.insert(0, years[0] - 1)
+    return render_template('staff/seminar_records.html', org_id=org_id, year=fiscal_year,
+                           seminar_list=seminar_list, departments=[{'id': d.id, 'name': d.name}
+                                                                 for d in departments], years=years)
+
+@staff.route('/for-hr/seminar')
+@login_required
+def seminar():
+    return render_template('staff/seminar.html')
