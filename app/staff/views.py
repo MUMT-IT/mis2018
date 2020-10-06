@@ -990,6 +990,9 @@ def show_wfh_requests_for_approval():
 def pending_wfh_request_for_approval(req_id):
     req = StaffWorkFromHomeRequest.query.get(req_id)
     approver = StaffWorkFromHomeApprover.query.filter_by(account=current_user, requester=req.staff).first()
+    approve = StaffWorkFromHomeApproval.query.filter_by(approver=approver, request=req).first()
+    if approve:
+        return render_template('staff/wfh_record_info_each_request.html', req=req, approver=approver)
     return render_template('staff/wfh_request_pending_approval.html', req=req, approver=approver)
 
 
@@ -1286,7 +1289,7 @@ def summary_index():
             for smr in StaffSeminar.query.filter_by(staff=emp):
                 if not smr.cancelled_at:
                     text_color = '#ffffff'
-                    bg_color = '#EF0062'
+                    bg_color = '#FF33A5'
                     border_color = '#ffffff'
                     seminars.append({
                         'id' : smr.id,
@@ -1393,3 +1396,27 @@ def seminar_records():
 @login_required
 def seminar():
     return render_template('staff/seminar.html')
+
+
+@staff.route('/seminar/all-records/each-person/<int:staff_id>')
+@login_required
+def show_seminar_info_each_person(staff_id):
+    staff = StaffSeminar.query.filter_by(staff_account_id=staff_id)
+    return render_template('staff/seminar_records_each_person.html', staff=staff)
+
+
+@staff.route('/seminar/all-records/each-record/<int:smr_id>')
+@login_required
+def semiar_each_record_info(smr_id):
+    smr = StaffSeminar.query.get(smr_id)
+    return render_template('staff/seminar_each_record.html', smr=smr)
+
+
+@staff.route('/seminar/all-records/each-record/<int:smr_id>/cancel')
+@login_required
+def cancel_seminar_record(smr_id):
+    smr = StaffSeminar.query.get(smr_id)
+    smr.cancelled_at = tz.localize(datetime.today())
+    db.session.add(smr)
+    db.session.commit()
+    return redirect(request.referrer)
