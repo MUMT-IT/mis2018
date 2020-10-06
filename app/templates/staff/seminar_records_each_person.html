@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="table-container">
+            <h4 class="subtitle">รายการอบรม สัมมนา ของ
+              {{ staff[0].staff.personal_info }}
+            </h4>
+<table class="table is-bordered is-striped ">
+    <thead>
+    <th>วันที่เริ่มต้น</th>
+    <th>วันที่สิ้นสุด</th>
+    <th>ประเภท</th>
+    </thead>
+    <tbody>
+    {% for requester in staff|sort(attribute='start_datetime') %}
+    {% if not requester.cancelled_at %}
+        <tr>
+            <td>
+                {{ requester.start_datetime|localdate }}
+            </td>
+            <td>
+                {{ requester.end_datetime|localdate }}
+            </td>
+            <td>
+                <a href="{{ url_for('staff.semiar_each_record_info', smr_id=requester.id) }}"
+                                                                                class="is-info is-light">
+                {{ requester.topic_type }}
+                </a>
+            </td>
+            <td>
+                <a class="button is-danger" @click="confirmCustomDelete({{ requester.id }})">ยกเลิกรายการนี้</a>
+            </td>
+        </tr>
+    {% endif %}
+    {% endfor %}
+    </tbody>
+</table>
+
+    <a href="{{ url_for('staff.show_leave_approval_info') }}" class="button is-rounded is-info is-light">
+        <span class="icon">
+            <i class="fas fa-arrow-left"></i>
+        </span>
+        <span>กลับ</span>
+    </a>
+
+    </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        methods: {
+            confirmCustomDelete(req_id) {
+                this.$buefy.dialog.confirm({
+                    title: 'ยกเลิกรายการ' + req_id,
+                    message: 'แน่ใจหรือไม่ที่จะ<b>ยกเลิก</b>รายการนี้ หากยกเลิกแล้วจะไม่สามารถแก้ไขได้',
+                    confirmText: 'Delete this record',
+                    type: 'is-danger',
+                    hasIcon: true,
+                    onConfirm: () => window.location.href = "/staff/seminar/all-records/each-record/" + req_id + "/cancel"
+                })
+            }
+        }
+    });
+</script>
+{% endblock %}
