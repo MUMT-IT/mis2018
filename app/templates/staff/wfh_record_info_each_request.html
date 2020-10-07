@@ -6,7 +6,7 @@
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
-                    <table class="table">
+                    <table class="table is-fullwidth">
                         <tr>
                             <td>
                                <label class="label">เรื่อง</label>
@@ -96,8 +96,24 @@
                         </tr>
                     </table>
                     </div>
-                    <hr>
-                    <a href="{{ request.referrer }}" class="button is-info is-light is-rounded">กลับ</a>
+                <div class="columns">
+                    <div class="column">
+                        <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}" class="button is-rounded is-info is-light">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับหน้าสรุปWFH</span>
+                        </a>
+                    </div>
+                    <div class="column has-text-right">
+                        <a href="{{ url_for('staff.summary_index') }}" class="button is-rounded is-info is-light">
+                            <span>กลับหน้าตารางสรุป</span>
+                            <span class="icon">
+                                <i class="fas fa-arrow-right"></i>
+                            </span>
+                        </a>
+                    </div>
+                </div>
                 </div>
             </div>
         </div>
