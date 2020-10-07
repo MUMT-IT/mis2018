@@ -1258,7 +1258,8 @@ def summary_index():
                         'id': leave_req.id,
                         'start': leave_req.start_datetime.astimezone(tz).isoformat(),
                         'end': leave_req.end_datetime.astimezone(tz).isoformat(),
-                        'title': emp.fullname,
+                        'title': emp.th_firstname + " " +leave_req.quota.leave_type.type_,
+                        'topic': leave_req.quota.leave_type.type_,
                         'backgroundColor': bg_color,
                         'borderColor': border_color,
                         'textColor': text_color,
@@ -1279,7 +1280,7 @@ def summary_index():
                         'id' : wfh_req.id,
                         'start': wfh_req.start_datetime.astimezone(tz).isoformat(),
                         'end': wfh_req.end_datetime.astimezone(tz).isoformat(),
-                        'title': emp.fullname,
+                        'title': emp.th_firstname + " WFH",
                         'backgroundColor': bg_color,
                         'borderColor': border_color,
                         'textColor': text_color,
@@ -1295,7 +1296,7 @@ def summary_index():
                         'id' : smr.id,
                         'start': smr.start_datetime.astimezone(tz).isoformat(),
                         'end': smr.end_datetime.astimezone(tz).isoformat(),
-                        'title': emp.fullname,
+                        'title': emp.th_firstname + " " +smr.topic_type,
                         'backgroundColor': bg_color,
                         'borderColor': border_color,
                         'textColor': text_color,
@@ -1324,8 +1325,16 @@ def get_staffid():
 def add_seminar_record():
     if request.method == 'POST':
         form = request.form
-        start_t = "08:30"
-        end_t = "16:30"
+        stime = form.get('stime')
+        if stime == 'fulltime':
+            start_t = "08:30"
+            end_t = "16:30"
+        elif stime == 'halfmorning':
+            start_t = "08:30"
+            end_t = "12:00"
+        else:
+            start_t = "13:00"
+            end_t = "16:30"
         start_d, end_d = form.get('dates').split(' - ')
         start_dt = '{} {}'.format(start_d, start_t)
         end_dt = '{} {}'.format(end_d, end_t)
@@ -1412,7 +1421,7 @@ def semiar_each_record_info(smr_id):
     return render_template('staff/seminar_each_record.html', smr=smr)
 
 
-@staff.route('/seminar/all-records/each-record/<int:smr_id>/cancel')
+@staff.route('t')
 @login_required
 def cancel_seminar_record(smr_id):
     smr = StaffSeminar.query.get(smr_id)
