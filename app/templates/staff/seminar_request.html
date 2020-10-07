@@ -26,7 +26,7 @@
                         <b-autocomplete v-model="staffquery" :data="data" name="staffname"
                                         field="id" :loading="isFetching" icon="magnify"
                                         @keyup.native="getAsyncData"
-                                        @select="option => staffname = option.id">
+                                        @select="option => staffname = option.id" required>
                             <template slot-scope="props">
                                 <div class="media">
                                     <div class="media-content">
@@ -54,6 +54,13 @@
                                         icon="calendar-alt">
                                 </b-datepicker>
                     </b-field>
+                    <div class="field">
+                        <div class="block">
+                            <b-radio native-value="fulltime" v-model="stime" name="stime">เต็มวัน</b-radio>
+                            <b-radio native-value="halfmorning" v-model="stime" name="stime">ครึ่งวันเช้า</b-radio>
+                            <b-radio native-value="halfafternoon" v-model="stime" name="stime">ครึ่งวันบ่าย</b-radio>
+                        </div>
+                    </div>
                     <b-field label="ประเภทที่ไป">
                         <b-select placeholder="เลือกประเภท" name="topic_type" required>
                             <option value="ประชุม">ประชุม</option>
@@ -149,6 +156,7 @@
                 selectedDates: [],
                 destination: "domestic",
                 payment: "unpaid",
+                stime: "fulltime",
                 data: []
             }
         },
