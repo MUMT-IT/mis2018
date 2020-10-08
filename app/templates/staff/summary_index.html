@@ -101,6 +101,7 @@
     $(function() {
         $('#calendar').fullCalendar({
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
+            defaultDate: new Date({{ init_date|tojsdatetime(single=True)}}),
             header: {
                 left: 'title',
             },
