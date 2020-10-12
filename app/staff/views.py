@@ -1267,9 +1267,12 @@ def summary_index():
             fiscal_year = today.year + 1
         else:
             fiscal_year = today.year
+        init_date = today
     else:
         fiscal_year = int(fiscal_year)
-    if len(depts)==0:
+        init_date = date(fiscal_year-1, 10, 1)
+
+    if len(depts) == 0:
         return redirect(request.referrer)
     curr_dept_id = request.args.get('curr_dept_id')
     tab = request.args.get('tab', 'all')
@@ -1376,5 +1379,6 @@ def summary_index():
         all = wfhs + leaves + logins
 
     return render_template('staff/summary_index.html',
+                           init_date=init_date,
                            depts=depts, curr_dept_id=int(curr_dept_id),
                            all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
