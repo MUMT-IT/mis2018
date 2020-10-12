@@ -76,13 +76,13 @@ def get_weekdays(req):
     while n <= delta.days:
         d = req.start_datetime + timedelta(n)
         if d.weekday() < 5:
-            #if holidays and d not in holidays:
+            # if holidays and d not in holidays:
             weekdays += 1
         n += 1
     if delta.days == 0:
         if delta.seconds == 0:
             return weekdays
-        if delta.seconds/3600 < 8:
+        if delta.seconds / 3600 < 8:
             if weekdays == 0:
                 return 0
             else:
@@ -165,7 +165,6 @@ admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
 admin.add_views(ModelView(StaffEmployment, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveType, db.session, category='Staff'))
-admin.add_views(ModelView(StaffLeaveRequest, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveQuota, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveApprover, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveApproval, db.session, category='Staff'))
@@ -177,7 +176,18 @@ admin.add_views(ModelView(StaffWorkFromHomeCheckedJob, db.session, category='Sta
 admin.add_views(ModelView(StaffLeaveRemainQuota, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkLogin, db.session, category='Staff'))
 
+
+class StaffLeaveRequestModelView(ModelView):
+    can_export = True
+
+
+admin.add_views(StaffLeaveRequestModelView(StaffLeaveRequest,
+                                           db.session,
+                                           category='Staff'))
+
+
 from app.staff.views import LoginDataUploadView
+
 
 admin.add_view(LoginDataUploadView(
     name='Upload login data',
@@ -212,6 +222,7 @@ app.register_blueprint(auth_blueprint, url_prefix='/auth')
 from models import (Student, Class, ClassCheckIn,
                     Org, Mission, IOCode, CostCenter,
                     StudentCheckInRecord, Holidays)
+
 admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
 
 from line import linebot_bp as linebot_blueprint
@@ -334,8 +345,8 @@ admin.add_view(ComHealthTestModelView(ComHealthTest, db.session, category='Com H
 admin.add_view(ComHealthContainerModelView(ComHealthContainer, db.session, category='Com Health'))
 admin.add_view(ComHealthDepartmentModelView(ComHealthDepartment, db.session, category='Com Health'))
 
-
 from smartclass_scheduler import smartclass_scheduler_blueprint
+
 app.register_blueprint(smartclass_scheduler_blueprint, url_prefix='/smartclass')
 from smartclass_scheduler.models import (SmartClassOnlineAccount,
                                          SmartClassResourceType,
@@ -487,8 +498,8 @@ def convert_date_to_js_datetime(select_dates, single=False):
 def check_all_approval(leave_requests, approver_id):
     for req in leave_requests:
         approval = StaffLeaveApproval.query.filter_by(
-                                    request_id=req.id,
-                                    approver_id=approver_id).first()
+            request_id=req.id,
+            approver_id=approver_id).first()
         if approval:
             continue
         else:
@@ -510,19 +521,18 @@ def check_approval(leave_request, approver_id):
 @app.template_filter("checkwfhapprovals")
 def check_wfh_approval(wfh_request, approver_id):
     approvals = StaffWorkFromHomeApproval.query.filter_by(request_id=wfh_request.id,
-                                                   approver_id=approver_id,
-                                                   ).first()
+                                                          approver_id=approver_id,
+                                                          ).first()
     if approvals:
         return True
     else:
         return False
 
 
-
-
 @app.template_filter("getweekdays")
 def count_weekdays(req):
     return get_weekdays(req)
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host="0.0.0.0")
