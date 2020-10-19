@@ -1232,7 +1232,18 @@ def calculate_time_scan(workdata):
 @login_required
 def summary_index():
     depts = Org.query.filter_by(head=current_user.email).all()
-    if len(depts)==0:
+    fiscal_year = request.args.get('fiscal_year')
+    if fiscal_year is None:
+        if today.month in [10, 11, 12]:
+            fiscal_year = today.year + 1
+        else:
+            fiscal_year = today.year
+        init_date = today
+    else:
+        fiscal_year = int(fiscal_year)
+        init_date = date(fiscal_year - 1, 10, 1)
+
+    if len(depts) == 0:
         return redirect(request.referrer)
     curr_dept_id = request.args.get('curr_dept_id')
     tab = request.args.get('tab', 'all')
@@ -1244,7 +1255,11 @@ def summary_index():
     seminars = []
     for emp in employees:
         if tab == 'leave' or tab == 'all':
-            for leave_req in StaffLeaveRequest.query.filter_by(staff=emp):
+            fiscal_years = StaffLeaveRequest.query.distinct(func.date_part('YEAR', StaffLeaveRequest.start_datetime))
+            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
+            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
+            for leave_req in StaffLeaveRequest.query.filter_by(staff=emp)\
+                    .filter(StaffLeaveRequest.start_datetime.between(start_fiscal_date,end_fiscal_date)):
                 if not leave_req.cancelled_at:
                     if leave_req.get_approved:
                         text_color = '#ffffff'
@@ -1258,15 +1273,20 @@ def summary_index():
                         'id': leave_req.id,
                         'start': leave_req.start_datetime.astimezone(tz).isoformat(),
                         'end': leave_req.end_datetime.astimezone(tz).isoformat(),
-                        'title': emp.th_firstname + " " +leave_req.quota.leave_type.type_,
-                        'topic': leave_req.quota.leave_type.type_,
+                        'title': emp.th_firstname + "-" + " " +leave_req.quota.leave_type.type_,
                         'backgroundColor': bg_color,
                         'borderColor': border_color,
                         'textColor': text_color,
                         'type' : 'leave'
                     })
+            all = leaves
         if tab == 'wfh' or tab == 'all':
-            for wfh_req in StaffWorkFromHomeRequest.query.filter_by(staff=emp):
+            fiscal_years = StaffWorkFromHomeRequest.query.distinct(
+                func.date_part('YEAR', StaffWorkFromHomeRequest.start_datetime))
+            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
+            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
+            for wfh_req in StaffWorkFromHomeRequest.query.filter_by(staff=emp).filter(
+                    StaffWorkFromHomeRequest.start_datetime.between(start_fiscal_date, end_fiscal_date)):
                 if not wfh_req.cancelled_at:
                     if wfh_req.get_approved:
                         text_color = '#ffffff'
@@ -1274,7 +1294,7 @@ def summary_index():
                         border_color = '#ffffff'
                     else:
                         text_color = '#989898'
-                        bg_color = '#F3FBFE'
+                        bg_color = '#C5ECFB'
                         border_color = '#ffffff'
                     wfhs.append({
                         'id' : wfh_req.id,
@@ -1286,8 +1306,14 @@ def summary_index():
                         'textColor': text_color,
                         'type': 'wfh'
                     })
+            all = wfhs
         if tab == 'smr' or tab == 'all':
-            for smr in StaffSeminar.query.filter_by(staff=emp):
+            fiscal_years = StaffSeminar.query.distinct(
+                func.date_part('YEAR', StaffSeminar.start_datetime))
+            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
+            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
+            for smr in StaffSeminar.query.filter_by(staff=emp).filter(
+                    StaffSeminar.start_datetime.between(start_fiscal_date, end_fiscal_date)):
                 if not smr.cancelled_at:
                     text_color = '#ffffff'
                     bg_color = '#FF33A5'
@@ -1302,10 +1328,13 @@ def summary_index():
                         'textColor': text_color,
                         'type': 'smr'
                     })
-    all = wfhs + leaves + seminars
-    return render_template('staff/summary_index.html',
+            all = seminars
+    if tab == 'all':
+        all = wfhs + leaves + seminars
+
+    return render_template('staff/summary_index.html', init_date=init_date,
                            depts=depts, curr_dept_id=int(curr_dept_id),
-                           all=all, tab=tab)
+                           all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
 
 @staff.route('/api/staffids')
 def get_staffid():

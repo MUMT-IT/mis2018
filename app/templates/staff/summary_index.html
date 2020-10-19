@@ -10,9 +10,24 @@
 {% block page_content %}
 <section class="section" id="app">
     <div class="columns">
-    <h1 class="title">ตารางแสดงสถานะการเข้างาน</h1>
+        <div class="column">
+            <h1 class="title">สรุปข้อมูลบุคลากรประจำปีงบประมาณ {{ fiscal_year+543 }}</h1>
+        </div>
+        <div class="column is-narrow">
+            <b-dropdown hoverable aria-role="list">
+                <button class="button is-link" slot="trigger">
+                    <span>ปีงบประมาณอื่น</span>
+                    <b-icon icon="menu-down"></b-icon>
+                </button>
+                {% for fy in fiscal_years %}
+                <b-dropdown-item aria-role="listitem" href="{{ url_for('staff.summary_index',
+                                            curr_dept_id=curr_dept_id, tab=tab, fiscal_year=fy) }}">
+                    ปีงบประมาณ {{ fy+543 }}
+                </b-dropdown-item>
+                {% endfor %}
+            </b-dropdown>
+        </div>
     </div>
-    </b-dropdown>
     <div class="columns">
         <div class="column is-3">
             <aside class="menu">
@@ -52,22 +67,26 @@
                 <div class="tabs">
                     <ul>
                         <li {% if tab =="all" %} class="is-active" {% endif %}>
-                            <a href="{{ url_for('staff.summary_index', tab='all', curr_dept_id=curr_dept_id) }}">
+                            <a href="{{ url_for('staff.summary_index', tab='all', curr_dept_id=curr_dept_id,
+                                                                                fiscal_year=fiscal_year) }}">
                                 ทั้งหมด
                             </a>
                         </li>
                         <li {% if tab =="leave" %} class="is-active" {% endif %}>
-                            <a href="{{ url_for('staff.summary_index', tab='leave', curr_dept_id=curr_dept_id) }}">
+                            <a href="{{ url_for('staff.summary_index', tab='leave', curr_dept_id=curr_dept_id,
+                                                                                fiscal_year=fiscal_year) }}">
                                 วันลา
                             </a>
                         </li>
                         <li {% if tab =="wfh" %} class="is-active" {% endif %}>
-                            <a href="{{ url_for('staff.summary_index', tab='wfh', curr_dept_id=curr_dept_id) }}">
+                            <a href="{{ url_for('staff.summary_index', tab='wfh', curr_dept_id=curr_dept_id,
+                                                                                fiscal_year=fiscal_year) }}">
                                 WFH
                             </a>
                         </li>
                         <li {% if tab =="smr" %} class="is-active" {% endif %}>
-                            <a href="{{ url_for('staff.summary_index', tab='smr', curr_dept_id=curr_dept_id) }}">
+                            <a href="{{ url_for('staff.summary_index', tab='smr', curr_dept_id=curr_dept_id,
+                                                                                fiscal_year=fiscal_year) }}">
                                 อบรม
                             </a>
                         </li>
@@ -86,6 +105,7 @@
     $(function() {
         $('#calendar').fullCalendar({
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
+            defaultDate: new Date({{ init_date|tojsdatetime(single=True)}}),
             header: {
                 left: 'title',
             },
