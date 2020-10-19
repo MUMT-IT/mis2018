@@ -1426,7 +1426,7 @@ def seminar_records():
     if len(years) > 0:
         years.append(years[-1] + 1)
         years.insert(0, years[0] - 1)
-    return render_template('staff/seminar_records.html', org_id=org_id, year=fiscal_year,
+    return render_template('staff/seminar_records.html', org_id=org_id, fiscal_year=fiscal_year,
                            seminar_list=seminar_list, departments=[{'id': d.id, 'name': d.name}
                                                                  for d in departments], years=years)
 
