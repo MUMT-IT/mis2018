@@ -637,7 +637,9 @@ def show_leave_approval_info():
         cum_periods = defaultdict(float)
         for leave_request in requester.requester.leave_requests:
             if leave_request.cancelled_at is None and leave_request.get_approved:
-                cum_periods[leave_request.quota.leave_type] += leave_request.total_leave_days
+                if leave_request.start_datetime.date() >= START_FISCAL_DATE.date() and leave_request.end_datetime.date()\
+                        <= END_FISCAL_DATE.date():
+                    cum_periods[leave_request.quota.leave_type] += leave_request.total_leave_days
         requester_cum_periods[requester] = cum_periods
     line_notified = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first().notified_by_line
     return render_template('staff/leave_request_approval_info.html',
