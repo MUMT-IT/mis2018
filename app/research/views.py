@@ -10,7 +10,7 @@ from pandas import DataFrame
 from . import researchbp as research
 from models import APIKey, ResearchPub
 from ..staff.models import StaffAccount, StaffPersonalInfo
-from ..main import db, json_keyfile
+from ..main import db, json_keyfile, csrf
 
 Author = namedtuple('Author', ['email', 'firstname', 'lastname'])
 
@@ -315,3 +315,22 @@ def get_datamining_cum_data():
 @research.route('/datamining_cum')
 def show_datamining_cum():
     return render_template('research/datamining_cum.html')
+
+
+@research.route('/api/articles', methods=['GET', 'POST'])
+@csrf.exempt
+def add_article():
+    if request.method == 'POST':
+        print('getting posted..')
+        data = request.get_json()
+        pub = ResearchPub(
+            scopus_id=data['scopus_id'],
+            citedby_count=data['citedby_count'],
+            title=data['title'],
+            cover_date=datetime.datetime.strptime(data['cover_date'], '%Y-%m-%d'),
+            abstract=data['abstract']
+        )
+        db.session.add(pub)
+        db.session.commit()
+        return jsonify(data)
+
