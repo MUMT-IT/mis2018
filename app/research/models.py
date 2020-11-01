@@ -22,5 +22,8 @@ class ResearchPub(db.Model):
     scopus_id = db.Column('scopus_id', db.String(128), index=True)
     data = db.Column('data', JSON)
     created_at = db.Column('created_at', db.DateTime, default=func.now())
-    cited_count = db.Column('cited_count', db.Integer, default=0)
+    citedby_count = db.Column('cited_count', db.Integer, default=0)
+    title = db.Column('title', db.String())
+    abstract = db.Column('abstract', db.Text())
+    cover_date = db.Column('cover_date', db.Date())
 
