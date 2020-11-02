@@ -1452,7 +1452,7 @@ def semiar_each_record_info(smr_id):
     return render_template('staff/seminar_each_record.html', smr=smr)
 
 
-@staff.route('t')
+@staff.route('/seminar/all-records/each-record/<int:smr_id>/cancel')
 @login_required
 def cancel_seminar_record(smr_id):
     smr = StaffSeminar.query.get(smr_id)
