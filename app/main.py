@@ -2,6 +2,7 @@
 import os
 import click
 import arrow
+import pandas
 import requests
 from pytz import timezone
 from flask.cli import AppGroup
@@ -15,8 +16,19 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from wtforms.validators import required
-from datetime import timedelta
+from datetime import timedelta, datetime
 from flask_mail import Mail
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+scope = ['https://spreadsheets.google.com/feeds',
+         'https://www.googleapis.com/auth/drive']
+
+
+def get_credential(json_keyfile):
+    credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scope)
+    return gspread.authorize(credentials)
+
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -185,9 +197,7 @@ admin.add_views(StaffLeaveRequestModelView(StaffLeaveRequest,
                                            db.session,
                                            category='Staff'))
 
-
 from app.staff.views import LoginDataUploadView
-
 
 admin.add_view(LoginDataUploadView(
     name='Upload login data',
@@ -374,6 +384,48 @@ def populatedb():
 
 from database import load_students
 
+
+@dbutils.command('add_update_staff_gsheet')
+def add_update_staff_gsheet():
+    sheetid = '17lUlFNYk5znYqXL1vVCmZFtgTcjGvlNRZIlaDaEhy5E'
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("index")
+    df = pandas.DataFrame(sheet.get_all_records())
+    df['employed'] = df.empdate.map(lambda x: datetime(*[int(x) for x in x.split('-')]))
+    employments = {}
+    orgs = {}
+    for org in Org.query.all():
+        orgs[org.name] = org
+    for emp in StaffEmployment.query.all():
+        employments[emp.title] = emp
+    for idx, row in df.iterrows():
+        account = StaffAccount.query.filter_by(email=row['e-mail']).first()
+        if not account:
+            account = StaffAccount(email=row['e-mail'])
+            print('{} new account created..'.format(account.email))
+        else:
+            if not account.personal_info:
+                personal_info = StaffPersonalInfo(
+                    th_firstname=row['firstname'],
+                    th_lastname=row['lastname'],
+                    employed_date=row['employed'],
+                    employment=employments[row['emptype']]
+                )
+                account.personal_info = personal_info
+                db.session.add(personal_info)
+            else:
+                account.personal_info.employed_date = row['employed']
+                account.personal_info.employment = employments[row['emptype']]
+
+            if row['unit'] and orgs.get(row['unit']):
+                account.personal_info.org = orgs[row['unit']]
+            elif row['dept'] and orgs.get(row['dept']):
+                account.personal_info.org = orgs[row['dept']]
+
+        db.session.add(account)
+        db.session.commit()
+        print('{} has been added/updated'.format(account.email))
 
 @dbutils.command('import_student')
 @click.argument('excelfile')
