@@ -385,9 +385,10 @@ def populatedb():
 from database import load_students
 
 
-@dbutils.command('add_update_staff_gsheet')
+@dbutils.command('add-update-staff-gsheet')
 def add_update_staff_gsheet():
     sheetid = '17lUlFNYk5znYqXL1vVCmZFtgTcjGvlNRZIlaDaEhy5E'
+    print('Authorizing with Google..')
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
     sheet = wks.worksheet("index")
@@ -404,28 +405,56 @@ def add_update_staff_gsheet():
         if not account:
             account = StaffAccount(email=row['e-mail'])
             print('{} new account created..'.format(account.email))
+        if not account.personal_info:
+            personal_info = StaffPersonalInfo(
+                th_firstname=row['firstname'],
+                th_lastname=row['lastname'],
+                en_firstname='-',
+                en_lastname='-',
+                employed_date=row['employed'],
+                employment=employments[row['emptype']]
+            )
+            account.personal_info = personal_info
+            db.session.add(personal_info)
         else:
-            if not account.personal_info:
-                personal_info = StaffPersonalInfo(
-                    th_firstname=row['firstname'],
-                    th_lastname=row['lastname'],
-                    employed_date=row['employed'],
-                    employment=employments[row['emptype']]
-                )
-                account.personal_info = personal_info
-                db.session.add(personal_info)
-            else:
-                account.personal_info.employed_date = row['employed']
-                account.personal_info.employment = employments[row['emptype']]
+            account.personal_info.employed_date = row['employed']
+            account.personal_info.employment = employments[row['emptype']]
 
-            if row['unit'] and orgs.get(row['unit']):
-                account.personal_info.org = orgs[row['unit']]
-            elif row['dept'] and orgs.get(row['dept']):
-                account.personal_info.org = orgs[row['dept']]
+        if row['unit'] and orgs.get(row['unit']):
+            account.personal_info.org = orgs[row['unit']]
+        elif row['dept'] and orgs.get(row['dept']):
+            account.personal_info.org = orgs[row['dept']]
 
         db.session.add(account)
         db.session.commit()
         print('{} has been added/updated'.format(account.email))
+
+
+@dbutils.command('update-remaining-leave-quota')
+def update_remaining_leave_quota():
+    sheetid = '17lUlFNYk5znYqXL1vVCmZFtgTcjGvlNRZIlaDaEhy5E'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("remain")
+    df = pandas.DataFrame(sheet.get_all_records())
+    for idx, row in df.iterrows():
+        account = StaffAccount.query.filter_by(email=row['e-mail']).first()
+        if account and account.personal_info:
+            quota = StaffLeaveQuota.query.filter_by(leave_type_id=1,
+                                                    employment=account.personal_info.employment).first()
+            remain_quota = StaffLeaveRemainQuota.query.filter_by(quota=quota, staff=account).first()
+            if not remain_quota:
+                remain_quota = StaffLeaveRemainQuota(quota=quota)
+                account.remain_quota.append(remain_quota)
+            remain_quota.year = row['year']
+            remain_quota.last_year_quota = row['quota']
+            db.session.add(account)
+            db.session.commit()
+            # print('{} updated..'.format(row['e-mail']))
+        else:
+            print('{} not found..'.format(row['e-mail']))
+
 
 @dbutils.command('import_student')
 @click.argument('excelfile')
