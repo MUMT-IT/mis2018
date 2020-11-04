@@ -456,6 +456,35 @@ def update_remaining_leave_quota():
             print('{} not found..'.format(row['e-mail']))
 
 
+@dbutils.command('update-approver-gsheet')
+def update_approver_gsheet():
+    sheetid = '17lUlFNYk5znYqXL1vVCmZFtgTcjGvlNRZIlaDaEhy5E'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("approver")
+    df = pandas.DataFrame(sheet.get_all_records())
+    for idx, row in df.iterrows():
+        account = StaffAccount.query.filter_by(email=row['e-mail']).first()
+        if not account:
+            print('{} not found'.format(row['e-mail']))
+            continue
+        approver1 = StaffAccount.query.filter_by(email=row['approver1']).first()
+        approver2 = StaffAccount.query.filter_by(email=row['approver2']).first()
+        ap1 = StaffLeaveApprover.query.filter_by(staff_account_id=account.id,
+                                                 approver_account_id=approver1.id).first()
+        if not ap1:
+            ap1 = StaffLeaveApprover(requester=account, account=approver1)
+            db.session.add(ap1)
+        if row['approver1'] != row['approver2']:
+            ap2 = StaffLeaveApprover.query.filter_by(staff_account_id=account.id,
+                                                     approver_account_id=approver2.id).first()
+            if not ap2:
+                ap2 = StaffLeaveApprover(requester=account, approver=approver2)
+                db.session.add(ap2)
+        db.session.commit()
+
+
 @dbutils.command('import_student')
 @click.argument('excelfile')
 def import_students(excelfile):
