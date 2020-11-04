@@ -637,7 +637,9 @@ def show_leave_approval_info():
         cum_periods = defaultdict(float)
         for leave_request in requester.requester.leave_requests:
             if leave_request.cancelled_at is None and leave_request.get_approved:
-                cum_periods[leave_request.quota.leave_type] += leave_request.total_leave_days
+                if leave_request.start_datetime.date() >= START_FISCAL_DATE.date() and leave_request.end_datetime.date()\
+                        <= END_FISCAL_DATE.date():
+                    cum_periods[leave_request.quota.leave_type] += leave_request.total_leave_days
         requester_cum_periods[requester] = cum_periods
     line_notified = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first().notified_by_line
     return render_template('staff/leave_request_approval_info.html',
@@ -1450,7 +1452,7 @@ def semiar_each_record_info(smr_id):
     return render_template('staff/seminar_each_record.html', smr=smr)
 
 
-@staff.route('t')
+@staff.route('/seminar/all-records/each-record/<int:smr_id>/cancel')
 @login_required
 def cancel_seminar_record(smr_id):
     smr = StaffSeminar.query.get(smr_id)
