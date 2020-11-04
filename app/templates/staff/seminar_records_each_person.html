@@ -56,14 +56,14 @@
         el: '#app',
         delimiters: ['<%', '%>'],
         methods: {
-            confirmCustomDelete(req_id) {
+            confirmCustomDelete(smr_id) {
                 this.$buefy.dialog.confirm({
-                    title: 'ยกเลิกรายการ' + req_id,
+                    title: 'ยกเลิกรายการ' + smr_id,
                     message: 'แน่ใจหรือไม่ที่จะ<b>ยกเลิก</b>รายการนี้ หากยกเลิกแล้วจะไม่สามารถแก้ไขได้',
                     confirmText: 'Delete this record',
                     type: 'is-danger',
                     hasIcon: true,
-                    onConfirm: () => window.location.href = "/staff/seminar/all-records/each-record/" + req_id + "/cancel"
+                    onConfirm: () => window.location.href = "/staff/seminar/all-records/each-record/" + smr_id + "/cancel"
                 })
             }
         }
