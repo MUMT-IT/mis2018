@@ -27,6 +27,10 @@ class StaffAccount(db.Model):
     __password_hash = db.Column('password', db.String(255), nullable=True)
 
     @property
+    def has_password(self):
+        return self.__password_hash != None
+
+    @property
     def password(self):
         raise AttributeError('Password attribute is not accessible.')
 
