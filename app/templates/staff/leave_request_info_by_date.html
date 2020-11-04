@@ -29,6 +29,7 @@
                                 v-model="selectedDates"
                                 range
                                 icon-pack="fa"
+                                :date-formatter="formatDate"
                                 :mobile-native="false"
                                 placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                 icon="calendar-alt">
@@ -59,9 +60,16 @@
         el: '#app',
         delimiters: ['<%', '%>'],
         data() {
-        return {
-            selectedDates: [],
-        }
+            return {
+                selectedDates: [],
+            }
+        },
+        methods: {
+            formatDate(dates){
+                    let start = new moment(dates[0]).format("DD/MM/YYYY")
+                    let end = new moment(dates[1]).format("DD/MM/YYYY")
+                    return start + ' - ' + end
+            }
         }
     });
     </script>
