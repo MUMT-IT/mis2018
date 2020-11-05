@@ -122,12 +122,13 @@ def show_leave_info():
                                                                  tz.localize(END_FISCAL_DATE))
         leave_type = unicode(req.quota.leave_type)
         cum_days[leave_type] = used_quota
-    
+
     for quota in current_user.personal_info.employment.quota:
         delta = current_user.personal_info.get_employ_period()
         max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
         last_quota = StaffLeaveRemainQuota.query.filter(and_(StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                            StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
+                                            StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year - 1),
+                                            StaffLeaveRemainQuota.staff_account_id == current_user.id)).first()
         if delta.years > 0:
             if max_cum_quota:
                 if last_quota:
@@ -227,7 +228,7 @@ def request_for_leave(quota_id=None):
                             else:
                                 last_quota = StaffLeaveRemainQuota.query.filter(and_
                                         (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                        StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
+                                        StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year-1))).first()
                                 if last_quota:
                                     last_year_quota = last_quota.last_year_quota
                                 else:
