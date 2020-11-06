@@ -9,6 +9,11 @@ pub_authors = db.Table('pub_author_assoc',
                        )
 
 
+pub_subj_areas = db.Table('pub_subjarea_assoc',
+                       db.Column('subj_id', db.ForeignKey('research_subject_areas.id')),
+                       db.Column('pub_id', db.ForeignKey('research_pub.id')),
+                       )
+
 class APIKey(db.Model):
     __tablename__ = 'api_keys'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
@@ -29,6 +34,9 @@ class ResearchPub(db.Model):
     doi = db.Column('doi', db.String())
     authors = db.relationship('Author',
                               secondary=pub_authors,
+                              backref=db.backref('papers'))
+    areas = db.relationship('SubjectArea',
+                              secondary=pub_subj_areas,
                               backref=db.backref('papers'))
 
 
@@ -58,6 +66,13 @@ class Affiliation(db.Model):
     name = db.Column('name', db.String(), nullable=False)
     country_id = db.Column('country_id', db.ForeignKey('research_countries.id'))
     country = db.relationship('Country', backref=db.backref('affiliations'))
+
+
+class SubjectArea(db.Model):
+    __tablename__ = 'research_subject_areas'
+    id = db.Column('id', db.String(), primary_key=True)
+    abbr = db.Column('abbr', db.String(), nullable=False)
+    area = db.Column('area', db.String(), nullable=False)
 
 
 class Country(db.Model):
