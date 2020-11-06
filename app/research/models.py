@@ -57,9 +57,10 @@ class Affiliation(db.Model):
     id = db.Column('id', db.String(), primary_key=True)
     name = db.Column('name', db.String(), nullable=False)
     country_id = db.Column('country_id', db.ForeignKey('research_countries.id'))
+    country = db.relationship('Country', backref=db.backref('affiliations'))
 
 
 class Country(db.Model):
     __tablename__ = 'research_countries'
-    id = db.Column('id', db.String(), primary_key=True)
+    id = db.Column('id', db.Integer(), autoincrement=True, primary_key=True)
     name = db.Column('name', db.String(), nullable=False)
