@@ -1,18 +1,16 @@
 import os
 import time
 import datetime
-import pprint
+import time
 from collections import namedtuple, defaultdict
 
 import requests
 from flask import request, render_template, jsonify
 from pandas import DataFrame
 from . import researchbp as research
-from models import APIKey, ResearchPub
+from models import APIKey, ResearchPub, Country, Author, Affiliation, ScopusAuthorID, SubjectArea
 from ..staff.models import StaffAccount, StaffPersonalInfo
 from ..main import db, json_keyfile, csrf
-
-Author = namedtuple('Author', ['email', 'firstname', 'lastname'])
 
 usr = os.environ.get('PROXY_USER')
 pwd = os.environ.get('PROXY_PASSWORD')
@@ -317,20 +315,92 @@ def show_datamining_cum():
     return render_template('research/datamining_cum.html')
 
 
+@research.route('/api/articles/test', methods=['GET', 'POST'])
+@csrf.exempt
+def add_article_test():
+    if request.method == 'POST':
+        print('getting posted..')
+        data = request.get_json()
+        time.sleep(5)
+        return jsonify(data)
+
+
 @research.route('/api/articles', methods=['GET', 'POST'])
 @csrf.exempt
 def add_article():
     if request.method == 'POST':
         print('getting posted..')
         data = request.get_json()
-        pub = ResearchPub(
-            scopus_id=data['scopus_id'],
-            citedby_count=data['citedby_count'],
-            title=data['title'],
-            cover_date=datetime.datetime.strptime(data['cover_date'], '%Y-%m-%d'),
-            abstract=data['abstract']
-        )
-        db.session.add(pub)
+        pub = ResearchPub.query.filter_by(scopus_id=data['scopus_id']).first()
+        if not pub:
+            pub = ResearchPub(
+                scopus_id=data['scopus_id'],
+                citedby_count=data['citedby_count'],
+                title=data['title'],
+                cover_date=datetime.datetime.strptime(data['cover_date'], '%Y-%m-%d'),
+                abstract=data['abstract']
+            )
+            db.session.add(pub)
+        else:
+            # update the citation number
+            pub.citedby_count = data['citedby_count']
+            db.session.add(pub)
+            db.session.commit()
+            return jsonify(data)
+
+        for subj in data['subject_areas']:
+            s = SubjectArea.query.get(subj['code'])
+            if not s:
+                s = SubjectArea(id=subj['code'],
+                                area=subj['area'],
+                                abbr=subj['abbreviation'])
+                db.session.add(s)
+            pub.areas.append(s)
+
+        for afid, afname, afcountry in zip(data['afid'].split(';'),
+                                           data['affilname'].split(';'),
+                                           data['affiliation_country'].split(';')):
+            affil = Affiliation.query.get(afid)
+            country = Country.query.filter_by(name=afcountry).first()
+            if not country:
+                country = Country(name=afcountry)
+                db.session.add(country)
+            if not affil:
+                affil = Affiliation(id=afid, name=afname, country=country)
+                db.session.add(affil)
+        db.session.commit()
+
+        affils = []
+        if data['afid']:
+            affils = data['afid'].split(';')
+
+        for author, afid in zip(data['authors'], affils):
+            scopus_id = ScopusAuthorID.query.get(author['author_id'])
+            personal_info = StaffPersonalInfo.query.filter_by(en_firstname=author['firstname'],
+                                                              en_lastname=author['lastname']).first()
+            if scopus_id:
+                # update the current affiliation
+                scopus_id.author.affil_id = afid
+            else:
+                scopus_id = ScopusAuthorID(id=author['author_id'])
+                author_ = Author.query.filter_by(firstname=author['firstname'],
+                                                 lastname=author['lastname']
+                                                 ).first()
+                if not author_:
+                    author_ = Author(firstname=author['firstname'],
+                                     lastname=author['lastname'],
+                                     affil_id=afid,
+                                     h_index=int(author['h_index']) if author['h_index'] else None,
+                                     personal_info=personal_info
+                                     )
+                else:
+                    author_.h_index = int(author['h_index']) if author['h_index'] else None
+                author_.papers.append(pub)
+                scopus_id.author = author_
+                db.session.add(author_)
+
+            db.session.add(scopus_id)
+
         db.session.commit()
         return jsonify(data)
 
