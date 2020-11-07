@@ -66,6 +66,8 @@ class StaffAccount(db.Model):
 class StaffPersonalInfo(db.Model):
     __tablename__ = 'staff_personal_info'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    en_title = db.Column('en_title', db.String())
+    th_title = db.Column('th_title', db.String())
     en_firstname = db.Column('en_firstname', db.String(), nullable=False)
     en_lastname = db.Column('en_lastname', db.String(), nullable=False)
     highest_degree_id = db.Column('highest_degree_id', db.ForeignKey('staff_edu_degree.id'))

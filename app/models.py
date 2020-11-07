@@ -6,6 +6,7 @@ class Org(db.Model):
     __tablename__ = 'orgs'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     name = db.Column('name', db.String(), nullable=False)
+    en_name = db.Column('en_name', db.String())
     head = db.Column('head', db.String())
     parent_id = db.Column('parent_id', db.Integer, db.ForeignKey('orgs.id'))
     children = db.relationship('Org',
