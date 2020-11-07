@@ -170,6 +170,12 @@ def display_total_pubs():
                 article_years=article_years, cum_citation_years=cum_citation_years)
 
 
+@research.route('/view/author/<int:perid>')
+def view_researcher(perid):
+    person = StaffPersonalInfo.query.get(perid)
+    return render_template('research/researcher_profile.html', person=person)
+
+
 @research.route('/api/scopus/pubs/yearly')
 def display_yearly_pubs():
     years = defaultdict(int)
@@ -322,6 +328,52 @@ def dashboard():
     return render_template('research/dashboard.html')
 
 
+@research.route('/api/articles/researcher/<int:perid>/count')
+def get_article_count_researcher(perid):
+    personal_info = StaffPersonalInfo.query.get(int(perid))
+    data = []
+    df = pandas.read_sql_query("SELECT extract(year FROM cover_date) "
+                               "AS year, COUNT(*), SUM(cited_count) AS cited "
+                               "FROM research_pub INNER JOIN pub_author_assoc AS pa ON id=pa.pub_id WHERE pa.author_id={} "
+                               "GROUP BY year ORDER BY year".format(personal_info.research_author.id),
+                               con=db.engine)
+
+    df['cumcited'] = df['cited'].cumsum()
+    del df['cited']
+    data.append(df.columns.tolist())
+    for idx, row in df.iterrows():
+        data.append(row.tolist())
+
+    return jsonify(data)
+
+
+@research.route('/api/articles/researcher/<int:perid>')
+def get_articles_researcher(perid):
+    personal_info = StaffPersonalInfo.query.get(int(perid))
+    articles = []
+    author = Author.query.filter_by(personal_info=personal_info).first()
+    if author:
+        for ar in author.papers:
+            authors = []
+            for au in ar.authors:
+                authors.append({
+                    'id': au.id,
+                    'personal_info_id': au.personal_info_id,
+                    'firstname': au.firstname,
+                    'lastname': au.lastname
+                })
+            articles.append({
+                'id': ar.scopus_id,
+                'title': ar.title,
+                'cover_date': ar.cover_date,
+                'citedby_count': ar.citedby_count,
+                'doi': ar.doi,
+                'authors': authors,
+                'abstract': ar.abstract,
+            })
+    return jsonify(articles)
+
+
 @research.route('/api/articles/count')
 def get_article_count():
     data = []
@@ -426,6 +478,7 @@ def add_article():
             if scopus_id:
                 # update the current affiliation
                 scopus_id.author.affil_id = afid
+                author_ = scopus_id.author
             else:
                 scopus_id = ScopusAuthorID(id=author['author_id'])
                 author_ = Author.query.filter_by(firstname=author['firstname'],
@@ -438,12 +491,10 @@ def add_article():
                                      h_index=int(author['h_index']) if author['h_index'] else None,
                                      personal_info=personal_info
                                      )
-                else:
-                    author_.h_index = int(author['h_index']) if author['h_index'] else None
-                author_.papers.append(pub)
-                scopus_id.author = author_
-                db.session.add(author_)
-
+                    scopus_id.author = author_
+            author_.h_index = int(author['h_index']) if author['h_index'] else None
+            author_.papers.append(pub)
+            db.session.add(author_)
             db.session.add(scopus_id)
 
         db.session.commit()
