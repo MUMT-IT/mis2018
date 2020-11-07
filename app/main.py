@@ -166,6 +166,7 @@ from staff import staffbp as staff_blueprint
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
 from staff.models import (StaffAccount, StaffPersonalInfo,
+                          StaffAcademicPosition,
                           StaffLeaveApprover, StaffLeaveQuota,
                           StaffLeaveRequest, StaffLeaveType,
                           StaffLeaveApproval, StaffEmployment,
@@ -175,6 +176,7 @@ from staff.models import (StaffAccount, StaffPersonalInfo,
 
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
+admin.add_views(ModelView(StaffAcademicPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffEmployment, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveType, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveQuota, db.session, category='Staff'))

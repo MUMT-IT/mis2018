@@ -1,4 +1,5 @@
 from ..main import db
+from app.staff.models import StaffPersonalInfo
 from sqlalchemy import func
 from sqlalchemy.dialects.postgresql import JSON
 
@@ -48,7 +49,7 @@ class Author(db.Model):
     affil_id = db.Column('affil_id', db.ForeignKey('research_affils.id'))
     affil = db.relationship('Affiliation', backref=db.backref('authors'))
     personal_info_id = db.Column('personal_info_id', db.ForeignKey('staff_personal_info.id'))
-    personal_info = db.relationship('StaffPersonalInfo',
+    personal_info = db.relationship(StaffPersonalInfo,
                                     backref=db.backref('research_author', uselist=False))
     h_index = db.Column('h_index', db.Integer())
 

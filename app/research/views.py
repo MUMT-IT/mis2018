@@ -4,6 +4,7 @@ import datetime
 import time
 from collections import namedtuple, defaultdict
 
+import pandas
 import requests
 from flask import request, render_template, jsonify
 from pandas import DataFrame
@@ -11,6 +12,7 @@ from . import researchbp as research
 from models import APIKey, ResearchPub, Country, Author, Affiliation, ScopusAuthorID, SubjectArea
 from ..staff.models import StaffAccount, StaffPersonalInfo
 from ..main import db, json_keyfile, csrf
+from sqlalchemy import extract
 
 usr = os.environ.get('PROXY_USER')
 pwd = os.environ.get('PROXY_PASSWORD')
@@ -315,8 +317,27 @@ def show_datamining_cum():
     return render_template('research/datamining_cum.html')
 
 
-@research.route('/api/articles/test', methods=['GET', 'POST'])
-@csrf.exempt
+@research.route('/dashboard')
+def dashboard():
+    return render_template('research/dashboard.html')
+
+
+@research.route('/api/articles/count')
+def get_article_count():
+    data = []
+    df = pandas.read_sql_query("SELECT extract(year FROM cover_date) "
+                               "AS year, COUNT(*), SUM(cited_count) AS cited "
+                               "FROM research_pub GROUP BY year ORDER BY year", con=db.engine)
+    df['cumcited'] = df['cited'].cumsum()
+    del df['cited']
+    data.append(df.columns.tolist())
+    for idx, row in df.iterrows():
+        data.append(row.tolist())
+
+    return jsonify(data)
+
+
+@research.route('/api/articles/test')
 def add_article_test():
     if request.method == 'POST':
         print('getting posted..')
@@ -328,6 +349,30 @@ def add_article_test():
 @research.route('/api/articles', methods=['GET', 'POST'])
 @csrf.exempt
 def add_article():
+    current_year = datetime.datetime.today().year
+    if request.method == 'GET':
+        articles = []
+        for ar in ResearchPub.query.filter(extract('year', ResearchPub.cover_date) == current_year)\
+                .order_by(ResearchPub.cover_date.desc()):
+            authors = []
+            for au in ar.authors:
+                authors.append({
+                    'id': au.id,
+                    'personal_info_id': au.personal_info_id,
+                    'firstname': au.firstname,
+                    'lastname': au.lastname
+                })
+            articles.append({
+                'id': ar.scopus_id,
+                'title': ar.title,
+                'cover_date': ar.cover_date,
+                'citedby_count': ar.citedby_count,
+                'doi': ar.doi,
+                'authors': authors,
+                'abstract': ar.abstract,
+            })
+        return jsonify(articles)
+
     if request.method == 'POST':
         print('getting posted..')
         data = request.get_json()

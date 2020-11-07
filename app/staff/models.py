@@ -5,7 +5,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from marshmallow import fields
-from app.models import OrgSchema
+from app.models import Org, OrgSchema
 from datetime import datetime, timedelta
 from app.main import get_weekdays
 import numpy as np
@@ -76,7 +76,7 @@ class StaffPersonalInfo(db.Model):
     academic_position_id = db.Column('academic_position_id', db.ForeignKey('staff_academic_position.id'))
     academic_position = db.relationship('StaffAcademicPosition', backref=db.backref('staff_list'))
     org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
-    org = db.relationship('Org', backref=db.backref('staff'))
+    org = db.relationship(Org, backref=db.backref('staff'))
     employed_date = db.Column('employed_date', db.Date(), nullable=True)
     employment_id = db.Column('employment_id',
                               db.ForeignKey('staff_employments.id'))
