@@ -40,6 +40,12 @@
                 </div>
             </div>
             <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title is-size-3">Collaborators</h1>
+                    <div id="intl_pie_chart" style="width: 900px; height: 400px"></div>
+                </div>
+            </div>
+            <div class="columns">
                 <div class="column">
                     <b-table
                         :data="articles"
@@ -61,10 +67,20 @@
                                     (<% moment(props.row.cover_date).fromNow() %>)
                                 </small>
                             </b-table-column>
+                            <b-table-column field="publication_name" label="Publication Name" sortable>
+                                <template>
+                                    <% props.row.publication_name %>
+                                </template>
+                            </b-table-column>
 
                             <b-table-column field="title" label="Title" sortable>
                                 <template v-if="showDetailIcon">
-                                    <% props.row.title %>
+                                    <% props.row.title %> <a target="_blank" :href="props.row.scopus_link">
+                                    <span>Read</span>
+                                    <span class="icon">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </span>
+                                    </a>
                                     <small v-for="author in props.row.authors" :key="author.id">
                                         <a :href="'/research/view/author/'+ author.personal_info_id" v-if="author.personal_info_id">
                                             <span class="icon">
@@ -137,10 +153,24 @@
                     years: [],
                     currentYear: null,
                     totalArticles: 0,
-                    ratio: {}
+                    ratio: {},
                 }
             },
             methods: {
+                drawPieChart: function() {
+                    let self = this
+                    axios.get('/research/api/articles/researchers/countries', { params: { year: this.currentYear}})
+                        .then((resp)=> {
+                            let data = google.visualization.arrayToDataTable(resp.data);
+                            let chart = new google.visualization.PieChart(document.getElementById('intl_pie_chart'));
+                            let options = {
+                                title: 'International',
+                                pieHole: 1.0,
+                                pieSliceText: 'label'
+                            }
+                            chart.draw(data, options);
+                        })
+                },
                 drawBarChart: function() {
                     let self = this
                     axios.get('/research/api/articles/subjareas/count', { params: { year: this.currentYear}})
@@ -208,6 +238,7 @@
                     this.loadArticles()
                     this.loadRatio()
                     this.drawBarChart()
+                    this.drawPieChart()
                 }
             },
             mounted() {
@@ -215,6 +246,7 @@
                 this.loadRatio()
                 google.charts.setOnLoadCallback(this.drawChart)
                 google.charts.setOnLoadCallback(this.drawBarChart)
+                google.charts.setOnLoadCallback(this.drawPieChart)
             }
         })
     </script>

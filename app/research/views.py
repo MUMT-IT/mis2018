@@ -424,6 +424,8 @@ def add_article():
                 'title': ar.title,
                 'cover_date': ar.cover_date,
                 'citedby_count': ar.citedby_count,
+                'scopus_link': ar.scopus_link,
+                'publication_name': ar.publication_name,
                 'doi': ar.doi,
                 'authors': authors,
                 'abstract': ar.abstract,
@@ -441,7 +443,9 @@ def add_article():
                 title=data['title'],
                 cover_date=datetime.datetime.strptime(data['cover_date'], '%Y-%m-%d'),
                 abstract=data['abstract'],
-                doi=data['doi']
+                doi=data['doi'],
+                scopus_link=data['scopus_link'],
+                publication_name=data['publication_name']
             )
             db.session.add(pub)
         else:
@@ -547,3 +551,27 @@ def article_researcher_ratio():
     return jsonify({'ratio': researchers.squeeze()/float(articles.squeeze()),
                     'articles': articles.squeeze(),
                     'researchers': researchers.squeeze()})
+
+
+@research.route('/api/articles/researchers/countries')
+def article_researcher_country():
+    current_year = request.args.get('year')
+    if not current_year:
+        current_year = datetime.datetime.today().year
+    else:
+        current_year = int(current_year)
+
+    df = pandas.read_sql_query('select count(*),research_countries.name from research_authors '
+                               'inner join pub_author_assoc on research_authors.id=pub_author_assoc.author_id '
+                               'inner join research_pub on pub_author_assoc.pub_id=research_pub.id '
+                               'inner join research_affils on research_authors.affil_id=research_affils.id '
+                               'inner join research_countries on research_affils.country_id=research_countries.id '
+                               'where extract(year from cover_date) = {} group by 2;'.format(current_year),
+                               con=db.engine)
+    data = [['Country', 'Authors']]
+    for idx, row in df.iterrows():
+        if row['name'] != 'Thailand':
+            data.append([row['name'], row['count']])
+    return jsonify(data)
+
+

@@ -18,16 +18,16 @@
         <div class="columns">
             <div class="column has-text-centered">
                 <h1 class="title">
-                    {{ person.th_title }} {{ person.th_firstname }} {{ person.th_lastname }}
+                    {{ person.th_title or '' }} {{ person.th_firstname }} {{ person.th_lastname }}
                 </h1>
                 <h1 class="subtitle">
-                    {{ person.en_title }} {{ person.en_firstname }} {{ person.en_lastname }}
+                    {{ person.en_title or '' }} {{ person.en_firstname }} {{ person.en_lastname }}
                 </h1>
                 <h1 class="title">
                     {{ person.org.name }}
                 </h1>
                 <h1 class="subtitle">
-                    {{ person.org.en_name }}
+                    {{ person.org.en_name or '' }}
                 </h1>
             </div>
         </div>
