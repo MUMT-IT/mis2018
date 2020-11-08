@@ -32,6 +32,8 @@ class ResearchPub(db.Model):
     title = db.Column('title', db.String())
     abstract = db.Column('abstract', db.Text())
     cover_date = db.Column('cover_date', db.Date())
+    publication_name = db.Column('publication_name', db.String())
+    scopus_link = db.Column('scopus_link', db.String())
     doi = db.Column('doi', db.String())
     authors = db.relationship('Author',
                               secondary=pub_authors,
