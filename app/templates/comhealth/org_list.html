@@ -1,48 +1,12 @@
 {% extends "base.html" %}
 {% block page_content %}
-    <section class="section hero is-info is-small">
-        <nav class="navbar">
-            <div class="container">
-                <div class="navbar-brand">
-                    <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                      </span>
-                </div>
-                <div id="navbarMenuHeroA" class="navbar-menu">
-                    <div class="navbar-end">
-                        <a class="navbar-item"
-                           href="/comhealth">
-                            <span class="icon">
-                                <i class="fas fa-home"></i>
-                            </span>
-                            <span>Home</span>
-                        </a>
-                        <a class="navbar-item"
-                           href="/comhealth/tests">
-                            <span>Tests</span>
-                        </a>
-                        <a class="navbar-item is-active"
-                           href="/comhealth/organizations">
-                            <span>Organizations</span>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </nav>
-    </section>
+{% include "comhealth/nav.html" %}
     <section class="section" id="app">
         <div class="container">
             <div class="columns">
-                <div class="column">
-                    {% with messages = get_flashed_messages() %}
-                        {% if messages %}
-                            {% for msg in messages %}
-                                <b-notification type="is-success">{{ msg }}</b-notification>
-                            {% endfor %}
-                        {% endif %}
-                    {% endwith %}
+                <div class="column has-text-centered">
+                    {% include "messages.html" %}
+                    <h1 class="title">รายชื่อหน่วยงาน</h1>
                 </div>
             </div>
             <div class="columns">
@@ -57,16 +21,15 @@
                         <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                         <div class="field has-addons">
                             <p class="control">
-                                <input class="input is-rounded is-primary is-medium"
-                                    name="name"
-                                    type="text" placeholder="Organization name" />
+                                <input class="input is-medium is-rounded"
+                                       name="name" type="text" placeholder="Organization name" />
                             </p>
                             <p class="control">
-                                <button class="button is-medium is-primary is-rounded" href="">
+                                <button class="button is-medium is-rounded is-info" href="">
                                     <span class="icon">
                                         <i class="fas fa-plus"></i>
                                     </span>&nbsp;
-                                    <span>Add</span>
+                                    <span>เพิ่มองค์กรใหม่</span>
                                 </button>
                             </p>
                         </div>

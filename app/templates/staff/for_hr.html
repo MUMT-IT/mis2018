@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    <h1 class="title">HR Page</h1>
+    <div class="columns">
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('staff.leave_request_result_by_date') }}">
+                            <span class="icon is-large"><i class="fas fa-calendar fa-4x"></i></span><br><br>
+                            <span class="is-size-4">ข้อมูลวันลา</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+         <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                <a href="{{ url_for('staff.time_scan') }}">
+                    <span class="icon is-large"><i class="far fa-clock fa-4x"></i></span><br><br>
+                    <span class="is-size-4">ข้อมูลเวลาเข้า-ออกงาน</span>
+                </a>
+                </div>
+            </div>
+        </div>
+         <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                <a href="{{ url_for('staff.wfh_requests_list') }}">
+                    <span class="icon is-large"><i class="fas fa-laptop fa-4x"></i></span><br><br>
+                    <span class="is-size-4">ข้อมูลการทำงานที่บ้าน (WFH)</span>
+                </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

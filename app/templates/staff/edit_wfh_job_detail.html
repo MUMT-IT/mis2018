@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <div class="field">
+                        <h4 class="title">แก้ไขรายละเอียดงาน</h4>
+                        <hr>
+                        <div class="control">
+                        <b-field>
+                            <b-input type="text"
+                                 name="activity"
+                                 value="{{ detail.activity }}"
+                                 expanded>
+                            </b-input>
+                            <div class="control">
+                                <b-tooltip label="แก้ไข" type="is-light">
+                                    <input type="submit" value="แก้ไข" class="button is-primary"/>
+                                </b-tooltip>
+                            </div>
+                            <div class="control">
+                                <b-tooltip label="กลับ" type="is-light">
+                                <a href="{{ url_for('staff.wfh_show_request_info', request_id=request_id) }}" class="button is-warning"><i class="fas fa-times has-text-red"></i></a>
+                                </b-tooltip>
+                            </div>
+                        </b-field>
+                        </div>
+                    </div>
+
+                </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        mounted() {
+            var self = this;
+        }
+    });
+</script>
+{% endblock %}
+

@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        <h1 class="title">{{ quota.leave_type }} ปีงบประมาณ {{ fiscal_year+543 }}
+        </h1>
+        <h4 class="subtitle">{{ current_user.personal_info }} สถานะการจ้าง {{ current_user.personal_info.employment.title }} </h4>
+        <div class="table-container">
+        <table class="table is-fullwidth">
+            <thead>
+                <th>วันที่เริ่มลา-สิ้นสุดลา</th>
+                <th>สถานะการอนุมัติ</th>
+                <th colspan="2"></th>
+            </thead>
+            <tbody>
+            {% for request in leaves|sort(attribute='start_datetime') %}
+                <tr {% if request.cancelled_at %}style="background-color: #D5DBDB  ;"{% endif %}>
+                    <td>{{ request.start_datetime|localdatetime }} - {{ request.end_datetime|localdatetime }} ({{ request.total_leave_days }} วัน)</td>
+                    <td>
+                        {% if not request.cancelled_at %}
+                        <div class="field is-grouped is-grouped-multiline">
+                            <div class="control">
+                                <div class="tags has-addons">
+                                    <a class="button is-text" href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
+                                        <span class="tag is-dark">อนุมัติ</span>
+                                        <span class="tag is-info">{{ request.get_approved|length }}</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="control">
+                                <div class="tags has-addons">
+                                    <a class="button is-text" href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
+                                    <span class="tag is-dark">ไม่อนุมัติ</span>
+                                    <span class="tag is-danger">{{ request.get_unapproved|length }}</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <span class="is-light">ยกเลิกลา</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <b-tooltip label="แก้ไขการลา" type="is-light">
+                        <a class="button"
+                        {% if request.cancelled_at %}
+                           disabled
+                           {% elif request.approvals %}
+                           disabled
+                           {% else %}
+                           href="{{ url_for('staff.edit_leave_request', req_id=request.id) }}"
+                           {% endif %}
+                        >
+                        <span class="icon">
+                            <i class="fas fa-pencil-alt has-text-dark"></i>
+                        </span>
+                        </a>
+                        </b-tooltip>
+                        <b-tooltip label="ยกเลิกการลา" type="is-light">
+                        <a class="button"
+                        {% if request.cancelled_at %}
+                           disabled
+                        {% else %}
+                           @click="confirmCustomDelete({{ request.id }})"
+                        {% endif %}
+                        >
+                        <span class="icon">
+                            <i class="fas fa-trash has-text-danger"></i>
+                        </span>
+                        </a>
+                        </b-tooltip>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        <a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave_info', quota_id=quota.id) }}">
+             <span class="icon">
+                <i class="fas fa-arrow-left"></i>
+            </span>
+            <span>กลับ</span>
+        </a>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        methods: {
+            confirmCustomDelete(req_id) {
+                this.$buefy.dialog.confirm({
+                    title: 'ยกเลิกคำขอที่' + req_id,
+                    message: 'แน่ใจหรือไม่ที่จะ<b>ยกเลิก</b>การลาครั้งนี้ หากยกเลิกแล้วจะไม่สามารถแก้ไขได้',
+                    confirmText: 'Delete this request',
+                    type: 'is-danger',
+                    hasIcon: true,
+                    onConfirm: () => window.location.href = "/staff/leave/requests/" + req_id + "/cancel"
+                })
+            }
+        }
+    });
+</script>
+{% endblock %}

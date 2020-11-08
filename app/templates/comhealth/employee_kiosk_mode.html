@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block page_content %}
+{% include "comhealth/nav.html" %}
+<section class="hero is-light is-small">
+    <div class="hero-body">
+        <div class="container has-text-centered">
+            <img src="{{ url_for('static', filename='img/interviews.png') }}" width="80">
+            <h3 class="title">Personal Health Information Kiosk</h3>
+            <div class="columns">
+                <div class="column is-offset-2 is-8">
+                    {% include "messages.html" %}
+                </div>
+            </div>
+            <div id="app" class="columns">
+                <div class="column is-8 is-offset-2">
+                    <form ref="form" method="post" @submit.prevent>
+                        <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                        <b-field>
+                            <b-input rounded v-model="labno"
+                                     id="lab-no-entry"
+                                     name="labno"
+                                     size="is-large"
+                                     placeholder="Please scan your barcode"></b-input>
+                        </b-field>
+                        <button class="button is-warning" @click="labno=''">Clear</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript">
+    new Vue({
+        el: "#app",
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                labno: ''
+            }
+        },
+        watch: {
+            labno: function(newValue, oldValue) {
+                if(newValue.length === 10) {
+                    this.$refs.form.submit();
+                }
+            }
+        },
+        mounted() {
+            document.getElementById("lab-no-entry").focus();
+            $(document).ready(()=>{
+                if(Modernizr.touch) {
+                    $('#lab-no-entry').attr('readonly', 'readonly');
+                }
+            })
+        }
+    });
+</script>
+{% endblock %}

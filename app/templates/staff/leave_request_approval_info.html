@@ -1,88 +1,152 @@
 {% extends "base.html" %}
-{% include "nav.html" %}
+{% include "staff/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <div class="container">
-        <div class="table-container">
+    <div class="container" id="app">
         {% for msg in get_flashed_messages() %}
         <p class="notification is-warning">{{ msg }}</p>
         {% endfor %}
-        <h4 class="subtitle">รายการขออนุมัติลาบุคลากรในสังกัดของ {{ current_user.personal_info.fullname }}</h4>
-<table class="table is-bordered">
-    <tbody>
-        {% for approver in requesters %}
-        {% if not approver.requester.leave_requests|sort(attribute='start_datetime')|checkallapprovals(approver.id) %}
-        <tr>
-            <td colspan="6">
-                {{ approver.requester.personal_info }} ({{ approver.requester.personal_info.org }})
-            </td>
-        </tr>
-        {% for leave_req in approver.requester.leave_requests|sort(attribute='start_datetime') %}
-        {% if not leave_req.cancelled_at %}
-        {% if not leave_req|checkapprovals(approver.id) %}
-        <tr>
-            <td>
-                {{ leave_req.created_at|localdatetime}}
-            </td>
-            <td>
-                [{{ leave_req.quota.leave_type}}] ตั้งแต่ {{ leave_req.start_datetime|localdatetime }} ({{ leave_req.duration }} วัน)
-            </td>
-            <td>ความเห็นผู้บังคับบัญชา:
-                {% if leave_req.approvals %}
-                {% for ap in leave_req.approvals %}
-                    {{ ap.approver.account.personal_info.fullname }} ({{ ap.is_approved }})
-                {% endfor %}
-                {% else %}
-                {{ leave_req.approvals|length }}
-                {% endif %}
-            </td>
-            <td>
-                <a href="{{ url_for('staff.pending_leave_approval', req_id=leave_req.id) }}" class="button is-info is-rounded is-light">รายละเอียด</a>
-                <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id) }}" class="button is-success">อนุมัติ</a>
-
-                <a href="{{ url_for('staff.leave_reject', req_id=leave_req.id,approver_id=approver.id) }}" class="button is-danger">ไม่อนุมัติ</a>
-            </td>
-        </tr>
+        {% if current_user.line_id %}
+        <div class="has-text-right">
+            <input type="hidden" name="lineNotified" v-model="lineNotified">
+            <b-switch v-model="lineNotified" @input="changeLineNotified">เปิดแจ้งเตือนผ่านไลน์</b-switch>
+        </div>
         {% endif %}
-        {% endif %}
-        {% endfor %}
-        {% endif %}
-    {% endfor %}
-    </tbody>
-</table>
+        <h4 class="title">รายการขออนุมัติลาบุคลากรในสังกัดของ {{ current_user.personal_info.fullname }}</h4>
+        <div class="columns">
+            <div class="column box">
+                <table class="table is-bordered">
+                    <tbody>
+                    {% for approver in requesters %}
+                    {% if not
+                    approver.requester.leave_requests|sort(attribute='start_datetime')|checkallapprovals(approver.id) %}
+                    <tr>
+                        <td colspan="6">
+                            <span class="label">
+                            {{ approver.requester.personal_info }} ({{ approver.requester.personal_info.org }})
+                            </span>
+                        </td>
+                    </tr>
+                    {% for leave_req in approver.requester.leave_requests|sort(attribute='start_datetime') %}
+                    {% if not leave_req.cancelled_at %}
+                    {% if not leave_req|checkapprovals(approver.id) %}
+                    <tr>
+                        <td>
+                            {{ leave_req.created_at|localdatetime}}
+                        </td>
+                        <td>
+                            [{{ leave_req.quota.leave_type}}] ตั้งแต่ {{ leave_req.start_datetime|localdatetime }} ({{
+                            leave_req.total_leave_days }} วัน)
+                        </td>
+                        {% if leave_req.approvals|length %}
+                        <td>
+                            {% for ap in leave_req.approvals %}
+                            {{ ap.approver.account.personal_info.fullname }}
+                            {% if ap.is_approved %}
+                            <span class="icon">
+                            <i class="fas has-text-success fa-check-circle"></i>
+                        </span>
+                            {% else %}
+                            <span class="icon">
+                            <i class="far has-text-danger fa-times-circle"></i>
+                        </span>
+                            {% endif %}
+                            {% endfor %}
+                        </td>
+                        {% else %}
+                        <td>
+                            รอผลการอนุมัติ
+                        </td>
+                        {% endif %}
+                        <td>
+                            <a href="{{ url_for('staff.pending_leave_approval', req_id=leave_req.id) }}"
+                               class="button is-info is-rounded is-light">รายละเอียด</a>
+                            <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id, approved='yes') }}"
+                               class="button is-rounded is-success">อนุมัติ</a>
 
-<h4 class="subtitle">สถิติการลา</h4>
-<table class="table is-bordered is-striped">
-    <thead>
-    <th>Name</th>
-    {% for leave_type in leave_types %}
-    <th>{{ leave_type.type_ }}</th>
-    {% endfor %}
-    </thead>
-    <tbody>
-        {% for requester in requester_cum_periods %}
-        <tr>
-            <td>
-                <a href="{{ url_for('staff.show_leave_approval_info_each_person', requester_id=requester.requester.id) }}">
-                {{ requester.requester.personal_info }} ({{ requester.requester.personal_info.org }})
-                </a>
-            </td>
-            {% for leave_type in leave_types %}
-            <td>{{ requester_cum_periods[requester][leave_type] }}</td>
-            {% endfor %}
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
-
-
-    <a href="{{ url_for('staff.show_leave_info') }}" class="button is-rounded is-info is-light">
-            <span class="icon">
-                <i class="fas fa-arrow-left"></i>
-            </span>
-            กลับหน้าสรุปการลาของท่าน
-    </a>
-    </div>
+                            <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id, approved='no') }}"
+                               class="button is-rounded is-danger">ไม่อนุมัติ</a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endif %}
+                    {% endfor %}
+                    {% endif %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <h4 class="title">สถิติการลา</h4>
+        <div class="columns">
+            <div class="column box">
+                <table class="table is-bordered is-striped">
+                    <thead>
+                    <th>Name</th>
+                    {% for leave_type in leave_types %}
+                    <th>{{ leave_type.type_ }}</th>
+                    {% endfor %}
+                    </thead>
+                    <tbody>
+                    {% for requester in requester_cum_periods %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('staff.show_leave_approval_info_each_person', requester_id=requester.requester.id) }}">
+                                {{ requester.requester.personal_info }} ({{ requester.requester.personal_info.org }})
+                            </a>
+                        </td>
+                        {% for leave_type in leave_types %}
+                        <td>{{ requester_cum_periods[requester][leave_type] }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <br>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('staff.show_leave_info') }}" class="button is-rounded is-info is-light">
+                        <span class="icon">
+                            <i class="fas fa-arrow-left"></i>
+                        </span>
+                        <span>กลับหน้าสรุปการลาของท่าน</span>
+                    </a>
+                    <a href="{{ url_for('staff.summary_index') }}" class="button is-rounded is-info is-light">
+                        <span>ตารางสรุปการเข้างาน</span>
+                        <span class="icon">
+                        <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var vm = new Vue({
+        el: '#app',
+        data() {
+            return {
+                lineNotified: {{ line_notified | tojson | safe }}
+            }
+        },
+        methods: {
+            changeLineNotified: function () {
+                let self = this
+                axios.get('/staff/api/leave/requests/linenotified?notified=' + self.lineNotified).then(function (response) {
+                    if (response.data.status === 'failed') {
+                        alert("Failed to save to database")
+                        self.lineNotified = !self.lineNotified
+                    }
+                })
+            }
+        }
+    })
+</script>
 {% endblock %}

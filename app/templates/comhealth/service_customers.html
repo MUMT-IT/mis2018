@@ -1,48 +1,26 @@
 {% extends "base.html" %}
 {% block page_content %}
-    <section class="hero is-info is-small">
-        <div class="hero-head">
-            <nav class="navbar">
-                <div class="container">
-                    <div class="navbar-brand">
-                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </span>
-                    </div>
-                    <div id="navbarMenuHeroA" class="navbar-menu">
-                        <div class="navbar-end">
-                            <a class="navbar-item is-active"
-                               href="/comhealth">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                                <span>Home</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/tests">
-                                <span>Tests</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/organizations">
-                                <span>Organizations</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-        </div>
+{% include "comhealth/nav.html" %}
+    <section class="hero is-light is-small">
         <div class="hero-body">
             <div class="container has-text-centered">
-                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="100">
-                <h3 class="title">Customers Checkin</h3>
+                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="60">
                 <h3 class="subtitle">วันที่ {{ service.date }} สถานที่ {{ service.location }}</h3>
             </div>
         </div>
     </section>
     <section class="section" id="app">
-        <div class="container">
+        <div class="container box">
+            <div class="columns">
+                <div class="column">
+                    <nav class="breadcrumb has-bullet-separator is-centered" aria-label="breadcrumbs">
+                        <ul>
+                            <li><a href="{{ url_for('comhealth.index') }}">Services</a></li>
+                            <li class="is-active"><a aria-current="page">รายชื่อผู้รับบริการ</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
                     <input type="text" v-model="query" class="input is-large is-rounded"
@@ -60,21 +38,21 @@
                 <div class="column">
                     <div class="has-text-right">
                       {% if service.records|length > 0 %}
-                        <a class="button is-rounded is-link"
+                        <a class="button is-link"
                             href="{{ url_for('comhealth.add_customer_to_service_org',
                                     service_id=service.id, org_id=service.records[0].customer.org_id) }}">
                             <span class="icon">
                                 <i class="fas fa-user-plus"></i>
                             </span>
-                            <span>Add Customer</span>
+                            <span>เพิ่มผู้รับบริการ walk in</span>
                         </a>
                       {% else %}
-                        <a class="button is-rounded is-link"
+                        <a class="button is-link"
                            href="{{ url_for('comhealth.list_orgs') }}">
                             <span class="icon">
                                 <i class="fas fa-user-plus"></i>
                             </span>
-                            <span>Add Customer</span>
+                            <span>เพิ่มผู้รับบริการ walk in</span>
                         </a>
                       {% endif %}
                     </div>
@@ -85,61 +63,71 @@
                     <b-table :data="fltRecords"
                              :paginated="true"
                              :per-page="10"
+                             :narrowed="true"
+                             :striped="true"
                              :loading="isLoading"
                              default-sort="customer.firstname">
                         <template slot-scope="props">
-                            <b-table-column field="hn" label="ID" width="10" numeric>
-                                <% props.row.customer.hn %>
-                            </b-table-column>
                             <b-table-column field="customer.firstname" label="First Name" sortable>
+                                <span class="is-size-4">
                                 <% props.row.customer.firstname %>
+                                </span>
                             </b-table-column>
                             <b-table-column field="customer.lastname" label="Last Name" sortable>
+                                <span class="is-size-4">
                                 <% props.row.customer.lastname %>
-                            </b-table-column>
-                            <b-table-column field="customer.gender" label="Gender" sortable centered>
-                        <span class="icon">
-                            <i class="fas fa-venus" v-if="props.row.customer.gender===0"></i>
-                            <i class="fas fa-mars" v-if="props.row.customer.gender===1"></i>
-                        </span>
-                                <span v-if="props.row.customer.gender===0">Female</span>
-                                <span v-if="props.row.customer.gender===1">Male</span>
-                            </b-table-column>
-                            <b-table-column field="customer.dob" label="Birthdate" sortable centered>
-                                <% props.row.customer.dob %>
+                                </span>
                             </b-table-column>
                             <b-table-column field="labno" label="Lab Number" sortable numeric centered>
+                                <span class="is-size-4">
                                 <% props.row.labno %>
+                                </span>
                             </b-table-column>
-                            <b-table-column field="checkin_datetime" label="Checked-In Time" sortable centered>
-                                <% props.row.checkin_datetime %>
+                            <b-table-column field="checkin_datetime" label="Check-In Time" sortable centered>
+                                <span class="is-size-4">
+                                <% props.row.checkin_datetime ? moment(props.row.checkin_datetime).fromNow() : '' %>
+                                </span>
                             </b-table-column>
                             <b-table-column field="" label="Check In" sortable>
                                 <a class="button is-rounded is-light"
                                    v-bind:href="'/comhealth/checkin/'+props.row.id">
-                                <span class="icon" v-if="props.row.checkin_datetime !== null">
-                                    <i class="fas fa-user-check"></i>
-                                </span>
-                                    <span>Check in</span>
+                                    <div v-if="props.row.checkin_datetime !== null">
+                                        <span class="icon">
+                                            <i class="fas fa-user-check has-text-success"></i>
+                                        </span>
+                                        <span>Check in</span>
+                                    </div>
+                                    <div v-else>
+                                        <span class="icon">
+                                            <i class="fas fa-user-alt"></i>
+                                        </span>
+                                        <span>Check in</span>
+                                    </div>
                                 </a>
                             </b-table-column>
-                            <b-table-column field="" label="Receipts" sortable>
+                            <b-table-column field="" label="Customer Info">
                                 <a class="button is-rounded is-light"
-                                    v-if="props.row.receipts.length > 0"
-                                    v-bind:href="'/comhealth/checkin/'+props.row.id+'/receipts'">
+                                   v-bind:href="'/comhealth/customers/' + props.row.customer.id + '/edit?next=' + requestUrl">
                                 <span class="icon">
-                                    <i class="fas fa-receipt"></i>
+                                    <i class="fas fa-pencil-alt"></i>
                                 </span>
                                 </a>
                             </b-table-column>
-                            <b-table-column field="" label="Info" sortable>
-                                <a class="button is-rounded is-light"
-                                   v-bind:href="'/comhealth/organizations/employees/info/'+props.row.customer.id">
-                                <span class="icon">
-                                    <i class="fas fa-notes-medical"></i>
-                                </span>
-                                </a>
-                            </b-table-column>
+                        </template>
+                        <template slot="empty">
+                            <section class="section">
+                                <div class="content has-text-grey has-text-centered">
+                                    <p>
+                                        <b-icon
+                                            pack="fas"
+                                            icon="sync-alt"
+                                            custom-class="fa-spin"
+                                            size="is-large">
+                                        </b-icon>
+                                    </p>
+                                    <p>Nothing here.</p>
+                                </div>
+                            </section>
                         </template>
                     </b-table>
                 </div>
@@ -159,6 +147,7 @@
                     fltRecords: [],
                     query: '',
                     isLoading: false,
+                    requestUrl: {{ request.url|tojson|safe }},
                 }
             },
             methods: {
@@ -183,15 +172,20 @@
                     var self = this;
                     if (self.query !=="") {
                         self.fltRecords = this.records.filter(function(item) {
-                            var match = item.customer.firstname
-                                .toString()
-                                .toLowerCase()
-                                .indexOf(self.query.toLowerCase()) >= 0;
-                            if (!match) {
-                                match = item.customer.lastname
+                            var match = false;
+                            if (item.customer.firsname!==null) {
+                                match = item.customer.firstname
                                     .toString()
                                     .toLowerCase()
                                     .indexOf(self.query.toLowerCase()) >= 0;
+                            }
+                            if (!match) {
+                                if(item.customer.lastname!==null) {
+                                    match = item.customer.lastname
+                                        .toString()
+                                        .toLowerCase()
+                                        .indexOf(self.query.toLowerCase()) >= 0;
+                                }
                                 if (!match) {
                                     if (item.labno !== null) {
                                         match = item.labno

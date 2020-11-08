@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% include "chemdb/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="has-text-centered">
+            <h1 class="title">แบบฟอร์ม{{ title }}</h1>
+            <br>
+        </div>
+        <form class="box" method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="field">
+                <label class="label">
+                    {{ form.name.label }}
+                </label>
+                {{ form.name(class="input is-danger") }}
+            </div>
+            <div class="field">
+                <label class="label">
+                    {{ form.desc.label }}
+                </label>
+                {{ form.desc(class="input") }}
+            </div>
+            <div class="field">
+                <label class="label">
+                    {{ form.msds.label }}
+                </label>
+                {{ form.msds(class="input") }}
+            </div>
+            <div class="field">
+                <label class="label">
+                    {{ form.cas.label }}
+                </label>
+                {{ form.cas(class="input") }}
+            </div>
+            <div class="field">
+                <label class="label">
+                    {{ form.company_code.label }}
+                </label>
+                {{ form.company_code(class="input") }}
+            </div>
+            <div class="field">
+                <label class="label">
+                    {{ form.vendor.label }}
+                </label>
+                {{ form.vendor(class="input") }}
+            </div>
+            <div class="field">
+                <label class="label">
+                    {{ form.container_size.label }}
+                </label>
+                {{ form.container_size(class="input") }}
+            </div>
+            <div class="field">
+                <label class="label">
+                    {{ form.container_unit.label }}
+                </label>
+                {{ form.container_unit(class="input") }}
+            </div>
+            <div class="field">
+                <label class="label">
+                    {{ form.quantity.label }}
+                </label>
+                {{ form.quantity(class="input") }}
+            </div>
+            <div class="field">
+                <label class="label">
+                    {{ form.unit_price.label }}
+                </label>
+                {{ form.unit_price(class="input") }}
+            </div>
+            <div class="field">
+                <label class="label">
+                    {{ form.expire_date.label }}
+                </label>
+                {{ form.expire_date(class="input") }}
+            </div>
+            <div class="field">
+                <label class="label">
+                    {{ form.location.label }}
+                </label>
+                {{ form.location(class="input") }}
+            </div>
+            <div class="field">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('chemdb.index') }}" class="button is-light">
+                        Back
+                    </a>
+                    <button class="button is-success">
+                        Submit
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}

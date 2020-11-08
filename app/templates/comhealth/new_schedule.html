@@ -1,42 +1,15 @@
 {% extends "base.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
 {% block page_content %}
-            <nav class="navbar is-info">
-                <div class="container">
-                    <div class="navbar-brand">
-                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </span>
-                    </div>
-                    <div id="navbarMenuHeroA" class="navbar-menu">
-                        <div class="navbar-end">
-                            <a class="navbar-item is-active"
-                                href="/comhealth">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                                <span>Home</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/tests">
-                                <span>Tests</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </nav>
+{% include "comhealth/nav.html" %}
     <section class="section" id="app">
         <div class="container">
             <div class="columns">
                 <div class="column">
-                    {% with messages = get_flashed_messages() %}
-                        {% if messages %}
-                            {% for msg in messages %}
-                                <b-notification type="is-danger">{{ msg }}</b-notification>
-                            {% endfor %}
-                        {% endif %}
-                    {% endwith %}
+                    {% include "messages.html" %}
                 </div>
             </div>
             <div class="columns">
@@ -46,18 +19,20 @@
                         <form method="post">
                             {{ form.hidden_tag() }}
                             <div class="field">
+                                <label class="label">{{ form.location.label }}</label>
                                 <div class="control">
-                                    {{ form.location(class="input is-rounded is-medium", value=org.name, placeholder="สถานที่/ชื่อองค์กร", readonly=True) }}
+                                    {{ form.location(class="input", value=org.name, placeholder="สถานที่/ชื่อองค์กร", readonly=True) }}
                                 </div>
                             </div>
                             <div class="field">
+                                <label class="label">{{ form.service_date.label }}</label>
                                 <div class="control">
-                                    {{ form.service_date(type="text", placeholder="yyyy-mm-dd", class="input is-rounded is-medium") }}
+                                    {{ form.service_date(class="input") }}
                                 </div>
                             </div>
                             <div class="has-text-centered">
-                                <button type="submit" class="button is-link is-rounded is-medium">
-                                    <span>Submit</span>
+                                <button type="submit" class="button is-link">
+                                    <span>Add</span>
                                 </button>
                             </div>
                         </form>
@@ -69,9 +44,16 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
-        var vm = new Vue({
-            el: '#app',
-        })
+        $(document).ready(function() {
+            $('input[name="service_date"]').daterangepicker({
+                singleDatePicker: true,
+                startDate: moment(),
+                locale: {
+                    format: 'YYYY-MM-DD'
+                }
+            });
+        });
     </script>
 {% endblock %}

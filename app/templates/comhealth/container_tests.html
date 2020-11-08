@@ -6,29 +6,72 @@
         <h1 class="title">รายการทดสอบใน {{ container.name }}</h1>
         <h1 class="title is-4">{{ service.location }}</h1>
         <h1 class="subtitle">วันที่ {{ service.date }}</h1>
+        {% include "messages.html" %}
         <hr>
-        <table class="table is-fullwidth is-striped">
+        <a href="{{ url_for('comhealth.scan_container', service_id=service.id, container_id=container.id) }}"
+           class="is-info is-medium button is-rounded">
+            <span class="icon">
+                <i class="fas fa-barcode"></i>
+            </span>
+            <span>Scan Barcode</span>
+        </a>
+        <table class="table is-fullwidth is-striped" id="containerTable">
             <thead>
             <th>Lab No.</th>
             <th>HN</th>
             <th>Name</th>
             <th>Phone</th>
+            <th>Checked at</th>
             <th>Tests</th>
+            <th></th>
             </thead>
             <tbody>
-            {% for rec in tests %}
+            {% for rec in records %}
             <tr>
                 <td>{{ rec.labno }}</td>
                 <td>{{ rec.customer.hn }}</td>
                 <td>{{ rec.customer.fullname }}</td>
                 <td>{{ rec.customer.phone }}</td>
+                <td>
+                    {% if rec.get_container_checkin(container.id) %}
+                    <span class="icon">
+                        <i class="fas fa-check-circle has-text-success"></i>
+                    </span>
+                    <span class="help">{{ rec.get_container_checkin(container.id).checkin_datetime|localdatetime }}</span>
+                    {% endif %}
+                </td>
                 <td>{{','.join(tests[rec])}}</td>
+                <td>
+                    {% if rec.get_container_checkin(container.id) %}
+                    <a class="button is-small is-danger is-outlined"
+                       href="{{ url_for('comhealth.uncheck_container', service_id=service.id, record_id=rec.id, container_id=container.id) }}">
+                        <span class="icon">
+                            <i class="fas fa-undo-alt"></i>
+                        </span>
+                    </a>
+                    {% else %}
+                    <a class="button is-small is-light"
+                        href="{{ url_for('comhealth.check_container', service_id=service.id, record_id=rec.id, container_id=container.id) }}">
+                        <span class="icon">
+                            <i class="fas fa-check"></i>
+                        </span>
+                    </a>
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
             </tbody>
         </table>
         <a href="{{ url_for('comhealth.summarize_specimens', service_id=service.id) }}"
-            class="button is-primary">Back</a>
+            class="button is-light">Back</a>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+    $(document).ready(function() {
+        $('#containerTable').DataTable();
+    })
+    </script>
 {% endblock %}

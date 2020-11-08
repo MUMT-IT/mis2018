@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="table-container">
+            <div class="columns">
+                <div class="column">
+                <div>
+                    <h4 class="title">
+                        ผลการค้นหา {{ start_date }} ถึง {{ end_date }}
+                        <a href="{{ request.referrer }}" class="button">ค้นหาใหม่</a>
+                    </h4>
+                </div>
+                <div class="has-text-right">
+                   จำนวน<span class="icon"><i class="fas fa-user"></i></span>
+                   : <span class="tag is-info"><% fltRecords.length %></span>
+                </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-fullwidth">
+                        <thead>
+                            <th>ชื่อ</th>
+                            <th>นามสกุล</th>
+                            <th>สังกัด</th>
+                            <th>วันที่เริ่มต้น</th>
+                            <th>วันที่สิ้นสุด</th>
+                            <th>รวม(วัน)</th>
+                        </thead>
+                        <tbody>
+                            {% for req in request|sort(attribute='start_datetime') %}
+                            <tr>
+                                <td>{{ req.staff.personal_info.th_firstname }}</td>
+                                <td>{{ req.staff.personal_info.th_lastname }}</td>
+                                <td>{{ req.staff.personal_info.org.name }}</td>
+                                <td>{{ req.start_datetime|localdate }}</td>
+                                <td>{{ req.end_datetime|localdate }}</td>
+                                <td>{{ req.duration }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        var vm = new Vue({
+            el: "#app",
+            data() {
+            },
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            {% for msg in get_flashed_messages() %}
+            <p class="notification is-warning">{{ msg }}</p>
+            {% endfor %}
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <table class="table is-fullwidth">
+                        <tr>
+                            <td>
+                               <label class="label">ผู้ขออนุมัติทำงานที่บ้าน</label>
+                            </td>
+                            <td>
+                                {{ req.staff.personal_info }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="title is-size-6">
+                                วันที่ต้องการขออนุมัติ
+                            </td>
+                            <td>
+                                {{ req.start_datetime|localdate }} - {{ req.end_datetime|localdate }}
+                                <p>({{ req.duration }} วัน)</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">ภาระงานที่ปฏิบัติ</label>
+                            </td>
+                            <td>
+                                {{ req.detail }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">กำหนดส่งงาน</label>
+                            </td>
+                            <td>
+                                {{ req.deadline_date|localdate }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                 <label class="label">ระหว่างลาสามารถติดต่อได้ที่</label>
+                            </td>
+                            <td>
+                                <p>{{ req.contact_phone }}</p>
+                            </td>
+                        </tr>
+                    </table>
+                    <div class="control has-text-centered">
+                        <a href="{{ url_for('staff.wfh_approve', req_id=req.id, approver_id=approver.id) }}"
+                                                                                class="button is-success">อนุมัติ</a>
+                        <a href="{{ url_for('staff.wfh_reject', req_id=req.id, approver_id=approver.id) }}"
+                                                                                class="button is-danger">ไม่อนุมัติ</a>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}" class="button is-rounded is-info is-light">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับหน้าสรุปการขอ WFH</span>
+                        </a>
+                    </div>
+                    <div class="column">
+                        <a href="{{ url_for('staff.summary_index') }}" class="button is-rounded is-info is-light">
+                            <span>กลับหน้าตารางสรุปการเข้างาน</span>
+                            <span class="icon">
+                                <i class="fas fa-arrow-right"></i>
+                            </span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

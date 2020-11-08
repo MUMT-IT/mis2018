@@ -6,6 +6,7 @@ class Org(db.Model):
     __tablename__ = 'orgs'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     name = db.Column('name', db.String(), nullable=False)
+    en_name = db.Column('en_name', db.String())
     head = db.Column('head', db.String())
     parent_id = db.Column('parent_id', db.Integer, db.ForeignKey('orgs.id'))
     children = db.relationship('Org',
@@ -234,5 +235,20 @@ class IOCode(db.Model):
 
     def __repr__(self):
         return u'{}:{}'.format(self.id, self.name)
+
+
+class OrgSchema(ma.ModelSchema):
+    class Meta:
+        model = Org
+
+
+class Holidays(db.Model):
+    __tablename__ = 'holidays'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    holiday_date = db.Column('holiday_date', db.DateTime(timezone=True))
+    holiday_name = db.Column('holiday_name', db.String())
+
+    def tojson(self):
+        return { "date": self.holiday_date, "name" : self.holiday_name }
 
 

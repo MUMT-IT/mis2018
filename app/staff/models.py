@@ -1,8 +1,14 @@
 # -*- coding:utf-8 -*-
-from ..main import db
+from ..main import db,ma
 from werkzeug import generate_password_hash, check_password_hash
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from pytz import timezone
+from marshmallow import fields
+from app.models import Org, OrgSchema
+from datetime import datetime, timedelta
+from app.main import get_weekdays
+import numpy as np
 
 
 def local_datetime(dt):
@@ -19,6 +25,10 @@ class StaffAccount(db.Model):
     personal_info = db.relationship("StaffPersonalInfo", backref=db.backref("staff_account", uselist=False))
     line_id = db.Column('line_id', db.String(), index=True, unique=True)
     __password_hash = db.Column('password', db.String(255), nullable=True)
+
+    @property
+    def has_password(self):
+        return self.__password_hash != None
 
     @property
     def password(self):
@@ -48,10 +58,16 @@ class StaffAccount(db.Model):
     def __str__(self):
         return u'{}'.format(self.email)
 
+    @property
+    def total_wfh_duration(self):
+        return sum([wfh.duration for wfh in self.wfh_requests if not wfh.cancelled_at and wfh.get_approved])
+
 
 class StaffPersonalInfo(db.Model):
     __tablename__ = 'staff_personal_info'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    en_title = db.Column('en_title', db.String())
+    th_title = db.Column('th_title', db.String())
     en_firstname = db.Column('en_firstname', db.String(), nullable=False)
     en_lastname = db.Column('en_lastname', db.String(), nullable=False)
     highest_degree_id = db.Column('highest_degree_id', db.ForeignKey('staff_edu_degree.id'))
@@ -62,12 +78,13 @@ class StaffPersonalInfo(db.Model):
     academic_position_id = db.Column('academic_position_id', db.ForeignKey('staff_academic_position.id'))
     academic_position = db.relationship('StaffAcademicPosition', backref=db.backref('staff_list'))
     org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
-    org = db.relationship('Org', backref=db.backref('staff'))
+    org = db.relationship(Org, backref=db.backref('staff'))
     employed_date = db.Column('employed_date', db.Date(), nullable=True)
     employment_id = db.Column('employment_id',
                               db.ForeignKey('staff_employments.id'))
     employment = db.relationship('StaffEmployment',
                                  backref=db.backref('staff'))
+    finger_scan_id = db.Column('finger_scan_id', db.Integer)
 
     def __str__(self):
         return u'{} {}'.format(self.th_firstname, self.th_lastname)
@@ -80,12 +97,43 @@ class StaffPersonalInfo(db.Model):
 
     def get_employ_period(self):
         today = datetime.now().date()
-        period = today - self.employed_date
-        return period.days
+        period = relativedelta(today, self.employed_date)
+        return period
 
     @property
     def is_eligible_for_leave(self, minmonth=6.0):
-        return (self.get_employ_period()/12.0) > minmonth
+        period = self.get_employ_period()
+        if period.years > 0:
+            return True
+        elif period.years == 0 and period.months > minmonth:
+            return True
+        else:
+            return False
+
+    def get_max_cum_quota_per_year(self, leave_quota):
+        period = self.get_employ_period()
+        if self.is_eligible_for_leave:
+            if period.years < 10:
+                return leave_quota.cum_max_per_year1
+            else:
+                return leave_quota.cum_max_per_year2
+        else:
+            return 0
+
+    def get_total_leaves(self, leave_quota_id, start_date=None, end_date=None):
+        total_leaves = []
+        for req in self.staff_account.leave_requests:
+            if req.quota.id == leave_quota_id:
+                if start_date is None or end_date is None:
+                    if not req.cancelled_at and req.get_approved:
+                        total_leaves.append(req.total_leave_days)
+                else:
+                    if req.start_datetime >= start_date and req.end_datetime <= end_date:
+                        if not req.cancelled_at and req.get_approved:
+                            total_leaves.append(req.total_leave_days)
+
+        return sum(total_leaves)
+        #return len([req for req in self.staff_account.leave_requests if req.quota_id == leave_quota_id])
 
 
 class StaffEduDegree(db.Model):
@@ -124,8 +172,13 @@ class StaffLeaveType(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     type_ = db.Column('type', db.String(), nullable=False, unique=True)
     request_in_advance = db.Column('request_in_advance', db.Boolean())
+    document_required = db.Column('document_required', db.Boolean(), default=False)
+    reason_required = db.Column('reason_required', db.Boolean())
 
     def __str__(self):
+        return self.type_
+
+    def __repr__(self):
         return self.type_
 
 
@@ -157,6 +210,8 @@ class StaffLeaveRequest(db.Model):
     #TODO: fixed offset-naive and offset-timezone comparison error.
     start_datetime = db.Column('start_date', db.DateTime(timezone=True))
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
+    start_travel_datetime = db.Column('start_travel_datetime', db.DateTime(timezone=True))
+    end_travel_datetime = db.Column('end_travel_datetime', db.DateTime(timezone=True))
     created_at = db.Column('created_at',
                            db.DateTime(timezone=True),
                            default=datetime.now()
@@ -164,6 +219,7 @@ class StaffLeaveRequest(db.Model):
     reason = db.Column('reason', db.String())
     contact_address = db.Column('contact_address', db.String())
     contact_phone = db.Column('contact_phone', db.String())
+    #TODO: travel_datetime = db.Column('travel_datetime', db.DateTime(timezone=True))
     staff = db.relationship('StaffAccount',
                             backref=db.backref('leave_requests'))
     quota = db.relationship('StaffLeaveQuota',
@@ -171,17 +227,10 @@ class StaffLeaveRequest(db.Model):
 
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     country = db.Column('country', db.String())
-
-    @property
-    def duration(self):
-        delta = self.end_datetime - self.start_datetime
-        if delta.days == 0:
-            if delta.seconds == 0:
-                return delta.days + 1
-            if delta.seconds/3600 < 8:
-                return 0.5
-        else:
-            return delta.days + 1
+    total_leave_days = db.Column('total_leave_days', db.Float())
+    upload_file_url =  db.Column('upload_file_url', db.String())
+    after_hour = db.Column("after_hour", db.Boolean())
+    notify_to_line = db.Column('notify_to_line', db.Boolean(), default=False)
 
     @property
     def get_approved(self):
@@ -191,18 +240,113 @@ class StaffLeaveRequest(db.Model):
     def get_unapproved(self):
         return [a for a in self.approvals if a.is_approved==False]
 
-    def __str__(self):
-        if self.duration > 1:
-            return u'วันที่ {} ถึงวันที่ {}'.format(
-                local_datetime(self.start_datetime),
-                local_datetime(self.end_datetime))
-        else:
-            return u'วันที่ {}'.format(local_datetime(self.start_datetime))
-
+class StaffLeaveRemainQuota(db.Model):
+    _tablename_ = 'staff_leave_remain_quota'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    leave_quota_id = db.Column('leave_quota_id', db.ForeignKey('staff_leave_quota.id'))
+    year = db.Column('year', db.Integer())
+    last_year_quota = db.Column('last_year_quota', db.Float())
+    staff = db.relationship('StaffAccount',
+                            backref=db.backref('remain_quota'))
+    quota = db.relationship('StaffLeaveQuota', backref=db.backref('leave_quota'))
 
 
 class StaffLeaveApprover(db.Model):
     __tablename__ = 'staff_leave_approvers'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    # staff account means staff under supervision
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    approver_account_id = db.Column('approver_account_id', db.ForeignKey('staff_account.id'))
+    is_active = db.Column('is_active', db.Boolean(), default=True)
+    requester = db.relationship('StaffAccount', foreign_keys=[staff_account_id])
+    account = db.relationship('StaffAccount', foreign_keys=[approver_account_id])
+    notified_by_line = db.Column('notified_by_line', db.Boolean(), default=True)
+
+
+class StaffLeaveApproval(db.Model):
+    __tablename__ = 'staff_leave_approvals'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    request_id = db.Column('request_id', db.ForeignKey('staff_leave_requests.id'))
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_leave_approvers.id'))
+    is_approved = db.Column('is_approved', db.Boolean(), default=False)
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    request = db.relationship('StaffLeaveRequest', backref=db.backref('approvals'))
+    approval_comment = db.Column('approval_comment', db.String())
+    approver = db.relationship('StaffLeaveApprover',
+                               backref=db.backref('approved_requests'))
+
+
+class StaffPersonalInfoSchema(ma.ModelSchema):
+    org = fields.Nested(OrgSchema)
+    class Meta:
+        model = StaffPersonalInfo
+
+
+class StaffAccountSchema(ma.ModelSchema):
+    personal_info = fields.Nested(StaffPersonalInfoSchema)
+
+
+class StaffLeaveTypeSchema(ma.ModelSchema):
+    class Meta:
+        model = StaffLeaveType
+
+
+class StaffLeaveQuotaSchema(ma.ModelSchema):
+    leave_type = fields.Nested(StaffLeaveTypeSchema)
+    class Meta:
+        model = StaffLeaveQuota
+
+
+class StaffLeaveRequestSchema(ma.ModelSchema):
+    staff = fields.Nested(StaffAccountSchema)
+    quota = fields.Nested(StaffLeaveQuotaSchema)
+    class Meta:
+        model = StaffLeaveRequest
+    duration = fields.Float()
+
+
+class StaffWorkFromHomeRequest(db.Model):
+    __tablename__ = 'staff_work_from_home_requests'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    start_datetime = db.Column('start_date', db.DateTime(timezone=True))
+    end_datetime = db.Column('end_date', db.DateTime(timezone=True))
+    created_at = db.Column('created_at',db.DateTime(timezone=True),
+                           default=datetime.now())
+    contact_phone = db.Column('contact_phone', db.String())
+    # want to change name detail to be topic
+    detail = db.Column('detail', db.String())
+    deadline_date = db.Column('deadline_date', db.DateTime(timezone=True))
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    staff = db.relationship('StaffAccount',
+                            backref=db.backref('wfh_requests'))
+
+    @property
+    def duration(self):
+        delta = self.end_datetime - self.start_datetime
+        return delta.days + 1
+
+    @property
+    def get_approved(self):
+        return [a for a in self.wfh_approvals if a.is_approved]
+
+    @property
+    def get_unapproved(self):
+        return [a for a in self.wfh_approvals if a.is_approved == False]
+
+
+class StaffWorkFromHomeJobDetail(db.Model):
+    __tablename__ = 'staff_work_from_home_job_detail'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    #want to change topic to activity and activity to comment(for Approver)
+    activity = db.Column('topic', db.String(), nullable=False, unique=True)
+    status = db.Column('status', db.Boolean())
+    wfh_id = db.Column('wfh_id', db.ForeignKey('staff_work_from_home_requests.id'))
+
+
+class StaffWorkFromHomeApprover(db.Model):
+    __tablename__ = 'staff_work_from_home_approvers'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     # staff account means staff under supervision
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
@@ -214,35 +358,47 @@ class StaffLeaveApprover(db.Model):
                                foreign_keys=[approver_account_id])
 
 
-class StaffLeaveApproval(db.Model):
-    __tablename__ = 'staff_leave_approvals'
+class StaffWorkFromHomeApproval(db.Model):
+    __tablename__ = 'staff_work_from_home_approvals'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    request_id = db.Column('request_id', db.ForeignKey('staff_leave_requests.id'))
-    approver_id = db.Column('approver_id', db.ForeignKey('staff_leave_approvers.id'))
+    request_id = db.Column('request_id', db.ForeignKey('staff_work_from_home_requests.id'))
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_work_from_home_approvers.id'))
     is_approved = db.Column('is_approved', db.Boolean(), default=False)
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
-    request  = db.relationship('StaffLeaveRequest', backref=db.backref('approvals'))
-    approver = db.relationship('StaffLeaveApprover',
-                               backref=db.backref('approved_requests'))
+    approval_comment = db.Column('approval_comment', db.String())
+    checked_at = db.Column('check_at', db.DateTime(timezone=True))
+    request = db.relationship('StaffWorkFromHomeRequest', backref=db.backref('wfh_approvals'))
+    approver = db.relationship('StaffWorkFromHomeApprover',
+                               backref=db.backref('wfh_approved_requests'))
 
 
-class StaffWorkFromHomeRequest(db.Model):
-    __tablename__ = 'staff_work_from_home_requests'
+class StaffWorkFromHomeCheckedJob(db.Model):
+    __tablename__ = 'staff_work_from_home_checked_job'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
-    start_datetime = db.Column('start_date', db.DateTime(timezone=True))
-    end_datetime = db.Column('end_date', db.DateTime(timezone=True))
-    created_at = db.Column('created_at',
-                           db.DateTime(timezone=True),
-                           default=datetime.now()
-                           )
-    contact_phone = db.Column('contact_phone', db.String())
-    detail = db.Column('detail', db.String())
-    deadline_date = db.Column('deadline_date', db.DateTime(timezone=True))
-    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    overall_result = db.Column('overall_result', db.String())
+    request_id = db.Column('request_id', db.ForeignKey('staff_work_from_home_requests.id'))
+    finished_at = db.Column('finish_at', db.DateTime(timezone=True))
+    request = db.relationship('StaffWorkFromHomeRequest', backref=db.backref('checked_jobs'))
+
+    def check_comment(self, account_id):
+        for approval in self.request.wfh_approvals:
+            if approval.approver.account.id == account_id:
+                return approval.approval_comment
 
 
+class StaffWorkFromHomeRequestSchema(ma.ModelSchema):
+    staff = fields.Nested(StaffAccountSchema)
+    class Meta:
+        model = StaffWorkFromHomeRequest
+    duration = fields.Int()
 
 
-
-    
+class StaffWorkLogin(db.Model):
+    __tablename__ = 'staff_work_logins'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', backref=db.backref('work_logins'))
+    start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
+    end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
+    checkin_mins = db.Column('checkin_mins', db.Integer())
+    checkout_mins = db.Column('checkout_mins', db.Integer())

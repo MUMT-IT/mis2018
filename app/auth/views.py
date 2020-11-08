@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from flask_admin.helpers import is_safe_url
+
 from . import authbp as auth
 from app.main import db, csrf
 from app.main import app
 from flask import render_template, redirect, request, url_for, flash, abort, session, jsonify
 from flask_login import login_user, current_user, logout_user, login_required
-from app.staff.models import StaffAccount
+from app.staff.models import StaffAccount, StaffLeaveApprover
 from .forms import LoginForm
 import requests
 from linebot import (LineBotApi, WebhookHandler)
@@ -29,6 +30,8 @@ def login():
         else:
             return redirect(url_for('auth.account'))
 
+    linking_line = True if request.args.get('linking_line') == 'yes' else False
+
     form = LoginForm()
     if form.validate_on_submit():
         # authenticate the user
@@ -46,11 +49,9 @@ def login():
                 return redirect(url_for('auth.login'))
         else:
             flash('User does not exists.')
-            print('User does not exists.')
             return redirect(url_for('auth.login'))
 
-    return render_template('/auth/login.html',
-                           form=form, errors=form.errors)
+    return render_template('/auth/login.html', form=form, errors=form.errors, linking_line=linking_line)
 
 
 @auth.route('/account', methods=['GET', 'POST'])
@@ -70,7 +71,10 @@ def account():
         else:
             flash('New passwords are missing. Try again.')
 
+    approvers = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id).all()
+
     return render_template('/auth/account.html',
+                           approvers=approvers,
                            line_profile=session.get('line_profile', {}))
 
 
@@ -130,14 +134,12 @@ def line_profile():
     if 'line_profile' not in session:
         return redirect('auth.line_login')
 
-    if current_user.is_authenticated:
-        logout_user()
-
     userId = session['line_profile'].get('userId')
     line_user = StaffAccount.query.filter_by(line_id=userId).first()
     if line_user:
         # Automatically login the user with the associated Line account
-        login_user(line_user)
+        if not current_user.is_authenticated:
+            login_user(line_user)
         return redirect(url_for('auth.account'))
     else:
         return render_template('auth/line_account.html',
@@ -146,16 +148,19 @@ def line_profile():
 
 
 @auth.route('/line/account/link')
-@login_required
 def link_line_account():
     if not session.get('line_profile'):
         return redirect(url_for('auth.line_login'))
     else:
         profile_data = session.get('line_profile')
 
-    current_user.line_id = profile_data.get('userId'),
-    db.session.add(current_user)
-    db.session.commit()
-    return redirect(url_for('auth.account'))
+    if current_user.is_authenticated:
+        current_user.line_id = profile_data.get('userId'),
+        db.session.add(current_user)
+        db.session.commit()
+        flash(u'ระบบได้ทำการเชื่อมบัญชีไลน์ของคุณแล้ว', 'success')
+        return redirect(url_for('auth.account'))
+    else:
+        return redirect(url_for('auth.login', linking_line='yes', next=request.url))
 
 

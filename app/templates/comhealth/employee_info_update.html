@@ -1,54 +1,27 @@
 {% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bulma-extensions.min.css') }}">
+{% endblock %}
 {% block page_content %}
-    <section class="hero is-info is-small">
-        <div class="hero-head">
-            <nav class="navbar">
-                <div class="container">
-                    <div class="navbar-brand">
-                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </span>
-                    </div>
-                    <div id="navbarMenuHeroA" class="navbar-menu">
-                        <div class="navbar-end">
-                            <a class="navbar-item"
-                               href="/comhealth">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                                <span>Home</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/tests">
-                                <span>Tests</span>
-                            </a>
-                            <a class="navbar-item is-active"
-                            href="/comhealth/organizations">
-                                <span>Organizations</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-        </div>
-        <div class="hero-body">
-            <div class="container has-text-centered">
-                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="100">
-                <h3 class="title">Health Record</h3>
-                <h3 class="subtitle">ชื่อสถาบัน {{ customer.org.name }}</h3>
-            </div>
-        </div>
-    </section>
+{% include "comhealth/nav.html" %}
     <section class="section" id="app">
         <div class="columns">
-            <div class="column">
-                <div class="notification is-light">
-                    <h1 class="title">ชื่อ {{ customer.title }}{{ customer.firstname }} {{ customer.lastname }}</h1>
-                    {% if customer.info.updated_at %}
-                    <h1 class="subtitle">ปรับปรุงล่าสุดเมื่อ {{ customer.info.updated_at|localdatetime }} น.</h1>
-                    {% endif %}
+            <div class="column is-10 is-offset-1">
+                <div class="box">
+                <div class="message is-info">
+                    <div class="message-header">
+                        <h1 class="title is-size-4 has-text-white">{{ customer.title }}{{ customer.firstname }} {{ customer.lastname }}</h1>
+                    </div>
+                    <div class="message-body">
+                        <p>
+                            โทรศัพท์ {{ customer.phone or '' }}
+                        </p>
+                        {% if customer.info.updated_at %}
+                        <p class="is-size-6">แก้ไขล่าสุด {{ customer.info.updated_at|localdatetime }} น.</p>
+                        {% endif %}
+                    </div>
+                </div>
                 </div>
                 <div class="box">
                     <table class="table is-narrow">
@@ -66,49 +39,60 @@
                         </tr>
                         {% endfor %}
                     </table>
-                    <div class="has-text-centered">
-                        <a href="{{ request.referrer }}"
-                           class="button is-large is-rounded is-primary">กลับ</a>
-                    </div>
                 </div>
             </div>
         </div>
+        <form method="post">
         <div class="columns">
-            <div class="column">
-                <form method="post">
+            <div class="column is-10 is-offset-1">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="customer_id" value="{{ customer.id }}">
+                <div class="box">
+                    <div class="message is-info">
+                        <div class="message-header">
+                            <h1 class="title is-size-4 has-text-white">หากท่านต้องการรับผลการตรวจสุขภาพทางอีเมลกรุณาระบุอีเมลของท่าน</h1>
+                        </div>
+                        <div class="message-body">
+                            <input class="input is-large" name="email" value="{{ customer.email or '' }}" placeholder="E-mail">
+                        </div>
+                    </div>
+                    <div class="buttons is-centered">
+                        <button class="button is-success is-large" type="submit">
+                            บันทึกผล
+                        </button>
+                        <a href="{{ request.referrer }}"
+                           class="button is-large is-light">ปิด</a>
+                    </div>
+                </div>
                 {% for k in info_items %}
                     <div class="box">
                         {% if info_items[k].choices %}
-                        <div class="control">
                             <h1 class="title">{{ info_items[k].order }}. <a name="{{ k }}">{{ k }}</a></h1>
                             {% if not info_items[k].multiple_selection %}
                                 {% for choice in info_items[k].choices.split(',') %}
                                 <div class="field">
-                                    <input class="is-checkradio is-large is-info"
-                                        id="{{ choice }}"
+                                    <input class="is-checkradio is-block is-large is-info"
+                                        id="{{ k }}-{{ choice }}"
                                         {% if choice == customer.info.data.get(k) %}
                                         checked
                                         {% endif %}
                                         type="radio" name="{{ k }}" value="{{ choice }}"/>
-                                    <label for="{{ choice }}">{{ choice }}</label>
+                                    <label for="{{ k }}-{{ choice }}">{{ choice }}</label>
                                 </div>
                                 {% endfor %}
                             {% else %}
                                 {% for choice in info_items[k].choices.split(',') %}
                                 <div class="field">
-                                    <input class="is-checkradio is-large is-info"
-                                        id="{{ choice }}"
+                                    <input class="is-checkradio is-block is-large is-info"
+                                        id="{{ k }}-{{ choice }}"
                                         {% if choice in customer.info.data.get(k, '').split() %}
                                         checked="checked"
                                         {% endif %}
                                         type="checkbox" name="{{ k }}" value="{{ choice }}"/>
-                                    <label for="{{ choice }}">{{ choice }}</label>
+                                    <label for="{{ k }}-{{ choice }}">{{ choice }}</label>
                                 </div>
                                 {% endfor %}
                             {% endif %}
-                        </div>
                         {% else %}
                         <h1 class="title">{{ info_items[k].order }}. <a name="{{ k }}">{{ k }}</a>
                             {% if info_items[k].unit %}
@@ -125,11 +109,15 @@
         </div>
         <div class="columns">
             <div class="column has-text-centered">
-                <button class="button is-primary is-large is-rounded"
-                        type="submit">Save</button>
-                <a class="button is-text is-large is-rounded"
-                    href="{{ url_for('comhealth.list_employees', orgid=customer.org.id)}}">
-                Cancel</a>
+                <div class="buttons is-centered">
+                    <button class="button is-success is-large" type="submit">
+                        บันทึกผล
+                    </button>
+                    <a class="button is-light is-large"
+                       href="{{ url_for('comhealth.list_employees', orgid=customer.org.id)}}">
+                        Cancel
+                    </a>
+                </div>
             </div>
         </div>
         </form>

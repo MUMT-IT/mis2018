@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% include "nav.html" %}
+{% include "staff/nav.html" %}
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
@@ -10,7 +10,7 @@
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <div class="field">
                         <div class="control">
-                            <b-field label="เลือกวันที่ต้องการขอทำงานที่บ้าน">
+                            <b-field label="เลือกวันที่ต้องการขอทำงานที่บ้าน" message="หากต้องการเลือก 1 วัน ให้ดับเบิ้ลคลิ๊กวันที่ต้องการ">
                                 <b-datepicker
                                         required
                                         name="dates"
@@ -18,6 +18,7 @@
                                         range
                                         icon-pack="fa"
                                         :mobile-native="false"
+                                        :date-formatter="formatDate"
                                         placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                         icon="calendar-alt">
                                 </b-datepicker>
@@ -34,7 +35,7 @@
                     <b-field label="กำหนดส่งงาน">
                         <b-datepicker
                                 required
-                                name="deadline_dates"
+                                name="deadline_date"
                                 icon="calendar-check"
                                 :mobile-native="false"
                                 placeholder="คลิกเพื่อเปิดปฏิทิน..."
@@ -83,6 +84,19 @@
                 notifiedByLine: "yes",
             }
         },
+        methods: {
+            formatDate(dates){
+                if (dates.length===2){
+                    let start = new moment(dates[0]).format("DD/MM/YYYY")
+                    let end = new moment(dates[1]).format("DD/MM/YYYY")
+                    return start + ' - ' + end
+                }
+                else{
+                    let date = new moment(dates).format("DD/MM/YYYY")
+                    return date
+                }
+            }
+        }
     });
 </script>
 {% endblock %}

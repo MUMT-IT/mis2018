@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">บันทึกการขอลา</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                <div class="box">
+                    <table class="table">
+                        <tr>
+                            <td>
+                                <span class="label">
+                                วันที่
+                                </span>
+                            </td>
+                            <td>
+                                {{ req.created_at|localdatetime }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">เรื่อง</label>
+                            </td>
+                            <td>
+                                {{ req.quota.leave_type }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">ชื่อ</label>
+                            </td>
+                            <td>
+                                {{ req.staff.personal_info }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">สังกัด</label>
+                            </td>
+                            <td>
+                                {{ req.staff.personal_info.org }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">เริ่มลา</label>
+                            </td>
+                            <td>
+                                {{ req.start_datetime|localdatetime }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">สิ้นสุดลา</label>
+                            </td>
+                            <td>
+                                {{ req.end_datetime|localdatetime }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">จำนวนวัน</label>
+                            </td>
+                            <td>
+                                {{ req.total_leave_days }} วัน
+                            </td>
+                        </tr>
+                        {% if req.start_travel_datetime %}
+                        <tr>
+                            <td>
+                               <label class="label">ช่วงเวลาเดินทาง</label>
+                            </td>
+                            <td>
+                                {{ req.start_travel_datetime|localdate }} - {{ req.start_travel_datetime|localdate }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td>
+                               <label class="label">เหตุผล</label>
+                            </td>
+                            <td>
+                                {{ req.reason or '' }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">ติดต่อได้ที่</label>
+                            </td>
+                            <td>
+                                {{ req.contact_phone }}
+                            </td>
+                            <td>
+                                {{ req.contact_address }}
+                            </td>
+                        </tr>
+                        {% if req.start_travel_datetime %}
+                        <tr>
+                            <td>
+                               <label class="label">ประเทศ (กรณีลาไปต่างประเทศ)</label>
+                            </td>
+                            <td>
+                                {{ req.country }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if req.quota.leave_type.type_ == 'ลาป่วย' %}
+                         <tr>
+                            <td>
+                                <label class="label">Link เอกสารแนบใบลา (กรณีลาป่วยเกิน 3 วัน)</label>
+                            </td>
+                            {% if upload_file_url %}
+                            <td>
+                                <a href="{{ upload_file_url }}">คลิกเพื่อดูใบรับรองแพทย์</a>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td>
+                               <label class="label">ความคิดเห็นหัวหน้างาน</label>
+                            </td>
+                            <td>
+                                {% for approver in approvers %}{{ approver.approver.account.personal_info }}: <strong>"{{ approver.approval_comment }}"</strong>, {% endfor %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <a href="{{ request.referrer }}" class="button is-info is-light is-rounded">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

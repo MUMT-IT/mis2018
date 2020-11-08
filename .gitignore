@@ -4,7 +4,7 @@ __pycache__/
 .DS_Store
 *.xlsx
 *.json
-utils/
+.ipynb_checkpoints/
 data/
 backup/
 analysis/

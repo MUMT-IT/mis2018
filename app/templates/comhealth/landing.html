@@ -1,43 +1,87 @@
 {% extends "base.html" %}
 {% block title %}MUMT-MIS: Community Health Information System{% endblock %}
-{% include "comhealth/nav.html" %}
 {% block page_content %}
-<section class="section">
-    <div class="columns">
-        <div class="column">
-            <div class="container has-text-centered">
-                <a href="{{ url_for('comhealth.index') }}">
-                <div class="box">
-                    <span class="icon is-large">
-                        <i class="fas fa-user-clock fa-4x"></i>
-                    </span><br><br>
-                    <span class="is-size-4">ลงทะเบียนรับบริการ</span>
-                </div>
+<nav class="navbar is-transparent">
+    <div class="container">
+        <div class="navbar-brand">
+            <a class="navbar-item" href="/">MIS</a>
+            <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  </span>
+        </div>
+        <div id="navbarMenuHeroA" class="navbar-menu">
+            <div class="navbar-end">
+                <a class="navbar-item"
+                   href="/comhealth/tests">
+                    <span>Tests</span>
+                </a>
+                <a class="navbar-item"
+                   href="/comhealth/organizations">
+                    <span>Organizations</span>
+                </a>
+                <a class="navbar-item"
+                   href="/comhealth/services/finance">
+                    <span>Finance</span>
                 </a>
             </div>
         </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <a href="{{ url_for('comhealth.health_record_landing') }}">
-                    <div class="box">
-                    <span class="icon is-large">
-                        <i class="fas fa-notes-medical fa-4x"></i>
-                    </span><br><br>
-                        <span class="is-size-4">ประวัติสุขภาพ</span>
-                    </div>
-                </a>
+    </div>
+</nav>
+<section class="hero is-small is-white">
+    <div class="hero-body">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <img src="{{ url_for('static', filename='img/MUlogo72dpi.jpg') }}" width="200"/>
+                <h1 class="title is-size-2 has-text-link">ระบบบริการสุขภาพชุมชน</h1>
+                <h1 class="subtitle is-size-2 has-text-link">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
+                <span class="is-size-5 has-text-link">Version 1.2</span>
             </div>
         </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <a href="{{ url_for('comhealth.finance_landing') }}">
-                <div class="box">
+        <div class="columns">
+            <div class="column">
+                <div class="container has-text-centered">
+                    <a href="{{ url_for('comhealth.index') }}">
+                        <div class="box">
                     <span class="icon is-large">
-                        <i class="fas fa-hand-holding-usd fa-4x"></i>
+                        <i class="fas fa-user-clock fa-4x has-text-link"></i>
                     </span><br><br>
-                    <span class="is-size-4">การเงิน</span>
+                            <span class="is-size-4 has-text-link">ลงทะเบียนรับบริการ</span>
+                        </div>
+                    </a>
                 </div>
-                </a>
+            </div>
+            <div class="column">
+                <div class="container has-text-centered">
+                    <a href="{{ url_for('comhealth.health_record_landing') }}">
+                        <div class="box">
+                    <span class="icon is-large">
+                        <i class="fas fa-notes-medical fa-4x has-text-link"></i>
+                    </span><br><br>
+                            <span class="is-size-4 has-text-link">ประวัติสุขภาพ</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+            <div class="column">
+                <div class="container has-text-centered">
+                    <a href="{{ url_for('comhealth.finance_landing') }}">
+                        <div class="box">
+                    <span class="icon is-large">
+                        <i class="fas fa-hand-holding-usd fa-4x has-text-link"></i>
+                    </span><br><br>
+                            <span class="is-size-4 has-text-link">การเงิน</span>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <span class="label has-text-danger">
+                    กรุณาใช้โปรแกรม Chrome เพื่อการใช้งานที่มีประสิทธิภาพสูงสุด
+                </span>
             </div>
         </div>
     </div>

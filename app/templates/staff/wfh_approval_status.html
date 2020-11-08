@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h4 class="subtitle">สถานะการอนุมัติขอทำงานที่บ้าน</h4>
+        <table class="table is-fullwidth">
+            <thead>
+            <th>ผู้อนุมัติ</th>
+            <th>วันที่</th>
+            <th>สถานะ</th>
+            </thead>
+            <tbody>
+            {% for approver in approvers %}
+            <tr>
+                <td>{{ approver.account.personal_info }}</td>
+                {% if request.wfh_approvals %}
+                {% for status in request.wfh_approvals %}
+                {% if status.approver_id==approver.id %}
+                <td>{{ status.updated_at|localdate }}</td>
+                <td>{{ status.is_approved }}</td>
+                {% endif %}
+                {% endfor %}
+                {% else %}
+                <td></td>
+                <td></td>
+                <td></td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+         <a href="{{ url_for('staff.show_work_from_home') }}" class="button is-info">กลับหน้าสรุปการขอทำงานที่บ้านของท่าน</a>
+    </div>
+</section>
+{% endblock %}

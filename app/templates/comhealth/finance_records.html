@@ -1,49 +1,77 @@
 {% extends "base.html" %}
-{% include "comhealth/nav.html" %}
 {% block page_content %}
+{% include "comhealth/nav.html" %}
 <section class="section">
     <div class="container" id="app">
         <div class="has-text-centered">
-            <button class="button is-rounded is-warning" @click="loadAsyncData()">
+            <button class="button is-warning" @click="loadAsyncData()">
                 <span class="icon">
                     <i class="fas fa-sync"></i>
                 </span>
                 <span>อัพเดตข้อมูล</span>
             </button>
         </div>
+        <br>
+        <div class="field">
+            <b-switch v-model="isAll">
+                All
+            </b-switch>
+        </div>
         <b-table
-            :data="data"
-            :loading="loading"
-            paginated
-            :total="total"
+            :data="filteredData"
+            :paginated="true"
+            :loading="isLoading"
+            :total="filteredData.length"
             default-sort="checkin_datetime"
             default-sort-direction="desc"
             :per-page="perPage">
             <template slot-scope="props">
                 <b-table-column field="checkin_datetime" label="Checked In At" sortable>
-                    <% moment(props.row.checkin_datetime.toLocaleString({timeZone: "UTC"})).format("LLL") %>
+                    <% moment(props.row.checkin_datetime).format('lll') %>
                 </b-table-column>
                 <b-table-column field="customer.firstname" label="First Name" sortable>
-                    <% props.row.customer.firstname %>
+                    <% props.row.customer.title + props.row.customer.firstname %>
                 </b-table-column>
                 <b-table-column field="customer.lastname" label="Last Name" sortable>
                     <% props.row.customer.lastname %>
                 </b-table-column>
+                <b-table-column field="customer.employment" label="Employment" sortable>
+                    <% props.row.customer.emptype.name %>
+                    <p class="help is-danger"><% props.row.customer.emptype.finance_comment %></p>
+                </b-table-column>
                 <b-table-column field="labno" label="Lab No." sortable numeric>
                     <% props.row.labno %>
                 </b-table-column>
-                <b-table-column field="ordered_tests" label="Tests" sortable numeric>
-                    <% props.row.ordered_tests.length %>
+                <b-table-column field="contact_reason" label="Contact for" sortable>
+                    <% props.row.finance_contact ? props.row.finance_contact.reason : '' %>
+                    <p class="help is-danger"><% props.row.customer.emptype.finance_comment %></p>
+                </b-table-column>
+                <b-table-column field="unpaid" label="Unpaid">
+                    <% props.row.receipts.filter(rec=>rec.paid===false && rec.cancelled===false).length %>
                 </b-table-column>
                 <b-table-column field="" label="Receipts">
-                    <a class="button is-rounded is-light"
+                    <a class="button is-light is-rounded is-small"
                        v-bind:href="'/comhealth/checkin/'+props.row.id+'/receipts'">
                         <span class="icon">
                             <i class="fas fa-receipt"></i>
                         </span>
-                        <span>Receipts</span>
                     </a>
                 </b-table-column>
+            </template>
+            <template slot="empty">
+                <section class="section">
+                    <div class="content has-text-grey has-text-centered">
+                        <p>
+                            <b-icon
+                                    pack="fas"
+                                    icon="sync-alt"
+                                    custom-class="fa-spin"
+                                    size="is-large">
+                            </b-icon>
+                        </p>
+                        <p>Loading data, please wait...</p>
+                    </div>
+                </section>
             </template>
         </b-table>
     </div>
@@ -52,31 +80,43 @@
 {% block scripts %}
 {{ super() }}
 <script type="text/javascript">
-        var vm = new Vue({
-            el: "#app",
-            delimiters: ['<%', '%>'],
-            data() {
-                return {
-                    data: [],
-                    total: 0,
-                    loading: false,
-                    page: 1,
-                    perPage: 20
-                }
-            },
-            methods: {
-                loadAsyncData() {
-                    var self = this;
-                    axios.get('/comhealth/api/services/{{service.id}}/records')
-                        .then(function(response) {
-                            self.data = response.data;
-                            self.total = response.data.length;
-                        });
-                }
-            },
-            mounted() {
-                this.loadAsyncData();
+    let vm = new Vue({
+        el: "#app",
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                data: [],
+                isLoading: false,
+                page: 1,
+                perPage: 10,
+                isAll: false
             }
-        });
-    </script>
+        },
+        computed: {
+            filteredData: function () {
+                if (this.isAll) {
+                    return this.data;
+                } else {
+                    return this.data.filter((d) => {
+                        return !!d.finance_contact;
+                    })
+                }
+            }
+        },
+        methods: {
+            loadAsyncData() {
+                const self = this;
+                self.isLoading = true;
+                axios.get('/comhealth/api/services/{{service.id}}/records')
+                    .then(function (response) {
+                        self.data = response.data;
+                        self.isLoading = false;
+                    });
+            }
+        },
+        mounted() {
+            this.loadAsyncData();
+        }
+    });
+</script>
 {% endblock %}

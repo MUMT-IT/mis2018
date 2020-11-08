@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="table-container">
+            <h4 class="subtitle">รายการขอทำงานที่บ้านของ
+              {{ requester[0].staff.personal_info }}
+            </h4>
+            <h4>*หากต้องการแก้ไขสถานะการอนุมัติโปรดติดต่อ หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่ ต่อ 2824(ศาลายา)</h4>
+<table class="table is-bordered is-striped">
+    <thead>
+    <th>วันที่เริ่มต้น</th>
+    <th>วันที่สิ้นสุด</th>
+    <th>จำนวนวัน</th>
+    <th>เรื่องที่ขอ</th>
+    <th>สถานะการอนุมัติ</th>
+    </thead>
+    <tbody>
+    {% for requester in requester|sort(attribute='start_datetime') %}
+    {% if not requester.cancelled_at and requester.get_approved or requester.get_unapproved %}
+        <tr>
+            <td>
+                {{ requester.start_datetime|localdate }}
+            </td>
+            <td>
+                {{ requester.end_datetime|localdate }}
+            </td>
+            <td>
+                {{ requester.duration }}
+            </td>
+            <td>
+                <a href="{{ url_for('staff.record_each_request_wfh_request', request_id=requester.id) }}"
+                                                                                class="is-info is-light">
+                {{ requester.detail }}
+                </a>
+            </td>
+            <td>
+                {% if requester.wfh_approvals %}
+                {% for ap in requester.wfh_approvals %}
+                    {{ ap.approver.account.personal_info }} ({{ ap.is_approved }})
+                {% endfor %}
+                {% else %}
+                {{ wfh_req.approvals|length }}
+                {% endif %}
+            </td>
+        </tr>
+    {% endif %}
+    {% endfor %}
+    </tbody>
+    {% for cal_duration in request.duration %}
+        {{ cal_duration.duration }}
+    {% endfor %}
+
+</table>
+
+    <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}" class="button is-rounded is-info is-light">
+        <span class="icon">
+            <i class="fas fa-arrow-left"></i>
+        </span>
+        กลับ
+    </a>
+
+    </div>
+    </div>
+</section>
+{% endblock %}

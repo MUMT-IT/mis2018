@@ -1,30 +1,24 @@
-<section class="hero is-info is-bold">
-   <div class="hero-head">
-      <nav class="navbar">
-         <div class="container">
-            <div class="navbar-brand">
-               <a class="navbar-item" href="#">
-                   <span class="icon is-large">
-                       <i class="fa fa-home fa-3x"></i>
-                   </span>
-               </a>
-               <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                        <span></span>
-                        <span></span>
-                        <span></span>
-                      </span>
+<nav class="navbar is-success">
+    <div class="container">
+        <div class="navbar-brand">
+            <span class="navbar-burger burger" data-target="navbarMenuHeroA">
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
+        </div>
+        <div id="navbarMenuHeroA" class="navbar-menu">
+            <div class="navbar-end">
+                <a class="navbar-item" href="{{ url_for('chemdb.index') }}">
+                    หน้าหลัก
+                </a>
+                <a class="navbar-item" href="/">
+                    <span>ปิด</span>
+                    <span class="icon">
+                        <i class="far fa-times-circle"></i>
+                    </span>
+                </a>
             </div>
-            <div id="navbarMenuHeroA" class="navbar-menu">
-               <div class="navbar-end">
-               </div>
-            </div>
-         </div>
-      </nav>
-   </div>
-   <div class="hero-body">
-      <div class="container">
-          <h1 class="title">ระบบฐานข้อมูลสารเคมี</h1>
-          <h1 class="subtitle">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
-      </div>
-   </div>
-</section>
+        </div>
+    </div>
+</nav>

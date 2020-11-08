@@ -1,41 +1,6 @@
 {% extends "base.html" %}
 {% block page_content %}
-    <section class="section hero is-info is-small">
-        <div class="hero-head">
-            <nav class="navbar">
-                <div class="container">
-                    <div class="navbar-brand">
-                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </span>
-                    </div>
-                    <div id="navbarMenuHeroA" class="navbar-menu">
-                        <div class="navbar-end">
-                            <a class="navbar-item is-active"
-                               href="/comhealth">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                                <span>Home</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/tests">
-                                <span>Tests</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-        </div>
-        <div class="hero-body">
-            <div class="container has-text-centered">
-                <img src="{{ url_for('static', filename='img/medical-history.png') }}" width="100">
-                <h1 class="title">Customer Check In</h1>
-            </div>
-        </div>
-    </section>
+    {% include "comhealth/nav.html" %}
     <section class="section" id="app">
         <div class="container">
             <nav class="breadcrumb is-light is-centered" aria-label="breadcrumbs">
@@ -45,6 +10,8 @@
                     <li><a href="#">Check In</a></li>
                 </ul>
             </nav>
+            {% include "messages.html" %}
+            <h1 class="title has-text-centered">Customer Check In</h1>
             <form method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="record_id" value="{{ record.id }}">
@@ -66,19 +33,55 @@
                             <div class="card-content">
                                 <div class="columns">
                                     <div class="column">
-                                        <p class="help"><strong>First and Last Name</strong></p>
+                                        <div v-show="!nameEditing">
+                                            <p class="label"><strong>ชื่อ นามสกุล / Name</strong>
+                                                <a @click="nameEditing=true;">
+                                                    <span class="icon has-text-info">
+                                                        <i class="fas fa-pencil-alt"></i>
+                                                    </span>
+                                                    <span>แก้ไขชื่อ</span>
+                                                </a>
+                                            </p>
+                                            <p class="is-size-4">
+                                                <% fullname %>
+                                            </p>
+                                        </div>
+                                        <div class="message is-warning" v-show="nameEditing">
+                                            <div class="message-body">
+                                                <div class="field is-horizontal">
+                                                    <div class="field-body">
+                                                        <div class="field">
+                                                            <label class="label">คำนำหน้า</label>
+                                                            <div class="control">
+                                                                <input v-model="title" class="input" name="title">
+                                                            </div>
+                                                        </div>
+                                                        <div class="field">
+                                                            <label class="label">ชื่อ</label>
+                                                            <div class="control">
+                                                                <input v-model="firstname" class="input" name="firstname">
+                                                            </div>
+                                                        </div>
+                                                        <div class="field">
+                                                            <label class="label">นามสกุล</label>
+                                                            <div class="control">
+                                                                <input v-model="lastname" class="input" name="lastname">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <button class="delete" @click="closeNameForm"></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <p class="label"><strong>เพศ / Gender</strong></p>
                                         <p class="is-size-4">
-                                            <strong>ชื่อ</strong> {{ record.customer.title or '-' }} {{ record.customer.firstname or '-' }}
-                                            <strong>นามสกุล</strong> {{ record.customer.lastname or '-' }}
+                                            {% if record.customer.gender == 1 %}ชาย (Male) {% else %} หญิง (Female){% endif %}
                                         </p>
-                                        <p class="help"><strong>Gender</strong></p>
+                                    </div>
+                                    <div class="column">
+                                        <p class="label"><strong>สังกัด / Affiliation</strong></p>
                                         <p class="is-size-4">
-                                            <strong>เพศ</strong>
-                                            {% if record.customer.gender == 1 %}ชาย{% else %} หญิง{% endif %}
-                                        </p>
-                                        <p class="help"><strong>Affiliation</strong></p>
-                                        <p class="is-size-4">
-                                            <strong>สังกัด</strong> {{ record.customer.org.name }}
+                                            {{ record.customer.org.name }}
                                         </p>
                                         <div class="select">
                                             <select name="department_id">
@@ -92,10 +95,9 @@
                                                 {% endfor %}
                                             </select>
                                         </div>
-                                        <p class="help"><strong>Employment</strong></p>
-                                        <p class="is-size-5">
-                                            <strong>ประเภท</strong>
-                                        </p>
+                                        <br>
+                                        <br>
+                                        <p class="label"><strong>ประเภทการจ้าง / Employment</strong></p>
                                         <div class="select">
                                             <select name="emptype_id">
                                                 {% for emptype in emptypes %}
@@ -107,25 +109,34 @@
                                                 {% endfor %}
                                             </select>
                                         </div>
-                                    </div>
-                                    <div class="column">
-                                        {% if record.customer.dob %}
-                                        <p class="help"><strong>Age</strong></p>
-                                        <p class="is-size-5">
-                                            <strong>อายุ</strong> {{ record.customer.age.years }}
-                                            ปี {{ record.customer.age.months }} เดือน {{ record.customer.age.days }}
-                                            วัน
-                                        </p>
-                                        {% endif %}
-                                        <div class="field">
-                                            <label class="label is-size-5"><strong><span class="help">Date of Birth</span>วัน/เดือน/ปีเกิด</strong></label>
-                                            <div class="control">
-                                                <input class="input is-rounded is-medium" name='dob' type="text"
-                                                       value='{{ record.customer.thai_dob or "" }}'
-                                                       placeholder="dd/mm/yyyy"
-                                                        {% if record.customer.dob %}
-                                                       readonly
+                                        <br>
+                                        <br>
+                                        <p class="label"><strong>โปรดติดต่อเจ้าหน้าที่การเงินเพื่อ</strong></p>
+                                        <div class="select is-warning">
+                                            <select name="finance_contact">
+                                                <option value="0">ไม่ระบุ</option>
+                                                {% for reason in finance_contact_reasons %}
+                                                <option value="{{ reason.id }}"
+                                                        {% if reason.id == record.finance_contact_id %}
+                                                        selected
                                                         {% endif %}
+                                                >{{ reason.reason }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="column is-3">
+                                        <p class="label"><strong>อายุ / Age</strong></p>
+                                        <p class="is-size-5" v-if="age.years || age.months || age.days">
+                                            <strong><span><% age.years %> ปี <% age.months %> เดือน <% age.days %> วัน</span></strong>
+                                        </p>
+                                        <div class="field">
+                                            <label class="label">วันเกิด / Date of Birth</label>
+                                            <div class="control">
+                                                <input class="input" id="birthdate-input"
+                                                       v-model="birthday"
+                                                       name='dob' type="text"
+                                                       placeholder="dd/mm/yyyy"
                                                 />
                                             </div>
                                             <p class="help has-text-info">
@@ -133,10 +144,9 @@
                                             </p>
                                         </div>
                                         <div class="field">
-                                            <label class="label is-size-4"><strong><span class="help">Telephone</span>เบอร์โทรศัพท์</strong></label>
+                                            <label class="label">เบอร์โทรศัพท์ / Telephone</label>
                                             <div class="control">
-                                                <input class="input is-rounded is-medium"
-                                                       name='phone' type="text"
+                                                <input class="input" name='phone' type="text"
                                                        value='{{ record.customer.phone or "" }}'
                                                 />
                                             </div>
@@ -144,6 +154,18 @@
                                     </div>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <div class="has-text-centered">
+                            <button class="button is-light is-medium" type="submit">
+                                <span>Proceed</span>
+                                <span class="icon">
+                                    <i class="fas fa-chevron-right"></i>
+                                </span>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -175,31 +197,20 @@
                                 </div>
                                 <div class="card-content">
                                     <p class="subtitle is-size-6">{{ profile.desc }}</p>
-                                    <div class="buttons">
-                                        <a class="button is-link is-rounded check_{{profile.id}}">Check All</a>
-                                        <a class="button is-link is-rounded uncheck_{{profile.id}}">Uncheck All</a>
+                                    <div class="buttons has-addons">
+                                        <a class="button is-link is-small is-outlined check_{{profile.id}}"><strong>Check All</strong></a>
+                                        <a class="button is-link is-small is-outlined uncheck_{{profile.id}}"><strong>Uncheck All</strong></a>
                                     </div>
-                                    <table id="{{ profile.id }}">
-                                        <thead>
-                                        <th class="has-text-centered">Test</th>
-                                        <th class="has-text-left">Self Pay</th>
-                                        </thead>
+                                    <table>
                                         <tbody>
                                         {% for item in profile.test_items|sorttest %}
                                         <tr>
-                                            <td class="field">
-                                                <input class="is-checkradio is-block is-info is-large profile_{{profile.id}}_select"
-                                                       id="profile_{{ item.id }}_select"
-                                                       type="checkbox" name="profile_{{ item.id }}_select">
-                                                <label for="profile_{{ item.id }}_select">
+                                            <td>
+                                                <label class="checkbox">
+                                                    <input class="profile_{{profile.id}}_select"
+                                                           id="profile_{{ item.id }}_select"
+                                                           type="checkbox" name="profile_{{ item.id }}_select">
                                                     <strong>{{ item.test.name }}</strong> {{ item.test.desc }}
-                                                </label>
-                                            </td>
-                                            <td class="field">
-                                                <input class="is-checkradio is-info" value="{{ item.id }}"
-                                                       id="profile_{{ item.id }}_selfpay"
-                                                       type="checkbox" name="profile_selfpay">
-                                                <label for="profile_{{ item.id }}_selfpay">
                                                 </label>
                                             </td>
                                         </tr>
@@ -215,9 +226,11 @@
                 <div class="columns">
                     <div class="column">
                         <div class="has-text-centered">
-                            <button class="button is-rounded is-medium is-link" type="submit">
+                            <button class="button is-medium is-link" type="submit">
                                 <span>Proceed</span>
-                                <span class="icon"><i class="far fa-hand-point-right"></i></span>
+                                <span class="icon">
+                                    <i class="fas fa-chevron-right"></i>
+                                </span>
                             </button>
                         </div>
                     </div>
@@ -274,9 +287,11 @@
                 <div class="columns">
                     <div class="column">
                         <div class="has-text-centered">
-                            <button class="button is-rounded is-medium is-link" type="submit">
+                            <button class="button is-medium is-link" type="submit">
                                 <span>Proceed</span>
-                                <span class="icon"><i class="far fa-hand-point-right"></i></span>
+                                <span class="icon">
+                                    <i class="fas fa-chevron-right"></i>
+                                </span>
                             </button>
                         </div>
                     </div>
@@ -292,20 +307,52 @@
             el: "#app",
             delimiters: ['<%', '%>'],
             data() {
-                return {}
+                return {
+                    birthday: {{ record.customer.thai_dob|tojson|safe }},
+                    firstname: {{ record.customer.firstname|tojson|safe }},
+                    lastname: {{ record.customer.lastname|tojson|safe }},
+                    title: {{ record.customer.title|tojson|safe }},
+                    nameEditing: false,
+                }
             },
-            computed: {}
+            methods: {
+                closeNameForm: function(event) {
+                    event.preventDefault();
+                    this.nameEditing = false;
+                }
+            },
+            computed: {
+                age: function() {
+                    if (this.birthday === null) {
+                        return '-';
+                    } else {
+                        let birthdayString = this.birthday.split("/");
+                        let birthdate = moment([parseInt(birthdayString[2] - 543),
+                            parseInt(birthdayString[1])-1, parseInt(birthdayString[0])]);
+                        var diff = moment().diff(birthdate, 'milliseconds');
+                        var duration = moment.duration(diff);
+                        return {'years': duration.years(), 'months': duration.months(), 'days': duration.days()}
+                    }
+                },
+                fullname: function() {
+                    return this.title + this.firstname + " " + this.lastname;
+                }
+            }
         });
     </script>
   <script type="text/javascript">
     $(document).ready(function() {
       {% for profile in record.service.profiles %}
       $(".check_{{profile.id}}").on('click', function() {
+          $(".check_{{profile.id}}").addClass('is-selected');
+          $(".uncheck_{{profile.id}}").removeClass('is-selected');
         $(".profile_{{profile.id}}_select").each(function(){
             this.checked = true;
         });
       });
       $(".uncheck_{{profile.id}}").on('click', function() {
+          $(".uncheck_{{profile.id}}").addClass('is-selected');
+          $(".check_{{profile.id}}").removeClass('is-selected');
         $(".profile_{{profile.id}}_select").each(function(){
             this.checked = false;
         });

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% include "nav.html" %}
+{% include "staff/nav.html" %}
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
@@ -9,6 +9,11 @@
         {% for err, msg in errors.iteritems() %}
         <p>{{ err }} : {{ msg }}</p>
         {% endfor %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">แบบฟอร์มขออนุมัติ{{ req.quota.leave_type }}</h1>
+            </div>
+        </div>
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
                     <form method="post">
@@ -20,6 +25,8 @@
                                             required
                                             name="dates"
                                             v-model="selectedDates"
+                                            :date-formatter="formatDate"
+                                            :mobile-native="false"
                                             icon-pack="fa"
                                             placeholder="คลิ๊กเพื่อเปิดปฏิทิน..."
                                             icon="calendar-alt">
@@ -82,7 +89,7 @@
                                 <input type="submit" value="submit" class="button is-primary"/>
                             </div>
                             <div class="control">
-                                <a href="{{ request.referrer }}" class="button is-danger">Cancel</a>
+                                <a href="{{ url_for('staff.request_for_leave_info', quota_id=req.quota.id) }}" class="button is-danger">Cancel</a>
                             </div>
                         </div>
                     </form>
@@ -99,17 +106,19 @@ var vm = new Vue({
         delimiters: ['<%', '%>'],
         data() {
             return {
-                selectedDates: [],
+                selectedDates: null,
                 notifiedByLine: "yes",
-                givenDates: [],
             }
         },
         mounted() {
             var self = this;
-            self.givenDates = {{ selected_dates|tojsdatetime }};
-            self.givenDates.forEach((d) => {
-                self.selectedDates.push(new Date(d));
-            });
+            self.selectedDates = new Date({{ selected_dates|tojsdatetime(single=True) }})
+        },
+        methods: {
+            formatDate(dates){
+                let date = new moment(dates).format("DD/MM/YYYY")
+                return date + ' - ' + date
+            }
         }
     });
 </script>

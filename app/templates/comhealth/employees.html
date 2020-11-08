@@ -1,48 +1,22 @@
 {% extends "base.html" %}
 {% block page_content %}
-    <section class="hero is-info is-small">
-        <div class="hero-head">
-            <nav class="navbar">
-                <div class="container">
-                    <div class="navbar-brand">
-                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </span>
-                    </div>
-                    <div id="navbarMenuHeroA" class="navbar-menu">
-                        <div class="navbar-end">
-                            <a class="navbar-item"
-                               href="/comhealth">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                                <span>Home</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/tests">
-                                <span>Tests</span>
-                            </a>
-                            <a class="navbar-item is-active"
-                            href="/comhealth/organizations">
-                                <span>Organizations</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-        </div>
+{% include "comhealth/nav.html" %}
+    <section class="hero is-light is-small">
         <div class="hero-body">
             <div class="container has-text-centered">
-                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="100">
-                <h3 class="title">Organization</h3>
-                <h3 class="subtitle">ชื่อสถาบัน {{ org.name }}</h3>
+                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="80">
+                <h3 class="title">{{ org.name }}</h3>
             </div>
         </div>
     </section>
     <section class="section" id="app">
         <div class="container">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <a href="{{ url_for('comhealth.employee_kiosk_mode') }}"
+                       class="button is-link is-rounded">Kiosk Mode</a>
+                </div>
+            </div>
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
                     <input type="text" v-model="query" class="input is-large is-rounded"
@@ -52,7 +26,7 @@
             <div class="columns">
                 <div class="column">
                     <div class="has-text-right">
-                        <a class="button is-rounded is-link" href="">
+                        <a class="button is-rounded is-link" href="{{ url_for('comhealth.add_employee', org_id=org.id, next=request.url) }}">
                             <span class="icon">
                                 <i class="fas fa-user-plus"></i>
                             </span>
@@ -79,8 +53,8 @@
                 <div class="column">
                     <b-table :data="fltRecords" :paginated="true" :per-page="10" default-sort="customer.firstname">
                         <template slot-scope="props">
-                            <b-table-column field="id" label="ID" width="10" numeric>
-                                <% props.row.id %>
+                            <b-table-column field="hn" label="HN" sortable>
+                                <% props.row.hn %>
                             </b-table-column>
                             <b-table-column field="firstname" label="First Name" sortable>
                                 <% props.row.firstname %>

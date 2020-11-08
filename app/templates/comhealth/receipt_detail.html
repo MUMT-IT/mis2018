@@ -1,46 +1,12 @@
 {% extends "base.html" %}
 {% block page_content %}
-    <section class="section hero is-info is-small">
-        <div class="hero-head">
-            <nav class="navbar">
-                <div class="container">
-                    <div class="navbar-brand">
-                        <span class="navbar-burger burger" data-target="navbarMenuHeroA">
-                            <span></span>
-                            <span></span>
-                            <span></span>
-                          </span>
-                    </div>
-                    <div id="navbarMenuHeroA" class="navbar-menu">
-                        <div class="navbar-end">
-                            <a class="navbar-item"
-                                href="/comhealth">
-                                <span class="icon">
-                                    <i class="fas fa-home"></i>
-                                </span>
-                                <span>Home</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/tests">
-                                <span>Tests</span>
-                            </a>
-                            <a class="navbar-item"
-                               href="/comhealth/organizations">
-                                <span>Organizations</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </nav>
-        </div>
-        <div class="hero-body">
-            <div class="container has-text-centered">
-                <h1 class="title">Community Health Service Registration System</h1>
-                <h1 class="subtitle is-size-3">Receipt Detail</h1>
+{% include "comhealth/nav.html" %}
+    <section class="section" id="app">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title is-size-3">ใบเสร็จรับเงิน</h1>
             </div>
         </div>
-    </section>
-    <section class="section" id="app">
         <div class="container box" id="receipt">
             <div class="columns">
                 <div class="column">
@@ -214,7 +180,7 @@
                                 <span class="icon has-text-success">
                                     <i class="far fa-credit-card"></i>
                                 </span>
-                                <span class="has-text-success">ชำระด้วยบัตรเครดิต หมายเลข {{ receipt.card_number }}</span>
+                                <span class="has-text-success">ชำระด้วยบัตรเครดิตลงท้าย {{ receipt.card_number[-4:] }}</span>
                                 {% else %}
                                 <span class="has-text-danger">
                                     ยังไม่ได้ชำระเงิน
@@ -276,7 +242,7 @@
                             </div>
                             <div class="field">
                                 <div class="control">
-                                    <button class="button is-rounded is-success" type="submit"
+                                    <button class="button is-success" type="submit"
                                             {% if receipt.cancelled %}disabled{% endif %}>
                                         ชำระเงิน</button>
                                 </div>
@@ -329,7 +295,29 @@
         </div>
         <div class="columns">
             <div class="column is-two-thirds is-offset-2 has-text-centered">
-                <button class="button is-info is-rounded" @click="printReceipt()"
+            <div class="buttons is-centered">
+                <a class="button is-light" href="{{
+                        url_for('comhealth.list_all_receipts',
+                        record_id=receipt.record.id)
+                        }}">
+                    <span class="icon">
+                        <i class="fas fa-chevron-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+                <a class="button is-danger"
+                   {% if not receipt.cancelled %}
+                       href="{{ url_for('comhealth.confirm_cancel_receipt', receipt_id=receipt.id) }}"
+                   {% else %}
+                        disabled
+                   {% endif %}
+                >
+                <span class="icon">
+                    <i class="fas fa-times"></i>
+                </span>
+                <span>ยกเลิกใบเสร็จนี้</span>
+                </a>
+                <button class="button is-info" @click="printReceipt()"
                         {% if receipt.cancelled or not receipt.paid %}disabled{% endif %}
                 >
                         <span class="icon">
@@ -337,15 +325,7 @@
                         </span>
                     <span>พิมพ์ใบเสร็จ</span>
                 </button>
-                <a class="button is-danger is-rounded"
-                   href="{{ url_for('comhealth.confirm_cancel_receipt',
-                                receipt_id=receipt.id) }}"
-                   {% if receipt.cancelled %}disabled{% endif %}
-                >ยกเลิก</a>
-                <a class="button is-primary is-rounded" href="{{
-                                                        url_for('comhealth.list_all_receipts',
-                                                        record_id=receipt.record.id)
-                                                        }}">กลับ</a>
+            </div>
             </div>
         </div>
     </section>

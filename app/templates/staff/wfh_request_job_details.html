@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <h4 class="title">รายละเอียดงาน</h4>
+        <div class="has-text-left">
+            <h4 class="subtitle">เรื่อง : {{ wfhreq.detail }}</h4>
+        </div>
+        <div >
+            <h4 class="subtitle">กำหนดส่ง : {{ wfhreq.deadline_date|localdate }}</h4>
+        </div>
+        <div class="has-text-right">
+            <h4 class="subtitle">วันที่ {{ wfhreq.start_datetime|localdate }} - {{ wfhreq.end_datetime|localdate }}</h4>
+        </div>
+        <b-progress type="is-success":value="0" show-value format="percent"></b-progress>
+        <div class="columns">
+        <table class="table is-fullwidth">
+            <thead>
+                <th>รายละเอียดงาน
+                </th>
+                <th>
+                    ความคืบหน้า
+                </th>
+                <th>
+                    แก้ไข/ยกเลิก
+                </th>
+            </thead>
+            <tbody>
+            {% for detail in detail|sort(attribute='status') %}
+                <tr>
+                    <td {% if detail.status %}style="color: green;"
+                        {% elif not detail.status %}style="color: red;"
+                        {% endif %}>
+                        {{ detail.activity }}
+                    </td>
+                    <td>
+                        {% if detail.status == True %}
+                        <span class="has-text-success">เสร็จ</span>
+                        {% elif detail.status == False %}
+                        <span class="has-text">ไม่เสร็จ</span>
+                        {% elif not detail.status %}
+                        <b-tooltip label="เสร็จ" type="is-success">
+                            <a href="{{ url_for('staff.finish_wfh_job_detail', request_id=wfhreq.id,
+                                detail_id=detail.id) }}" class="button is-rounded is-success is-light">
+                                <span class="icon">
+                                    <i class="fas fa-check has-text-green"></i>
+                                </span>
+                            </a>
+                        </b-tooltip>
+                        <b-tooltip label="ไม่เสร็จ" type="is-light">
+                            <a href="{{ url_for('staff.unfinish_wfh_job_detail', request_id=wfhreq.id,
+                                    detail_id=detail.id) }}" class="button is-rounded is-danger is-light">
+                                <span class="icon">
+                                    <i class="fas fa-times has-text-red"></i>
+                                </span>
+                            </a>
+                        </b-tooltip>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if not detail.status %}
+                        <b-tooltip label="ยกเลิกรายการนี้" type="is-danger">
+                            <a class="button is-rounded is-light is-light"
+                               @click="confirmWFHJobDetailDelete({{ detail.id }})">
+                                <span class="icon">
+                                    <i class="fas fa-trash has-text-danger"></i>
+                                </span>
+                            </a>
+                        </b-tooltip>
+                        <b-tooltip label="แก้ไข" type="is-warning">
+                            <a href="{{ url_for('staff.edit_wfh_job_detail', request_id=wfhreq.id,
+                                detail_id=detail.id) }}" class="button is-rounded is-warning is-light">
+                                <span class="icon">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </span>
+                            </a>
+                        </b-tooltip>
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        <hr>
+        <div class="control">
+            <table class="table is-fullwidth">
+                <tr>
+                    <td>
+                       <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        <b-field label="เพิ่ม" :label-position="labelPosition">
+                            <b-input placeholder="กิจกรรม" type="search" name="activity" expanded></b-input>
+                            <button class="button is-primary" type="submit"><b-icon pack="fas" icon="plus"></b-icon>
+                            </button>
+                        </b-field>
+                        </input>
+                        </form>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('staff.add_overall_result_work_from_home', request_id=wfhreq.id) }}"
+                                                                                            class="button is-info">
+                            <i class="fas fa-paper-plane has-text-red">
+                            ส่งงาน
+                            </i>
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <hr>
+        <div class="columns">
+        <a href="{{ url_for('staff.show_work_from_home') }}" class="button is-rounded is-info is-light">
+            <span class="icon">
+                <i class="fas fa-arrow-left"></i>
+            </span>
+            <span>กลับ</span>
+        </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+new Vue({
+        el: '#app',
+        data() {
+            return{
+                labelPosition: 'on-border'
+            }
+        },
+        methods: {
+            confirmWFHJobDetailDelete(detail_id) {
+                this.$buefy.dialog.confirm({
+                    title: 'ยกเลิกรายละเอียดงานนี้',
+                    message: 'แน่ใจหรือไม่ที่จะ<b>ยกเลิก</b>รายละเอียดงานนี้',
+                    confirmText: 'Delete this job detail',
+                    type: 'is-danger',
+                    hasIcon: true,
+                    onConfirm: () => window.location.href = "/staff/wfh/info/cancel-job-detail/" + detail_id
+                })
+            }
+        }
+    });
+</script>
+{% endblock %}

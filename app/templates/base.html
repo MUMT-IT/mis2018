@@ -10,9 +10,6 @@
         <link rel="stylesheet" href="//cdn.materialdesignicons.com/2.5.94/css/materialdesignicons.min.css"/>
         <link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css"/>
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.8.0/css/bulma.css"/>
-        <!--
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-extensions@6.2.7/dist/css/bulma-extensions.min.css"/>
-        -->
         {% endblock %}
     </head>
     <body>
@@ -27,6 +24,16 @@
                             <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by
                             <a href="http://creativecommons.org/licenses/by/3.0/"
                                title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+                        {% if config['DEBUG'] %}
+                            <article class="message is-warning">
+                                <div class="message-header">
+                                    DEBUG MODE Only
+                                </div>
+                                <div class="message-body">
+                                    <strong>Template file:</strong> {{ self._TemplateReference__context.name }}
+                                </div>
+                            </article>
+                        {% endif %}
                     {% endblock %}
                 </div>
             </div>
@@ -35,7 +42,7 @@
             <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.min.js" integrity="sha256-AdQN98MVZs44Eq2yTwtoKufhnU+uZ7v2kXnD5vqzZVo=" crossorigin="anonymous"></script>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
             <script src="https://cdn.datatables.net/1.10.16/js/jquery.dataTables.min.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.21/vue.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.12/vue.min.js"></script>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
             <script src="{{ url_for('static', filename='js/buefy.min.js') }}"></script>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
@@ -45,7 +52,10 @@
             <script src="https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.5.8/cleave.min.js" integrity="sha256-F/xzCMjFU6UaVTw7IPk3dDxJ5mvvonjQxVfIPqbJDmA=" crossorigin="anonymous"></script>
             <script src="https://cdn.jsdelivr.net/npm/bulma-extensions@6.2.7/dist/js/bulma-extensions.min.js"></script>
             <script src="https://cdn.jsdelivr.net/npm/bulma-accordion@2.0.1/dist/js/bulma-accordion.min.js"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.26.0/moment.min.js" integrity="sha256-5oApc/wMda1ntIEK4qoWJ4YItnV4fBHMwywunj8gPqc=" crossorigin="anonymous"></script>
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.27.0/locale/th.min.js"></script>
             <script>
+                moment.locale('th');
               $(document).ready(function() {
                 $(".navbar-burger").click(function() {
                   $(".navbar-burger").toggleClass("is-active");

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
+{% endblock %}
+
+{% block page_content %}
+<section class="section" id="app">
+    <div class="columns">
+        <div class="column">
+            <h1 class="title">สรุปข้อมูลบุคลากรประจำปีงบประมาณ {{ fiscal_year+543 }}</h1>
+        </div>
+        <div class="column is-narrow">
+            <b-dropdown hoverable aria-role="list">
+                <button class="button is-link" slot="trigger">
+                    <span>ปีงบประมาณอื่น</span>
+                    <b-icon icon="menu-down"></b-icon>
+                </button>
+                {% for fy in fiscal_years %}
+                <b-dropdown-item aria-role="listitem" href="{{ url_for('staff.summary_index',
+                                            curr_dept_id=curr_dept_id, tab=tab, fiscal_year=fy) }}">
+                    ปีงบประมาณ {{ fy+543 }}
+                </b-dropdown-item>
+                {% endfor %}
+            </b-dropdown>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-3">
+            <aside class="menu">
+                <p class="menu-label">Department</p>
+                <ul class="menu-list">
+                    {% for dept in depts %}
+                    <li>
+                        <a href="{{ url_for('staff.summary_index', curr_dept_id=dept.id, tab=tab) }}"
+                           {% if dept.id == curr_dept_id %}
+                           class="is-active"
+                           {% endif %}
+                        >
+                            {{ dept.name }}
+                        </a>
+                    </li>
+                    <li>
+                        <ul class="menu-list">
+                            {% for child in dept.children %}
+                            <li>
+                                <a href="{{ url_for('staff.summary_index', curr_dept_id=child.id, tab=tab) }}"
+                                    {% if child.id == curr_dept_id %}
+                                    class="is-active"
+                                    {% endif %}
+                                >
+                                    {{ child.name }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </aside>
+        </div>
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="tabs">
+                    <ul>
+                        <li {% if tab =="all" %} class="is-active" {% endif %}>
+                            <a href="{{ url_for('staff.summary_index', tab='all', curr_dept_id=curr_dept_id, fiscal_year=fiscal_year) }}">
+                                ทั้งหมด
+                            </a>
+                        </li>
+                        <li {% if tab =="wfh" %} class="is-active" {% endif %}>
+                            <a href="{{ url_for('staff.summary_index', tab='login', curr_dept_id=curr_dept_id, fiscal_year=fiscal_year) }}">
+                                แสกนเข้าทำงาน
+                            </a>
+                        </li>
+                        <li {% if tab =="leave" %} class="is-active" {% endif %}>
+                            <a href="{{ url_for('staff.summary_index', tab='leave', curr_dept_id=curr_dept_id, fiscal_year=fiscal_year) }}">
+                                วันลา
+                            </a>
+                        </li>
+                        <li {% if tab =="wfh" %} class="is-active" {% endif %}>
+                            <a href="{{ url_for('staff.summary_index', tab='wfh', curr_dept_id=curr_dept_id, fiscal_year=fiscal_year) }}">
+                                WFH
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
+<script>
+    $(function() {
+        $('#calendar').fullCalendar({
+            schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
+            defaultDate: new Date({{ init_date|tojsdatetime(single=True)}}),
+            header: {
+                left: 'title',
+            },
+            events: {{ all|tojson|safe }},
+            eventClick: function(calEvent, jsEvent, view) {
+                if(calEvent.type === 'leave') {
+                    window.location = '/staff/leave/requests/approval/pending/' + calEvent.id;
+                }
+                if(calEvent.type === 'wfh') {
+                    window.location = '/staff/wfh/requests/approval/pending/' + calEvent.id;
+                }
+            }
+        })
+        $('#prev_btn').on('click', function() {
+            $('#calendar').fullCalendar('prev');
+        });
+        $('#next_btn').on('click', function() {
+            $('#calendar').fullCalendar('next');
+        });
+    });
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+{% block page_content %}
+{% include "comhealth/nav.html" %}
+<section class="section" id="app">
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                {% include "messages.html" %}
+            </div>
+        </div>
+        <div class="box">
+        <h1 class="title has-text-centered">แก้ไขข้อมูลผู้รับบริการ</h1>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-1">
+                <form method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">คำนำหน้า / Title</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.title(class="input") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ชื่อ นามสกุล / Name</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control is-expanded">
+                                    {{ form.firstname(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <div class="control is-expanded">
+                                    {{ form.lastname(class="input") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">วันเดือนปีเกิด / Date of Birth</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.dob(class="input", placeholder="dd/mm/yyyy") }}
+                                </div>
+                                <p class="help is-info">
+                                    *ปีพุทธศักราช
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">เพศ / Gender</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <div class="select">
+                                        {{ form.gender(class="select") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">เบอร์โทรศัพท์ / Phone</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.phone(class="input") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ประเภทพนักงาน / Employment</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="select">
+                                    {{ form.emptype() }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label"></label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <div class="buttons is-centered">
+                                    <a class="button is-light" href="{{ request.referrer }}">Cancel</a>
+                                    <button class="button is-success" type="submit">Save</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

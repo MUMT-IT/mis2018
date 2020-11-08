@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% include "nav.html" %}
+{% include "staff/nav.html" %}
 {% block page_content %}
 <section class="section" id="app">
     <div class="container">
@@ -16,9 +16,9 @@
                 <th colspan="2"></th>
             </thead>
             <tbody>
-            {% for request in leaves %}
+            {% for request in leaves|sort(attribute='start_datetime') %}
                 <tr {% if request.cancelled_at %}style="background-color: #D5DBDB  ;"{% endif %}>
-                    <td>{{ request.start_datetime|localdatetime }} - {{ request.end_datetime|localdatetime }} ({{ request.duration }} วัน)</td>
+                    <td>{{ request.start_datetime|localdatetime }} - {{ request.end_datetime|localdatetime }} ({{ request.total_leave_days }} วัน)</td>
                     <td>
                         {% if not request.cancelled_at %}
                         <div class="field is-grouped is-grouped-multiline">
@@ -45,11 +45,13 @@
                     </td>
                     <td>
                         <b-tooltip label="แก้ไขการลา" type="is-light">
-                        <a class="button" href="{{ url_for('staff.edit_leave_request', req_id=request.id) }}"
+                        <a class="button"
                         {% if request.cancelled_at %}
                            disabled
                            {% elif request.approvals %}
                            disabled
+                           {% else %}
+                           href="{{ url_for('staff.edit_leave_request', req_id=request.id) }}"
                            {% endif %}
                         >
                         <span class="icon">
@@ -58,10 +60,14 @@
                         </a>
                         </b-tooltip>
                         <b-tooltip label="ยกเลิกการลา" type="is-light">
-                        <a class="button" @click="confirmCustomDelete({{ request.id }})"
+                        <a class="button"
                         {% if request.cancelled_at %}
                            disabled
-                           {% endif %}
+                        {% elif request.approvals %}
+                           disabled
+                        {% else %}
+                           @click="confirmCustomDelete({{ request.id }})"
+                        {% endif %}
                         >
                         <span class="icon">
                             <i class="fas fa-trash has-text-danger"></i>
@@ -69,17 +75,52 @@
                         </a>
                         </b-tooltip>
                     </td>
+                    <td>
+                        <b-tooltip label="บันทึกการลา" type="is-light">
+                            <a href="{{ url_for('staff.record_each_request_leave_request', request_id=request.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-receipt"></i>
+                                </span>
+                            </a>
+                        </b-tooltip>
+                    </td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
+            <hr>
+            <span>*หากการลาได้รับอนุมัติจากผู้บังคับบัญชาแล้ว จะไม่สามารถแก้ไขหรือยกเลิกเองได้</span>
+        </div>
+
+        <div class="columns">
+            <div class="column has-text-right">
+                <span>วันลาสะสม  {{ quota_limit }} วันทำการ</span>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-right">
+                <span>ลามาแล้ว {{ used_quota }} วันทำการ</span>
+            </div>
         </div>
         <a class="button is-rounded is-info is-light" href="{{ url_for('staff.show_leave_info') }}">
              <span class="icon">
                 <i class="fas fa-arrow-left"></i>
             </span>
-            กลับหน้าการลา
+            <span>กลับหน้าการลา</span>
         </a>
+         <b-dropdown hoverable aria-role="list">
+            <button class="button is-info" slot="trigger">
+                <span>ปีงบประมาณอื่น</span>
+                <b-icon icon="menu-down"></b-icon>
+            </button>
+             {% for fy in fiscal_years %}
+            <b-dropdown-item aria-role="listitem" href="
+                            {{ url_for('staff.request_for_leave_info_others_fiscal',
+                                            quota_id=quota.id, fiscal_year=fy) }}">
+                            ปีงบประมาณ {{ fy+543 }}</b-dropdown-item>
+             {% endfor %}
+        </b-dropdown>
+
     </div>
 </section>
 {% endblock %}

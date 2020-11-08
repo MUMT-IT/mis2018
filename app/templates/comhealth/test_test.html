@@ -24,12 +24,12 @@
                 </div>
                 <div class="column">
                     <div class="has-text-right">
-                        <a class="button is-rounded is-link"
+                        <a class="button is-link"
                             href="{{ url_for('comhealth.add_new_test') }}">
-                    <span class="icon">
-                        <i class="fas fa-plus"></i>
-                    </span>
-                            <span>Add Test</span>
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>เพิ่มกลุ่มทดสอบ</span>
                         </a>
                     </div>
                 </div>
@@ -38,9 +38,6 @@
                 <div class="column">
                     <b-table :data="tests" :paginated="true" :per-page="10" default-sort="name">
                         <template slot-scope="props">
-                            <b-table-column field="id" label="ID" numeric>
-                                <% props.row.id %>
-                            </b-table-column>
                             <b-table-column field="name" label="Name" sortable>
                                 <% props.row.name %>
                             </b-table-column>
@@ -52,8 +49,7 @@
                                 <% props.row.default_price %>
                             </b-table-column>
                             <b-table-column field="" label="Edit" sortable>
-                                <a class="button is-rounded is-light"
-                                    :href="'/comhealth/test/tests/edit/'+props.row.id">
+                                <a class="button is-rounded is-light" disabled>
                                     <span class="icon">
                                         <i class="fas fa-pencil-alt"></i>
                                     </span><span>Edit</span>

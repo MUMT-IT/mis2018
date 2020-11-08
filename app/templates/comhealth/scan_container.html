@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% include "comhealth/nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container has-text-centered">
+        <h1 class="title">รายการทดสอบใน {{ container.name }}</h1>
+        <h1 class="title is-4">{{ service.location }}</h1>
+        <h1 class="subtitle">วันที่ {{ service.date }}</h1>
+        {% include "messages.html" %}
+        <div id="app">
+            <form ref="form" method="post">
+                {% if checkin_record %}
+                <div class="field">
+                <span class="icon is-large">
+                    <i class="fas fa-4x fa-check-circle has-text-success"></i>
+                </span>
+                </div>
+                {% endif %}
+                {% if specimens_no %}
+                <div class="field">
+                    <p class="is-size-5 label">หมายเลข {{ specimens_no }}</p>
+                <p>{{ checkin_record.checkin_datetime|localdatetime }}</p>
+                </div>
+                {% endif %}
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="field">
+                    <div class="control">
+                        <input type="text" name="specimens_no" id="specimens-no-entry"
+                               class="input is-large is-rounded"
+                               placeholder="Lab No." v-model="labno">
+                    </div>
+                </div>
+            </form>
+        </div>
+        <h3 class="title is-size-4">รายการล่าสุด</h3>
+        <table class="table is-fullwidth is-striped">
+            <thead>
+            <th>Lab No.</th>
+            <th>Container</th>
+            <th>Check-In Time</th>
+            </thead>
+            <tbody>
+            {% for rec in recents %}
+            <tr>
+                <td>{{ rec.record.labno }}</td>
+                <td>{{ rec.container }}</td>
+                <td>{{ rec.checkin_datetime|localdatetime }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <a href="{{ url_for('comhealth.list_tests_in_container', service_id=service.id, container_id=container.id) }}"
+           class="button is-light">Back</a>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    labno: ''
+                }
+            },
+            watch: {
+                labno: function(newValue, oldValue) {
+                    if(newValue.length === 12) {
+                        this.$refs.form.submit();
+                    }
+                }
+            },
+            mounted() {
+                document.getElementById("specimens-no-entry").focus();
+            }
+        });
+    </script>
+{% endblock %}
