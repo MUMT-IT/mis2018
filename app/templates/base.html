@@ -15,10 +15,10 @@
     <body>
         {% block page_content %}
         {% endblock %}
+        {% block footer %}
         <div class="footer">
             <div class="container">
                 <div class="content has-text-centered">
-                    {% block footer %}
                     MUMT Information Management System Powered by Bulma, Vue, Knockout, Flask and Python Technology
                         <div>Icons made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> from
                             <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by
@@ -34,10 +34,10 @@
                                 </div>
                             </article>
                         {% endif %}
-                    {% endblock %}
                 </div>
             </div>
         </div>
+        {% endblock %}
         {% block scripts %}
             <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.min.js" integrity="sha256-AdQN98MVZs44Eq2yTwtoKufhnU+uZ7v2kXnD5vqzZVo=" crossorigin="anonymous"></script>
             <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
