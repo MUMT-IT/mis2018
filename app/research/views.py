@@ -401,7 +401,12 @@ def add_article_test():
 @research.route('/api/articles', methods=['GET', 'POST'])
 @csrf.exempt
 def add_article():
-    current_year = datetime.datetime.today().year
+    current_year = request.args.get('year')
+    if not current_year:
+        current_year = datetime.datetime.today().year
+    else:
+        current_year = int(current_year)
+
     if request.method == 'GET':
         articles = []
         for ar in ResearchPub.query.filter(extract('year', ResearchPub.cover_date) == current_year)\
@@ -435,7 +440,8 @@ def add_article():
                 citedby_count=data['citedby_count'],
                 title=data['title'],
                 cover_date=datetime.datetime.strptime(data['cover_date'], '%Y-%m-%d'),
-                abstract=data['abstract']
+                abstract=data['abstract'],
+                doi=data['doi']
             )
             db.session.add(pub)
         else:
@@ -500,3 +506,24 @@ def add_article():
         db.session.commit()
         return jsonify(data)
 
+@research.route('/api/articles/subjareas/count')
+def subject_areas_count():
+    current_year = request.args.get('year')
+    if not current_year:
+        current_year = datetime.datetime.today().year
+    else:
+        current_year = int(current_year)
+
+    query = ('SELECT count(*), EXTRACT(year FROM cover_date) AS YEAR, abbr FROM research_pub'\
+            ' INNER JOIN pub_subjarea_assoc AS sbj ON sbj.pub_id=id '
+             'INNER JOIN research_subject_areas AS ra ON ra.id=sbj.subj_id '
+             'WHERE EXTRACT(year FROM cover_date)={} GROUP BY abbr, year;'.format(current_year))
+    df = pandas.read_sql_query(query, con=db.engine)
+    data = []
+    data.append(['abbr', 'count'])
+    for idx, row in df.iterrows():
+        data.append([
+            row['abbr'],
+            row['count']
+        ])
+    return jsonify(data)

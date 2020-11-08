@@ -11,6 +11,23 @@
             </div>
             <div class="columns">
                 <div class="column">
+                    <b-field label="Publication in">
+                        <b-select placeholder="Select a year" v-model="currentYear">
+                            <option v-for="y in years" :value="y" :key="y">
+                                <% y %>
+                            </option>
+                        </b-select>
+                    </b-field>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title is-size-3">Subject Areas</h1>
+                    <div id="subj_area_chart" style="width: 900px; height: 400px"></div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
                     <b-table
                         :data="articles"
                         ref="table"
@@ -91,7 +108,9 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script>
+        google.charts.load('current', {'packages':['corechart', 'bar']});
         new Vue({
             delimiters: ['<%', '%>'],
             el: '#app',
@@ -99,47 +118,75 @@
                 return {
                     articles: [],
                     showDetailIcon: true,
+                    year: null,
+                    years: [],
+                    currentYear: null,
+                }
+            },
+            methods: {
+                drawBarChart: function() {
+                    let self = this
+                    axios.get('/research/api/articles/subjareas/count', { params: { year: this.currentYear}})
+                        .then((resp)=> {
+                            let data = google.visualization.arrayToDataTable(resp.data);
+                            let chart = new google.visualization.ColumnChart(document.getElementById('subj_area_chart'));
+                            let options = { chart: { title: 'Subject Areas', } }
+                            chart.draw(data, options);
+                        })
+                },
+                drawChart: function() {
+                    let self = this
+                    axios.get('/research/api/articles/count').then((resp)=>{
+                        resp.data.forEach((d)=>{
+                            if (d[0] !== 'year')
+                                self.years.push(d[0])
+                        })
+                        let data = google.visualization.arrayToDataTable(resp.data);
+                        let options = {
+                            title: 'SCOPUS-Indexed Publication in Recent Years',
+                            curveType: 'none',
+                            series: {
+                                0: { targetAxisIndex: 0},
+                                1: { targetAxisIndex: 1},
+                            },
+                            legend: { position: 'bottom' },
+                            pointsVisible: true,
+                            vAxes: {
+                                0: { title: 'Count'},
+                                1: { title: 'Cumulative Citedby Count'},
+                            },
+                            vAxis: {
+                                viewWindow: {min: 0},
+                            },
+                            hAxis: { format: "#"}
+                        };
+                        let chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
+                        chart.draw(data, options);
+                    })
+                },
+                loadArticles: function() {
+                    let self = this
+                    this.articles = []
+                    axios.get('/research/api/articles', { params: { year: this.currentYear }})
+                        .then((resp)=>{
+                            resp.data.forEach((d)=>{
+                                self.articles.push(d)
+                        })
+                        self.currentYear = new Date(resp.data[0].cover_date).getFullYear()
+                    })
+                }
+            },
+            watch: {
+                currentYear: function(val, oldVal) {
+                    this.loadArticles()
+                    this.drawBarChart()
                 }
             },
             mounted() {
-                let self = this
-                axios.get('/research/api/articles').then((resp)=>{
-                    resp.data.forEach((d)=>{
-                        self.articles.push(d)
-                    })
-                })
-                console.log(self.articles)
+                this.loadArticles()
+                google.charts.setOnLoadCallback(this.drawChart)
+                google.charts.setOnLoadCallback(this.drawBarChart)
             }
         })
-    </script>
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <script type="text/javascript">
-      google.charts.load('current', {'packages':['corechart']});
-      google.charts.setOnLoadCallback(drawChart);
-      function drawChart() {
-          axios.get('/research/api/articles/count').then((resp)=>{
-              var data = google.visualization.arrayToDataTable(resp.data);
-              var options = {
-                  title: 'SCOPUS-Indexed Publication in Recent Years',
-                  curveType: 'none',
-                  series: {
-                      0: { targetAxisIndex: 0},
-                      1: { targetAxisIndex: 1},
-                  },
-                  legend: { position: 'bottom' },
-                  pointsVisible: true,
-                  vAxes: {
-                      0: { title: 'Count'},
-                      1: { title: 'Cumulative Citedby Count'},
-                  },
-                  vAxis: {
-                      viewWindow: {min: 0},
-                  },
-                  hAxis: { format: "#"}
-              };
-              var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
-              chart.draw(data, options);
-          })
-      }
     </script>
 {% endblock %}
