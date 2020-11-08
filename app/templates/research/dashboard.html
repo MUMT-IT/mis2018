@@ -1,23 +1,36 @@
 {% extends "base.html" %}
-{% block title %}Research Publication Dashboard{% endblock %}
-{% include "nav.html" %}
+{% block title %}Research Publications Dashboard{% endblock %}
 {% block page_content %}
     <section class="section" id="app">
         <div class="container">
             <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">Research Publications</h1>
+                </div>
+            </div>
+            <hr>
+            <div class="columns">
+                <div class="column is-2">
+                    <div class="notification">
+                        <h1 class="title is-size-3">Total</h1>
+                        <h1 class="subtitle is-size-3"><% totalArticles %></h1>
+                    </div>
+                </div>
                 <div class="column">
                     <div id="curve_chart" style="width: 900px; height: 400px"></div>
                 </div>
             </div>
             <div class="columns">
                 <div class="column">
-                    <b-field label="Publication in">
+                    <b-field label="Publications in">
                         <b-select placeholder="Select a year" v-model="currentYear">
                             <option v-for="y in years" :value="y" :key="y">
                                 <% y %>
                             </option>
                         </b-select>
                     </b-field>
+                    <h1 class="title is-size-5">Total <% ratio.articles %> articles.</h1>
+                    <h1 class="subtitle is-size-5">Articles/Researchers Ratio <% ratio.ratio.toFixed(2) %></h1>
                 </div>
             </div>
             <div class="columns">
@@ -106,6 +119,8 @@
         </div>
     </section>
 {% endblock %}
+{% block footer %}
+{% endblock %}
 {% block scripts %}
     {{ super() }}
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
@@ -121,6 +136,8 @@
                     year: null,
                     years: [],
                     currentYear: null,
+                    totalArticles: 0,
+                    ratio: {}
                 }
             },
             methods: {
@@ -137,13 +154,16 @@
                 drawChart: function() {
                     let self = this
                     axios.get('/research/api/articles/count').then((resp)=>{
+                        self.totalArticles = 0
                         resp.data.forEach((d)=>{
-                            if (d[0] !== 'year')
+                            if (d[0] !== 'year') {
                                 self.years.push(d[0])
+                                self.totalArticles = self.totalArticles + d[1]
+                            }
                         })
                         let data = google.visualization.arrayToDataTable(resp.data);
                         let options = {
-                            title: 'SCOPUS-Indexed Publication in Recent Years',
+                            title: 'SCOPUS-Indexed Publications in Recent Years',
                             curveType: 'none',
                             series: {
                                 0: { targetAxisIndex: 0},
@@ -174,16 +194,25 @@
                         })
                         self.currentYear = new Date(resp.data[0].cover_date).getFullYear()
                     })
+                },
+                loadRatio: function() {
+                    let self = this
+                    axios.get('/research/api/articles/researchers/ratio', { params: { year: this.currentYear }})
+                        .then((resp)=>{
+                            self.ratio = resp.data
+                        })
                 }
             },
             watch: {
                 currentYear: function(val, oldVal) {
                     this.loadArticles()
+                    this.loadRatio()
                     this.drawBarChart()
                 }
             },
             mounted() {
                 this.loadArticles()
+                this.loadRatio()
                 google.charts.setOnLoadCallback(this.drawChart)
                 google.charts.setOnLoadCallback(this.drawBarChart)
             }

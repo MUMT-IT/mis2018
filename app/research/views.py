@@ -506,6 +506,7 @@ def add_article():
         db.session.commit()
         return jsonify(data)
 
+
 @research.route('/api/articles/subjareas/count')
 def subject_areas_count():
     current_year = request.args.get('year')
@@ -527,3 +528,22 @@ def subject_areas_count():
             row['count']
         ])
     return jsonify(data)
+
+
+@research.route('/api/articles/researchers/ratio')
+def article_researcher_ratio():
+    current_year = request.args.get('year')
+    if not current_year:
+        current_year = datetime.datetime.today().year
+    else:
+        current_year = int(current_year)
+    researchers = pandas.read_sql_query('SELECT COUNT(*) FROM staff_personal_info '
+                                        'WHERE academic_staff=TRUE AND retired IS NOT TRUE;',
+                                        con=db.engine)
+    articles = pandas.read_sql_query('SELECT COUNT(*) FROM research_pub '
+                                     'WHERE EXTRACT (year from cover_date) = {};'.format(current_year),
+                                     con=db.engine)
+
+    return jsonify({'ratio': researchers.squeeze()/float(articles.squeeze()),
+                    'articles': articles.squeeze(),
+                    'researchers': researchers.squeeze()})
