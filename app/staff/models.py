@@ -85,6 +85,8 @@ class StaffPersonalInfo(db.Model):
     employment = db.relationship('StaffEmployment',
                                  backref=db.backref('staff'))
     finger_scan_id = db.Column('finger_scan_id', db.Integer)
+    academic_staff = db.Column('academic_staff', db.Boolean())
+    retired = db.Column('retired', db.Boolean(), default=False)
 
     def __str__(self):
         return u'{} {}'.format(self.th_firstname, self.th_lastname)
