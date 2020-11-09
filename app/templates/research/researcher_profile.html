@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 {% extends "base.html" %}
 {% block title %}Researcher Profile{% endblock %}
-{% include "nav.html" %}
 {% block page_content %}
 <section class="section" id="app">
     <div class="container">
@@ -115,6 +114,8 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block footer %}
 {% endblock %}
 {% block scripts %}
     {{ super() }}
