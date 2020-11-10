@@ -62,7 +62,7 @@
                             <template v-if="showDetailIcon">
                                 <% props.row.title %>
                                 <small v-for="author in props.row.authors" :key="author.id">
-                                    <a :href="'http://mumtmis.herokuapp.com/research/view/author?id='+ author.personal_info_id" v-if="author.personal_info_id">
+                                    <a :href="'/research/view/author/'+ author.personal_info_id" v-if="author.personal_info_id">
                                             <span class="icon">
                                                 <i class="fas fa-user"></i>
                                             </span>
