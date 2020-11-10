@@ -1436,7 +1436,7 @@ def seminar_records():
         years.insert(0, years[0] - 1)
     return render_template('staff/seminar_records.html', org_id=org_id, fiscal_year=fiscal_year,
                            seminar_list=seminar_list, departments=[{'id': d.id, 'name': d.name}
-                                                                 for d in departments], years=years)
+                                                                 for d in departments], years=years, year=fiscal_year)
 
 @staff.route('/for-hr/seminar')
 @login_required
