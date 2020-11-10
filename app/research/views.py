@@ -328,6 +328,11 @@ def dashboard():
     return render_template('research/dashboard.html')
 
 
+@research.route('/dashboard/tables')
+def dashboard_tables():
+    return render_template('research/pub_tables.html')
+
+
 @research.route('/api/articles/researcher/<int:perid>/count')
 def get_article_count_researcher(perid):
     personal_info = StaffPersonalInfo.query.get(int(perid))
