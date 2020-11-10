@@ -159,7 +159,10 @@ admin.add_views(ModelView(ParasiteTest, db.session, category='Food'))
 from research import researchbp as research_blueprint
 
 app.register_blueprint(research_blueprint, url_prefix='/research')
-from research.models import ResearchPub
+from research.models import *
+
+admin.add_views(ModelView(ResearchPub, db.session, category='Research'))
+admin.add_views(ModelView(Author, db.session, category='Research'))
 
 from staff import staffbp as staff_blueprint
 

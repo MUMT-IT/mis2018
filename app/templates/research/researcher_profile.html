@@ -31,7 +31,14 @@
             </div>
         </div>
         <div class="columns">
-            <div class="column">
+            <div class="column has-text-centered">
+                <h1 class="title is-size-5">
+                    SCOPUS IDS =
+                    {% for sid in person.research_author.scopus_ids %}
+                    {{ sid.id }},
+                    {% endfor %}
+                    H-index = {{ person.research_author.h_index }}
+                </h1>
                 <div id="curve_chart" style="width: 900px; height: 400px"></div>
             </div>
         </div>

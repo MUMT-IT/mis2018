@@ -452,13 +452,9 @@ def add_article():
                 scopus_link=data['scopus_link'],
                 publication_name=data['publication_name']
             )
-            db.session.add(pub)
         else:
             # update the citation number
             pub.citedby_count = data['citedby_count']
-            db.session.add(pub)
-            db.session.commit()
-            return jsonify(data)
 
         for subj in data['subject_areas']:
             s = SubjectArea.query.get(subj['code'])
@@ -469,31 +465,21 @@ def add_article():
                 db.session.add(s)
             pub.areas.append(s)
 
-        for afid, afname, afcountry in zip(data['afid'].split(';'),
-                                           data['affilname'].split(';'),
-                                           data['affiliation_country'].split(';')):
-            affil = Affiliation.query.get(afid)
-            country = Country.query.filter_by(name=afcountry).first()
-            if not country:
-                country = Country(name=afcountry)
-                db.session.add(country)
-            if not affil:
-                affil = Affiliation(id=afid, name=afname, country=country)
-                db.session.add(affil)
-        db.session.commit()
-
-        affils = []
-        if data['afid']:
-            affils = data['afid'].split(';')
-
-        for author, afid in zip(data['authors'], affils):
+        for author in data['authors']:
             scopus_id = ScopusAuthorID.query.get(author['author_id'])
             personal_info = StaffPersonalInfo.query.filter_by(en_firstname=author['firstname'],
                                                               en_lastname=author['lastname']).first()
+            affil = Affiliation.query.get(author['afid'])
+            country = Country.query.filter_by(name=author['country']).first()
+            if not country:
+                country = Country(name=author['country'])
+                db.session.add(country)
+            if not affil:
+                affil = Affiliation(id=author['afid'], name=author['afname'], country=country)
+                db.session.add(affil)
             if scopus_id:
                 # update the current affiliation
-                scopus_id.author.affil_id = afid
-                author_ = scopus_id.author
+                scopus_id.author.affil_id = author['afid']
             else:
                 scopus_id = ScopusAuthorID(id=author['author_id'])
                 author_ = Author.query.filter_by(firstname=author['firstname'],
@@ -502,17 +488,18 @@ def add_article():
                 if not author_:
                     author_ = Author(firstname=author['firstname'],
                                      lastname=author['lastname'],
-                                     affil_id=afid,
+                                     affil_id=author['afid'],
                                      h_index=int(author['h_index']) if author['h_index'] else None,
                                      personal_info=personal_info
                                      )
-                    scopus_id.author = author_
-            author_.h_index = int(author['h_index']) if author['h_index'] else None
-            author_.papers.append(pub)
-            db.session.add(author_)
+                scopus_id.author = author_
+            scopus_id.author.h_index = int(author['h_index']) if author['h_index'] else None
+            pub.authors.append(scopus_id.author)
+            db.session.add(pub)
             db.session.add(scopus_id)
 
         db.session.commit()
+
         return jsonify(data)
 
 
