@@ -23,9 +23,9 @@
                     </a>
                     </b-tooltip>
                 </td>
-                <td style="color:red">{{ cum_days[type] }}</td>
-                <td style="color:blue">{{ pending_days[type] }}</td>
-                <td style="color:blue">{{ quota.limit }}</td>
+                <td style="color:grey">{{ cum_days[type] }}</td>
+                <td style="color:#BF740F">{{ pending_days[type] }}</td>
+                <td style="color:green">{{ quota.limit }}</td>
                 {% if quota.limit - cum_days[type] > 0 %}
                 <td><a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ลาเต็มวัน</a>
                 <a class="button is-rounded is-warning is-light" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ลาครึ่งวัน</a>
