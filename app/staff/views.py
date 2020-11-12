@@ -204,6 +204,8 @@ def request_for_leave(quota_id=None):
                     # retrieve cum periods
                 used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                          tz.localize(END_FISCAL_DATE))
+                pending_days = current_user.personal_info.get_total_pending_leaves_request \
+                    (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
                 req_duration = get_weekdays(req)
                 holidays = Holidays.query.filter(and_(Holidays.holiday_date >= start_datetime.date(),
                                                       Holidays.holiday_date <= end_datetime.date())).all()
@@ -253,7 +255,7 @@ def request_for_leave(quota_id=None):
                 req.total_leave_days = req_duration
                 req.upload_file_url = upload_file_id
                 req.after_hour = after_hour
-                if used_quota + req_duration <= quota_limit:
+                if used_quota + pending_days + req_duration <= quota_limit:
                     if form.getlist('notified_by_line'):
                         req.notify_to_line = True
                     db.session.add(req)
@@ -298,6 +300,8 @@ def request_for_leave_period(quota_id=None):
                 # retrieve cum periods
                 used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                          tz.localize(END_FISCAL_DATE))
+                pending_days = current_user.personal_info.get_total_pending_leaves_request \
+                    (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
                 start_t, end_t = form.get('times').split(' - ')
                 start_d, end_d = form.get('dates').split(' - ')
                 start_dt = '{} {}'.format(start_d, start_t)
@@ -345,7 +349,7 @@ def request_for_leave_period(quota_id=None):
                 req.contact_address = form.get('contact_addr')
                 req.contact_phone = form.get('contact_phone')
                 req.total_leave_days = req_duration
-                if used_quota + req_duration <= quota_limit:
+                if used_quota + pending_days + req_duration <= quota_limit:
                     if form.getlist('notified_by_line'):
                         req.notify_to_line = True
                     db.session.add(req)
@@ -497,6 +501,8 @@ def edit_leave_request(req_id=None):
                 # retrieve cum periods
             used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                      tz.localize(END_FISCAL_DATE))
+            pending_days = current_user.personal_info.get_total_pending_leaves_request \
+                (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
             req_duration = get_weekdays(req)
             holidays = Holidays.query.filter(and_(Holidays.holiday_date >= start_datetime,
                                                   Holidays.holiday_date <= end_datetime)).all()
@@ -543,7 +549,7 @@ def edit_leave_request(req_id=None):
             req.total_leave_days = req_duration
             req.upload_file_url = upload_file_id
             req.after_hour = after_hour
-            if used_quota + req_duration <= quota_limit:
+            if used_quota + pending_days + req_duration <= quota_limit:
                 req.notify_to_line = True if request.form.getlist("notified_by_line") else False
                 db.session.add(req)
                 db.session.commit()
@@ -576,6 +582,8 @@ def edit_leave_request_period(req_id=None):
         if quota:
             used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                      tz.localize(END_FISCAL_DATE))
+            pending_days = current_user.personal_info.get_total_pending_leaves_request \
+                (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
             start_t, end_t = request.form.get('times').split(' - ')
             start_d, end_d = request.form.get('dates').split(' - ')
             start_dt = '{} {}'.format(start_d, start_t)
@@ -619,7 +627,7 @@ def edit_leave_request_period(req_id=None):
             req.contact_address = request.form.get('contact_addr')
             req.contact_phone = request.form.get('contact_phone')
             req.total_leave_days = req_duration
-            if used_quota + req_duration <= quota_limit:
+            if used_quota + pending_days + req_duration <= quota_limit:
                 if request.form.getlist('notified_by_line'):
                     req.notify_to_line = True
                 db.session.add(req)
