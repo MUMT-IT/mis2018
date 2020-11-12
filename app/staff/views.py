@@ -117,12 +117,15 @@ def show_leave_info():
     Quota = namedtuple('quota', ['id', 'limit'])
     cum_days = defaultdict(float)
     quota_days = defaultdict(float)
+    pending_days = defaultdict(float)
     for req in current_user.leave_requests:
         used_quota = current_user.personal_info.get_total_leaves(req.quota.id, tz.localize(START_FISCAL_DATE),
                                                                  tz.localize(END_FISCAL_DATE))
         leave_type = unicode(req.quota.leave_type)
         cum_days[leave_type] = used_quota
-
+        if req.start_datetime >= tz.localize(START_FISCAL_DATE) \
+                and req.end_datetime <= tz.localize(END_FISCAL_DATE) and not req.cancelled_at and not req.get_approved:
+            pending_days[leave_type] += req.total_leave_days
     for quota in current_user.personal_info.employment.quota:
         delta = current_user.personal_info.get_employ_period()
         max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
@@ -146,7 +149,7 @@ def show_leave_info():
                 quota_limit = quota.first_year if not quota.min_employed_months else 0
         quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit)
 
-    return render_template('staff/leave_info.html', cum_days=cum_days, quota_days=quota_days)
+    return render_template('staff/leave_info.html', cum_days=cum_days, pending_days=pending_days, quota_days=quota_days)
 
 
 @staff.route('/leave/request/quota/<int:quota_id>',
