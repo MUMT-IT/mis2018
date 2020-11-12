@@ -123,9 +123,9 @@ def show_leave_info():
                                                                  tz.localize(END_FISCAL_DATE))
         leave_type = unicode(req.quota.leave_type)
         cum_days[leave_type] = used_quota
-        if req.start_datetime >= tz.localize(START_FISCAL_DATE) \
-                and req.end_datetime <= tz.localize(END_FISCAL_DATE) and not req.cancelled_at and not req.get_approved:
-            pending_days[leave_type] += req.total_leave_days
+        pending_day = current_user.personal_info.get_total_pending_leaves_request \
+            (req.quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
+        pending_days[leave_type] = pending_day
     for quota in current_user.personal_info.employment.quota:
         delta = current_user.personal_info.get_employ_period()
         max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
