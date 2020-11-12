@@ -128,6 +128,17 @@ class StaffPersonalInfo(db.Model):
         return sum(total_leaves)
         #return len([req for req in self.staff_account.leave_requests if req.quota_id == leave_quota_id])
 
+    def get_total_pending_leaves_request(self, leave_quota_id, start_date=None, end_date=None):
+        total_leaves = []
+        for req in self.staff_account.leave_requests:
+            if req.quota.id == leave_quota_id:
+                if start_date is None or end_date is None and not req.cancelled_at and not req.get_approved :
+                        total_leaves.append(req.total_leave_days)
+                else:
+                    if req.start_datetime >= start_date and req.end_datetime <= end_date and not req.cancelled_at and not req.get_approved:
+                        total_leaves.append(req.total_leave_days)
+
+        return sum(total_leaves)
 
 class StaffEduDegree(db.Model):
     __tablename__ = 'staff_edu_degree'
