@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <h1 class="title has-text-centered">บันทึกการอบรม สัมมนา</h1>
+                    <table class="table is-fullwidth">
+                        <tr>
+                            <td>
+                               <label class="label">วันที่</label>
+                            </td>
+                            <td>
+                                {{ smr.start_datetime|localdatetime }} - {{ smr.end_datetime|localdatetime }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">ผู้ไปอบรม</label>
+                            </td>
+                            <td>
+                                <p class="is-size-5"><strong>{{ smr.staff.personal_info }}</strong></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">ประเภท</label>
+                            </td>
+                            <td>
+                                {{ smr.topic_type }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">เรื่อง</label>
+                            </td>
+                            <td>
+                                <p class="is-size-5"><strong>{{ smr.topic }}</strong></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">บทบาท</label>
+                            </td>
+                            <td>
+                                {{ smr.role }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">สถานที่</label>
+                            </td>
+                            <td>
+                                {{ smr.location }}
+                            </td>
+                        </tr>
+                        {% if smr.country %}
+                        <tr>
+                            <td>
+                               <label class="label">ประเทศ</label>
+                            </td>
+                            <td>
+                                {{ smr.topic }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if smr.budget_type %}
+                        <tr>
+                            <td>
+                               <label class="label">ค่าใช้จ่าย</label>
+                            </td>
+                            <td>
+                                {{ smr.budget_type }}: {{ smr.budget }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <a href="{{ url_for('staff.show_seminar_info_each_person', staff_id=smr.staff_account_id) }}" class="button is-rounded is-info is-light">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับหน้าสรุปรายการอบรม</span>
+                        </a>
+                    </div>
+                    <div class="column has-text-right">
+                        <a href="{{ url_for('staff.summary_index') }}" class="button is-rounded is-info is-light">
+                            <span>กลับหน้าตารางสรุป</span>
+                            <span class="icon">
+                                <i class="fas fa-arrow-right"></i>
+                            </span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

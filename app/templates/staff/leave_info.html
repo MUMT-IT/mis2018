@@ -9,6 +9,8 @@
             <thead>
             <th>ประเภทการลา</th>
             <th>จำนวนวันลาที่ใช้</th>
+            <th>จำนวนวันลาที่รออนุมัติ</th>
+            <th>จำนวนวันลาที่ได้รับ</th>
             <th colspan="2">ขออนุมัติ</th>
             </thead>
             <tbody>
@@ -21,7 +23,9 @@
                     </a>
                     </b-tooltip>
                 </td>
-                <td>{{ cum_days[type] }} ({{ quota.limit }})</td>
+                <td style="color:grey">{{ cum_days[type] }}</td>
+                <td style="color:#BF740F">{{ pending_days[type] }}</td>
+                <td style="color:green">{{ quota.limit }}</td>
                 {% if quota.limit - cum_days[type] > 0 %}
                 <td><a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ลาเต็มวัน</a>
                 <a class="button is-rounded is-warning is-light" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ลาครึ่งวัน</a>
@@ -35,7 +39,12 @@
         </table>
         <a href="{{ url_for('staff.show_leave_approval_info') }}" class="button is-link">สำหรับหัวหน้างาน</a>
         <div class="has-text-right">
-            <span>พบปัญหาเกี่ยวกับระบบ <br>ติดต่อ napatsakorn.pis@mahidol.ac.th หรือโทรศัพท์ภายใน 2845</>
+            <span><a href="https://www.youtube.com/watch?v=RkVng_7uEJo&list=PLj2Y10sMkAa_EGhZdZzIVcup53UzTcPL4">
+                วีดีโอสาธิตใช้งาน</a></span>
+        </div>
+        <div class="has-text-right">
+            <span>----------------- <br> พบปัญหาเกี่ยวกับระบบ
+                                    <br>ติดต่อ napatsakorn.pis@mahidol.ac.th หรือโทรศัพท์ภายใน 2845</span>
         </div>
         </div>
     </div>
