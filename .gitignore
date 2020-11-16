@@ -9,3 +9,5 @@ data/
 backup/
 analysis/
 .env
+.idea/
+app/.idea/
