@@ -137,6 +137,17 @@ class StaffPersonalInfo(db.Model):
         return sum(total_leaves)
         #return len([req for req in self.staff_account.leave_requests if req.quota_id == leave_quota_id])
 
+    def get_total_pending_leaves_request(self, leave_quota_id, start_date=None, end_date=None):
+        total_leaves = []
+        for req in self.staff_account.leave_requests:
+            if req.quota.id == leave_quota_id:
+                if start_date is None or end_date is None and not req.cancelled_at and not req.get_approved :
+                        total_leaves.append(req.total_leave_days)
+                else:
+                    if req.start_datetime >= start_date and req.end_datetime <= end_date and not req.cancelled_at and not req.get_approved:
+                        total_leaves.append(req.total_leave_days)
+
+        return sum(total_leaves)
 
 class StaffEduDegree(db.Model):
     __tablename__ = 'staff_edu_degree'
@@ -395,6 +406,26 @@ class StaffWorkFromHomeRequestSchema(ma.ModelSchema):
     duration = fields.Int()
 
 
+class StaffSeminar(db.Model):
+    __tablename__ = 'staff_seminar'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    start_datetime = db.Column('start_date', db.DateTime(timezone=True))
+    end_datetime = db.Column('end_date', db.DateTime(timezone=True))
+    created_at = db.Column('created_at',db.DateTime(timezone=True),
+                           default=datetime.now())
+    topic_type = db.Column('topic_type', db.String())
+    topic = db.Column('topic', db.String())
+    role = db.Column('role', db.String())
+    location = db.Column('location', db.String())
+    country = db.Column('country', db.String())
+    budget_type = db.Column('budget_type', db.String())
+    budget = db.Column('budget', db.Float())
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    staff = db.relationship('StaffAccount',
+                            backref=db.backref('seminar_request'))
+    
+    
 class StaffWorkLogin(db.Model):
     __tablename__ = 'staff_work_logins'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)

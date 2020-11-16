@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        {% for msg in get_flashed_messages() %}
+        <p class="notification is-warning">{{ msg }}</p>
+        {% endfor %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">บันทึกประชุม อบรม สัมมนา</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <p class="title">หากวันอบรมอยู่ในช่วง2ปีงบฯ ให้แยกบันทึก และลงท้ายชื่อหัวข้อว่า (ต่อ)</p>
+                <form method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <div class="field">
+                        <div class="block">
+                            <b-radio native-value="domestic" v-model="destination" name="destination">ในประเทศ</b-radio>
+                            <b-radio native-value="international" v-model="destination" name="destination">ต่างประเทศ</b-radio>
+                        </div>
+                    </div>
+                    <b-field label="รหัส ชื่อ-นามสกุล" message="สามารถค้นหาด้วยชื่อ นามสกุล">
+                        <b-autocomplete v-model="staffquery" :data="data" name="staffname"
+                                        field="id" :loading="isFetching" icon="magnify"
+                                        @keyup.native="getAsyncData"
+                                        @select="option => staffname = option.id" required>
+                            <template slot-scope="props">
+                                <div class="media">
+                                    <div class="media-content">
+                                        <%props.option.fullname%>
+                                        <br>
+                                        <small>
+                                            รหัส: <%props.option.id%>,
+                                            สังกัด: <%props.option.org%>
+                                        </small>
+                                    </div>
+                                </div>
+                            </template>
+                        </b-autocomplete>
+                    </b-field>
+                    <b-field label="วันที่ไปอบรม" message="หากต้องการเลือก 1 วัน ให้ดับเบิ้ลคลิ๊กวันที่ต้องการ">
+                                <b-datepicker
+                                        required
+                                        name="dates"
+                                        v-model="selectedDates"
+                                        range
+                                        icon-pack="fa"
+                                        :date-formatter="formatDate"
+                                        :mobile-native="false"
+                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                        icon="calendar-alt">
+                                </b-datepicker>
+                    </b-field>
+                    <div class="field">
+                        <div class="block">
+                            <b-radio native-value="fulltime" v-model="stime" name="stime">เต็มวัน</b-radio>
+                            <b-radio native-value="halfmorning" v-model="stime" name="stime">ครึ่งวันเช้า</b-radio>
+                            <b-radio native-value="halfafternoon" v-model="stime" name="stime">ครึ่งวันบ่าย</b-radio>
+                        </div>
+                    </div>
+                    <b-field label="ประเภทที่ไป">
+                        <b-select placeholder="เลือกประเภท" name="topic_type" required>
+                            <option value="ประชุม">ประชุม</option>
+                            <option value="อบรม">อบรม</option>
+                            <option value="ประชุม">สัมมนา</option>
+                            <option value="อบรม">ราชการ</option>
+                            <option value="อบรม">อื่นๆ</option>
+                        </b-select>
+                    </b-field>
+                    <b-field label="หัวข้อ"
+                             type="is-danger">
+                        <b-input type="text"
+                                 name="topic"
+                                 icon-pack="far"
+                                 icon="tag"
+                                 placeholder="เรื่อง" required>
+                        </b-input>
+                    </b-field>
+                    <b-field label="บทบาท">
+                        <b-select placeholder="เลือกบทบาท" name="role" required>
+                            <option value="อาจารย์พิเศษ">อาจารย์พิเศษ</option>
+                            <option value="ผู้เข้าร่วม">ผู้เข้าร่วม</option>
+                            <option value="ที่ปรึกษา">ที่ปรึกษา</option>
+                            <option value="วิทยากร">วิทยากร</option>
+                            <option value="กรรมการ">กรรมการ</option>
+                            <option value="นิเทศน์งาน">นิเทศน์งาน</option>
+                        </b-select>
+                    </b-field>
+                    <b-field label="สถานที่"
+                             type="is-danger">
+                        <b-input type="text"
+                                 name="location"
+                                 icon-pack="far"
+                                 icon="map-marker-alt">
+                        </b-input>
+                    </b-field>
+                    <div class="field">
+                        <div class="block">
+                            <b-radio native-value="unpaid" v-model="payment" name="payment">ไม่มีค่าใช้จ่าย</b-radio>
+                            <b-radio native-value="paid" v-model="payment" name="payment">มีค่าใช้จ่าย</b-radio>
+                        </div>
+                    </div>
+                    <b-field label="ประเภทงบประมาณ/ทุน" v-if="payment === 'paid'">
+                        <b-input type="text"
+                                 name="budget_type"
+                                 icon-pack="far"
+                                 icon="comment">
+                        </b-input>
+                    </b-field>
+                    <b-field label="จำนวนเงิน(ใส่เฉพาะเลข)" v-if="payment === 'paid'"
+                             type="is-danger">
+                        <b-input type="text"
+                                 name="budget"
+                                 icon-pack="far"
+                                 icon="dollar-sign"
+                                 placeholder="บาท">
+                        </b-input>
+                    </b-field>
+                    <b-field label="ประเทศ" v-if="destination === 'international'"
+                             type="is-danger">
+                        <b-input type="text"
+                                 name="country"
+                                 icon-pack="far"
+                                 icon="flag">
+                        </b-input>
+                    </b-field>
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <input type="submit" value="submit" class="button is-primary"/>
+                        </div>
+                        <div class="control">
+                            <a href="{{ url_for('staff.for_hr') }}" class="button is-danger">Cancel</a>
+                        </div>
+                    </div>
+                </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                staffquery: '',
+                staffname: '',
+                isFetching: false,
+                selectedDates: [],
+                destination: "domestic",
+                payment: "unpaid",
+                stime: "fulltime",
+                data: []
+            }
+        },
+        methods: {
+            formatDate(dates){
+                   let start = new moment(dates[0]).format("DD/MM/YYYY")
+                   let end = new moment(dates[1]).format("DD/MM/YYYY")
+                   return start + ' - ' + end
+            },
+            getAsyncData: function() {
+                var self = this
+                self.isFetching = true
+                axios.get('/staff/api/staffids').then(function(resp) {
+                    self.data = []
+                    resp.data.forEach(function(item) {
+                        if (item.fullname.indexOf(self.staffquery) !== -1) {
+                            self.data.push(item)
+                        }
+                        if (item.org.indexOf(self.staffquery) !== -1) {
+                            self.data.push(item)
+                        }
+                    })
+                    self.isFetching = false
+                })
+            },
+        }
+    });
+</script>
+{% endblock %}
+

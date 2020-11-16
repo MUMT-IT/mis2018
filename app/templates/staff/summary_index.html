@@ -67,7 +67,8 @@
                 <div class="tabs">
                     <ul>
                         <li {% if tab =="all" %} class="is-active" {% endif %}>
-                            <a href="{{ url_for('staff.summary_index', tab='all', curr_dept_id=curr_dept_id, fiscal_year=fiscal_year) }}">
+                            <a href="{{ url_for('staff.summary_index', tab='all', curr_dept_id=curr_dept_id,
+                                                                                fiscal_year=fiscal_year) }}">
                                 ทั้งหมด
                             </a>
                         </li>
@@ -77,13 +78,21 @@
                             </a>
                         </li>
                         <li {% if tab =="leave" %} class="is-active" {% endif %}>
-                            <a href="{{ url_for('staff.summary_index', tab='leave', curr_dept_id=curr_dept_id, fiscal_year=fiscal_year) }}">
+                            <a href="{{ url_for('staff.summary_index', tab='leave', curr_dept_id=curr_dept_id,
+                                                                                fiscal_year=fiscal_year) }}">
                                 วันลา
                             </a>
                         </li>
                         <li {% if tab =="wfh" %} class="is-active" {% endif %}>
-                            <a href="{{ url_for('staff.summary_index', tab='wfh', curr_dept_id=curr_dept_id, fiscal_year=fiscal_year) }}">
+                            <a href="{{ url_for('staff.summary_index', tab='wfh', curr_dept_id=curr_dept_id,
+                                                                                fiscal_year=fiscal_year) }}">
                                 WFH
+                            </a>
+                        </li>
+                        <li {% if tab =="smr" %} class="is-active" {% endif %}>
+                            <a href="{{ url_for('staff.summary_index', tab='smr', curr_dept_id=curr_dept_id,
+                                                                                fiscal_year=fiscal_year) }}">
+                                อบรม
                             </a>
                         </li>
                     </ul>
@@ -112,6 +121,9 @@
                 }
                 if(calEvent.type === 'wfh') {
                     window.location = '/staff/wfh/requests/approval/pending/' + calEvent.id;
+                }
+                if(calEvent.type === 'smr') {
+                    window.location = '/staff/seminar/all-records/each-record/' + calEvent.id;
                 }
             }
         })

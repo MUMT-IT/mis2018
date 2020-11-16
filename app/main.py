@@ -175,7 +175,7 @@ from staff.models import (StaffAccount, StaffPersonalInfo,
                           StaffLeaveApproval, StaffEmployment,
                           StaffWorkFromHomeRequest, StaffWorkFromHomeJobDetail,
                           StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
-                          StaffWorkFromHomeCheckedJob, StaffLeaveRemainQuota, StaffWorkLogin)
+                          StaffWorkFromHomeCheckedJob, StaffLeaveRemainQuota, StaffSeminar, StaffWorkLogin)
 
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
@@ -191,6 +191,7 @@ admin.add_views(ModelView(StaffWorkFromHomeApprover, db.session, category='Staff
 admin.add_views(ModelView(StaffWorkFromHomeApproval, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkFromHomeCheckedJob, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveRemainQuota, db.session, category='Staff'))
+admin.add_views(ModelView(StaffSeminar, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkLogin, db.session, category='Staff'))
 
 

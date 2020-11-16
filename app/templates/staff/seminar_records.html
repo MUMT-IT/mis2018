@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% include "staff/nav.html" %}
+{% include "nav.html" %}
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
@@ -27,25 +27,23 @@
             </div>
             <div class="columns">
                 <div class="column">
-                    <table class="table is-bordered is-striped" id="leaveTable">
+                    <table class="table is-bordered is-striped" id="seminarTable">
                     <thead>
                         <th>ชื่อ</th>
-                        {% for leave_type in leave_types %}
-                        <th>{{ leave_type }}</th>
-                        {% endfor %}
-                        <th>Total</th>
+                        <th>จำนวนครั้ง</th>
+                        <th>จำนวนวัน</th>
                     </thead>
                     <tbody>
-                    {% for record in leaves_list %}
+                    {% for record in seminar_list %}
                     <tr>
                         <td>
-                            <a href="{{ url_for('staff.leave_request_by_person_detail', requester_id=record['staffid']) }}">
+                            <a href="{{ url_for('staff.show_seminar_info_each_person', staff_id=record['staffid']) }}">
                             {{ record["fullname"] }}
                             </a>
                         </td>
-                        {% for leave_type in leave_types %}
-                        <td>{{ record[leave_type] }}</td>
-                        {% endfor %}
+                        <td>
+                            {{ record["total"] }}
+                        </td>
                         <td>
                             {{ record["total"] }}
                         </td>
@@ -55,9 +53,6 @@
                 </table>
                 </div>
             </div>
-            <div class="has-text-right">
-                    <span>หมายเหตุ: จำนวนวันที่แสดง รวมการขอลาที่ยังไม่ได้รับการอนุมัติ</span>
-            </div>
     </div>
 </section>
 {% endblock %}
@@ -65,7 +60,7 @@
 {{ super() }}
 <script>
     $(document).ready(function(){
-        $('#leaveTable').DataTable();
+        $('#seminarTable').DataTable();
     });
 </script>
 <script>
@@ -75,7 +70,7 @@
         data(){
             return {
                 departments : {{ departments|tojson|safe }},
-                department : {{ sel_dept|tojson|safe }},
+                department : {{ org_id|tojson|safe }},
                 years : {{ years|tojson|safe }},
                 year : {{ year|tojson|safe }}
             }
@@ -83,13 +78,13 @@
         methods: {
             proceed: function() {
                 if (this.year === null && this.department !== null){
-                    window.location.href = "/staff/leave/requests/result-by-person?deptid="+this.department;
+                    window.location.href = "/staff/seminar/all-records?deptid="+this.department;
                 }
                 if (this.year !== null && this.department !== null){
-                    window.location.href = "/staff/leave/requests/result-by-person?deptid="+this.department+"&fiscal_year="+this.year;
+                    window.location.href = "/staff/seminar/all-records?deptid="+this.department+"&fiscal_year="+this.year;
                 }
                 if (this.year != null && this.department == null){
-                    window.location.href = "/staff/leave/requests/result-by-person?"+"&fiscal_year="+this.year;
+                    window.location.href = "/staff/seminar/all-records?"+"&fiscal_year="+this.year;
                 }
             }
         }

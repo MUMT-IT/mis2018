@@ -117,17 +117,21 @@ def show_leave_info():
     Quota = namedtuple('quota', ['id', 'limit'])
     cum_days = defaultdict(float)
     quota_days = defaultdict(float)
+    pending_days = defaultdict(float)
     for req in current_user.leave_requests:
         used_quota = current_user.personal_info.get_total_leaves(req.quota.id, tz.localize(START_FISCAL_DATE),
                                                                  tz.localize(END_FISCAL_DATE))
         leave_type = unicode(req.quota.leave_type)
         cum_days[leave_type] = used_quota
-    
+        pending_day = current_user.personal_info.get_total_pending_leaves_request \
+            (req.quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
+        pending_days[leave_type] = pending_day
     for quota in current_user.personal_info.employment.quota:
         delta = current_user.personal_info.get_employ_period()
         max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
         last_quota = StaffLeaveRemainQuota.query.filter(and_(StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                            StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
+                                            StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year - 1),
+                                            StaffLeaveRemainQuota.staff_account_id == current_user.id)).first()
         if delta.years > 0:
             if max_cum_quota:
                 if last_quota:
@@ -145,7 +149,7 @@ def show_leave_info():
                 quota_limit = quota.first_year if not quota.min_employed_months else 0
         quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit)
 
-    return render_template('staff/leave_info.html', cum_days=cum_days, quota_days=quota_days)
+    return render_template('staff/leave_info.html', cum_days=cum_days, pending_days=pending_days, quota_days=quota_days)
 
 
 @staff.route('/leave/request/quota/<int:quota_id>',
@@ -200,6 +204,8 @@ def request_for_leave(quota_id=None):
                     # retrieve cum periods
                 used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                          tz.localize(END_FISCAL_DATE))
+                pending_days = current_user.personal_info.get_total_pending_leaves_request \
+                    (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
                 req_duration = get_weekdays(req)
                 holidays = Holidays.query.filter(and_(Holidays.holiday_date >= start_datetime.date(),
                                                       Holidays.holiday_date <= end_datetime.date())).all()
@@ -227,7 +233,8 @@ def request_for_leave(quota_id=None):
                             else:
                                 last_quota = StaffLeaveRemainQuota.query.filter(and_
                                         (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                        StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
+                                        StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year-1),
+                                         StaffLeaveRemainQuota.staff_account_id == current_user.id)).first()
                                 if last_quota:
                                     last_year_quota = last_quota.last_year_quota
                                 else:
@@ -248,7 +255,7 @@ def request_for_leave(quota_id=None):
                 req.total_leave_days = req_duration
                 req.upload_file_url = upload_file_id
                 req.after_hour = after_hour
-                if used_quota + req_duration <= quota_limit:
+                if used_quota + pending_days + req_duration <= quota_limit:
                     if form.getlist('notified_by_line'):
                         req.notify_to_line = True
                     db.session.add(req)
@@ -293,6 +300,8 @@ def request_for_leave_period(quota_id=None):
                 # retrieve cum periods
                 used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                          tz.localize(END_FISCAL_DATE))
+                pending_days = current_user.personal_info.get_total_pending_leaves_request \
+                    (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
                 start_t, end_t = form.get('times').split(' - ')
                 start_d, end_d = form.get('dates').split(' - ')
                 start_dt = '{} {}'.format(start_d, start_t)
@@ -319,7 +328,8 @@ def request_for_leave_period(quota_id=None):
                 delta = current_user.personal_info.get_employ_period()
                 last_quota = StaffLeaveRemainQuota.query.filter(and_
                                                                 (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                                    StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
+                                                    StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year-1),
+                                                    StaffLeaveRemainQuota.staff_account_id == current_user.id)).first()
                 max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
                 if delta.years > 0:
                     if max_cum_quota:
@@ -339,7 +349,7 @@ def request_for_leave_period(quota_id=None):
                 req.contact_address = form.get('contact_addr')
                 req.contact_phone = form.get('contact_phone')
                 req.total_leave_days = req_duration
-                if used_quota + req_duration <= quota_limit:
+                if used_quota + pending_days + req_duration <= quota_limit:
                     if form.getlist('notified_by_line'):
                         req.notify_to_line = True
                     db.session.add(req)
@@ -396,7 +406,8 @@ def request_for_leave_info(quota_id=None):
         if max_cum_quota:
             last_quota = StaffLeaveRemainQuota.query.filter(and_
                             (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                            StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
+                            StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year-1),
+                            StaffLeaveRemainQuota.staff_account_id == current_user.id)).first()
             if last_quota:
                 last_year_quota = last_quota.last_year_quota
             else:
@@ -490,6 +501,8 @@ def edit_leave_request(req_id=None):
                 # retrieve cum periods
             used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                      tz.localize(END_FISCAL_DATE))
+            pending_days = current_user.personal_info.get_total_pending_leaves_request \
+                (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
             req_duration = get_weekdays(req)
             holidays = Holidays.query.filter(and_(Holidays.holiday_date >= start_datetime,
                                                   Holidays.holiday_date <= end_datetime)).all()
@@ -517,7 +530,8 @@ def edit_leave_request(req_id=None):
                         else:
                             last_quota = StaffLeaveRemainQuota.query.filter(and_
                                         (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                        StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
+                                        StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year-1),
+                                        StaffLeaveRemainQuota.staff_account_id == current_user.id)).first()
                             if last_quota:
                                 last_year_quota = last_quota.last_year_quota
                             else:
@@ -535,7 +549,7 @@ def edit_leave_request(req_id=None):
             req.total_leave_days = req_duration
             req.upload_file_url = upload_file_id
             req.after_hour = after_hour
-            if used_quota + req_duration <= quota_limit:
+            if used_quota + pending_days + req_duration <= quota_limit:
                 req.notify_to_line = True if request.form.getlist("notified_by_line") else False
                 db.session.add(req)
                 db.session.commit()
@@ -568,6 +582,8 @@ def edit_leave_request_period(req_id=None):
         if quota:
             used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                      tz.localize(END_FISCAL_DATE))
+            pending_days = current_user.personal_info.get_total_pending_leaves_request \
+                (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
             start_t, end_t = request.form.get('times').split(' - ')
             start_d, end_d = request.form.get('dates').split(' - ')
             start_dt = '{} {}'.format(start_d, start_t)
@@ -592,7 +608,8 @@ def edit_leave_request_period(req_id=None):
             delta = current_user.personal_info.get_employ_period()
             last_quota = StaffLeaveRemainQuota.query.filter(and_
                                                             (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                                             StaffLeaveRemainQuota.year == START_FISCAL_DATE.year)).first()
+                                                             StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year-1),
+                                                    StaffLeaveRemainQuota.staff_account_id == current_user.id)).first()
             max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
             if delta.years > 0:
                 if max_cum_quota:
@@ -610,7 +627,7 @@ def edit_leave_request_period(req_id=None):
             req.contact_address = request.form.get('contact_addr')
             req.contact_phone = request.form.get('contact_phone')
             req.total_leave_days = req_duration
-            if used_quota + req_duration <= quota_limit:
+            if used_quota + pending_days + req_duration <= quota_limit:
                 if request.form.getlist('notified_by_line'):
                     req.notify_to_line = True
                 db.session.add(req)
@@ -637,7 +654,9 @@ def show_leave_approval_info():
         cum_periods = defaultdict(float)
         for leave_request in requester.requester.leave_requests:
             if leave_request.cancelled_at is None and leave_request.get_approved:
-                cum_periods[leave_request.quota.leave_type] += leave_request.total_leave_days
+                if leave_request.start_datetime.date() >= START_FISCAL_DATE.date() and leave_request.end_datetime.date()\
+                        <= END_FISCAL_DATE.date():
+                    cum_periods[leave_request.quota.leave_type] += leave_request.total_leave_days
         requester_cum_periods[requester] = cum_periods
     line_notified = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first().notified_by_line
     return render_template('staff/leave_request_approval_info.html',
@@ -855,13 +874,14 @@ def leave_request_result_by_person():
         for leave_type in leave_types:
             record[leave_type] = 0
         for req in account.leave_requests:
-            years.add(req.start_datetime.year)
-            if start_date and end_date:
-                if req.start_datetime.date()<start_date or req.start_datetime.date()>end_date:
-                    continue
-            leave_type = req.quota.leave_type.type_
-            record[leave_type] += req.total_leave_days
-            record["total"] += req.total_leave_days
+            if not req.cancelled_at:
+                years.add(req.start_datetime.year)
+                if start_date and end_date:
+                    if req.start_datetime.date()<start_date or req.start_datetime.date()>end_date:
+                        continue
+                leave_type = req.quota.leave_type.type_
+                record[leave_type] += req.total_leave_days
+                record["total"] += req.total_leave_days
         leaves_list.append(record)
     years = sorted(years)
     if len(years) > 0:
@@ -894,7 +914,6 @@ def show_work_from_home():
 def request_work_from_home():
     if request.method == 'POST':
         form = request.form
-
         start_t = "08:30"
         end_t = "16:30"
         start_d, end_d = form.get('dates').split(' - ')
@@ -902,13 +921,14 @@ def request_work_from_home():
         end_dt = '{} {}'.format(end_d, end_t)
         start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
+        deadline_date = datetime.strptime(form.get('deadline_date'), '%d/%m/%Y')
         req = StaffWorkFromHomeRequest(
             staff=current_user,
             start_datetime=tz.localize(start_datetime),
             end_datetime=tz.localize(end_datetime),
             detail=form.get('detail'),
             contact_phone=form.get('contact_phone'),
-            deadline_date=form.get('deadline_date')
+            deadline_date= deadline_date
         )
         db.session.add(req)
         db.session.commit()
@@ -989,6 +1009,9 @@ def show_wfh_requests_for_approval():
 def pending_wfh_request_for_approval(req_id):
     req = StaffWorkFromHomeRequest.query.get(req_id)
     approver = StaffWorkFromHomeApprover.query.filter_by(account=current_user, requester=req.staff).first()
+    approve = StaffWorkFromHomeApproval.query.filter_by(approver=approver, request=req).first()
+    if approve:
+        return render_template('staff/wfh_record_info_each_request.html', req=req, approver=approver)
     return render_template('staff/wfh_request_pending_approval.html', req=req, approver=approver)
 
 
@@ -1270,7 +1293,7 @@ def summary_index():
         init_date = today
     else:
         fiscal_year = int(fiscal_year)
-        init_date = date(fiscal_year-1, 10, 1)
+        init_date = date(fiscal_year - 1, 10, 1)
 
     if len(depts) == 0:
         return redirect(request.referrer)
@@ -1281,6 +1304,7 @@ def summary_index():
     employees = StaffPersonalInfo.query.filter_by(org_id=int(curr_dept_id))
     leaves = []
     wfhs = []
+    seminars = []
     logins = []
     for emp in employees:
         if tab == 'login' or tab == 'all':
@@ -1349,7 +1373,8 @@ def summary_index():
             all = leaves
 
         if tab == 'wfh' or tab == 'all':
-            fiscal_years = StaffWorkFromHomeRequest.query.distinct(func.date_part('YEAR', StaffWorkFromHomeRequest.start_datetime))
+            fiscal_years = StaffWorkFromHomeRequest.query.distinct(
+                func.date_part('YEAR', StaffWorkFromHomeRequest.start_datetime))
             fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
             start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
             for wfh_req in StaffWorkFromHomeRequest.query.filter_by(staff=emp).filter(
@@ -1361,24 +1386,169 @@ def summary_index():
                         border_color = '#ffffff'
                     else:
                         text_color = '#989898'
-                        bg_color = '#F3FBFE'
+                        bg_color = '#C5ECFB'
                         border_color = '#ffffff'
                     wfhs.append({
                         'id' : wfh_req.id,
                         'start': wfh_req.start_datetime.astimezone(tz).isoformat(),
                         'end': wfh_req.end_datetime.astimezone(tz).isoformat(),
-                        'title': emp.th_firstname,
+                        'title': emp.th_firstname + " WFH",
                         'backgroundColor': bg_color,
                         'borderColor': border_color,
                         'textColor': text_color,
                         'type': 'wfh'
                     })
             all = wfhs
-
+        if tab == 'smr' or tab == 'all':
+            fiscal_years = StaffSeminar.query.distinct(
+                func.date_part('YEAR', StaffSeminar.start_datetime))
+            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
+            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
+            for smr in StaffSeminar.query.filter_by(staff=emp).filter(
+                    StaffSeminar.start_datetime.between(start_fiscal_date, end_fiscal_date)):
+                if not smr.cancelled_at:
+                    text_color = '#ffffff'
+                    bg_color = '#FF33A5'
+                    border_color = '#ffffff'
+                    seminars.append({
+                        'id' : smr.id,
+                        'start': smr.start_datetime.astimezone(tz).isoformat(),
+                        'end': smr.end_datetime.astimezone(tz).isoformat(),
+                        'title': emp.th_firstname + " " +smr.topic_type,
+                        'backgroundColor': bg_color,
+                        'borderColor': border_color,
+                        'textColor': text_color,
+                        'type': 'smr'
+                    })
+            all = seminars
+            
     if tab == 'all':
-        all = wfhs + leaves + logins
+        all = wfhs + leaves + logins + seminars
 
     return render_template('staff/summary_index.html',
                            init_date=init_date,
                            depts=depts, curr_dept_id=int(curr_dept_id),
                            all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
+
+@staff.route('/api/staffids')
+def get_staffid():
+    staff = []
+    for sid in StaffPersonalInfo.query.all():
+        staff.append({
+            'id': sid.id,
+            'fullname': sid.fullname,
+            'org': sid.org.name if sid.org else 'ไม่มีต้นสังกัด'
+        })
+
+    return jsonify(staff)
+
+
+@staff.route('/seminar/record', methods=['GET', 'POST'])
+@login_required
+def add_seminar_record():
+    if request.method == 'POST':
+        form = request.form
+        stime = form.get('stime')
+        if stime == 'fulltime':
+            start_t = "08:30"
+            end_t = "16:30"
+        elif stime == 'halfmorning':
+            start_t = "08:30"
+            end_t = "12:00"
+        else:
+            start_t = "13:00"
+            end_t = "16:30"
+        start_d, end_d = form.get('dates').split(' - ')
+        start_dt = '{} {}'.format(start_d, start_t)
+        end_dt = '{} {}'.format(end_d, end_t)
+        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
+        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
+        req = StaffSeminar(
+            start_datetime=tz.localize(start_datetime),
+            end_datetime=tz.localize(end_datetime)
+        )
+        req.staff_account_id = form.get('staffname')
+        req.topic_type = form.get('topic_type')
+        req.topic = form.get('topic')
+        req.role = form.get('role')
+        req.location = form.get('location')
+        req.country = form.get('country')
+        req.budget_type = form.get('budget_type')
+        req.budget = form.get('budget')
+        db.session.add(req)
+        db.session.commit()
+        return redirect(url_for('staff.seminar_records'))
+    return render_template('staff/seminar_request.html')
+
+
+@staff.route('/seminar/all-records', methods=['GET', 'POST'])
+@login_required
+def seminar_records():
+    org_id = request.args.get('deptid')
+    fiscal_year = request.args.get('fiscal_year')
+    if fiscal_year is not None:
+        start_date, end_date = get_start_end_date_for_fiscal_year(int(fiscal_year))
+    else:
+        start_date = None
+        end_date = None
+    years = set()
+    seminar_list = []
+    departments = Org.query.all()
+    if org_id is None:
+        account_query = StaffAccount.query.all()
+    else:
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id))
+    for account in account_query:
+        record = {}
+        record["staffid"] = account.id
+        record["fullname"] = account.personal_info.fullname
+        record["total"] = 0
+        if account.personal_info.org:
+            record["org"] = account.personal_info.org.name
+        else:
+            record["org"] = ""
+        for seminar in account.seminar_request:
+            if not seminar.cancelled_at:
+                years.add(seminar.start_datetime.year)
+                if start_date and end_date:
+                    if seminar.start_datetime.date() < start_date or seminar.start_datetime.date() > end_date:
+                        continue
+                total_day = seminar.end_datetime.date() - seminar.start_datetime.date()
+                record["total"] += total_day.days + 1
+        seminar_list.append(record)
+    years = sorted(years)
+    if len(years) > 0:
+        years.append(years[-1] + 1)
+        years.insert(0, years[0] - 1)
+    return render_template('staff/seminar_records.html', org_id=org_id, fiscal_year=fiscal_year,
+                           seminar_list=seminar_list, departments=[{'id': d.id, 'name': d.name}
+                                                                 for d in departments], years=years, year=fiscal_year)
+
+@staff.route('/for-hr/seminar')
+@login_required
+def seminar():
+    return render_template('staff/seminar.html')
+
+
+@staff.route('/seminar/all-records/each-person/<int:staff_id>')
+@login_required
+def show_seminar_info_each_person(staff_id):
+    staff = StaffSeminar.query.filter_by(staff_account_id=staff_id)
+    return render_template('staff/seminar_records_each_person.html', staff=staff)
+
+
+@staff.route('/seminar/all-records/each-record/<int:smr_id>')
+@login_required
+def semiar_each_record_info(smr_id):
+    smr = StaffSeminar.query.get(smr_id)
+    return render_template('staff/seminar_each_record.html', smr=smr)
+
+
+@staff.route('/seminar/all-records/each-record/<int:smr_id>/cancel')
+@login_required
+def cancel_seminar_record(smr_id):
+    smr = StaffSeminar.query.get(smr_id)
+    smr.cancelled_at = tz.localize(datetime.today())
+    db.session.add(smr)
+    db.session.commit()
+    return redirect(request.referrer)
