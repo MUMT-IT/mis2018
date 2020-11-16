@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+{% extends "base.html" %}
+{% block title %}Researcher Profile{% endblock %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                <nav class="breadcrumb" aria-label="breadcrumbs">
+                    <ul>
+                        <li><a href="{{ url_for('research.dashboard') }}">Main Dashboard</a></li>
+                        <li class="is-active"><a href="#" aria-current="page">Researcher</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">
+                    {{ person.th_title or '' }} {{ person.th_firstname }} {{ person.th_lastname }}
+                </h1>
+                <h1 class="subtitle">
+                    {{ person.en_title or '' }} {{ person.en_firstname }} {{ person.en_lastname }}
+                </h1>
+                <h1 class="title">
+                    {{ person.org.name }}
+                </h1>
+                <h1 class="subtitle">
+                    {{ person.org.en_name or '' }}
+                </h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title is-size-5">
+                    SCOPUS IDS =
+                    {% for sid in person.research_author.scopus_ids %}
+                    {{ sid.id }},
+                    {% endfor %}
+                    H-index = {{ person.research_author.h_index }}
+                </h1>
+                <div id="curve_chart" style="width: 900px; height: 400px"></div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <b-table
+                        :data="articles"
+                        ref="table"
+                        paginated
+                        per-page="10"
+                        detailed
+                        detail-key="id"
+                        :show-detail-icon="showDetailIcon"
+                        aria-next-label="Next page"
+                        aria-previous-label="Previous page"
+                        aria-page-label="Page"
+                        aria-current-label="Current page">
+
+                    <template slot-scope="props">
+                        <b-table-column field="cover_date" label="Date" sortable centered>
+                            <% new Date(props.row.cover_date).toLocaleDateString() %>
+                            <small>
+                                (<% moment(props.row.cover_date).fromNow() %>)
+                            </small>
+                        </b-table-column>
+
+                        <b-table-column field="title" label="Title" sortable>
+                            <template v-if="showDetailIcon">
+                                <% props.row.title %>
+                                <small v-for="author in props.row.authors" :key="author.id">
+                                    <a :href="'/research/view/author/'+ author.personal_info_id" v-if="author.personal_info_id">
+                                            <span class="icon">
+                                                <i class="fas fa-user"></i>
+                                            </span>
+                                        <span>
+                                                <% author.lastname %>, <% author.firstname %>;
+                                            </span>
+                                    </a>
+                                    <span v-else>
+                                            <% author.lastname %>, <% author.firstname %>;
+                                        </span>
+                                </small>
+                            </template>
+                        </b-table-column>
+
+                        <b-table-column field="citedby_count" label="Cited" numeric sortable>
+                            <% props.row.citedby_count %>
+                        </b-table-column>
+                    </template>
+
+                    <template slot="detail" slot-scope="props">
+                        <article class="media">
+                            <div class="media-content">
+                                <div class="content">
+                                    <p>
+                                        <small>
+                                            <% props.row.abstract %>
+                                        </small>
+                                    </p>
+                                </div>
+                            </div>
+                        </article>
+                    </template>
+                    <template slot="empty">
+                        <section class="section">
+                            <div class="content has-text-grey has-text-centered">
+                                <p>
+                                    <b-icon
+                                            pack="fas"
+                                            icon="sync-alt"
+                                            custom-class="fa-spin"
+                                            size="is-large">
+                                    </b-icon>
+                                </p>
+                            </div>
+                        </section>
+                    </template>
+                </b-table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block footer %}
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        new Vue({
+            delimiters: ['<%', '%>'],
+            el: '#app',
+            data() {
+                return {
+                    articles: [],
+                    showDetailIcon: true,
+                }
+            },
+            mounted() {
+                let self = this
+                axios.get('/research/api/articles/researcher/{{ person.id|tojson|safe }}').then((resp)=>{
+                    resp.data.forEach((d)=>{
+                        self.articles.push(d)
+                    })
+                })
+                console.log(self.articles)
+            }
+        })
+    </script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', {'packages':['corechart']});
+        google.charts.setOnLoadCallback(drawChart);
+        function drawChart() {
+            axios.get('/research/api/articles/researcher/{{ person.id|tojson|safe }}/count').then((resp)=>{
+                var data = google.visualization.arrayToDataTable(resp.data);
+                var options = {
+                    title: 'SCOPUS-Indexed Publication in Recent Years',
+                    curveType: 'none',
+                    series: {
+                        0: { targetAxisIndex: 0},
+                        1: { targetAxisIndex: 1},
+                    },
+                    legend: { position: 'bottom' },
+                    pointsVisible: true,
+                    vAxes: {
+                        0: { title: 'Count'},
+                        1: { title: 'Cumulative Citedby Count'},
+                    },
+                    vAxis: {
+                        viewWindow: {min: 0},
+                    },
+                    hAxis: { format: "#"}
+                };
+                var chart = new google.visualization.LineChart(document.getElementById('curve_chart'));
+                chart.draw(data, options);
+            })
+        }
+    </script>
+{% endblock %}

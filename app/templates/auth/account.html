@@ -3,9 +3,7 @@
 {% block page_content %}
 <section class="section">
     <div class="container">
-    {% for msg in get_flashed_messages() %}
-    <p>{{ msg }}</p>
-    {% endfor %}
+    {% include "messages.html" %}
     <div class="columns">
         <div class="column is-half is-offset-one-quarter">
             <div class="has-text-centered">
@@ -63,6 +61,14 @@
                 <tr>
                     <td>สังกัด</td>
                     <td>{{ current_user.personal_info.org.name }}</td>
+                </tr>
+                <tr>
+                    <td>หัวหน้างาน/ผู้บังคับบัญชา</td>
+                    <td>
+                        {% for approver in approvers %}
+                        {{ approver.account.personal_info }},
+                        {% endfor %}
+                    </td>
                 </tr>
             </table>
         </div>

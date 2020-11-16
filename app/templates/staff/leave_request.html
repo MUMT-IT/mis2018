@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% include "nav.html" %}
+{% include "staff/nav.html" %}
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
@@ -121,12 +121,12 @@
                             ส่งข้อความเตือนในไลน์เมื่อได้รับการพิจารณาจากหัวหน้างาน
                         </label>
                     </div>
-                    <div class="field is-grouped">
+                    <div class="field is-grouped is-grouped-centered">
                         <div class="control">
-                            <input type="submit" value="submit" class="button is-primary"/>
+                            <a href="{{ url_for('staff.show_leave_info') }}" class="button is-light">Cancel</a>
                         </div>
                         <div class="control">
-                            <a href="{{ url_for('staff.show_leave_info') }}" class="button is-danger">Cancel</a>
+                            <input type="submit" value="Submit" class="button is-success"/>
                         </div>
                     </div>
                 </form>

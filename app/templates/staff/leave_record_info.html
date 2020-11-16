@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% include "nav.html" %}
+{% include "staff/nav.html" %}
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
@@ -9,10 +9,15 @@
             </div>
         </div>
         <div class="columns">
-            <div class="column is-half is-offset-one-quarter">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
                 <div class="box">
                     <table class="table">
                         <tr>
+                            <td>
+                                <span class="label">
+                                วันที่
+                                </span>
+                            </td>
                             <td>
                                 {{ req.created_at|localdatetime }}
                             </td>
@@ -80,7 +85,7 @@
                                <label class="label">เหตุผล</label>
                             </td>
                             <td>
-                                {{ req.reason }}
+                                {{ req.reason or '' }}
                             </td>
                         </tr>
                         <tr>
@@ -121,13 +126,17 @@
                                <label class="label">ความคิดเห็นหัวหน้างาน</label>
                             </td>
                             <td>
-                               {% for approver in approvers %}{{ approver.approver.account.personal_info }}: {{ approver.approval_comment }}{% endfor %}
+                                {% for approver in approvers %}{{ approver.approver.account.personal_info }}: <strong>"{{ approver.approval_comment }}"</strong>, {% endfor %}
                             </td>
                         </tr>
                     </table>
                 </div>
-                <hr>
-                    <a href="{{ request.referrer }}" class="button is-info is-light is-rounded">กลับ</a>
+                <a href="{{ request.referrer }}" class="button is-info is-light is-rounded">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
             </div>
         </div>
     </div>

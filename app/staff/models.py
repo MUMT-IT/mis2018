@@ -5,7 +5,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from marshmallow import fields
-from app.models import OrgSchema
+from app.models import Org, OrgSchema
 from datetime import datetime, timedelta
 from app.main import get_weekdays
 import numpy as np
@@ -25,6 +25,10 @@ class StaffAccount(db.Model):
     personal_info = db.relationship("StaffPersonalInfo", backref=db.backref("staff_account", uselist=False))
     line_id = db.Column('line_id', db.String(), index=True, unique=True)
     __password_hash = db.Column('password', db.String(255), nullable=True)
+
+    @property
+    def has_password(self):
+        return self.__password_hash != None
 
     @property
     def password(self):
@@ -62,6 +66,8 @@ class StaffAccount(db.Model):
 class StaffPersonalInfo(db.Model):
     __tablename__ = 'staff_personal_info'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    en_title = db.Column('en_title', db.String())
+    th_title = db.Column('th_title', db.String())
     en_firstname = db.Column('en_firstname', db.String(), nullable=False)
     en_lastname = db.Column('en_lastname', db.String(), nullable=False)
     highest_degree_id = db.Column('highest_degree_id', db.ForeignKey('staff_edu_degree.id'))
@@ -72,12 +78,15 @@ class StaffPersonalInfo(db.Model):
     academic_position_id = db.Column('academic_position_id', db.ForeignKey('staff_academic_position.id'))
     academic_position = db.relationship('StaffAcademicPosition', backref=db.backref('staff_list'))
     org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
-    org = db.relationship('Org', backref=db.backref('staff'))
+    org = db.relationship(Org, backref=db.backref('staff'))
     employed_date = db.Column('employed_date', db.Date(), nullable=True)
     employment_id = db.Column('employment_id',
                               db.ForeignKey('staff_employments.id'))
     employment = db.relationship('StaffEmployment',
                                  backref=db.backref('staff'))
+    finger_scan_id = db.Column('finger_scan_id', db.Integer)
+    academic_staff = db.Column('academic_staff', db.Boolean())
+    retired = db.Column('retired', db.Boolean(), default=False)
 
     def __str__(self):
         return u'{} {}'.format(self.th_firstname, self.th_lastname)
@@ -263,10 +272,8 @@ class StaffLeaveApprover(db.Model):
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     approver_account_id = db.Column('approver_account_id', db.ForeignKey('staff_account.id'))
     is_active = db.Column('is_active', db.Boolean(), default=True)
-    requester = db.relationship('StaffAccount',
-                            foreign_keys=[staff_account_id])
-    account = db.relationship('StaffAccount',
-                               foreign_keys=[approver_account_id])
+    requester = db.relationship('StaffAccount', foreign_keys=[staff_account_id])
+    account = db.relationship('StaffAccount', foreign_keys=[approver_account_id])
     notified_by_line = db.Column('notified_by_line', db.Boolean(), default=True)
 
 
@@ -417,3 +424,14 @@ class StaffSeminar(db.Model):
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     staff = db.relationship('StaffAccount',
                             backref=db.backref('seminar_request'))
+    
+    
+class StaffWorkLogin(db.Model):
+    __tablename__ = 'staff_work_logins'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', backref=db.backref('work_logins'))
+    start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
+    end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
+    checkin_mins = db.Column('checkin_mins', db.Integer())
+    checkout_mins = db.Column('checkout_mins', db.Integer())

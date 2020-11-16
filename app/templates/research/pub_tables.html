@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+{% block title %}Research Publications{% endblock %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                <b-table
+                        :data="articles"
+                        ref="table"
+                        paginated
+                        per-page="10"
+                        detailed
+                        detail-key="id"
+                        :show-detail-icon="showDetailIcon"
+                        aria-next-label="Next page"
+                        aria-previous-label="Previous page"
+                        aria-page-label="Page"
+                        aria-current-label="Current page">
+
+                    <template slot-scope="props">
+                        <b-table-column field="cover_date" label="Date" sortable centered>
+                            <% new Date(props.row.cover_date).toLocaleDateString() %>
+                            <small>
+                                (<% moment(props.row.cover_date).fromNow() %>)
+                            </small>
+                        </b-table-column>
+                        <b-table-column field="publication_name" label="Publication Name" sortable>
+                            <template>
+                                <% props.row.publication_name %>
+                            </template>
+                        </b-table-column>
+
+                        <b-table-column field="title" label="Title" sortable>
+                            <template v-if="showDetailIcon">
+                                <% props.row.title %> <a target="_blank" :href="props.row.scopus_link">
+                                <span>Read</span>
+                                <span class="icon">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </span>
+                            </a>
+                                <small v-for="author in props.row.authors" :key="author.id">
+                                    <a :href="'/research/view/author/'+ author.personal_info_id" v-if="author.personal_info_id">
+                                            <span class="icon">
+                                                <i class="fas fa-user"></i>
+                                            </span>
+                                        <span>
+                                                <% author.lastname %>, <% author.firstname %>;
+                                            </span>
+                                    </a>
+                                    <span v-else>
+                                            <% author.lastname %>, <% author.firstname %>;
+                                        </span>
+                                </small>
+                            </template>
+                        </b-table-column>
+
+                        <b-table-column field="citedby_count" label="Cited" numeric sortable>
+                            <% props.row.citedby_count %>
+                        </b-table-column>
+                    </template>
+
+                    <template slot="detail" slot-scope="props">
+                        <article class="media">
+                            <div class="media-content">
+                                <div class="content">
+                                    <p>
+                                        <small>
+                                            <% props.row.abstract %>
+                                        </small>
+                                    </p>
+                                </div>
+                            </div>
+                        </article>
+                    </template>
+                    <template slot="empty">
+                        <section class="section">
+                            <div class="content has-text-grey has-text-centered">
+                                <p>
+                                    <b-icon
+                                            pack="fas"
+                                            icon="sync-alt"
+                                            custom-class="fa-spin"
+                                            size="is-large">
+                                    </b-icon>
+                                </p>
+                            </div>
+                        </section>
+                    </template>
+                </b-table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block footer %}
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script>
+    google.charts.load('current', {'packages':['corechart', 'bar']});
+    new Vue({
+        delimiters: ['<%', '%>'],
+        el: '#app',
+        data() {
+            return {
+                articles: [],
+                showDetailIcon: true,
+                year: null,
+                years: [],
+                currentYear: null,
+                totalArticles: 0,
+                ratio: {},
+            }
+        },
+        methods: {
+            loadArticles: function() {
+                let self = this
+                this.articles = []
+                axios.get('/research/api/articles', { params: { year: this.currentYear }})
+                    .then((resp)=>{
+                        resp.data.forEach((d)=>{
+                            self.articles.push(d)
+                        })
+                        self.currentYear = new Date(resp.data[0].cover_date).getFullYear()
+                    })
+            }
+        },
+        watch: {
+            currentYear: function(val, oldVal) {
+                this.loadArticles()
+            }
+        },
+        mounted() {
+            this.loadArticles()
+        }
+    })
+</script>
+{% endblock %}
