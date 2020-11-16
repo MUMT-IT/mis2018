@@ -10,7 +10,7 @@
                 <figure class="image is-64x64 is-inline-block">
                     <img class="is-rounded" src="{{ line_profile['pictureUrl'] }}">
                 </figure>
-            %}
+            {% endif %}
             {{ current_user.personal_info }}
         </h1>
         <h4 class="subtitle">สถานะการจ้าง {{ current_user.personal_info.employment.title }}</h4>
