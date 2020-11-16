@@ -3,8 +3,21 @@
 {% block page_content %}
 <section class="section" id="app">
     <div class="container">
-        <h1 class="title">Welcome {{ current_user.personal_info }}</h1>
+        <div class="columns">
+            <div class="column is-offset-2 is-two-thirds">
+        <h1 class="title">
+            {% if line_profile %}
+                <figure class="image is-64x64 is-inline-block">
+                    <img class="is-rounded" src="{{ line_profile['pictureUrl'] }}">
+                </figure>
+            %}
+            {{ current_user.personal_info }}
+        </h1>
         <h4 class="subtitle">สถานะการจ้าง {{ current_user.personal_info.employment.title }}</h4>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column box is-offset-2 is-two-thirds">
         <table class="table is-fullwidth">
             <thead>
             <th>ประเภทการลา</th>
@@ -37,15 +50,28 @@
             {% endfor %}
             </tbody>
         </table>
+        {% if approver %}
         <a href="{{ url_for('staff.show_leave_approval_info') }}" class="button is-link">สำหรับหัวหน้างาน</a>
-        <div class="has-text-right">
-            <span><a href="https://www.youtube.com/watch?v=RkVng_7uEJo&list=PLj2Y10sMkAa_EGhZdZzIVcup53UzTcPL4">
-                วีดีโอสาธิตใช้งาน</a></span>
+        {% endif %}
         </div>
-        <div class="has-text-right">
-            <span>----------------- <br> พบปัญหาเกี่ยวกับระบบ
-                                    <br>ติดต่อ napatsakorn.pis@mahidol.ac.th หรือโทรศัพท์ภายใน 2845</span>
         </div>
+        <div class="has-text-centered">
+            <span>พบปัญหาเกี่ยวกับระบบ
+                <br>ติดต่อ napatsakorn.pis@mahidol.ac.th หรือโทรศัพท์ภายใน 2845
+            </span>
+        </div>
+    </div>
+    </div>
+</section>
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <h1 class="title is-size-4">วิดีโอสาธิตการใช้งานระบบลาออนไลน์</h1>
+                <div class="box">
+                    <iframe width="560" height="315" src="https://www.youtube.com/embed/RkVng_7uEJo" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+            </div>
         </div>
     </div>
 </section>

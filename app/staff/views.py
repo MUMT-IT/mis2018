@@ -6,7 +6,7 @@ from models import *
 from . import staffbp as staff
 from app.main import db, get_weekdays, mail
 from app.models import Holidays, Org
-from flask import jsonify, render_template, request, redirect, url_for, flash
+from flask import jsonify, render_template, request, redirect, url_for, flash, session
 from datetime import date, datetime
 from collections import defaultdict, namedtuple
 import pytz
@@ -149,7 +149,11 @@ def show_leave_info():
                 quota_limit = quota.first_year if not quota.min_employed_months else 0
         quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit)
 
-    return render_template('staff/leave_info.html', cum_days=cum_days, pending_days=pending_days, quota_days=quota_days)
+    return render_template('staff/leave_info.html',
+                           line_profile=session.get('line_profile'),
+                           cum_days=cum_days,
+                           pending_days=pending_days,
+                           quota_days=quota_days)
 
 
 @staff.route('/leave/request/quota/<int:quota_id>',
@@ -658,9 +662,14 @@ def show_leave_approval_info():
                         <= END_FISCAL_DATE.date():
                     cum_periods[leave_request.quota.leave_type] += leave_request.total_leave_days
         requester_cum_periods[requester] = cum_periods
-    line_notified = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first().notified_by_line
+    approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
+    if approver:
+        line_notified = approver.notified_by_line
+    else:
+        return redirect(url_for('staff.show_leave_info'))
     return render_template('staff/leave_request_approval_info.html',
                            requesters=requesters,
+                           approver=approver,
                            requester_cum_periods=requester_cum_periods,
                            leave_types=leave_types, line_notified=line_notified)
 
