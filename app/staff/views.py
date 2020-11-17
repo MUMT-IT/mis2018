@@ -1,15 +1,12 @@
 # -*- coding:utf-8 -*-
 from flask_login import login_required, current_user
+from pandas import read_excel, isna
 
-from models import (StaffAccount, StaffPersonalInfo,
-                    StaffLeaveRequest, StaffLeaveQuota, StaffLeaveApprover, StaffLeaveApproval, StaffLeaveType,
-                    StaffWorkFromHomeRequest, StaffLeaveRequestSchema,
-                    StaffWorkFromHomeJobDetail, StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
-                    StaffWorkFromHomeCheckedJob, StaffWorkFromHomeRequestSchema, StaffLeaveRemainQuota, StaffSeminar)
+from models import *
 from . import staffbp as staff
 from app.main import db, get_weekdays, mail
 from app.models import Holidays, Org
-from flask import jsonify, render_template, request, redirect, url_for, flash
+from flask import jsonify, render_template, request, redirect, url_for, flash, session
 from datetime import date, datetime
 from collections import defaultdict, namedtuple
 import pytz
@@ -22,6 +19,9 @@ from pydrive.drive import GoogleDrive
 import requests
 import os
 from flask_mail import Message
+from flask_admin import BaseView, expose
+
+from ..comhealth.views import allowed_file
 
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -149,7 +149,11 @@ def show_leave_info():
                 quota_limit = quota.first_year if not quota.min_employed_months else 0
         quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit)
 
-    return render_template('staff/leave_info.html', cum_days=cum_days, pending_days=pending_days, quota_days=quota_days)
+    return render_template('staff/leave_info.html',
+                           line_profile=session.get('line_profile'),
+                           cum_days=cum_days,
+                           pending_days=pending_days,
+                           quota_days=quota_days)
 
 
 @staff.route('/leave/request/quota/<int:quota_id>',
@@ -658,9 +662,14 @@ def show_leave_approval_info():
                         <= END_FISCAL_DATE.date():
                     cum_periods[leave_request.quota.leave_type] += leave_request.total_leave_days
         requester_cum_periods[requester] = cum_periods
-    line_notified = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first().notified_by_line
+    approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
+    if approver:
+        line_notified = approver.notified_by_line
+    else:
+        return redirect(url_for('staff.show_leave_info'))
     return render_template('staff/leave_request_approval_info.html',
                            requesters=requesters,
+                           approver=approver,
                            requester_cum_periods=requester_cum_periods,
                            leave_types=leave_types, line_notified=line_notified)
 
@@ -1204,22 +1213,32 @@ def time_scan():
     return render_template('staff/scan_data_upload_and_report.html')
 
 
-@staff.route('/for-hr/time-scan/calculate')
-@login_required
-def calculate_time_scan(workdata):
+class LoginDataUploadView(BaseView):
+    @expose('/')
+    def index(self):
+        return self.render('staff/login_datetime_upload.html')
+
+    def calculate(self, row):
         DATETIME_FORMAT = '%d/%m/%Y %H:%M'
-        if workdata.Time:
-            start, end = workdata.Time.split()[0], workdata.Time.split()[-1]
+        office_starttime = '09:00'
+        office_endtime = '16:30'
+
+        if not isna(row.Time):
+            account = StaffPersonalInfo.query.filter_by(finger_scan_id=row.ID).first()
+            if not account:
+                return
+
+            start, end = row.Time.split()[0], row.Time.split()[-1]
+
             if start != end:
-                start_dt = datetime.strptime(u'{} {}'.format(workdata.Date, start), DATETIME_FORMAT)
-                end_dt = datetime.strptime(u'{} {}'.format(workdata.Date, end), DATETIME_FORMAT)
+                start_dt = datetime.strptime(u'{} {}'.format(row.Date, start), DATETIME_FORMAT)
+                end_dt = datetime.strptime(u'{} {}'.format(row.Date, end), DATETIME_FORMAT)
             else:
-                other_dt = datetime.strptime(u'{} {}'.format(workdata.Date, start), DATETIME_FORMAT)
-                status = "Unidentified"
-            office_starttime = '09:00'
-            office_endtime = '16:30'
-            office_startdt = datetime.strptime(u'{} {}'.format(workdata.Date, office_starttime), DATETIME_FORMAT)
-            office_enddt = datetime.strptime(u'{} {}'.format(workdata.Date, office_endtime), DATETIME_FORMAT)
+                start_dt = datetime.strptime(u'{} {}'.format(row.Date, start), DATETIME_FORMAT)
+                end_dt = None
+            office_startdt = datetime.strptime(u'{} {}'.format(row.Date, office_starttime), DATETIME_FORMAT)
+            office_enddt = datetime.strptime(u'{} {}'.format(row.Date, office_endtime), DATETIME_FORMAT)
+
             if start_dt:
                 if office_startdt > start_dt:
                     morning = office_startdt - start_dt
@@ -1227,7 +1246,7 @@ def calculate_time_scan(workdata):
                 else:
                     morning = start_dt - office_startdt
                     morning = morning.seconds / 60.0
-                #status = "Late" if morning > 0 else "On time"
+                # status = "Late" if morning > 0 else "On time"
             if end_dt:
                 if office_enddt < end_dt:
                     evening = end_dt - office_enddt
@@ -1235,16 +1254,39 @@ def calculate_time_scan(workdata):
                 else:
                     evening = office_enddt - end_dt
                     evening = (evening.seconds / 60.0) * -1
-                #status = "Off early" if evening < 0 else "On time"
-        else:
-            d = datetime.strptime(workdata.Date, '%d/%m/%Y')
-            if d.weekday() >= 5:
-                status = "Weekend"
-            holidays = Holidays.query.filter_by(Holidays.holiday_date >= d).all()
-            if len(holidays) >0:
-                status = "Holiday"
+                # status = "Off early" if evening < 0 else "On time"
+            if start_dt and end_dt:
+                record = StaffWorkLogin(
+                    staff=account.staff_account,
+                    start_datetime=tz.localize(start_dt),
+                    end_datetime=tz.localize(end_dt),
+                    checkin_mins=morning,
+                    checkout_mins=evening
+                )
             else:
-                status = "No scan"
+                record = StaffWorkLogin(
+                    staff=account.staff_account,
+                    start_datetime=tz.localize(start_dt),
+                    checkin_mins=morning,
+                )
+            db.session.add(record)
+            db.session.commit()
+
+
+    @expose('/upload', methods=['GET', 'POST'])
+    def upload(self):
+        if request.method == 'POST':
+            if 'file' not in request.files:
+                flash('No file alert')
+                return redirect(request.url)
+            file = request.files['file']
+            if file.filename == '':
+                flash('No file selected')
+                return redirect(request.url)
+            if file and allowed_file(file.filename):
+                df = read_excel(file, dtype=object)
+                df.apply(self.calculate, axis=1)
+        return 'Done'
 
 
 @staff.route('/summary')
@@ -1272,7 +1314,46 @@ def summary_index():
     leaves = []
     wfhs = []
     seminars = []
+    logins = []
     for emp in employees:
+        if tab == 'login' or tab == 'all':
+            fiscal_years = StaffWorkLogin.query.distinct(func.date_part('YEAR', StaffWorkLogin.start_datetime))
+            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
+            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
+            border_color = '#ffffff'
+            for rec in StaffWorkLogin.query.filter_by(staff=emp) \
+                    .filter(StaffWorkLogin.start_datetime.between(start_fiscal_date, end_fiscal_date)):
+                text_color = '#ffffff'
+                if (rec.checkin_mins < 0) or (rec.checkout_mins > 0):
+                    bg_color = '#4da6ff'
+                    status = ''
+                if rec.end_datetime is None:
+                    status = '???'
+                    text_color = '#000000'
+                    bg_color = '#ffff66'
+                elif rec.checkin_mins > 0 and rec.checkout_mins < 0:
+                    status = u'สาย/ออกก่อน'
+                    bg_color = '#ff5c33'
+                elif rec.checkin_mins > 0:
+                    status = u'เข้าสาย'
+                    text_color = '#000000'
+                    bg_color = '#ffff66'
+                elif rec.checkout_mins < 0:
+                    status = u'ออกก่อน'
+                    text_color = '#000000'
+                    bg_color = '#ffff66'
+                logins.append({
+                    'id': rec.id,
+                    'start': rec.start_datetime.astimezone(tz).isoformat(),
+                    'end': None if rec.end_datetime is None else rec.end_datetime.astimezone(tz).isoformat(),
+                    'title': u'{} {}'.format(emp.th_firstname, status),
+                    'backgroundColor': bg_color,
+                    'borderColor': border_color,
+                    'textColor': text_color,
+                    'type': 'login'
+                })
+            all = logins
+
         if tab == 'leave' or tab == 'all':
             fiscal_years = StaffLeaveRequest.query.distinct(func.date_part('YEAR', StaffLeaveRequest.start_datetime))
             fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
@@ -1286,19 +1367,20 @@ def summary_index():
                         border_color = '#ffffff'
                     else:
                         text_color = '#989898'
-                        bg_color = '#e6ffe6'
+                        bg_color = '#d1e0e0'
                         border_color = '#ffffff'
                     leaves.append({
                         'id': leave_req.id,
                         'start': leave_req.start_datetime.astimezone(tz).isoformat(),
                         'end': leave_req.end_datetime.astimezone(tz).isoformat(),
-                        'title': emp.th_firstname + "-" + " " +leave_req.quota.leave_type.type_,
+                        'title': u'{} {}'.format(emp.th_firstname, leave_req.quota.leave_type),
                         'backgroundColor': bg_color,
                         'borderColor': border_color,
                         'textColor': text_color,
-                        'type' : 'leave'
+                        'type': 'leave'
                     })
             all = leaves
+
         if tab == 'wfh' or tab == 'all':
             fiscal_years = StaffWorkFromHomeRequest.query.distinct(
                 func.date_part('YEAR', StaffWorkFromHomeRequest.start_datetime))
@@ -1348,10 +1430,12 @@ def summary_index():
                         'type': 'smr'
                     })
             all = seminars
+            
     if tab == 'all':
-        all = wfhs + leaves + seminars
+        all = wfhs + leaves + logins + seminars
 
-    return render_template('staff/summary_index.html', init_date=init_date,
+    return render_template('staff/summary_index.html',
+                           init_date=init_date,
                            depts=depts, curr_dept_id=int(curr_dept_id),
                            all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
 

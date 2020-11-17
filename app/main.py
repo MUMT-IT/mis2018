@@ -2,6 +2,7 @@
 import os
 import click
 import arrow
+import pandas
 import requests
 from pytz import timezone
 from flask.cli import AppGroup
@@ -15,8 +16,19 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from wtforms.validators import required
-from datetime import timedelta
+from datetime import timedelta, datetime
 from flask_mail import Mail
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+
+scope = ['https://spreadsheets.google.com/feeds',
+         'https://www.googleapis.com/auth/drive']
+
+
+def get_credential(json_keyfile):
+    credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scope)
+    return gspread.authorize(credentials)
+
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -76,13 +88,13 @@ def get_weekdays(req):
     while n <= delta.days:
         d = req.start_datetime + timedelta(n)
         if d.weekday() < 5:
-            #if holidays and d not in holidays:
+            # if holidays and d not in holidays:
             weekdays += 1
         n += 1
     if delta.days == 0:
         if delta.seconds == 0:
             return weekdays
-        if delta.seconds/3600 < 8:
+        if delta.seconds / 3600 < 8:
             if weekdays == 0:
                 return 0
             else:
@@ -147,25 +159,29 @@ admin.add_views(ModelView(ParasiteTest, db.session, category='Food'))
 from research import researchbp as research_blueprint
 
 app.register_blueprint(research_blueprint, url_prefix='/research')
-from research.models import ResearchPub
+from research.models import *
+
+admin.add_views(ModelView(ResearchPub, db.session, category='Research'))
+admin.add_views(ModelView(Author, db.session, category='Research'))
 
 from staff import staffbp as staff_blueprint
 
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
 from staff.models import (StaffAccount, StaffPersonalInfo,
+                          StaffAcademicPosition,
                           StaffLeaveApprover, StaffLeaveQuota,
                           StaffLeaveRequest, StaffLeaveType,
                           StaffLeaveApproval, StaffEmployment,
                           StaffWorkFromHomeRequest, StaffWorkFromHomeJobDetail,
                           StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
-                          StaffWorkFromHomeCheckedJob, StaffLeaveRemainQuota, StaffSeminar)
+                          StaffWorkFromHomeCheckedJob, StaffLeaveRemainQuota, StaffSeminar, StaffWorkLogin)
 
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
+admin.add_views(ModelView(StaffAcademicPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffEmployment, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveType, db.session, category='Staff'))
-admin.add_views(ModelView(StaffLeaveRequest, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveQuota, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveApprover, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveApproval, db.session, category='Staff'))
@@ -176,6 +192,24 @@ admin.add_views(ModelView(StaffWorkFromHomeApproval, db.session, category='Staff
 admin.add_views(ModelView(StaffWorkFromHomeCheckedJob, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveRemainQuota, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminar, db.session, category='Staff'))
+admin.add_views(ModelView(StaffWorkLogin, db.session, category='Staff'))
+
+
+class StaffLeaveRequestModelView(ModelView):
+    can_export = True
+
+
+admin.add_views(StaffLeaveRequestModelView(StaffLeaveRequest,
+                                           db.session,
+                                           category='Staff'))
+
+from app.staff.views import LoginDataUploadView
+
+admin.add_view(LoginDataUploadView(
+    name='Upload login data',
+    endpoint='login_data',
+    category='Human Resource')
+)
 
 from room_scheduler import roombp as room_blueprint
 
@@ -204,6 +238,7 @@ app.register_blueprint(auth_blueprint, url_prefix='/auth')
 from models import (Student, Class, ClassCheckIn,
                     Org, Mission, IOCode, CostCenter,
                     StudentCheckInRecord, Holidays)
+
 admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
 
 from line import linebot_bp as linebot_blueprint
@@ -326,8 +361,8 @@ admin.add_view(ComHealthTestModelView(ComHealthTest, db.session, category='Com H
 admin.add_view(ComHealthContainerModelView(ComHealthContainer, db.session, category='Com Health'))
 admin.add_view(ComHealthDepartmentModelView(ComHealthDepartment, db.session, category='Com Health'))
 
-
 from smartclass_scheduler import smartclass_scheduler_blueprint
+
 app.register_blueprint(smartclass_scheduler_blueprint, url_prefix='/smartclass')
 from smartclass_scheduler.models import (SmartClassOnlineAccount,
                                          SmartClassResourceType,
@@ -354,6 +389,106 @@ def populatedb():
 
 
 from database import load_students
+
+
+@dbutils.command('add-update-staff-gsheet')
+def add_update_staff_gsheet():
+    sheetid = '17lUlFNYk5znYqXL1vVCmZFtgTcjGvlNRZIlaDaEhy5E'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("index")
+    df = pandas.DataFrame(sheet.get_all_records())
+    df['employed'] = df.empdate.map(lambda x: datetime(*[int(x) for x in x.split('-')]))
+    employments = {}
+    orgs = {}
+    for org in Org.query.all():
+        orgs[org.name] = org
+    for emp in StaffEmployment.query.all():
+        employments[emp.title] = emp
+    for idx, row in df.iterrows():
+        account = StaffAccount.query.filter_by(email=row['e-mail']).first()
+        if not account:
+            account = StaffAccount(email=row['e-mail'])
+            print('{} new account created..'.format(account.email))
+        if not account.personal_info:
+            personal_info = StaffPersonalInfo(
+                th_firstname=row['firstname'],
+                th_lastname=row['lastname'],
+                en_firstname='-',
+                en_lastname='-',
+                employed_date=row['employed'],
+                employment=employments[row['emptype']]
+            )
+            account.personal_info = personal_info
+            db.session.add(personal_info)
+        else:
+            account.personal_info.employed_date = row['employed']
+            account.personal_info.employment = employments[row['emptype']]
+
+        if row['unit'] and orgs.get(row['unit']):
+            account.personal_info.org = orgs[row['unit']]
+        elif row['dept'] and orgs.get(row['dept']):
+            account.personal_info.org = orgs[row['dept']]
+
+        db.session.add(account)
+        db.session.commit()
+        print('{} has been added/updated'.format(account.email))
+
+
+@dbutils.command('update-remaining-leave-quota')
+def update_remaining_leave_quota():
+    sheetid = '17lUlFNYk5znYqXL1vVCmZFtgTcjGvlNRZIlaDaEhy5E'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("remain")
+    df = pandas.DataFrame(sheet.get_all_records())
+    for idx, row in df.iterrows():
+        account = StaffAccount.query.filter_by(email=row['e-mail']).first()
+        if account and account.personal_info:
+            quota = StaffLeaveQuota.query.filter_by(leave_type_id=1,
+                                                    employment=account.personal_info.employment).first()
+            remain_quota = StaffLeaveRemainQuota.query.filter_by(quota=quota, staff=account).first()
+            if not remain_quota:
+                remain_quota = StaffLeaveRemainQuota(quota=quota)
+                account.remain_quota.append(remain_quota)
+            remain_quota.year = row['year']
+            remain_quota.last_year_quota = row['quota']
+            db.session.add(account)
+            db.session.commit()
+            # print('{} updated..'.format(row['e-mail']))
+        else:
+            print('{} not found..'.format(row['e-mail']))
+
+
+@dbutils.command('update-approver-gsheet')
+def update_approver_gsheet():
+    sheetid = '17lUlFNYk5znYqXL1vVCmZFtgTcjGvlNRZIlaDaEhy5E'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("approver")
+    df = pandas.DataFrame(sheet.get_all_records())
+    for idx, row in df.iterrows():
+        account = StaffAccount.query.filter_by(email=row['e-mail']).first()
+        if not account:
+            print('{} not found'.format(row['e-mail']))
+            continue
+        approver1 = StaffAccount.query.filter_by(email=row['approver1']).first()
+        approver2 = StaffAccount.query.filter_by(email=row['approver2']).first()
+        ap1 = StaffLeaveApprover.query.filter_by(staff_account_id=account.id,
+                                                 approver_account_id=approver1.id).first()
+        if not ap1:
+            ap1 = StaffLeaveApprover(requester=account, account=approver1)
+            db.session.add(ap1)
+        if row['approver1'] != row['approver2']:
+            ap2 = StaffLeaveApprover.query.filter_by(staff_account_id=account.id,
+                                                     approver_account_id=approver2.id).first()
+            if not ap2:
+                ap2 = StaffLeaveApprover(requester=account, approver=approver2)
+                db.session.add(ap2)
+        db.session.commit()
 
 
 @dbutils.command('import_student')
@@ -479,8 +614,8 @@ def convert_date_to_js_datetime(select_dates, single=False):
 def check_all_approval(leave_requests, approver_id):
     for req in leave_requests:
         approval = StaffLeaveApproval.query.filter_by(
-                                    request_id=req.id,
-                                    approver_id=approver_id).first()
+            request_id=req.id,
+            approver_id=approver_id).first()
         if approval:
             continue
         else:
@@ -502,19 +637,18 @@ def check_approval(leave_request, approver_id):
 @app.template_filter("checkwfhapprovals")
 def check_wfh_approval(wfh_request, approver_id):
     approvals = StaffWorkFromHomeApproval.query.filter_by(request_id=wfh_request.id,
-                                                   approver_id=approver_id,
-                                                   ).first()
+                                                          approver_id=approver_id,
+                                                          ).first()
     if approvals:
         return True
     else:
         return False
 
 
-
-
 @app.template_filter("getweekdays")
 def count_weekdays(req):
     return get_weekdays(req)
+
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host="0.0.0.0")
