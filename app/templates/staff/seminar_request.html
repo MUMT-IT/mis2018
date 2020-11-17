@@ -14,7 +14,9 @@
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
-                    <p class="title">หากวันอบรมอยู่ในช่วง2ปีงบฯ ให้แยกบันทึก และลงท้ายชื่อหัวข้อว่า (ต่อ)</p>
+                     <b-notification type="is-warning is-light" aria-close-label="Close notification" role="alert">
+                        หากวันอบรมอยู่ในช่วง2ปีงบฯ ให้บันทึกครั้งเดียว
+                     </b-notification>
                 <form method="post" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <div class="field">
