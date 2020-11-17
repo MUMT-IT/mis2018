@@ -26,10 +26,11 @@
                         </div>
                     </div>
                     <b-field label="รหัส ชื่อ-นามสกุล" message="สามารถค้นหาด้วยชื่อ นามสกุล">
+                        ชื่อ <% staffNameSelected %>
                         <b-autocomplete v-model="staffquery" :data="data" name="staffname"
                                         field="id" :loading="isFetching" icon="magnify"
                                         @keyup.native="getAsyncData"
-                                        @select="option => staffname = option.id" required>
+                                        @select="option => staffname = option.fullname" required>
                             <template slot-scope="props">
                                 <div class="media">
                                     <div class="media-content">
@@ -161,6 +162,16 @@
                 payment: "unpaid",
                 stime: "fulltime",
                 data: []
+            }
+        },
+        computed: {
+            staffNameSelected: function(){
+                if ( this.staffquery !== "" ){
+                    return this.staffname
+                }
+                else{
+                    return "-"
+                }
             }
         },
         methods: {
