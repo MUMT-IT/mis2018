@@ -1477,3 +1477,9 @@ def cancel_seminar_record(smr_id):
     db.session.add(smr)
     db.session.commit()
     return redirect(request.referrer)
+
+
+@staff.route('/time-report/report')
+@login_required
+def show_time_report():
+    return render_template('staff/time_report.html')
