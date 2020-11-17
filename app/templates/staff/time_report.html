@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        <h1 class="title">Welcome {{ current_user.personal_info }}</h1>
+        <h4 class="subtitle">ตารางแสดงการเข้าออกงานประจำเดือน</h4>
+        <table class="table is-fullwidth">
+            <thead>
+            <th>เวลาเข้างาน</th>
+            <th>เวลาออกงาน</th>
+            <th>สถานะ</th>
+            <th colspan="2">เหตุผล</th>
+            </thead>
+            <tbody>
+            <tr>
+                <td></td>
+                <td></td>
+                <td></td>
+                <td><a class="button is-rounded is-info is-light" href="">เพิ่มเหตุผล</a>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+    });
+</script>
+{% endblock %}
