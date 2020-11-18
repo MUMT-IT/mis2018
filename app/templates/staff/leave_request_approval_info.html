@@ -38,18 +38,20 @@
                             [{{ leave_req.quota.leave_type}}] ตั้งแต่ {{ leave_req.start_datetime|localdatetime }} ({{
                             leave_req.total_leave_days }} วัน)
                         </td>
-                        {% if leave_req.approvals|length %}
+                        {% if leave_req.approvals|length  %}
                         <td>
                             {% for ap in leave_req.approvals %}
-                            {{ ap.approver.account.personal_info.fullname }}
-                            {% if ap.is_approved %}
-                            <span class="icon">
-                            <i class="fas has-text-success fa-check-circle"></i>
-                        </span>
-                            {% else %}
-                            <span class="icon">
-                            <i class="far has-text-danger fa-times-circle"></i>
-                        </span>
+                            {% if ap.approver %}
+                                {{ ap.approver.account.personal_info.fullname }}
+                                {% if ap.is_approved %}
+                                <span class="icon">
+                                <i class="fas has-text-success fa-check-circle"></i>
+                                </span>
+                                    {% else %}
+                                    <span class="icon">
+                                    <i class="far has-text-danger fa-times-circle"></i>
+                                </span>
+                                {% endif %}
                             {% endif %}
                             {% endfor %}
                         </td>
