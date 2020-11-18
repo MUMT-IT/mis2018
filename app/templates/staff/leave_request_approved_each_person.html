@@ -22,7 +22,7 @@
             </thead>
             <tbody>
             {% for requester in requester|sort(attribute='start_datetime') %}
-            {% if not requester.cancelled_at and requester.get_approved or requester.get_unapproved %}
+            {% if not requester.cancelled_at and (requester.get_approved or requester.get_unapproved) %}
             <tr>
                 <td>
                     {{ requester.start_datetime|localdate }}
