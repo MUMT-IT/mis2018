@@ -27,7 +27,7 @@
             <th colspan="2">ขออนุมัติ</th>
             </thead>
             <tbody>
-            {% for type,quota in quota_days.iteritems() %}
+            {% for type,quota in quota_days.iteritems()|sort %}
             <tr>
                 <td>
                     <b-tooltip label="คลิ๊กเพื่อดูประวัติ" type="is-light">
