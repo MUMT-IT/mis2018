@@ -148,12 +148,13 @@ def show_leave_info():
             else:
                 quota_limit = quota.first_year if not quota.min_employed_months else 0
         quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit)
-
+    approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
     return render_template('staff/leave_info.html',
                            line_profile=session.get('line_profile'),
                            cum_days=cum_days,
                            pending_days=pending_days,
-                           quota_days=quota_days)
+                           quota_days=quota_days,
+                           approver=approver)
 
 
 @staff.route('/leave/request/quota/<int:quota_id>',
