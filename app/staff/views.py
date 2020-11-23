@@ -1572,3 +1572,9 @@ def cancel_seminar_record(smr_id):
 @login_required
 def show_time_report():
     return render_template('staff/time_report.html')
+
+
+@staff.route('/for-hr/staff-info')
+@login_required
+def staff_index():
+    return render_template('staff/staff_index.html')
