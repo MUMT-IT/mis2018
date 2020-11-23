@@ -92,6 +92,17 @@
                                 {% endif %}
                             </td>
                         </tr>
+                        <tr>
+                            <td>
+                               <label class="label">ความคิดเห็นหัวหน้างาน</label>
+                            </td>
+                            <td>
+                                {% for approver in approvers %}
+                                {{ approver.approver.account.personal_info }}:
+                                <strong>"{{ approver.approval_comment }}"</strong>,
+                                {% endfor %}
+                            </td>
+                        </tr>
                         {% if req.quota.leave_type.type_ == 'ลาป่วย' and req.upload_file_url %}
                         <tr>
                             <td>

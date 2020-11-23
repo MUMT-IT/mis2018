@@ -695,6 +695,7 @@ def pending_leave_approval(req_id):
     req = StaffLeaveRequest.query.get(req_id)
     approver = StaffLeaveApprover.query.filter_by(account=current_user, requester=req.staff).first()
     approve = StaffLeaveApproval.query.filter_by(approver=approver, request=req).first()
+    approvers = StaffLeaveApproval.query.filter_by(request_id=req_id)
     if approve:
         return render_template('staff/leave_approve_status.html',approve=approve, req=req)
     if req.upload_file_url:
@@ -712,7 +713,7 @@ def pending_leave_approval(req_id):
             break
         else:
             last_req = None
-    return render_template('staff/leave_request_pending_approval.html', req=req, approver=approver,
+    return render_template('staff/leave_request_pending_approval.html', req=req, approver=approver, approvers=approvers,
                            upload_file_url=upload_file_url, used_quota=used_quota, last_req=last_req)
 
 
