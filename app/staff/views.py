@@ -273,13 +273,14 @@ def request_for_leave(quota_id=None):
                                start_datetime, end_datetime,
                                url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
                     for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
-                        if approver.notified_by_line and approver.account.line_id:
-                            if os.environ["FLASK_ENV"] == "production":
-                                line_bot_api.push_message(to=approver.account.line_id,
+                        if approver.is_active:
+                            if approver.notified_by_line and approver.account.line_id:
+                                if os.environ["FLASK_ENV"] == "production":
+                                    line_bot_api.push_message(to=approver.account.line_id,
                                                           messages=TextSendMessage(text=req_msg))
-                            else:
-                                print(req_msg, approver.account.id)
-                        mails.append(approver.account.email+"@mahidol.ac.th")
+                                else:
+                                    print(approver.account.id)
+                            mails.append(approver.account.email+"@mahidol.ac.th")
                     if os.environ["FLASK_ENV"] == "production":
                         send_mail(mails, req_title, req_msg)
                     return redirect(url_for('staff.show_leave_info'))
@@ -367,13 +368,14 @@ def request_for_leave_period(quota_id=None):
                                start_datetime, end_datetime,
                                url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
                     for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
-                        if approver.notified_by_line and approver.account.line_id:
-                            if os.environ["FLASK_ENV"] == "production":
-                                line_bot_api.push_message(to=approver.account.line_id,
+                        if approver.is_active:
+                            if approver.notified_by_line and approver.account.line_id:
+                                if os.environ["FLASK_ENV"] == "production":
+                                    line_bot_api.push_message(to=approver.account.line_id,
                                                       messages=TextSendMessage(text=req_msg))
-                            else:
-                                print(req_msg, approver.account.id)
-                        mails.append(approver.account.email + "@mahidol.ac.th")
+                                else:
+                                    print(req_msg, approver.account.id)
+                            mails.append(approver.account.email + "@mahidol.ac.th")
                     if os.environ["FLASK_ENV"] == "production":
                         send_mail(mails, req_title, req_msg)
                     return redirect(url_for('staff.show_leave_info'))
