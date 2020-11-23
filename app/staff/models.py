@@ -417,6 +417,7 @@ class StaffSeminar(db.Model):
     topic_type = db.Column('topic_type', db.String())
     topic = db.Column('topic', db.String())
     role = db.Column('role', db.String())
+    mission = db.Column('mission', db.String())
     location = db.Column('location', db.String())
     country = db.Column('country', db.String())
     budget_type = db.Column('budget_type', db.String())

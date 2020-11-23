@@ -1482,6 +1482,7 @@ def add_seminar_record():
         req.topic_type = form.get('topic_type')
         req.topic = form.get('topic')
         req.role = form.get('role')
+        req.mission = form.get('mission')
         req.location = form.get('location')
         req.country = form.get('country')
         req.budget_type = form.get('budget_type')

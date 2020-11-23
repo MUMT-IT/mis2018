@@ -69,6 +69,7 @@
                         <b-select placeholder="เลือกประเภท" name="topic_type" required>
                             <option value="ประชุม">ประชุม</option>
                             <option value="อบรม">อบรม</option>
+                            <option value="อบรม">อบรมเชิงปฏิบัติการ</option>
                             <option value="ประชุม">สัมมนา</option>
                             <option value="อบรม">ราชการ</option>
                             <option value="อบรม">อื่นๆ</option>
@@ -82,6 +83,20 @@
                                  icon="tag"
                                  placeholder="เรื่อง" required>
                         </b-input>
+                    </b-field>
+                    <b-field label="ด้าน">
+                        <b-select placeholder="เลือกด้าน" name="mission" required>
+                            <option value="การศึกษา">การศึกษา</option>
+                            <option value="วิจัย">วิจัย</option>
+                            <option value="บริการวิชาการ/บริการสุขภาพ">บริการวิชาการ/บริการสุขภาพ</option>
+                            <option value="บริหารจัดการ">บริหารจัดการ</option>
+                            <option value="ทำนุบำรุงศิลปวัฒนธรรม">ทำนุบำรุงศิลปวัฒนธรรม</option>
+                            <option value="พัฒนาคุณภาพ">พัฒนาคุณภาพ</option>
+                            <option value="วิชาการ">วิชาการ</option>
+                            <option value="วิชาชีพเทคนิคการแพทย์">วิชาชีพเทคนิคการแพทย์</option>
+                            <option value="วิชาชีพรังสีเทคนิค">วิชาชีพรังสีเทคนิค</option>
+                            <option value="อื่นๆ">อื่นๆ</option>
+                        </b-select>
                     </b-field>
                     <b-field label="บทบาท">
                         <b-select placeholder="เลือกบทบาท" name="role" required>
@@ -107,7 +122,7 @@
                             <b-radio native-value="paid" v-model="payment" name="payment">มีค่าใช้จ่าย</b-radio>
                         </div>
                     </div>
-                    <b-field label="ประเภทงบประมาณ/ทุน" v-if="payment === 'paid'">
+                    <b-field label="งบประมาณ/ทุน" v-if="payment === 'paid'">
                         <b-input type="text"
                                  name="budget_type"
                                  icon-pack="far"
