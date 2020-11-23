@@ -95,7 +95,7 @@
                     <tr>
                         <td>
                             <a href="{{ url_for('staff.show_leave_approval_info_each_person', requester_id=requester.requester.id) }}">
-                                {{ requester.requester.personal_info }} ({{ requester.requester.personal_info.org }}) {{ requester.is_active }}
+                                {{ requester.requester.personal_info }} ({{ requester.requester.personal_info.org }})
                             </a>
                         </td>
                         {% for leave_type in leave_types %}
