@@ -1578,3 +1578,32 @@ def show_time_report():
 @login_required
 def staff_index():
     return render_template('staff/staff_index.html')
+
+
+@staff.route('/for-hr/staff-info/create', methods=['GET', 'POST'])
+@login_required
+def staff_create_info():
+    if request.method == 'POST':
+        form = request.form
+        start_d = form.get('employed_date')
+        start_date = datetime.strptime(start_d, '%d/%m/%Y')
+        createstaff = StaffPersonalInfo(
+            en_firstname=form.get('en_firstname'),
+            en_lastname=form.get('en_lastname'),
+            employed_date=tz.localize(start_date),
+            finger_scan_id=form.get('finger_scan_id'),
+            employment_id=form.get('employment_id'),
+            org_id=form.get('org_id')
+        )
+        if form.get('th_firstname'):
+            createstaff.th_firstname = form.get('th_firstname')
+        if form.get('th_lastname'):
+            createstaff.th_lastname = form.get('th_lastname')
+        academic_staff = True if form.getlist("academic_staff") else False
+        createstaff.academic_staff = academic_staff
+        db.session.add(createstaff)
+        db.session.commit()
+        return redirect(request.referrer)
+    departments = Org.query.all()
+    employments = StaffEmployment.query.all()
+    return render_template('staff/staff_create_info.html', departments=departments, employments=employments)
