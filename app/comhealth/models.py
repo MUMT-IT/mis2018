@@ -122,6 +122,7 @@ class ComHealthCustomer(db.Model):
                               backref=db.backref('customers'))
     groups = db.relationship('ComHealthCustomerGroup', backref=db.backref('customers'),
                                     secondary=group_customer_table)
+    line_id = db.Column('line_id', db.String(), unique=True)
 
     def __str__(self):
         return u'{}{} {} {}'.format(self.title, self.firstname,
