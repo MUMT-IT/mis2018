@@ -1603,7 +1603,8 @@ def staff_create_info():
         createstaff.academic_staff = academic_staff
         db.session.add(createstaff)
         db.session.commit()
-        return redirect(request.referrer)
+        flash(u'เพิ่มบุคลากรเรียบร้อย กรุณาเข้าไป"แก้ไขรายละเอียดบุคลากร" เพื่อเพิ่ม email และ ผู้บังคับบัญชา')
+        return render_template('staff/staff_index.html')
     departments = Org.query.all()
     employments = StaffEmployment.query.all()
     return render_template('staff/staff_create_info.html', departments=departments, employments=employments)
