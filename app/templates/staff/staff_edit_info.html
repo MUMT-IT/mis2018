@@ -8,7 +8,7 @@
         {% endfor %}
         <div class="columns">
             <div class="column has-text-centered">
-                <h1 class="title">แก้ไขข้อมูล{{ staff.en_firstname }} {{ staff.en_lastname }}</h1>
+                <h1 class="title">แก้ไขข้อมูล {{ staff.fullname }}</h1>
             </div>
         </div>
         <div class="columns">
@@ -96,7 +96,7 @@
                                     <b-datepicker
                                         required
                                         name="employed_date"
-                                        v-model="empDate"
+                                        v-model="selectedEmpDate"
                                         icon-pack="fa"
                                         placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                         :mobile-native="false"
@@ -144,7 +144,12 @@
                                     <div class="select">
                                         <select name="employment_id">
                                             {% for emp in employments %}
-                                                <option value="{{ emp.id }}">{{ staff.employment.title }}</option>
+                                                <option value="{{ emp.id }}"
+                                                   {% if emp.id==staff.employment_id %}
+                                                        selected
+                                                    {% endif %}>
+                                                    {{ emp.title }}
+                                                </option>
                                             {% endfor %}
                                         </select>
                                     </div>
@@ -162,7 +167,12 @@
                                     <div class="select">
                                         <select name="org_id">
                                             {% for d in departments %}
-                                                <option value="{{ d.id }}">{{ d.name }}</option>
+                                                <option value="{{ d.id }}"
+                                                    {% if d.id==staff.org_id %}
+                                                        selected
+                                                    {% endif %}>
+                                                    {{ d.name }}
+                                                </option>
                                             {% endfor %}
                                         </select>
                                     </div>
@@ -172,10 +182,11 @@
                     </div>
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
-                            <input type="submit" value="submit" class="button is-primary"/>
+                            <a href="{{ url_for('staff.staff_edit_info') }}"
+                               class="button is-primary" type="submit" value="submit" >บันทึกการแก้ไข</a>
                         </div>
                         <div class="control">
-                            <a href="{{ url_for('staff.staff_edit_info') }}" class="button is-danger">Cancel</a>
+                            <a href="{{ url_for('staff.staff_search_info') }}" class="button is-danger">ยกเลิก</a>
                         </div>
                     </div>
                 </form>
@@ -194,6 +205,7 @@
         data() {
             return {
                 empDate: [],
+                selectedEmpDate: new Date({{ emp_date|tojsdatetime(single=True) }})
             }
         },
         methods: {
@@ -202,13 +214,6 @@
                 return date
             }
         },
-        mounted() {
-            var self = this;
-            let empDate = {{ emp_date }};
-            empDate.forEach((d) => {
-                self.empDate.push(new Date(d));
-            });
-        }
     });
 </script>
 {% endblock %}
