@@ -1635,7 +1635,8 @@ def staff_edit_info(staff_id):
         staff.th_firstname=form.get('th_firstname')
         staff.th_lastname=form.get('th_lastname')
         staff.employed_date=tz.localize(start_date)
-        staff.finger_scan_id=form.get('finger_scan_id')
+        if form.get('finger_scan_id'):
+            staff.finger_scan_id=form.get('finger_scan_id')
         staff.employment_id=form.get('employment_id')
         staff.org_id=form.get('org_id')
         academic_staff = True if form.getlist("academic_staff") else False
@@ -1647,6 +1648,12 @@ def staff_edit_info(staff_id):
         #db.session.add(create_email)
 
         db.session.commit()
-        return render_template('staff/staff_index.html')
-    return render_template('staff/staff_find_name_to_edit.html')
+        return render_template('staff/staff_show_info.html', staff=staff)
+    return render_template('staff/staff_index.html')
+
+@staff.route('/for-hr/staff-info/edit-info/<int:staff_id>/show-info')
+@login_required
+def staff_show_info(staff_id):
+    staff = StaffPersonalInfo.query.get(staff_id)
+    return render_template('staff/staff_show_info.html', staff=staff)
 

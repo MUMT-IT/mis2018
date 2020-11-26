@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">ข้อมูล {{ staff.fullname }}</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">email</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                {% if staff.staff_account.email %}
+                                    {{ staff.staff_account.email }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ชื่อ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                {{ staff.th_firstname }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">นามสกุล</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                {{ staff.th_lastname }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">Firstname</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                {{ staff.en_firstname }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">Lastname</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                {{ staff.en_lastname }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">วันเข้าทำงาน</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                {{ staff.employed_date }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ประเภท</label>
+                        </div>
+                        <div class="field-body">
+                            {% if staff.academic_staff %}
+                                สายวิชาการ
+                            {% else %}
+                                สายสนับสนุน
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">รหัสสแกนนิ้ว</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                {% if staff.finger_scan_id %}
+                                    {{ staff.finger_scan_id }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">การจ้าง</label>
+                        </div>
+                        <div class="field-body">
+                            {{ staff.employment.title }}
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">สังกัด</label>
+                        </div>
+                        <div class="field-body">
+                            {{ staff.org.name }}
+                        </div>
+                    </div>
+                    <div class="field is-grouped is-grouped-centered">
+                        <a class="button is-rounded is-info is-light" href="{{ url_for('staff.staff_index') }}">
+                            <span>กลับหน้าบุคลากร</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+
+
+
