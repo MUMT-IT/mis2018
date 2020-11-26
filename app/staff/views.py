@@ -1590,21 +1590,32 @@ def staff_create_info():
         createstaff = StaffPersonalInfo(
             en_firstname=form.get('en_firstname'),
             en_lastname=form.get('en_lastname'),
+            th_firstname=form.get('th_firstname'),
+            th_lastname=form.get('th_lastname'),
             employed_date=tz.localize(start_date),
             finger_scan_id=form.get('finger_scan_id'),
             employment_id=form.get('employment_id'),
             org_id=form.get('org_id')
         )
-        if form.get('th_firstname'):
-            createstaff.th_firstname = form.get('th_firstname')
-        if form.get('th_lastname'):
-            createstaff.th_lastname = form.get('th_lastname')
         academic_staff = True if form.getlist("academic_staff") else False
         createstaff.academic_staff = academic_staff
         db.session.add(createstaff)
         db.session.commit()
-        flash(u'เพิ่มบุคลากรเรียบร้อย กรุณาเข้าไป"แก้ไขรายละเอียดบุคลากร" เพื่อเพิ่ม email และ ผู้บังคับบัญชา')
+        flash(u'เพิ่มบุคลากรเรียบร้อย กรุณาเข้าไป"แก้ไขข้อมูลบุคลากร" เพื่อเพิ่ม email และ ผู้บังคับบัญชา')
         return render_template('staff/staff_index.html')
     departments = Org.query.all()
     employments = StaffEmployment.query.all()
     return render_template('staff/staff_create_info.html', departments=departments, employments=employments)
+
+
+@staff.route('/for-hr/staff-info/search-info', methods=['GET', 'POST'])
+@login_required
+def staff_search_info():
+    if request.method == 'POST':
+        staff_id = request.form.get('staffname')
+        staff = StaffPersonalInfo.query.get(staff_id)
+        emp_date = staff.employed_date
+        employments = StaffEmployment.query.all()
+        #emp_date = [staff.employed_date]
+        return render_template('staff/staff_edit_info.html', staff=staff, emp_date=emp_date, employments=employments)
+    return render_template('staff/staff_find_name_to_edit.html')
