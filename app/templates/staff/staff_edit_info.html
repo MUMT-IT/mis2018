@@ -14,7 +14,7 @@
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
-                <form method="post" enctype="multipart/form-data">
+                <form method="post" enctype="multipart/form-data" action="{{ url_for('staff.staff_edit_info', staff_id=staff.id) }}">
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
@@ -129,7 +129,10 @@
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                        name="finger_scan_id" type="text" value="{{ staff.finger_scan_id }}" required>
+                                        name="finger_scan_id" type="text"
+                                           {% if staff.finger_scan_id %}
+                                                value="{{ staff.finger_scan_id }}"
+                                           {% endif %}>
                                 </div>
                             </div>
                         </div>
@@ -182,9 +185,8 @@
                     </div>
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
-                            <a href="{{ url_for('staff.staff_edit_info') }}"
-                               class="button is-primary" type="submit" value="submit" >บันทึกการแก้ไข</a>
-                        </div>
+                                <input type="submit" value="บันทึก" class="button is-info"/>
+                            </div>
                         <div class="control">
                             <a href="{{ url_for('staff.staff_search_info') }}" class="button is-danger">ยกเลิก</a>
                         </div>
