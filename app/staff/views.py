@@ -1616,6 +1616,37 @@ def staff_search_info():
         staff = StaffPersonalInfo.query.get(staff_id)
         emp_date = staff.employed_date
         employments = StaffEmployment.query.all()
-        #emp_date = [staff.employed_date]
-        return render_template('staff/staff_edit_info.html', staff=staff, emp_date=emp_date, employments=employments)
+        departments = Org.query.all()
+        return render_template('staff/staff_edit_info.html', staff=staff, emp_date=emp_date, employments=employments,
+                               departments=departments)
     return render_template('staff/staff_find_name_to_edit.html')
+
+
+@staff.route('/for-hr/staff-info/edit-info/<int:staff_id>', methods=['GET', 'POST'])
+@login_required
+def staff_edit_info(staff_id):
+    staff = StaffPersonalInfo.query.get(staff_id)
+    if request.method == 'POST':
+        form = request.form
+        start_d = form.get('employed_date')
+        start_date = datetime.strptime(start_d, '%d/%m/%Y')
+        staff.en_firstname=form.get('en_firstname')
+        staff.en_lastname=form.get('en_lastname')
+        staff.th_firstname=form.get('th_firstname')
+        staff.th_lastname=form.get('th_lastname')
+        staff.employed_date=tz.localize(start_date)
+        staff.finger_scan_id=form.get('finger_scan_id')
+        staff.employment_id=form.get('employment_id')
+        staff.org_id=form.get('org_id')
+        academic_staff = True if form.getlist("academic_staff") else False
+        staff.academic_staff = academic_staff
+        db.session.add(staff)
+
+        #create_email = StaffAccount.query.filter_by(personal_id=staff_id).first()
+        #create_email.email = form.get('email')
+        #db.session.add(create_email)
+
+        db.session.commit()
+        return render_template('staff/staff_index.html')
+    return render_template('staff/staff_find_name_to_edit.html')
+
