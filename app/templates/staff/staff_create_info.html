@@ -14,6 +14,9 @@
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
+                    <b-notification type="is-warning is-light" aria-close-label="Close notification" role="alert">
+                        หากเป็นชาวต่างชาติ ให้ใส่ชื่อ นามสกุลภาษาอังกฤษ ในช่องภาษาไทยด้วย
+                     </b-notification>
                 <form method="post" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <div class="field is-horizontal">
@@ -24,7 +27,7 @@
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                        name="th_firstname" type="text" placeholder="ภาษาไทย">
+                                        name="th_firstname" type="text" placeholder="ภาษาไทย" required>
                                 </div>
                             </div>
                         </div>
@@ -37,7 +40,7 @@
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                        name="th_lastname" type="text" placeholder=" ภาษาไทย">
+                                        name="th_lastname" type="text" placeholder=" ภาษาไทย" required>
                                 </div>
                             </div>
                         </div>
