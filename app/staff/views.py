@@ -790,7 +790,7 @@ def cancel_leave_request(req_id):
 @staff.route('/leave/requests/approved/info/<int:requester_id>')
 @login_required
 def show_leave_approval_info_each_person(requester_id):
-    requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id)
+    requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id).all()
     return render_template('staff/leave_request_approved_each_person.html', requester=requester)
 
 
