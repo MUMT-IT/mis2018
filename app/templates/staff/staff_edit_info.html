@@ -18,6 +18,17 @@
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
+                            <label class="label">สถานะ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="block">
+                            <b-radio native-value="active" v-model="employed" name="employed">ปฏิบัติงาน</b-radio>
+                            <b-radio native-value="retired" v-model="employed" name="employed">เกษียณอายุ</b-radio>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
                             <label class="label">email</label>
                         </div>
                         <div class="field-body">
@@ -207,7 +218,8 @@
         data() {
             return {
                 empDate: [],
-                selectedEmpDate: new Date({{ emp_date|tojsdatetime(single=True) }})
+                selectedEmpDate: new Date({{ emp_date|tojsdatetime(single=True) }}),
+                employed: "active",
             }
         },
         methods: {
@@ -216,6 +228,12 @@
                 return date
             }
         },
+        mounted() {
+            var self = this;
+            if (retired){
+                this.employed = "retired"
+            }
+        }
     });
 </script>
 {% endblock %}
