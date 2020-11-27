@@ -3,9 +3,6 @@
 {% block page_content %}
 <section class="section" id="app">
     <div class="container">
-        {% for msg in get_flashed_messages() %}
-        <p class="notification is-warning">{{ msg }}</p>
-        {% endfor %}
         <div class="columns">
             <div class="column has-text-centered">
                 <h1 class="title">เพิ่มข้อมูลบุคลากรใหม่</h1>
@@ -19,6 +16,19 @@
                      </b-notification>
                 <form method="post" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">email</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                        name="email" type="text" placeholder="firstname.las" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
                             <label class="label">ชื่อ</label>
