@@ -1599,10 +1599,20 @@ def staff_create_info():
         )
         academic_staff = True if form.getlist("academic_staff") else False
         createstaff.academic_staff = academic_staff
+
         db.session.add(createstaff)
         db.session.commit()
-        flash(u'เพิ่มบุคลากรเรียบร้อย กรุณาเข้าไป"แก้ไขข้อมูลบุคลากร" เพื่อเพิ่ม email และ ผู้บังคับบัญชา')
-        return render_template('staff/staff_index.html')
+
+        create_email = StaffAccount(
+            personal_id=createstaff.id,
+            email=form.get('email')
+        )
+        db.session.add(create_email)
+        db.session.commit()
+
+        flash(u'เพิ่มบุคลากรเรียบร้อย')
+        staff = StaffPersonalInfo.query.get(createstaff.id)
+        return render_template('staff/staff_show_info.html', staff = staff)
     departments = Org.query.all()
     employments = StaffEmployment.query.all()
     return render_template('staff/staff_create_info.html', departments=departments, employments=employments)
@@ -1628,6 +1638,16 @@ def staff_edit_info(staff_id):
     staff = StaffPersonalInfo.query.get(staff_id)
     if request.method == 'POST':
         form = request.form
+        staff_email = StaffAccount.query.filter_by(personal_id=staff_id).first()
+        if staff_email:
+            staff_email.email = form.get('email')
+            db.session.add(staff_email)
+        else:
+            createstaff = StaffAccount(
+                personal_id=staff_id,
+                email = form.get('email')
+            )
+            db.session.add(createstaff)
         start_d = form.get('employed_date')
         start_date = datetime.strptime(start_d, '%d/%m/%Y')
         staff.en_firstname=form.get('en_firstname')
@@ -1642,14 +1662,11 @@ def staff_edit_info(staff_id):
         academic_staff = True if form.getlist("academic_staff") else False
         staff.academic_staff = academic_staff
         db.session.add(staff)
-
-        #create_email = StaffAccount.query.filter_by(personal_id=staff_id).first()
-        #create_email.email = form.get('email')
-        #db.session.add(create_email)
-
         db.session.commit()
+        flash(u'แก้ไขข้อมูลบุคลากรเรียบร้อย')
         return render_template('staff/staff_show_info.html', staff=staff)
     return render_template('staff/staff_index.html')
+
 
 @staff.route('/for-hr/staff-info/edit-info/<int:staff_id>/show-info')
 @login_required
