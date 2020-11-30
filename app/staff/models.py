@@ -419,6 +419,7 @@ class StaffSeminar(db.Model):
     role = db.Column('role', db.String())
     mission = db.Column('mission', db.String())
     location = db.Column('location', db.String())
+    attend_online = db.Column('attend_online', db.Boolean(), default=False)
     country = db.Column('country', db.String())
     budget_type = db.Column('budget_type', db.String())
     budget = db.Column('budget', db.Float())
