@@ -4,15 +4,17 @@
 <section class="section" id="app">
     <div class="container">
         <h1 class="title">{{ quota.leave_type }}
-            <a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ลาเต็มวัน</a>
-            <a class="button is-rounded is-warning is-light" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ลาครึ่งวัน</a>
+            <a class="button is-rounded is-info is-light"
+               href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ลาเต็มวัน Full day</a>
+            <a class="button is-rounded is-warning is-light"
+               href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ลาครึ่งวัน Half-day</a>
         </h1>
         <h4 class="subtitle">{{ current_user.personal_info }} สถานะการจ้าง {{ current_user.personal_info.employment.title }} </h4>
         <div class="table-container">
         <table class="table is-fullwidth">
             <thead>
-                <th>วันที่เริ่มลา-สิ้นสุดลา</th>
-                <th>สถานะการอนุมัติ</th>
+                <th>วันที่เริ่มลา-สิ้นสุดลา <br> Start Date - End Date</th>
+                <th>สถานะการอนุมัติ <br> Status</th>
                 <th colspan="2"></th>
             </thead>
             <tbody>
@@ -25,7 +27,7 @@
                             <div class="control">
                                 <div class="tags has-addons">
                                     <a class="button is-text" href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
-                                        <span class="tag is-dark">อนุมัติ</span>
+                                        <span class="tag is-dark">อนุมัติ Approved</span>
                                         <span class="tag is-info">{{ request.get_approved|length }}</span>
                                     </a>
                                 </div>
@@ -33,14 +35,14 @@
                             <div class="control">
                                 <div class="tags has-addons">
                                     <a class="button is-text" href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
-                                    <span class="tag is-dark">ไม่อนุมัติ</span>
+                                    <span class="tag is-dark">ไม่อนุมัติ Denied</span>
                                     <span class="tag is-danger">{{ request.get_unapproved|length }}</span>
                                     </a>
                                 </div>
                             </div>
                         </div>
                         {% else %}
-                        <span class="is-light">ยกเลิกลา</span>
+                        <span class="is-light">ยกเลิกลา Cancel</span>
                         {% endif %}
                     </td>
                     <td>
@@ -89,28 +91,31 @@
             </tbody>
         </table>
             <hr>
-            <span>*หากการลาได้รับอนุมัติจากผู้บังคับบัญชาแล้ว จะไม่สามารถแก้ไขหรือยกเลิกเองได้</span>
+            <span>*หากการลาได้รับอนุมัติจากผู้บังคับบัญชาแล้ว จะไม่สามารถแก้ไขหรือยกเลิกเองได้</span><br>
+            <span>* Please contact approver if you want to cancel the approved request.</span>
         </div>
 
         <div class="columns">
             <div class="column has-text-right">
-                <span>วันลาสะสม  {{ quota_limit }} วันทำการ</span>
+                <span>วันลาสะสม  {{ quota_limit }} วันทำการ</span><br>
+                <span>Earned  {{ quota_limit }} day(s)</span>
             </div>
         </div>
         <div class="columns">
             <div class="column has-text-right">
-                <span>ลามาแล้ว {{ used_quota }} วันทำการ</span>
+                <span>ลามาแล้ว {{ used_quota }} วันทำการ</span><br>
+                <span>Taken  {{ used_quota }} day(s)</span>
             </div>
         </div>
         <a class="button is-rounded is-info is-light" href="{{ url_for('staff.show_leave_info') }}">
              <span class="icon">
                 <i class="fas fa-arrow-left"></i>
             </span>
-            <span>กลับหน้าการลา</span>
+            <span>กลับหน้าการลา<br>Back</span>
         </a>
          <b-dropdown hoverable aria-role="list">
             <button class="button is-info" slot="trigger">
-                <span>ปีงบประมาณอื่น</span>
+                <span>ปีงบประมาณอื่น Other fiscal years</span>
                 <b-icon icon="menu-down"></b-icon>
             </button>
              {% for fy in fiscal_years %}
