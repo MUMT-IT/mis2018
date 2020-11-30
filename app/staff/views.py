@@ -1486,6 +1486,7 @@ def add_seminar_record():
         req.role = form.get('role')
         req.mission = form.get('mission')
         req.location = form.get('location')
+        req.attend_online = True if form.getlist("online") else False
         req.country = form.get('country')
         req.budget_type = form.get('budget_type')
         req.budget = form.get('budget')

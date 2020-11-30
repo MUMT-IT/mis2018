@@ -117,6 +117,15 @@
                         </b-input>
                     </b-field>
                     <div class="field">
+                        <label class="checkbox">
+                            <input type="checkbox" value="yes" name="online">
+                            เข้าร่วมผ่านช่องทาง Online
+                        </label>
+                    </div>
+                    <div class="field">
+                        <div class="field">
+                            <label class="label">ค่าใช้จ่าย</label>
+                        </div>
                         <div class="block">
                             <b-radio native-value="unpaid" v-model="payment" name="payment">ไม่มีค่าใช้จ่าย</b-radio>
                             <b-radio native-value="paid" v-model="payment" name="payment">มีค่าใช้จ่าย</b-radio>
