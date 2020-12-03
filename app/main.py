@@ -8,6 +8,7 @@ from pytz import timezone
 from flask.cli import AppGroup
 from dotenv import load_dotenv
 from flask import Flask, render_template
+from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
@@ -38,6 +39,7 @@ db = SQLAlchemy()
 migrate = Migrate()
 login = LoginManager()
 login.login_view = 'auth.login'
+cors = CORS()
 
 ma = Marshmallow()
 csrf = CSRFProtect()
@@ -75,6 +77,7 @@ def create_app():
     csrf.init_app(app)
     admin.init_app(app)
     mail.init_app(app)
+    cors.init_app(app)
     return app
 
 
@@ -389,6 +392,29 @@ def populatedb():
 
 
 from database import load_students
+
+
+@dbutils.command('add-update-staff-finger-print-gsheet')
+def add_update_staff_finger_print_gsheet():
+    sheetid = '13_wlcGpl5BWtCdqMi9WxXXJL_CfPnd5t54gCjA6mYtE'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("Sheet1")
+    df = pandas.DataFrame(sheet.get_all_records())
+    for idx, row in df.iterrows():
+        firstname = row['firstname']
+        lastname = row['lastname']
+        accnt = StaffPersonalInfo.query.filter_by(th_firstname=firstname,
+                                                  th_lastname=lastname).first()
+        if accnt:
+            accnt.finger_scan_id = row['ID']
+            try:
+                db.session.add(accnt)
+                db.session.commit()
+            except:
+                print(u'{} {} failed'.format(row['firstname'], row['lastname']))
+
 
 
 @dbutils.command('add-update-staff-gsheet')
