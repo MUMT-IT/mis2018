@@ -4,6 +4,7 @@ import os
 from collections import OrderedDict, defaultdict
 
 import pandas as pd
+from flask_cors import cross_origin
 from pandas import read_excel, isna
 from bahttext import bahttext
 from decimal import Decimal
@@ -28,11 +29,25 @@ from . import comhealth
 from .forms import (ServiceForm, TestProfileForm, TestListForm,
                     TestForm, TestGroupForm, CustomerForm)
 from .models import *
+from app.main import cors
 
 
 bangkok = pytz.timezone('Asia/Bangkok')
 
 ALLOWED_EXTENSIONS = ['xlsx', 'xls']
+
+
+@comhealth.route('/api/v1/lineids/<lineid>')
+@cross_origin()
+def get_line_id(lineid):
+    if (lineid):
+        customer = ComHealthCustomer.query.filter_by(line_id=lineid).first()
+        if customer:
+            # serialization
+            return jsonify({'status': True})
+        else:
+            return jsonify({'status': False})
+    return 400
 
 
 @comhealth.route('/')
