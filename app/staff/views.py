@@ -713,8 +713,7 @@ def pending_leave_approval(req_id):
                                                 order_by(desc(StaffLeaveRequest.start_datetime)):
         if last_req.get_approved:
             break
-        else:
-            last_req = None
+
     return render_template('staff/leave_request_pending_approval.html', req=req, approver=approver, approvers=approvers,
                            upload_file_url=upload_file_url, used_quota=used_quota, last_req=last_req)
 
@@ -1483,7 +1482,6 @@ def add_seminar_record():
         req.staff_account_id = form.get('staffname')
         req.topic_type = form.get('topic_type')
         req.topic = form.get('topic')
-        req.role = form.get('role')
         req.mission = form.get('mission')
         req.location = form.get('location')
         req.attend_online = True if form.getlist("online") else False
