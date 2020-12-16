@@ -7,12 +7,9 @@ from pytz import timezone
 from marshmallow import fields
 from app.models import Org, OrgSchema
 from datetime import datetime, timedelta
-from sqlalchemy.sql import func
 from app.main import get_weekdays
 import numpy as np
-import pytz
 
-tz = pytz.timezone('Asia/Bangkok')
 
 
 def local_datetime(dt):
@@ -229,7 +226,7 @@ class StaffLeaveRequest(db.Model):
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
     start_travel_datetime = db.Column('start_travel_datetime', db.DateTime(timezone=True))
     end_travel_datetime = db.Column('end_travel_datetime', db.DateTime(timezone=True))
-    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
     reason = db.Column('reason', db.String())
     contact_address = db.Column('contact_address', db.String())
     contact_phone = db.Column('contact_phone', db.String())
