@@ -32,6 +32,16 @@
                                 {{ smr.topic_type }}
                             </td>
                         </tr>
+                        {% if smr.mission %}
+                        <tr>
+                            <td>
+                               <label class="label">ด้าน</label>
+                            </td>
+                            <td>
+                                {{ smr.mission }}
+                            </td>
+                        </tr>
+                        {% endif %}
                         <tr>
                             <td>
                                <label class="label">เรื่อง</label>
