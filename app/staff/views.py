@@ -175,7 +175,8 @@ def request_for_leave(quota_id=None):
                 end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
                 req = StaffLeaveRequest(
                     start_datetime=tz.localize(start_datetime),
-                    end_datetime=tz.localize(end_datetime)
+                    end_datetime=tz.localize(end_datetime),
+                    created_at = tz.localize(datetime.today())
                 )
                 if form.get('traveldates'):
                     start_travel_dt, end_travel_dt = form.get('traveldates').split(' - ')
@@ -320,7 +321,8 @@ def request_for_leave_period(quota_id=None):
                     return redirect(request.referrer)
                 req = StaffLeaveRequest(
                     start_datetime=tz.localize(start_datetime),
-                    end_datetime=tz.localize(end_datetime)
+                    end_datetime=tz.localize(end_datetime),
+                    created_at=tz.localize(datetime.today())
                 )
                 req_duration = get_weekdays(req)
                 if req_duration == 0:
