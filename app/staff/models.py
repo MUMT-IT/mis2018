@@ -231,8 +231,7 @@ class StaffLeaveRequest(db.Model):
     contact_address = db.Column('contact_address', db.String())
     contact_phone = db.Column('contact_phone', db.String())
     #TODO: travel_datetime = db.Column('travel_datetime', db.DateTime(timezone=True))
-    staff = db.relationship('StaffAccount',
-                            backref=db.backref('leave_requests'))
+    staff = db.relationship('StaffAccount', backref=db.backref('leave_requests'))
     quota = db.relationship('StaffLeaveQuota',
                             backref=db.backref('leave_requests'))
 
@@ -282,7 +281,9 @@ class StaffLeaveApproval(db.Model):
     approver_id = db.Column('approver_id', db.ForeignKey('staff_leave_approvers.id'))
     is_approved = db.Column('is_approved', db.Boolean(), default=False)
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
-    request = db.relationship('StaffLeaveRequest', backref=db.backref('approvals'))
+    request = db.relationship('StaffLeaveRequest',
+                              backref=db.backref('approvals',
+                                                 cascade='all, delete-orphan'))
     approval_comment = db.Column('approval_comment', db.String())
     approver = db.relationship('StaffLeaveApprover',
                                backref=db.backref('approved_requests'))
