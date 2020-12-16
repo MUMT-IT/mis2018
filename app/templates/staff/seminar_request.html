@@ -69,8 +69,16 @@
                         <b-select placeholder="เลือกประเภท" name="topic_type" required>
                             <option value="ประชุม">ประชุม</option>
                             <option value="อบรม">อบรม</option>
+                            <option value="อบรม">อบรมเชิงปฏิบัติการ</option>
                             <option value="ประชุม">สัมมนา</option>
                             <option value="อบรม">ราชการ</option>
+                            <option value="อาจารย์พิเศษ">อาจารย์พิเศษ</option>
+                            <option value="ผู้เข้าร่วม">ผู้เข้าร่วม</option>
+                            <option value="ที่ปรึกษา">ที่ปรึกษา</option>
+                            <option value="วิทยากร">วิทยากร</option>
+                            <option value="กรรมการ">กรรมการ</option>
+                            <option value="นิเทศน์งาน">นิเทศน์งาน</option>
+                            <option value="บริการสุขภาพ">บริการสุขภาพ</option>
                             <option value="อบรม">อื่นๆ</option>
                         </b-select>
                     </b-field>
@@ -83,14 +91,18 @@
                                  placeholder="เรื่อง" required>
                         </b-input>
                     </b-field>
-                    <b-field label="บทบาท">
-                        <b-select placeholder="เลือกบทบาท" name="role" required>
-                            <option value="อาจารย์พิเศษ">อาจารย์พิเศษ</option>
-                            <option value="ผู้เข้าร่วม">ผู้เข้าร่วม</option>
-                            <option value="ที่ปรึกษา">ที่ปรึกษา</option>
-                            <option value="วิทยากร">วิทยากร</option>
-                            <option value="กรรมการ">กรรมการ</option>
-                            <option value="นิเทศน์งาน">นิเทศน์งาน</option>
+                    <b-field label="ด้าน">
+                        <b-select placeholder="เลือกด้าน" name="mission" required>
+                            <option value="การศึกษา">การศึกษา</option>
+                            <option value="วิจัย">วิจัย</option>
+                            <option value="บริการวิชาการ/บริการสุขภาพ">บริการวิชาการ/บริการสุขภาพ</option>
+                            <option value="บริหารจัดการ">บริหารจัดการ</option>
+                            <option value="ทำนุบำรุงศิลปวัฒนธรรม">ทำนุบำรุงศิลปวัฒนธรรม</option>
+                            <option value="พัฒนาคุณภาพ">พัฒนาคุณภาพ</option>
+                            <option value="วิชาการ">วิชาการ</option>
+                            <option value="วิชาชีพเทคนิคการแพทย์">วิชาชีพเทคนิคการแพทย์</option>
+                            <option value="วิชาชีพรังสีเทคนิค">วิชาชีพรังสีเทคนิค</option>
+                            <option value="อื่นๆ">อื่นๆ</option>
                         </b-select>
                     </b-field>
                     <b-field label="สถานที่"
@@ -102,12 +114,21 @@
                         </b-input>
                     </b-field>
                     <div class="field">
+                        <label class="checkbox">
+                            <input type="checkbox" value="yes" name="online">
+                            เข้าร่วมผ่านช่องทาง Online
+                        </label>
+                    </div>
+                    <div class="field">
+                        <div class="field">
+                            <label class="label">ค่าใช้จ่าย</label>
+                        </div>
                         <div class="block">
                             <b-radio native-value="unpaid" v-model="payment" name="payment">ไม่มีค่าใช้จ่าย</b-radio>
                             <b-radio native-value="paid" v-model="payment" name="payment">มีค่าใช้จ่าย</b-radio>
                         </div>
                     </div>
-                    <b-field label="ประเภทงบประมาณ/ทุน" v-if="payment === 'paid'">
+                    <b-field label="งบประมาณ/ทุน" v-if="payment === 'paid'">
                         <b-input type="text"
                                  name="budget_type"
                                  icon-pack="far"

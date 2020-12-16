@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        {% for msg in get_flashed_messages() %}
+        <p class="notification is-warning">{{ msg }}</p>
+        {% endfor %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">แก้ไขข้อมูล {{ staff.fullname }}</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                <form method="post" enctype="multipart/form-data" action="{{ url_for('staff.staff_edit_info', staff_id=staff.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">สถานะ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="block">
+                            <b-radio native-value="active" v-model="employed" name="employed">ปฏิบัติงาน</b-radio>
+                            <b-radio native-value="retired" v-model="employed" name="employed">เกษียณอายุ</b-radio>
+                        </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">email</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                        name="email" type="text" placeholder="firstname.las"
+                                        value="{{ staff.staff_account.email }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ชื่อ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                        name="th_firstname" type="text" placeholder="ภาษาไทย"
+                                        value="{{ staff.th_firstname }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">นามสกุล</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                        name="th_lastname" type="text" placeholder=" ภาษาไทย"
+                                        value="{{ staff.th_lastname }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">Firstname</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                        name="en_firstname" type="text" placeholder="ภาษาอังกฤษ"
+                                           value="{{ staff.en_firstname }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">Lastname</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                        name="en_lastname" type="text" placeholder=" ภาษาอังกฤษ"
+                                           value="{{ staff.en_lastname }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">วันเข้าทำงาน</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <b-datepicker
+                                        required
+                                        name="employed_date"
+                                        v-model="selectedEmpDate"
+                                        icon-pack="fa"
+                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                        :mobile-native="false"
+                                        :date-formatter="formatDate"
+                                        icon="calendar-alt">
+                                    </b-datepicker>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ประเภท</label>
+                        </div>
+                        <div class="field-body">
+                            <label class="checkbox">
+                                <input type="checkbox" name="academic_staff"
+                                       {% if staff.academic_staff %}
+                                            checked
+                                       {% endif %}>
+                                สายวิชาการ
+                            </label>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">รหัสสแกนนิ้ว</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                        name="finger_scan_id" type="text"
+                                           {% if staff.finger_scan_id %}
+                                                value="{{ staff.finger_scan_id }}"
+                                           {% endif %}>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">การจ้าง</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="control">
+                                <div class="field">
+                                    <div class="select">
+                                        <select name="employment_id">
+                                            {% for emp in employments %}
+                                                <option value="{{ emp.id }}"
+                                                   {% if emp.id==staff.employment_id %}
+                                                        selected
+                                                    {% endif %}>
+                                                    {{ emp.title }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">สังกัด</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="control">
+                                <div class="field">
+                                    <div class="select">
+                                        <select name="org_id">
+                                            {% for d in departments %}
+                                                <option value="{{ d.id }}"
+                                                    {% if d.id==staff.org_id %}
+                                                        selected
+                                                    {% endif %}>
+                                                    {{ d.name }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                                <input type="submit" value="บันทึก" class="button is-info"/>
+                            </div>
+                        <div class="control">
+                            <a href="{{ url_for('staff.staff_search_info') }}" class="button is-danger">ยกเลิก</a>
+                        </div>
+                    </div>
+                </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                empDate: [],
+                selectedEmpDate: new Date({{ emp_date|tojsdatetime(single=True) }}),
+                employed: "active",
+            }
+        },
+        methods: {
+            formatDate(employed_date){
+                let date = new moment(employed_date).format("DD/MM/YYYY")
+                return date
+            }
+        },
+        mounted() {
+            var self = this;
+            if (retired){
+                this.employed = "retired"
+            }
+        }
+    });
+</script>
+{% endblock %}
+
+
+

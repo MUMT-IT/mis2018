@@ -175,7 +175,8 @@ def request_for_leave(quota_id=None):
                 end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
                 req = StaffLeaveRequest(
                     start_datetime=tz.localize(start_datetime),
-                    end_datetime=tz.localize(end_datetime)
+                    end_datetime=tz.localize(end_datetime),
+                    created_at = tz.localize(datetime.today())
                 )
                 if form.get('traveldates'):
                     start_travel_dt, end_travel_dt = form.get('traveldates').split(' - ')
@@ -273,13 +274,14 @@ def request_for_leave(quota_id=None):
                                start_datetime, end_datetime,
                                url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
                     for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
-                        if approver.notified_by_line and approver.account.line_id:
-                            if os.environ["FLASK_ENV"] == "production":
-                                line_bot_api.push_message(to=approver.account.line_id,
+                        if approver.is_active:
+                            if approver.notified_by_line and approver.account.line_id:
+                                if os.environ["FLASK_ENV"] == "production":
+                                    line_bot_api.push_message(to=approver.account.line_id,
                                                           messages=TextSendMessage(text=req_msg))
-                            else:
-                                print(req_msg, approver.account.id)
-                        mails.append(approver.account.email+"@mahidol.ac.th")
+                                else:
+                                    print(approver.account.id)
+                            mails.append(approver.account.email+"@mahidol.ac.th")
                     if os.environ["FLASK_ENV"] == "production":
                         send_mail(mails, req_title, req_msg)
                     return redirect(url_for('staff.show_leave_info'))
@@ -319,7 +321,8 @@ def request_for_leave_period(quota_id=None):
                     return redirect(request.referrer)
                 req = StaffLeaveRequest(
                     start_datetime=tz.localize(start_datetime),
-                    end_datetime=tz.localize(end_datetime)
+                    end_datetime=tz.localize(end_datetime),
+                    created_at=tz.localize(datetime.today())
                 )
                 req_duration = get_weekdays(req)
                 if req_duration == 0:
@@ -367,13 +370,14 @@ def request_for_leave_period(quota_id=None):
                                start_datetime, end_datetime,
                                url_for("staff.pending_leave_approval", req_id=req.id, _external=True))
                     for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
-                        if approver.notified_by_line and approver.account.line_id:
-                            if os.environ["FLASK_ENV"] == "production":
-                                line_bot_api.push_message(to=approver.account.line_id,
+                        if approver.is_active:
+                            if approver.notified_by_line and approver.account.line_id:
+                                if os.environ["FLASK_ENV"] == "production":
+                                    line_bot_api.push_message(to=approver.account.line_id,
                                                       messages=TextSendMessage(text=req_msg))
-                            else:
-                                print(req_msg, approver.account.id)
-                        mails.append(approver.account.email + "@mahidol.ac.th")
+                                else:
+                                    print(req_msg, approver.account.id)
+                            mails.append(approver.account.email + "@mahidol.ac.th")
                     if os.environ["FLASK_ENV"] == "production":
                         send_mail(mails, req_title, req_msg)
                     return redirect(url_for('staff.show_leave_info'))
@@ -695,6 +699,7 @@ def pending_leave_approval(req_id):
     req = StaffLeaveRequest.query.get(req_id)
     approver = StaffLeaveApprover.query.filter_by(account=current_user, requester=req.staff).first()
     approve = StaffLeaveApproval.query.filter_by(approver=approver, request=req).first()
+    approvers = StaffLeaveApproval.query.filter_by(request_id=req_id)
     if approve:
         return render_template('staff/leave_approve_status.html',approve=approve, req=req)
     if req.upload_file_url:
@@ -710,9 +715,8 @@ def pending_leave_approval(req_id):
                                                 order_by(desc(StaffLeaveRequest.start_datetime)):
         if last_req.get_approved:
             break
-        else:
-            last_req = None
-    return render_template('staff/leave_request_pending_approval.html', req=req, approver=approver,
+
+    return render_template('staff/leave_request_pending_approval.html', req=req, approver=approver, approvers=approvers,
                            upload_file_url=upload_file_url, used_quota=used_quota, last_req=last_req)
 
 
@@ -787,7 +791,7 @@ def cancel_leave_request(req_id):
 @staff.route('/leave/requests/approved/info/<int:requester_id>')
 @login_required
 def show_leave_approval_info_each_person(requester_id):
-    requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id)
+    requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id).all()
     return render_template('staff/leave_request_approved_each_person.html', requester=requester)
 
 
@@ -1480,8 +1484,9 @@ def add_seminar_record():
         req.staff_account_id = form.get('staffname')
         req.topic_type = form.get('topic_type')
         req.topic = form.get('topic')
-        req.role = form.get('role')
+        req.mission = form.get('mission')
         req.location = form.get('location')
+        req.attend_online = True if form.getlist("online") else False
         req.country = form.get('country')
         req.budget_type = form.get('budget_type')
         req.budget = form.get('budget')
@@ -1568,3 +1573,105 @@ def cancel_seminar_record(smr_id):
 @login_required
 def show_time_report():
     return render_template('staff/time_report.html')
+
+
+@staff.route('/for-hr/staff-info')
+@login_required
+def staff_index():
+    return render_template('staff/staff_index.html')
+
+
+@staff.route('/for-hr/staff-info/create', methods=['GET', 'POST'])
+@login_required
+def staff_create_info():
+    if request.method == 'POST':
+        form = request.form
+        start_d = form.get('employed_date')
+        start_date = datetime.strptime(start_d, '%d/%m/%Y')
+        createstaff = StaffPersonalInfo(
+            en_firstname=form.get('en_firstname'),
+            en_lastname=form.get('en_lastname'),
+            th_firstname=form.get('th_firstname'),
+            th_lastname=form.get('th_lastname'),
+            employed_date=tz.localize(start_date),
+            finger_scan_id=form.get('finger_scan_id'),
+            employment_id=form.get('employment_id'),
+            org_id=form.get('org_id')
+        )
+        academic_staff = True if form.getlist("academic_staff") else False
+        createstaff.academic_staff = academic_staff
+
+        db.session.add(createstaff)
+        db.session.commit()
+
+        create_email = StaffAccount(
+            personal_id=createstaff.id,
+            email=form.get('email')
+        )
+        db.session.add(create_email)
+        db.session.commit()
+
+        flash(u'เพิ่มบุคลากรเรียบร้อย')
+        staff = StaffPersonalInfo.query.get(createstaff.id)
+        return render_template('staff/staff_show_info.html', staff = staff)
+    departments = Org.query.all()
+    employments = StaffEmployment.query.all()
+    return render_template('staff/staff_create_info.html', departments=departments, employments=employments)
+
+
+@staff.route('/for-hr/staff-info/search-info', methods=['GET', 'POST'])
+@login_required
+def staff_search_info():
+    if request.method == 'POST':
+        staff_id = request.form.get('staffname')
+        staff = StaffPersonalInfo.query.get(staff_id)
+        emp_date = staff.employed_date
+        employments = StaffEmployment.query.all()
+        departments = Org.query.all()
+        return render_template('staff/staff_edit_info.html', staff=staff, emp_date=emp_date, employments=employments,
+                               departments=departments)
+    return render_template('staff/staff_find_name_to_edit.html')
+
+
+@staff.route('/for-hr/staff-info/edit-info/<int:staff_id>', methods=['GET', 'POST'])
+@login_required
+def staff_edit_info(staff_id):
+    staff = StaffPersonalInfo.query.get(staff_id)
+    if request.method == 'POST':
+        form = request.form
+        staff_email = StaffAccount.query.filter_by(personal_id=staff_id).first()
+        if staff_email:
+            staff_email.email = form.get('email')
+            db.session.add(staff_email)
+        else:
+            createstaff = StaffAccount(
+                personal_id=staff_id,
+                email = form.get('email')
+            )
+            db.session.add(createstaff)
+        start_d = form.get('employed_date')
+        start_date = datetime.strptime(start_d, '%d/%m/%Y')
+        staff.en_firstname=form.get('en_firstname')
+        staff.en_lastname=form.get('en_lastname')
+        staff.th_firstname=form.get('th_firstname')
+        staff.th_lastname=form.get('th_lastname')
+        staff.employed_date=tz.localize(start_date)
+        if form.get('finger_scan_id'):
+            staff.finger_scan_id=form.get('finger_scan_id')
+        staff.employment_id=form.get('employment_id')
+        staff.org_id=form.get('org_id')
+        academic_staff = True if form.getlist("academic_staff") else False
+        staff.academic_staff = academic_staff
+        db.session.add(staff)
+        db.session.commit()
+        flash(u'แก้ไขข้อมูลบุคลากรเรียบร้อย')
+        return render_template('staff/staff_show_info.html', staff=staff)
+    return render_template('staff/staff_index.html')
+
+
+@staff.route('/for-hr/staff-info/edit-info/<int:staff_id>/show-info')
+@login_required
+def staff_show_info(staff_id):
+    staff = StaffPersonalInfo.query.get(staff_id)
+    return render_template('staff/staff_show_info.html', staff=staff)
+

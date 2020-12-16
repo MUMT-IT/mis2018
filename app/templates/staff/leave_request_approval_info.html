@@ -18,6 +18,7 @@
                 <table class="table is-bordered">
                     <tbody>
                     {% for approver in requesters %}
+                    {% if approver.is_active %}
                     {% if not
                     approver.requester.leave_requests|sort(attribute='start_datetime')|checkallapprovals(approver.id) %}
                     <tr>
@@ -74,6 +75,7 @@
                     {% endif %}
                     {% endfor %}
                     {% endif %}
+                    {% endif %}
                     {% endfor %}
                     </tbody>
                 </table>
@@ -91,6 +93,7 @@
                     </thead>
                     <tbody>
                     {% for requester in requester_cum_periods %}
+                    {% if requester.is_active %}
                     <tr>
                         <td>
                             <a href="{{ url_for('staff.show_leave_approval_info_each_person', requester_id=requester.requester.id) }}">
@@ -101,6 +104,7 @@
                         <td>{{ requester_cum_periods[requester][leave_type] }}</td>
                         {% endfor %}
                     </tr>
+                    {% endif %}
                     {% endfor %}
                     </tbody>
                 </table>

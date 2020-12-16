@@ -11,6 +11,7 @@ from app.main import get_weekdays
 import numpy as np
 
 
+
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
     datetime_format = u'%d/%m/%Y %H:%M'
@@ -225,10 +226,7 @@ class StaffLeaveRequest(db.Model):
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
     start_travel_datetime = db.Column('start_travel_datetime', db.DateTime(timezone=True))
     end_travel_datetime = db.Column('end_travel_datetime', db.DateTime(timezone=True))
-    created_at = db.Column('created_at',
-                           db.DateTime(timezone=True),
-                           default=datetime.now()
-                           )
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
     reason = db.Column('reason', db.String())
     contact_address = db.Column('contact_address', db.String())
     contact_phone = db.Column('contact_phone', db.String())
@@ -417,7 +415,9 @@ class StaffSeminar(db.Model):
     topic_type = db.Column('topic_type', db.String())
     topic = db.Column('topic', db.String())
     role = db.Column('role', db.String())
+    mission = db.Column('mission', db.String())
     location = db.Column('location', db.String())
+    attend_online = db.Column('attend_online', db.Boolean(), default=False)
     country = db.Column('country', db.String())
     budget_type = db.Column('budget_type', db.String())
     budget = db.Column('budget', db.Float())
