@@ -250,6 +250,10 @@ class StaffLeaveRequest(db.Model):
     def get_unapproved(self):
         return [a for a in self.approvals if a.is_approved==False]
 
+    def __str__(self):
+        return "{}: {}".format(self.id, self.staff.email)
+
+
 class StaffLeaveRemainQuota(db.Model):
     _tablename_ = 'staff_leave_remain_quota'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -272,6 +276,9 @@ class StaffLeaveApprover(db.Model):
     requester = db.relationship('StaffAccount', foreign_keys=[staff_account_id])
     account = db.relationship('StaffAccount', foreign_keys=[approver_account_id])
     notified_by_line = db.Column('notified_by_line', db.Boolean(), default=True)
+
+    def __str__(self):
+        return "{}->{}".format(self.account.email, self.requester.email)
 
 
 class StaffLeaveApproval(db.Model):
