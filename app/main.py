@@ -7,7 +7,7 @@ import requests
 from pytz import timezone
 from flask.cli import AppGroup
 from dotenv import load_dotenv
-from flask import Flask, render_template
+from flask import Flask, render_template, redirect, url_for
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
@@ -16,6 +16,7 @@ from flask_login import LoginManager
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
+from wtforms import DateTimeField
 from wtforms.validators import required
 from datetime import timedelta, datetime
 from flask_mail import Mail
@@ -187,7 +188,6 @@ admin.add_views(ModelView(StaffEmployment, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveType, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveQuota, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveApprover, db.session, category='Staff'))
-admin.add_views(ModelView(StaffLeaveApproval, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkFromHomeRequest, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkFromHomeJobDetail, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkFromHomeApprover, db.session, category='Staff'))
@@ -196,6 +196,28 @@ admin.add_views(ModelView(StaffWorkFromHomeCheckedJob, db.session, category='Sta
 admin.add_views(ModelView(StaffLeaveRemainQuota, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminar, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkLogin, db.session, category='Staff'))
+
+
+class StaffLeaveApprovalModelView(ModelView):
+    form_widget_args = {
+        'updated_at': {
+            'readonly': True
+        },
+    }
+
+    def update_model(self, form, model):
+        model.approver = form.approver.data
+        model.is_approved = form.is_approved.data
+        model.approval_comment = form.approval_comment.data
+        self.session.add(model)
+        self._on_model_change(form, model, False)
+        self.session.commit()
+        return redirect(url_for('staffaccount.index_view'))
+
+
+admin.add_views(StaffLeaveApprovalModelView(StaffLeaveApproval,
+                                            db.session,
+                                            category='Staff'))
 
 
 class StaffLeaveRequestModelView(ModelView):
