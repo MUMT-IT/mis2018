@@ -1444,6 +1444,7 @@ def summary_index():
                            depts=depts, curr_dept_id=int(curr_dept_id),
                            all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
 
+
 @staff.route('/api/staffids')
 def get_staffid():
     staff = []
@@ -1455,6 +1456,66 @@ def get_staffid():
         })
 
     return jsonify(staff)
+
+
+@staff.route('/summary/gjcenter')
+@login_required
+def summary_gjcenter():
+    gj = StaffSpecialGroup.query.filter_by(group_code='gj').first()
+    if current_user not in gj.staffs:
+        return redirect(url_for("staff.index"))
+    fiscal_year = request.args.get('fiscal_year')
+    if fiscal_year is None:
+        if today.month in [10, 11, 12]:
+            fiscal_year = today.year + 1
+        else:
+            fiscal_year = today.year
+        init_date = today
+    else:
+        fiscal_year = int(fiscal_year)
+        init_date = date(fiscal_year - 1, 10, 1)
+
+    curr_dept_id = request.args.get('curr_dept_id', current_user.personal_info.org.id)
+    tab = request.args.get('tab', 'all')
+
+    employees = StaffPersonalInfo.query.filter_by(org_id=int(curr_dept_id))
+    #employees = StaffSpecialGroup.query.filter_by(current_user.personal_id)
+
+    leaves = []
+    for emp in employees:
+        if tab == 'leave' or tab == 'all':
+            fiscal_years = StaffLeaveRequest.query.distinct(func.date_part('YEAR', StaffLeaveRequest.start_datetime))
+            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
+            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
+            for leave_req in StaffLeaveRequest.query.filter_by(staff=emp) \
+                    .filter(StaffLeaveRequest.start_datetime.between(start_fiscal_date, end_fiscal_date)):
+                if not leave_req.cancelled_at:
+                    if leave_req.get_approved:
+                        text_color = '#ffffff'
+                        bg_color = '#2b8c36'
+                        border_color = '#ffffff'
+                    else:
+                        text_color = '#989898'
+                        bg_color = '#d1e0e0'
+                        border_color = '#ffffff'
+                    leaves.append({
+                        'id': leave_req.id,
+                        'start': leave_req.start_datetime.astimezone(tz).isoformat(),
+                        'end': leave_req.end_datetime.astimezone(tz).isoformat(),
+                        'title': u'{} {}'.format(emp.th_firstname, leave_req.quota.leave_type),
+                        'backgroundColor': bg_color,
+                        'borderColor': border_color,
+                        'textColor': text_color,
+                        'type': 'leave'
+                    })
+            all = leaves
+
+    if tab == 'all':
+        all = leaves
+
+    return render_template('staff/summary_gjcenter.html',init_date=init_date,
+                        curr_dept_id=int(curr_dept_id),
+                           all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
 
 
 @staff.route('/seminar/record', methods=['GET', 'POST'])
