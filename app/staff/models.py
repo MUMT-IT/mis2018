@@ -11,7 +11,7 @@ from app.main import get_weekdays
 import numpy as np
 
 staff_group_assoc_table = db.Table('staff_group_assoc',
-                                            db.Column('staff_id', db.ForeignKey('staff_personal_info.id'),
+                                            db.Column('staff_id', db.ForeignKey('staff_account.id'),
                                                         primary_key=True),
                                             db.Column('group_id', db.ForeignKey('staff_special_groups.id'),
                                                         primary_key=True),
@@ -193,7 +193,8 @@ class StaffSpecialGroup(db.Model):
     __tablename__ = 'staff_special_groups'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     name = db.Column('name', db.String(), unique=True, nullable=False)
-    staffs = db.relationship('StaffPersonalInfo', backref=db.backref('groups'),
+    group_code = db.Column('group_code', db.String(), unique=True, nullable=False)
+    staffs = db.relationship('StaffAccount', backref=db.backref('groups'),
                              secondary=staff_group_assoc_table)
 
 
