@@ -1310,7 +1310,8 @@ def summary_index():
         init_date = date(fiscal_year - 1, 10, 1)
 
     if len(depts) == 0:
-        return redirect(request.referrer)
+        #return redirect(request.referrer)
+        return redirect(url_for("staff.summary_org"))
     curr_dept_id = request.args.get('curr_dept_id')
     tab = request.args.get('tab', 'all')
     if curr_dept_id is None:
@@ -1458,11 +1459,12 @@ def get_staffid():
     return jsonify(staff)
 
 
-@staff.route('/summary/gjcenter')
+@staff.route('/summary/org')
 @login_required
-def summary_gjcenter():
+def summary_org():
     gj = StaffSpecialGroup.query.filter_by(group_code='gj').first()
-    if current_user not in gj.staffs:
+    secret = StaffSpecialGroup.query.filter_by(group_code='secretary').first()
+    if current_user not in gj.staffs and current_user not in secret.staffs:
         return redirect(url_for("staff.index"))
     fiscal_year = request.args.get('fiscal_year')
     if fiscal_year is None:
@@ -1479,7 +1481,6 @@ def summary_gjcenter():
     tab = request.args.get('tab', 'all')
 
     employees = StaffPersonalInfo.query.filter_by(org_id=int(curr_dept_id))
-    #employees = StaffSpecialGroup.query.filter_by(current_user.personal_id)
 
     leaves = []
     for emp in employees:
@@ -1513,7 +1514,7 @@ def summary_gjcenter():
     if tab == 'all':
         all = leaves
 
-    return render_template('staff/summary_gjcenter.html',init_date=init_date,
+    return render_template('staff/summary_org.html',init_date=init_date,
                         curr_dept_id=int(curr_dept_id),
                            all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
 
