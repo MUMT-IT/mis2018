@@ -10,6 +10,12 @@ from datetime import datetime, timedelta
 from app.main import get_weekdays
 import numpy as np
 
+staff_group_assoc_table = db.Table('staff_group_assoc',
+                                            db.Column('staff_id', db.ForeignKey('staff_account.id'),
+                                                        primary_key=True),
+                                            db.Column('group_id', db.ForeignKey('staff_special_groups.id'),
+                                                        primary_key=True),
+                                           )
 
 
 def local_datetime(dt):
@@ -142,10 +148,12 @@ class StaffPersonalInfo(db.Model):
         total_leaves = []
         for req in self.staff_account.leave_requests:
             if req.quota.id == leave_quota_id:
-                if start_date is None or end_date is None and not req.cancelled_at and not req.get_approved :
+                if start_date is None or end_date is None and not req.cancelled_at \
+                        and not req.get_approved and not req.get_unapproved :
                         total_leaves.append(req.total_leave_days)
                 else:
-                    if req.start_datetime >= start_date and req.end_datetime <= end_date and not req.cancelled_at and not req.get_approved:
+                    if req.start_datetime >= start_date and req.end_datetime <= end_date \
+                            and not req.cancelled_at and not req.get_approved and not req.get_unapproved:
                         total_leaves.append(req.total_leave_days)
 
         return sum(total_leaves)
@@ -179,6 +187,16 @@ class StaffEmployment(db.Model):
 
     def __str__(self):
         return self.title
+
+
+class StaffSpecialGroup(db.Model):
+    __tablename__ = 'staff_special_groups'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    name = db.Column('name', db.String(), unique=True, nullable=False)
+    group_code = db.Column('group_code', db.String(), unique=True, nullable=False)
+    staffs = db.relationship('StaffAccount', backref=db.backref('groups'),
+                             secondary=staff_group_assoc_table)
+
 
 
 class StaffLeaveType(db.Model):
