@@ -406,6 +406,12 @@ admin.add_view(CustomerEmploymentTypeUploadView(
     endpoint='employment_type', category='Com Health'))
 
 
+from app.km import km_bp as km_blueprint
+app.register_blueprint(km_blueprint, url_prefix='/km')
+
+
+# Commands 
+
 @app.cli.command()
 def populatedb():
     # database.load_orgs()
