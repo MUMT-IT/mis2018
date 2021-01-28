@@ -284,6 +284,7 @@ def request_for_leave(quota_id=None):
                             mails.append(approver.account.email+"@mahidol.ac.th")
                     if os.environ["FLASK_ENV"] == "production":
                         send_mail(mails, req_title, req_msg)
+                    flash(u'ส่งคำขอของท่านเรียบร้อยแล้ว สามารถเลือกประเภทการลาที่ส่งคำขอ เพื่อติดตามการอนุมัติ')
                     return redirect(url_for('staff.show_leave_info'))
                 else:
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
@@ -380,6 +381,7 @@ def request_for_leave_period(quota_id=None):
                             mails.append(approver.account.email + "@mahidol.ac.th")
                     if os.environ["FLASK_ENV"] == "production":
                         send_mail(mails, req_title, req_msg)
+                    flash(u'ส่งคำขอของท่านเรียบร้อยแล้ว สามารถเลือกประเภทการลาที่ส่งคำขอ เพื่อติดตามการอนุมัติ')
                     return redirect(url_for('staff.show_leave_info'))
                 else:
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
@@ -562,6 +564,7 @@ def edit_leave_request(req_id=None):
                 req.notify_to_line = True if request.form.getlist("notified_by_line") else False
                 db.session.add(req)
                 db.session.commit()
+                flash(u'แก้ไขคำขอของท่านเรียบร้อยแล้ว')
                 return redirect(url_for('staff.show_leave_info'))
             else:
                 flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
@@ -641,6 +644,7 @@ def edit_leave_request_period(req_id=None):
                     req.notify_to_line = True
                 db.session.add(req)
                 db.session.commit()
+                flash(u'แก้ไขคำขอของท่านเรียบร้อยแล้ว')
                 return redirect(url_for('staff.show_leave_info'))
             else:
                 flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
