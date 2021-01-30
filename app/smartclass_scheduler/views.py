@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 from flask import request, url_for, render_template, redirect, jsonify, flash
-from sqlalchemy import and_
+from sqlalchemy import and_, extract
 
 from . import smartclass_scheduler_blueprint as smartclass
 from .models import SmartClassOnlineAccount, SmartClassOnlineAccountEvent, SmartClassResourceType
@@ -29,9 +29,10 @@ def list_resources(resource_type_id):
 
 @smartclass.route('/api/resources/<int:resource_type_id>/events')
 def get_events(resource_type_id):
+    # only query events of the current year to reduce load time
     events = SmartClassOnlineAccountEvent.query.filter(
         SmartClassOnlineAccountEvent.account.has(resource_type_id=resource_type_id)
-    )
+    ).filter(extract('year', SmartClassOnlineAccountEvent.start) == datetime.today().year)
     event_data = []
     for evt in events:
         if not evt.cancelled_at:
