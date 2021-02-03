@@ -10,6 +10,17 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Log in')
 
 
+class ForgotPasswordForm(FlaskForm):
+    email = StringField('Email', validators=[DataRequired()])
+    submit = SubmitField('Submit')
+
+
 class PasswordSetup(FlaskForm):
     curr_pass = PasswordField('Current Password', validators=[DataRequired()])
     new_pass = PasswordField('New Password', validators=[DataRequired(), EqualTo(curr_pass)])
+
+
+class ResetPasswordForm(FlaskForm):
+    new_pass = PasswordField('New Password', validators=[DataRequired()])
+    confirm_pass = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('new_pass')])
+    submit = SubmitField('Submit')
