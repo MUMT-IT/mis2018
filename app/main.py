@@ -409,6 +409,10 @@ admin.add_view(CustomerEmploymentTypeUploadView(
 from app.km import km_bp as km_blueprint
 app.register_blueprint(km_blueprint, url_prefix='/km')
 
+from app.km.models import *
+admin.add_view(ModelView(KMProcess, db.session, category='Knowledge Management'))
+admin.add_view(ModelView(KMTopic, db.session, category='Knowledge Management'))
+
 
 # Commands 
 
