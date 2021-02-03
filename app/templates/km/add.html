@@ -1,10 +1,33 @@
 {% extends "base.html" %}
 {% include "km/nav.html" %}
 
+{% block title %}KM New Topic{% endblock %}
 {% block page_content %}
 <section class="section">
-    <div class="column has-text-centered">
-        <h1 class="title">New Topic</h1>
+    <div class="columns">
+        <div class="column has-text-centered is-offset-4 is-one-third">
+            {% include 'messages.html' %}
+            <div class="box">
+                <h1 class="title">หัวข้อใหม่</h1>
+                <h1 class="subtitle">New Topic</h1>
+                <form method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <div class="control">
+                            {{ form.topic(class='input', placeholder='Topic') }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="control">
+                            {{ form.desc(class='textarea', placeholder='Description') }}
+                        </div>
+                    </div>
+                    <div class="field is-centered">
+                        <input type="submit" class="button is-info" value="Add">
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </section>
 {% endblock %}

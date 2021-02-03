@@ -5,12 +5,20 @@
 <section class="section">
     <div class="column has-text-centered">
         <h1 class="title">Recently Added Topics</h1>
-        <a href="{{ url_for('km.add_topic') }}" class="button is-success">
+        <div class="buttons is-centered">
+            <a href="{{ url_for('km.add_topic') }}" class="button is-success">
             <span class="icon">
                 <i class="fas fa-plus"></i>
             </span>
-            <span>เพิ่มหัวข้อ</span>
-        </a>
+                <span>เพิ่มหัวข้อ</span>
+            </a>
+            <a href="{{ url_for('km.list_processes') }}" class="button is-info">
+            <span class="icon">
+                <i class="fas fa-project-diagram"></i>
+            </span>
+                <span>กระบวนการ</span>
+            </a>
+        </div>
     </div>
 </section>
 {% endblock %}
