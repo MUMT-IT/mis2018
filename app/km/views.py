@@ -1,6 +1,8 @@
 # -*- coding:utf-8 -*-
 from flask import render_template, url_for, redirect, request, flash
 from flask_login import current_user, login_required
+from sqlalchemy import desc
+
 from . import km_bp as km
 from .forms import KMTopicForm
 from .models import *
@@ -9,7 +11,8 @@ from .models import *
 @km.route('/')
 @login_required
 def index():
-    return render_template('km/index.html')
+    topics = KMTopic.query.order_by(KMTopic.id.desc()).limit(5).all()
+    return render_template('km/index.html', topics=topics)
 
 
 @km.route('/process/<int:process_id>/topics/add', methods=['GET', 'POST'])
@@ -43,3 +46,6 @@ def list_processes():
 def detail_process(process_id):
     process = KMProcess.query.get(process_id)
     return render_template('km/process_detail.html', process=process)
+
+
+#TODO: add topic detail view
