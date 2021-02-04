@@ -31,3 +31,8 @@ class KMTopic(db.Model):
     creator = db.relationship(StaffAccount, backref=db.backref('km_topics'))
     # naming a field as process breaks wtforms
     km_process = db.relationship(KMProcess, backref=db.backref('topics'))
+
+
+#TODO: add knowledge model
+#TODO: add an activity model for each knowledge
+#TODO: add source model
