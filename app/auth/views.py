@@ -147,7 +147,7 @@ def forgot_password():
                 flash(u'Failed to send an email to {}. ระบบไม่สามารถส่งอีเมลได้กรุณาตรวจสอบอีกครั้ง'\
                       .format(form.email.data), 'danger')
             else:
-                flash(u'โปรดตรวจสอบอีเมล mahidol.ac.th ของท่านเพื่อทำการแก้ไขรหัสผ่านภายใน 10 นาที\nPlease check your mahidol.ac.th email for the link to reset the password within 10 seconds.', 'success')
+                flash(u'โปรดตรวจสอบอีเมล mahidol.ac.th ของท่านเพื่อทำการแก้ไขรหัสผ่านภายใน 10 นาที\nPlease check your mahidol.ac.th email for the link to reset the password within 10 minutes.', 'success')
             return redirect(url_for('auth.login'))
     return render_template('auth/forgot_password.html', form=form, errors=form.errors)
 
