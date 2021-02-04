@@ -5,24 +5,22 @@
     <div class="container has-text-centered">
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
-                {% for message in get_flashed_messages() %}
-                <div class="notification is-warning">
-                    {{ message }}
-                </div>
-                {% endfor %}
                 <div class="box">
+                    {% include 'messages.html' %}
                     <h1 class="title">ลงชื่อเข้าระบบ</h1>
+                    <h1 class="subtitle">Log In</h1>
                     {% for field, error in errors.iteritems() %}
                     <div class="notification is-danger">
                         <span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
                         <span><strong>{{ field }}:</strong> {{ ', '.join(error) }}</span>
                     </div>
                     {% endfor %}
-                    <p class="notification is-warning">
+                    <p class="notification is-light">
                     {% if linking_line %}
                         กรุณาใส่ข้อมูลเพื่อเชื่อมบัญชีไลน์กับบัญชีระบบของท่าน โปรดติดต่อหน่วยไอทีหากท่านไม่ทราบรหัสผ่าน
                     {% else %}
-                        โปรดติดต่อหน่วยไอทีหรือภาควิชาหากไม่ทราบรหัสผ่านเข้าระบบ
+                        โปรดติดต่อหน่วยไอทีหรือภาควิชาหากไม่ทราบรหัสผ่านเข้าระบบ หากลืมรหัสผ่าน
+                        <a class="button is-text" href="{{ url_for('auth.forgot_password') }}">คลิกที่นี่</a>
                     {% endif %}
                     </p>
                     <form action="" method="post">
@@ -48,8 +46,9 @@
                                 </span>
                             </div>
                         </div>
-                        {{ form.remember_me.label() }}
+                        {{ form.remember_me.label }}
                         {{ form.remember_me() }}
+                        &ensp;&ensp;<a href="{{ url_for('auth.forgot_password') }}">Forgot password?</a>
                         <br>
                         <br>
                         <div class="field is-grouped is-grouped-centered">
