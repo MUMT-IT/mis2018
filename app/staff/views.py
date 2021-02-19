@@ -712,7 +712,7 @@ def pending_leave_approval(req_id):
         upload_file_url = upload_file.get('embedLink')
     else:
         upload_file_url = None
-    used_quota = current_user.personal_info.get_total_leaves(req.quota.id, tz.localize(START_FISCAL_DATE),
+    used_quota = req.staff.personal_info.get_total_leaves(req.quota.id, tz.localize(START_FISCAL_DATE),
                                                              tz.localize(END_FISCAL_DATE))
     last_req = None
     for last_req in StaffLeaveRequest.query.filter_by(staff_account_id=req.staff_account_id, cancelled_at=None).\
