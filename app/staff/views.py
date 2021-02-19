@@ -715,7 +715,7 @@ def pending_leave_approval(req_id):
     used_quota = current_user.personal_info.get_total_leaves(req.quota.id, tz.localize(START_FISCAL_DATE),
                                                              tz.localize(END_FISCAL_DATE))
     last_req = None
-    for last_req in StaffLeaveRequest.query.filter_by(staff=current_user, cancelled_at=None).\
+    for last_req in StaffLeaveRequest.query.filter_by(staff_account_id=req.staff_account_id, cancelled_at=None).\
                                                 order_by(desc(StaffLeaveRequest.start_datetime)):
         if last_req.get_approved:
             break
@@ -1214,12 +1214,6 @@ def wfh_requests_list():
 @login_required
 def for_hr():
     return render_template('staff/for_hr.html')
-
-
-@staff.route('/for-hr/time-scan')
-@login_required
-def time_scan():
-    return render_template('staff/scan_data_upload_and_report.html')
 
 
 class LoginDataUploadView(BaseView):
