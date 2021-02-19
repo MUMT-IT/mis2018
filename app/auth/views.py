@@ -135,10 +135,11 @@ def forgot_password():
             user = StaffAccount.query.filter_by(email=form.email.data).first()
             if not user:
                 flash(u'User not found. ไม่พบบัญชีในฐานข้อมูล', 'warning')
-            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'), expires_in=36000)
+            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'), expires_in=72000)
             token = serializer.dumps({'email': form.email.data})
             url = url_for('auth.reset_password', token=token, email=form.email.data, _external=True)
-            message = u'Click the link below to reset the password. กรุณาคลิกที่ลิงค์เพื่อทำการตั้งค่ารหัสผ่านใหม่\n\n{}'.format(url)
+            message = u'Click the link below to reset the password.'\
+                      u' กรุณาคลิกที่ลิงค์เพื่อทำการตั้งค่ารหัสผ่านใหม่\n\n{}'.format(url)
             try:
                 send_mail(['{}@mahidol.ac.th'.format(form.email.data)],
                           title='MUMT-MIS: Password Reset. ตั้งรหัสผ่านใหม่สำหรับระบบ MUMT-MIS',
@@ -147,7 +148,8 @@ def forgot_password():
                 flash(u'Failed to send an email to {}. ระบบไม่สามารถส่งอีเมลได้กรุณาตรวจสอบอีกครั้ง'\
                       .format(form.email.data), 'danger')
             else:
-                flash(u'โปรดตรวจสอบอีเมล mahidol.ac.th ของท่านเพื่อทำการแก้ไขรหัสผ่านภายใน 10 นาที\nPlease check your mahidol.ac.th email for the link to reset the password within 10 seconds.', 'success')
+                flash(u'Please check your mahidol.ac.th email for the link to reset the password within 20 minutes.'
+                      u' โปรดตรวจสอบอีเมล mahidol.ac.th ของท่านเพื่อทำการแก้ไขรหัสผ่านภายใน 20 นาที', 'success')
             return redirect(url_for('auth.login'))
     return render_template('auth/forgot_password.html', form=form, errors=form.errors)
 
