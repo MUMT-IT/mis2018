@@ -32,11 +32,3 @@ def student_login(personnel='student'):
 
 
 
-@edu.route('/qa/')
-def qa_index():
-    return render_template('lisedu/QA/index.html')
-
-
-@edu.route('/qa/mtc/criteria1')
-def qa_criteria1_index():
-    return render_template('lisedu/QA/mtc/criteria1.html')

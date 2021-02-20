@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
-{% include "lisedu/QA/nav.html" %}
+{% include "eduqa/QA/nav.html" %}
 {% block page_content %}
 <section class="section">
     <div class="container">
@@ -14,7 +14,7 @@
                 <nav class="panel is-success">
                     <p class="panel-heading">สภาเทคนิคการแพทย์</p>
                     <a class="panel-block"
-                       href="{{ url_for('lisedu.qa_criteria1_index') }}">
+                       href="{{ url_for('eduqa.criteria1_index') }}">
                         <span class="panel-icon">
                             <i class="fas fa-tasks"></i>
                         </span>
@@ -23,7 +23,7 @@
                         </span>
                     </a>
                     <a class="panel-block"
-                       href="{{ url_for('lisedu.qa_criteria1_index') }}">
+                       href="{{ url_for('eduqa.criteria1_index') }}">
                         <span class="panel-icon">
                             <i class="fas fa-tasks"></i>
                         </span>

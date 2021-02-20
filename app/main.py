@@ -321,6 +321,10 @@ from lisedu import lisedu as lis_blueprint
 app.register_blueprint(lis_blueprint, url_prefix='/lis')
 from lisedu.models import *
 
+from eduqa import eduqa_bp as eduqa_blueprint
+app.register_blueprint(eduqa_blueprint, url_prefix='/eduqa')
+
+
 from chemdb import chemdbbp as chemdb_blueprint
 import chemdb.models
 
