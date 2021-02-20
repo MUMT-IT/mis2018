@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}LIS Edu{% endblock %}
+{% include "lisedu/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h2 class="title">Order No. {{ order.lab_no }} has been created by {{ order.creator.id }}</h2>
+        <table class="table">
+            <thead>
+                <th>Name</th>
+                <th>Result ID</th>
+                <th>Created at</th>
+            </thead>
+        {% for result in results %}
+            <tr>
+                <td>{{ result.test.name|title }}</td>
+                <td>{{ result.id }}</td>
+                <td>{{ result.created_at }}</td>
+            </tr>
+        {% endfor %}
+        </table>
+    </div>
+</section>
+{% endblock %}
