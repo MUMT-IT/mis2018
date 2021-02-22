@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-from ..main import db,ma
+from ..main import db, ma
 from werkzeug import generate_password_hash, check_password_hash
 from datetime import datetime
 from dateutil.relativedelta import relativedelta

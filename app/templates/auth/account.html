@@ -3,10 +3,10 @@
 {% block page_content %}
 <section class="section">
     <div class="container">
-    {% include "messages.html" %}
     <div class="columns">
         <div class="column is-half is-offset-one-quarter">
             <div class="has-text-centered">
+                {% include "messages.html" %}
                 <h2 class="title">ข้อมูลบัญชีของคุณ</h2>
                 {% if line_profile %}
                 <figure class="image is-128x128 is-inline-block">

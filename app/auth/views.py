@@ -2,12 +2,14 @@
 from flask_admin.helpers import is_safe_url
 
 from . import authbp as auth
-from app.main import db, csrf
+from app.main import db, mail
 from app.main import app
+from flask_mail import Message
 from flask import render_template, redirect, request, url_for, flash, abort, session, jsonify
 from flask_login import login_user, current_user, logout_user, login_required
 from app.staff.models import StaffAccount, StaffLeaveApprover
-from .forms import LoginForm
+from .forms import LoginForm, ForgotPasswordForm, ResetPasswordForm
+from itsdangerous import TimedJSONWebSignatureSerializer
 import requests
 from linebot import (LineBotApi, WebhookHandler)
 
@@ -18,6 +20,12 @@ LINE_MESSAGE_API_CLIENT_SECRET = app.config['LINE_MESSAGE_API_CLIENT_SECRET']
 
 line_bot_api = LineBotApi(LINE_MESSAGE_API_ACCESS_TOKEN)
 handler = WebhookHandler(LINE_MESSAGE_API_CLIENT_SECRET)
+
+
+def send_mail(recp, title, message):
+    message = Message(subject=title, body=message, recipients=recp)
+    mail.send(message)
+
 
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
@@ -40,15 +48,17 @@ def login():
             pwd = form.password.data
             if user.verify_password(pwd):
                 status = login_user(user, form.remember_me.data)
+                # session.pop('_flashes', None)  # this line clears all unconsumed flash messages.
                 next = request.args.get('next')
                 if not is_safe_url(next):
                     return abort(400)
+                flash(u'You are now logged in. ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
                 return redirect(next or url_for('index'))
             else:
                 flash(u'รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง')
                 return redirect(url_for('auth.login'))
         else:
-            flash('User does not exists.')
+            flash(u'User does not exists. ไม่พบบัญชีผู้ใช้ในระบบ')
             return redirect(url_for('auth.login'))
 
     return render_template('/auth/login.html', form=form, errors=form.errors, linking_line=linking_line)
@@ -65,11 +75,11 @@ def account():
                 current_user.password = new_password
                 db.session.add(current_user)
                 db.session.commit()
-                flash('Password has been updated.')
+                flash(u'Password has been updated. รหัสผ่านแก้ไขแล้ว', 'success')
             else:
-                flash('Passwords do not match. Try again.')
+                flash(u'Passwords do not match. รหัสผ่านไม่ตรงกัน', 'danger')
         else:
-            flash('New passwords are missing. Try again.')
+            flash(u'Passwords are required. กรุณากรอกรหัสใหม่', 'danger')
 
     approvers = StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id).all()
 
@@ -78,12 +88,70 @@ def account():
                            line_profile=session.get('line_profile', {}))
 
 
+@auth.route('/reset_password', methods=['GET', 'POST'])
+def reset_password():
+    token = request.args.get('token')
+    email = request.args.get('email')
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    try:
+        token_data = serializer.loads(token)
+    except:
+        return u'Bad JSON Web token. You need a valid token to reset the password. รหัสสำหรับทำการตั้งค่า password หมดอายุหรือไม่ถูกต้อง'
+    if token_data.get('email') != email:
+        return u'Invalid JSON Web token.'
+
+    user = StaffAccount.query.filter_by(email=email).first()
+    if not user:
+        flash(u'User does not exists. ไม่พบชื่อบัญชีในฐานข้อมูล')
+        return redirect(url_for('auth.login'))
+
+    form = ResetPasswordForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            user.password = form.new_pass.data
+            db.session.add(user)
+            db.session.commit()
+            flash(u'Password has been reset. ตั้งค่ารหัสผ่านใหม่เรียบร้อย', 'success')
+            return redirect(url_for('auth.account'))
+    return render_template('auth/reset_password.html', form=form, errors=form.errors)
+
+
 @auth.route('/logout')
 @login_required
 def logout():
     logout_user()
     session.pop('line_profile', None)
+    flash(u'Logged out successfully. ออกจากระบบเรียบร้อย', 'success')
     return redirect(url_for('auth.login'))
+
+
+@auth.route('/forgot_password', methods=['GET', 'POST'])
+def forgot_password():
+    if current_user.is_authenticated:
+        return redirect('auth.account')
+    form = ForgotPasswordForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            user = StaffAccount.query.filter_by(email=form.email.data).first()
+            if not user:
+                flash(u'User not found. ไม่พบบัญชีในฐานข้อมูล', 'warning')
+            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'), expires_in=72000)
+            token = serializer.dumps({'email': form.email.data})
+            url = url_for('auth.reset_password', token=token, email=form.email.data, _external=True)
+            message = u'Click the link below to reset the password.'\
+                      u' กรุณาคลิกที่ลิงค์เพื่อทำการตั้งค่ารหัสผ่านใหม่\n\n{}'.format(url)
+            try:
+                send_mail(['{}@mahidol.ac.th'.format(form.email.data)],
+                          title='MUMT-MIS: Password Reset. ตั้งรหัสผ่านใหม่สำหรับระบบ MUMT-MIS',
+                          message=message)
+            except:
+                flash(u'Failed to send an email to {}. ระบบไม่สามารถส่งอีเมลได้กรุณาตรวจสอบอีกครั้ง'\
+                      .format(form.email.data), 'danger')
+            else:
+                flash(u'Please check your mahidol.ac.th email for the link to reset the password within 20 minutes.'
+                      u' โปรดตรวจสอบอีเมล mahidol.ac.th ของท่านเพื่อทำการแก้ไขรหัสผ่านภายใน 20 นาที', 'success')
+            return redirect(url_for('auth.login'))
+    return render_template('auth/forgot_password.html', form=form, errors=form.errors)
 
 
 @auth.route('/line')
