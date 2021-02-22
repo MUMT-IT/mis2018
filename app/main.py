@@ -414,6 +414,10 @@ admin.add_view(ModelView(KMProcess, db.session, category='Knowledge Management')
 admin.add_view(ModelView(KMTopic, db.session, category='Knowledge Management'))
 
 
+from app.health_service_scheduler import health_service_blueprint
+app.register_blueprint(health_service_blueprint, url_prefix='/health-service-scheduler')
+
+
 # Commands 
 
 @app.cli.command()
