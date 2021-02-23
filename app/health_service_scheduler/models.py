@@ -24,7 +24,10 @@ class HealthServiceTimeSlot(db.Model):
     end = db.Column('end', db.DateTime(timezone=True), nullable=False, info={'label': u'สิ้นสุด'})
     service_id = db.Column(db.ForeignKey('health_service_services.id'))
     site_id = db.Column(db.ForeignKey('health_service_sites.id'))
-    quota = db.Column(db.Integer)
+    staff_id = db.Column(db.ForeignKey('staff_account.id'), nullable=False)
+    created_by = db.relationship('StaffAccount')
+    quota = db.Column(db.Integer, info={'label': 'Quota'})
+    cancelled_at = db.Column(db.DateTime(timezone=True))
 
     site = db.relationship(HealthServiceSite, backref=db.backref('bookings'))
     service = db.relationship(HealthServiceService, backref=db.backref('bookings'))
