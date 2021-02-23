@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Health Service Scheduler: Sites{% endblock %}
+{% block title %}Health Service Scheduler: Services{% endblock %}
 
 {% block page_content %}
 {% include "health_service_scheduler/nav.html" %}
@@ -9,7 +9,7 @@
         <nav class="breadcrumb" aria-label="breadcrumbs">
             <ul>
                 <li><a href="{{ url_for('health_service_scheduler.index') }}">Home</a></li>
-                <li class="is-active"><a href="#" aria-current="page">Sites</a></li>
+                <li class="is-active"><a href="#" aria-current="page">Services</a></li>
             </ul>
         </nav>
         <div class="columns">
@@ -20,23 +20,23 @@
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 <nav class="panel">
-                    <p class="panel-heading">Sites</p>
-                    {% for site in sites %}
+                    <p class="panel-heading">Services</p>
+                    {% for service in services %}
                     <a class="panel-block">
                         <span class="panel-icon">
-                            <i class="fas fa-building"></i>
+                            <i class="fas fa-star"></i>
                         </span>
                         <span class="is-size-5">
-                            {{ site.name }}
+                            {{ service.name }}
                         </span>
                     </a>
                     {% endfor %}
-                    <a class="panel-block" href="{{ url_for('health_service_scheduler.add_site') }}">
+                    <a class="panel-block" href="{{ url_for('health_service_scheduler.add_service') }}">
                         <span class="panel-icon">
                             <i class="fas fa-plus"></i>
                         </span>
                         <span class="is-size-5">
-                            Add site
+                            Add service
                         </span>
                     </a>
                 </nav>
