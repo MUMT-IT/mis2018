@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}MUMT: Health Service{% endblock %}
+{% include "health_service_scheduler/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="columns">
+        <div class="column box is-one-third is-offset-4">
+            <form method="post">
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">{{ form.name.label }}</label>
+                    <div class="control">
+                        {{ form.name(class="input") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.lat.label }}</label>
+                    <div class="control">
+                        {{ form.lat(class="input") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.lon.label }}</label>
+                    <div class="control">
+                        {{ form.lon(class="input") }}
+                    </div>
+                </div>
+                <div class="field is-grouped is-grouped-centered">
+                    <div class="control">
+                        <a class="button">Back</a>
+                    </div>
+                    <div class="control">
+                        <input type="submit" value="Submit" class="button is-success">
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

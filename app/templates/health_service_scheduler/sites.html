@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Health Service Scheduler{% endblock %}
+{% block title %}Health Service Scheduler: Sites{% endblock %}
 
 {% block page_content %}
 {% include "health_service_scheduler/nav.html" %}
@@ -14,14 +14,23 @@
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 <nav class="panel is-info">
-                    <p class="panel-heading">Staff</p>
-                    <a class="panel-block"
-                       href="{{ url_for('health_service_scheduler.get_sites') }}">
+                    <p class="panel-heading">Sites</p>
+                    {% for site in sites %}
+                    <a class="panel-block">
                         <span class="panel-icon">
-                            <i class="fas fa-location-arrow"></i>
+                            <i class="fas fa-users"></i>
                         </span>
                         <span class="is-size-5">
-                            Sites
+                            {{ site.name }}
+                        </span>
+                    </a>
+                    {% endfor %}
+                    <a class="panel-block" href="{{ url_for('health_service_scheduler.add_site') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-plus"></i>
+                        </span>
+                        <span class="is-size-5">
+                            Add site
                         </span>
                     </a>
                 </nav>
