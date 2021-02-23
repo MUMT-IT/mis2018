@@ -135,6 +135,7 @@ def forgot_password():
             user = StaffAccount.query.filter_by(email=form.email.data).first()
             if not user:
                 flash(u'User not found. ไม่พบบัญชีในฐานข้อมูล', 'warning')
+                return render_template('auth/forgot_password.html', form=form, errors=form.errors)
             serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'), expires_in=36000)
             token = serializer.dumps({'email': form.email.data})
             url = url_for('auth.reset_password', token=token, email=form.email.data, _external=True)
