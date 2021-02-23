@@ -6,6 +6,12 @@
 {% include "health_service_scheduler/nav.html" %}
 <section class="section">
     <div class="container">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('health_service_scheduler.index') }}">Home</a></li>
+                <li class="is-active"><a href="#" aria-current="page">Sites</a></li>
+            </ul>
+        </nav>
         <div class="columns">
             <div class="column is-half is-offset-one-quarter has-text-centered">
                 {% include 'messages.html' %}
@@ -18,7 +24,7 @@
                     {% for site in sites %}
                     <a class="panel-block">
                         <span class="panel-icon">
-                            <i class="fas fa-users"></i>
+                            <i class="fas fa-building"></i>
                         </span>
                         <span class="is-size-5">
                             {{ site.name }}
