@@ -29,12 +29,12 @@ class ServiceSlotForm(ModelForm):
     class Meta:
         model = HealthServiceTimeSlot
     service = QuerySelectField(label='Service',
-                            validators=[Required()], widget=Select,
+                            validators=[Required()], widget=Select(),
                             query_factory=lambda: HealthServiceService.query.all(),
-                            get_label=lambda x: x.name,
+                            get_label='name',
                             blank_text='Please specify the service')
     site = QuerySelectField(label='Site',
-                            validators=[Required()], widget=Select,
+                            validators=[Required()], widget=Select(),
                             query_factory=lambda: HealthServiceSite.query.all(),
-                            get_label=lambda x: x.name,
+                            get_label='name',
                             blank_text='Please specify the site')
