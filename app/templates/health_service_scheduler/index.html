@@ -17,7 +17,7 @@
             </div>
         </div>
         <div class="columns">
-            <div class="column is-half is-offset-one-quarter">
+            <div class="column">
                 <nav class="panel">
                     <p class="panel-heading">Staff</p>
                     <a class="panel-block"
@@ -36,6 +36,15 @@
                         </span>
                         <span class="is-size-5">
                             Services
+                        </span>
+                    </a>
+                    <a class="panel-block"
+                       href="{{ url_for('health_service_scheduler.show_slots') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-clock"></i>
+                        </span>
+                        <span class="is-size-5">
+                            Slots
                         </span>
                     </a>
                 </nav>
