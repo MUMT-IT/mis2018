@@ -1,5 +1,7 @@
 # -*- coding:utf-8 -*-
-from app.main import db
+from marshmallow.fields import Nested
+
+from app.main import db, ma
 
 
 class HealthServiceSite(db.Model):
@@ -29,8 +31,8 @@ class HealthServiceTimeSlot(db.Model):
     quota = db.Column(db.Integer, info={'label': 'Quota'})
     cancelled_at = db.Column(db.DateTime(timezone=True))
 
-    site = db.relationship(HealthServiceSite, backref=db.backref('bookings'))
-    service = db.relationship(HealthServiceService, backref=db.backref('bookings'))
+    site = db.relationship(HealthServiceSite, backref=db.backref('slots'))
+    service = db.relationship(HealthServiceService, backref=db.backref('slots'))
 
 
 class HealthServiceBooking(db.Model):
@@ -42,3 +44,46 @@ class HealthServiceBooking(db.Model):
     created_at = db.Column(db.DateTime(timezone=True))
     updated_at = db.Column(db.DateTime(timezone=True))
     confirmed_at = db.Column(db.DateTime(timezone=True))
+    user_id = db.Column(db.ForeignKey('health_service_app_users.id'))
+    user = db.relationship('HealthServiceAppUser', backref=db.backref('bookings'))
+
+
+class HealthServiceAppUser(db.Model):
+    __tablename__ = 'health_service_app_users'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    line_id = db.Column(db.String(255), nullable=True)
+    firstname = db.Column(db.String(255))
+    lastname = db.Column(db.String(255))
+    tel = db.Column(db.String())
+    email = db.Column(db.String())
+
+
+class SmartNested(Nested):
+    def serialize(self, attr, obj, accessor=None):
+        if attr not in obj.__dict__:
+            return {"id": int(getattr(obj, attr + "_id"))}
+        return super(SmartNested, self).serialize(attr, obj, accessor)
+
+
+class HealthServiceSiteSchema(ma.ModelSchema):
+    class Meta:
+        model = HealthServiceSite
+
+
+class HealthServiceSlotSchema(ma.ModelSchema):
+    site = SmartNested(HealthServiceSiteSchema)
+    class Meta:
+        model = HealthServiceTimeSlot
+        sqla_session = db.session
+
+
+class HealthServiceBookingSchema(ma.ModelSchema):
+    slot = SmartNested(HealthServiceSlotSchema)
+    class Meta:
+        model = HealthServiceBooking
+        sqla_session = db.session
+
+
+class HealthServiceAppUserSchema(ma.ModelSchema):
+    class Meta:
+        model = HealthServiceAppUser
