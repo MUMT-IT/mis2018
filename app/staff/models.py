@@ -249,16 +249,18 @@ class StaffLeaveRequest(db.Model):
     contact_address = db.Column('contact_address', db.String())
     contact_phone = db.Column('contact_phone', db.String())
     #TODO: travel_datetime = db.Column('travel_datetime', db.DateTime(timezone=True))
-    staff = db.relationship('StaffAccount', backref=db.backref('leave_requests'))
+    staff = db.relationship('StaffAccount', backref=db.backref('leave_requests'), foreign_keys=[staff_account_id])
     quota = db.relationship('StaffLeaveQuota',
                             backref=db.backref('leave_requests'))
 
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    cancelled_account_id = db.Column('cancelled_account_id', db.ForeignKey('staff_account.id'))
     country = db.Column('country', db.String())
     total_leave_days = db.Column('total_leave_days', db.Float())
     upload_file_url =  db.Column('upload_file_url', db.String())
     after_hour = db.Column("after_hour", db.Boolean())
     notify_to_line = db.Column('notify_to_line', db.Boolean(), default=False)
+    cancelled_by = db.relationship('StaffAccount', foreign_keys=[cancelled_account_id])
 
     @property
     def get_approved(self):
