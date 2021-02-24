@@ -96,9 +96,9 @@
             header: {
                 left: 'title',
             },
-            events: "{{ url_for('health_service_scheduler.get_slots') }}",
+            events: "{{ url_for('health_service_scheduler.get_slots_calendar_api') }}",
             eventLimit: true,
-            resources: "{{ url_for('health_service_scheduler.get_sites_api') }}",
+            resources: "{{ url_for('health_service_scheduler.get_sites_calendar_api') }}",
             resourceLabelText: 'Site',
             resourceGroupField: 'title',
             resourceAreaWidth: '5%',
