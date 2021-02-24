@@ -22,6 +22,7 @@ from datetime import timedelta, datetime
 from flask_mail import Mail
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from flask_restful import Api, Resource
 
 scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive']
@@ -41,14 +42,12 @@ migrate = Migrate()
 login = LoginManager()
 login.login_view = 'auth.login'
 cors = CORS()
-
 ma = Marshmallow()
 csrf = CSRFProtect()
 admin = Admin()
 mail = Mail()
 
 dbutils = AppGroup('dbutils')
-
 
 def create_app():
     """Create app based on the config setting
@@ -79,10 +78,12 @@ def create_app():
     admin.init_app(app)
     mail.init_app(app)
     cors.init_app(app)
+
     return app
 
 
 app = create_app()
+api = Api(app)
 
 
 def get_weekdays(req):
@@ -405,20 +406,36 @@ admin.add_view(CustomerEmploymentTypeUploadView(
     name='Upload employment types',
     endpoint='employment_type', category='Com Health'))
 
-
 from app.km import km_bp as km_blueprint
+
 app.register_blueprint(km_blueprint, url_prefix='/km')
 
 from app.km.models import *
+
 admin.add_view(ModelView(KMProcess, db.session, category='Knowledge Management'))
 admin.add_view(ModelView(KMTopic, db.session, category='Knowledge Management'))
 
-
 from app.health_service_scheduler import health_service_blueprint
+
 app.register_blueprint(health_service_blueprint, url_prefix='/health-service-scheduler')
 
+# Restful APIs
 
-# Commands 
+from health_service_scheduler.apis import *
+
+api.add_resource(HealthServiceSiteListResource, '/api/v1.0/hscheduler/sites')
+api.add_resource(HealthServiceSiteResource, '/api/v1.0/hscheduler/sites/<int:id>')
+api.add_resource(HealthServiceSlotListResource, '/api/v1.0/hscheduler/slots')
+api.add_resource(HealthServiceSlotResource, '/api/v1.0/hscheduler/slots/<int:id>')
+api.add_resource(HealthServiceBookingListResource, '/api/v1.0/hscheduler/bookings')
+api.add_resource(HealthServiceBookingResource, '/api/v1.0/hscheduler/bookings/<int:id>')
+api.add_resource(HealthServiceAppUserResource, '/api/v1.0/hscheduler/users/<int:id>')
+
+admin.add_view(ModelView(HealthServiceBooking, db.session, category='HealthScheduler'))
+admin.add_view(ModelView(HealthServiceAppUser, db.session, category='HealthScheduler'))
+
+
+# Commands
 
 @app.cli.command()
 def populatedb():
@@ -452,7 +469,6 @@ def add_update_staff_finger_print_gsheet():
                 db.session.commit()
             except:
                 print(u'{} {} failed'.format(row['firstname'], row['lastname']))
-
 
 
 @dbutils.command('add-update-staff-gsheet')
