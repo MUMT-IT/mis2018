@@ -102,9 +102,9 @@ def show_slots():
     return render_template('health_service_scheduler/slots.html', mode=mode)
 
 
-@hs.route('/api/slots')
+@hs.route('/api/calendar/slots')
 @login_required
-def get_slots():
+def get_slots_calendar_api():
     # only query events of the current year to reduce load time
     slots = HealthServiceTimeSlot.query\
         .filter(extract('year', HealthServiceTimeSlot.start) == datetime.today().year)
@@ -123,8 +123,8 @@ def get_slots():
     return jsonify(slot_data)
 
 
-@hs.route('/api/sites')
-def get_sites_api():
+@hs.route('/api/calendar/sites')
+def get_sites_calendar_api():
     sites = HealthServiceSite.query.all()
     site_data = []
     for s in sites:
