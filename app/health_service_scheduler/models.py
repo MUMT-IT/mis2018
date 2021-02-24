@@ -34,6 +34,15 @@ class HealthServiceTimeSlot(db.Model):
     site = db.relationship(HealthServiceSite, backref=db.backref('slots'))
     service = db.relationship(HealthServiceService, backref=db.backref('slots'))
 
+    @property
+    def remaining(self):
+        return self.quota - len(self.bookings)
+
+    @property
+    def is_available(self):
+        return self.remaining > 0
+
+
 
 class HealthServiceBooking(db.Model):
     __tablename__ = 'health_service_bookings'
@@ -56,6 +65,9 @@ class HealthServiceAppUser(db.Model):
     lastname = db.Column(db.String(255))
     tel = db.Column(db.String())
     email = db.Column(db.String())
+
+    def __str__(self):
+        return u'{} {} <ID={}>'.format(self.firstname, self.lastname, self.id)
 
 
 class SmartNested(Nested):
