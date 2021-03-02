@@ -431,6 +431,7 @@ api.add_resource(HealthServiceBookingListResource, '/api/v1.0/hscheduler/booking
 api.add_resource(HealthServiceBookingResource, '/api/v1.0/hscheduler/bookings/<int:id>')
 api.add_resource(HealthServiceAppUserResource, '/api/v1.0/hscheduler/users/<int:id>')
 api.add_resource(HealthServiceServiceListResource, '/api/v1.0/hscheduler/services')
+api.add_resource(HealthServiceServiceResource, '/api/v1.0/hscheduler/services/<int:id>')
 
 admin.add_view(ModelView(HealthServiceBooking, db.session, category='HealthScheduler'))
 admin.add_view(ModelView(HealthServiceAppUser, db.session, category='HealthScheduler'))

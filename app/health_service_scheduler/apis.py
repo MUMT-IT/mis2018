@@ -70,3 +70,11 @@ class HealthServiceServiceListResource(Resource):
         services = HealthServiceService.query.all()
 
         return jsonify(service_schema.dump(services))
+
+
+class HealthServiceServiceResource(Resource):
+    def get(self, id):
+        service_schema = HealthServiceServiceSchema()
+        service = HealthServiceService.query.get_or_404(id)
+
+        return jsonify(service_schema.dump(service))
