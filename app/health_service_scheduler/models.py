@@ -99,3 +99,8 @@ class HealthServiceBookingSchema(ma.ModelSchema):
 class HealthServiceAppUserSchema(ma.ModelSchema):
     class Meta:
         model = HealthServiceAppUser
+
+
+class HealthServiceServiceSchema(ma.ModelSchema):
+    class Meta:
+        model = HealthServiceService

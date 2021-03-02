@@ -62,3 +62,11 @@ class HealthServiceAppUserResource(Resource):
         user = HealthServiceAppUser.query.get(id)
 
         return jsonify(user_schema.dump(user))
+
+
+class HealthServiceServiceListResource(Resource):
+    def get(self):
+        service_schema = HealthServiceServiceSchema(many=True)
+        services = HealthServiceService.query.all()
+
+        return jsonify(service_schema.dump(services))
