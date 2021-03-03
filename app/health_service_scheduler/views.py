@@ -181,7 +181,7 @@ def add_booking():
     if slot and slot.is_available:
         booking = HealthServiceBooking()
         booking.slot = slot
-        booking.user_id = 1
+        booking.user = HealthServiceAppUser.query.first()
         booking.created_at = datetime.now(localtz).astimezone(localtz)
         '''
         if not user:
