@@ -1,5 +1,7 @@
 # -*- coding:utf-8 -*-
-from marshmallow.fields import Nested
+import time
+
+from marshmallow.fields import Nested, Function
 
 from app.main import db, ma
 
@@ -84,6 +86,8 @@ class HealthServiceSiteSchema(ma.ModelSchema):
 
 class HealthServiceSlotSchema(ma.ModelSchema):
     site = SmartNested(HealthServiceSiteSchema)
+    start = Function(lambda obj: time.mktime(obj.start.timetuple())*1000.0)
+    end = Function(lambda obj: time.mktime(obj.end.timetuple())*1000.0)
     class Meta:
         model = HealthServiceTimeSlot
         sqla_session = db.session
