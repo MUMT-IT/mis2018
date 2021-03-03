@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}MUMT: Health Service{% endblock %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+{% include "health_service_scheduler/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('health_service_scheduler.index') }}">Home</a></li>
+                <li><a href="{{ url_for('health_service_scheduler.index') }}">Slots</a></li>
+                <li class="is-active"><a href="#" aria-current="page">New</a></li>
+            </ul>
+        </nav>
+        <div class="columns">
+            <div class="column box is-one-third is-offset-4">
+                <form method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.site.label }}</label>
+                        <div class="control">
+                            <div class="select">
+                                {{ form.site() }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.service.label }}</label>
+                        <div class="control">
+                            <div class="select">
+                                {{ form.service() }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.start.label }}</label>
+                        <div class="control">
+                            {{ form.start(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.end.label }}</label>
+                        <div class="control">
+                            {{ form.end(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.quota.label }}</label>
+                        <div class="control">
+                            {{ form.quota(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a class="button">Back</a>
+                        </div>
+                        <div class="control">
+                            <input type="submit" value="Submit" class="button is-success">
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    $('input[name="start"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: true,
+        timePickerIncrement: 15,
+        timePicker24Hour: true,
+        startDate: moment().startOf('hour'),
+        endDate: moment().startOf('hour').add(32, 'hour'),
+        locale: {
+            format: 'YYYY-MM-DD HH:mm:ss'
+        }
+    });
+    $('input[name="end"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: true,
+        timePickerIncrement: 15,
+        timePicker24Hour: true,
+        startDate: moment().startOf('hour'),
+        endDate: moment().startOf('hour').add(32, 'hour'),
+        locale: {
+            format: 'YYYY-MM-DD HH:mm:ss'
+        }
+    });
+</script>
+{% endblock %}

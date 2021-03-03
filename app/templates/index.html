@@ -22,6 +22,15 @@
                             บุคลากร
                         </span>
                     </a>
+                    <a class="panel-block"
+                        href="{{ url_for('km.index') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-box-open"></i>
+                        </span>
+                        <span class="is-size-5">
+                            คลังความรู้
+                        </span>
+                    </a>
                 </nav>
                 <nav class="panel is-info">
                     <p class="panel-heading">Education</p>
@@ -43,6 +52,12 @@
                             <i class="fas fa-heartbeat"></i>
                         </span>
                         <span class="is-size-5">ระบบงานบริการสุขภาพชุมชน</span>
+                    </a>
+                    <a href="{{ url_for('health_service_scheduler.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-calendar-plus"></i>
+                        </span>
+                        <span class="is-size-5">ระบบจองเวลางานสุขภาพชุมชน</span>
                     </a>
                     <a href="{{ url_for('room.index') }}" class="panel-block">
                         <span class="panel-icon">

@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Health Service Scheduler: Services{% endblock %}
+
+{% block page_content %}
+{% include "health_service_scheduler/nav.html" %}
+<section class="section">
+    <div class="container">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('health_service_scheduler.index') }}">Home</a></li>
+                <li class="is-active"><a href="#" aria-current="page">Services</a></li>
+            </ul>
+        </nav>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                {% include 'messages.html' %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <nav class="panel">
+                    <p class="panel-heading">Services</p>
+                    {% for service in services %}
+                    <a class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-star"></i>
+                        </span>
+                        <span class="is-size-5">
+                            {{ service.name }}
+                        </span>
+                    </a>
+                    {% endfor %}
+                    <a class="panel-block" href="{{ url_for('health_service_scheduler.add_service') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-plus"></i>
+                        </span>
+                        <span class="is-size-5">
+                            Add service
+                        </span>
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
