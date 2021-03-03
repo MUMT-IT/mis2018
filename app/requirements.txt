@@ -11,7 +11,7 @@ bahttext==1.0.1
 bleach==2.1.3
 cachetools==2.1.0
 cairocffi==0.9.0
-CairoSVG==1.0.22
+CairoSVG==2.5.1
 certifi==2018.4.16
 cffi==1.11.5
 chardet==3.0.4
