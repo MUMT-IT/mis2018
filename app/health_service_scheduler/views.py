@@ -144,15 +144,18 @@ def add_booking():
     data = request.get_json()
     print(data)
     slot = HealthServiceTimeSlot.query.get(int(data.get('slotId', 0)))
-    user = HealthServiceAppUser.query.filter_by(line_id=data.get('lineId', 'abcd')).first()
+    # user = HealthServiceAppUser.query.filter_by(line_id=data.get('lineId', 'abcd')).first()
     if slot and slot.is_available:
         booking = HealthServiceBooking()
         booking.slot = slot
+        booking.user_id = 1
+        '''
         if not user:
             new_user = HealthServiceAppUser(line_id=data['lineId'])
             booking.user = new_user
         else:
             booking.user = user
+        '''
         db.session.add(booking)
         db.session.commit()
         return jsonify({'status': 'success'})

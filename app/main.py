@@ -439,6 +439,9 @@ api.add_resource(HealthServiceServiceResource, '/api/v1.0/hscheduler/services/<i
 
 admin.add_view(ModelView(HealthServiceBooking, db.session, category='HealthScheduler'))
 admin.add_view(ModelView(HealthServiceAppUser, db.session, category='HealthScheduler'))
+admin.add_view(ModelView(HealthServiceTimeSlot, db.session, category='HealthScheduler'))
+admin.add_view(ModelView(HealthServiceService, db.session, category='HealthScheduler'))
+admin.add_view(ModelView(HealthServiceSite, db.session, category='HealthScheduler'))
 
 
 # Commands
