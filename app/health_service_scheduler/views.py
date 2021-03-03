@@ -2,11 +2,13 @@
 from datetime import datetime
 
 from flask import render_template, request, flash, redirect, url_for, jsonify
+from flask_cors import cross_origin
 from sqlalchemy import extract
 
 from models import *
 from forms import *
 from . import health_service_blueprint as hs
+from app.main import csrf
 from pytz import timezone
 from flask_login import login_required, current_user
 
@@ -133,3 +135,25 @@ def get_sites_calendar_api():
             'title': s.name,
         })
     return jsonify(site_data)
+
+
+@hs.route('/api/bookings/add', methods=['POST'])
+@csrf.exempt
+@cross_origin(support_credentials=True)
+def add_booking():
+    data = request.get_json()
+    print(data)
+    slot = HealthServiceTimeSlot.query.get(int(data.get('slotId', 0)))
+    user = HealthServiceAppUser.query.filter_by(line_id=data.get('lineId', 'abcd')).first()
+    if slot and slot.is_available:
+        booking = HealthServiceBooking()
+        booking.slot = slot
+        if not user:
+            new_user = HealthServiceAppUser(line_id=data['lineId'])
+            booking.user = new_user
+        else:
+            booking.user = user
+        db.session.add(booking)
+        db.session.commit()
+        return jsonify({'status': 'success'})
+    return jsonify({'status': 'failed'})
