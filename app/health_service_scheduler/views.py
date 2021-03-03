@@ -14,7 +14,6 @@ from flask_login import login_required, current_user
 
 localtz = timezone('Asia/Bangkok')
 
-
 @hs.route('/')
 @login_required
 def index():
@@ -99,9 +98,43 @@ def add_slot():
 
 
 @hs.route('/slots')
+@login_required
 def show_slots():
     mode = request.args.get('mode', 'agendaWeek')
     return render_template('health_service_scheduler/slots.html', mode=mode)
+
+
+@hs.route('/bookings')
+@login_required
+def show_bookings():
+    services = HealthServiceService.query.all()
+    return render_template('health_service_scheduler/bookings.html', services=services)
+
+
+@hs.route('/services/<int:service_id>/bookings')
+@login_required
+def show_bookings_by_service(service_id):
+    bookings = HealthServiceBooking.query.all()
+    return render_template('health_service_scheduler/service_bookings.html',
+                           bookings=[booking for booking in bookings
+                                     if booking.slot.service.id == service_id])
+
+@hs.route('/bookings/<int:booking_id>')
+@login_required
+def show_booking_detail(booking_id):
+    booking = HealthServiceBooking.query.get(booking_id)
+    return render_template('health_service_scheduler/booking_detail.html',
+                           booking=booking)
+
+
+@hs.route('/bookings/<int:booking_id>/confirm')
+@login_required
+def confirm_booking(booking_id):
+    booking = HealthServiceBooking.query.get(booking_id)
+    booking.confirmed_at = datetime.now(localtz).astimezone(localtz)
+    db.session.add(booking)
+    db.session.commit()
+    return redirect(url_for('health_service_scheduler.show_bookings'))
 
 
 @hs.route('/api/calendar/slots')
@@ -149,6 +182,7 @@ def add_booking():
         booking = HealthServiceBooking()
         booking.slot = slot
         booking.user_id = 1
+        booking.created_at = datetime.now(localtz).astimezone(localtz)
         '''
         if not user:
             new_user = HealthServiceAppUser(line_id=data['lineId'])

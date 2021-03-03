@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "health_service_scheduler/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                {% include 'messages.html' %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <h1 class="title is-size-4">Bookings No. {{ booking.id }}</h1>
+                    <table class="table is-fullwidth">
+                        <tr>
+                            <td>Service</td><td>{{ booking.slot.service.name }}</td>
+                        </tr>
+                        <tr>
+                            <td>Start Time</td><td>{{ booking.slot.start | localdatetime }}</td>
+                        </tr>
+                        <tr>
+                            <td>End Time</td><td>{{ booking.slot.end | localdatetime }}</td>
+                        </tr>
+                        <tr>
+                            <td>Site</td><td>{{ booking.slot.site.name }}</td>
+                        </tr>
+                        <tr>
+                            <td>Remaining quota</td><td>{{ booking.slot.remaining }}</td>
+                        </tr>
+                        <tr>
+                            <td>Confirmed at</td><td>{{ booking.confirmed_at | localdatetime }}</td>
+                        </tr>
+                        <tr>
+                            <td>Cancelled at</td><td>{{ booking.cancelled_at | localdatetime }}</td>
+                        </tr>
+                        <tr>
+                            <td colspan="2">
+                                <div class="buttons is-centered">
+                                    <a class="button is-light"
+                                        href="{{ url_for('health_service_scheduler.show_bookings') }}">
+                                        Back
+                                    </a>
+                                    <a class="button is-danger">Reject</a>
+                                    <a class="button is-success"
+                                       href="{{ url_for('health_service_scheduler.confirm_booking', booking_id=booking.id) }}">Confirm</a>
+                                </div>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
