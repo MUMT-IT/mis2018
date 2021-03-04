@@ -17,12 +17,6 @@ def criteria1_index():
     return render_template('eduqa/QA/mtc/criteria1.html')
 
 
-@edu.route('/qa/program/edit')
-def edit_program():
-    form = ProgramForm()
-    return render_template('eduqa/QA/program_edit.html', form=form)
-
-
 @edu.route('/qa/academic-staff/')
 def academic_staff_info_main():
     return render_template('eduqa/QA/staff/index.html')
@@ -103,3 +97,44 @@ def remove_education_record(record_id):
     else:
         flash(u'ไม่พบรายการในระบบ', 'warning')
     return redirect(url_for('eduqa.academic_staff_info_main'))
+
+
+@edu.route('/qa/program')
+def show_programs():
+    programs = EduQAProgram.query.all()
+    return render_template('eduqa/QA/program.html', programs=programs)
+
+
+
+@edu.route('/qa/programs/add', methods=['POST', 'GET'])
+def add_program():
+    form = EduProgramForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            program = EduQAProgram()
+            form.populate_obj(program)
+            db.session.add(program)
+            db.session.commit()
+            flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
+            return redirect(url_for('eduqa.index'))
+        else:
+            print(form.errors)
+            flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
+    return render_template('eduqa/QA/program_edit.html', form=form)
+
+
+@edu.route('/qa/programs/edit/<int:program_id>', methods=['POST', 'GET'])
+def edit_program(program_id):
+    program = EduQAProgram.query.get(program_id)
+    form = EduProgramForm(obj=program)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(program)
+            db.session.add(program)
+            db.session.commit()
+            flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
+            return redirect(url_for('eduqa.index'))
+        else:
+            print(form.errors)
+            flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
+    return render_template('eduqa/QA/program_edit.html', form=form)

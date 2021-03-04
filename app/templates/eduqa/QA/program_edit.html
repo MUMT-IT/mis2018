@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% block title %}
 {% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
 {% include "eduqa/QA/nav.html" %}
 {% block page_content %}
@@ -11,20 +10,30 @@
             </div>
         </div>
         <div class="columns">
-            <form>
-                {{ form.hidden_tag() }}
-                <div class="field">
-                    <label class="label">{{ form.name.label }}</label>
-                    <div class="control">
-                        {{ form.name(class="input") }}
+            <div class="column is-one-third is-offset-4">
+                <form method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.name.label }}</label>
+                        <div class="control">
+                            {{ form.name(class="input") }}
+                        </div>
                     </div>
-                </div>
-                <div class="field">
-                    <div class="control">
-                        <input type="submit" value="Save"/>
+                    <div class="field">
+                        <div class="control">
+                            <label class="label">{{ form.degree.label }}</label>
+                            <div class="select">
+                                {{ form.degree() }}
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </form>
+                    <div class="field">
+                        <div class="control">
+                            <input type="submit" class="button is-success" value="Save"/>
+                        </div>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 </section>
