@@ -196,8 +196,10 @@ class StaffAcademicPositionRecord(db.Model):
     __tablename__ = 'staff_academic_position_records'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     personal_info_id = db.Column(db.ForeignKey('staff_personal_info.id'))
-    personal = db.relationship(StaffPersonalInfo, backref=db.backref('academic_positions'))
-    appointed_at = db.Column(db.Date())
+    personal_info = db.relationship(StaffPersonalInfo,
+                                    backref=db.backref('academic_positions',
+                                                       order_by='StaffAcademicPositionRecord.appointed_at.desc()'))
+    appointed_at = db.Column(db.Date(), info={'label': u'แต่งตั้งเมื่อ'})
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
     position_id = db.Column(db.ForeignKey('staff_academic_position.id'))
     position = db.relationship(StaffAcademicPosition, backref=db.backref('records'))

@@ -12,26 +12,45 @@
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 <h1 class="title">{{ current_user.personal_info.fullname }}</h1>
-                <table class="table">
+                <table class="table is-bordered is-fullwidth">
                     <tr>
-                        <td>ตำแน่งวิชาการ</td>
+                        <td><span class="label">ตำแน่งวิชาการ</span></td>
                         <td>
-                            <table class="table">
+                            <table class="table is-bordered is-fullwidth">
                                 <thead>
                                     <th>ระดับ</th>
                                     <th>แต่งตั้งเมื่อ</th>
+                                    <th>ลบ</th>
                                 </thead>
-                                {% for position in current_user.personal_info.academic_positions %}
+                                {% for record in current_user.personal_info.academic_positions %}
                                 <tr>
-                                    <td>{{ position.fullname_th }}</td>
-                                    <td>{{ position.appointed_at | localdate }}</td>
+                                    <td>{{ record.position.fullname_th }}</td>
+                                    <td>{{ record.appointed_at }}</td>
+                                    <td>
+                                        <a href="{{ url_for('eduqa.academic_position_remove', record_id=record.id) }}">
+                                            <span class="icon">
+                                                <i class="fas fa-trash has-text-danger"></i>
+                                            </span>
+                                        </a>
+                                    </td>
                                 </tr>
                                 {% endfor %}
+                                <tr>
+                                    <td colspan="3">
+                                        <a href="{{ url_for('eduqa.academic_position_edit') }}"
+                                           class="button is-link is-small">
+                                            <span class="icon">
+                                                <i class="fas fa-plus"></i>
+                                            </span>
+                                            <span>เพิ่มรายการ</span>
+                                        </a>
+                                    </td>
+                                </tr>
                             </table>
                         </td>
                     </tr>
                     <tr>
-                        <td>การศึกษา</td>
+                        <td><span class="label">การศึกษา</span></td>
                         <td></td>
                     </tr>
                 </table>
