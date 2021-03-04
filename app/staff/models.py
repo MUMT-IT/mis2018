@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+
 from sqlalchemy import func
 
 from ..main import db, ma
@@ -160,20 +161,22 @@ class StaffEduDegree(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     level = db.Column('level', db.String(), nullable=False,
                       info={'label': u'ระดับ',
-                            'choices': ((0, u'ต่ำกว่าปริญญาตรี'),
-                                        (1, u'ปริญญาตรี'),
-                                        (2, u'ปริญญาโท'),
-                                        (3, u'ปริญญาเอก'))
+                            'choices': [('undergraduate', u'ต่ำกว่าปริญญาตรี'),
+                                        ('bachelor', u'ปริญญาตรี'),
+                                        ('master', u'ปริญญาโท'),
+                                        ('doctorate', u'ปริญญาเอก')]
                             })
-    en_title = db.Column('en_title', db.String())
-    th_title = db.Column('th_title', db.String())
-    en_major = db.Column('en_major', db.String())
-    th_major = db.Column('th_major', db.String())
-    en_school = db.Column('en_school', db.String())
-    th_country = db.Column('th_country', db.String())
-    received_date = db.Column(db.Date())
+    en_title = db.Column('en_title', db.String(), info={'label': u'Title'})
+    th_title = db.Column('th_title', db.String(), info={'label': u'ชื่อปริญญา'})
+    en_major = db.Column('en_major', db.String(), info={'label': u'Major'})
+    th_major = db.Column('th_major', db.String(), info={'label': u'สาขา'})
+    en_school = db.Column('en_school', db.String(), info={'label': u'ชื่อสถาบัน'})
+    th_country = db.Column('th_country', db.String(), info={'label': u'ประเทศ'})
+    received_date = db.Column(db.Date(), info={'label': u'ปีที่จบการศึกษา'})
     personal_info_id = db.Column(db.ForeignKey('staff_personal_info.id'))
-    personal_info = db.relationship(StaffPersonalInfo, backref=db.backref('degrees'))
+    personal_info = db.relationship(StaffPersonalInfo,
+                                    backref=db.backref('degrees',
+                                                       order_by='StaffEduDegree.received_date.desc()'))
 
 
 class StaffAcademicPosition(db.Model):

@@ -4,7 +4,9 @@ from flask_wtf import FlaskForm
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.main import db
 from models import EduQAProgram
-from app.staff.models import StaffAcademicPositionRecord, StaffAcademicPosition
+from app.staff.models import (StaffAcademicPositionRecord,
+                              StaffAcademicPosition,
+                              StaffEduDegree)
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -26,3 +28,8 @@ class AcademicPositionRecordForm(ModelForm):
     position = QuerySelectField(u'ตำแหน่ง',
                                 get_label='fullname_th',
                                 query_factory=lambda: StaffAcademicPosition.query.all())
+
+
+class EduDegreeRecordForm(ModelForm):
+    class Meta:
+        model = StaffEduDegree

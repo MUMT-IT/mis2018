@@ -55,3 +55,21 @@ def academic_position_remove(record_id):
     else:
         flash(u'ไม่พบรายการในระบบ', 'warning')
     return redirect(url_for('eduqa.academic_staff_info_main'))
+
+
+@edu.route('/qa/academic-staff/education-record/add', methods=['GET', 'POST'])
+def add_education_record():
+    form = EduDegreeRecordForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            record = StaffEduDegree()
+            form.populate_obj(record)
+            record.personal_info = current_user.personal_info
+            db.session.add(record)
+            db.session.commit()
+            flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
+            return redirect(url_for('eduqa.academic_staff_info_main'))
+        else:
+            print(form.errors)
+            flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
+    return render_template('eduqa/QA/staff/education_edit.html', form=form)
