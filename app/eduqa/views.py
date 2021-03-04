@@ -73,3 +73,33 @@ def add_education_record():
             print(form.errors)
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
     return render_template('eduqa/QA/staff/education_edit.html', form=form)
+
+
+@edu.route('/qa/academic-staff/education-record/edit/<int:record_id>', methods=['GET', 'POST'])
+def edit_education_record(record_id):
+    record = StaffEduDegree.query.get(record_id)
+    form = EduDegreeRecordForm(obj=record)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(record)
+            record.personal_info = current_user.personal_info
+            db.session.add(record)
+            db.session.commit()
+            flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
+            return redirect(url_for('eduqa.academic_staff_info_main'))
+        else:
+            print(form.errors)
+            flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
+    return render_template('eduqa/QA/staff/education_edit.html', form=form)
+
+
+@edu.route('/qa/academic-staff/education-record/remove/<int:record_id>', methods=['GET', 'POST'])
+def remove_education_record(record_id):
+    record = StaffEduDegree.query.get(record_id)
+    if record:
+        db.session.delete(record)
+        db.session.commit()
+        flash(u'ลบรายการเรียบร้อย', 'success')
+    else:
+        flash(u'ไม่พบรายการในระบบ', 'warning')
+    return redirect(url_for('eduqa.academic_staff_info_main'))

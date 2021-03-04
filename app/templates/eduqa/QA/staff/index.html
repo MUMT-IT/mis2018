@@ -84,12 +84,12 @@
                                 </tr>
                                 <tr>
                                     <td colspan="2" align="right">
-                                        <a>
+                                        <a href="{{ url_for('eduqa.edit_education_record', record_id=record.id) }}">
                                             <span class="icon">
                                                 <i class="fas fa-pencil-alt"></i>
                                             </span>
                                         </a>
-                                        <a href="{{ url_for('eduqa.academic_position_remove', record_id=record.id) }}">
+                                        <a href="{{ url_for('eduqa.remove_education_record', record_id=record.id) }}">
                                             <span class="icon">
                                                 <i class="fas fa-trash has-text-danger"></i>
                                             </span>
