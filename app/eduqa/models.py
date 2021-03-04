@@ -1,25 +1,16 @@
 # -*- coding:utf-8 -*-
 from app.main import db
 
-
-class EduQADegree(db.Model):
-    __tablename__ = 'eduqa_degrees'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(), info={'label': u'ระดับ',
-                                        'choices': ((c,i) for c,i in
-                                                    [(u'ปริญญาตรี', 1),
-                                                     (u'ปริญญาโท',2),
-                                                     (u'ปริญญาเอก',3)
-                                                 ])
-                                        })
-
-
 class EduQAProgram(db.Model):
     __tablename__ = 'eduqa_programs'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column(db.String(255), nullable=False)
-    degree_id = db.Column(db.ForeignKey('eduqa_degrees.id'))
-    degree = db.relationship(EduQADegree, backref=db.backref('programs'))
+    name = db.Column(db.String(255), nullable=False,
+                     info={'label': u'ชื่อ'})
+    degree = db.Column(db.String(), nullable=False,
+                       info={'label': u'ระดับ',
+                             'choices': (('undergraduate', 'undergraduate'),
+                                         ('graudate', 'graduate'))
+                             })
 
 
 class EduQACurriculum(db.Model):
@@ -28,3 +19,22 @@ class EduQACurriculum(db.Model):
     program_id = db.Column(db.ForeignKey('eduqa_programs.id'),
                            )
     program = db.relationship(EduQAProgram, backref=db.backref('curriculums'))
+    th_name = db.Column(db.String(), nullable=False)
+    en_name = db.Column(db.String(), nullable=False)
+
+
+class EduQACurriculumnRevision(db.Model):
+    __tablename__ = 'eduqa_curriculum_revisions'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    curriculum_id = db.Column(db.ForeignKey('eduqa_curriculums.id'))
+    curriculum = db.relationship(EduQACurriculum, backref=db.backref('revisions'))
+    revision_year = db.Column(db.Date(), nullable=False)
+
+
+class EduQAAcademicStaff(db.Model):
+    __tablename__ = 'eduqa_academic_staff'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    roles = db.Column(db.String(), info={'label': u'บทบาท',
+                                         'choices': (('', u''))})
+    curriculumn_id = db.Column(db.ForeignKey('eduqa_curriculum_revisions.id'))
+    curriculumn = db.relationship(EduQACurriculumnRevision, backref=db.backref('staff'))
