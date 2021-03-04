@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                {% include 'messages.html' %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <h1 class="title">{{ current_user.personal_info.fullname }}</h1>
+                <table class="table">
+                    <tr>
+                        <td>ตำแน่งวิชาการ</td>
+                        <td>
+                            <table class="table">
+                                <thead>
+                                    <th>ระดับ</th>
+                                    <th>แต่งตั้งเมื่อ</th>
+                                </thead>
+                                {% for position in current_user.personal_info.academic_positions %}
+                                <tr>
+                                    <td>{{ position.fullname_th }}</td>
+                                    <td>{{ position.appointed_at | localdate }}</td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>การศึกษา</td>
+                        <td></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

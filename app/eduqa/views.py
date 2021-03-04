@@ -17,3 +17,8 @@ def criteria1_index():
 def edit_program():
     form = ProgramForm()
     return render_template('eduqa/QA/program_edit.html', form=form)
+
+
+@edu.route('/qa/academic-staff/')
+def academic_staff_info_main():
+    return render_template('eduqa/QA/staff/index.html')
