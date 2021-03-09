@@ -4,7 +4,7 @@ from pandas import read_excel, isna
 
 from models import *
 from . import staffbp as staff
-from app.main import db, get_weekdays, mail
+from app.main import db, get_weekdays, mail, app
 from app.models import Holidays, Org
 from flask import jsonify, render_template, request, redirect, url_for, flash, session
 from datetime import date, datetime
@@ -20,6 +20,7 @@ import requests
 import os
 from flask_mail import Message
 from flask_admin import BaseView, expose
+from itsdangerous import TimedJSONWebSignatureSerializer
 
 from ..comhealth.views import allowed_file
 
@@ -267,7 +268,7 @@ def request_for_leave(quota_id=None):
                     db.session.add(req)
                     db.session.commit()
                     mails = []
-                    req_title = u'ทดสอบแจ้งการขออนุมัติ' + req.quota.leave_type.type_
+                    req_title = u'แจ้งการขออนุมัติ' + req.quota.leave_type.type_
                     req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
                               u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                         format(current_user.personal_info.fullname, req.quota.leave_type.type_,
@@ -364,7 +365,7 @@ def request_for_leave_period(quota_id=None):
                     db.session.add(req)
                     db.session.commit()
                     mails = []
-                    req_title = u'ทดสอบแจ้งการขออนุมัติ' + req.quota.leave_type.type_
+                    req_title = u'แจ้งการขออนุมัติ' + req.quota.leave_type.type_
                     req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
                               u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                         format(current_user.personal_info.fullname, req.quota.leave_type.type_,
@@ -750,7 +751,7 @@ def leave_approve(req_id, approver_id):
                 line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=approve_msg))
             else:
                 print(approve_msg, req.staff.id)
-        approve_title = u'ทดสอบแจ้งสถานะการอนุมัติ' + req.quota.leave_type.type_
+        approve_title = u'แจ้งสถานะการอนุมัติ' + req.quota.leave_type.type_
         if os.environ["FLASK_ENV"] == "production":
             send_mail([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
         return redirect(url_for('staff.show_leave_approval_info'))
@@ -768,25 +769,69 @@ def show_leave_approval(req_id):
     return render_template('staff/leave_approval_status.html', req=req, approvers=approvers)
 
 
-@staff.route('/leave/requests/<int:req_id>/cancel')
+@staff.route('/leave/requests/<int:req_id>/cancel-approved')
 @login_required
-def cancel_leave_request(req_id):
+def request_cancel_leave_request(req_id):
+    req = StaffLeaveRequest.query.get(req_id)
+    for approval in StaffLeaveApproval.query.filter_by(request_id=req_id):
+        serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'), expires_in=86400)
+        token = serializer.dumps({'approver_id': approval.approver_id, 'req_id': req.id})
+        req_to_cancel_msg = u'{} ยื่นคำขอยกเลิก {} วันที่ {} ถึง {}\nคลิกที่ Link {} เพื่อยกเลิกการลา' \
+                            u'\n\n\n หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+            format(current_user.personal_info.fullname, req.quota.leave_type.type_,
+                   req.start_datetime, req.end_datetime, url_for("staff.info_request_cancel_leave_request",
+                                                                token=token, _external=True))
+        if approval.approver.notified_by_line and approval.approver.account.line_id:
+            if os.environ["FLASK_ENV"] == "production":
+                line_bot_api.push_message(to=approval.approver.account.line_id,messages=TextSendMessage(text=req_to_cancel_msg))
+            else:
+                print(req_to_cancel_msg, approval.approver.account.id)
+
+        req_title = u'แจ้งการขอยกเลิก' + req.quota.leave_type.type_
+        if os.environ["FLASK_ENV"] == "production":
+            send_mail([approval.approver.account.email + "@mahidol.ac.th"], req_title, req_to_cancel_msg)
+        else:
+            print(req_to_cancel_msg)
+    flash(u'ส่งคำขอยกเลิกการลาของท่านเรียบร้อยแล้ว')
+    return redirect(url_for('staff.show_leave_info'))
+
+
+@staff.route('/leave/requests/cancel-approved/info')
+def info_request_cancel_leave_request():
+    token = request.args.get('token')
+    serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
+    try:
+        token_data = serializer.loads(token)
+    except:
+        return u'Bad JSON Web token. You need a valid token to cancelled leave request. รหัสสำหรับยกเลิกการลา หมดอายุหรือไม่ถูกต้อง'
+    req_id = token_data.get("req_id")
+    approver_id = token_data.get("approver_id")
+    req = StaffLeaveRequest.query.get(req_id)
+    approver = StaffLeaveApproval.query.filter_by(approver_id=approver_id).first()
+    approvers = StaffLeaveApproval.query.filter_by(request_id=req_id)
+    return render_template('staff/leave_request_cancel_request.html', req=req, approver=approver, approvers=approvers)
+
+
+@staff.route('/leave/requests/<int:req_id>/cancel/<int:cancelled_account_id>')
+@login_required
+def cancel_leave_request(req_id, cancelled_account_id):
     req = StaffLeaveRequest.query.get(req_id)
     req.cancelled_at = tz.localize(datetime.today())
+    req.cancelled_account_id = cancelled_account_id
     db.session.add(req)
     db.session.commit()
     cancelled_msg = u'การขออนุมัติ{} วันที่ใน {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
                                                                         req.start_datetime,
                                                                         req.end_datetime,
-                                                                        current_user.personal_info.fullname
+                                                                        req.cancelled_by.personal_info
                                                                         ,_external=True)
     if req.notify_to_line and req.staff.line_id:
         if os.environ["FLASK_ENV"] == "production":
             line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=cancelled_msg))
         else:
             print(cancelled_msg, req.staff.id)
-    cancelled_title = u'ทดสอบแจ้งยกเลิกการขอ' + req.quota.leave_type.type_
+    cancelled_title = u'แจ้งยกเลิกการขอ' + req.quota.leave_type.type_
     if os.environ["FLASK_ENV"] == "production":
         send_mail([req.staff.email + "@mahidol.ac.th"], cancelled_title, cancelled_msg)
     return redirect(request.referrer)
