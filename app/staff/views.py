@@ -677,11 +677,12 @@ def show_leave_approval_info():
         line_notified = approver.notified_by_line
     else:
         return redirect(url_for('staff.show_leave_info'))
+    today = datetime.today().date()
     return render_template('staff/leave_request_approval_info.html',
                            requesters=requesters,
                            approver=approver,
                            requester_cum_periods=requester_cum_periods,
-                           leave_types=leave_types, line_notified=line_notified)
+                           leave_types=leave_types, line_notified=line_notified, today=today)
 
 
 @staff.route('/api/leave/requests/linenotified')
