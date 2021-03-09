@@ -29,6 +29,7 @@
                         </td>
                     </tr>
                     {% for leave_req in approver.requester.leave_requests|sort(attribute='start_datetime') %}
+                    {% if (today - leave_req.created_at.date()).days < 60 %}
                     {% if not leave_req.cancelled_at %}
                     {% if not leave_req|checkapprovals(approver.id) %}
                     <tr>
@@ -71,6 +72,7 @@
                                class="button is-rounded is-danger">ไม่อนุมัติ</a>
                         </td>
                     </tr>
+                    {% endif %}
                     {% endif %}
                     {% endif %}
                     {% endfor %}
