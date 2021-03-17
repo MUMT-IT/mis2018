@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        {% for msg in get_flashed_messages() %}
+        <p class="notification is-warning">{{ msg }}</p>
+        {% endfor %}
+    </div>
+    <div class="columns">
+        <div class="column has-text-centered ">
+            <h1 class="title">คำร้องขอยกเลิกการลา</h1>
+            Welcome {{ approval.approver.account.personal_info }}
+        </div>
+    </div>
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <div class="box">
+                    <table class="table is-fullwidth">
+                        <tr>
+                            <td>
+                                <label class="label">ผู้ขออนุมัติลา</label>
+                            </td>
+                            <td>
+                                {{ req.staff.personal_info }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">ประเภทการลา</label>
+                            </td>
+                            <td>
+                                <p><strong>{{ req.quota.leave_type }}</strong></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">วันที่ต้องการขออนุมัติลา</label>
+                            </td>
+                            <td>
+                                {{ req.start_datetime|localdatetime }} - {{ req.end_datetime|localdatetime }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">จำนวนวัน</label>
+                            </td>
+                            <td>
+                                {{ req.total_leave_days }} วัน
+                            </td>
+                        </tr>
+                        {% if req.start_travel_datetime %}
+                        <tr>
+                            <td>
+                                ช่วงเวลาเดินทาง
+                            </td>
+                            <td>
+                                {{ req.start_travel_datetime|localdate }} - {{ req.end_travel_datetime|localdate }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">ประเทศที่ไป</label>
+                            </td>
+                            <td>
+                                {{ req.country }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if req.reason %}
+                        <tr>
+                            <td>
+                                <label class="label">จุดประสงค์ในการขออนุมัติลา</label>
+                            </td>
+                            <td>
+                                {{ req.reason }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td>
+                                <label class="label">ความคิดเห็นหัวหน้างาน</label>
+                            </td>
+                            <td>
+                                {% for approver in approvers %}
+                                {{ approver.approver.account.personal_info }}:
+                                <strong>"{{ approver.approval_comment }}"</strong>,
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    </table>
+                    {% if not req.cancelled_at %}
+                    <a class="button is-danger" @click="confirmCustomDelete({{ req.id }}, {{ approval.approver.account.id }})">ยกเลิกการลา</a>
+                    {% else %}
+                    <span class="title is-size-4" style="color:#0000ff">การลาครั้งนี้ถูกยกเลิกเรียบร้อยแล้ว</span>
+                        โดย
+                        {% if req.cancelled_account_id %}
+                            {{ req.cancelled_by.personal_info }}
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        methods: {
+            confirmCustomDelete(req_id, cancelled_account_id) {
+                this.$buefy.dialog.confirm({
+                    title: 'ยกเลิกคำขอที่' + req_id,
+                    message: 'แน่ใจหรือไม่ที่จะ<b>ยกเลิก</b>การลาครั้งนี้ หากยกเลิกแล้วจะไม่สามารถแก้ไขได้',
+                    confirmText: 'Delete this request',
+                    type: 'is-danger',
+                    hasIcon: true,
+                    onConfirm: () => window.location.href = "/staff/leave/requests/" + req_id + "/cancel/by/" + cancelled_account_id
+                })
+            }
+        }
+    });
+</script>
+{% endblock %}
