@@ -10,6 +10,8 @@ from datetime import datetime, timedelta
 from app.main import get_weekdays
 import numpy as np
 
+tz = timezone('Asia/Bangkok')
+
 staff_group_assoc_table = db.Table('staff_group_assoc',
                                             db.Column('staff_id', db.ForeignKey('staff_account.id'),
                                                         primary_key=True),
@@ -261,6 +263,7 @@ class StaffLeaveRequest(db.Model):
     after_hour = db.Column("after_hour", db.Boolean())
     notify_to_line = db.Column('notify_to_line', db.Boolean(), default=False)
     cancelled_by = db.relationship('StaffAccount', foreign_keys=[cancelled_account_id])
+    last_cancel_requested_at = db.Column('last_cancel_requested_at', db.DateTime(timezone=True))
 
     @property
     def get_approved(self):
@@ -272,6 +275,15 @@ class StaffLeaveRequest(db.Model):
 
     def __str__(self):
         return "{}: {}".format(self.id, self.staff.email)
+
+    @property
+    def get_last_cancel_request_from_now(self):
+        if self.last_cancel_requested_at:
+            delta = datetime.now(tz) - self.last_cancel_requested_at
+            days = delta.days
+        else:
+            days = 0
+        return days
 
 
 class StaffLeaveRemainQuota(db.Model):
