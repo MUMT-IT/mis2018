@@ -285,8 +285,8 @@ def request_for_leave(quota_id=None):
                             mails.append(approver.account.email+"@mahidol.ac.th")
                     if os.environ["FLASK_ENV"] == "production":
                         send_mail(mails, req_title, req_msg)
-                    flash(u'ส่งคำขอของท่านเรียบร้อยแล้ว สามารถเลือกประเภทการลาที่ส่งคำขอ เพื่อติดตามการอนุมัติ')
-                    return redirect(url_for('staff.show_leave_info'))
+                    flash(u'ส่งคำขอของท่านเรียบร้อยแล้ว')
+                    return redirect(url_for('staff.request_for_leave_info', quota_id=quota_id))
                 else:
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
                     return redirect(request.referrer)
@@ -382,8 +382,8 @@ def request_for_leave_period(quota_id=None):
                             mails.append(approver.account.email + "@mahidol.ac.th")
                     if os.environ["FLASK_ENV"] == "production":
                         send_mail(mails, req_title, req_msg)
-                    flash(u'ส่งคำขอของท่านเรียบร้อยแล้ว สามารถเลือกประเภทการลาที่ส่งคำขอ เพื่อติดตามการอนุมัติ')
-                    return redirect(url_for('staff.show_leave_info'))
+                    flash(u'ส่งคำขอของท่านเรียบร้อยแล้ว')
+                    return redirect(url_for('staff.request_for_leave_info', quota_id=quota_id))
                 else:
                     flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
                     return redirect(request.referrer)
@@ -566,7 +566,7 @@ def edit_leave_request(req_id=None):
                 db.session.add(req)
                 db.session.commit()
                 flash(u'แก้ไขคำขอของท่านเรียบร้อยแล้ว')
-                return redirect(url_for('staff.show_leave_info'))
+                return redirect(url_for('staff.request_for_leave_info', quota_id=req.leave_quota_id))
             else:
                 flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
                 return redirect(request.referrer)
@@ -646,7 +646,7 @@ def edit_leave_request_period(req_id=None):
                 db.session.add(req)
                 db.session.commit()
                 flash(u'แก้ไขคำขอของท่านเรียบร้อยแล้ว')
-                return redirect(url_for('staff.show_leave_info'))
+                return redirect(url_for('staff.request_for_leave_info', quota_id=req.leave_quota_id))
             else:
                 flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
                 return redirect(request.referrer)
@@ -743,6 +743,7 @@ def leave_approve(req_id, approver_id):
         db.session.commit()
         flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที')
         req = StaffLeaveRequest.query.get(req_id)
+        #TODO: การขออนุมัติ {} วันที่ {} ได้รับการอนุมัติแล้ว โดย {} / การขออนุมัติ {} วันที่ {} ไม่ได้รับการอนุมัติ โดย {}
         approve_msg = u'การขออนุมัติ{} ได้รับการพิจารณาโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
                       u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
                       current_user.personal_info.fullname,url_for( "staff.show_leave_approval",
@@ -798,6 +799,7 @@ def request_cancel_leave_request(req_id):
             else:
                 print(req_to_cancel_msg)
         flash(u'ส่งคำขอยกเลิกการลาของท่านเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('staff.request_for_leave_info', quota_id=req.leave_quota_id))
     else:
         flash(u'ไม่สามารถส่งคำขอซ้ำภายใน 1 วันได้', 'warning')
     return redirect(url_for('staff.show_leave_info'))
@@ -815,7 +817,7 @@ def info_request_cancel_leave_request():
     approver_id = token_data.get("approver_id")
     req = StaffLeaveRequest.query.get(req_id)
     approval = StaffLeaveApproval.query.filter_by(approver_id=approver_id).first()
-    print (u"info_req {} {}".format(approval.approver.account.personal_info, approval.approver.account.id))
+    #print (u"info_req {} {}".format(approval.approver.account.personal_info, approval.approver.account.id))
     approvers = StaffLeaveApproval.query.filter_by(request_id=req_id)
     return render_template('staff/leave_request_cancel_request.html', req=req, approval=approval, approvers=approvers)
 
@@ -854,8 +856,8 @@ def cancel_leave_request(req_id, cancelled_account_id):
     db.session.commit()
     cancelled_msg = u'การขออนุมัติ{} วันที่ใน {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
-                                                                        req.start_datetime,
-                                                                        req.end_datetime,
+                                                                        tz.localize(req.start_datetime),
+                                                                        tz.localize(req.end_datetime),
                                                                         req.cancelled_by.personal_info
                                                                         ,_external=True)
     if req.notify_to_line and req.staff.line_id:
@@ -887,6 +889,7 @@ def record_each_request_leave_request(request_id):
         upload_file_url = upload_file.get('embedLink')
     else:
         upload_file_url = None
+    print (u"get last cancel {}".format(req.get_last_cancel_request_from_now))
     return render_template('staff/leave_record_info.html', req=req, approvers=approvers, upload_file_url=upload_file_url)
 
 
