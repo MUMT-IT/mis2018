@@ -3,7 +3,13 @@
 {% block page_content %}
 <section class="section">
     <div class="container">
-        <h4 class="subtitle">สถานะการอนุมัติการลา {{ req.quota.leave_type.type_ }}</h4>
+        <h2 class="title">
+            สถานะการอนุมัติ {{ req.quota.leave_type.type_ }}
+        </h2>
+        <h4 class="subtitle">
+            วันที่ {{ req.start_datetime|localdatetime }} - {{ req.end_datetime|localdatetime }}
+        </h4>
+
         <table class="table is-fullwidth">
             <thead>
             <th>ผู้อนุมัติ</th>
