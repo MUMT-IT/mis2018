@@ -295,7 +295,28 @@ def request_for_leave(quota_id=None):
     else:
         quota = StaffLeaveQuota.query.get(quota_id)
         holidays = [h.tojson()['date'] for h in Holidays.query.all()]
-        return render_template('staff/leave_request.html', errors={}, quota=quota, holidays=holidays)
+        used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
+                                                                 tz.localize(END_FISCAL_DATE))
+        delta = current_user.personal_info.get_employ_period()
+        max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
+        if delta.years > 0:
+            if max_cum_quota:
+                last_quota = StaffLeaveRemainQuota.query.filter(and_
+                                                                (StaffLeaveRemainQuota.leave_quota_id == quota.id,
+                                                                 StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year-1),
+                                                                 StaffLeaveRemainQuota.staff_account_id == current_user.id)).first()
+                if last_quota:
+                    last_year_quota = last_quota.last_year_quota
+                else:
+                    last_year_quota = 0
+                before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
+                quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+            else:
+                quota_limit = quota.max_per_year
+        else:
+            quota_limit = quota.first_year
+        return render_template('staff/leave_request.html', errors={}, quota=quota, holidays=holidays,
+                                                            used_quota=used_quota, quota_limit=quota_limit)
 
 
 @staff.route('/leave/request/quota/period/<int:quota_id>', methods=["POST", "GET"])
@@ -392,7 +413,28 @@ def request_for_leave_period(quota_id=None):
     else:
         quota = StaffLeaveQuota.query.get(quota_id)
         holidays = [h.tojson()['date'] for h in Holidays.query.all()]
-        return render_template('staff/leave_request_period.html', errors={}, quota=quota, holidays=holidays)
+        used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
+                                                                 tz.localize(END_FISCAL_DATE))
+        delta = current_user.personal_info.get_employ_period()
+        max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
+        if delta.years > 0:
+            if max_cum_quota:
+                last_quota = StaffLeaveRemainQuota.query.filter(and_
+                                                                (StaffLeaveRemainQuota.leave_quota_id == quota.id,
+                                                                 StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year-1),
+                                                                 StaffLeaveRemainQuota.staff_account_id == current_user.id)).first()
+                if last_quota:
+                    last_year_quota = last_quota.last_year_quota
+                else:
+                    last_year_quota = 0
+                before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
+                quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+            else:
+                quota_limit = quota.max_per_year
+        else:
+            quota_limit = quota.first_year
+        return render_template('staff/leave_request_period.html', errors={}, quota=quota, holidays=holidays,
+                                                                  used_quota=used_quota, quota_limit=quota_limit)
 
 
 @staff.route('/leave/request/info/<int:quota_id>')
