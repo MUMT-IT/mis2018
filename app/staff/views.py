@@ -785,11 +785,18 @@ def leave_approve(req_id, approver_id):
         db.session.commit()
         flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที')
         req = StaffLeaveRequest.query.get(req_id)
-        #TODO: การขออนุมัติ {} วันที่ {} ได้รับการอนุมัติแล้ว โดย {} / การขออนุมัติ {} วันที่ {} ไม่ได้รับการอนุมัติ โดย {}
-        approve_msg = u'การขออนุมัติ{} ได้รับการพิจารณาโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
-                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
-                      current_user.personal_info.fullname,url_for( "staff.show_leave_approval",
-                      req_id=req_id,_external=True))
+        if approval.is_approved is True:
+            approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
+                          u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
+                        req.start_datetime,req.end_datetime,
+                        current_user.personal_info.fullname,
+                        url_for( "staff.show_leave_approval",req_id=req_id,_external=True))
+        else:
+            approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
+                          u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
+                          req.start_datetime,req.end_datetime,
+                          current_user.personal_info.fullname,
+                          url_for( "staff.show_leave_approval",req_id=req_id,_external=True))
         if req.notify_to_line and req.staff.line_id:
             if os.environ["FLASK_ENV"] == "production":
                 line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=approve_msg))
