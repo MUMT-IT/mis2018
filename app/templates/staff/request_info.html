@@ -2,6 +2,7 @@
 {% include "staff/nav.html" %}
 {% block page_content %}
 <section class="section" id="app">
+    {% include "messages.html" %}
     <div class="container">
         <h1 class="title">{{ quota.leave_type }}
             <a class="button is-rounded is-info is-light"
@@ -80,14 +81,14 @@
                         {% if not request.cancelled_at and request.approvals %}
                         <a class="button"
                         {% if not request.last_cancel_requested_at
-                        or request.get_last_cancel_request_from_now > 1 %}
+                        or request.get_last_cancel_request_from_now >= 1 %}
                            @click="requestCancel({{ request.id }})"
                         {% else %}
                             disabled
                         {% endif %}>
                         <span>
                             {% if not request.last_cancel_requested_at
-                            or request.get_last_cancel_request_from_now > 1 %}
+                            or request.get_last_cancel_request_from_now >= 1 %}
                             <i class="fas fa-times-circle has-text-danger"></i>
                             ขอยกเลิกลา Cancel request
                             {% else %}
@@ -98,6 +99,9 @@
                         </span>
                         </a>
                         {% endif %}
+                    </td>
+                    <td>
+                        <!--{{ request.get_last_cancel_request_from_now }} -->
                     </td>
                     <td>
                         <b-tooltip label="บันทึกการลา" type="is-light">
