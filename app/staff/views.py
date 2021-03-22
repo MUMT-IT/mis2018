@@ -905,8 +905,8 @@ def cancel_leave_request(req_id, cancelled_account_id):
     db.session.commit()
     cancelled_msg = u'การขออนุมัติ{} วันที่ใน {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
-                                                                        tz.localize(req.start_datetime),
-                                                                        tz.localize(req.end_datetime),
+                                                                        req.start_datetime,
+                                                                        req.end_datetime,
                                                                         req.cancelled_by.personal_info
                                                                         ,_external=True)
     if req.notify_to_line and req.staff.line_id:
