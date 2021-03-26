@@ -1,18 +1,42 @@
 # -*- coding:utf-8 -*-
 from datetime import datetime
 
+import gspread
+import os
 from flask import render_template, request, flash, redirect, url_for, jsonify
 from flask_cors import cross_origin
+from linebot.exceptions import InvalidSignatureError
+from linebot.models import MessageEvent, TextMessage, TextSendMessage, FlexSendMessage, FlexContainer, BubbleContainer, \
+    BoxComponent, ImageComponent, MessageAction, TextComponent, ButtonComponent, URIAction, CarouselContainer
+from oauth2client.service_account import ServiceAccountCredentials
+from pandas import DataFrame
 from sqlalchemy import extract
 
 from models import *
 from forms import *
 from . import health_service_blueprint as hs
-from app.main import csrf
+from app.main import csrf, app
 from pytz import timezone
 from flask_login import login_required, current_user
+from linebot import (LineBotApi, WebhookHandler)
+from ..main import db, json_keyfile
 
 localtz = timezone('Asia/Bangkok')
+
+LINE_MESSAGE_API_ACCESS_TOKEN_2 = os.environ.get('LINE_MESSAGE_API_ACCESS_TOKEN_2')
+LINE_MESSAGE_API_CLIENT_SECRET_2 = os.environ.get('LINE_MESSAGE_API_CLIENT_SECRET_2')
+
+line_bot_mumthealth = LineBotApi(LINE_MESSAGE_API_ACCESS_TOKEN_2)
+handler_mumthealth = WebhookHandler(LINE_MESSAGE_API_CLIENT_SECRET_2)
+
+scope = ['https://spreadsheets.google.com/feeds',
+         'https://www.googleapis.com/auth/drive']
+
+
+def get_credential(json_keyfile):
+    credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scope)
+    return gspread.authorize(credentials)
+
 
 @hs.route('/')
 @login_required
@@ -194,3 +218,81 @@ def add_booking():
         db.session.commit()
         return jsonify({'status': 'success'})
     return jsonify({'status': 'failed'})
+
+
+@hs.route('/message/callback', methods=['POST'])
+@csrf.exempt
+def line_message_callback():
+    signature = request.headers['X-Line-Signature']
+
+    # get request body as text
+    body = request.get_data(as_text=True)
+    app.logger.info("Request body: " + body)
+
+    # handle webhook body
+    try:
+        handler_mumthealth.handle(body, signature)
+    except InvalidSignatureError:
+        print("Invalid signature. Please check your channel access token/channel secret.")
+        # abort(400)
+
+    return 'OK', 200
+
+
+@handler_mumthealth.add(MessageEvent, message=TextMessage)
+def handle_message(event):
+    if event.message.text == 'packages':
+        gc = get_credential(json_keyfile)
+        sheetkey = '15uhQm6tkd69dEthC-Vc9tb-Orsjnywlw85GOBsZgxmY'
+        ws = gc.open_by_key(sheetkey).sheet1
+        df = DataFrame(ws.get_all_records())
+        bubbles = []
+        for idx, row in df.iterrows():
+            bubbles.append(
+                BubbleContainer(
+                    hero=ImageComponent(
+                        layout='vertical',
+                        url="https://drive.google.com/uc?id={}".format(row['cover']),
+                        size='full',
+                        aspect_mode='cover',
+                        aspect_ratio='20:13',
+                        action=MessageAction(
+                            label='Test List',
+                            text='Tests will be shown here in the future.'
+                        )
+                    ),
+                    body=BoxComponent(
+                        layout='vertical',
+                        contents=[
+                            TextComponent(
+                                text=row['title'],
+                                weight='bold',
+                                size='xl',
+                                wrap=True
+                            ),
+                            TextComponent( text=row['description'], wrap=True, color='#cfcecc')
+                    ]
+                    ),
+                    footer=BoxComponent(
+                        layout='vertical',
+                        contents=[
+                            ButtonComponent(
+                                action=URIAction(
+                                    label='Schedule',
+                                    uri='https://liff.line.me/1655713713-L9yW3XWK'
+                                )
+                            )
+                        ]
+                    )
+                )
+            )
+        line_bot_mumthealth.reply_message(event.reply_token, FlexSendMessage(
+            alt_text='Health Packages', contents=CarouselContainer(contents=bubbles)))
+    else:
+        line_bot_mumthealth.reply_message(event.reply_token,
+                                          TextSendMessage(text='Error occurred, sorry.'))
+
+
+@hs.route('/test')
+def test():
+    return request.url
