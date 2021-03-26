@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                {% include 'messages.html' %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <nav class="panel is-success">
+                    <p class="panel-heading">{{ curriculum.th_name }}</p>
+                        <a class="panel-block">
+                            รายชื่อกรรมการหลักสูตร
+                        </a>
+                    </p>
+                </nav>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-bordered">
+                    <thead>
+                    <th>ชื่อ นามสกุล</th>
+                    <th>ตำแหน่งวิชาการ</th>
+                    <th>การศึกษา</th>
+                    </thead>
+                    {% for s in curriculum.staff %}
+                    <tr>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
