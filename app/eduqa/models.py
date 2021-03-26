@@ -19,8 +19,10 @@ class EduQACurriculum(db.Model):
     program_id = db.Column(db.ForeignKey('eduqa_programs.id'),
                            )
     program = db.relationship(EduQAProgram, backref=db.backref('curriculums'))
-    th_name = db.Column(db.String(), nullable=False)
-    en_name = db.Column(db.String(), nullable=False)
+    th_name = db.Column(db.String(), nullable=False,
+                        info={'label': u'ชื่อ'})
+    en_name = db.Column(db.String(), nullable=False,
+                        info={'label': 'Title'})
 
 
 class EduQACurriculumnRevision(db.Model):
@@ -35,6 +37,10 @@ class EduQAAcademicStaff(db.Model):
     __tablename__ = 'eduqa_academic_staff'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     roles = db.Column(db.String(), info={'label': u'บทบาท',
-                                         'choices': (('', u''))})
+                                         'choices': (
+                                             ('staff', u'อาจารย์ประจำ'),
+                                             ('head', u'ประธานหลักสูตร'),
+                                             ('committee', u'ผู้รับผิดชอบหลักสูตร')
+                                         )})
     curriculumn_id = db.Column(db.ForeignKey('eduqa_curriculum_revisions.id'))
     curriculumn = db.relationship(EduQACurriculumnRevision, backref=db.backref('staff'))
