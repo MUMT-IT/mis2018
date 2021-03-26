@@ -43,16 +43,15 @@ class EduProgramForm(ModelForm):
 class EduCurriculumnForm(ModelForm):
     class Meta:
         model = EduQACurriculum
-    program = QuerySelectField(u'ปริญญา',
+    program = QuerySelectField(u'โปรแกรม',
                                    get_label='name',
-                                   query_factory=lambda: EduQAProgram.query.all()
-                                   )
+                                   query_factory=lambda: EduQAProgram.query.all())
 
 
 class EduCurriculumnRevisionForm(ModelForm):
     class Meta:
         model = EduQACurriculumnRevision
-    curriculumn = QuerySelectField(u'หลักสูตร',
+    curriculum = QuerySelectField(u'หลักสูตร',
                                    get_label='th_name',
                                    query_factory=lambda: EduQACurriculum.query.all()
                                    )
