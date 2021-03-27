@@ -129,6 +129,20 @@
                                 {% for approver in approvers %}{{ approver.approver.account.personal_info }}: <strong>"{{ approver.approval_comment }}"</strong>, {% endfor %}
                             </td>
                         </tr>
+                        {% if req.cancelled_at %}
+                        <tr>
+                            <td>
+                                <label class="label">ยกเลิกการลาโดย</label>
+                            </td>
+                            <td>
+                                {% if req.cancelled_account_id %}
+                                {{ req.cancelled_by.personal_info }}
+                                {% else %}
+                                {{ current_user.personal_info }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endif %}
                     </table>
                 </div>
                 <a href="{{ request.referrer }}" class="button is-info is-light is-rounded">

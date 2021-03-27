@@ -56,7 +56,7 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a class="button is-danger" @click="confirmCustomDelete({{ requester.id }})">ยกเลิกการลา</a>
+                    <a class="button is-danger" @click="confirmCustomDelete({{ requester.id }},{{ current_user.id }})">ยกเลิกการลา</a>
                 </td>
             </tr>
             {% endif %}
@@ -80,14 +80,15 @@
         el: '#app',
         delimiters: ['<%', '%>'],
         methods: {
-            confirmCustomDelete(req_id) {
+            confirmCustomDelete: function(req_id, cancelled_account_id) {
+                console.log(req_id, cancelled_account_id);
                 this.$buefy.dialog.confirm({
                     title: 'ยกเลิกคำขอที่' + req_id,
                     message: 'แน่ใจหรือไม่ที่จะ<b>ยกเลิก</b>การลาครั้งนี้ หากยกเลิกแล้วจะไม่สามารถแก้ไขได้',
                     confirmText: 'Delete this request',
                     type: 'is-danger',
                     hasIcon: true,
-                    onConfirm: () => window.location.href = "/staff/leave/requests/" + req_id + "/cancel"
+                    onConfirm: () => window.location.href = "/staff/leave/requests/" + req_id + "/cancel/" + cancelled_account_id
                 })
             }
         }
