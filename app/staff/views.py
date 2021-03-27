@@ -288,10 +288,10 @@ def request_for_leave(quota_id=None):
                             mails.append(approver.account.email + "@mahidol.ac.th")
                     if os.environ["FLASK_ENV"] == "production":
                         send_mail(mails, req_title, req_msg)
-                    flash(u'ส่งคำขอของท่านเรียบร้อยแล้ว')
+                    flash(u'ส่งคำขอของท่านเรียบร้อยแล้ว (The request has been sent.)', 'success')
                     return redirect(url_for('staff.request_for_leave_info', quota_id=quota_id))
                 else:
-                    flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
+                    flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ (The quota is exceeded.)', 'danger')
                     return redirect(request.referrer)
             else:
                 return 'Error happened'

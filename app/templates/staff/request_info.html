@@ -3,155 +3,167 @@
 {% block page_content %}
 <section class="section" id="app">
     {% include "messages.html" %}
-    <div class="container">
-        <h1 class="title">{{ quota.leave_type }}
-            <a class="button is-rounded is-info is-light"
-               href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ลาเต็มวัน Full day</a>
-            <a class="button is-rounded is-warning is-light"
-               href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ลาครึ่งวัน Half-day</a>
-        </h1>
-        <h4 class="subtitle">{{ current_user.personal_info }} สถานะการจ้าง {{ current_user.personal_info.employment.title }}</h4>
-        <div class="table-container">
-        <table class="table is-fullwidth">
-            <thead>
-                <th>วันที่เริ่มลา-สิ้นสุดลา <br> Start Date - End Date</th>
-                <th>สถานะการอนุมัติ <br> Status</th>
-                <th colspan="2"></th>
-            </thead>
-            <tbody>
-            {% for request in leaves|sort(attribute='start_datetime') %}
-                <tr {% if request.cancelled_at %}style="background-color: #D5DBDB  ;"{% endif %}>
-                    <td>{{ request.start_datetime|localdatetime }} - {{ request.end_datetime|localdatetime }}
-                        ({{ request.total_leave_days }} วัน)</td>
-                    <td>
-                        {% if not request.cancelled_at %}
-                        <div class="field is-grouped is-grouped-multiline">
-                            <div class="control">
-                                <div class="tags has-addons">
-                                    <a class="button is-text" href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
-                                        <span class="tag is-dark">อนุมัติ Approved</span>
-                                        <span class="tag is-info">{{ request.get_approved|length }}</span>
-                                    </a>
-                                </div>
-                            </div>
-                            <div class="control">
-                                <div class="tags has-addons">
-                                    <a class="button is-text" href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
-                                    <span class="tag is-dark">ไม่อนุมัติ Denied</span>
-                                    <span class="tag is-danger">{{ request.get_unapproved|length }}</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                        {% else %}
-                        <span class="is-light">ยกเลิกลา Cancelled</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <b-tooltip label="แก้ไขการลา" dashed>
-                        <a class="button"
-                        {% if request.cancelled_at %}
-                           disabled
-                           {% elif request.approvals %}
-                           disabled
-                           {% else %}
-                           href="{{ url_for('staff.edit_leave_request', req_id=request.id) }}"
-                           {% endif %}
-                        >
-                        <span class="icon">
-                            <i class="fas fa-pencil-alt has-text-dark"></i>
-                        </span>
-                        </a>
-                        </b-tooltip>
-                        <b-tooltip label="ยกเลิกการลา" type="is-light">
-                        <a class="button"
-                        {% if request.cancelled_at %}
-                           disabled
-                        {% elif request.approvals %}
-                           disabled
-                        {% else %}
-                           @click="confirmCustomDelete({{ request.id }},{{ current_user.id }})"
-                        {% endif %}
-                        >
-                        <span class="icon">
-                            <i class="fas fa-trash has-text-danger"></i>
-                        </span>
-                        </a>
-                        </b-tooltip>
-                        {% if not request.cancelled_at and request.approvals %}
-                        <a class="button"
-                        {% if not request.last_cancel_requested_at
-                        or request.get_last_cancel_request_from_now >= 1 %}
-                           @click="requestCancel({{ request.id }})"
-                        {% else %}
-                            disabled
-                        {% endif %}>
+    <div class="container has-text-centered">
+        <div class="columns">
+            <div class="column">
+                <h1 class="title">ประวัติ{{ quota.leave_type }}</h1>
+                <h4 class="subtitle is-size-6">{{ current_user.personal_info }} {{ current_user.personal_info.employment.title }}</h4>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <span class="subtitle has-text-success is-size-6">เหลือ</span>
+                <span class="subtitle has-text-success is-size-6">(Remaining)</span>
+                <span class="title has-text-success">{{ quota_limit - used_quota}}</span>
+                <span class="subtitle has-text-success is-size-6">วัน (days)</span>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a class="button is-small is-info is-light"
+                       href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">
+                <span class="icon">
+                    <i class="fas fa-plus"></i>
+                </span>
                         <span>
-                            {% if not request.last_cancel_requested_at
-                            or request.get_last_cancel_request_from_now >= 1 %}
-                            <i class="fas fa-times-circle has-text-danger"></i>
-                            ขอยกเลิกลา Cancel request
-                            {% else %}
-                            <span class="has-text-danger">
-                            รอการอนุมัติยกเลิก
-                            </span>
-                            {% endif %}
-                        </span>
-                        </a>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <!--{{ request.get_last_cancel_request_from_now }} -->
-                    </td>
-                    <td>
-                        <b-tooltip label="บันทึกการลา" type="is-light">
-                            <a href="{{ url_for('staff.record_each_request_leave_request', request_id=request.id) }}">
-                                <span class="icon">
-                                    <i class="fas fa-receipt"></i>
-                                </span>
+                    ลาเต็มวัน (Full day)
+                </span>
+                    </a>
+                    <a class="button is-small is-warning is-light"
+                       href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">
+                <span class="icon">
+                    <i class="fas fa-plus"></i>
+                </span>
+                        <span>
+                    ลาครึ่งวัน Half-day
+                </span>
+                    </a>
+                </div>
+                <hr>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                {% for request in leaves|sort(attribute='start_datetime', reverse=True) %}
+                <article class="media">
+                    <div class="media-left">
+                        {% if not request.cancelled_at %}
+                            <a href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
+                                <span class="tag is-light is-success">{{ request.get_approved|length }}</span>
                             </a>
-                        </b-tooltip>
-                    </td>
-                </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-            <hr>
-            <span>*กรณีขอยกเลิกการลา สามารถคลิกเพื่อส่งคำขอซ้ำได้หลังจาก 1 วันที่ส่งคำขอครั้งล่าสุด</span><br>
-            <span>*A request for cancellation is limited to one time per day.</span>
+                            <a href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
+                                <span class="tag is-light is-danger">{{ request.get_unapproved|length }}</span>
+                            </a>
+                        {% else %}
+                        <span class="tag is-light is-light">
+                            <i class="far fa-times-circle has-text-dark"></i>
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="media-content">
+                        <div class="content">
+                            <span class="icon">
+                                <i class="far fa-calendar-alt"></i>
+                            </span>
+                            <span class="title is-size-6 {% if request.cancelled_at %} has-text-light {% endif %}">
+                                {{ request.start_datetime|localdatetime }} - {{ request.end_datetime|localdatetime }} ({{ request.total_leave_days }} วัน)
+                            </span>
+                        </div>
+                        <nav class="level is-mobile">
+                            <div class="level-left">
+                                {% if not request.cancelled_at %}
+                                {% if not request.approvals %}
+                                <a class="level-item"
+                                   {% if request.cancelled_at %}
+                                   disabled
+                                   {% elif request.approvals %}
+                                   disabled
+                                   {% else %}
+                                   href="{{ url_for('staff.edit_leave_request', req_id=request.id) }}"
+                                   {% endif %}
+                                >
+                                    <span class="icon is-medium">
+                                        <i class="fas fa-pencil-alt has-text-link"></i>
+                                    </span>
+                                    <span class="is-size-6">แก้ไข (edit)</span>
+                                </a>
+                                <a class="level-item"
+                                   {% if request.cancelled_at %}
+                                   disabled
+                                   {% elif request.approvals %}
+                                   disabled
+                                   {% else %}
+                                   @click="confirmCustomDelete({{ request.id }},{{ current_user.id }})"
+                                   {% endif %}
+                                >
+                                    <span class="icon is-medium">
+                                        <i class="fas fa-trash has-text-link"></i>
+                                    </span>
+                                    <span class="is-size-6">ลบ (delete)</span>
+                                </a>
+                                {% else %}
+                                    <a class="level-item"
+                                       {% if not request.last_cancel_requested_at or request.get_last_cancel_request_from_now >= 1 %}
+                                        @click="requestCancel({{ request.id }})"
+                                        {% else %}
+                                        disabled
+                                        {% endif %}>
+                                        {% if not request.last_cancel_requested_at or request.get_last_cancel_request_from_now >= 1 %}
+                                        <span class="icon is-medium">
+                                            <i class="fas fa-times-circle has-text-danger"></i>
+                                        </span>
+                                        <span class="is-size-6 has-text-danger">ขอยกเลิก (cancel)</span>
+                                        {% else %}
+                                        <span class="has-text-danger">
+                                            รอการอนุมัติยกเลิก
+                                        </span>
+                                        {% endif %}
+                                    </a>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </nav>
+                    </div>
+                    <div class="media-right">
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="notification is-warning is-light">
+                    <span>*กรณีขอยกเลิกการลา สามารถคลิกเพื่อส่งคำขอซ้ำได้หลังจาก 1 วันที่ส่งคำขอครั้งล่าสุด</span><br>
+                    <span>*A request for cancellation is limited to one time per day.</span>
+                </div>
+            </div>
         </div>
 
         <div class="columns">
-            <div class="column has-text-right">
-                <span>วันลาสะสม  {{ quota_limit }} วันทำการ</span><br>
-                <span>Earned  {{ quota_limit }} day(s)</span>
-            </div>
-        </div>
-        <div class="columns">
-            <div class="column has-text-right">
-                <span>ลามาแล้ว {{ used_quota }} วันทำการ</span><br>
-                <span>Taken  {{ used_quota }} day(s)</span>
-            </div>
-        </div>
-        <a class="button is-rounded is-info is-light" href="{{ url_for('staff.show_leave_info') }}">
-             <span class="icon">
-                <i class="fas fa-arrow-left"></i>
-            </span>
-            <span>กลับหน้าการลา<br>Back</span>
-        </a>
-         <b-dropdown hoverable aria-role="list">
-            <button class="button is-info" slot="trigger">
-                <span>ปีงบประมาณอื่น Other fiscal years</span>
-                <b-icon icon="menu-down"></b-icon>
-            </button>
-             {% for fy in fiscal_years %}
-            <b-dropdown-item aria-role="listitem" href="
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a class="button is-info is-light" href="{{ url_for('staff.show_leave_info') }}">
+                     <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>Back</span>
+                    </a>
+                    <b-dropdown hoverable aria-role="list">
+                        <button class="button is-info" slot="trigger">
+                            <span>ปีงบประมาณอื่น Other fiscal years</span>
+                            <b-icon icon="menu-down"></b-icon>
+                        </button>
+                        {% for fy in fiscal_years %}
+                        <b-dropdown-item aria-role="listitem" href="
                             {{ url_for('staff.request_for_leave_info_others_fiscal',
                                             quota_id=quota.id, fiscal_year=fy) }}">
                             ปีงบประมาณ {{ fy+543 }}</b-dropdown-item>
-             {% endfor %}
-        </b-dropdown>
-
+                        {% endfor %}
+                    </b-dropdown>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 {% endblock %}
