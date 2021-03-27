@@ -1,4 +1,5 @@
 alembic==0.9.6
+aniso8601==9.0.1
 appnope==0.1.0
 APScheduler==3.6.3
 arrow==0.15.5
@@ -32,6 +33,7 @@ Flask-Login==0.4.1
 Flask-Mail==0.9.1
 flask-marshmallow==0.8.0
 Flask-Migrate==2.1.1
+Flask-RESTful==0.3.8
 Flask-Script==2.0.6
 Flask-SQLAlchemy==2.3.2
 Flask-WeasyPrint==0.6

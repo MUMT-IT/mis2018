@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                {% include 'messages.html' %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                <form method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.th_name.label }}</label>
+                        <div class="control">
+                            {{ form.th_name(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.en_name.label }}</label>
+                        <div class="control">
+                            {{ form.en_name(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="control">
+                            <label class="label">{{ form.program.label }}</label>
+                            <div class="select">
+                                {{ form.program() }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="control">
+                            <input type="submit" class="button is-success" value="Save"/>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

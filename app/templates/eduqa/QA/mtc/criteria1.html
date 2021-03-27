@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}QA-EDU:MTC เกณฑ์สำคัญ{% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                {% include 'messages.html' %}
+                <h1 class="title">เกณฑ์สำคัญ</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <nav class="panel is-success">
+                    <p class="panel-heading">1.1 การผลิตบัณฑิต</p>
+                    <a class="panel-block"
+                       href="{{ url_for('staff.index') }}">
+                        1.1.1 อาจารย์ประจำหลักสูตรที่มีคุณวุฒิปริญญาเอกต่ออาจารย์ประจำหลักสูตรทั้งหมด
+                    </a>
+                    <a class="panel-block"
+                       href="{{ url_for('staff.index') }}">
+                        1.1.2 อาจารย์ประจำหลักสูตรที่ดำรงตำแหน่งทางวิชาการต่ออาจารย์ประจำหลักสูตรทั้งหมด
+                    </a>
+                    <a class="panel-block"
+                       href="{{ url_for('staff.index') }}">
+                        1.1.3 อาจารย์ประจำหลักสูตรต่อนักศึกษาเต็มเวลาเทียบเท่า (FTES)
+                    </a>
+                </nav>
+                <nav class="panel is-success">
+                    <p class="panel-heading">1.2 การวิจัย</p>
+                    <a href="#" class="panel-block">
+                        1.2.1 ร้อยละของผลรวมถ่วงน้ำหนักของผลงานทางวิชาการต่ออาจารย์ประจำหลักสูตรเฉลี่ยย้อนหลัง 3 ปี
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% include "km/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="columns">
+        <div class="column is-offset-2 is-two-thirds">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a class="is-active" href="#" aria-current="page">Main Page</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-two-thirds is-offset-2 has-text-centered">
+            <h1 class="title">Recently Added Topics</h1>
+            <div class="buttons is-centered">
+                <a href="{{ url_for('km.list_processes') }}" class="button is-info">
+            <span class="icon">
+                <i class="fas fa-project-diagram"></i>
+            </span>
+                    <span>กระบวนการทั้งหมด</span>
+                </a>
+            </div>
+            <table class="table" id="topicsTable">
+                <thead>
+                <th>No.</th>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Process</th>
+                <th>Created at</th>
+                <th>Created by</th>
+                </thead>
+                <tbody>
+                {% for topic in topics %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td><a href="#">{{ topic.topic }}</a></td>
+                    <td>{{ topic.desc or '' }}</td>
+                    <td>
+                        <a href="{{ url_for('km.detail_process', process_id=topic.km_process.id) }}">
+                            {{ topic.km_process.process_name }}
+                        </a>
+                    </td>
+                    <td>{{ topic.created_at|localdatetime }}</td>
+                    <td>{{ topic.creator.personal_info.fullname }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(()=>{
+        $('#topicsTable').DataTable();
+    });
+</script>
+{% endblock %}

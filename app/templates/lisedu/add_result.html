@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}LIS Edu{% endblock %}
+{% include "lisedu/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <form action="{{ url_for('lisedu.save_result') }}" method="post">
+            <h3 class="title">Order No.{{ order.lab_no }}</h3>
+            <ul>
+                {% for r in results %}
+                <li>{{ r.test.name|title }} <input name="{{ r.test.abbr }}"> {{ r.test.unit }}</li>
+                {% endfor %}
+            </ul>
+            <input type="hidden" name="order_id" value="{{ order.id }}">
+            <input class="button is-rounded is-primary" type="submit" value="submit">
+        </form>
+    </div>
+</section>
+{% endblock %}

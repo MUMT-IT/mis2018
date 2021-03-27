@@ -438,23 +438,23 @@ def add_article():
         return jsonify(articles)
 
     if request.method == 'POST':
-        print('getting posted..')
         data = request.get_json()
         pub = ResearchPub.query.filter_by(scopus_id=data['scopus_id']).first()
+        print('Posting {}-{}'.format(data.get('title')[:50], data.get('scopus_id')))
         if not pub:
             pub = ResearchPub(
-                scopus_id=data['scopus_id'],
-                citedby_count=data['citedby_count'],
-                title=data['title'],
-                cover_date=datetime.datetime.strptime(data['cover_date'], '%Y-%m-%d'),
-                abstract=data['abstract'],
-                doi=data['doi'],
-                scopus_link=data['scopus_link'],
-                publication_name=data['publication_name']
+                scopus_id=data.get('scopus_id'),
+                citedby_count=data.get('citedby_count'),
+                title=data.get('title'),
+                cover_date=datetime.datetime.strptime(data.get('cover_date'), '%Y-%m-%d'),
+                abstract=data.get('abstract'),
+                doi=data.get('doi'),
+                scopus_link=data.get('scopus_link'),
+                publication_name=data.get('publication_name')
             )
         else:
             # update the citation number
-            pub.citedby_count = data['citedby_count']
+            pub.citedby_count = data.get('citedby_count')
 
         for subj in data['subject_areas']:
             s = SubjectArea.query.get(subj['code'])
@@ -466,34 +466,41 @@ def add_article():
             pub.areas.append(s)
 
         for author in data['authors']:
-            scopus_id = ScopusAuthorID.query.get(author['author_id'])
-            personal_info = StaffPersonalInfo.query.filter_by(en_firstname=author['firstname'],
-                                                              en_lastname=author['lastname']).first()
-            affil = Affiliation.query.get(author['afid'])
-            country = Country.query.filter_by(name=author['country']).first()
+            scopus_id = ScopusAuthorID.query.get(author.get('author_id'))
+            personal_info = StaffPersonalInfo.query\
+                .filter_by(en_firstname=author['firstname'],
+                           en_lastname=author['lastname']).first()
+            if author.get('afid'):
+                affil = Affiliation.query.get(author.get('afid'))
+            else:
+                affil = None
+            country = Country.query.filter_by(name=author.get('country', 'Unknown')).first()
             if not country:
-                country = Country(name=author['country'])
+                country = Country(name=author.get('country', 'Unknown'))
                 db.session.add(country)
-            if not affil:
-                affil = Affiliation(id=author['afid'], name=author['afname'], country=country)
+            if not affil and author.get('afid'):
+                affil = Affiliation(id=author.get('afid'),
+                                    name=author.get('afname', 'Unknown'),
+                                    country=country)
                 db.session.add(affil)
             if scopus_id:
-                # update the current affiliation
-                scopus_id.author.affil_id = author['afid']
+                if author.get('afid'):
+                    # update the current affiliation
+                    scopus_id.author.affil_id = author.get('afid')
             else:
-                scopus_id = ScopusAuthorID(id=author['author_id'])
-                author_ = Author.query.filter_by(firstname=author['firstname'],
-                                                 lastname=author['lastname']
+                scopus_id = ScopusAuthorID(id=author.get('author_id'))
+                author_ = Author.query.filter_by(firstname=author.get('firstname'),
+                                                 lastname=author.get('lastname')
                                                  ).first()
                 if not author_:
-                    author_ = Author(firstname=author['firstname'],
-                                     lastname=author['lastname'],
-                                     affil_id=author['afid'],
-                                     h_index=int(author['h_index']) if author['h_index'] else None,
+                    author_ = Author(firstname=author.get('firstname'),
+                                     lastname=author.get('lastname'),
+                                     affil_id=author.get('afid'),
+                                     h_index=int(author.get('h_index')) if author.get('h_index') else None,
                                      personal_info=personal_info
                                      )
                 scopus_id.author = author_
-            scopus_id.author.h_index = int(author['h_index']) if author['h_index'] else None
+            scopus_id.author.h_index = int(author.get('h_index')) if author.get('h_index') else None
             pub.authors.append(scopus_id.author)
             db.session.add(pub)
             db.session.add(scopus_id)

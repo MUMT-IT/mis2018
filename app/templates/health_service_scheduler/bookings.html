@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "health_service_scheduler/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                {% include 'messages.html' %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <nav class="panel">
+                    <p class="panel-heading">{{ Services }}</p>
+                    {% for service in services %}
+                    <a class="panel-block"
+                       href="{{ url_for('health_service_scheduler.show_bookings_by_service', service_id=service.id) }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-clock"></i>
+                        </span>
+                        <span class="is-size-5">
+                            {{ service.name }}
+                        </span>
+                    </a>
+                    {% endfor %}
+                </nav>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

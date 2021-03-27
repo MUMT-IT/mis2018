@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                {% include 'messages.html' %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <h1 class="title">{{ current_user.personal_info.fullname }}</h1>
+                <table class="table is-bordered is-fullwidth">
+                    <tr>
+                        <td><span class="label">ตำแน่งวิชาการ</span></td>
+                        <td>
+                            <table class="table is-bordered is-fullwidth">
+                                <thead>
+                                    <th>ระดับ</th>
+                                    <th>แต่งตั้งเมื่อ</th>
+                                    <th>ลบ</th>
+                                </thead>
+                                {% for record in current_user.personal_info.academic_positions %}
+                                <tr>
+                                    <td>{{ record.position.fullname_th }}</td>
+                                    <td>{{ record.appointed_at }}</td>
+                                    <td align="center">
+                                        <a href="{{ url_for('eduqa.academic_position_remove', record_id=record.id) }}">
+                                            <span class="icon">
+                                                <i class="fas fa-trash has-text-danger"></i>
+                                            </span>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                <tr>
+                                    <td colspan="3" align="center">
+                                        <a href="{{ url_for('eduqa.academic_position_edit') }}"
+                                           class="button is-link is-small">
+                                            <span class="icon">
+                                                <i class="fas fa-plus"></i>
+                                            </span>
+                                            <span>เพิ่มรายการ</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="label">การศึกษา</span></td>
+                        <td>
+                            <table class="table is-fullwidth">
+                                {% for record in current_user.personal_info.degrees %}
+                                <tr>
+                                    <td>ระดับ</td>
+                                    <td>{{ record.level }}</td>
+                                </tr>
+                                <tr>
+                                    <td>ชื่อปริญญา</td>
+                                    <td>{{ record.en_title }} {{ record.th_title }}</td>
+                                </tr>
+                                <tr>
+                                    <td>ชื่อสาขา</td>
+                                    <td>{{ record.en_major }} {{ record.th_major }}</td>
+                                </tr>
+                                <tr>
+                                    <td>สถาบัน</td>
+                                    <td>{{ record.en_school }}</td>
+                                </tr>
+                                <tr>
+                                    <td>สถาบัน</td>
+                                    <td>{{ record.en_school }}</td>
+                                </tr>
+                                <tr>
+                                    <td>ประเทศ</td>
+                                    <td>{{ record.th_country }}</td>
+                                </tr>
+                                <tr>
+                                    <td>วันที่จบการศึกษา</td>
+                                    <td>{{ record.received_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" align="right">
+                                        <a href="{{ url_for('eduqa.edit_education_record', record_id=record.id) }}">
+                                            <span class="icon">
+                                                <i class="fas fa-pencil-alt"></i>
+                                            </span>
+                                        </a>
+                                        <a href="{{ url_for('eduqa.remove_education_record', record_id=record.id) }}">
+                                            <span class="icon">
+                                                <i class="fas fa-trash has-text-danger"></i>
+                                            </span>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                <tr>
+                                    <td colspan="3" align="center">
+                                        <a href="{{ url_for('eduqa.add_education_record') }}"
+                                           class="button is-link is-small">
+                                            <span class="icon">
+                                                <i class="fas fa-plus"></i>
+                                            </span>
+                                            <span>เพิ่มรายการ</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

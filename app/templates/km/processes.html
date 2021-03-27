@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% include "km/nav.html" %}
+
+{% block title %}KM Processes{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="columns">
+        <div class="column is-offset-2 is-two-thirds">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+              <ul>
+                <li><a href="{{ url_for('km.index') }}">Main Page</a></li>
+                <li><a class="is-active" href="#" aria-current="page">All processes</a></li>
+              </ul>
+            </nav>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-offset-2 is-two-thirds has-text-centered">
+            <h1 class="title">กระบวนการทั้งหมด</h1>
+            <h1 class="subtitle">All Work Processes</h1>
+            <table class="table" id="processTable">
+                <thead>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Created at</th>
+                <th>Created by</th>
+                </thead>
+                <tbody>
+                {% for proc in processes %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('km.detail_process', process_id=proc.id) }}">{{ proc.process_name }}</a>
+                    </td>
+                    <td>{{ proc.desc }}</td>
+                    <td>{{ proc.created_at|localdatetime }}</td>
+                    <td>{{ proc.creator.personal_info.fullname }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <p class="notification is-white">คลิกที่ชื่อเพื่อดูรายละเอียด</p>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(()=>{
+        $('#processTable').DataTable();
+    });
+</script>
+{% endblock %}
