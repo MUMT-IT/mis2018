@@ -7,7 +7,8 @@ from flask import render_template, request, flash, redirect, url_for, jsonify
 from flask_cors import cross_origin
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage, FlexSendMessage, FlexContainer, BubbleContainer, \
-    BoxComponent, ImageComponent, MessageAction, TextComponent, ButtonComponent, URIAction, CarouselContainer
+    BoxComponent, ImageComponent, MessageAction, TextComponent, ButtonComponent, URIAction, CarouselContainer, \
+    ImagemapSendMessage, BaseSize, ImagemapAction, MessageImagemapAction, ImagemapArea, URIImagemapAction
 from oauth2client.service_account import ServiceAccountCredentials
 from pandas import DataFrame
 from sqlalchemy import extract
@@ -288,9 +289,35 @@ def handle_message(event):
             )
         line_bot_mumthealth.reply_message(event.reply_token, FlexSendMessage(
             alt_text='Health Packages', contents=CarouselContainer(contents=bubbles)))
+    elif event.message.text == 'health-services':
+        imageUrl = '1Z63x6wA08ATfWr1SgBCkMhiMbD3h2lhP'
+        line_bot_mumthealth.reply_message(
+            event.reply_token,
+            ImagemapSendMessage(
+                base_url='https://drive.google.com/uc?id={}&_ignored='.format(imageUrl),
+                alt_text='Health Services',
+                base_size=BaseSize(width=1040, height=1040),
+                actions=[
+                    MessageImagemapAction(
+                        text='packages', area=ImagemapArea(x=122, y=123, width=381, height=305)),
+                    URIImagemapAction(
+                        link_uri='https://liff.line.me/1655424321-ovYzaqOz',
+                        area=ImagemapArea(x=124, y=430, width=377, height=301)
+                    ),
+                    MessageImagemapAction(
+                        text='Available soon..', area=ImagemapArea(x=126, y=734, width=374, height=302)),
+                    MessageImagemapAction(
+                        text='Available soon..', area=ImagemapArea(x=507, y=125, width=435, height=301)),
+                    MessageImagemapAction(
+                        text='Available soon..', area=ImagemapArea(x=508, y=431, width=434, height=299)),
+                    ]
+            )
+        )
     else:
-        line_bot_mumthealth.reply_message(event.reply_token,
-                                          TextSendMessage(text='Error occurred, sorry.'))
+        line_bot_mumthealth.reply_message(
+            event.reply_token,
+            TextSendMessage(text='We do not understand your messages. Sorry.')
+        )
 
 
 @hs.route('/test')
