@@ -8,7 +8,8 @@ from flask_cors import cross_origin
 from linebot.exceptions import InvalidSignatureError
 from linebot.models import MessageEvent, TextMessage, TextSendMessage, FlexSendMessage, FlexContainer, BubbleContainer, \
     BoxComponent, ImageComponent, MessageAction, TextComponent, ButtonComponent, URIAction, CarouselContainer, \
-    ImagemapSendMessage, BaseSize, ImagemapAction, MessageImagemapAction, ImagemapArea, URIImagemapAction
+    ImagemapSendMessage, BaseSize, ImagemapAction, MessageImagemapAction, ImagemapArea, URIImagemapAction, \
+    SeparatorComponent, FillerComponent
 from oauth2client.service_account import ServiceAccountCredentials
 from pandas import DataFrame
 from sqlalchemy import extract
@@ -245,7 +246,8 @@ def handle_message(event):
     if event.message.text == 'packages':
         gc = get_credential(json_keyfile)
         sheetkey = '15uhQm6tkd69dEthC-Vc9tb-Orsjnywlw85GOBsZgxmY'
-        ws = gc.open_by_key(sheetkey).sheet1
+        sh = gc.open_by_key(sheetkey)
+        ws = sh.worksheet('packages')
         df = DataFrame(ws.get_all_records())
         bubbles = []
         for idx, row in df.iterrows():
@@ -278,9 +280,9 @@ def handle_message(event):
                         layout='vertical',
                         contents=[
                             ButtonComponent(
-                                action=URIAction(
-                                    label='Schedule',
-                                    uri='https://liff.line.me/1655713713-L9yW3XWK'
+                                MessageAction(
+                                    label='รายการตรวจ',
+                                    text=row['code']
                                 )
                             )
                         ]
@@ -313,10 +315,86 @@ def handle_message(event):
                     ]
             )
         )
+    elif event.message.text.startswith('pkg'):
+        gc = get_credential(json_keyfile)
+        sheetkey = '15uhQm6tkd69dEthC-Vc9tb-Orsjnywlw85GOBsZgxmY'
+        sh = gc.open_by_key(sheetkey)
+        ws = sh.worksheet('tests')
+        df = DataFrame(ws.get_all_records())
+        bubbles = []
+        total = 0
+        for idx, row in df.iterrows():
+            if row['package'] == event.message.text:
+                total += row['price']
+                bubbles.append(
+                    BubbleContainer(
+                        body=BoxComponent(
+                            layout='vertical',
+                            contents=[
+                                TextComponent(
+                                    text=row['test'],
+                                    weight='bold',
+                                    size='xl',
+                                    wrap=True,
+                                    align='center',
+                                ),
+                                TextComponent(text=row['description'], wrap=True, gravity='center'),
+                                FillerComponent(
+                                    flex=2
+                                ),
+                                TextComponent(text=u'{} บาท'.format(row['price']),
+                                              wrap=True,
+                                              weight='bold',
+                                              size='xl',
+                                              gravity='bottom',
+                                              color='#4287f5',
+                                              align='center')
+                            ]
+                        )
+                    )
+                )
+        if len(bubbles) > 0:
+            bubbles.append(BubbleContainer(
+                body=BoxComponent(
+                    layout='vertical',
+                    contents=[
+                        FillerComponent(
+                            flex=2,
+                        ),
+                        TextComponent(
+                            text='รวม {} บาท'.format(total),
+                            weight='bold',
+                            size='xl',
+                            gravity='center',
+                            align='center',
+                            color='#4287f5'
+                        )
+                    ]
+                ),
+                footer=BoxComponent(
+                    layout='vertical',
+                    contents=[
+                        ButtonComponent(
+                            action=URIAction(
+                                label=u'นัดหมายเพื่อรับบริการ',
+                                uri='https://liff.line.me/1655713713-L9yW3XWK'
+                            )
+                        ),
+                        ButtonComponent(
+                            action=MessageAction(
+                                label=u'ข้อมูลเพิ่มเติม',
+                                text='Here you go!'
+                            )
+                        )
+                    ]
+                )
+            ))
+            line_bot_mumthealth.reply_message(event.reply_token, FlexSendMessage(
+                alt_text='Health Packages', contents=CarouselContainer(contents=bubbles)))
     else:
         line_bot_mumthealth.reply_message(
             event.reply_token,
-            TextSendMessage(text='We do not understand your messages. Sorry.')
+            TextSendMessage(text='Sorry, this feature will be available soon.'.format(event.message.text))
         )
 
 
