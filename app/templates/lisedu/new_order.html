@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}LIS Edu{% endblock %}
+{% include "lisedu/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h2>Select tests for a new order</h2>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Select</th>
+                    <th>ID</th>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Unit</th>
+                    <th>Cost</th>
+                </tr>
+            </thead>
+            <tbody>
+            <form action="{{ url_for('lisedu.new_order') }}" method="post">
+            {% for t in tests %}
+                <tr>
+                    <td><input type="checkbox" name="select_tests" value="{{ t.id }}"></td>
+                    <td>{{ t.id }}</td>
+                    <td>{{ t.abbr }}</td>
+                    <td>{{ t.name|title }}</td>
+                    <td>{{ t.unit }}</td>
+                    <td>{{ t.cost }}</td>
+                </tr>
+            {% endfor %}
+            <input class="button is-primary is-rounded" type="submit" value="Submit">&nbsp;
+            <a class="button is-rounded is-danger" href="/lis/login/student">Back</a>
+            </form>
+            </tbody>
+        </table>
+    </div>
+</section>
+{% endblock %}

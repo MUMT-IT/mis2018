@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% include "km/nav.html" %}
+
+{% block title %}KM Processes{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="columns">
+        <div class="column is-offset-2 is-two-thirds">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="{{ url_for('km.index') }}">Main Page</a></li>
+                    <li><a href="{{ url_for('km.list_processes') }}">All Processes</a></li>
+                    <li><a class="is-active" href="#" aria-current="page">Process Detail</a></li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-offset-2 is-two-thirds has-text-centered">
+            <h1 class="title">กระบวนการ {{ process.process_name }}</h1>
+            <h1 class="title">หัวข้อทั้งหมด</h1>
+            <h1 class="subtitle">All Topics</h1>
+            <table class="table" id="topicsTable">
+                <thead>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Created at</th>
+                <th>Created by</th>
+                </thead>
+                <tbody>
+                {% for topic in process.topics %}
+                <tr>
+                    <td><a>{{ topic.topic }}</a></td>
+                    <td>{{ topic.desc }}</td>
+                    <td>{{ topic.created_at|localdatetime }}</td>
+                    <td>{{ topic.creator.personal_info.fullname }}</td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <a href="{{ url_for('km.add_topic', process_id=process.id) }}" class="button is-success">
+                <span class="icon">
+                    <i class="fas fa-plus"></i>
+                </span>
+                <span>เพิ่มหัวข้อใหม่</span>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(()=>{
+        $('#topicsTable').DataTable();
+    });
+</script>
+{% endblock %}

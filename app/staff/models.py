@@ -1,5 +1,8 @@
 # -*- coding:utf-8 -*-
-from ..main import db,ma
+
+from sqlalchemy import func
+
+from ..main import db, ma
 from werkzeug import generate_password_hash, check_password_hash
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -79,13 +82,8 @@ class StaffPersonalInfo(db.Model):
     th_title = db.Column('th_title', db.String())
     en_firstname = db.Column('en_firstname', db.String(), nullable=False)
     en_lastname = db.Column('en_lastname', db.String(), nullable=False)
-    highest_degree_id = db.Column('highest_degree_id', db.ForeignKey('staff_edu_degree.id'))
-    highest_degree = db.relationship('StaffEduDegree',
-                        backref=db.backref('staff_personal_info', uselist=False))
     th_firstname = db.Column('th_firstname', db.String(), nullable=True)
     th_lastname = db.Column('th_lastname', db.String(), nullable=True)
-    academic_position_id = db.Column('academic_position_id', db.ForeignKey('staff_academic_position.id'))
-    academic_position = db.relationship('StaffAcademicPosition', backref=db.backref('staff_list'))
     org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
     org = db.relationship(Org, backref=db.backref('staff'))
     employed_date = db.Column('employed_date', db.Date(), nullable=True)
@@ -103,7 +101,7 @@ class StaffPersonalInfo(db.Model):
 
     @property
     def fullname(self):
-        return u'{} {}'.format(self.th_firstname, self.th_lastname)
+        return u'{}{} {}'.format(self.th_title, self.th_firstname, self.th_lastname)
 
 
     def get_employ_period(self):
@@ -163,13 +161,24 @@ class StaffPersonalInfo(db.Model):
 class StaffEduDegree(db.Model):
     __tablename__ = 'staff_edu_degree'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    level = db.Column('level', db.String(), nullable=False)
-    en_title = db.Column('en_title', db.String())
-    th_title = db.Column('th_title', db.String())
-    en_major = db.Column('en_major', db.String())
-    th_major = db.Column('th_major', db.String())
-    en_school = db.Column('en_school', db.String())
-    th_country = db.Column('th_country', db.String())
+    level = db.Column('level', db.String(), nullable=False,
+                      info={'label': u'ระดับ',
+                            'choices': [('undergraduate', u'ต่ำกว่าปริญญาตรี'),
+                                        ('bachelor', u'ปริญญาตรี'),
+                                        ('master', u'ปริญญาโท'),
+                                        ('doctorate', u'ปริญญาเอก')]
+                            })
+    en_title = db.Column('en_title', db.String(), info={'label': u'Title'})
+    th_title = db.Column('th_title', db.String(), info={'label': u'ชื่อปริญญา'})
+    en_major = db.Column('en_major', db.String(), info={'label': u'Major'})
+    th_major = db.Column('th_major', db.String(), info={'label': u'สาขา'})
+    en_school = db.Column('en_school', db.String(), info={'label': u'ชื่อสถาบัน'})
+    th_country = db.Column('th_country', db.String(), info={'label': u'ประเทศ'})
+    received_date = db.Column(db.Date(), info={'label': u'ปีที่จบการศึกษา'})
+    personal_info_id = db.Column(db.ForeignKey('staff_personal_info.id'))
+    personal_info = db.relationship(StaffPersonalInfo,
+                                    backref=db.backref('degrees',
+                                                       order_by='StaffEduDegree.received_date.desc()'))
 
 
 class StaffAcademicPosition(db.Model):
@@ -179,7 +188,26 @@ class StaffAcademicPosition(db.Model):
     shortname_th = db.Column('shortname_th', db.String(), nullable=False)
     fullname_en = db.Column('fullname_en', db.String(), nullable=False)
     shortname_en = db.Column('shortname_en', db.String(), nullable=False)
-    level = db.Column('level', db.Integer(), nullable=False)
+    level = db.Column('level', db.Integer(), nullable=False,
+                      info={'label': u'',
+                            'choices': ((0, u'อาจารย์'),
+                                        (1, u'ผู้ช่วยศาสตราจารย์'),
+                                        (2, u'รองศาสตรจารย์'),
+                                        (3, u'ศาสตรจารย์'))
+                            })
+
+
+class StaffAcademicPositionRecord(db.Model):
+    __tablename__ = 'staff_academic_position_records'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    personal_info_id = db.Column(db.ForeignKey('staff_personal_info.id'))
+    personal_info = db.relationship(StaffPersonalInfo,
+                                    backref=db.backref('academic_positions',
+                                                       order_by='StaffAcademicPositionRecord.appointed_at.desc()'))
+    appointed_at = db.Column(db.Date(), info={'label': u'แต่งตั้งเมื่อ'})
+    updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
+    position_id = db.Column(db.ForeignKey('staff_academic_position.id'))
+    position = db.relationship(StaffAcademicPosition, backref=db.backref('records'))
 
 
 class StaffEmployment(db.Model):

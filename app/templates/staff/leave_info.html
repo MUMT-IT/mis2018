@@ -5,57 +5,92 @@
     <div class="container">
         {% include "messages.html" %}
         <div class="columns">
-            <div class="column is-offset-2 is-two-thirds">
-        <h1 class="title">
-            {% if line_profile %}
-                <figure class="image is-64x64 is-inline-block">
-                    <img class="is-rounded" src="{{ line_profile['pictureUrl'] }}">
-                </figure>
-            {% endif %}
-            {{ current_user.personal_info }}
-        </h1>
-        <h4 class="subtitle">สถานะการจ้าง(Employment type) {{ current_user.personal_info.employment.title }}</h4>
+            <div class="column is-offset-2 is-two-thirds has-text-centered">
+                <h1 class="title">
+                    {% if line_profile %}
+                        <figure class="image is-64x64 is-inline-block">
+                            <img class="is-rounded" src="{{ line_profile['pictureUrl'] }}">
+                        </figure>
+                    {% endif %}
+                    {{ current_user.personal_info }}
+                </h1>
+                <h4 class="subtitle is-size-6">{{ current_user.personal_info.employment.title }}</h4>
+                    </div>
+            </div>
+        <div class="columns">
+            {% for type,quota in quota_days.iteritems()|sort %}
+            <div class="column">
+                <table class="box">
+                    <tr style="height: 60px">
+                        <td class="has-text-centered">
+                            <a href="{{ url_for('staff.request_for_leave_info', quota_id=quota.id) }}"
+                               class="title has-text-link">
+                                <span>
+                                    {{ type }}
+                                </span>
+                                <span class="icon is-medium">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                            </a>
+                        </td>
+                    </tr>
+                    <tr style="height: 60px">
+                        <td class="has-text-centered">
+                            <span class="subtitle has-text-success is-size-6">วันลาสะสม</span>
+                            <span class="subtitle has-text-success is-size-6">(Cumulative)</span>
+                            <span class="title has-text-success">{{ quota.limit }}</span>
+                            <span class="subtitle has-text-success is-size-6">วัน (days)</span>
+                        </td>
+                    </tr>
+                    <tr style="height: 60px">
+                        <td class="has-text-centered">
+                            <span class="subtitle has-text-dark is-size-6">ใช้ไป</span>
+                            <span class="subtitle has-text-dark is-size-6">(Taken)</span>
+                            <span class="title has-text-dark">{{ cum_days[type] }}</span>
+                            <span class="subtitle has-text-dark is-size-6">วัน (days)</span>
+                        </td>
+                    </tr>
+                    <tr style="height: 60px">
+                        <td class="has-text-centered">
+                            <span class="subtitle has-text-dark is-size-6">รออนุมัติ</span>
+                            <span class="subtitle has-text-dark is-size-6">(Pending)</span>
+                            <span class="title has-text-warning">{{ pending_days[type] }}</span>
+                            <span class="subtitle has-text-dark is-size-6">วัน (days)</span>
+                        </td>
+                    </tr>
+                    <tr style="height: 40px">
+                        <td class="has-text-centered">
+                            <hr>
+                            <div class="field">
+                                <label class="label">Make a Request</label>
+                            </div>
+                            <div class="field">
+                                <div class="buttons is-centered">
+                                    <a class="button is-info" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ลาเต็มวัน (Full day)</a>
+                                    <a class="button is-warning" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ลาครึ่งวัน (Half-day)</a>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            {% endfor %}
+        </div>
+        {% if approver %}
+        <div class="columns">
+            <div class="column">
+                <div class="has-text-centered">
+                    <a href="{{ url_for('staff.show_leave_approval_info') }}"
+                       class="button is-danger is-light">
+                        <span class="icon">
+                           <i class="fas fa-users"></i>
+                        </span>
+                        <span>ดูข้อมูลลาของบุคลากรในสังกัด</span>
+                    </a>
+                </div>
             </div>
         </div>
-        <div class="columns">
-            <div class="column box is-offset-2 is-two-thirds">
-        <table class="table is-fullwidth">
-            <thead>
-            <th>ประเภทการลา <br> Types</th>
-            <th>จำนวนวันลาที่ใช้ <br> Taken</th>
-            <th>จำนวนวันลาที่รออนุมัติ <br> Pending</th>
-            <th>จำนวนวันลาที่ได้รับ <br> Earned</th>
-            <th colspan="2">ขออนุมัติ <br> Request</th>
-            </thead>
-            <tbody>
-            {% for type,quota in quota_days.iteritems()|sort %}
-            <tr>
-                <td>
-                    <b-tooltip label="คลิ๊กเพื่อดูประวัติ" type="is-light">
-                    <a href="{{ url_for('staff.request_for_leave_info', quota_id=quota.id) }}">
-                       {{ type }}
-                    </a>
-                    </b-tooltip>
-                </td>
-                <td style="color:grey">{{ cum_days[type] }}</td>
-                <td style="color:#BF740F">{{ pending_days[type] }}</td>
-                <td style="color:green">{{ quota.limit }}</td>
-                {% if quota.limit - cum_days[type] > 0 %}
-                <td><a class="button is-rounded is-info is-light" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ลาเต็มวัน Full day</a>
-                <a class="button is-rounded is-warning is-light" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ลาครึ่งวัน Half-day</a>
-                </td>
-                {% else %}
-                <td>วันลาเต็ม</td>
-                {% endif %}
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-        {% if approver %}
-        <a href="{{ url_for('staff.show_leave_approval_info') }}" class="button is-link">สำหรับหัวหน้างาน</a>
         {% endif %}
-        </div>
-        </div>
         <div class="has-text-centered">
             <span>พบปัญหาเกี่ยวกับระบบ
                 <br>ติดต่อ napatsakorn.pis@mahidol.ac.th หรือโทรศัพท์ภายใน 2845
@@ -67,19 +102,21 @@
 <section class="section">
     <div class="container">
         <div class="columns">
-            <div class="column is-two-thirds is-offset-2">
+            <div class="column has-text-centered">
                 <h1 class="title is-size-4">วิดีโอสาธิตการใช้งานระบบลาออนไลน์</h1>
-                <div class="box">
-                    <iframe width="560" height="315" src="https://www.youtube.com/embed/RkVng_7uEJo"
+                <div>
+                    <iframe width="200" src="https://www.youtube.com/embed/RkVng_7uEJo"
                             frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope;
                             picture-in-picture" allowfullscreen>
                     </iframe>
                 </div>
-                <div class="box">
-                        <a href="https://drive.google.com/file/d/1FI-fCqdIc9BoysdH-omdv5xBFn8roqp1/view?usp=sharing/">
-                            <span class="is-size-4">คู่มือการใช้งาน</span>
-                        </a>
-                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <a href="https://drive.google.com/file/d/1FI-fCqdIc9BoysdH-omdv5xBFn8roqp1/view?usp=sharing/">
+                    <span class="is-size-4">คู่มือการใช้งาน</span>
+                </a>
             </div>
         </div>
     </div>

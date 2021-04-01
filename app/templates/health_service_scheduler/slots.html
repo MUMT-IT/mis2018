@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Health Service Scheduler: Sites{% endblock %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/scheduler.min.css') }}">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+<style>
+    #calendar {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    .fc-view-container {
+        width: auto;
+    }
+    .fc-view-container .fc-view {
+        overflow-x: scroll;
+    }
+    .fc-view-container .fc-view > table {
+        width: 2500px;
+    }
+    .fc-now-indicator {
+        border: 0 solid #FFC107
+    }
+</style>
+{% endblock head %}
+
+{% block page_content %}
+{% include "health_service_scheduler/nav.html" %}
+<section class="section">
+    <div class="container">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('health_service_scheduler.index') }}">Home</a></li>
+                <li class="is-active"><a href="#" aria-current="page">Slots</a></li>
+            </ul>
+        </nav>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                {% include 'messages.html' %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('health_service_scheduler.add_slot') }}" class="button is-success">
+                    <span class="icon">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                        <span>Add Slot</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="tabs is-centered is-toggle">
+                  <ul>
+                      <li {% if mode=="timelineDay" %}class="is-active"{% endif %}>
+                          <a href="{{ url_for('health_service_scheduler.show_slots', mode='timelineDay') }}">
+                              <span>Day</span>
+                          </a>
+                      </li>
+                      <li {% if mode=="agendaWeek" %}class="is-active"{% endif %}>
+                          <a href="{{ url_for('health_service_scheduler.show_slots', mode='agendaWeek') }}">
+                              <span>Week</span>
+                          </a>
+                      </li>
+                      <li {% if mode=="month" %}class="is-active"{% endif %}>
+                          <a href="{{ url_for('health_service_scheduler.show_slots', mode='month') }}">
+                              <span>Month</span>
+                          </a>
+                      </li>
+                  </ul>
+                </div>
+                <div id="calendar" class=""></div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
+<script src="{{ url_for('static', filename='js/scheduler.min.js') }}"></script>
+<script>
+    $(function() {
+        $('#calendar').fullCalendar({
+            schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
+            defaultView: '{{ mode }}',
+            header: {
+                left: 'title',
+            },
+            events: "{{ url_for('health_service_scheduler.get_slots_calendar_api') }}",
+            eventLimit: true,
+            resources: "{{ url_for('health_service_scheduler.get_sites_calendar_api') }}",
+            resourceLabelText: 'Site',
+            resourceGroupField: 'title',
+            resourceAreaWidth: '5%',
+            minTime: '08:00:00',
+            maxTime: '20:00:00',
+            resourceColumns: [
+                {
+                    field: 'name'
+                }
+            ],
+            slotWidth: 5,
+            eventClick: function(calEvent, jsEvent, view) {
+                window.location = '/smartclass/events/' + calEvent.id;
+            }
+        });
+    });
+</script>
+{% endblock %}
