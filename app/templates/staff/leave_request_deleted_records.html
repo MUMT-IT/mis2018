@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    {% include "messages.html" %}
+    <div class="container has-text-centered">
+        <div class="columns">
+            <div class="column">
+                <h1 class="title">ประวัติการยกเลิก{{ quota.leave_type }}</h1>
+                <h4 class="subtitle is-size-6">{{ current_user.personal_info }} {{ current_user.personal_info.employment.title }}</h4>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                {% for request in leaves|sort(attribute='start_datetime', reverse=True) %}
+                <article class="media">
+                    <div class="media-content">
+                        <div class="content">
+                            <span class="icon">
+                                <a href="{{ url_for('staff.record_each_request_leave_request', request_id=request.id) }}">
+                                    <i class="far fa-calendar-alt"></i>
+                                </a>
+                            </span>
+                            <span class="title is-size-6 has-text-grey">
+                                {{ request.start_datetime|localdatetime }} - {{ request.end_datetime|localdatetime }}
+                                ({{ request.total_leave_days }} วัน)
+                            </span>
+                        </div>
+                    </div>
+                    <div class="media-right">
+                    </div>
+                </article>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a class="button is-info is-light" href="{{ url_for('staff.request_for_leave_info', quota_id=quota.id) }}">
+                     <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>Back</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
