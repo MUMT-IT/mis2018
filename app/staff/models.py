@@ -101,7 +101,7 @@ class StaffPersonalInfo(db.Model):
 
     @property
     def fullname(self):
-        return u'{}{} {}'.format(self.th_title, self.th_firstname, self.th_lastname)
+        return u'{}{} {}'.format(self.th_title or "", self.th_firstname, self.th_lastname)
 
 
     def get_employ_period(self):
@@ -333,7 +333,7 @@ class StaffLeaveApprover(db.Model):
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     approver_account_id = db.Column('approver_account_id', db.ForeignKey('staff_account.id'))
     is_active = db.Column('is_active', db.Boolean(), default=True)
-    requester = db.relationship('StaffAccount', foreign_keys=[staff_account_id])
+    requester = db.relationship('StaffAccount', backref=db.backref('leave_approvers'), foreign_keys=[staff_account_id])
     account = db.relationship('StaffAccount', foreign_keys=[approver_account_id])
     notified_by_line = db.Column('notified_by_line', db.Boolean(), default=True)
 
