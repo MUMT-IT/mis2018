@@ -481,6 +481,25 @@ def request_for_leave_info(quota_id=None):
                            fiscal_years=fiscal_years, quota_limit=quota_limit, used_quota=used_quota)
 
 
+@staff.route('/leave/request/info/<int:quota_id>/deleted')
+@login_required
+def leave_info_deleted_records(quota_id=None):
+    quota = StaffLeaveQuota.query.get(quota_id)
+    leaves = []
+    fiscal_years = set()
+    for leave in current_user.leave_requests:
+        if leave.start_datetime >= tz.localize(START_FISCAL_DATE) and leave.end_datetime <= tz.localize(
+                END_FISCAL_DATE) and leave.cancelled_at:
+            if leave.quota == quota:
+                leaves.append(leave)
+        if leave.start_datetime.month in [10, 11, 12]:
+            fiscal_years.add(leave.start_datetime.year + 1)
+        else:
+            fiscal_years.add(leave.start_datetime.year)
+    return render_template('staff/leave_request_deleted_records.html', leaves=leaves, quota=quota,
+                           fiscal_years=fiscal_years)
+
+
 @staff.route('/leave/request/info/<int:quota_id>/others_year/<int:fiscal_year>')
 @login_required
 def request_for_leave_info_others_fiscal(quota_id=None, fiscal_year=None):
@@ -1872,3 +1891,26 @@ def staff_edit_info(staff_id):
 def staff_show_info(staff_id):
     staff = StaffPersonalInfo.query.get(staff_id)
     return render_template('staff/staff_show_info.html', staff=staff)
+
+
+@staff.route('/for-hr/staff-info/approvers',
+             methods=['GET', 'POST'])
+@login_required
+def staff_show_approvers():
+    org_id = request.args.get('deptid')
+    departments = Org.query.all()
+    if org_id is None:
+        account_query = StaffAccount.query.all()
+    else:
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id))
+
+    return render_template('staff/show_leave_approver.html',
+                           sel_dept=org_id, account_list=list(account_query),
+                            departments=[{'id': d.id, 'name': d.name} for d in departments])
+
+
+@staff.route('/for-hr/staff-info/approvers/edit',
+             methods=['GET', 'POST'])
+@login_required
+def staff_edit_approver():
+    return 0
