@@ -284,7 +284,7 @@ def request_for_leave(quota_id=None):
                                     line_bot_api.push_message(to=approver.account.line_id,
                                                               messages=TextSendMessage(text=req_msg))
                                 else:
-                                    print(approver.account.id)
+                                    print(req_msg ,approver.account.id)
                             mails.append(approver.account.email + "@mahidol.ac.th")
                     if os.environ["FLASK_ENV"] == "production":
                         send_mail(mails, req_title, req_msg)
@@ -1909,8 +1909,46 @@ def staff_show_approvers():
                             departments=[{'id': d.id, 'name': d.name} for d in departments])
 
 
-@staff.route('/for-hr/staff-info/approvers/edit',
+@staff.route('/for-hr/staff-info/approvers/add/<int:approver_id>',
              methods=['GET', 'POST'])
 @login_required
-def staff_edit_approver():
-    return 0
+def staff_add_approver(approver_id):
+    if request.method == 'POST':
+        createrequester = StaffLeaveApprover(
+            staff_account_id = request.form.get('staffname'),
+            approver_account_id = approver_id
+        )
+        db.session.add(createrequester)
+        db.session.commit()
+        flash(u'เพิ่มบุคลากรเรียบร้อยแล้ว', 'success')
+
+    approvers = StaffLeaveApprover.query.filter_by(approver_account_id=approver_id)
+    return render_template('staff/leave_request_manage_approver.html', approvers=approvers )
+
+
+@staff.route('/for-hr/staff-info/approvers/edit/<int:approver_id>/<int:requester_id>/change-active-status')
+@login_required
+def staff_approver_change_active_status(approver_id,requester_id):
+    approver = StaffLeaveApprover.query.filter_by(approver_account_id=approver_id, staff_account_id=requester_id).first()
+    approver.is_active = True if not approver.is_active else False
+    db.session.add(approver)
+    db.session.commit()
+    flash(u'แก้ไขสถานะการอนุมัติเรียบร้อยแล้ว', 'success')
+    return redirect(request.referrer)
+
+@staff.route('/for-hr/staff-info/approvers/add/requester/<int:requester_id>',
+             methods=['GET', 'POST'])
+@login_required
+def staff_add_requester(requester_id):
+    if request.method == 'POST':
+        createapprover = StaffLeaveApprover(
+            approver_account_id = request.form.get('staffname'),
+            staff_account_id = requester_id
+        )
+        db.session.add(createapprover)
+        db.session.commit()
+        flash(u'เพิ่มผู้อนุมัติเรียบร้อยแล้ว', 'success')
+    requester = StaffLeaveApprover.query.filter_by(staff_account_id=requester_id)
+    requester_name = StaffLeaveApprover.query.filter_by(staff_account_id=requester_id).first()
+    return render_template('staff/leave_request_manage_requester.html', approvers=requester,
+                           requester_name=requester_name)
