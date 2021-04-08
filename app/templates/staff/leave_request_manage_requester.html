@@ -21,7 +21,7 @@
                     <th>เปลี่ยนสถานะการอนุมัติ</th>
                     </thead>
                     <tbody>
-                    {% for approver in approvers|sort(attribute='requester.personal_info.fullname') %}
+                    {% for approver in approvers|sort(attribute='account.personal_info.fullname') %}
                     <tr>
                         <td>
                             {{ approver.requester.personal_info.fullname }}
