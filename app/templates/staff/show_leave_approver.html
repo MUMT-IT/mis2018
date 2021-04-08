@@ -29,13 +29,13 @@
                     {% if account.leave_requesters %}
                     <tr>
                         <td>
-                            <a href="{{ url_for('staff.staff_edit_requester', requester_id=account.id) }}">
+                            <a href="{{ url_for('staff.staff_add_requester', requester_id=account.id) }}">
                                 {{ account.personal_info.fullname }}
                             </a>
                         </td>
                         {% for approver in account.leave_requesters %}
                         <td>
-                            <a href="{{ url_for('staff.staff_edit_approver', approver_id=approver.account.id) }}">
+                            <a href="{{ url_for('staff.staff_add_approver', approver_id=approver.account.id) }}">
                                 {{ approver.account.personal_info.fullname }}
                             </a>
                         </td>
@@ -44,7 +44,7 @@
                     {% else %}
                     <tr>
                         <td>
-                            <a href="{{ url_for('staff.staff_edit_requester', requester_id=account.id) }}">
+                            <a href="{{ url_for('staff.staff_add_requester', requester_id=account.id) }}">
                             {{ account.personal_info.fullname }}
                             </a>
                         </td>
