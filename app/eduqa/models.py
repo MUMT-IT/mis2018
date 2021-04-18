@@ -30,7 +30,7 @@ class EduQACurriculumnRevision(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     curriculum_id = db.Column(db.ForeignKey('eduqa_curriculums.id'))
     curriculum = db.relationship(EduQACurriculum, backref=db.backref('revisions'))
-    revision_year = db.Column(db.Date(), nullable=False)
+    revision_year = db.Column(db.Date(), nullable=False, info={'label': u'วันที่ปรับปรุงล่าสุด'})
 
 
 class EduQAAcademicStaff(db.Model):

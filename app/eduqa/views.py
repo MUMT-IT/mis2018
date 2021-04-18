@@ -175,7 +175,14 @@ def add_curriculum():
     return render_template('eduqa/QA/curriculumn_edit.html', form=form)
 
 
-@edu.route('/qa/revisions/<int:curriculum_id>')
+@edu.route('/qa/curriculums/list')
+@login_required
+def list_curriculums():
+    programs = EduQAProgram.query.all()
+    return render_template('eduqa/QA/curriculum_list.html', programs=programs)
+
+
+@edu.route('/qa/curriculums/<int:curriculum_id>/revisions')
 @login_required
 def show_revisions(curriculum_id):
     curriculum = EduQACurriculum.query.get(curriculum_id)
@@ -193,8 +200,15 @@ def add_revision(curriculum_id):
             db.session.add(revision)
             db.session.commit()
             flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
-            return redirect(url_for('eduqa.show_revisions', curriculum_id=curriculum_id))
+            return redirect(url_for('eduqa.show_revisions'))
         else:
             print(form.errors)
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
     return render_template('eduqa/QA/curriculum_revision_edit.html', form=form)
+
+
+@edu.route('/qa/revisions/<int:revision_id>')
+@login_required
+def show_revision_detail(revision_id):
+    revision = EduQACurriculumnRevision.query.get(revision_id)
+    return render_template('eduqa/QA/curriculum_revision_detail.html', revision=revision)

@@ -11,29 +11,22 @@
         </div>
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
+                {% for program in programs %}
                 <nav class="panel is-success">
-                    <p class="panel-heading">การปรับปรุง</p>
-                    {% for revision in curriculum.revisions %}
+                    <p class="panel-heading">โปรแกรม {{ program.name }}</p>
+                    {% for curriculum in program.curriculums %}
                     <a class="panel-block"
-                       href="{{ url_for('eduqa.show_revision_detail', revision_id=revision.id) }}">
+                       href="{{ url_for('eduqa.show_revisions', curriculum_id=curriculum.id) }}">
                         <span class="panel-icon">
                             <i class="fas fa-tasks"></i>
                         </span>
                         <span class="is-size-5">
-                            {{ revision.revision_year }}
+                            {{ curriculum.th_name }} {% if curriculum.en_name %} ({{ curriculum.en_name }}) {% endif %}
                         </span>
                     </a>
                     {% endfor %}
-                    <a class="panel-block"
-                       href="{{ url_for('eduqa.add_revision', curriculum_id=curriculum.id) }}">
-                        <span class="panel-icon">
-                            <i class="fas fa-plus"></i>
-                        </span>
-                        <span class="is-size-5">
-                            เพิ่มรายการ
-                        </span>
-                    </a>
                 </nav>
+                {% endfor %}
             </div>
         </div>
     </div>
