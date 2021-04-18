@@ -212,3 +212,23 @@ def add_revision(curriculum_id):
 def show_revision_detail(revision_id):
     revision = EduQACurriculumnRevision.query.get(revision_id)
     return render_template('eduqa/QA/curriculum_revision_detail.html', revision=revision)
+
+
+@edu.route('/qa/revisions/<int:revision_id>/courses/add', methods=['GET', 'POST'])
+@login_required
+def add_course(revision_id):
+    form = EduCourseForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            course = EduQACourse()
+            form.populate_obj(course)
+            course.revision_id = revision_id
+            course.creator = current_user
+            # add update datetime here
+            db.session.add(course)
+            db.session.commit()
+            flash(u'เพิ่มรายวิชาเรียบร้อย', 'success')
+            return redirect(url_for('eduqa.show_revision_detail', revision_id=revision_id))
+        else:
+            flash(u'เกิดความผิดพลาดบางประการ กรุณาตรวจสอบข้อมูล', 'warning')
+    return render_template('eduqa/QA/course_edit.html', form=form, revision_id=revision_id)

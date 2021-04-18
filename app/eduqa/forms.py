@@ -3,7 +3,7 @@
 from flask_wtf import FlaskForm
 from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.main import db
-from models import EduQAProgram, EduQACurriculumnRevision, EduQACurriculum
+from models import *
 from app.staff.models import (StaffAcademicPositionRecord,
                               StaffAcademicPosition,
                               StaffEduDegree)
@@ -55,3 +55,17 @@ class EduCurriculumnRevisionForm(ModelForm):
                                    get_label='th_name',
                                    query_factory=lambda: EduQACurriculum.query.all()
                                    )
+
+
+class EduCourseCategoryForm(ModelForm):
+    class Meta:
+        model = EduQACourseCategory
+
+
+class EduCourseForm(ModelForm):
+    class Meta:
+        model = EduQACourse
+    category = QuerySelectField(u'หมวด',
+                                  get_label='category',
+                                  query_factory=lambda: EduQACourseCategory.query.all()
+                                  )

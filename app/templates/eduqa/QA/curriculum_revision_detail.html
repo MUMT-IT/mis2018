@@ -12,17 +12,42 @@
         <div class="columns">
             <div class="column">
                 <h1 class="title has-text-centered">รายวิชา</h1>
+                <div class="has-text-centered">
+                    <a href="{{ url_for('eduqa.add_course', revision_id=revision.id) }}" class="button is-success">
+                    <span class="icon">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                        <span>เพิ่มรายวิชา</span>
+                    </a>
+                </div>
                 <table class="table is-fullwidth">
                     <thead>
                         <th>รหัส</th>
                         <th>ชื่อ</th>
+                        <th>บรรยาย</th>
+                        <th>ปฏิบัติ</th>
                         <th>หมวด</th>
+                        <th>ปรับปรุงล่าสุดโดย</th>
+                        <th></th>
                     </thead>
+                    {% for course in revision.courses %}
                     <tr>
-                        <td></td>
-                        <td></td>
-                        <td></td>
+                        <td>{{ course.th_code }} ({{ course.en_code }})</td>
+                        <td>{{ course.th_name }} ({{ course.en_name }})</td>
+                        <td>{{ course.lecture_credit }}</td>
+                        <td>{{ course.lab_credit }}</td>
+                        <td>{{ course.category.category }}</td>
+                        <td>{{ course.updater.personal_info }}</td>
+                        <td>
+                            <a class="button is-link is-small is-rounded">
+                                <span class="icon">
+                                    <i class="fas fa-info-circle"></i>
+                                </span>
+                                <span>รายละเดียด</span>
+                            </a>
+                        </td>
                     </tr>
+                    {% endfor %}
                 </table>
             </div>
         </div>
