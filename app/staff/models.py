@@ -231,7 +231,6 @@ class StaffSpecialGroup(db.Model):
                              secondary=staff_group_assoc_table)
 
 
-
 class StaffLeaveType(db.Model):
     __tablename__ = 'staff_leave_types'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
