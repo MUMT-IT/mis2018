@@ -3,6 +3,12 @@ from app.main import db
 from app.staff.models import StaffAccount
 
 
+course_instructors = db.Table('eduqa_course_instructor_assoc',
+                              db.Column('course_id', db.Integer, db.ForeignKey('eduqa_courses.id')),
+                              db.Column('instructor_id', db.Integer, db.ForeignKey('eduqa_course_instructors.id'))
+                              )
+
+
 class EduQAProgram(db.Model):
     __tablename__ = 'eduqa_programs'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -82,6 +88,17 @@ class EduQACourse(db.Model):
     revision = db.relationship(EduQACurriculumnRevision,
                                backref=db.backref('courses', lazy='dynamic'))
 
+    instructors = db.relationship('EduQAInstructor',
+                                  secondary=course_instructors,
+                                  backref=db.backref('courses', lazy='dynamic'))
+
     @property
     def credits(self):
         return self.lecture_credit + self.lab_credit
+
+
+class EduQAInstructor(db.Model):
+    __tablename__ = 'eduqa_course_instructors'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    account_id = db.Column(db.ForeignKey('staff_account.id'))
+    account = db.relationship(StaffAccount)
