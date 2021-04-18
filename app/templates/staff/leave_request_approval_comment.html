@@ -5,19 +5,19 @@
     <div class="container" id="app">
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
-                <div class="box">
+                <div class="box has-text-centered">
+                    <h2 class="title">ความเห็นผู้บังคับบัญชาเพิ่มเติม</h2>
                     <form method="POST">
                         <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                         <div class="field">
-                            <label class="label">ความคิดเห็นของท่าน</label>
-                            <textarea
-                                 class="textarea"
-                                 name="approval_comment">
-                            </textarea>
+                            <label class="label">(Optional Comment)</label>
+                            <textarea class="textarea" name="approval_comment" placeholder="เว้นไว้ได้"></textarea>
                         </div>
                         <div class="field">
-                             <div class="control">
-                            <button type="submit" value="submit" class="button">Submit</button>
+                         <div class="control">
+                             <div class="buttons is-centered">
+                                 <button type="submit" value="submit" class="button is-success">Next</button>
+                             </div>
                         </div>
                         </div>
                     </form>
