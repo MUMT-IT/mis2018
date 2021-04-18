@@ -256,11 +256,10 @@ def add_instructor_to_list(course_id, account_id):
     instructor = EduQAInstructor.query.filter_by(account_id=account_id).first()
     if not instructor:
         instructor = EduQAInstructor(account_id=account_id)
-        course.instructors.append(instructor)
-        db.session.add(instructor)
-        db.session.add(course)
-        db.session.commit()
-        flash(u'เพิ่มรายชื่อผู้สอนเรียบร้อยแล้ว', 'success')
-    else:
-        flash(u'เกิดปัญหาในการเพิ่มรายชื่อ', 'warning')
+    course.instructors.append(instructor)
+    course.updater = current_user
+    db.session.add(instructor)
+    db.session.add(course)
+    db.session.commit()
+    flash(u'เพิ่มรายชื่อผู้สอนเรียบร้อยแล้ว', 'success')
     return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
