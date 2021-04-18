@@ -5,6 +5,7 @@ from flask_login import current_user, login_required
 
 from . import eduqa_bp as edu
 from forms import *
+from ..staff.models import StaffPersonalInfo
 
 
 @edu.route('/qa/')
@@ -232,3 +233,34 @@ def add_course(revision_id):
         else:
             flash(u'เกิดความผิดพลาดบางประการ กรุณาตรวจสอบข้อมูล', 'warning')
     return render_template('eduqa/QA/course_edit.html', form=form, revision_id=revision_id)
+
+
+@edu.route('/qa/courses/<int:course_id>', methods=['GET', 'POST'])
+@login_required
+def show_course_detail(course_id):
+    course = EduQACourse.query.get(course_id)
+    return render_template('eduqa/QA/course_detail.html', course=course)
+
+
+@edu.route('/qa/courses/<int:course_id>/instructors/add')
+@login_required
+def add_instructor(course_id):
+    academics = StaffPersonalInfo.query.filter_by(academic_staff=True)
+    return render_template('eduqa/QA/instructor_add.html', course_id=course_id, academics=academics)
+
+
+@edu.route('/qa/courses/<int:course_id>/instructors/add/<int:account_id>')
+@login_required
+def add_instructor_to_list(course_id, account_id):
+    course = EduQACourse.query.get(course_id)
+    instructor = EduQAInstructor.query.filter_by(account_id=account_id).first()
+    if not instructor:
+        instructor = EduQAInstructor(account_id=account_id)
+        course.instructors.append(instructor)
+        db.session.add(instructor)
+        db.session.add(course)
+        db.session.commit()
+        flash(u'เพิ่มรายชื่อผู้สอนเรียบร้อยแล้ว', 'success')
+    else:
+        flash(u'เกิดปัญหาในการเพิ่มรายชื่อ', 'warning')
+    return redirect(url_for('eduqa.show_course_detail', course_id=course_id))

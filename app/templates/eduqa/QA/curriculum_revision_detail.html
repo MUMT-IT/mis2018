@@ -39,7 +39,8 @@
                         <td>{{ course.category.category }}</td>
                         <td>{{ course.updater.personal_info }}</td>
                         <td>
-                            <a class="button is-link is-small is-rounded">
+                            <a class="button is-link is-small is-rounded"
+                                href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}">
                                 <span class="icon">
                                     <i class="fas fa-info-circle"></i>
                                 </span>

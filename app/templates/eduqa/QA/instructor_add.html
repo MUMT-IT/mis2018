@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                {% include 'messages.html' %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <h1 class="title has-text-centered">เพิ่มผู้สอน</h1>
+                <table class="table is-striped is-narrow" id="instructors">
+                    <thead>
+                        <th>ชื่อ</th>
+                        <th>นามสกุล</th>
+                        <th>หน่วยงาน</th>
+                        <th>เพิ่ม</th>
+                    </thead>
+                    <tbody>
+                        {% for staff in academics %}
+                        <tr>
+                            <td>{{ staff.th_firstname }}</td>
+                            <td>{{ staff.th_lastname }}</td>
+                            <td>{{ staff.org.name }}</td>
+                            <td>
+                                <a class="is-link is-small is-outlined"
+                                   href="{{ url_for('eduqa.add_instructor_to_list', course_id=course_id, account_id=staff.staff_account.id) }}">
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function() {
+        $('#instructors').DataTable({
+            "pageLength": 20,
+        });
+    });
+</script>
+{% endblock %}
