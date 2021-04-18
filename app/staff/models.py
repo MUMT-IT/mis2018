@@ -96,12 +96,15 @@ class StaffPersonalInfo(db.Model):
     retired = db.Column('retired', db.Boolean(), default=False)
 
     def __str__(self):
-        return u'{} {}'.format(self.th_firstname, self.th_lastname)
+        return self.fullname
 
 
     @property
     def fullname(self):
-        return u'{}{} {}'.format(self.th_title, self.th_firstname, self.th_lastname)
+        if self.th_firstname or self.th_lastname:
+            return u'{}{} {}'.format(self.th_title or u'คุณ', self.th_firstname, self.th_lastname)
+        else:
+            return u'{}{} {}'.format(self.en_title or '', self.en_firstname, self.en_lastname)
 
 
     def get_employ_period(self):
