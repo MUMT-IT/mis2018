@@ -88,7 +88,11 @@
                                 <tbody>
                                 {% for inst in course.instructors %}
                                     <tr>
-                                        <td>{{ inst.account.personal_info }}</td>
+                                        <td>
+                                            <a href="{{ url_for('eduqa.show_hours_summary', instructor_id=inst.id) }}">
+                                                {{ inst.account.personal_info }}
+                                            </a>
+                                        </td>
                                         <td></td>
                                         <td>
                                             <a href="{{ url_for('eduqa.remove_instructor_from_list', course_id=course.id, instructor_id=inst.id) }}"

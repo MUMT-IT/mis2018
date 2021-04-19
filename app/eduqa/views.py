@@ -335,3 +335,9 @@ def edit_session(course_id, session_id):
             flash(u'เกิดปัญหาในการบันทึกข้อมูล', 'warning')
     return render_template('eduqa/QA/session_edit.html', form=form, course=course)
 
+
+@edu.route('/qa/hours/<int:instructor_id>')
+@login_required
+def show_hours_summary(instructor_id):
+    instructor = EduQAInstructor.query.get(instructor_id)
+    return render_template('eduqa/QA/hours_summary.html', instructor=instructor)

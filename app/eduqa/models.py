@@ -125,3 +125,8 @@ class EduQACourseSession(db.Model):
     instructors = db.relationship('EduQAInstructor',
                                   secondary=session_instructors,
                                   backref=db.backref('sessions', lazy='dynamic'))
+
+    @property
+    def total_hours(self):
+        delta = self.end - self.start
+        return u'{} ชม. {} นาที'.format(delta.seconds//3600, (delta.seconds//60)%60)
