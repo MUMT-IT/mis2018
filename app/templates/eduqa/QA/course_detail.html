@@ -13,6 +13,24 @@
             <div class="column">
                 <h1 class="title has-text-centered">{{ course.th_name }}</h1>
                 <h1 class="subtitle has-text-centered">{{ course.en_name }}</h1>
+                <div class="buttons is-centered">
+                    <a class="button is-success" href="{{ url_for('eduqa.edit_course', course_id=course.id) }}">
+                        <span class="icon">
+                            <i class="fas fa-pencil-alt"></i>
+                        </span>
+                        <span>แก้ไขข้อมูลทั่วไป</span>
+                    </a>
+                    <a class="button is-warning"
+                       href="{{ url_for('eduqa.copy_course', course_id=course.id) }}">
+                        <span class="icon">
+                            <i class="far fa-copy"></i>
+                        </span>
+                        <span>คัดลอกรายวิชา</span>
+                    </a>
+                </div>
+                <p class="notification is-light is-warning has-text-centered">
+                    ท่านสามารถคัดลอกข้อมูลทั่วไปของรายวิชาเพื่อสร้างรายการใหม่ได้ ด้วยการคลิกที่ปุ่มคัดลอกรายวิชาด้านบน
+                </p>
             </div>
         </div>
         <div class="columns">
@@ -56,6 +74,22 @@
                         </td>
                         <td>
                             {{ course.credits }} หน่วย (บรรยาย {{ course.lecture_credit }}, ปฏิบัติ {{ course.lab_credit }})
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">ภาคการศึกษา</label>
+                        </td>
+                        <td>
+                            {{ course.semester }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">ปีการศึกษา</label>
+                        </td>
+                        <td>
+                            {{ course.academic_year }}
                         </td>
                     </tr>
                     <tr>

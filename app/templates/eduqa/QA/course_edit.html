@@ -73,13 +73,13 @@
                     <div class="field">
                         <label class="label">{{ form.lecture_credit.label }}</label>
                         <div class="control">
-                            {{ form.lecture_credit(class="input") }}
+                            {{ form.lecture_credit(class="input", step='any') }}
                         </div>
                     </div>
                     <div class="field">
                         <label class="label">{{ form.lab_credit.label }}</label>
                         <div class="control">
-                            {{ form.lab_credit(class="input") }}
+                            {{ form.lab_credit(class="input", step='any') }}
                         </div>
                     </div>
                     <div class="field">
@@ -89,7 +89,7 @@
                                    class="button is-light">Cancel</a>
                             </div>
                             <div class="control">
-                                <input type="submit" class="button is-success" value="Add"/>
+                                <input type="submit" class="button is-success" value="Save"/>
                             </div>
                         </div>
                     </div>

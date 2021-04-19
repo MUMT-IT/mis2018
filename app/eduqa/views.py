@@ -3,6 +3,7 @@ from datetime import datetime
 
 from flask import render_template, request, flash, redirect, url_for
 from flask_login import current_user, login_required
+from sqlalchemy.orm import make_transient
 
 from . import eduqa_bp as edu
 from forms import *
@@ -205,7 +206,7 @@ def add_revision(curriculum_id):
             db.session.add(revision)
             db.session.commit()
             flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
-            return redirect(url_for('eduqa.show_revisions'))
+            return redirect(url_for('eduqa.show_revisions', curriculum_id=curriculum_id))
         else:
             print(form.errors)
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
@@ -232,11 +233,50 @@ def add_course(revision_id):
             course.created_at = localtz.localize(datetime.now())
             db.session.add(course)
             db.session.commit()
-            flash(u'เพิ่มรายวิชาเรียบร้อย', 'success')
+            flash(u'บันทึกข้อมูลรายวิชาเรียบร้อย', 'success')
             return redirect(url_for('eduqa.show_revision_detail', revision_id=revision_id))
         else:
             flash(u'เกิดความผิดพลาดบางประการ กรุณาตรวจสอบข้อมูล', 'warning')
     return render_template('eduqa/QA/course_edit.html', form=form, revision_id=revision_id)
+
+
+@edu.route('/qa/courses/<int:course_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_course(course_id):
+    course = EduQACourse.query.get(course_id)
+    form = EduCourseForm(obj=course)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(course)
+            course.updater = current_user
+            course.updated_at = localtz.localize(datetime.now())
+            db.session.add(course)
+            db.session.commit()
+            flash(u'บันทึกข้อมูลรายวิชาเรียบร้อย', 'success')
+            return redirect(url_for('eduqa.show_course_detail', course_id=course.id))
+        else:
+            flash(u'เกิดความผิดพลาดบางประการ กรุณาตรวจสอบข้อมูล', 'warning')
+    return render_template('eduqa/QA/course_edit.html', form=form, revision_id=course.revision_id)
+
+
+@edu.route('/qa/courses/<int:course_id>/copy', methods=['GET', 'POST'])
+@login_required
+def copy_course(course_id):
+    course = EduQACourse.query.get(course_id)
+    db.session.expunge(course)
+    make_transient(course)
+    course.th_name = course.th_name + '(copy)'
+    course.th_code = course.th_code + '(copy)'
+    course.academic_year = None
+    course.id = None
+    try:
+        db.session.add(course)
+        db.session.commit()
+    except:
+        flash(u'ไม่สามารถคัดลอกรายวิชาได้', 'warning')
+    else:
+        flash(u'รายวิชาได้รับการคัดลอกเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('eduqa.show_course_detail', course_id=course.id))
 
 
 @edu.route('/qa/courses/<int:course_id>', methods=['GET', 'POST'])
