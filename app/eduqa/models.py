@@ -2,11 +2,15 @@
 from app.main import db
 from app.staff.models import StaffAccount
 
-
 course_instructors = db.Table('eduqa_course_instructor_assoc',
                               db.Column('course_id', db.Integer, db.ForeignKey('eduqa_courses.id')),
                               db.Column('instructor_id', db.Integer, db.ForeignKey('eduqa_course_instructors.id'))
                               )
+
+session_instructors = db.Table('eduqa_session_instructor_assoc',
+                               db.Column('session_id', db.Integer, db.ForeignKey('eduqa_course_sessions.id')),
+                               db.Column('instructor_id', db.Integer, db.ForeignKey('eduqa_course_instructors.id'))
+                               )
 
 
 class EduQAProgram(db.Model):
@@ -88,10 +92,6 @@ class EduQACourse(db.Model):
     revision = db.relationship(EduQACurriculumnRevision,
                                backref=db.backref('courses', lazy='dynamic'))
 
-    instructors = db.relationship('EduQAInstructor',
-                                  secondary=course_instructors,
-                                  backref=db.backref('courses', lazy='dynamic'))
-
     @property
     def credits(self):
         return self.lecture_credit + self.lab_credit
@@ -102,3 +102,26 @@ class EduQAInstructor(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     account_id = db.Column(db.ForeignKey('staff_account.id'))
     account = db.relationship(StaffAccount)
+    courses = db.relationship('EduQACourse',
+                              secondary=course_instructors,
+                              backref=db.backref('instructors', lazy='dynamic'))
+
+    @property
+    def fullname(self):
+        return self.account.personal_info.fullname
+
+
+class EduQACourseSession(db.Model):
+    __tablename__ = 'eduqa_course_sessions'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    course_id = db.Column(db.ForeignKey('eduqa_courses.id'))
+    start = db.Column(db.DateTime(timezone=True), nullable=False)
+    end = db.Column(db.DateTime(timezone=True), nullable=False)
+    type_ = db.Column(db.String(255), info={'label': u'ประเภท',
+                                            'choices': [(c, c) for c in (u'บรรยาย', u'ปฏิบัติการ', u'กิจกรรม')]})
+    desc = db.Column(db.Text())
+
+    course = db.relationship(EduQACourse, backref=db.backref('sessions', lazy='dynamic'))
+    instructors = db.relationship('EduQAInstructor',
+                                  secondary=session_instructors,
+                                  backref=db.backref('sessions', lazy='dynamic'))
