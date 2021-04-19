@@ -75,8 +75,8 @@ class EduQACourse(db.Model):
     academic_year = db.Column(db.String(), info={'label': u'ปีการศึกษา'})
     th_desc = db.Column(db.Text(), info={'label': u'คำอธิบายรายวิชา'})
     en_desc = db.Column(db.Text(), info={'label': u'Description'})
-    lecture_credit = db.Column(db.Integer, default=0, info={'label': u'หน่วยกิตบรรยาย'})
-    lab_credit = db.Column(db.Integer, default=0, info={'label': u'หน่วยกิตปฏิบัติ'})
+    lecture_credit = db.Column(db.Numeric(), default=0, info={'label': u'หน่วยกิตบรรยาย'})
+    lab_credit = db.Column(db.Numeric(), default=0, info={'label': u'หน่วยกิตปฏิบัติ'})
     created_at = db.Column(db.DateTime(timezone=True))
     updated_at = db.Column(db.DateTime(timezone=True))
 
