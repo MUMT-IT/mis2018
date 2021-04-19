@@ -34,6 +34,8 @@
                         <th>บรรยาย</th>
                         <th>ปฏิบัติ</th>
                         <th>หมวด</th>
+                        <th>ภาคการศึกษา</th>
+                        <th>ปีการศึกษา</th>
                         <th>ปรับปรุงล่าสุดโดย</th>
                         <th>เมื่อ</th>
                         <th></th>
@@ -45,6 +47,8 @@
                         <td>{{ course.lecture_credit }}</td>
                         <td>{{ course.lab_credit }}</td>
                         <td>{{ course.category.category }}</td>
+                        <td>{{ course.semester or "" }}</td>
+                        <td>{{ course.academic_year or "" }}</td>
                         <td>{{ course.updater.personal_info }}</td>
                         <td>{{ course.updated_at|localdatetime }}</td>
                         <td>

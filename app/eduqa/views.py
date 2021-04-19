@@ -231,6 +231,8 @@ def add_course(revision_id):
             course.revision_id = revision_id
             course.creator = current_user
             course.created_at = localtz.localize(datetime.now())
+            course.updater = current_user
+            course.updated_at = localtz.localize(datetime.now())
             db.session.add(course)
             db.session.commit()
             flash(u'บันทึกข้อมูลรายวิชาเรียบร้อย', 'success')
@@ -268,6 +270,10 @@ def copy_course(course_id):
     course.th_name = course.th_name + '(copy)'
     course.th_code = course.th_code + '(copy)'
     course.academic_year = None
+    course.creator = current_user
+    course.created_at = localtz.localize(datetime.now())
+    course.updater = current_user
+    course.updated_at = localtz.localize(datetime.now())
     course.id = None
     try:
         db.session.add(course)
