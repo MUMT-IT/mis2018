@@ -14,7 +14,7 @@
                 <h1 class="title has-text-centered">{{ course.th_name }}</h1>
                 <h1 class="subtitle has-text-centered">{{ course.en_name }}</h1>
                 <div class="buttons is-centered">
-                    <a class="button is-success" href="{{ url_for('eduqa.edit_course', course_id=course.id) }}">
+                    <a class="button is-light" href="{{ url_for('eduqa.edit_course', course_id=course.id) }}">
                         <span class="icon">
                             <i class="fas fa-pencil-alt"></i>
                         </span>
@@ -35,6 +35,7 @@
         </div>
         <div class="columns">
             <div class="column">
+                <h5 class="title is-size-4">ข้อมูลทั่วไป</h5>
                 <table class="table is-striped is-bordered is-fullwidth">
                     <tr>
                         <td>
@@ -108,6 +109,9 @@
                             {{ course.en_desc }}
                         </td>
                     </tr>
+                </table>
+                <h5 class="title is-size-4">ข้อมูลการจัดการเรียนการสอน</h5>
+                <table class="table is-striped is-fullwidth is-bordered">
                     <tr>
                         <td>
                             <label class="label">อาจารย์</label>

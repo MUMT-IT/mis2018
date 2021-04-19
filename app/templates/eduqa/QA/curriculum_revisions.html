@@ -12,15 +12,15 @@
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 <nav class="panel is-success">
-                    <p class="panel-heading">การปรับปรุง</p>
+                    <p class="panel-heading">ฉบับปรับปรุง</p>
                     {% for revision in curriculum.revisions %}
                     <a class="panel-block"
                        href="{{ url_for('eduqa.show_revision_detail', revision_id=revision.id) }}">
                         <span class="panel-icon">
-                            <i class="fas fa-tasks"></i>
+                            <i class="fas fa-history"></i>
                         </span>
                         <span class="is-size-5">
-                            {{ revision.revision_year }}
+                            ปี {{ revision.revision_year.year + 543 }}
                         </span>
                     </a>
                     {% endfor %}
