@@ -11,6 +11,13 @@
         </div>
         <div class="columns">
             <div class="column">
+                <nav class="breadcrumb" aria-label="breadcrumbs">
+                  <ul>
+                    <li><a href="{{ url_for('eduqa.index') }}">หน้าหลัก</a></li>
+                    <li><a href="{{ url_for('eduqa.show_revisions', curriculum_id=revision.curriculum.id) }}">หลักสูตร</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">รายวิชา</a></li>
+                  </ul>
+                </nav>
                 <h1 class="title has-text-centered">รายวิชา</h1>
                 <div class="has-text-centered">
                     <a href="{{ url_for('eduqa.add_course', revision_id=revision.id) }}" class="button is-success">

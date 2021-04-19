@@ -12,12 +12,15 @@
         <div class="columns">
             <div class="column">
                 <h1 class="title has-text-centered">ชั่วโมงสอน</h1>
+                <h2 class="title is-size-4 has-text-centered">{{ instructor.fullname }}</h2>
+                <h2 class="subtitle has-text-centered">{{ instructor.account.personal_info.org.name }}</h2>
                 <table class="table is-striped" id="instructors">
                     <thead>
-                    <th>ชื่อ</th>
-                    <th>หน่วยงาน</th>
-                    <th>รายวิชา</th>
+                    <th>รหัสรายวิชา</th>
+                    <th>ชื่อรายวิชา</th>
+                    <th>ภาคและปีการศึกษา</th>
                     <th>วันที่และเวลา</th>
+                    <th>รูปแบบ</th>
                     <th>จำนวนชม.</th>
                     </thead>
                     <tbody>
@@ -25,10 +28,15 @@
                         {% for s in course.sessions %}
                             {% if instructor in s.instructors %}
                             <tr>
-                                <td>{{ instructor.fullname }}</td>
-                                <td>{{ instructor.account.personal_info.org.name }}</td>
+                                <td>{{ course.th_code }} ({{ course.en_code }})</td>
                                 <td>{{ course.th_name }}</td>
+                                {% if course.academic_year and course.semester %}
+                                <td>{{ course.semester + '/' + course.academic_year }}</td>
+                                {% else %}
+                                <td>N/A</td>
+                                {% endif %}
                                 <td>{{ s.start|localdatetime }} - {{ s.end|localdatetime }}</td>
+                                <td>{{ s.type_ }}</td>
                                 <td>{{ s.total_hours }}</td>
                             </tr>
                             {% endif %}
