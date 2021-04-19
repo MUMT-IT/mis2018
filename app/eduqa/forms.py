@@ -1,7 +1,8 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms_alchemy import model_form_factory, QuerySelectField
+from wtforms import SelectMultipleField, widgets
+from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
 from app.main import db
 from models import *
 from app.staff.models import (StaffAcademicPositionRecord,
@@ -15,6 +16,10 @@ class ModelForm(BaseModelForm):
     @classmethod
     def get_session(self):
         return db.session
+
+class MultiCheckboxField(SelectMultipleField):
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
 
 
 class ProgramForm(ModelForm):
@@ -66,6 +71,15 @@ class EduCourseForm(ModelForm):
     class Meta:
         model = EduQACourse
     category = QuerySelectField(u'หมวด',
-                                  get_label='category',
-                                  query_factory=lambda: EduQACourseCategory.query.all()
-                                  )
+                                get_label='category',
+                                query_factory=lambda: EduQACourseCategory.query.all())
+
+
+def create_instructors_form(course):
+    class EduCourseSessionForm(ModelForm):
+        class Meta:
+            model = EduQACourseSession
+        instructors = QuerySelectMultipleField(u'หมวด', get_label='fullname', query_factory=lambda: course.instructors.all(),
+                                               widget=widgets.ListWidget(prefix_label=False),
+                                               option_widget=widgets.CheckboxInput())
+    return EduCourseSessionForm

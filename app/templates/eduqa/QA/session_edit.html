@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                {% include 'messages.html' %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                <h1 class="title has-text-centered">New Course Session</h1>
+                <form method="post" class="box">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.start.label }}</label>
+                        <div class="control">
+                            {{ form.start(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.end.label }}</label>
+                        <div class="control">
+                            {{ form.end(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.type_.label }}</label>
+                        <div class="control">
+                            <div class="select">
+                                {{ form.type_ }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.instructors.label }}</label>
+                        <div class="control">
+                            {{ form.instructors() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="buttons is-grouped is-centered">
+                            <div class="control">
+                                <a href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}"
+                                   class="button is-light">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" class="button is-success" value="Add"/>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    $('input[name="start"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: true,
+        timePickerIncrement: 15,
+        timePicker24Hour: true,
+        startDate: moment().startOf('hour'),
+        endDate: moment().startOf('hour').add(32, 'hour'),
+        locale: {
+            format: 'YYYY-MM-DD HH:mm:ss'
+        }
+    });
+    $('input[name="end"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: true,
+        timePickerIncrement: 15,
+        timePicker24Hour: true,
+        startDate: moment().startOf('hour'),
+        endDate: moment().startOf('hour').add(32, 'hour'),
+        locale: {
+            format: 'YYYY-MM-DD HH:mm:ss'
+        }
+    });
+</script>
+{% endblock %}

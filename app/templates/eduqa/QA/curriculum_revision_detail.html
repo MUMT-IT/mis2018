@@ -28,6 +28,7 @@
                         <th>ปฏิบัติ</th>
                         <th>หมวด</th>
                         <th>ปรับปรุงล่าสุดโดย</th>
+                        <th>เมื่อ</th>
                         <th></th>
                     </thead>
                     {% for course in revision.courses %}
@@ -38,6 +39,7 @@
                         <td>{{ course.lab_credit }}</td>
                         <td>{{ course.category.category }}</td>
                         <td>{{ course.updater.personal_info }}</td>
+                        <td>{{ course.updated_at|localdatetime }}</td>
                         <td>
                             <a class="button is-link is-small is-rounded"
                                 href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}">

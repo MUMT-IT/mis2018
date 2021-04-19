@@ -91,7 +91,8 @@
                                         <td>{{ inst.account.personal_info }}</td>
                                         <td></td>
                                         <td>
-                                            <a href="" class="is-danger button is-small is-rounded">
+                                            <a href="{{ url_for('eduqa.remove_instructor_from_list', course_id=course.id, instructor_id=inst.id) }}"
+                                               class="is-danger button is-small is-rounded">
                                                 remove
                                             </a>
                                         </td>
@@ -108,6 +109,53 @@
                                             </a>
                                         </td>
                                     </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">ตารางสอน</label>
+                        </td>
+                        <td>
+                            <table class="table is-bordered">
+                                <thead>
+                                <th>วันที่</th>
+                                <th>รายละเอียด</th>
+                                <th>ประเภท</th>
+                                <th>ผู้สอน</th>
+                                <th></th>
+                                </thead>
+                                <tbody>
+                                {% for s in course.sessions %}
+                                <tr>
+                                    <td>{{s.start|localdatetime}}</td>
+                                    <td>{{s.end|localdatetime}}</td>
+                                    <td>{{s.type_}}</td>
+                                    <td>
+                                        {% for i in s.instructors %}
+                                        {{ i.fullname }},
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <a class="button is-warning is-small is-rounded"
+                                            href="{{ url_for('eduqa.edit_session', session_id=s.id, course_id=course.id) }}">
+                                            edit
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                <tr>
+                                    <td colspan="5">
+                                        <a href="{{ url_for('eduqa.add_session', course_id=course.id) }}"
+                                           class="button is-link is-small is-rounded">
+                                                <span class="icon">
+                                                   <i class="fas fa-user-plus"></i>
+                                                </span>
+                                            <span>เพิ่ม</span>
+                                        </a>
+                                    </td>
+                                </tr>
                                 </tbody>
                             </table>
                         </td>
