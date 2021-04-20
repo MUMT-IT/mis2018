@@ -120,7 +120,7 @@ class EduQACourseSession(db.Model):
     start = db.Column(db.DateTime(timezone=True), nullable=False)
     end = db.Column(db.DateTime(timezone=True), nullable=False)
     type_ = db.Column(db.String(255), info={'label': u'ประเภท',
-                                            'choices': [(c, c) for c in (u'บรรยาย', u'ปฏิบัติการ', u'กิจกรรม')]})
+                                            'choices': [(c, c) for c in (u'บรรยาย', u'ปฏิบัติการ', u'กิจกรรม', u'สอบ')]})
     desc = db.Column(db.Text())
 
     course = db.relationship(EduQACourse, backref=db.backref('sessions', lazy='dynamic'))
