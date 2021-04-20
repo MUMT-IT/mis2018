@@ -261,6 +261,20 @@ def edit_course(course_id):
     return render_template('eduqa/QA/course_edit.html', form=form, revision_id=course.revision_id)
 
 
+@edu.route('/qa/courses/<int:course_id>/delete')
+@login_required
+def delete_course(course_id):
+    course = EduQACourse.query.get(course_id)
+    revision_id = course.revision_id
+    if course:
+        db.session.delete(course)
+        db.session.commit()
+        flash(u'ลบรายวิชาเรียบร้อยแล้ว', 'success')
+    else:
+        flash(u'ไม่พบรายการนี้', 'warning')
+    return redirect(url_for('eduqa.show_revision_detail', revision_id=revision_id))
+
+
 @edu.route('/qa/courses/<int:course_id>/copy', methods=['GET', 'POST'])
 @login_required
 def copy_course(course_id):

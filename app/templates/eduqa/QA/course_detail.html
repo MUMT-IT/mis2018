@@ -3,7 +3,7 @@
 {% include "eduqa/QA/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <div class="container">
+    <div class="container" id="app">
         <div class="columns">
             <div class="column is-half is-offset-one-quarter has-text-centered">
                 {% include 'messages.html' %}
@@ -27,6 +27,14 @@
                         </span>
                         <span>คัดลอกรายวิชา</span>
                     </a>
+                    {% if current_user == course.creator %}
+                    <a class="button is-danger" @click="warn">
+                        <span class="icon">
+                            <i class="far fa-trash-alt"></i>
+                        </span>
+                        <span>ลบรายวิชา</span>
+                    </a>
+                    {% endif %}
                 </div>
                 <p class="notification is-light is-warning has-text-centered">
                     ท่านสามารถคัดลอกข้อมูลทั่วไปของรายวิชาเพื่อสร้างรายการใหม่ได้ ด้วยการคลิกที่ปุ่มคัดลอกรายวิชาด้านบน
@@ -227,4 +235,21 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    vm = new Vue({
+        el: '#app',
+        methods: {
+            warn: function() {
+                this.$buefy.dialog.confirm({
+                    message: 'ต้องการลบรายวิชานี้จริงหรือไม่',
+                    onConfirm: ()=> window.location.href = "{{ url_for('eduqa.delete_course', course_id=course.id) }}",
+                    type: 'is-danger'
+                })
+            }
+        }
+    })
+</script>
 {% endblock %}
