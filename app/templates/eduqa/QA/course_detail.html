@@ -180,7 +180,7 @@
                                 <th></th>
                                 </thead>
                                 <tbody>
-                                {% for s in course.sessions %}
+                                {% for s in course.sessions|sort(attribute='start') %}
                                 <tr>
                                     <td>{{s.start|localdatetime}}</td>
                                     <td>{{s.end|localdatetime}}</td>

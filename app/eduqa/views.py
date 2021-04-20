@@ -13,6 +13,17 @@ from pytz import timezone
 
 localtz = timezone('Asia/Bangkok')
 
+def is_datetime_valid(start, end):
+    if start > end:
+        flash(u'วันเริ่มกิจกรรมมาหลังวันสิ้นสุดกิจกรรมโปรดแก้ไขข้อมูล', 'warning')
+        return False
+    elif start == end:
+        flash(u'เวลาในกิจกรรมการสอนเป็นศูนย์ชั่วโมง กรุณาตรวจสอบข้อมูล', 'warning')
+        return False
+    else:
+        return True
+
+
 @edu.route('/qa/')
 @login_required
 def index():
@@ -289,6 +300,20 @@ def copy_course(course_id):
     course.updater = current_user
     course.updated_at = localtz.localize(datetime.now())
     course.id = None
+    the_course = EduQACourse.query.get(course_id)
+    for instructor in the_course.instructors:
+        course.instructors.append(instructor)
+    for ss in the_course.sessions:
+        s = EduQACourseSession(
+            start=ss.start,
+            end=ss.end,
+            course=course,
+            type_=ss.type_,
+            desc=ss.desc,
+        )
+        for instructor in ss.instructors:
+            s.instructors.append(instructor)
+        course.sessions.append(s)
     try:
         db.session.add(course)
         db.session.commit()
@@ -361,6 +386,8 @@ def add_session(course_id):
             new_session.course = course
             new_session.start = localtz.localize(new_session.start)
             new_session.end = localtz.localize(new_session.end)
+            if not is_datetime_valid(new_session.start, new_session.end):
+                return render_template('eduqa/QA/session_edit.html', form=form, course=course)
             course.updated_at = localtz.localize(datetime.now())
             course.updater = current_user
             db.session.add(new_session)
@@ -386,6 +413,8 @@ def edit_session(course_id, session_id):
             course.updater = current_user
             a_session.start = localtz.localize(a_session.start)
             a_session.end = localtz.localize(a_session.end)
+            if not is_datetime_valid(a_session.start, a_session.end):
+                return render_template('eduqa/QA/session_edit.html', form=form, course=course)
             course.updated_at = localtz.localize(datetime.now())
             db.session.add(a_session)
             db.session.commit()

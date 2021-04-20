@@ -71,8 +71,11 @@
         timePicker: true,
         timePickerIncrement: 15,
         timePicker24Hour: true,
+        {% if form.start.data %}
+        startDate: {{ form.start.data.isoformat()|tojson|safe }},
+        {% else %}
         startDate: moment().startOf('hour'),
-        endDate: moment().startOf('hour').add(32, 'hour'),
+        {% endif %}
         locale: {
             format: 'YYYY-MM-DD HH:mm:ss'
         }
@@ -82,8 +85,11 @@
         timePicker: true,
         timePickerIncrement: 15,
         timePicker24Hour: true,
+        {% if form.end.data %}
+        startDate: {{ form.end.data.isoformat()|tojson|safe }},
+        {% else %}
         startDate: moment().startOf('hour'),
-        endDate: moment().startOf('hour').add(32, 'hour'),
+        {% endif %}
         locale: {
             format: 'YYYY-MM-DD HH:mm:ss'
         }
