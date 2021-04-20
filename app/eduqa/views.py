@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 from datetime import datetime
 
-from flask import render_template, request, flash, redirect, url_for
+from flask import render_template, request, flash, redirect, url_for, session
 from flask_login import current_user, login_required
 from sqlalchemy.orm import make_transient
 
@@ -227,8 +227,25 @@ def add_revision(curriculum_id):
 @edu.route('/qa/revisions/<int:revision_id>')
 @login_required
 def show_revision_detail(revision_id):
+    display_my_courses_only = request.args.get('display_my_courses_only')
+    if not display_my_courses_only:
+        display_my_courses_only = session.get('display_my_courses_only', 'false')
+    else:
+        session['display_my_courses_only'] = display_my_courses_only
     revision = EduQACurriculumnRevision.query.get(revision_id)
-    return render_template('eduqa/QA/curriculum_revision_detail.html', revision=revision)
+    instructor = EduQAInstructor.query.filter_by(account=current_user).first()
+    print(display_my_courses_only)
+    if instructor and display_my_courses_only == 'true':
+        display_my_courses_only = True
+        courses = [c for c in revision.courses if c in instructor.courses]
+    elif not instructor or display_my_courses_only == 'false':
+        display_my_courses_only = False
+        courses = revision.courses
+    return render_template('eduqa/QA/curriculum_revision_detail.html',
+                           revision=revision,
+                           display_my_course_only=display_my_courses_only,
+                           instructor=instructor,
+                           courses=courses)
 
 
 @edu.route('/qa/revisions/<int:revision_id>/courses/add', methods=['GET', 'POST'])
