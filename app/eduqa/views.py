@@ -382,6 +382,20 @@ def edit_session(course_id, session_id):
     return render_template('eduqa/QA/session_edit.html', form=form, course=course)
 
 
+@edu.route('/qa/sessions/<int:session_id>')
+@login_required
+def delete_session(session_id):
+    a_session = EduQACourseSession.query.get(session_id)
+    course_id = a_session.course.id
+    if a_session:
+        db.session.delete(a_session)
+        db.session.commit()
+        flash(u'ลบรายการเรียบร้อยแล้ว', 'success')
+    else:
+        flash(u'ไม่พบรายการ', 'warning')
+    return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
+
+
 @edu.route('/qa/hours/<int:instructor_id>')
 @login_required
 def show_hours_summary(instructor_id):

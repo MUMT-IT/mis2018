@@ -135,7 +135,10 @@
                                         <td>
                                             <a href="{{ url_for('eduqa.remove_instructor_from_list', course_id=course.id, instructor_id=inst.id) }}"
                                                class="is-danger button is-small is-rounded">
-                                                remove
+                                                <span class="icon">
+                                                    <i class="far fa-trash-alt"></i>
+                                                </span>
+                                                <span>remove</span>
                                             </a>
                                         </td>
                                     </tr>
@@ -180,10 +183,22 @@
                                         {% endfor %}
                                     </td>
                                     <td>
-                                        <a class="button is-warning is-small is-rounded"
-                                            href="{{ url_for('eduqa.edit_session', session_id=s.id, course_id=course.id) }}">
-                                            edit
-                                        </a>
+                                        <div class="buttons">
+                                            <a class="button is-warning is-small is-rounded"
+                                               href="{{ url_for('eduqa.edit_session', session_id=s.id, course_id=course.id) }}">
+                                                <span class="icon">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </span>
+                                                <span>edit</span>
+                                            </a>
+                                            <a class="button is-danger is-small is-rounded"
+                                               href="{{ url_for('eduqa.delete_session', session_id=s.id) }}">
+                                                <span class="icon">
+                                                    <i class="far fa-trash-alt"></i>
+                                                </span>
+                                                <span>delete</span>
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}
