@@ -15,13 +15,13 @@
         <h4 class="title">รายการขออนุมัติลาบุคลากรในสังกัดของ {{ current_user.personal_info.fullname }}</h4>
         <div class="columns">
             <div class="column box">
-                <table class="table is-bordered">
+                <table class="table is-fullwidth is-striped">
                     <tbody>
                     {% for approver in requesters %}
                     {% if approver.is_active %}
                     {% if not
                     approver.requester.leave_requests|sort(attribute='start_datetime')|checkallapprovals(approver.id) %}
-                    <tr>
+                    <tr style="border-bottom: 2.2pt solid darkgray">
                         <td colspan="6">
                             <span class="label">
                             {{ approver.requester.personal_info }} ({{ approver.requester.personal_info.org }})
@@ -86,7 +86,7 @@
         <h4 class="title">สถิติการลา</h4>
         <div class="columns">
             <div class="column box">
-                <table class="table is-bordered is-striped">
+                <table class="table is-striped is-fullwidth">
                     <thead>
                     <th>Name</th>
                     {% for leave_type in leave_types %}
