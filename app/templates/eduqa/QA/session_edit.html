@@ -76,7 +76,7 @@
         timePickerIncrement: 15,
         timePicker24Hour: true,
         {% if form.start.data %}
-        startDate: {{ form.start.data.isoformat()|tojson|safe }},
+        startDate: {{ form.start.data.astimezone(localtz).isoformat()|tojson|safe }},
         {% else %}
         startDate: moment().startOf('hour'),
         {% endif %}
@@ -90,7 +90,7 @@
         timePickerIncrement: 15,
         timePicker24Hour: true,
         {% if form.end.data %}
-        startDate: {{ form.end.data.isoformat()|tojson|safe }},
+        startDate: {{ form.end.data.astimezone(localtz).isoformat()|tojson|safe }},
         {% else %}
         startDate: moment().startOf('hour'),
         {% endif %}
