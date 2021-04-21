@@ -404,7 +404,10 @@ def add_session(course_id):
             new_session.start = localtz.localize(new_session.start)
             new_session.end = localtz.localize(new_session.end)
             if not is_datetime_valid(new_session.start, new_session.end):
-                return render_template('eduqa/QA/session_edit.html', form=form, course=course)
+                form.start.data = new_session.start
+                form.end.data = new_session.end
+                return render_template('eduqa/QA/session_edit.html',
+                                       form=form, course=course, localtz=localtz)
             course.updated_at = localtz.localize(datetime.now())
             course.updater = current_user
             db.session.add(new_session)
@@ -431,7 +434,10 @@ def edit_session(course_id, session_id):
             a_session.start = localtz.localize(a_session.start)
             a_session.end = localtz.localize(a_session.end)
             if not is_datetime_valid(a_session.start, a_session.end):
-                return render_template('eduqa/QA/session_edit.html', form=form, course=course)
+                form.start.data = a_session.start
+                form.end.data = a_session.end
+                return render_template('eduqa/QA/session_edit.html',
+                                       form=form, course=course, localtz=localtz)
             course.updated_at = localtz.localize(datetime.now())
             db.session.add(a_session)
             db.session.commit()
