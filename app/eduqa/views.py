@@ -413,7 +413,7 @@ def add_session(course_id):
             return redirect(url_for('eduqa.show_course_detail', course_id=course.id))
         else:
             flash(u'เกิดปัญหาในการบันทึกข้อมูล', 'warning')
-    return render_template('eduqa/QA/session_edit.html', form=form, course=course)
+    return render_template('eduqa/QA/session_edit.html', form=form, course=course, localtz=localtz)
 
 
 @edu.route('/qa/courses/<int:course_id>/sessions/<int:session_id>/edit', methods=['GET', 'POST'])
