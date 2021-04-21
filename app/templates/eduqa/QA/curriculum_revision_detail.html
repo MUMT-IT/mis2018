@@ -18,6 +18,12 @@
                     <li class="is-active"><a href="#" aria-current="page">รายวิชา</a></li>
                   </ul>
                 </nav>
+                <p class="notification is-light is-warning">
+                    <span class="icon">
+                        <i class="fas fa-info-circle"></i>
+                    </span>
+                    <span>ท่านสามารถค้นหารายวิชาได้ในช่อง Search ด้านขวามือของตารางด้วยชื่อ รหัส ปีการศึกษา ฯลฯ</span>
+                </p>
                 <h1 class="title has-text-centered">รายวิชา</h1>
                 <h1 class="subtitle has-text-centered">ท่านมีส่วนร่วมในการสอนทั้งหมด {{ instructor.courses|length }} วิชา</h1>
                 <b-field>
@@ -31,7 +37,7 @@
                         <span>เพิ่มรายวิชา</span>
                     </a>
                 </div>
-                <table class="table is-fullwidth is-striped">
+                <table class="table is-fullwidth is-striped" id="courseTable">
                     <thead>
                         <th>รหัส</th>
                         <th>ชื่อ</th>
@@ -92,5 +98,12 @@
             }
         },
     })
+</script>
+<script>
+    $(document).ready(function() {
+        $('#courseTable').DataTable({
+            pageLength: 10,
+        });
+    });
 </script>
 {% endblock %}
