@@ -1823,7 +1823,8 @@ def staff_create_info():
 
         create_email = StaffAccount(
             personal_id=createstaff.id,
-            email=form.get('email')
+            email=form.get('email'),
+            password=form.get('password')
         )
         db.session.add(create_email)
         db.session.commit()
