@@ -282,8 +282,7 @@ class StaffLeaveRequest(db.Model):
     contact_phone = db.Column('contact_phone', db.String())
     #TODO: travel_datetime = db.Column('travel_datetime', db.DateTime(timezone=True))
     staff = db.relationship('StaffAccount', backref=db.backref('leave_requests'), foreign_keys=[staff_account_id])
-    quota = db.relationship('StaffLeaveQuota',
-                            backref=db.backref('leave_requests'))
+    quota = db.relationship('StaffLeaveQuota', backref=db.backref('leave_requests'))
 
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     cancelled_account_id = db.Column('cancelled_account_id', db.ForeignKey('staff_account.id'))

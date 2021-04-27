@@ -1,14 +1,31 @@
 # -*- coding: utf-8 -*-
 import os
 import requests
+from collections import defaultdict
 from flask import request, url_for, jsonify
 from calendar import Calendar
 from . import linebot_bp as line
 from app.auth.views import line_bot_api, handler
 from datetime import datetime
 from app.main import csrf, app
+from app.staff.models import StaffLeaveQuota, StaffAccount
 from linebot.exceptions import InvalidSignatureError
-from linebot.models import (MessageEvent, TextMessage, TextSendMessage)
+from linebot.models import (MessageEvent, TextMessage, TextSendMessage, BubbleContainer, BoxComponent, TextComponent,
+                            FlexSendMessage, CarouselContainer, FillerComponent, ButtonComponent, URIAction,
+                            MessageAction)
+import pytz
+
+tz = pytz.timezone('Asia/Bangkok')
+
+#TODO: deduplicate this
+today = datetime.today()
+
+if today.month >= 10:
+    START_FISCAL_DATE = datetime(today.year, 10, 1)
+    END_FISCAL_DATE = datetime(today.year + 1, 9, 30)
+else:
+    START_FISCAL_DATE = datetime(today.year - 1, 10, 1)
+    END_FISCAL_DATE = datetime(today.year, 9, 30)
 
 
 @line.route('/message/callback', methods=['POST'])
@@ -33,6 +50,49 @@ def line_message_callback():
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     c = Calendar()
+    if event.message.text == 'leaves':
+        line_id = event.source.user_id
+        user = StaffAccount.query.filter_by(line_id=line_id).first()
+        if user:
+            bubbles = []
+            for quota in StaffLeaveQuota.query.filter_by(employment_id=user.personal_info.employment.id):
+                total_leaves = user.personal_info.get_total_leaves(leave_quota_id=quota.id,
+                                                                   start_date=tz.localize(START_FISCAL_DATE),
+                                                                   end_date=tz.localize(END_FISCAL_DATE))
+                bubbles.append(
+                    BubbleContainer(
+                        body=BoxComponent(
+                            layout='vertical',
+                            contents=[
+                                TextComponent(
+                                    text=u'{}'.format(quota.leave_type),
+                                    weight='bold',
+                                    size='xl',
+                                    wrap=True
+                                ),
+                                FillerComponent(
+                                    flex=2,
+                                ),
+                                TextComponent(text=u'ใช้ไป {} วัน'.format(total_leaves), wrap=True, size='md')
+                            ]
+                        ),
+                        footer=BoxComponent(
+                            layout='vertical',
+                            contents=[
+                                ButtonComponent(
+                                    action=URIAction(
+                                        label=u'Make a request',
+                                        uri='https://mumtmis.herokuapp.com'
+                                    )
+                                ),
+                            ]
+                        )
+                    )
+                )
+            line_bot_api.reply_message(
+                event.reply_token,
+                FlexSendMessage(alt_text='Leaves Info', contents=CarouselContainer(contents=bubbles))
+            )
     if event.message.text == 'events':
         today = datetime.today().date()
         this_week = []
