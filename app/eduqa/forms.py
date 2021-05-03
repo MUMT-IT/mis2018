@@ -79,7 +79,8 @@ def create_instructors_form(course):
     class EduCourseSessionForm(ModelForm):
         class Meta:
             model = EduQACourseSession
-        instructors = QuerySelectMultipleField(u'หมวด', get_label='fullname', query_factory=lambda: course.instructors.all(),
+        instructors = QuerySelectMultipleField(u'ผู้สอน', get_label='fullname',
+                                               query_factory=lambda: course.instructors.all(),
                                                widget=widgets.ListWidget(prefix_label=False),
                                                option_widget=widgets.CheckboxInput())
     return EduCourseSessionForm

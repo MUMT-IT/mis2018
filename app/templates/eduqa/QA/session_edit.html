@@ -63,16 +63,23 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
+<script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+<!--
 <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+-->
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script>
+    moment.locale('th');
     $('input[name="start"]').daterangepicker({
         singleDatePicker: true,
         timePicker: true,
         timePickerIncrement: 15,
         timePicker24Hour: true,
+        {% if form.start.data %}
+        startDate: {{ form.start.data.astimezone(localtz).isoformat()|tojson|safe }},
+        {% else %}
         startDate: moment().startOf('hour'),
-        endDate: moment().startOf('hour').add(32, 'hour'),
+        {% endif %}
         locale: {
             format: 'YYYY-MM-DD HH:mm:ss'
         }
@@ -82,8 +89,11 @@
         timePicker: true,
         timePickerIncrement: 15,
         timePicker24Hour: true,
+        {% if form.end.data %}
+        startDate: {{ form.end.data.astimezone(localtz).isoformat()|tojson|safe }},
+        {% else %}
         startDate: moment().startOf('hour'),
-        endDate: moment().startOf('hour').add(32, 'hour'),
+        {% endif %}
         locale: {
             format: 'YYYY-MM-DD HH:mm:ss'
         }

@@ -2,7 +2,7 @@
 {% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
 {% include "eduqa/QA/nav.html" %}
 {% block page_content %}
-<section class="section">
+<section class="section" id="app">
     <div class="container">
         <div class="columns">
             <div class="column is-half is-offset-one-quarter has-text-centered">
@@ -18,7 +18,17 @@
                     <li class="is-active"><a href="#" aria-current="page">รายวิชา</a></li>
                   </ul>
                 </nav>
+                <p class="notification is-light is-warning">
+                    <span class="icon">
+                        <i class="fas fa-info-circle"></i>
+                    </span>
+                    <span>ท่านสามารถค้นหารายวิชาได้ในช่อง Search ด้านขวามือของตารางด้วยชื่อ รหัส ปีการศึกษา ฯลฯ</span>
+                </p>
                 <h1 class="title has-text-centered">รายวิชา</h1>
+                <h1 class="subtitle has-text-centered">ท่านมีส่วนร่วมในการสอนทั้งหมด {{ instructor.courses|length }} วิชา</h1>
+                <b-field>
+                    <b-switch @input="changeMode()" v-model="displayMyCourseOnly">แสดงเฉพาะรายวิชาที่สอน</b-switch>
+                </b-field>
                 <div class="has-text-centered">
                     <a href="{{ url_for('eduqa.add_course', revision_id=revision.id) }}" class="button is-success">
                     <span class="icon">
@@ -27,7 +37,7 @@
                         <span>เพิ่มรายวิชา</span>
                     </a>
                 </div>
-                <table class="table is-fullwidth is-striped">
+                <table class="table is-fullwidth is-striped" id="courseTable">
                     <thead>
                         <th>รหัส</th>
                         <th>ชื่อ</th>
@@ -40,7 +50,7 @@
                         <th>เมื่อ</th>
                         <th></th>
                     </thead>
-                    {% for course in revision.courses %}
+                    {% for course in courses %}
                     <tr>
                         <td>{{ course.th_code }} ({{ course.en_code }})</td>
                         <td>{{ course.th_name }} ({{ course.en_name }})</td>
@@ -67,4 +77,33 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    vm = new Vue({
+        el: '#app',
+        data() {
+            return {
+                displayMyCourseOnly: {{ display_my_course_only|tojson|safe }},
+            }
+        },
+        methods: {
+            changeMode: function() {
+                if (this.displayMyCourseOnly === true) {
+                    window.location.href = "{{ url_for('eduqa.show_revision_detail', revision_id=revision.id, display_my_courses_only='true') }}"
+                } else {
+                    window.location.href = "{{ url_for('eduqa.show_revision_detail', revision_id=revision.id, display_my_courses_only='false') }}"
+                }
+            }
+        },
+    })
+</script>
+<script>
+    $(document).ready(function() {
+        $('#courseTable').DataTable({
+            pageLength: 10,
+        });
+    });
+</script>
 {% endblock %}

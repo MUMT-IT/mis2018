@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 from datetime import datetime
 
-from flask import render_template, request, flash, redirect, url_for
+from flask import render_template, request, flash, redirect, url_for, session
 from flask_login import current_user, login_required
 from sqlalchemy.orm import make_transient
 
@@ -12,6 +12,17 @@ from ..staff.models import StaffPersonalInfo
 from pytz import timezone
 
 localtz = timezone('Asia/Bangkok')
+
+def is_datetime_valid(start, end):
+    if start > end:
+        flash(u'วันเริ่มกิจกรรมมาหลังวันสิ้นสุดกิจกรรมโปรดแก้ไขข้อมูล', 'warning')
+        return False
+    elif start == end:
+        flash(u'เวลาในกิจกรรมการสอนเป็นศูนย์ชั่วโมง กรุณาตรวจสอบข้อมูล', 'warning')
+        return False
+    else:
+        return True
+
 
 @edu.route('/qa/')
 @login_required
@@ -216,8 +227,25 @@ def add_revision(curriculum_id):
 @edu.route('/qa/revisions/<int:revision_id>')
 @login_required
 def show_revision_detail(revision_id):
+    display_my_courses_only = request.args.get('display_my_courses_only')
+    if not display_my_courses_only:
+        display_my_courses_only = session.get('display_my_courses_only', 'false')
+    else:
+        session['display_my_courses_only'] = display_my_courses_only
     revision = EduQACurriculumnRevision.query.get(revision_id)
-    return render_template('eduqa/QA/curriculum_revision_detail.html', revision=revision)
+    instructor = EduQAInstructor.query.filter_by(account=current_user).first()
+    print(display_my_courses_only)
+    if instructor and display_my_courses_only == 'true':
+        display_my_courses_only = True
+        courses = [c for c in revision.courses if c in instructor.courses]
+    elif not instructor or display_my_courses_only == 'false':
+        display_my_courses_only = False
+        courses = revision.courses
+    return render_template('eduqa/QA/curriculum_revision_detail.html',
+                           revision=revision,
+                           display_my_course_only=display_my_courses_only,
+                           instructor=instructor,
+                           courses=courses)
 
 
 @edu.route('/qa/revisions/<int:revision_id>/courses/add', methods=['GET', 'POST'])
@@ -261,6 +289,20 @@ def edit_course(course_id):
     return render_template('eduqa/QA/course_edit.html', form=form, revision_id=course.revision_id)
 
 
+@edu.route('/qa/courses/<int:course_id>/delete')
+@login_required
+def delete_course(course_id):
+    course = EduQACourse.query.get(course_id)
+    revision_id = course.revision_id
+    if course:
+        db.session.delete(course)
+        db.session.commit()
+        flash(u'ลบรายวิชาเรียบร้อยแล้ว', 'success')
+    else:
+        flash(u'ไม่พบรายการนี้', 'warning')
+    return redirect(url_for('eduqa.show_revision_detail', revision_id=revision_id))
+
+
 @edu.route('/qa/courses/<int:course_id>/copy', methods=['GET', 'POST'])
 @login_required
 def copy_course(course_id):
@@ -275,6 +317,20 @@ def copy_course(course_id):
     course.updater = current_user
     course.updated_at = localtz.localize(datetime.now())
     course.id = None
+    the_course = EduQACourse.query.get(course_id)
+    for instructor in the_course.instructors:
+        course.instructors.append(instructor)
+    for ss in the_course.sessions:
+        s = EduQACourseSession(
+            start=ss.start,
+            end=ss.end,
+            course=course,
+            type_=ss.type_,
+            desc=ss.desc,
+        )
+        for instructor in ss.instructors:
+            s.instructors.append(instructor)
+        course.sessions.append(s)
     try:
         db.session.add(course)
         db.session.commit()
@@ -347,6 +403,11 @@ def add_session(course_id):
             new_session.course = course
             new_session.start = localtz.localize(new_session.start)
             new_session.end = localtz.localize(new_session.end)
+            if not is_datetime_valid(new_session.start, new_session.end):
+                form.start.data = new_session.start
+                form.end.data = new_session.end
+                return render_template('eduqa/QA/session_edit.html',
+                                       form=form, course=course, localtz=localtz)
             course.updated_at = localtz.localize(datetime.now())
             course.updater = current_user
             db.session.add(new_session)
@@ -355,7 +416,7 @@ def add_session(course_id):
             return redirect(url_for('eduqa.show_course_detail', course_id=course.id))
         else:
             flash(u'เกิดปัญหาในการบันทึกข้อมูล', 'warning')
-    return render_template('eduqa/QA/session_edit.html', form=form, course=course)
+    return render_template('eduqa/QA/session_edit.html', form=form, course=course, localtz=localtz)
 
 
 @edu.route('/qa/courses/<int:course_id>/sessions/<int:session_id>/edit', methods=['GET', 'POST'])
@@ -372,6 +433,11 @@ def edit_session(course_id, session_id):
             course.updater = current_user
             a_session.start = localtz.localize(a_session.start)
             a_session.end = localtz.localize(a_session.end)
+            if not is_datetime_valid(a_session.start, a_session.end):
+                form.start.data = a_session.start
+                form.end.data = a_session.end
+                return render_template('eduqa/QA/session_edit.html',
+                                       form=form, course=course, localtz=localtz)
             course.updated_at = localtz.localize(datetime.now())
             db.session.add(a_session)
             db.session.commit()
@@ -379,7 +445,21 @@ def edit_session(course_id, session_id):
             return redirect(url_for('eduqa.show_course_detail', course_id=course.id))
         else:
             flash(u'เกิดปัญหาในการบันทึกข้อมูล', 'warning')
-    return render_template('eduqa/QA/session_edit.html', form=form, course=course)
+    return render_template('eduqa/QA/session_edit.html', form=form, course=course, localtz=localtz)
+
+
+@edu.route('/qa/sessions/<int:session_id>')
+@login_required
+def delete_session(session_id):
+    a_session = EduQACourseSession.query.get(session_id)
+    course_id = a_session.course.id
+    if a_session:
+        db.session.delete(a_session)
+        db.session.commit()
+        flash(u'ลบรายการเรียบร้อยแล้ว', 'success')
+    else:
+        flash(u'ไม่พบรายการ', 'warning')
+    return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
 
 
 @edu.route('/qa/hours/<int:instructor_id>')

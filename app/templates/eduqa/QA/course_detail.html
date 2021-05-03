@@ -3,7 +3,7 @@
 {% include "eduqa/QA/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <div class="container">
+    <div class="container" id="app">
         <div class="columns">
             <div class="column is-half is-offset-one-quarter has-text-centered">
                 {% include 'messages.html' %}
@@ -27,6 +27,14 @@
                         </span>
                         <span>คัดลอกรายวิชา</span>
                     </a>
+                    {% if current_user == course.creator %}
+                    <a class="button is-danger" @click="warn">
+                        <span class="icon">
+                            <i class="far fa-trash-alt"></i>
+                        </span>
+                        <span>ลบรายวิชา</span>
+                    </a>
+                    {% endif %}
                 </div>
                 <p class="notification is-light is-warning has-text-centered">
                     ท่านสามารถคัดลอกข้อมูลทั่วไปของรายวิชาเพื่อสร้างรายการใหม่ได้ ด้วยการคลิกที่ปุ่มคัดลอกรายวิชาด้านบน
@@ -135,7 +143,10 @@
                                         <td>
                                             <a href="{{ url_for('eduqa.remove_instructor_from_list', course_id=course.id, instructor_id=inst.id) }}"
                                                class="is-danger button is-small is-rounded">
-                                                remove
+                                                <span class="icon">
+                                                    <i class="far fa-trash-alt"></i>
+                                                </span>
+                                                <span>remove</span>
                                             </a>
                                         </td>
                                     </tr>
@@ -169,7 +180,7 @@
                                 <th></th>
                                 </thead>
                                 <tbody>
-                                {% for s in course.sessions %}
+                                {% for s in course.sessions|sort(attribute='start') %}
                                 <tr>
                                     <td>{{s.start|localdatetime}}</td>
                                     <td>{{s.end|localdatetime}}</td>
@@ -180,10 +191,22 @@
                                         {% endfor %}
                                     </td>
                                     <td>
-                                        <a class="button is-warning is-small is-rounded"
-                                            href="{{ url_for('eduqa.edit_session', session_id=s.id, course_id=course.id) }}">
-                                            edit
-                                        </a>
+                                        <div class="buttons">
+                                            <a class="button is-warning is-small is-rounded"
+                                               href="{{ url_for('eduqa.edit_session', session_id=s.id, course_id=course.id) }}">
+                                                <span class="icon">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </span>
+                                                <span>edit</span>
+                                            </a>
+                                            <a class="button is-danger is-small is-rounded"
+                                               href="{{ url_for('eduqa.delete_session', session_id=s.id) }}">
+                                                <span class="icon">
+                                                    <i class="far fa-trash-alt"></i>
+                                                </span>
+                                                <span>delete</span>
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -212,4 +235,21 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    vm = new Vue({
+        el: '#app',
+        methods: {
+            warn: function() {
+                this.$buefy.dialog.confirm({
+                    message: 'ต้องการลบรายวิชานี้จริงหรือไม่',
+                    onConfirm: ()=> window.location.href = "{{ url_for('eduqa.delete_course', course_id=course.id) }}",
+                    type: 'is-danger'
+                })
+            }
+        }
+    })
+</script>
 {% endblock %}
