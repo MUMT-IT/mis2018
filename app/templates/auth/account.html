@@ -42,12 +42,14 @@
             <hr>
             <p class="has-text-centered title is-size-4">ข้อมูลพื้นฐาน</p>
             <table class="table is-fullwidth">
+                {% if current_user.personal_info.th_firstname or current_user.personal_info.th_lastname %}
                 <tr>
                     <td>ชื่อ นามสกุล</td>
                     <td>
-                        {{ current_user.personal_info.th_firstname }} {{ current_user.personal_info.th_lastname }}
+                        {{ current_user.personal_info }}
                     </td>
                 </tr>
+                {% endif %}
                 <tr>
                     <td>Name</td>
                     <td>
@@ -66,7 +68,7 @@
                     <td>หัวหน้างาน/ผู้บังคับบัญชา</td>
                     <td>
                         {% for approver in approvers %}
-                        {{ approver.account.personal_info }},
+                        {{ approver.account.personal_info.fullname }},
                         {% endfor %}
                     </td>
                 </tr>
