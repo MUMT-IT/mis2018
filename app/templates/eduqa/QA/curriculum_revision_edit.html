@@ -11,8 +11,17 @@
         </div>
         <div class="columns">
             <div class="column is-one-third is-offset-4">
-                <form method="post">
+                <h1 class="title has-text-centered">New Curriculum Revision</h1>
+                <form method="post" class="box">
                     {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">Curriculums</label>
+                        <div class="control">
+                            <div class="select">
+                                {{ form.curriculum() }}
+                            </div>
+                        </div>
+                    </div>
                     <div class="field">
                         <label class="label">{{ form.revision_year.label }}</label>
                         <div class="control">

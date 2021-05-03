@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                {% include 'messages.html' %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <h1 class="title has-text-centered">เพิ่มรายวิชาใหม่</h1>
+                <form method="post" class="box">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">หมวด</label>
+                        <div class="control">
+                            <div class="select">
+                                {{ form.category() }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.th_code.label }}</label>
+                        <div class="control">
+                            {{ form.th_code(class="input is-danger") }}
+                        </div>
+                        <p class="help is-danger">required</p>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.en_code.label }}</label>
+                        <div class="control">
+                            {{ form.en_code(class="input is-danger") }}
+                        </div>
+                        <p class="help is-danger">required</p>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.th_name.label }}</label>
+                        <div class="control">
+                            {{ form.th_name(class="input is-danger") }}
+                        </div>
+                        <p class="help is-danger">required</p>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.en_name.label }}</label>
+                        <div class="control">
+                            {{ form.en_name(class="input is-danger") }}
+                        </div>
+                        <p class="help is-danger">required</p>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.semester.label }}</label>
+                        <div class="control">
+                            {{ form.semester(class="input", placeholder="กรุณาใช้เลขอารบิค") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.academic_year.label }}</label>
+                        <div class="control">
+                            {{ form.academic_year(class="input", placeholder="กรุณาใช้เลขอารบิค") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.th_desc.label }}</label>
+                        <div class="control">
+                            {{ form.th_desc(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.en_desc.label }}</label>
+                        <div class="control">
+                            {{ form.en_desc(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.lecture_credit.label }}</label>
+                        <div class="control">
+                            {{ form.lecture_credit(class="input", step='any') }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.lab_credit.label }}</label>
+                        <div class="control">
+                            {{ form.lab_credit(class="input", step='any') }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="buttons is-grouped is-centered">
+                            <div class="control">
+                                <a href="{{ url_for('eduqa.show_revision_detail', revision_id=revision_id) }}"
+                                   class="button is-light">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" class="button is-success" value="Save"/>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -320,10 +320,12 @@ admin.add_view(CostCenterAdminModel(CostCenter, db.session, category='Finance'))
 from lisedu import lisedu as lis_blueprint
 
 app.register_blueprint(lis_blueprint, url_prefix='/lis')
-from lisedu.models import *
 
 from eduqa import eduqa_bp as eduqa_blueprint
+from eduqa.models import *
 app.register_blueprint(eduqa_blueprint, url_prefix='/eduqa')
+admin.add_view(ModelView(EduQACourseCategory, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQACourse, db.session, category='EduQA'))
 
 
 from chemdb import chemdbbp as chemdb_blueprint
