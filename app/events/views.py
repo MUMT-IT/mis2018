@@ -1,5 +1,6 @@
 import requests
 import os
+import dateutil.parser
 import pytz
 from . import event_bp as event
 from flask import jsonify, render_template
@@ -34,12 +35,20 @@ def fetch_global_events():
         # returns a list of item objects (events).
         for event in response.get('items', []):
             # The event object is a dict object with a 'summary' key.
+            start = event.get('start')
+            end = event.get('end')
+            try:
+                start =  dateutil.parser.parse(start.get('dateTime')).date().strftime('%Y-%m-%d')
+                end = dateutil.parser.parse(end.get('dateTime')).date().strftime('%Y-%m-%d')
+            except:
+                start = start.get('date')
+                end = end.get('date')
             evt = {
                 'location': event.get('location', None),
                 'title': event.get('summary', 'NO SUMMARY'),
                 'description': event.get('description', ''),
-                'start': event.get('start').get('date'),
-                'end': event.get('end').get('date'),
+                'start': start,
+                'end': end,
             }
             all_events.append(evt)
         # Get the next request object by passing the previous request object to
