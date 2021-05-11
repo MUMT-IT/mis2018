@@ -1,9 +1,12 @@
+# -*- coding:utf-8 -*-
+
 import requests
 import os
 import dateutil.parser
 import pytz
+from .forms import EventForm
 from . import event_bp as event
-from flask import jsonify, render_template
+from flask import jsonify, render_template, request
 from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
 
@@ -60,3 +63,18 @@ def fetch_global_events():
 @event.route('/global')
 def list_global_events():
     return render_template('events/global.html')
+
+
+@event.route('/new', methods=['GET', 'POST'])
+def add_event():
+    form = EventForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            event = {
+                'summary': form.title.data,
+                'start': form.start.data,
+                'end': form.end.data
+            }
+            return jsonify(event)
+
+    return render_template('events/edit_form.html', form=form)

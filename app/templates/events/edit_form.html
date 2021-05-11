@@ -1,0 +1,40 @@
+
+{% extends "base.html" %}
+{% block title %}Global Events{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="box">
+        <form method="post">
+            {{ form.hidden_tag() }}
+            <div class="field">
+                <label class="label">{{ form.title.label }}</label>
+                <div class="control">
+                    {{ form.title(class="input") }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.start.label }}</label>
+                <div class="control">
+                    {{ form.start(class="input") }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.end.label }}</label>
+                <div class="control">
+                    {{ form.end(class="input") }}
+                </div>
+            </div>
+            <div class="field">
+                <div class="buttons">
+                    <button class="button is-success" type="submit" value="submit">Submit</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock page_content %}
+{% block scripts %}
+{{ super() }}
+</script>
+{% endblock %}
