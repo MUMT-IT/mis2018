@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
 import os
+import dateutil.parser
+from googleapiclient.discovery import BODY_PARAMETER_DEFAULT_VALUE
+from linebot.models.flex_message import ImageComponent
 import requests
 from collections import defaultdict
 from flask import request, url_for, jsonify
@@ -19,6 +22,9 @@ tz = pytz.timezone('Asia/Bangkok')
 
 #TODO: deduplicate this
 today = datetime.today()
+
+event_photo = '1A1GBmNKpDScuoX4P6iqr9xgVKgHW1ZDZ'
+calendar_photo = '1WNKyCm3GX8ASpMG2uH4V1GMArjyCWKeB'
 
 if today.month >= 10:
     START_FISCAL_DATE = datetime(today.year, 10, 1)
@@ -98,27 +104,111 @@ def handle_message(event):
         this_week = []
         for week in c.monthdatescalendar(today.year, today.month):
             if today in week:
-                this_week = [d.strftime('%Y-%m-%d') for d in week]
+                this_week = [d for d in week]
                 break
         events = requests.get(url_for('event.fetch_global_events', _external=True))
-        all_events = []
+        bubbles = []
         for evt in events.json():
-            if evt.get('start') in this_week:
-                all_events.append(u'วันที่:{}\nกิจกรรม:{}\nสถานที่:{}' \
-                                  .format(evt.get('start'),
-                                          evt.get('title', ''),
-                                          evt.get('location', ''),
-                                          ))
-        if all_events:
-            all_events.append(u'ดูปฏิทินที่ {}'.format(url_for('event.list_global_events', _external=True)))
+            start = dateutil.parser.parse(evt.get('start'))
+            if start.date() in this_week:
+                bubbles.append(
+                    BubbleContainer(
+                        hero=ImageComponent(
+                            layout='vertical',
+                            url="https://drive.google.com/uc?id={}".format(event_photo),
+                            size='full',
+                            aspect_mode='cover',
+                            aspect_ratio='20:13',
+                        ),
+                        body=BoxComponent(
+                            layout='vertical',
+                            contents=[
+                                TextComponent(
+                                    text=u'{}'.format(evt.get('title')),
+                                    weight='bold',
+                                    size='xl',
+                                    wrap=True
+                                ),
+                                TextComponent(
+                                    text=u'วันที่ {} เวลา {} น.'.format(start.strftime(u'%d/%m/%Y'), start.strftime('%H:%M')),
+                                    wrap=True
+                                ),
+                                TextComponent(
+                                    text=u'สถานที่ {}'.format(evt.get('location') or u'ไม่ระบุ'),
+                                    wrap=True
+                                ),
+                            ]
+                        ),
+                        footer=BoxComponent(
+                            layout='vertical',
+                            contents=[
+                                ButtonComponent(
+                                    action=URIAction(
+                                        label=u'ดูปฏิทิน (Calendar)',
+                                        uri='https://mt.mahidol.ac.th/calendar/events/'
+                                    ),
+                                ),
+                            ]
+                        )
+                    )
+                )
+        if bubbles:
+            bubbles.append(
+                BubbleContainer(
+                    hero=ImageComponent(
+                        layout='vertical',
+                        url="https://drive.google.com/uc?id={}".format(calendar_photo),
+                        size='full',
+                        aspect_mode='cover',
+                        aspect_ratio='20:13',
+                    ),
+                    body=BoxComponent(
+                        layout='vertical',
+                        contents=[
+                            ButtonComponent(
+                                action=URIAction(
+                                        label=u'ดูปฏิทิน (Calendar)',
+                                        uri='https://mt.mahidol.ac.th/calendar/events/'
+                                ),
+                            )
+                        ]
+                    )
+                )
+            )
             line_bot_api.reply_message(
                 event.reply_token,
-                TextSendMessage(text=u'\n'.join(all_events)))
+                FlexSendMessage(alt_text='Events Info', contents=CarouselContainer(contents=bubbles))
+            )
         else:
-            text = u'ไม่มีกิจกรรมในสัปดาห์นี้\nดูปฏิทินที่ {}' \
-                .format(url_for('event.list_global_events', _external=True))
-            line_bot_api.reply_message(event.reply_token,
-                                       TextSendMessage(text=text))
+            line_bot_api.reply_message(
+                event.reply_token,
+                FlexSendMessage(alt_text='Events Info', contents=CarouselContainer(contents=[
+                    BubbleContainer(
+                        body=BoxComponent(
+                            layout='vertical',
+                            contents=[
+                                TextComponent(
+                                    text=u'ไม่มีกิจกรรมในสัปดาห์นี้',
+                                    weight='bold',
+                                    size='xl',
+                                    wrap=True
+                                )
+                            ]
+                        ),
+                        footer=BoxComponent(
+                            layout='vertical',
+                            contents=[
+                                ButtonComponent(
+                                    action=URIAction(
+                                        label=u'ดูปฏิทิน (Calendar)',
+                                        uri='https://mt.mahidol.ac.th/calendar/events/'
+                                    )
+                                ),
+                            ]
+                        )
+                    )
+                ]))
+            )
 
 
 @line.route('/events/notification')

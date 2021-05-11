@@ -38,8 +38,8 @@ def fetch_global_events():
             start = event.get('start')
             end = event.get('end')
             try:
-                start =  dateutil.parser.parse(start.get('dateTime')).date().strftime('%Y-%m-%d')
-                end = dateutil.parser.parse(end.get('dateTime')).date().strftime('%Y-%m-%d')
+                start =  dateutil.parser.parse(start.get('dateTime')).strftime('%Y-%m-%d %H:%M')
+                end = dateutil.parser.parse(end.get('dateTime')).strftime('%Y-%m-%d %H:%M')
             except:
                 start = start.get('date')
                 end = end.get('date')
