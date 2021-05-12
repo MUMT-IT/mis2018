@@ -46,38 +46,41 @@
         <div class="columns">
             <div class="column">
                 {% for request in leaves|sort(attribute='start_datetime', reverse=True) %}
+                {% if not request.cancelled_at %}
                 <article class="media">
-                    <div class="media-left">
-                        {% if not request.cancelled_at %}
-                            <a href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
-                                <span class="tag is-light is-success">{{ request.get_approved|length }}</span>
-                            </a>
-                            <a href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
-                                <span class="tag is-light is-danger">{{ request.get_unapproved|length }}</span>
-                            </a>
-                        {% else %}
-                        <span class="tag is-light is-light">
-                            <i class="far fa-times-circle has-text-dark"></i>
-                        </span>
-                        {% endif %}
-                    </div>
                     <div class="media-content">
                         <div class="content">
-                            <span class="icon">
-                                <i class="far fa-calendar-alt"></i>
+                            <a href="{{ url_for('staff.record_each_request_leave_request', request_id=request.id) }}">
+                                <span class="icon">
+                                        <i class="far fa-calendar-alt"></i>
+                                </span>
+                                <span class="title is-size-6">
+                                    {{ request.start_datetime|localdatetime }} - {{ request.end_datetime|localdatetime }}
+                                    ({{ request.total_leave_days }} วัน)
+                                </span>
+                            </a>
+                            <p>
+                            <span>
+                                <a href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
+                                    <span class="tag is-light is-success">
+                                        อนุมัติ/Approved :
+                                        {{ request.get_approved|length }}
+                                    </span>
+                                </a>
+                                <a href="{{ url_for('staff.show_leave_approval', req_id=request.id) }}">
+                                    <span class="tag is-light">
+                                        ไม่อนุมัติ/Denied :
+                                        {{ request.get_unapproved|length }}
+                                    </span>
+                                </a>
                             </span>
-                            <span class="title is-size-6 {% if request.cancelled_at %} has-text-light {% endif %}">
-                                {{ request.start_datetime|localdatetime }} - {{ request.end_datetime|localdatetime }} ({{ request.total_leave_days }} วัน)
-                            </span>
+                            </p>
                         </div>
                         <nav class="level is-mobile">
                             <div class="level-left">
-                                {% if not request.cancelled_at %}
                                 {% if not request.approvals %}
                                 <a class="level-item"
-                                   {% if request.cancelled_at %}
-                                   disabled
-                                   {% elif request.approvals %}
+                                   {% if request.approvals %}
                                    disabled
                                    {% else %}
                                    href="{{ url_for('staff.edit_leave_request', req_id=request.id) }}"
@@ -89,9 +92,7 @@
                                     <span class="is-size-6">แก้ไข (edit)</span>
                                 </a>
                                 <a class="level-item"
-                                   {% if request.cancelled_at %}
-                                   disabled
-                                   {% elif request.approvals %}
+                                   {% if request.approvals %}
                                    disabled
                                    {% else %}
                                    @click="confirmCustomDelete({{ request.id }},{{ current_user.id }})"
@@ -103,7 +104,7 @@
                                     <span class="is-size-6">ลบ (delete)</span>
                                 </a>
                                 {% else %}
-                                    <a class="level-item"
+                                    <a class="level-item button is-danger is-light"
                                        {% if not request.last_cancel_requested_at or request.get_last_cancel_request_from_now >= 1 %}
                                         @click="requestCancel({{ request.id }})"
                                         {% else %}
@@ -113,22 +114,31 @@
                                         <span class="icon is-medium">
                                             <i class="fas fa-times-circle has-text-danger"></i>
                                         </span>
-                                        <span class="is-size-6 has-text-danger">ขอยกเลิก (cancel)</span>
+                                        <span>ขอยกเลิก (cancel)*</span>
                                         {% else %}
                                         <span class="has-text-danger">
-                                            รอการอนุมัติยกเลิก
+                                            รอการอนุมัติยกเลิก (pending)
                                         </span>
                                         {% endif %}
                                     </a>
                                     {% endif %}
-                                {% endif %}
                             </div>
                         </nav>
                     </div>
                     <div class="media-right">
                     </div>
                 </article>
+                {% endif %}
                 {% endfor %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="notification is-info is-light">
+                    <a href="{{ url_for('staff.leave_info_deleted_records', quota_id=quota.id) }}">
+                        <span class="is-size-6 has-text-">ประวัติการยกเลิก (Deleted History)</span>
+                    </a>
+                </div>
             </div>
         </div>
         <div class="columns">
@@ -139,7 +149,6 @@
                 </div>
             </div>
         </div>
-
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">

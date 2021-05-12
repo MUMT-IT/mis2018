@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column">
+                <div class="field">
+                    <label class="label">สังกัด</label>
+                    <div class="select">
+                        <select v-model="department" v-on:change="proceed()">
+                            <option v-for="d in departments" v-bind:value="d.id" key="d.id">
+                                <% d.name %>
+                            </option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-bordered is-striped" id="approversTable">
+                    <thead>
+                    <th>ชื่อ</th>
+                    <th>ผู้อนุมัติ</th>
+                    </thead>
+                    <tbody>
+                    {% for account in account_list %}
+                    {% if account.leave_requesters %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('staff.staff_add_requester', requester_id=account.id) }}">
+                                {{ account.personal_info.fullname }}
+                            </a>
+                        </td>
+                        {% for approver in account.leave_requesters %}
+                        <td>
+                            <a href="{{ url_for('staff.staff_add_approver', approver_id=approver.account.id) }}">
+                                {{ approver.account.personal_info.fullname }}
+                            </a>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('staff.staff_add_requester', requester_id=account.id) }}">
+                            {{ account.personal_info.fullname }}
+                            </a>
+                        </td>
+                        <td>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#approversTable').DataTable();
+    });
+</script>
+<script>
+    new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                departments : {{ departments|tojson|safe }},
+                department : {{ sel_dept|tojson|safe }}
+            }
+        },
+        methods: {
+            proceed: function() {
+                if (this.department !== null){
+                    window.location.href = "/staff/for-hr/staff-info/approvers?deptid="+this.department;
+                }
+            }
+        }
+    })
+</script>
+{% endblock %}

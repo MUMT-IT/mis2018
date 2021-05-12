@@ -60,7 +60,7 @@
                     </table>
                     {% if not req.cancelled_at %}
                     <div class="has-text-centered">
-                        <a class="button is-danger" @click="confirmCustomDelete({{ req.id }})">
+                        <a class="button is-danger" @click="confirmCustomDelete({{ req.id }}, {{ current_user.id }})">
                             <span class="icon">
                                 <i class="far fa-times-circle">
                                 </i>
@@ -104,14 +104,14 @@
         el: '#app',
         delimiters: ['<%', '%>'],
         methods: {
-            confirmCustomDelete(req_id) {
+            confirmCustomDelete(req_id, cancelled_account_id) {
                 this.$buefy.dialog.confirm({
                     title: 'ยกเลิกคำขอที่' + req_id,
                     message: 'แน่ใจหรือไม่ที่จะ<b>ยกเลิก</b>การลาครั้งนี้ หากยกเลิกแล้วจะไม่สามารถแก้ไขได้',
                     confirmText: 'Delete this request',
                     type: 'is-danger',
                     hasIcon: true,
-                    onConfirm: () => window.location.href = "/staff/leave/requests/" + req_id + "/cancel"
+                    onConfirm: () => window.location.href = "/staff/leave/requests/" + req_id + "/cancel/" + cancelled_account_id
                 })
             }
         }
