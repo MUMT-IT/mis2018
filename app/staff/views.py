@@ -1810,6 +1810,7 @@ def staff_create_info():
             en_lastname=form.get('en_lastname'),
             th_firstname=form.get('th_firstname'),
             th_lastname=form.get('th_lastname'),
+            #TODO: try removing localize
             employed_date=tz.localize(start_date),
             finger_scan_id=form.get('finger_scan_id'),
             employment_id=form.get('employment_id'),
