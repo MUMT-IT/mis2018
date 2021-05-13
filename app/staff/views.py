@@ -1895,6 +1895,31 @@ def staff_show_info(staff_id):
     return render_template('staff/staff_show_info.html', staff=staff)
 
 
+@staff.route('/for-hr/staff-info/search-account', methods=['GET', 'POST'])
+@login_required
+def staff_search_to_change_pwd():
+    if request.method == 'POST':
+        staff_id = request.form.get('staffname')
+        account = StaffAccount.query.filter_by(id=staff_id).first()
+        return render_template('staff/staff_edit_pwd.html', account=account)
+    return render_template('staff/staff_search_to_change_pwd.html')
+
+
+@staff.route('/for-hr/staff-info/search-account/edit-pwd/<int:staff_id>', methods=['GET', 'POST'])
+@login_required
+def staff_edit_pwd(staff_id):
+    if request.method == 'POST':
+        form = request.form
+        staff_email = StaffAccount.query.filter_by(id=staff_id).first()
+        staff_email.password = form.get('pwd')
+        db.session.add(staff_email)
+        db.session.commit()
+        flash(u'แก้ไขรหัสผ่านเรียบร้อย')
+        return render_template('staff/staff_index.html')
+    return render_template('staff/staff_search_to_change_pwd.html')
+
+
+
 @staff.route('/for-hr/staff-info/approvers',
              methods=['GET', 'POST'])
 @login_required

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        {% for msg in get_flashed_messages() %}
+        <p class="notification is-warning">{{ msg }}</p>
+        {% endfor %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">แก้ไขรหัสผ่านของ {{ account.personal_info }}</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <form method="post" enctype="multipart/form-data" action="{{ url_for('staff.staff_edit_pwd', staff_id=account.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">email</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    {{ account.email }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">password</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <input class="input"
+                                               name="pwd" type="text" placeholder="ตั้งรหัสผ่านใหม่">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <input type="submit" value="บันทึก" class="button is-info"/>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('staff.staff_search_to_change_pwd') }}" class="button is-danger">ยกเลิก</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
