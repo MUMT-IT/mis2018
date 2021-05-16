@@ -440,7 +440,6 @@ def add_article():
     if request.method == 'POST':
         data = request.get_json()
         pub = ResearchPub.query.filter_by(scopus_id=data['scopus_id']).first()
-        print('Posting {}-{}'.format(data.get('title')[:50], data.get('scopus_id')))
         if not pub:
             pub = ResearchPub(
                 scopus_id=data.get('scopus_id'),
@@ -453,8 +452,9 @@ def add_article():
                 publication_name=data.get('publication_name')
             )
         else:
-            # update the citation number
+            # update the citation number and cover date because it can change.
             pub.citedby_count = data.get('citedby_count')
+            pub.cover_date=datetime.datetime.strptime(data.get('cover_date'), '%Y-%m-%d'),
 
         for subj in data['subject_areas']:
             s = SubjectArea.query.get(subj['code'])
@@ -502,8 +502,9 @@ def add_article():
                 scopus_id.author = author_
             scopus_id.author.h_index = int(author.get('h_index')) if author.get('h_index') else None
             pub.authors.append(scopus_id.author)
-            db.session.add(pub)
             db.session.add(scopus_id)
+        print('saving publication {}'.format(pub.title[:30]))
+        db.session.add(pub)
 
         db.session.commit()
 
