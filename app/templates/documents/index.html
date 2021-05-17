@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth">
+                    <thead>
+                    <th>Date</th>
+                    <th>Documents</th>
+                    <th>Viewed At</th>
+                    </thead>
+                    <tbody>
+                    {% for round in rounds %}
+                    <tr>
+                        <td>{{ round }}</td>
+                        <td>
+                            <a href="{{ url_for('doc.view_round', round_id=round.id) }}">
+                                {{ round.documents.all()|length }}
+                            </a>
+                        </td>
+                        <td>{{ round.viewed_at }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

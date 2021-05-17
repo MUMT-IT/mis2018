@@ -53,6 +53,6 @@ class DocReceiveRecord(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     doc_id = db.Column(db.ForeignKey('doc_documents.id'))
     staff_id = db.Column(db.ForeignKey('staff_account.id'))
-    staff = db.relationship(StaffAccount, backref='doc_recv_records')
-    doc = db.relationship(DocDocument, backref='doc_recv_records')
+    staff = db.relationship(StaffAccount, backref='recv_records')
+    doc = db.relationship(DocDocument, backref='recv_records')
     viewed_at = db.Column(db.DateTime(timezone=True))

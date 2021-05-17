@@ -24,6 +24,7 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from flask_restful import Api, Resource
 
+
 scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive']
 
@@ -679,7 +680,7 @@ def local_datetime(dt):
 @app.template_filter("humanizedt")
 def humanize_datetime(dt):
     if dt:
-        return arrow.get(dt, 'Asia/Bangkok').humanize()
+        return arrow.get(dt, 'Asia/Bangkok').humanize(locale='th')
     else:
         return None
 

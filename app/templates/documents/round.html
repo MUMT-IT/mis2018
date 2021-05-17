@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth">
+                    <thead>
+                    <th>Added Date</th>
+                    <th>Title</th>
+                    <th>Summary</th>
+                    <th>Comment</th>
+                    <th>Priority</th>
+                    <th>Category</th>
+                    <th>Deadline</th>
+                    </thead>
+                    <tbody>
+                    {% for rec in records %}
+                    <tr>
+                        <td>{{ rec.doc.addedAt|localdatetime }}</td>
+                        <td>{{ rec.doc.title }}</td>
+                        <td>{{ rec.doc.summary }}</td>
+                        <td>{{ rec.doc.comment }}</td>
+                        <td>{{ rec.doc.priority }}</td>
+                        <td>{{ rec.doc.category }}</td>
+                        <td>{{ rec.doc.deadline|humanizedt }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
