@@ -445,6 +445,12 @@ admin.add_view(ModelView(HealthServiceTimeSlot, db.session, category='HealthSche
 admin.add_view(ModelView(HealthServiceService, db.session, category='HealthScheduler'))
 admin.add_view(ModelView(HealthServiceSite, db.session, category='HealthScheduler'))
 
+from doc_circulation.models import *
+from doc_circulation import docbp as doc_blueprint
+
+app.register_blueprint(doc_blueprint, url_prefix='/docs')
+
+admin.add_view(ModelView(DocRound, db.session, category='Docs Circulation'))
 
 # Commands
 
