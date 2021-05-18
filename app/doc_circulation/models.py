@@ -22,7 +22,7 @@ class DocRound(db.Model):
                                                                   'approved'])
                              }
                        )
-    date = db.Column(db.Date())
+    date = db.Column(db.Date(), info={'label': 'Date'}, nullable=False)
     submitted_at = db.Column(db.DateTime(timezone=True))
 
     def __str__(self):
@@ -33,19 +33,22 @@ class DocDocument(db.Model):
     __tablename__ = 'doc_documents'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     round_id = db.Column(db.ForeignKey('doc_rounds.id'))
-    deadline = db.Column(db.DateTime(timezone=True))
+    deadline = db.Column(db.DateTime(timezone=True),
+                         info={'label': 'Deadline'})
     addedAt = db.Column(db.DateTime(timezone=True))
     url = db.Column(db.String(255))
     priority = db.Column(db.String(255),
-                         info={'label': 'priority',
-                               'choices': ((c, c.title()) for c in [u'ด่วนที่สุด', u'ด่วน', u'ปกติ'])})
-    title = db.Column(db.String(255))
-    summary = db.Column(db.Text())
-    comment = db.Column(db.Text())
+                         info={'label': 'Priority',
+                               'choices': [(c, c) for c in [u'ปกติ', u'ด่วน', u'ด่วนที่สุด']]})
+    title = db.Column(db.String(255), info={'label': 'Title'})
+    summary = db.Column(db.Text(), info={'label': 'Summary'})
+    comment = db.Column(db.Text(), info={'label': 'Comment'})
     category_id = db.Column(db.ForeignKey('doc_categories.id'))
 
-    round = db.relationship(DocRound, backref=db.backref('documents', lazy='dynamic'))
-    category = db.relationship(DocCategory, backref=db.backref('documents', lazy='dynamic'))
+    round = db.relationship(DocRound, backref=db.backref('documents', lazy='dynamic',
+                                                         cascade='all, delete-orphan'))
+    category = db.relationship(DocCategory, backref=db.backref('documents', lazy='dynamic',
+                                                               cascade='all, delete-orphan'))
 
 
 class DocReceiveRecord(db.Model):
