@@ -1,15 +1,48 @@
 # -*- coding:utf-8 -*-
+import os
+import datetime
+
+import requests
+from werkzeug.utils import secure_filename
+
 from . import docbp
 from flask_login import current_user
-from flask import render_template, url_for, request, flash, redirect
+from flask import render_template, url_for, request, flash, redirect, jsonify
 from models import *
+from pytz import timezone
 from forms import *
+from pydrive.auth import ServiceAccountCredentials, GoogleAuth
+from pydrive.drive import GoogleDrive
 
+
+bkk = timezone('Asia/Bangkok')
+
+# TODO: folder ID should be stored in the Org model to organize files by organization
+
+FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
+
+json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+
+
+def initialize_gdrive():
+    gauth = GoogleAuth()
+    scopes = ['https://www.googleapis.com/auth/drive']
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
+    return GoogleDrive(gauth)
+
+
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 @docbp.route('/')
 def index():
     rounds = DocRound.query.all()
     return render_template('documents/index.html', rounds=rounds)
+
+
+@docbp.route('/admin/rounds/<int:round_id>/documents')
+def admin_view_round(round_id):
+    round = DocRound.query.get(round_id)
+    return render_template('documents/admin/docs.html', round=round)
 
 
 @docbp.route('/rounds/<int:round_id>/documents')
@@ -52,10 +85,46 @@ def add_round():
     return render_template('documents/round_edit.html', form=form)
 
 
-@docbp.route('/admin/docs', methods=['GET', 'POST'])
-def add_document():
+@docbp.route('/admin/rounds/<int:round_id>/docs', methods=['GET', 'POST'])
+def add_document(round_id):
     form = DocumentForm()
     if request.method == 'POST':
         if form.validate_on_submit():
-            pass
-    return render_template('documents/document_form.html', form=form)
+            new_doc = DocDocument()
+            form.populate_obj(new_doc)
+            new_doc.round_id = round_id
+            drive = initialize_gdrive()
+            if form.upload.data:
+                upfile = form.upload.data
+                filename = secure_filename(upfile.filename)
+                upfile.save(filename)
+                file_drive = drive.CreateFile({'title': filename,
+                                               'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
+                file_drive.SetContentFile(filename)
+                try:
+                    file_drive.Upload()
+                    permission = file_drive.InsertPermission({'type': 'anyone',
+                                                              'value': 'anyone',
+                                                              'role': 'reader'})
+                except Exception as e:
+                    raise e
+                    flash('Failed to upload the attached file to the Google drive.', 'danger')
+                else:
+                    flash('The attached file has been uploaded to the Google drive', 'success')
+                    new_doc.url = file_drive['id']
+            new_doc.addedAt = bkk.localize(datetime.datetime.now())
+            db.session.add(new_doc)
+            db.session.commit()
+            flash('New document has been added.', 'success')
+            return redirect(url_for('doc.admin_view_round', round_id=round_id))
+        else:
+            for field, err in form.errors.items():
+                flash('{} {}'.format(field, err), 'danger')
+    return render_template('documents/document_form.html', form=form, round_id=round_id)
+
+
+@docbp.route('/files')
+def list_files():
+    drive = initialize_gdrive()
+    file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
+    return jsonify(file_list)

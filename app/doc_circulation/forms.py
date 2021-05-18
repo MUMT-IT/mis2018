@@ -1,6 +1,6 @@
 from app.main import db
 from flask_wtf import FlaskForm
-from wtforms import FileField
+from flask_wtf.file import FileField
 from wtforms_alchemy import (model_form_factory, QuerySelectField)
 from wtforms_components import DateTimeField
 from wtforms.widgets import Select

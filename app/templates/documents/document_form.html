@@ -9,7 +9,8 @@
 <section class="section">
     <div class="columns">
         <div class="column is-one-third is-offset-4">
-            <form method="post" class="box">
+            {% include "messages.html" %}
+            <form method="post" class="box" enctype="multipart/form-data">
                 {{ form.hidden_tag() }}
                 <div class="field">
                     <label class="label">{{ form.title.label }}</label>
@@ -72,8 +73,9 @@
 <script>
     $('input[name="deadline"]').daterangepicker({
         singleDatePicker: true,
+        timePicker: true,
         locale: {
-            format: 'YYYY-MM-DD'
+            format: 'YYYY-MM-DD HH:MM:SS'
         }
     });
 </script>
