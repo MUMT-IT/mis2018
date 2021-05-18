@@ -6,6 +6,7 @@
         {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">
+                <h1 class="title">Admin Page</h1>
                 <a class="button is-link" href="{{ url_for('doc.add_round') }}">
                     <span class="icon">
                         <i class="fas fa-plus"></i>
@@ -27,7 +28,7 @@
                     <tr>
                         <td>{{ round }}</td>
                         <td>
-                            <a href="{{ url_for('doc.view_round', round_id=round.id) }}">
+                            <a href="{{ url_for('doc.admin_view_round', round_id=round.id) }}">
                                 {{ round.documents.all()|length }}
                             </a>
                         </td>

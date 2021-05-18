@@ -65,7 +65,7 @@ def view_recv_record(rec_id):
 @docbp.route('/admin')
 def admin_index():
     rounds = DocRound.query.all()
-    return render_template('documents/admin_index.html', rounds=rounds)
+    return render_template('documents/admin/index.html', rounds=rounds)
 
 
 @docbp.route('/admin/rounds', methods=['GET', 'POST'])
@@ -82,7 +82,7 @@ def add_round():
         else:
             for err in form.errors:
                 flash('{}'.format(err), 'danger')
-    return render_template('documents/round_edit.html', form=form)
+    return render_template('documents/admin/round_form.html', form=form)
 
 
 @docbp.route('/admin/rounds/<int:round_id>/docs', methods=['GET', 'POST'])
@@ -120,11 +120,4 @@ def add_document(round_id):
         else:
             for field, err in form.errors.items():
                 flash('{} {}'.format(field, err), 'danger')
-    return render_template('documents/document_form.html', form=form, round_id=round_id)
-
-
-@docbp.route('/files')
-def list_files():
-    drive = initialize_gdrive()
-    file_list = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
-    return jsonify(file_list)
+    return render_template('documents/admin/document_form.html', form=form, round_id=round_id)
