@@ -19,3 +19,9 @@ def view_round(round_id):
             if rec.staff == current_user:
                 records.append(rec)
     return render_template('documents/round.html', round=round, records=records)
+
+
+@docbp.route('/documents/<int:rec_id>')
+def view_recv_record(rec_id):
+    rec = DocReceiveRecord.query.get(rec_id)
+    return render_template('documents/recv_record.html', rec=rec)

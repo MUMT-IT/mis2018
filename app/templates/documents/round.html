@@ -27,9 +27,11 @@
                                 <i class="fas fa-exclamation-triangle has-text-warning"></i>
                             {% endif %}
                             </span>
-                            <span>
-                                {{ rec.doc.title }}
-                            </span>
+                            <a href="{{ url_for('doc.view_recv_record', rec_id=rec.id) }}">
+                                <span>
+                                    {{ rec.doc.title }}
+                                </span>
+                            </a>
                         </td>
                         <td>{{ rec.doc.summary }}</td>
                         <td>{{ rec.doc.comment }}</td>
