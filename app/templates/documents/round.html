@@ -19,10 +19,31 @@
                     {% for rec in records %}
                     <tr>
                         <td>{{ rec.doc.addedAt|localdatetime }}</td>
-                        <td>{{ rec.doc.title }}</td>
+                        <td>
+                            <span class="icon">
+                            {% if rec.doc.priority == 'ด่วนที่สุด' %}
+                                <i class="fas fa-exclamation-circle has-text-danger"></i>
+                            {% elif rec.doc.priority == 'ด่วน' %}
+                                <i class="fas fa-exclamation-triangle has-text-warning"></i>
+                            {% endif %}
+                            </span>
+                            <span>
+                                {{ rec.doc.title }}
+                            </span>
+                        </td>
                         <td>{{ rec.doc.summary }}</td>
                         <td>{{ rec.doc.comment }}</td>
-                        <td>{{ rec.doc.priority }}</td>
+                        <td>
+                            {% if rec.doc.priority == 'ด่วนที่สุด' %}
+                            <span class="tag is-danger">
+                            {% elif rec.doc.priority == 'ด่วน' %}
+                            <span class="tag is-warning">
+                            {% else %}
+                            <span class="tag">
+                            {% endif %}
+                                {{ rec.doc.priority }}
+                            </span>
+                        </td>
                         <td>{{ rec.doc.category }}</td>
                         <td>{{ rec.doc.deadline|humanizedt }}</td>
                     </tr>
