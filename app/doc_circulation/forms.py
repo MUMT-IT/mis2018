@@ -24,6 +24,7 @@ class RoundForm(ModelForm):
 class DocumentForm(ModelForm):
     class Meta:
         model = DocDocument
+        exclude = ['stage']
 
     category = QuerySelectField('Category', query_factory=lambda: DocCategory.query.all(),
                                 get_label='name', blank_text='Select category..', allow_blank=False)

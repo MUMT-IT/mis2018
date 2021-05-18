@@ -41,6 +41,9 @@ class DocDocument(db.Model):
     priority = db.Column(db.String(255),
                          info={'label': 'Priority',
                                'choices': [(c, c) for c in [u'ปกติ', u'ด่วน', u'ด่วนที่สุด']]})
+    stage = db.Column(db.String(255),
+                         info={'label': 'Stage',
+                               'choices': [(c, c) for c in [u'Drafting', u'Submitted', u'Approved']]})
     title = db.Column(db.String(255), info={'label': 'Title'})
     summary = db.Column(db.Text(), info={'label': 'Summary'})
     comment = db.Column(db.Text(), info={'label': 'Comment'})

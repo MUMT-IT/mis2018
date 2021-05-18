@@ -97,8 +97,10 @@ def add_document(round_id, doc_id=None):
 
     if request.method == 'POST':
         if form.validate_on_submit():
-            if not doc:
+            if not doc_id:
                 new_doc = DocDocument()
+                new_doc.stage = 'Drafting'
+                filename = ''
             else:
                 new_doc = doc
                 filename = doc.file_name
@@ -133,7 +135,7 @@ def add_document(round_id, doc_id=None):
                 new_doc.url = fileurl
             db.session.add(new_doc)
             db.session.commit()
-            if doc:
+            if doc_id:
                 flash('The document has been updated.', 'success')
             else:
                 flash('New document has been added.', 'success')

@@ -58,6 +58,12 @@
                         {{ form.deadline(class="input", type="text") }}
                     </div>
                 </div>
+                <div class="field">
+                    <label class="label">Comment from a secretary</label>
+                    <div class="control">
+                        {{ form.comment(class="textarea", placeholder='Optional') }}
+                    </div>
+                </div>
                 <div class="buttons is-centered">
                     <a href="{{ url_for('doc.admin_view_round', round_id=round_id) }}" class="button is-light">Back</a>
                     <input type="submit" class="button is-success" value="Submit"></input>

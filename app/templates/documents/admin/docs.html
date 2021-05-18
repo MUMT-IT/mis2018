@@ -26,6 +26,7 @@
                     <th>Category</th>
                     <th>Deadline</th>
                     <th>Download</th>
+                    <th>Stage</th>
                     <th></th>
                     </thead>
                     <tbody>
@@ -71,20 +72,33 @@
                             {% endif %}
                         </td>
                         <td>
+                            {{ doc.stage }}
+                        </td>
+                        <td>
                             <div class="field has-addons">
                                 <p class="control">
-                                    <a class="button is-light is-link is-small"
+                                    <a class="button is-light">
+                                        <span class="icon">
+                                            <i class="far fa-paper-plane"></i>
+                                        </span>
+                                        <span>send</span>
+                                    </a>
+                                </p>
+                                <p class="control">
+                                    <a class="button is-light is-link"
                                         href="{{ url_for('doc.add_document', round_id=round.id, doc_id=doc.id) }}">
                                         <span class="icon">
                                             <i class="fas fa-pencil-alt"></i>
                                         </span>
+                                        <span>edit</span>
                                     </a>
                                 </p>
                                 <p class="control">
-                                    <a class="button is-small is-light is-danger">
+                                    <a class="button is-light is-danger">
                                         <span class="icon">
                                             <i class="far fa-trash-alt"></i>
                                         </span>
+                                        <span>toss</span>
                                     </a>
                                 </p>
                             </div>
