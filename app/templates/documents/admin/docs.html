@@ -41,11 +41,9 @@
                                 <i class="fas fa-exclamation-triangle has-text-warning"></i>
                             {% endif %}
                             </span>
-                            <a href="{{ url_for('doc.add_document', round_id=round.id, doc_id=doc.id) }}">
-                                <span>
-                                    {{ doc.title }}
-                                </span>
-                            </a>
+                            <span class="title is-size-6">
+                                {{ doc.title }}
+                            </span>
                         </td>
                         <td>{{ doc.summary }}</td>
                         <td>{{ doc.comment }}</td>
@@ -75,9 +73,11 @@
                             {{ doc.stage }}
                         </td>
                         <td>
+                            {% if doc.stage != 'Submitted' %}
                             <div class="field has-addons">
                                 <p class="control">
-                                    <a class="button is-light">
+                                    <a class="button is-light"
+                                       href="{{ url_for('doc.send_document', doc_id=doc.id) }}">
                                         <span class="icon">
                                             <i class="far fa-paper-plane"></i>
                                         </span>
@@ -102,11 +102,15 @@
                                     </a>
                                 </p>
                             </div>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
                     </tbody>
                 </table>
+                <div class="buttons is-centered">
+                    <a class="button is-light" href="{{ url_for('doc.admin_index') }}">Back</a>
+                </div>
             </div>
         </div>
     </div>

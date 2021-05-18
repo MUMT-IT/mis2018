@@ -88,7 +88,6 @@ def add_round():
 @docbp.route('/admin/rounds/<int:round_id>/docs/<int:doc_id>', methods=['GET', 'POST'])
 @docbp.route('/admin/rounds/<int:round_id>/docs', methods=['GET', 'POST'])
 def add_document(round_id, doc_id=None):
-    print(doc_id)
     if doc_id:
         doc = DocDocument.query.get(doc_id)
         form = DocumentForm(obj=doc)
@@ -101,6 +100,7 @@ def add_document(round_id, doc_id=None):
                 new_doc = DocDocument()
                 new_doc.stage = 'Drafting'
                 filename = ''
+                fileurl = ''
             else:
                 new_doc = doc
                 filename = doc.file_name
@@ -144,3 +144,17 @@ def add_document(round_id, doc_id=None):
             for field, err in form.errors.items():
                 flash('{} {}'.format(field, err), 'danger')
     return render_template('documents/admin/document_form.html', form=form, round_id=round_id)
+
+
+@docbp.route('/admin/docs/<int:doc_id>/send', methods=['GET', 'POST'])
+def send_document(doc_id):
+    doc = DocDocument.query.get(doc_id)
+    if doc:
+        doc.stage = 'Submitted'
+        db.session.add(doc)
+        db.session.commit()
+        flash('The document has been sent for a review.', 'success')
+        return redirect(url_for('doc.admin_view_round', round_id=doc.round_id))
+    else:
+        flash('The document has been not been found.', 'danger')
+        return redirect(url_for('doc.admin_index'))

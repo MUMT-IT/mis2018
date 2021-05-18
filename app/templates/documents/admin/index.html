@@ -20,7 +20,7 @@
                 <table class="table is-striped is-fullwidth">
                     <thead>
                     <th>Date</th>
-                    <th>Documents</th>
+                    <th>Total Documents</th>
                     <th>Viewed At</th>
                     </thead>
                     <tbody>
@@ -28,9 +28,48 @@
                     <tr>
                         <td>{{ round }}</td>
                         <td>
-                            <a href="{{ url_for('doc.admin_view_round', round_id=round.id) }}">
-                                {{ round.documents.all()|length }}
-                            </a>
+                            <div class="field is-grouped is-grouped-multiline">
+                                <div class="control">
+                                    <a href="{{ url_for('doc.admin_view_round', round_id=round.id) }}">
+                                        <div class="tags has-addons">
+                                            <span class="tag">total</span>
+                                            <span class="tag is-primary">
+                                                {{ round.documents.all()|length }}
+                                            </span>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="control">
+                                    <a href="{{ url_for('doc.admin_view_round', round_id=round.id) }}">
+                                        <div class="tags has-addons">
+                                            <span class="tag">submit</span>
+                                            <span class="tag is-primary">
+                                                {{ round.documents.filter_by(stage='Submitted').all()|length }}
+                                            </span>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="control">
+                                    <a href="{{ url_for('doc.admin_view_round', round_id=round.id) }}">
+                                        <div class="tags has-addons">
+                                            <span class="tag">draft</span>
+                                            <span class="tag is-primary">
+                                                {{ round.documents.filter_by(stage='Drafting').all()|length }}
+                                            </span>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="control">
+                                    <a href="{{ url_for('doc.admin_view_round', round_id=round.id) }}">
+                                        <div class="tags has-addons">
+                                            <span class="tag">done</span>
+                                            <span class="tag is-primary">
+                                                {{ round.documents.filter_by(stage='Done').all()|length }}
+                                            </span>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
                         </td>
                         <td>{{ round.viewed_at }}</td>
                     </tr>
