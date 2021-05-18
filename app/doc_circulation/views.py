@@ -158,3 +158,35 @@ def send_document(doc_id):
     else:
         flash('The document has been not been found.', 'danger')
         return redirect(url_for('doc.admin_index'))
+
+
+@docbp.route('/head/documents')
+def head_view_docs():
+    # docs = DocDocument.query.filter_by(stage='Submitted')
+    docs = DocDocument.query.all()
+    return render_template('documents/head/docs.html', docs=docs)
+
+
+@docbp.route('/head/docs/<int:doc_id>/review', methods=['GET', 'POST'])
+def head_review(doc_id):
+    doc = DocDocument.query.get(doc_id)
+    if current_user.email == current_user.personal_info.org.head:
+        _DocumentReceiptForm = create_doc_receipt_form(current_user.personal_info.org)
+        form = _DocumentReceiptForm()
+        if request.method == 'POST':
+            if form.validate_on_submit():
+                receipt = DocReceiveRecord()
+                form.populate_obj(receipt)
+                receipt.doc = doc
+                receipt.sender = current_user
+                receipt.sent_at = bkk.localize(datetime.datetime.now())
+                db.session.add(receipt)
+                doc.stage = 'Done'
+                db.session.add(doc)
+                db.session.commit()
+                flash('The document has been sent to the members.', 'success')
+                return redirect(url_for('doc.head_view_docs'))
+            else:
+                for field, err in form.errors.items():
+                    flash('{} {}'.format(field, err), 'danger')
+        return render_template('documents/head/review.html', form=form, doc=doc)

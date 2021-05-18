@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 from app.main import db
-from app.staff.models import StaffAccount
+from app.staff.models import StaffAccount, StaffPersonalInfo
 
 
 class DocCategory(db.Model):
@@ -54,12 +54,20 @@ class DocDocument(db.Model):
     category = db.relationship(DocCategory, backref=db.backref('documents', lazy='dynamic',
                                                                cascade='all, delete-orphan'))
 
+receipt_receivers = db.Table('doc_receipt_receivers_assoc',
+                               db.Column('receipt_id', db.Integer, db.ForeignKey('doc_receive_records.id')),
+                               db.Column('personal_info_id', db.Integer, db.ForeignKey('staff_personal_info.id'))
+                               )
+
 
 class DocReceiveRecord(db.Model):
     __tablename__ = 'doc_receive_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    comment = db.Column(db.Text, info={'label': 'Review Comment'})
+    sent_at = db.Column(db.DateTime(timezone=True))
+    sender_id = db.Column(db.ForeignKey('staff_account.id'))
     doc_id = db.Column(db.ForeignKey('doc_documents.id'))
-    staff_id = db.Column(db.ForeignKey('staff_account.id'))
-    staff = db.relationship(StaffAccount, backref='recv_records')
-    doc = db.relationship(DocDocument, backref='recv_records')
+    members = db.relationship(StaffPersonalInfo, secondary=receipt_receivers)
+    sender = db.relationship(StaffAccount)
+    doc = db.relationship(DocDocument)
     viewed_at = db.Column(db.DateTime(timezone=True))

@@ -1,13 +1,18 @@
-from app.main import db
+from wtforms.validators import DataRequired
+
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
-from wtforms_alchemy import (model_form_factory, QuerySelectField)
-from wtforms_components import DateTimeField
-from wtforms.widgets import Select
+from wtforms import SelectMultipleField, widgets, BooleanField
+from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
 from .models import *
 
 
 BaseModelForm = model_form_factory(FlaskForm)
+
+
+class MultiCheckboxField(SelectMultipleField):
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
 
 
 class ModelForm(BaseModelForm):
@@ -30,3 +35,17 @@ class DocumentForm(ModelForm):
                                 get_label='name', blank_text='Select category..', allow_blank=False)
 
     upload = FileField('File Upload')
+
+
+def create_doc_receipt_form(org):
+    class DocumentReceiptForm(ModelForm):
+        class Meta:
+            model = DocReceiveRecord
+            only = ['comment']
+        send_all = BooleanField('All', default=False)
+        members = QuerySelectMultipleField(u'Members', get_label='fullname',
+                                         validators=[DataRequired()],
+                                         query_factory=lambda: org.staff,
+                                         widget=widgets.ListWidget(prefix_label=False),
+                                         option_widget=widgets.CheckboxInput())
+    return DocumentReceiptForm

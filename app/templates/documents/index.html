@@ -5,26 +5,39 @@
     <div class="container">
         <div class="columns">
             <div class="column has-text-centered">
-                <a class="button is-link" href="{{ url_for('doc.admin_index') }}">
+                <div class="buttons is-centered">
+                    <a class="button is-link is-light" href="{{ url_for('doc.admin_index') }}">
                     <span class="icon">
                         <i class="fas fa-user-cog"></i>
                     </span>
-                    <span>Admin</span>
-                </a>
+                        <span>Admin</span>
+                    </a>
+                    <a class="button is-light is-link" href="{{ url_for('doc.head_view_docs') }}">
+                    <span class="icon">
+                        <i class="fas fa-user-check"></i>
+                    </span>
+                        <span>หัวหน้างาน</span>
+                    </a>
+                </div>
             </div>
         </div>
         <div class="columns">
             <div class="column">
                 <table class="table is-striped is-fullwidth">
                     <thead>
-                    <th>Date</th>
+                    <th>Arrived Date</th>
                     <th>Documents</th>
                     <th>Viewed At</th>
                     </thead>
                     <tbody>
                     {% for round in rounds %}
                     <tr>
-                        <td>{{ round }}</td>
+                        <td>
+                            <span class="title is-size-6">
+                                {{ round.date|humanizedt|title }}
+                            </span>
+                            <p class="help">{{ round }}</p>
+                        </td>
                         <td>
                             <a href="{{ url_for('doc.view_round', round_id=round.id) }}">
                                 {{ round.documents.all()|length }}
