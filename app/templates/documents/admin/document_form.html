@@ -36,6 +36,7 @@
                                 Choose a file…
                               </span>
                             </span>
+                            <span class="file-name" id="filename"></span>
                         </label>
                     </div>
                 </div>
@@ -77,6 +78,15 @@
         locale: {
             format: 'YYYY-MM-DD HH:MM:SS'
         }
+    });
+</script>
+<script>
+    $(document).ready(()=>{
+        $('#filename').text({{ form.file_name.data }});
+    })
+    $('#upload').change(function(e) {
+        let fileName = e.target.files[0].name;
+        $('#filename').text(fileName);
     });
 </script>
 {% endblock %}

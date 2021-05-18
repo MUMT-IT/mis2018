@@ -106,12 +106,12 @@ def add_document(round_id):
                     permission = file_drive.InsertPermission({'type': 'anyone',
                                                               'value': 'anyone',
                                                               'role': 'reader'})
-                except Exception as e:
-                    raise e
+                except:
                     flash('Failed to upload the attached file to the Google drive.', 'danger')
                 else:
                     flash('The attached file has been uploaded to the Google drive', 'success')
                     new_doc.url = file_drive['id']
+                    new_doc.file_name = filename
             new_doc.addedAt = bkk.localize(datetime.datetime.now())
             db.session.add(new_doc)
             db.session.commit()

@@ -36,6 +36,7 @@ class DocDocument(db.Model):
     deadline = db.Column(db.DateTime(timezone=True),
                          info={'label': 'Deadline'})
     addedAt = db.Column(db.DateTime(timezone=True))
+    file_name = db.Column(db.String(255))
     url = db.Column(db.String(255))
     priority = db.Column(db.String(255),
                          info={'label': 'Priority',

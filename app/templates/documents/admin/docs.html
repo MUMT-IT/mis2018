@@ -18,7 +18,7 @@
             <div class="column">
                 <table class="table is-striped is-fullwidth">
                     <thead>
-                    <th>Added Date</th>
+                    <th>Added At</th>
                     <th>Title</th>
                     <th>Summary</th>
                     <th>Comment</th>
@@ -30,7 +30,7 @@
                     <tbody>
                     {% for doc in round.documents %}
                     <tr>
-                        <td>{{ doc.addedAt|localdatetime }}</td>
+                        <td>{{ doc.addedAt|humanizedt }}</td>
                         <td>
                             <span class="icon">
                             {% if doc.priority == 'ด่วนที่สุด' %}
@@ -61,7 +61,13 @@
                         <td>{{ doc.category }}</td>
                         <td>{{ doc.deadline|humanizedt }}</td>
                         <td>
-                            <a href="{{ 'https://drive.google.com/uc?id=' + doc.url }}">Download</a>
+                            {% if doc.url %}
+                            <a href="{{ 'https://drive.google.com/uc?id=' + doc.url }}" target="_blank">
+                                <span class="icon">
+                                    <i class="far fa-file-pdf"></i>
+                                </span>
+                            </a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
