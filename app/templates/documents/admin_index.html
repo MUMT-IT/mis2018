@@ -3,13 +3,14 @@
 {% block page_content %}
 <section class="section">
     <div class="container">
+        {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">
-                <a class="button is-link" href="{{ url_for('doc.admin_index') }}">
+                <a class="button is-link" href="{{ url_for('doc.add_round') }}">
                     <span class="icon">
-                        <i class="fas fa-user-cog"></i>
+                        <i class="fas fa-plus"></i>
                     </span>
-                    <span>Admin</span>
+                    <span>New Round</span>
                 </a>
             </div>
         </div>

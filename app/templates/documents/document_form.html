@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            <form method="post" class="box">
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">{{ form.title.label }}</label>
+                    <div class="control">
+                        {{ form.title(class="input") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.summary.label }}</label>
+                    <div class="control">
+                        {{ form.summary(class="textarea") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="file">
+                        <label class="file-label">
+                            {{ form.upload(class="file-input") }}
+                            <span class="file-cta">
+                              <span class="file-icon">
+                                <i class="fas fa-upload"></i>
+                              </span>
+                              <span class="file-label">
+                                Choose a file…
+                              </span>
+                            </span>
+                        </label>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.category.label }}</label>
+                    <div class="select">
+                        {{ form.category() }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.priority.label }}</label>
+                    <div class="select">
+                        {{ form.priority() }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.deadline.label }}</label>
+                    <div class="control">
+                        {{ form.deadline(class="input", type="text") }}
+                    </div>
+                </div>
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('doc.admin_index') }}" class="button is-light">Back</a>
+                    <input type="submit" class="button is-success" value="Submit"></input>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    $('input[name="deadline"]').daterangepicker({
+        singleDatePicker: true,
+        locale: {
+            format: 'YYYY-MM-DD'
+        }
+    });
+</script>
+{% endblock %}
