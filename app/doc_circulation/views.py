@@ -85,37 +85,58 @@ def add_round():
     return render_template('documents/admin/round_form.html', form=form)
 
 
+@docbp.route('/admin/rounds/<int:round_id>/docs/<int:doc_id>', methods=['GET', 'POST'])
 @docbp.route('/admin/rounds/<int:round_id>/docs', methods=['GET', 'POST'])
-def add_document(round_id):
-    form = DocumentForm()
+def add_document(round_id, doc_id=None):
+    print(doc_id)
+    if doc_id:
+        doc = DocDocument.query.get(doc_id)
+        form = DocumentForm(obj=doc)
+    else:
+        form = DocumentForm()
+
     if request.method == 'POST':
         if form.validate_on_submit():
-            new_doc = DocDocument()
+            if not doc:
+                new_doc = DocDocument()
+            else:
+                new_doc = doc
+                filename = doc.file_name
+                fileurl = doc.url
             form.populate_obj(new_doc)
             new_doc.round_id = round_id
+            if not new_doc.addedAt:
+                new_doc.addedAt = bkk.localize(datetime.datetime.now())
+            new_doc.deadline = bkk.localize(new_doc.deadline)
             drive = initialize_gdrive()
             if form.upload.data:
-                upfile = form.upload.data
-                filename = secure_filename(upfile.filename)
-                upfile.save(filename)
-                file_drive = drive.CreateFile({'title': filename,
-                                               'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
-                file_drive.SetContentFile(filename)
-                try:
-                    file_drive.Upload()
-                    permission = file_drive.InsertPermission({'type': 'anyone',
-                                                              'value': 'anyone',
-                                                              'role': 'reader'})
-                except:
-                    flash('Failed to upload the attached file to the Google drive.', 'danger')
-                else:
-                    flash('The attached file has been uploaded to the Google drive', 'success')
-                    new_doc.url = file_drive['id']
-                    new_doc.file_name = filename
-            new_doc.addedAt = bkk.localize(datetime.datetime.now())
+                if not filename or (form.upload.data.filename != filename):
+                    upfile = form.upload.data
+                    filename = secure_filename(upfile.filename)
+                    upfile.save(filename)
+                    file_drive = drive.CreateFile({'title': filename,
+                                                   'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
+                    file_drive.SetContentFile(filename)
+                    try:
+                        file_drive.Upload()
+                        permission = file_drive.InsertPermission({'type': 'anyone',
+                                                                  'value': 'anyone',
+                                                                  'role': 'reader'})
+                    except:
+                        flash('Failed to upload the attached file to the Google drive.', 'danger')
+                    else:
+                        flash('The attached file has been uploaded to the Google drive', 'success')
+                        new_doc.url = file_drive['id']
+                        new_doc.file_name = filename
+            else:
+                new_doc.file_name = filename
+                new_doc.url = fileurl
             db.session.add(new_doc)
             db.session.commit()
-            flash('New document has been added.', 'success')
+            if doc:
+                flash('The document has been updated.', 'success')
+            else:
+                flash('New document has been added.', 'success')
             return redirect(url_for('doc.admin_view_round', round_id=round_id))
         else:
             for field, err in form.errors.items():

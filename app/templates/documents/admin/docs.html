@@ -26,6 +26,7 @@
                     <th>Category</th>
                     <th>Deadline</th>
                     <th>Download</th>
+                    <th></th>
                     </thead>
                     <tbody>
                     {% for doc in round.documents %}
@@ -39,7 +40,7 @@
                                 <i class="fas fa-exclamation-triangle has-text-warning"></i>
                             {% endif %}
                             </span>
-                            <a href="">
+                            <a href="{{ url_for('doc.add_document', round_id=round.id, doc_id=doc.id) }}">
                                 <span>
                                     {{ doc.title }}
                                 </span>
@@ -68,6 +69,25 @@
                                 </span>
                             </a>
                             {% endif %}
+                        </td>
+                        <td>
+                            <div class="field has-addons">
+                                <p class="control">
+                                    <a class="button is-light is-link is-small"
+                                        href="{{ url_for('doc.add_document', round_id=round.id, doc_id=doc.id) }}">
+                                        <span class="icon">
+                                            <i class="fas fa-pencil-alt"></i>
+                                        </span>
+                                    </a>
+                                </p>
+                                <p class="control">
+                                    <a class="button is-small is-light is-danger">
+                                        <span class="icon">
+                                            <i class="far fa-trash-alt"></i>
+                                        </span>
+                                    </a>
+                                </p>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
