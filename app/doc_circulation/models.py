@@ -62,9 +62,9 @@ class DocDocument(db.Model):
     category = db.relationship(DocCategory, backref=db.backref('documents', lazy='dynamic',
                                                                cascade='all, delete-orphan'))
 
-    def get_sent_receipts(self, round_org_id):
-        receipts = self.doc_receipts.filter_by(round_org_id=round_org_id).all()
-        return receipts
+    def get_recipients(self, round_org_id):
+        receipt = self.doc_receipts.filter_by(round_org_id=round_org_id, doc_id=self.id).first()
+        return receipt.members
 
 
 receipt_receivers = db.Table('doc_receipt_receivers_assoc',
@@ -96,7 +96,7 @@ class DocRoundOrgReach(db.Model):
     __tablename__ = 'doc_round_org_reaches'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     reached_at = db.Column(db.DateTime(timezone=True))
-    reached_by = db.Column(db.ForeignKey('staff_account.id'))
+    reacher_id = db.Column(db.ForeignKey('staff_account.id'))
     reacher = db.relationship(StaffAccount)
     created_at = db.Column(db.DateTime(timezone=True))
 
@@ -111,12 +111,13 @@ class DocDocumentReach(db.Model):
     __tablename__ = 'doc_document_reaches'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     reached_at = db.Column(db.DateTime(timezone=True))
-    reached_by = db.Column(db.ForeignKey('staff_account.id'))
+    reacher_id = db.Column(db.ForeignKey('staff_account.id'))
     reacher = db.relationship(StaffAccount)
     doc_id = db.Column(db.ForeignKey('doc_documents.id'))
     doc = db.relationship(DocDocument, backref=db.backref('reaches',
                                                           lazy='dynamic',
                                                           cascade='all, delete-orphan'))
+    round_org_id = db.Column(db.ForeignKey('doc_round_orgs.id'))
     sender_comment = db.Column(db.Text())
     receiver_comment = db.Column(db.Text())
     receiver_commented_at = db.Column(db.DateTime(timezone=True))
