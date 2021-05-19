@@ -51,7 +51,7 @@
                                 </span>
                             </a>
                         </td>
-                        <td>{{ rorg.round_reaches.filter_by(round_org=rorg, reacher=current_user).first().reached_at|humanizedt or '' }}</td>
+                        <td>{{ rorg.round_reaches.filter_by(round_org=rorg, reacher=current_user).first().reached_at|localdatetime or '' }}</td>
                     </tr>
                     {% endfor %}
                     </tbody>
