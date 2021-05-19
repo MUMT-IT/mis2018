@@ -15,24 +15,39 @@ class DocCategory(db.Model):
 class DocRound(db.Model):
     __tablename__ = 'doc_rounds'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    status = db.Column(db.String(255),
-                       info={'label': 'Status',
-                             'choices': [(c, c.title()) for c in ['drafting',
-                                                                  'submitted',
-                                                                  'approved']]
-                             }
-                       )
     date = db.Column(db.Date(), info={'label': 'Date'}, nullable=False)
-    submitted_at = db.Column(db.DateTime(timezone=True))
+    created_by = db.Column(db.ForeignKey('staff_account.id'))
+    creator = db.relationship(StaffAccount)
 
     def __str__(self):
         return self.date.strftime('%d/%m/%Y')
 
 
+class DocRoundOrg(db.Model):
+    __tablename__ = 'doc_round_orgs'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    sent_at = db.Column(db.DateTime(timezone=True))
+    round_id = db.Column(db.ForeignKey('doc_rounds.id'))
+    org_id = db.Column(db.ForeignKey('orgs.id'))
+    finished_at = db.Column(db.DateTime(timezone=True))
+
+    org = db.relationship('Org')
+    round = db.relationship(DocRound, backref=db.backref('targets',
+                                                         lazy='dynamic',
+                                                         cascade='all, delete-orphan'))
+
+
 class DocDocument(db.Model):
     __tablename__ = 'doc_documents'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    round_org_id = db.Column(db.ForeignKey('doc_round_orgs.id'))
+    round_org = db.relationship(DocRoundOrg, backref=db.backref('documents',
+                                                                lazy='dynamic',
+                                                                cascade='all, delete-orphan'))
     round_id = db.Column(db.ForeignKey('doc_rounds.id'))
+    round = db.relationship(DocRound, backref=db.backref('documents',
+                                                         lazy='dynamic',
+                                                         cascade='all, delete-orphan'))
     deadline = db.Column(db.DateTime(timezone=True),
                          info={'label': 'Deadline'})
     addedAt = db.Column(db.DateTime(timezone=True))
@@ -43,16 +58,18 @@ class DocDocument(db.Model):
                                'choices': [(c, c) for c in [u'ปกติ', u'ด่วน', u'ด่วนที่สุด']]})
     stage = db.Column(db.String(255),
                          info={'label': 'Stage',
-                               'choices': [(c, c) for c in [u'Drafting', u'Submitted', u'Done']]})
+                               'choices': [(c, c) for c in [u'drafting', u'ready', u'sent']]})
     title = db.Column(db.String(255), info={'label': 'Title'})
     summary = db.Column(db.Text(), info={'label': 'Summary'})
     comment = db.Column(db.Text(), info={'label': 'Comment'})
     category_id = db.Column(db.ForeignKey('doc_categories.id'))
-
-    round = db.relationship(DocRound, backref=db.backref('documents', lazy='dynamic',
-                                                         cascade='all, delete-orphan'))
     category = db.relationship(DocCategory, backref=db.backref('documents', lazy='dynamic',
                                                                cascade='all, delete-orphan'))
+
+    def get_sent_receipts(self, round_org_id):
+        receipts = self.doc_receipts.filter_by(round_org_id=round_org_id).all()
+        return receipts
+
 
 receipt_receivers = db.Table('doc_receipt_receivers_assoc',
                                db.Column('receipt_id', db.Integer, db.ForeignKey('doc_receive_records.id')),
@@ -70,8 +87,10 @@ class DocReceiveRecord(db.Model):
     comment = db.Column(db.Text, info={'label': 'Additional Comment'})
     sent_at = db.Column(db.DateTime(timezone=True))
     sender_id = db.Column(db.ForeignKey('staff_account.id'))
+    round_org_id = db.Column(db.ForeignKey('doc_round_orgs.id'))
     doc_id = db.Column(db.ForeignKey('doc_documents.id'))
     members = db.relationship(StaffPersonalInfo, secondary=receipt_receivers)
     sender = db.relationship(StaffAccount)
-    doc = db.relationship(DocDocument)
-    viewed_at = db.Column(db.DateTime(timezone=True))
+    doc = db.relationship(DocDocument, backref=db.backref('doc_receipts',
+                                                          lazy='dynamic',
+                                                          cascade='all, delete-orphan'))
