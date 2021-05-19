@@ -171,14 +171,19 @@ def send_round_for_review(round_id):
     if request.method == 'POST':
         if form.validate_on_submit():
             for target_id in form.targets.data:
-                send_record = DocRoundOrg(
-                    org_id=target_id,
-                    round_id=round_id,
-                    sent_at=bkk.localize(datetime.datetime.now())
-                )
-                db.session.add(send_record)
+                _record = DocRoundOrg.query.filter_by(org_id=target_id, round_id=round_id).first()
+                if not _record:
+                    send_record = DocRoundOrg(
+                        org_id=target_id,
+                        round_id=round_id,
+                        sent_at=bkk.localize(datetime.datetime.now())
+                    )
+                    db.session.add(send_record)
+                else:
+                    _org = Org.query.get(target_id)
+                    flash(u'Documents were sent to {} at {}.'.format(_org.name, _record.sent_at), 'warning')
             db.session.commit()
-            flash('The documents have been sent to the department for a review.', 'success')
+            flash('The documents have been sent to selected departments for a review.', 'success')
             return redirect(url_for('doc.admin_index'))
         else:
             for field, error in form.errors:
@@ -218,6 +223,20 @@ def head_review(doc_id, sent_round_org_id):
                 receipt.sender = current_user
                 receipt.sent_at = bkk.localize(datetime.datetime.now())
                 db.session.add(receipt)
+                for member in receipt.members:
+                    _round_reach = DocRoundOrgReach(
+                        reacher=member.staff_account,
+                        round_org_id=sent_round_org_id,
+                        created_at=bkk.localize(datetime.datetime.now()),
+                    )
+                    _doc_reach = DocDocumentReach(
+                        reacher=member.staff_account,
+                        created_at=bkk.localize(datetime.datetime.now()),
+                        doc_id=doc.id,
+                        round_org_id=sent_round_org_id,
+                    )
+                    db.session.add(_doc_reach)
+                    db.session.add(_round_reach)
                 db.session.commit()
                 flash('The document has been sent to the members.', 'success')
                 return redirect(url_for('doc.head_view_docs', round_id=doc.round_id))

@@ -452,8 +452,11 @@ from doc_circulation import docbp as doc_blueprint
 app.register_blueprint(doc_blueprint, url_prefix='/docs')
 
 admin.add_view(ModelView(DocRound, db.session, category='Docs Circulation'))
+admin.add_view(ModelView(DocRoundOrg, db.session, category='Docs Circulation'))
+admin.add_view(ModelView(DocRoundOrgReach, db.session, category='Docs Circulation'))
 admin.add_view(ModelView(DocCategory, db.session, category='Docs Circulation'))
 admin.add_view(ModelView(DocDocument, db.session, category='Docs Circulation'))
+admin.add_view(ModelView(DocDocumentReach, db.session, category='Docs Circulation'))
 admin.add_view(ModelView(DocReceiveRecord, db.session, category='Docs Circulation'))
 
 # Commands

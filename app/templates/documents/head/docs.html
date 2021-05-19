@@ -17,8 +17,8 @@
                     <th>Category</th>
                     <th>Deadline</th>
                     <th>Download</th>
-                    <th>Sent</th>
-                    <th>Actions</th>
+                    <th>Recipients</th>
+                    <th>Action</th>
                     </thead>
                     <tbody>
                     {% for doc in sent_round.round.documents %}
@@ -66,10 +66,10 @@
                             {% endif %}
                         </td>
                         <td>
-                            {{ doc.get_sent_receipts(sent_round.id)|length }}
+                            {{ doc.get_recipients(sent_round.id)|length }}
                         </td>
                         <td>
-                            {% if doc.stage == 'ready' and doc.get_sent_receipts(sent_round.id)|length == 0 %}
+                            {% if doc.stage == 'ready' and doc.get_recipients(sent_round.id)|length == 0 %}
                             <div class="field has-addons">
                                 <p class="control">
                                     <a class="button is-light is-link"
