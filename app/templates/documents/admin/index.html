@@ -21,7 +21,7 @@
                     <thead>
                     <th>Date</th>
                     <th>Total Documents</th>
-                    <th>Viewed At</th>
+                    <th>Targets</th>
                     </thead>
                     <tbody>
                     {% for round in rounds %}
@@ -71,7 +71,7 @@
                                 </div>
                             </div>
                         </td>
-                        <td>{{ round.viewed_at }}</td>
+                        <td>{{ round.targets.all()|length }}</td>
                     </tr>
                     {% endfor %}
                     </tbody>

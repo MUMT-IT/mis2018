@@ -24,6 +24,7 @@ class ModelForm(BaseModelForm):
 class RoundForm(ModelForm):
     class Meta:
         model = DocRound
+        only = ['date']
 
 
 class DocumentForm(ModelForm):
@@ -49,3 +50,10 @@ def create_doc_receipt_form(org):
                                          widget=widgets.ListWidget(prefix_label=False),
                                          option_widget=widgets.CheckboxInput())
     return DocumentReceiptForm
+
+
+class RoundSendForm(FlaskForm):
+    targets = SelectMultipleField('Targets', validators=[DataRequired()],
+                                  coerce=int,
+                                  widget=widgets.ListWidget(prefix_label=False),
+                                  option_widget=widgets.CheckboxInput())

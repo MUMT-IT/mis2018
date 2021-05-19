@@ -27,7 +27,7 @@
                     <th>Deadline</th>
                     <th>Download</th>
                     <th>Stage</th>
-                    <th></th>
+                    <th>Actions</th>
                     </thead>
                     <tbody>
                     {% for doc in round.documents %}
@@ -39,6 +39,8 @@
                                 <i class="fas fa-exclamation-circle has-text-danger"></i>
                             {% elif doc.priority == 'ด่วน' %}
                                 <i class="fas fa-exclamation-triangle has-text-warning"></i>
+                            {% else %}
+                                <i class="far fa-circle has-text-light"></i>
                             {% endif %}
                             </span>
                             <span class="title is-size-6">
@@ -73,15 +75,15 @@
                             {{ doc.stage }}
                         </td>
                         <td>
-                            {% if doc.stage != 'Submitted' %}
+                            {% if doc.stage == 'drafting' %}
                             <div class="field has-addons">
                                 <p class="control">
-                                    <a class="button is-light"
+                                    <a class="button is-light is-success"
                                        href="{{ url_for('doc.send_document', doc_id=doc.id) }}">
                                         <span class="icon">
-                                            <i class="far fa-paper-plane"></i>
+                                            <i class="fas fa-check"></i>
                                         </span>
-                                        <span>send</span>
+                                        <span>ready</span>
                                     </a>
                                 </p>
                                 <p class="control">
@@ -110,6 +112,14 @@
                 </table>
                 <div class="buttons is-centered">
                     <a class="button is-light" href="{{ url_for('doc.admin_index') }}">Back</a>
+                    <a class="button is-success" href="{{ url_for('doc.send_round_for_review', round_id=round.id) }}">
+                        <span class="icon">
+                           <i class="far fa-paper-plane"></i>
+                        </span>
+                        <span>
+                            Send
+                        </span>
+                    </a>
                 </div>
             </div>
         </div>

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">Document Rounds</h1>
+                <table class="table is-striped is-fullwidth">
+                    <thead>
+                    <th>Date</th>
+                    <th>Total Documents</th>
+                    </thead>
+                    <tbody>
+                    {% for sent in sent_rounds %}
+                    <tr>
+                        <td>{{ sent.round }}</td>
+                        <td>
+                            <div class="field is-grouped is-grouped-multiline">
+                                <div class="control">
+                                    <a href="{{ url_for('doc.head_view_docs', round_id=sent.round.id) }}">
+                                        <div class="tags has-addons">
+                                            <span class="tag">total</span>
+                                            <span class="tag is-primary">
+                                                {{ sent.round.documents.all()|length }}
+                                            </span>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <div class="buttons is-centered">
+                    <a class="button is-light" href="{{ url_for('doc.admin_index') }}">Back</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

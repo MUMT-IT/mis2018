@@ -17,11 +17,11 @@
                     <th>Category</th>
                     <th>Deadline</th>
                     <th>Download</th>
-                    <th>Stage</th>
-                    <th></th>
+                    <th>Sent</th>
+                    <th>Actions</th>
                     </thead>
                     <tbody>
-                    {% for doc in docs %}
+                    {% for doc in sent_round.round.documents %}
                     <tr>
                         <td>
                             <span class="title is-size-6">
@@ -66,14 +66,14 @@
                             {% endif %}
                         </td>
                         <td>
-                            {{ doc.stage }}
+                            {{ doc.get_sent_receipts(sent_round.id)|length }}
                         </td>
                         <td>
-                            {% if doc.stage == 'Submitted' %}
+                            {% if doc.stage == 'ready' and doc.get_sent_receipts(sent_round.id)|length == 0 %}
                             <div class="field has-addons">
                                 <p class="control">
                                     <a class="button is-light is-link"
-                                       href="{{ url_for('doc.head_review', doc_id=doc.id) }}">
+                                       href="{{ url_for('doc.head_review', doc_id=doc.id, sent_round_org_id=sent_round.id) }}">
                                         <span class="icon">
                                             <i class="far fa-comment-dots"></i>
                                         </span>
@@ -89,6 +89,8 @@
                                     </a>
                                 </p>
                             </div>
+                            {% else %}
+                            <button class="is-light button" disabled>None</button>
                             {% endif %}
                         </td>
                     </tr>
@@ -96,7 +98,8 @@
                     </tbody>
                 </table>
                 <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('doc.admin_index') }}">Back</a>
+                    <a class="button is-light" href="{{ url_for('doc.head_view_rounds', round_id=sent_round.round.id) }}">Back</a>
+                    <a class="button is-link" href="{{ url_for('doc.head_view_rounds', round_id=sent_round.round.id) }}">Finish</a>
                 </div>
             </div>
         </div>
