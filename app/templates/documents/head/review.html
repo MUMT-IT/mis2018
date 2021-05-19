@@ -24,6 +24,12 @@
             <form method="post" class="box">
                 {{ form.hidden_tag() }}
                 <div class="field">
+                    <label class="label">{{ form.predefined_comment.label }}</label>
+                    <div class="select">
+                        {{ form.predefined_comment() }}
+                    </div>
+                </div>
+                <div class="field">
                     <label class="label">{{ form.comment.label }}</label>
                     <div class="control">
                         {{ form.comment(class="textarea") }}
@@ -58,8 +64,8 @@
         $("#send_all").click(function(){
             $('input:checkbox').not(this).prop('checked', this.checked);
         });
-        $("input[name='receivers']").click(function(){
-            if ($("input[name='receivers']").not(':checked').length > 0) {
+        $("input[name='members']").click(function(){
+            if ($("input[name='members']").not(':checked').length > 0) {
                 $('#send_all').prop('checked', false)
             } else {
                 $('#send_all').prop('checked', true)

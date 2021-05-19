@@ -17,9 +17,9 @@ class DocRound(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     status = db.Column(db.String(255),
                        info={'label': 'Status',
-                             'choices': ((c, c.title()) for c in ['drafting',
+                             'choices': [(c, c.title()) for c in ['drafting',
                                                                   'submitted',
-                                                                  'approved'])
+                                                                  'approved']]
                              }
                        )
     date = db.Column(db.Date(), info={'label': 'Date'}, nullable=False)
@@ -63,7 +63,11 @@ receipt_receivers = db.Table('doc_receipt_receivers_assoc',
 class DocReceiveRecord(db.Model):
     __tablename__ = 'doc_receive_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    comment = db.Column(db.Text, info={'label': 'Review Comment'})
+    predefined_comment = db.Column(db.String(255), info={'label': 'Predefined Comment',
+                                                         'choices': [(c, c) for c in [u'แจ้งเพื่อทราบ',
+                                                                                      u'แจ้งเพื่อพิจารณา',
+                                                                                      u'ขอความร่วมมือเข้าร่วม']]})
+    comment = db.Column(db.Text, info={'label': 'Additional Comment'})
     sent_at = db.Column(db.DateTime(timezone=True))
     sender_id = db.Column(db.ForeignKey('staff_account.id'))
     doc_id = db.Column(db.ForeignKey('doc_documents.id'))

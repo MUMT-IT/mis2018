@@ -162,7 +162,6 @@ def send_document(doc_id):
 
 @docbp.route('/head/documents')
 def head_view_docs():
-    # docs = DocDocument.query.filter_by(stage='Submitted')
     docs = DocDocument.query.all()
     return render_template('documents/head/docs.html', docs=docs)
 

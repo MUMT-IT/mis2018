@@ -41,7 +41,7 @@ def create_doc_receipt_form(org):
     class DocumentReceiptForm(ModelForm):
         class Meta:
             model = DocReceiveRecord
-            only = ['comment']
+            only = ['comment', 'predefined_comment']
         send_all = BooleanField('All', default=False)
         members = QuerySelectMultipleField(u'Members', get_label='fullname',
                                          validators=[DataRequired()],
