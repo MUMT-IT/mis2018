@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 
 {% block page_content %}
+{% include "documents/nav.html" %}
 <section class="section">
     <div class="container">
         {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">
-                <h1 class="title">Document Rounds</h1>
+                <h1 class="title">Rounds <span class="tag is-danger is-rounded is-light">supervisor</span></h1>
                 <table class="table is-striped is-fullwidth">
                     <thead>
                     <th>Date</th>
@@ -48,7 +49,7 @@
                     </tbody>
                 </table>
                 <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('doc.admin_index') }}">Back</a>
+                    <a class="button is-light" href="{{ url_for('doc.index') }}">Back</a>
                 </div>
             </div>
         </div>

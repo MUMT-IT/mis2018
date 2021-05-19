@@ -121,6 +121,7 @@ class DocDocumentReach(db.Model):
                                                           lazy='dynamic',
                                                           cascade='all, delete-orphan'))
     round_org_id = db.Column(db.ForeignKey('doc_round_orgs.id'))
+    round_org = db.relationship(DocRoundOrg, backref=db.backref('doc_reaches', lazy='dynamic'))
     sender_comment = db.Column(db.Text())
     receiver_comment = db.Column(db.Text())
     receiver_commented_at = db.Column(db.DateTime(timezone=True))

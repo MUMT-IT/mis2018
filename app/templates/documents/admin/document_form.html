@@ -6,10 +6,16 @@
 {% endblock %}
 
 {% block page_content %}
+{% include "documents/nav.html" %}
 <section class="section">
     <div class="columns">
-        <div class="column is-one-third is-offset-4">
+        <div class="column has-text-centered">
             {% include "messages.html" %}
+            <h1 class="title">New Document <span class="tag is-info is-rounded is-light">admin</span></h1>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
             <form method="post" class="box" enctype="multipart/form-data">
                 {{ form.hidden_tag() }}
                 <div class="field">

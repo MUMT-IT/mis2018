@@ -1,12 +1,14 @@
 {% extends "base.html" %}
 
 {% block page_content %}
+{% include "documents/nav.html" %}
 <section class="section">
     <div class="container">
         {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">
-                <a class="button is-link" href="{{ url_for('doc.add_document', round_id=round.id) }}">
+                <h1 class="title">Documents <span class="tag is-info is-rounded is-light">admin</span></h1>
+                <a class="button is-light is-link" href="{{ url_for('doc.add_document', round_id=round.id) }}">
                     <span class="icon">
                         <i class="fas fa-plus"></i>
                     </span>

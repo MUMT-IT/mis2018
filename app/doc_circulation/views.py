@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+import arrow
 import os
 import datetime
 
@@ -8,7 +9,6 @@ from werkzeug.utils import secure_filename
 from . import docbp
 from flask_login import current_user
 from flask import render_template, url_for, request, flash, redirect, jsonify
-from models import *
 from pytz import timezone
 from forms import *
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
@@ -36,7 +36,8 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 @docbp.route('/')
 def index():
-    rounds = DocRound.query.all()
+    rounds = DocRoundOrg.query.filter_by(org_id=current_user.personal_info.org.id)\
+        .order_by(DocRoundOrg.sent_at.desc()).all()
     return render_template('documents/index.html', rounds=rounds)
 
 
@@ -48,14 +49,29 @@ def admin_view_round(round_id):
 
 @docbp.route('/rounds/<int:round_id>/documents')
 def view_round(round_id):
-    round = DocRound.query.get(round_id)
-    records = []
-    for doc in round.documents.all():
-        for rec in doc.recv_records:
-            if rec.staff == current_user:
-                records.append(rec)
-    return render_template('documents/round.html', round=round, records=records)
+    _org = current_user.personal_info.org
+    round_org = DocRoundOrg.query.filter_by(round_id=round_id, org_id=_org.id).first()
+    if round_org:
+        _round_reach = DocRoundOrgReach.query.filter_by(round_org_id=round_org.id,
+                                                        reacher=current_user).first()
+        if _round_reach:
+            if not _round_reach.reached_at:
+                _round_reach.reached_at = bkk.localize(datetime.datetime.now())
+                db.session.add(_round_reach)
+                db.session.commit()
+        return render_template('documents/round.html', round_org=round_org)
 
+
+@docbp.route('/rounds/<int:round_org_id>')
+def mark_as_read(round_org_id):
+    doc_reach = DocDocumentReach.query.filter_by(round_org_id=round_org_id, reacher=current_user).first()
+    if doc_reach:
+        doc_reach.reached_at = bkk.localize(datetime.datetime.now())
+        db.session.add(doc_reach)
+        db.session.commit()
+        return redirect(url_for('doc.view_round', round_id=doc_reach.round_org.round.id))
+    else:
+        return 'Record not found.'
 
 @docbp.route('/documents/<int:rec_id>')
 def view_recv_record(rec_id):
@@ -167,27 +183,34 @@ def send_round_for_review(round_id):
     form = RoundSendForm()
     select_orgs = (4, 6, 7, 8, 10)
     form.targets.choices = [(org.id, org.name) for org in Org.query.all() if org.id in select_orgs]
-    form.targets.data = [current_user.personal_info.org.id]
+    n_dept = 0
     if request.method == 'POST':
         if form.validate_on_submit():
             for target_id in form.targets.data:
                 _record = DocRoundOrg.query.filter_by(org_id=target_id, round_id=round_id).first()
+                print(target_id)
                 if not _record:
                     send_record = DocRoundOrg(
                         org_id=target_id,
                         round_id=round_id,
                         sent_at=bkk.localize(datetime.datetime.now())
                     )
+                    n_dept += 1
                     db.session.add(send_record)
                 else:
                     _org = Org.query.get(target_id)
-                    flash(u'Documents were sent to {} at {}.'.format(_org.name, _record.sent_at), 'warning')
-            db.session.commit()
-            flash('The documents have been sent to selected departments for a review.', 'success')
+                    flash(u'Documents were sent to {} at {}.'\
+                          .format(_org.name, arrow.get(_record.sent_at, 'Asia/Bangkok').humanize()),'warning')
+            if n_dept > 0:
+                db.session.commit()
+                flash('The documents have been sent to selected departments for a review.', 'success')
             return redirect(url_for('doc.admin_index'))
         else:
             for field, error in form.errors:
                 flash('{} {}'.format(field, error), 'danger')
+
+    form.targets.data = [current_user.personal_info.org.id]
+
     return render_template('documents/admin/send_for_review.html', form=form, round_id=round_id)
 
 
@@ -204,7 +227,7 @@ def head_view_docs(round_id):
 def head_view_rounds():
     _org = current_user.personal_info.org
     if _org.head == current_user.email:
-        sent_rounds = DocRoundOrg.query.filter_by(org_id=_org.id).all()
+        sent_rounds = DocRoundOrg.query.filter_by(org_id=_org.id).order_by(DocRoundOrg.sent_at.desc()).all()
         return render_template('documents/head/rounds.html', sent_rounds=sent_rounds)
 
 
