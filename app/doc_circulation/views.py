@@ -126,7 +126,7 @@ def add_document(round_id, doc_id=None):
             form.populate_obj(new_doc)
             new_doc.round_id = round_id
             if not new_doc.addedAt:
-                new_doc.addedAt = bkk.localize(datetime.datetime.now())
+                new_doc.addedAt = datetime.datetime.now(bkk).astimezone(bkk)
             new_doc.deadline = bkk.localize(new_doc.deadline)
             drive = initialize_gdrive()
             if form.upload.data:
