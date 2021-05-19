@@ -244,3 +244,13 @@ def head_review(doc_id, sent_round_org_id):
                 for field, err in form.errors.items():
                     flash('{} {}'.format(field, err), 'danger')
         return render_template('documents/head/review.html', form=form, doc=doc)
+
+
+@docbp.route('/head/sent_rounds/<int:sent_round_org_id>')
+def head_finish_round(sent_round_org_id):
+    round_org = DocRoundOrg.query.get(sent_round_org_id)
+    if round_org:
+        round_org.finished_at = bkk.localize(datetime.datetime.now())
+        db.session.add(round_org)
+        db.session.commit()
+        return redirect(url_for('doc.head_view_rounds'))

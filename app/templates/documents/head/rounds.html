@@ -11,6 +11,7 @@
                     <thead>
                     <th>Date</th>
                     <th>Total Documents</th>
+                    <th>Finished At</th>
                     </thead>
                     <tbody>
                     {% for sent in sent_rounds %}
@@ -29,6 +30,18 @@
                                     </a>
                                 </div>
                             </div>
+                        </td>
+                        <td>
+                            <span class="icon">
+                                {% if sent.finished_at %}
+                                    <i class="fas fa-check-circle has-text-success"></i>
+                                {% else %}
+                                    <i class="far fa-circle has-text-success"></i>
+                                {% endif %}
+                            </span>
+                            <span>
+                                {{ sent.finished_at|localdatetime or 'Pending' }}
+                            </span>
                         </td>
                     </tr>
                     {% endfor %}

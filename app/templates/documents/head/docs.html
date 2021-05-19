@@ -99,7 +99,7 @@
                 </table>
                 <div class="buttons is-centered">
                     <a class="button is-light" href="{{ url_for('doc.head_view_rounds', round_id=sent_round.round.id) }}">Back</a>
-                    <a class="button is-link" href="{{ url_for('doc.head_view_rounds', round_id=sent_round.round.id) }}">Finish</a>
+                    <a class="button is-link" href="{{ url_for('doc.head_finish_round', sent_round_org_id=sent_round.id) }}">Finish</a>
                 </div>
             </div>
         </div>

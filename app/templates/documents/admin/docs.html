@@ -27,7 +27,7 @@
                     <th>Deadline</th>
                     <th>Download</th>
                     <th>Stage</th>
-                    <th>Actions</th>
+                    <th>Action</th>
                     </thead>
                     <tbody>
                     {% for doc in round.documents %}
@@ -72,7 +72,7 @@
                             {% endif %}
                         </td>
                         <td>
-                            {{ doc.stage }}
+                            {{ doc.stage.upper() }}
                         </td>
                         <td>
                             {% if doc.stage == 'drafting' %}
@@ -104,6 +104,8 @@
                                     </a>
                                 </p>
                             </div>
+                            {% else %}
+                            <button class="button is-light" disabled>None</button>
                             {% endif %}
                         </td>
                     </tr>
@@ -112,6 +114,7 @@
                 </table>
                 <div class="buttons is-centered">
                     <a class="button is-light" href="{{ url_for('doc.admin_index') }}">Back</a>
+                    {% if round.documents.filter_by(stage='ready').all()|length > 0 %}
                     <a class="button is-success" href="{{ url_for('doc.send_round_for_review', round_id=round.id) }}">
                         <span class="icon">
                            <i class="far fa-paper-plane"></i>
@@ -120,6 +123,16 @@
                             Send
                         </span>
                     </a>
+                    {% else %}
+                    <a class="button is-success" disabled="">
+                        <span class="icon">
+                           <i class="far fa-paper-plane"></i>
+                        </span>
+                        <span>
+                            Send
+                        </span>
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>

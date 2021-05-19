@@ -64,7 +64,10 @@ class DocDocument(db.Model):
 
     def get_recipients(self, round_org_id):
         receipt = self.doc_receipts.filter_by(round_org_id=round_org_id, doc_id=self.id).first()
-        return receipt.members
+        if receipt:
+            return receipt.members
+        else:
+            return []
 
 
 receipt_receivers = db.Table('doc_receipt_receivers_assoc',
