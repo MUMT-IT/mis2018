@@ -57,3 +57,9 @@ class RoundSendForm(FlaskForm):
                                   coerce=int,
                                   widget=widgets.ListWidget(prefix_label=False),
                                   option_widget=widgets.CheckboxInput())
+
+
+class PrivateMessageForm(ModelForm):
+    class Meta:
+        model = DocDocumentReach
+        only = ['sender_comment']

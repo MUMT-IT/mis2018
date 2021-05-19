@@ -66,7 +66,9 @@
                             {% endif %}
                         </td>
                         <td>
-                            {{ doc.get_recipients(sent_round.id)|length }}
+                            <a href="{{ url_for('doc.head_view_send_receipt', doc_id=doc.id, sent_round_org_id=sent_round.id) }}">
+                                {{ doc.get_recipients(sent_round.id)|length }}
+                            </a>
                         </td>
                         <td>
                             {% if doc.stage == 'ready' and doc.get_recipients(sent_round.id)|length == 0 %}

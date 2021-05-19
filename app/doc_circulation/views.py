@@ -254,3 +254,38 @@ def head_finish_round(sent_round_org_id):
         db.session.add(round_org)
         db.session.commit()
         return redirect(url_for('doc.head_view_rounds'))
+
+
+@docbp.route('/head/documents/<int:doc_id>/sent_round_org/<int:sent_round_org_id>/receipt')
+def head_view_send_receipt(doc_id, sent_round_org_id):
+    receipt = DocReceiveRecord.query.filter_by(doc_id=doc_id, round_org_id=sent_round_org_id).first()
+    if receipt:
+        return render_template('documents/head/sent_records.html', receipt=receipt)
+    else:
+        return 'Receipt not found.'
+
+
+@docbp.route('/head/receipts/<int:receipt_id>/members/<int:member_id>', methods=['GET', 'POST'])
+def head_add_private_msg(receipt_id, member_id):
+    receipt = DocReceiveRecord.query.get(receipt_id)
+    doc_reach = DocDocumentReach.query.filter_by(
+        doc_id=receipt.doc_id,
+        reacher_id=member_id,
+        round_org_id=receipt.round_org_id
+    ).first()
+    if doc_reach:
+        form = PrivateMessageForm(obj=doc_reach)
+    else:
+        form = PrivateMessageForm()
+
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(doc_reach)
+            db.session.add(doc_reach)
+            db.session.commit()
+            flash('Your message has been sent.', 'success')
+            return redirect(url_for('doc.head_view_send_receipt',
+                                    doc_id=receipt.doc_id,
+                                    sent_round_org_id=receipt.round_org_id))
+    return render_template('documents/head/private_message_form.html',
+                           form=form, doc_reach=doc_reach)

@@ -115,7 +115,7 @@ class DocDocumentReach(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     reached_at = db.Column(db.DateTime(timezone=True))
     reacher_id = db.Column(db.ForeignKey('staff_account.id'))
-    reacher = db.relationship(StaffAccount)
+    reacher = db.relationship(StaffAccount, backref=db.backref('doc_reaches', lazy='dynamic'))
     doc_id = db.Column(db.ForeignKey('doc_documents.id'))
     doc = db.relationship(DocDocument, backref=db.backref('reaches',
                                                           lazy='dynamic',
