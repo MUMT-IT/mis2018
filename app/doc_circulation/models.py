@@ -40,10 +40,6 @@ class DocRoundOrg(db.Model):
 class DocDocument(db.Model):
     __tablename__ = 'doc_documents'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    round_org_id = db.Column(db.ForeignKey('doc_round_orgs.id'))
-    round_org = db.relationship(DocRoundOrg, backref=db.backref('documents',
-                                                                lazy='dynamic',
-                                                                cascade='all, delete-orphan'))
     round_id = db.Column(db.ForeignKey('doc_rounds.id'))
     round = db.relationship(DocRound, backref=db.backref('documents',
                                                          lazy='dynamic',
@@ -94,3 +90,34 @@ class DocReceiveRecord(db.Model):
     doc = db.relationship(DocDocument, backref=db.backref('doc_receipts',
                                                           lazy='dynamic',
                                                           cascade='all, delete-orphan'))
+
+
+class DocRoundOrgReach(db.Model):
+    __tablename__ = 'doc_round_org_reaches'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    reached_at = db.Column(db.DateTime(timezone=True))
+    reached_by = db.Column(db.ForeignKey('staff_account.id'))
+    reacher = db.relationship(StaffAccount)
+    created_at = db.Column(db.DateTime(timezone=True))
+
+    round_org_id = db.Column(db.ForeignKey('doc_round_orgs.id'))
+
+    round_org = db.relationship(DocRoundOrg, backref=db.backref('round_reaches',
+                                                                lazy='dynamic',
+                                                                cascade='all, delete-orphan'))
+
+
+class DocDocumentReach(db.Model):
+    __tablename__ = 'doc_document_reaches'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    reached_at = db.Column(db.DateTime(timezone=True))
+    reached_by = db.Column(db.ForeignKey('staff_account.id'))
+    reacher = db.relationship(StaffAccount)
+    doc_id = db.Column(db.ForeignKey('doc_documents.id'))
+    doc = db.relationship(DocDocument, backref=db.backref('reaches',
+                                                          lazy='dynamic',
+                                                          cascade='all, delete-orphan'))
+    sender_comment = db.Column(db.Text())
+    receiver_comment = db.Column(db.Text())
+    receiver_commented_at = db.Column(db.DateTime(timezone=True))
+    created_at = db.Column(db.DateTime(timezone=True))
