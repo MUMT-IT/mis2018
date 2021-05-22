@@ -683,7 +683,7 @@ def local_datetime(dt):
 @app.template_filter("humanizedt")
 def humanize_datetime(dt):
     if dt:
-        return arrow.get(dt, 'Asia/Bangkok').humanize()
+        return arrow.get(dt.astimezone(bangkok)).humanize()
     else:
         return None
 
