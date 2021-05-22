@@ -40,7 +40,7 @@ def create_bubble_message(round_org):
             aspect_mode='cover',
             aspect_ratio='20:13',
             action=URIAction(
-                uri=url_for('doc.head_view_docs', round_id=round_org.id, _external=True),
+                uri=url_for('doc.head_view_docs', round_id=round_org.round_id, _external=True),
                 label='Check'
             )
         ),
