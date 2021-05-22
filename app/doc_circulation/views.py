@@ -92,6 +92,7 @@ def add_round():
         if form.validate_on_submit():
             new_round = DocRound()
             form.populate_obj(new_round)
+            new_round.created_at = datetime.datetime.now(bkk)
             new_round.creator = current_user
             db.session.add(new_round)
             db.session.commit()

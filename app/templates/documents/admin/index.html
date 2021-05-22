@@ -24,14 +24,35 @@
             <div class="column">
                 <table class="table is-striped is-fullwidth">
                     <thead>
-                    <th>Date</th>
-                    <th>Total Documents</th>
+                    <th>
+                        <span class="icon">
+                            <i class="far fa-calendar-alt"></i>
+                        </span>
+                        <span>
+                            Date
+                        </span>
+                    </th>
+                    <th>
+                        <span class="icon">
+                            <i class="far fa-file-alt"></i>
+                        </span>
+                        <span>
+                            Total Documents
+                        </span>
+                    </th>
                     <th>Targets</th>
                     </thead>
                     <tbody>
                     {% for round in rounds %}
                     <tr>
-                        <td>{{ round }}</td>
+                        <td>
+                            <h1 class="title is-size-6">
+                                {{ round.created_at|humanizedt }}
+                            </h1>
+                            <h1 class="subtitle is-size-7">
+                                {{ round.created_at|localdatetime }}
+                            </h1>
+                        </td>
                         <td>
                             <div class="field is-grouped is-grouped-multiline">
                                 <div class="control">
