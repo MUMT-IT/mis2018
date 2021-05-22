@@ -4,6 +4,7 @@ import os
 import datetime
 
 import requests
+from linebot.models import BubbleContainer
 from werkzeug.utils import secure_filename
 
 from . import docbp
@@ -14,7 +15,8 @@ from forms import *
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from app.models import Org
-
+from ..auth.views import line_bot_api
+from linebot.models import *
 
 bkk = timezone('Asia/Bangkok')
 
@@ -23,6 +25,65 @@ bkk = timezone('Asia/Bangkok')
 FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
 
 json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+
+
+def create_bubble_message(round_org):
+    return BubbleContainer(
+        body=BoxComponent(
+            layout='vertical',
+            contents=[
+                TextComponent(
+                    text=u'หนังสือเวียนรอบใหม่มาถึงแล้ว',
+                    wrap=True,
+                    weight='bold',
+                    size='xl',
+                ),
+                TextComponent(
+                    text=u'New round of circular letters has arrived!',
+                    wrap=True,
+                ),
+                BoxComponent(
+                    layout='baseline',
+                    contents=[
+                        TextComponent(
+                            text='Round',
+                            color='#AAAAAA',
+                        ),
+                        TextComponent(
+                            text=str(round_org.round),
+                        )
+                    ]
+                ),
+                BoxComponent(
+                    layout='baseline',
+                    contents=[
+                        TextComponent(
+                            text='Total',
+                            color='#AAAAAA',
+                        ),
+                        TextComponent(
+                            text=str(len(round_org.round.documents.all())),
+                        )
+                    ]
+                )
+            ]
+        ),
+        footer=BoxComponent(
+            layout='vertical',
+            flex=0,
+            spacing='sm',
+            contents=[
+                ButtonComponent(
+                    action=URIAction(
+                        uri=url_for('doc.head_view_docs', round_id=round_org.id, _external=True),
+                        label='Check'
+                    ),
+                    style='link',
+                    height='sm'
+                )
+            ]
+        )
+    )
 
 
 def initialize_gdrive():
@@ -190,7 +251,6 @@ def send_round_for_review(round_id):
         if form.validate_on_submit():
             for target_id in form.targets.data:
                 _record = DocRoundOrg.query.filter_by(org_id=target_id, round_id=round_id).first()
-                print(target_id)
                 if not _record:
                     send_record = DocRoundOrg(
                         org_id=target_id,
@@ -199,6 +259,14 @@ def send_round_for_review(round_id):
                     )
                     n_dept += 1
                     db.session.add(send_record)
+                    _org = Org.query.get(target_id)
+                    _head_org = StaffAccount.query.filter_by(email=_org.head).first()
+                    if _head_org:
+                        line_bot_api.push_message(to=_head_org.line_id,
+                                                  messages=FlexSendMessage(
+                                                      alt_text='Circular Letters',
+                                                      contents=create_bubble_message(send_record)
+                                                  ))
                 else:
                     _org = Org.query.get(target_id)
                     flash(u'Documents were sent to {} about {}.'\
