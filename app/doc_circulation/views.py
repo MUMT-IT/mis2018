@@ -110,7 +110,7 @@ def create_bubble_message_recipient(sent_record, member):
             aspect_mode='cover',
             aspect_ratio='20:13',
             action=URIAction(
-                uri=url_for('doc.view_round', round_id=sent_record.round_org_id, _external=True),
+                uri=url_for('doc.view_round', round_id=sent_record.round_org.round_id, _external=True),
                 label='Check'
             )
         ),
@@ -172,7 +172,7 @@ def create_bubble_message_recipient(sent_record, member):
             contents=[
                 ButtonComponent(
                     action=URIAction(
-                        uri=url_for('doc.view_round', round_id=sent_record.round_org_id, _external=True),
+                        uri=url_for('doc.view_round', round_id=sent_record.round_org.round_id, _external=True),
                         label='Check'
                     ),
                     height='sm'
