@@ -16,6 +16,7 @@ class DocRound(db.Model):
     __tablename__ = 'doc_rounds'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     date = db.Column(db.Date(), info={'label': 'Date'}, nullable=False)
+    created_at = db.Column(db.DateTime(timezone=True))
     created_by = db.Column(db.ForeignKey('staff_account.id'))
     creator = db.relationship(StaffAccount)
 
