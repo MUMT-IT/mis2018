@@ -84,12 +84,20 @@
 {{ super() }}
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script>
+    // set up the daterangepicker so that it starts off empty
+    // because not all documents have a deadline date.
     $('input[name="deadline"]').daterangepicker({
         singleDatePicker: true,
         timePicker: true,
+        autoUpdateInput: false,
+        timePicker24Hour: true,
+        timePickerIncrement: 30,
         locale: {
-            format: 'YYYY-MM-DD HH:MM:SS'
+            cancelLabel: 'Clear',
+            format: 'YYYY-MM-DD HH:mm:ss'
         }
+    }, function(start, end, label) {
+        $(this.element).val(start.format('YYYY-MM-DD HH:mm:ss'))
     });
 </script>
 <script>

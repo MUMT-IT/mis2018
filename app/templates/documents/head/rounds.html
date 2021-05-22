@@ -4,13 +4,20 @@
 {% include "documents/nav.html" %}
 <section class="section">
     <div class="container">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('doc.index') }}">Main</a></li>
+                <li class="is-active"><a href="#" aria-current="page">Rounds</a></li>
+            </ul>
+        </nav>
         {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">
                 <h1 class="title">Rounds <span class="tag is-danger is-rounded is-light">supervisor</span></h1>
                 <table class="table is-striped is-fullwidth">
                     <thead>
-                    <th>Date</th>
+                    <th>Round</th>
+                    <th>Submitted At</th>
                     <th>Total Documents</th>
                     <th>Finished At</th>
                     </thead>
@@ -18,6 +25,10 @@
                     {% for sent in sent_rounds %}
                     <tr>
                         <td>{{ sent.round }}</td>
+                        <td>
+                            <h1 class="title is-size-7">{{ sent.round.created_at|localdatetime }}</h1>
+                            <h1 class="subtitle is-size-7">{{ sent.round.created_at|humanizedt|title }}</h1>
+                        </td>
                         <td>
                             <div class="field is-grouped is-grouped-multiline">
                                 <div class="control">

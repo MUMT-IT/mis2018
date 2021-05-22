@@ -4,6 +4,12 @@
 {% include "documents/nav.html" %}
 <section class="section">
     <div class="container">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('doc.index') }}">Main</a></li>
+                <li class="is-active"><a href="#" aria-current="page">Documents</a></li>
+            </ul>
+        </nav>
         {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">

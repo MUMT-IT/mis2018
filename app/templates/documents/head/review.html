@@ -14,16 +14,17 @@
         </div>
     </div>
     <div class="columns">
-        <div class="column has-text-centered">
-            <h1 class="title is-size-4">
-                {{ doc.title }}
-            </h1>
-        </div>
-    </div>
-    <div class="columns">
         <div class="column is-one-third is-offset-4">
             <form method="post" class="box">
                 {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">Title</label>
+                        {{ doc.title }}
+                </div>
+                <div class="field">
+                    <label class="label">Admin's Memo</label>
+                    {{ doc.comment }}
+                </div>
                 <div class="field">
                     <label class="label">{{ form.predefined_comment.label }}</label>
                     <div class="select">
@@ -49,7 +50,7 @@
                     {{ form.members() }}
                 </div>
                 <div class="buttons is-centered">
-                    <a href="" class="button is-light">Back</a>
+                    <a href="{{ url_for('doc.head_view_docs', round_id=doc.round_id) }}" class="button is-light">Back</a>
                     <input type="submit" class="button is-success" value="Send"></input>
                 </div>
             </form>

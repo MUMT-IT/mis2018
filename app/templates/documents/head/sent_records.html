@@ -4,6 +4,14 @@
 {% include "documents/nav.html" %}
 <section class="section">
     <div class="container">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('doc.index') }}">Main</a></li>
+                <li><a href="{{ url_for('doc.head_view_rounds') }}">Rounds</a></li>
+                <li><a href="{{ url_for('doc.head_view_docs', round_id=receipt.round_org_id) }}">Documents</a></li>
+                <li class="is-active"><a href="#" aria-current="page">Recipients</a></li>
+            </ul>
+        </nav>
         {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">

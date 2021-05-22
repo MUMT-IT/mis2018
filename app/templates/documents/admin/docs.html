@@ -4,6 +4,13 @@
 {% include "documents/nav.html" %}
 <section class="section">
     <div class="container">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('doc.index') }}">Main</a></li>
+                <li><a href="{{ url_for('doc.admin_index') }}">Rounds</a></li>
+                <li class="is-active"><a href="#" aria-current="page">Documents</a></li>
+            </ul>
+        </nav>
         {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">
@@ -34,7 +41,14 @@
                     <tbody>
                     {% for doc in round.documents %}
                     <tr>
-                        <td>{{ doc.addedAt|humanizedt }}</td>
+                        <td>
+                            <h1 class="title is-size-7">
+                                {{ doc.addedAt|localdatetime }}
+                            </h1>
+                            <h1 class="subtitle is-size-7">
+                                {{ doc.addedAt|humanizedt|title }}
+                            </h1>
+                        </td>
                         <td>
                             <span class="icon">
                             {% if doc.priority == 'ด่วนที่สุด' %}
@@ -63,7 +77,18 @@
                             </span>
                         </td>
                         <td>{{ doc.category }}</td>
-                        <td>{{ doc.deadline|humanizedt }}</td>
+                        <td>
+                            {% if doc.deadline %}
+                            <h1 class="title is-size-7">
+                                {{ doc.deadline|localdatetime }}
+                            </h1>
+                            <h1 class="subtitle is-size-7">
+                                {{ doc.deadline|humanizedt|title }}
+                            </h1>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
                         <td>
                             {% if doc.url %}
                             <a href="{{ 'https://drive.google.com/uc?id=' + doc.url }}" target="_blank">
@@ -71,6 +96,8 @@
                                     <i class="far fa-file-pdf"></i>
                                 </span>
                             </a>
+                            {% else %}
+                            -
                             {% endif %}
                         </td>
                         <td>

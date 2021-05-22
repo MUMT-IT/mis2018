@@ -56,7 +56,7 @@ def view_round(round_id):
                                                         reacher=current_user).first()
         if _round_reach:
             if not _round_reach.reached_at:
-                _round_reach.reached_at = bkk.localize(datetime.datetime.now())
+                _round_reach.reached_at = datetime.datetime.now(bkk)
                 db.session.add(_round_reach)
                 db.session.commit()
         return render_template('documents/round.html', round_org=round_org)
@@ -66,7 +66,7 @@ def view_round(round_id):
 def mark_as_read(round_org_id):
     doc_reach = DocDocumentReach.query.filter_by(round_org_id=round_org_id, reacher=current_user).first()
     if doc_reach:
-        doc_reach.reached_at = bkk.localize(datetime.datetime.now())
+        doc_reach.reached_at = datetime.datetime.now(bkk)
         db.session.add(doc_reach)
         db.session.commit()
         return redirect(url_for('doc.view_round', round_id=doc_reach.round_org.round.id))
@@ -81,7 +81,7 @@ def view_recv_record(rec_id):
 
 @docbp.route('/admin')
 def admin_index():
-    rounds = DocRound.query.all()
+    rounds = DocRound.query.order_by(DocRound.date.desc()).order_by(DocRound.created_at.desc()).all()
     return render_template('documents/admin/index.html', rounds=rounds)
 
 
@@ -127,8 +127,9 @@ def add_document(round_id, doc_id=None):
             form.populate_obj(new_doc)
             new_doc.round_id = round_id
             if not new_doc.addedAt:
-                new_doc.addedAt = datetime.datetime.now(bkk).astimezone(bkk)
-            new_doc.deadline = bkk.localize(new_doc.deadline)
+                new_doc.addedAt = datetime.datetime.now(bkk)
+            if new_doc.deadline:
+                new_doc.deadline = bkk.localize(new_doc.deadline)
             drive = initialize_gdrive()
             if form.upload.data:
                 if not filename or (form.upload.data.filename != filename):
@@ -194,13 +195,13 @@ def send_round_for_review(round_id):
                     send_record = DocRoundOrg(
                         org_id=target_id,
                         round_id=round_id,
-                        sent_at=bkk.localize(datetime.datetime.now())
+                        sent_at=datetime.datetime.now(bkk)
                     )
                     n_dept += 1
                     db.session.add(send_record)
                 else:
                     _org = Org.query.get(target_id)
-                    flash(u'Documents were sent to {} at {}.'\
+                    flash(u'Documents were sent to {} about {}.'\
                           .format(_org.name, arrow.get(_record.sent_at, 'Asia/Bangkok').humanize()),'warning')
             if n_dept > 0:
                 db.session.commit()
@@ -245,17 +246,17 @@ def head_review(doc_id, sent_round_org_id):
                 receipt.round_org_id = sent_round_org_id
                 receipt.doc = doc
                 receipt.sender = current_user
-                receipt.sent_at = bkk.localize(datetime.datetime.now())
+                receipt.sent_at = datetime.datetime.now(bkk)
                 db.session.add(receipt)
                 for member in receipt.members:
                     _round_reach = DocRoundOrgReach(
                         reacher=member.staff_account,
                         round_org_id=sent_round_org_id,
-                        created_at=bkk.localize(datetime.datetime.now()),
+                        created_at=datetime.datetime.now(bkk),
                     )
                     _doc_reach = DocDocumentReach(
                         reacher=member.staff_account,
-                        created_at=bkk.localize(datetime.datetime.now()),
+                        created_at=datetime.datetime.now(bkk),
                         doc_id=doc.id,
                         round_org_id=sent_round_org_id,
                     )
@@ -274,7 +275,7 @@ def head_review(doc_id, sent_round_org_id):
 def head_finish_round(sent_round_org_id):
     round_org = DocRoundOrg.query.get(sent_round_org_id)
     if round_org:
-        round_org.finished_at = bkk.localize(datetime.datetime.now())
+        round_org.finished_at = datetime.datetime.now(bkk)
         db.session.add(round_org)
         db.session.commit()
         return redirect(url_for('doc.head_view_rounds'))
