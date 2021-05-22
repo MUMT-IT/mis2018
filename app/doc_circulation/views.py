@@ -90,7 +90,7 @@ def create_bubble_message(round_org):
             contents=[
                 ButtonComponent(
                     action=URIAction(
-                        uri=url_for('doc.view_round', round_id=round_org.id, _external=True),
+                        uri=url_for('doc.head_view_docs', round_id=round_org.id, _external=True),
                         label='Approve'
                     ),
                     height='sm'
@@ -172,7 +172,7 @@ def create_bubble_message_recipient(sent_record, member):
             contents=[
                 ButtonComponent(
                     action=URIAction(
-                        uri=url_for('doc.head_view_docs', round_id=sent_record.round_org_id, _external=True),
+                        uri=url_for('doc.view_round', round_id=sent_record.round_org_id, _external=True),
                         label='Check'
                     ),
                     height='sm'
