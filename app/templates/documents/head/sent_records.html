@@ -51,7 +51,7 @@
                                 <span class="icon">
                                    <i class="far fa-comment-dots"></i>
                                 </span>
-                                <span>add</span>
+                                <span>message</span>
                             </button>
                             {% else %}
                             <a href="{{ url_for('doc.head_add_private_msg', receipt_id=receipt.id, member_id=member.staff_account.id) }}"
@@ -59,7 +59,7 @@
                                 <span class="icon">
                                    <i class="far fa-comment-dots"></i>
                                 </span>
-                                <span>add</span>
+                                <span>message</span>
                             </a>
                             {% endif %}
                         </td>

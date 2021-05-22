@@ -88,6 +88,8 @@ class DocReceiveRecord(db.Model):
     sent_at = db.Column(db.DateTime(timezone=True))
     sender_id = db.Column(db.ForeignKey('staff_account.id'))
     round_org_id = db.Column(db.ForeignKey('doc_round_orgs.id'))
+    round_org = db.relationship(DocRoundOrg, backref=db.backref('sent_records',
+                                                            lazy='dynamic'))
     doc_id = db.Column(db.ForeignKey('doc_documents.id'))
     members = db.relationship(StaffPersonalInfo, secondary=receipt_receivers)
     sender = db.relationship(StaffAccount)

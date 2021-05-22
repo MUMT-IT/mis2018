@@ -27,19 +27,34 @@ FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
 json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 
 
+letter_header_image = '1Z1wYogBY-S1QMPfdZwnlpqHcYr_UZ0u-'
+letter_header_image_for_head = '1KCkyDRa-_5Uc0aSbCFXv8hZ2MfbORT4D'
+
+
 def create_bubble_message(round_org):
     return BubbleContainer(
+        hero=ImageComponent(
+            layout='vertical',
+            url="https://drive.google.com/uc?id={}".format(letter_header_image_for_head),
+            size='full',
+            aspect_mode='cover',
+            aspect_ratio='20:13',
+            action=URIAction(
+                uri=url_for('doc.head_view_docs', round_id=round_org.id, _external=True),
+                label='Check'
+            )
+        ),
         body=BoxComponent(
             layout='vertical',
             contents=[
                 TextComponent(
-                    text=u'หนังสือเวียนรอบใหม่มาถึงแล้ว',
+                    text=u'หนังสือเวียนรอบใหม่มาถึงแล้ว กรุณาตรวจสอบ',
                     wrap=True,
                     weight='bold',
                     size='xl',
                 ),
                 TextComponent(
-                    text=u'New round of circular letters has arrived!',
+                    text=u'New round of circular letters has arrived. Please approve!',
                     wrap=True,
                 ),
                 BoxComponent(
@@ -75,10 +90,91 @@ def create_bubble_message(round_org):
             contents=[
                 ButtonComponent(
                     action=URIAction(
-                        uri=url_for('doc.head_view_docs', round_id=round_org.id, _external=True),
+                        uri=url_for('doc.view_round', round_id=round_org.id, _external=True),
+                        label='Approve'
+                    ),
+                    height='sm'
+                )
+            ]
+        )
+    )
+
+
+def create_bubble_message_recipient(sent_record, member):
+    num_docs = len(member.doc_reaches.filter_by(round_org_id=sent_record.round_org_id).all())
+    return BubbleContainer(
+        hero=ImageComponent(
+            layout='vertical',
+            url="https://drive.google.com/uc?id={}".format(letter_header_image),
+            size='full',
+            aspect_mode='cover',
+            aspect_ratio='20:13',
+            action=URIAction(
+                uri=url_for('doc.view_round', round_id=sent_record.round_org_id, _external=True),
+                label='Check'
+            )
+        ),
+        body=BoxComponent(
+            layout='vertical',
+            contents=[
+                TextComponent(
+                    text=u'หนังสือเวียนรอบใหม่มาถึงแล้ว',
+                    wrap=True,
+                    weight='bold',
+                    size='xl',
+                ),
+                TextComponent(
+                    text=u"You've got new circular letters!",
+                    wrap=True,
+                ),
+                BoxComponent(
+                    layout='baseline',
+                    contents=[
+                        TextComponent(
+                            text='Round',
+                            color='#AAAAAA',
+                        ),
+                        TextComponent(
+                            text=str(sent_record.round_org.round),
+                        )
+                    ]
+                ),
+                BoxComponent(
+                    layout='baseline',
+                    contents=[
+                        TextComponent(
+                            text='Sent at',
+                            color='#AAAAAA',
+                        ),
+                        TextComponent(
+                            text=str(arrow.get(sent_record.round_org.finished_at.astimezone(bkk)).humanize()),
+                        )
+                    ]
+                ),
+                BoxComponent(
+                    layout='baseline',
+                    contents=[
+                        TextComponent(
+                            text='Total',
+                            color='#AAAAAA',
+                        ),
+                        TextComponent(
+                            text=str(num_docs),
+                        )
+                    ]
+                )
+            ]
+        ),
+        footer=BoxComponent(
+            layout='vertical',
+            flex=0,
+            spacing='sm',
+            contents=[
+                ButtonComponent(
+                    action=URIAction(
+                        uri=url_for('doc.head_view_docs', round_id=sent_record.round_org_id, _external=True),
                         label='Check'
                     ),
-                    style='link',
                     height='sm'
                 )
             ]
@@ -342,11 +438,19 @@ def head_review(doc_id, sent_round_org_id):
 @docbp.route('/head/sent_rounds/<int:sent_round_org_id>')
 def head_finish_round(sent_round_org_id):
     round_org = DocRoundOrg.query.get(sent_round_org_id)
+    sent_records = DocReceiveRecord.query.filter_by(round_org_id=round_org.id).all()
     if round_org:
         round_org.finished_at = datetime.datetime.now(bkk)
         db.session.add(round_org)
         db.session.commit()
-        return redirect(url_for('doc.head_view_rounds'))
+    for record in sent_records:
+        for member in record.members:
+            line_id = member.staff_account.line_id
+            bubble_message = create_bubble_message_recipient(record, member.staff_account)
+            line_bot_api.push_message(to=line_id,
+                                      messages=FlexSendMessage(alt_text='New circular letters',
+                                                               contents=bubble_message))
+    return redirect(url_for('doc.head_view_rounds'))
 
 
 @docbp.route('/head/documents/<int:doc_id>/sent_round_org/<int:sent_round_org_id>/receipt')

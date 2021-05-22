@@ -91,9 +91,9 @@
                                     <a class="button is-light is-link"
                                        href="{{ url_for('doc.head_review', doc_id=doc.id, sent_round_org_id=sent_round.id) }}">
                                         <span class="icon">
-                                            <i class="far fa-comment-dots"></i>
+                                            <i class="fas fa-paper-plane"></i>
                                         </span>
-                                        <span>comment</span>
+                                        <span>send to</span>
                                     </a>
                                 </p>
                                 <p class="control">
@@ -113,6 +113,8 @@
                     {% endfor %}
                     </tbody>
                 </table>
+                <p class="help is-info">Click at the human icon to add a private message. คลิกที่ไอคอนรูปคนเพื่อส่งข้อความส่วนตัว</p>
+                <hr>
                 <div class="buttons is-centered">
                     <a class="button is-light" href="{{ url_for('doc.head_view_rounds', round_id=sent_round.round.id) }}">Back</a>
                     <a class="button is-link" href="{{ url_for('doc.head_finish_round', sent_round_org_id=sent_round.id) }}">Finish</a>
