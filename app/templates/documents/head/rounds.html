@@ -33,12 +33,12 @@
                             <div class="field is-grouped is-grouped-multiline">
                                 <div class="control">
                                     <a href="{{ url_for('doc.head_view_docs', round_id=sent.round.id) }}">
-                                        <div class="tags has-addons">
-                                            <span class="tag">total</span>
-                                            <span class="tag is-primary">
-                                                {{ sent.round.documents.all()|length }}
-                                            </span>
-                                        </div>
+                                        <span class="icon">
+                                            <i class="far fa-envelope-open"></i>
+                                        </span>
+                                        <span>
+                                            {{ sent.round.documents.all()|length }}
+                                        </span>
                                     </a>
                                 </div>
                             </div>

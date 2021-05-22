@@ -48,11 +48,11 @@
                         </td>
                         <td>
                             <a href="{{ url_for('doc.view_round', round_id=rorg.round.id) }}">
-                                <span class="tags has-addons">
-                                    <span class="tag is-info">
-                                        {{ rorg.round.documents.all()|length }}
-                                    </span>
-                                    <span class="tag">total</span>
+                                <span class="icon">
+                                    <i class="far fa-envelope-open"></i>
+                                </span>
+                                <span>
+                                    {{ rorg.round.documents.all()|length }}
                                 </span>
                             </a>
                         </td>
