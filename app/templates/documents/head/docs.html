@@ -15,9 +15,11 @@
         <div class="columns">
             <div class="column has-text-centered">
                 <h1 class="title">Review <span class="tag is-danger is-rounded is-light">supervisor</span></h1>
+                <h1 class="title is-size-6">Round {{ sent_round.round }}</h1>
+                <h1 class="subtitle is-size-6">Submitted {{ sent_round.sent_at|humanizedt }}</h1>
                 <table class="table is-striped is-fullwidth">
                     <thead>
-                    <th>Round</th>
+                    <th>Added at</th>
                     <th>Number</th>
                     <th>Title</th>
                     <th>Summary</th>
@@ -33,9 +35,9 @@
                     {% for doc in sent_round.round.documents|sort(attribute='number') %}
                     <tr>
                         <td>
-                            <h1 class="title is-size-7">{{ doc.round.created_at|localdatetime }}</h1>
+                            <h1 class="title is-size-7">{{ doc.addedAt|localdatetime }}</h1>
                             <h1 class="subtitle is-size-7">
-                                {{ doc.round.created_at|humanizedt }}
+                                {{ doc.addedAt|humanizedt }}
                             </h1>
                         </td>
                         <td>
@@ -117,11 +119,21 @@
                     {% endfor %}
                     </tbody>
                 </table>
-                <p class="help is-info">Click at the human icon to add a private message. คลิกที่ไอคอนรูปคนเพื่อส่งข้อความส่วนตัว</p>
+                <p class="help is-info">Click at the human icon to send a private message. คลิกที่ไอคอนรูปคนเพื่อส่งข้อความส่วนตัว</p>
                 <hr>
+                {% if sent_round.finished_at %}
+                <h1 class="subtitle is-size-6 tag is-success is-light">
+                    <span class="icon">
+                        <i class="far fa-paper-plane"></i>
+                    </span>
+                    <span>
+                        {{ sent_round.finished_at|localdatetime }}
+                    </span>
+                </h1>
+                {% endif %}
                 <div class="buttons is-centered">
                     <a class="button is-light" href="{{ url_for('doc.head_view_rounds', round_id=sent_round.round.id) }}">Back</a>
-                    {% if sent_round.doc_reaches.all()|length > 0 %}
+                    {% if sent_round.doc_reaches.all()|length > 0 and not sent_round.finished_at %}
                     <a class="button is-link" href="{{ url_for('doc.head_finish_round', sent_round_org_id=sent_round.id) }}">Finish</a>
                     {% else %}
                     <a class="button is-link" disabled>Finish</a>

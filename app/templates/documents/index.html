@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 
+{% block head %}
+{{ super() }}
+<link ref="//cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css" rel="stylesheet">
+{% endblock %}
+
 {% block page_content %}
 {% include "documents/nav.html" %}
 <section class="section">
@@ -26,7 +31,7 @@
         <div class="columns">
             <div class="column">
                 <h1 class="title">Document Round</h1>
-                <table class="table is-striped is-fullwidth">
+                <table id="myTable" class="table is-striped is-fullwidth">
                     <thead>
                     <th>Round</th>
                     <th>Approved At</th>
@@ -52,30 +57,30 @@
                                     <i class="far fa-envelope-open"></i>
                                 </span>
                                 <span>
-                                    {{ rorg.round.documents.all()|length }}
+                                    {{ rorg.doc_reaches.filter_by(reacher=current_user).all()|length }}
                                 </span>
                             </a>
                         </td>
                         <td>
-                            {% if rorg.round.documents.filter_by(priority='ด่วนที่สุด').all()|length > 0 %}
+                            {% if rorg.doc_reaches.filter_by(reacher=current_user).filter(DocDocumentReach.doc.has(priority='ด่วนที่สุด')).all()|length > 0 %}
                             <span class="icon">
                                 <i class="fas fa-exclamation-triangle has-text-danger"></i>
                             </span>
                             <span>
-                            {{ rorg.round.documents.filter_by(priority='ด่วนที่สุด').all()|length }}
+                            {{ rorg.doc_reaches.filter_by(reacher=current_user).filter(DocDocumentReach.doc.has(priority='ด่วนที่สุด')).all()|length }}
                             </span>
                             {% endif %}
-                            {% if rorg.round.documents.filter_by(priority='ด่วน').all()|length > 0 %}
+                            {% if rorg.doc_reaches.filter_by(reacher=current_user).filter(DocDocumentReach.doc.has(priority='ด่วน')).all()|length > 0 %}
                             <span class="icon">
                                 <i class="fas fa-exclamation-triangle has-text-warning"></i>
                             </span>
                             <span>
-                            {{ rorg.round.documents.filter_by(priority='ด่วน').all()|length }}
+                            {{ rorg.doc_reaches.filter_by(reacher=current_user).filter(DocDocumentReach.doc.has(priority='ด่วน')).all()|length }}
                             </span>
                             {% endif %}
                         </td>
                         <td>
-                            {% if rorg.round.documents.all()|length - rorg.doc_reaches.filter_by(reacher=current_user, sender_comment=None).all()|length > 0%}
+                            {% if rorg.doc_reaches.filter_by(reacher=current_user).all()|length - rorg.doc_reaches.filter_by(reacher=current_user, sender_comment=None).all()|length > 0%}
                             <span class="icon">
                                 {% if rorg.round_reaches.filter_by(round_org=rorg, reacher=current_user).first().reached_at %}
                                     <i class="fas fa-envelope has-text-light"></i>
@@ -84,7 +89,7 @@
                                 {% endif %}
                             </span>
                             <span>
-                                {{ rorg.round.documents.all()|length - rorg.doc_reaches.filter_by(reacher=current_user, sender_comment=None).all()|length }}
+                                {{ rorg.doc_reaches.filter_by(reacher=current_user).all()|length - rorg.doc_reaches.filter_by(reacher=current_user, sender_comment=None).all()|length }}
                             </span>
                             {% endif %}
                         </td>
@@ -105,4 +110,17 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready( function () {
+        $('#myTable').DataTable(
+            {
+                "order": [[0, "desc"], [1, "desc"]]
+            }
+        );
+    });
+</script>
 {% endblock %}

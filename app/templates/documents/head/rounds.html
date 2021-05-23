@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 
+{% block head %}
+{{ super() }}
+<link ref="//cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css" rel="stylesheet">
+{% endblock %}
+
 {% block page_content %}
 {% include "documents/nav.html" %}
 <section class="section">
@@ -14,7 +19,7 @@
         <div class="columns">
             <div class="column has-text-centered">
                 <h1 class="title">Rounds <span class="tag is-danger is-rounded is-light">supervisor</span></h1>
-                <table class="table is-striped is-fullwidth">
+                <table id="myTable" class="table is-striped is-fullwidth">
                     <thead>
                     <th>Round</th>
                     <th>Submitted At</th>
@@ -48,7 +53,7 @@
                                 {% if sent.finished_at %}
                                     <i class="fas fa-check-circle has-text-success"></i>
                                 {% else %}
-                                    <i class="far fa-circle has-text-success"></i>
+                                    <i class="fas fa-spinner has-text-success"></i>
                                 {% endif %}
                             </span>
                             <span>
@@ -66,4 +71,17 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready( function () {
+        $('#myTable').DataTable(
+            {
+                "order": [[0, "desc"], [1, "desc"]]
+            }
+        );
+    });
+</script>
 {% endblock %}

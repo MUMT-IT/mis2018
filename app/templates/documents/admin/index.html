@@ -1,5 +1,10 @@
 {% extends "base.html" %}
 
+{% block head %}
+{{ super() }}
+<link ref="//cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css" rel="stylesheet">
+{% endblock %}
+
 {% block page_content %}
 {% include "documents/nav.html" %}
 <section class="section">
@@ -28,7 +33,7 @@
         </div>
         <div class="columns">
             <div class="column">
-                <table class="table is-striped is-fullwidth">
+                <table id="myTable" class="table is-striped is-fullwidth">
                     <thead>
                     <th>
                         <span class="icon">
@@ -113,4 +118,18 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready( function () {
+        $('#myTable').DataTable(
+            {
+                "order": [[0, "desc"], [1, "desc"]],
+                "pageLength": 5
+            }
+        );
+    });
+</script>
 {% endblock %}

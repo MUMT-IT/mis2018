@@ -195,7 +195,7 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 def index():
     rounds = DocRoundOrg.query.filter_by(org_id=current_user.personal_info.org.id)\
         .order_by(DocRoundOrg.sent_at.desc()).all()
-    return render_template('documents/index.html', rounds=rounds)
+    return render_template('documents/index.html', rounds=rounds, DocDocumentReach=DocDocumentReach)
 
 
 @docbp.route('/admin/rounds/<int:round_id>/documents')
