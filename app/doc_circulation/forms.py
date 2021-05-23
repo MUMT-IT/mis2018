@@ -31,6 +31,8 @@ class DocumentForm(ModelForm):
     class Meta:
         model = DocDocument
         exclude = ['stage']
+        field_args = {'title': {'validators': [DataRequired()]},
+                      'number': {'validators': [DataRequired()]}}
 
     category = QuerySelectField('Category', query_factory=lambda: DocCategory.query.all(),
                                 get_label='name', blank_text='Select category..', allow_blank=False)
