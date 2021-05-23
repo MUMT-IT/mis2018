@@ -459,7 +459,10 @@ def head_view_send_receipt(doc_id, sent_round_org_id):
     if receipt:
         return render_template('documents/head/sent_records.html', receipt=receipt)
     else:
-        return 'Receipt not found.'
+        flash(u'No recipients for this round. กรุณาระบุผู้รับ', 'danger')
+        round_org = DocRoundOrg.query.get(sent_round_org_id)
+    return redirect(url_for('doc.head_view_docs', round_id=round_org.round_id))
+
 
 
 @docbp.route('/head/receipts/<int:receipt_id>/members/<int:member_id>', methods=['GET', 'POST'])
