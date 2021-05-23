@@ -30,15 +30,53 @@
         </div>
         <div class="columns">
             <div class="column">
-                <h1 class="title">Document Round</h1>
+                <div class="has-text-centered">
+                    <h1 class="title">Circular Documents</h1>
+                </div>
                 <table id="myTable" class="table is-striped is-fullwidth">
                     <thead>
-                    <th>Round</th>
-                    <th>Approved At</th>
-                    <th>Documents</th>
-                    <th>Priority</th>
-                    <th>Private Message</th>
-                    <th>Viewed At</th>
+                    <th>
+                        <span class="icon">
+                            <i class="fas fa-shipping-fast"></i>
+                        </span>
+                        <span>
+                            Round
+                        </span>
+                    </th>
+                    <th>
+                        <span class="icon">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                        <span>
+                            Approved At
+                        </span>
+                    </th>
+                    <th>
+                        <span class="icon">
+                            <i class="far fa-file-alt"></i>
+                        </span>
+                        <span>
+                            Letters
+                        </span>
+                    </th>
+                    <th>
+                        <span class="icon">
+                            <i class="fas fa-list-ol"></i>
+                        </span>
+                        <span>Priority</span>
+                    </th>
+                    <th>
+                        <span class="icon">
+                            <i class="fas fa-envelope"></i>
+                        </span>
+                        <span>Private Message</span>
+                    </th>
+                    <th>
+                        <span class="icon">
+                           <i class="far fa-eye"></i>
+                        </span>
+                        <span>Viewed At</span>
+                    </th>
                     </thead>
                     <tbody>
                     {% for rorg in rounds %}
@@ -106,6 +144,16 @@
                     {% endfor %}
                     </tbody>
                 </table>
+                <p>
+                <span class="icon">
+                    <i class="fas fa-exclamation-triangle has-text-danger"></i>
+                </span>
+                <span class="title is-size-6">Extremely urgent / ด่วนมาก</span>
+                <span class="icon">
+                    <i class="fas fa-exclamation-triangle has-text-warning"></i>
+                </span>
+                <span class="title is-size-6">Urgent / ด่วน</span>
+                </p>
             </div>
         </div>
     </div>
@@ -118,7 +166,8 @@
     $(document).ready( function () {
         $('#myTable').DataTable(
             {
-                "order": [[0, "desc"], [1, "desc"]]
+                "order": [[0, "desc"], [1, "desc"]],
+                "pageLength": 5
             }
         );
     });

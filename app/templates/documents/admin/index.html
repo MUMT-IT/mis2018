@@ -37,7 +37,7 @@
                     <thead>
                     <th>
                         <span class="icon">
-                            <i class="far fa-calendar-alt"></i>
+                            <i class="fas fa-shipping-fast"></i>
                         </span>
                         <span>
                             Round
@@ -59,7 +59,14 @@
                             Total Documents
                         </span>
                     </th>
-                    <th>Targets</th>
+                    <th>
+                        <span class="icon">
+                            <i class="fas fa-users"></i>
+                        </span>
+                        <span>
+                            Recipient Groups
+                        </span>
+                    </th>
                     </thead>
                     <tbody>
                     {% for round in rounds %}
@@ -90,9 +97,9 @@
                                 <div class="control">
                                     <a href="{{ url_for('doc.admin_view_round', round_id=round.id) }}">
                                         <div class="tags has-addons">
-                                            <span class="tag">sent</span>
+                                            <span class="tag">ready</span>
                                             <span class="tag is-success">
-                                                {{ round.documents.filter_by(stage='sent').all()|length }}
+                                                {{ round.documents.filter_by(stage='ready').all()|length }}
                                             </span>
                                         </div>
                                     </a>

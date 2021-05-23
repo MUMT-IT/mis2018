@@ -4,7 +4,6 @@ import os
 import datetime
 
 import requests
-from linebot.models import BubbleContainer
 from werkzeug.utils import secure_filename
 
 from . import docbp
@@ -25,7 +24,6 @@ bkk = timezone('Asia/Bangkok')
 FOLDER_ID = '1832el0EAqQ6NVz2wB7Ade6wRe-PsHQsu'
 
 json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
-
 
 letter_header_image = '1Z1wYogBY-S1QMPfdZwnlpqHcYr_UZ0u-'
 letter_header_image_for_head = '1KCkyDRa-_5Uc0aSbCFXv8hZ2MfbORT4D'
@@ -191,10 +189,11 @@ def initialize_gdrive():
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
+
 @docbp.route('/')
 def index():
-    rounds = DocRoundOrg.query.filter_by(org_id=current_user.personal_info.org.id)\
-        .order_by(DocRoundOrg.sent_at.desc()).all()
+    rounds = DocRoundOrg.query.filter_by(org_id=current_user.personal_info.org.id) \
+        .order_by(DocRoundOrg.sent_at.desc()).limit(60)
     return render_template('documents/index.html', rounds=rounds, DocDocumentReach=DocDocumentReach)
 
 
@@ -230,6 +229,7 @@ def mark_as_read(round_org_id):
     else:
         return 'Record not found.'
 
+
 @docbp.route('/documents/<int:rec_id>')
 def view_recv_record(rec_id):
     rec = DocReceiveRecord.query.get(rec_id)
@@ -238,7 +238,8 @@ def view_recv_record(rec_id):
 
 @docbp.route('/admin')
 def admin_index():
-    rounds = DocRound.query.order_by(DocRound.date.desc()).order_by(DocRound.created_at.desc()).all()
+    rounds = DocRound.query.order_by(DocRound.date.desc()) \
+        .order_by(DocRound.created_at.desc()).limit(60)
     return render_template('documents/admin/index.html', rounds=rounds)
 
 
@@ -365,8 +366,8 @@ def send_round_for_review(round_id):
                                                   ))
                 else:
                     _org = Org.query.get(target_id)
-                    flash(u'Documents were sent to {} about {}.'\
-                          .format(_org.name, arrow.get(_record.sent_at, 'Asia/Bangkok').humanize()),'warning')
+                    flash(u'Documents were sent to {} about {}.'
+                          .format(_org.name, arrow.get(_record.sent_at.astimezone(bkk)).humanize()), 'warning')
             if n_dept > 0:
                 db.session.commit()
                 flash('The documents have been sent to selected departments for a review.', 'success')
@@ -393,7 +394,8 @@ def head_view_docs(round_id):
 def head_view_rounds():
     _org = current_user.personal_info.org
     if _org.head == current_user.email:
-        sent_rounds = DocRoundOrg.query.filter_by(org_id=_org.id).order_by(DocRoundOrg.sent_at.desc()).all()
+        sent_rounds = DocRoundOrg.query.filter_by(org_id=_org.id) \
+            .order_by(DocRoundOrg.sent_at.desc()).limit(60)
         return render_template('documents/head/rounds.html', sent_rounds=sent_rounds)
 
 
@@ -462,7 +464,6 @@ def head_view_send_receipt(doc_id, sent_round_org_id):
         flash(u'No recipients for this round. กรุณาระบุผู้รับ', 'danger')
         round_org = DocRoundOrg.query.get(sent_round_org_id)
     return redirect(url_for('doc.head_view_docs', round_id=round_org.round_id))
-
 
 
 @docbp.route('/head/receipts/<int:receipt_id>/members/<int:member_id>', methods=['GET', 'POST'])
