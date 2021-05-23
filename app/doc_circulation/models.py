@@ -45,6 +45,7 @@ class DocDocument(db.Model):
     round = db.relationship(DocRound, backref=db.backref('documents',
                                                          lazy='dynamic',
                                                          cascade='all, delete-orphan'))
+    number = db.Column(db.Integer(), info={'label': u'Number'})
     deadline = db.Column(db.DateTime(timezone=True),
                          info={'label': 'Deadline'})
     addedAt = db.Column(db.DateTime(timezone=True))
@@ -91,6 +92,7 @@ class DocReceiveRecord(db.Model):
     round_org = db.relationship(DocRoundOrg, backref=db.backref('sent_records',
                                                             lazy='dynamic'))
     doc_id = db.Column(db.ForeignKey('doc_documents.id'))
+    rejected = db.Column(db.Boolean(), default=False)
     members = db.relationship(StaffPersonalInfo, secondary=receipt_receivers)
     sender = db.relationship(StaffAccount)
     doc = db.relationship(DocDocument, backref=db.backref('doc_receipts',
