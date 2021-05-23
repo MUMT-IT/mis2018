@@ -18,6 +18,7 @@
                 <table class="table is-striped is-fullwidth">
                     <thead>
                     <th>Round</th>
+                    <th>Number</th>
                     <th>Title</th>
                     <th>Summary</th>
                     <th>Comment</th>
@@ -29,13 +30,16 @@
                     <th>Action</th>
                     </thead>
                     <tbody>
-                    {% for doc in sent_round.round.documents %}
+                    {% for doc in sent_round.round.documents|sort(attribute='number') %}
                     <tr>
                         <td>
                             <h1 class="title is-size-7">{{ doc.round.created_at|localdatetime }}</h1>
                             <h1 class="subtitle is-size-7">
                                 {{ doc.round.created_at|humanizedt }}
                             </h1>
+                        </td>
+                        <td>
+                            {{ doc.number }}
                         </td>
                         <td>
                             <h1 class="title is-size-6">
@@ -117,7 +121,11 @@
                 <hr>
                 <div class="buttons is-centered">
                     <a class="button is-light" href="{{ url_for('doc.head_view_rounds', round_id=sent_round.round.id) }}">Back</a>
+                    {% if sent_round.doc_reaches.all()|length > 0 %}
                     <a class="button is-link" href="{{ url_for('doc.head_finish_round', sent_round_org_id=sent_round.id) }}">Finish</a>
+                    {% else %}
+                    <a class="button is-link" disabled>Finish</a>
+                    {% endif %}
                 </div>
             </div>
         </div>

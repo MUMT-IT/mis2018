@@ -62,6 +62,13 @@
                                 <span>message</span>
                             </a>
                             {% endif %}
+                            <a href="{{ url_for('doc.head_add_private_msg', receipt_id=receipt.id, member_id=member.staff_account.id) }}"
+                               class="button is-light is-danger">
+                                <span class="icon">
+                                    <i class="fas fa-times"></i>
+                                </span>
+                                <span>cancel</span>
+                            </a>
                         </td>
                     </tr>
                     {% endfor %}

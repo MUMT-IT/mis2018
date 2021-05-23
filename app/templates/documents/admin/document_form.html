@@ -19,10 +19,18 @@
             <form method="post" class="box" enctype="multipart/form-data">
                 {{ form.hidden_tag() }}
                 <div class="field">
+                    <label class="label">{{ form.number.label }}</label>
+                    <div class="control">
+                        {{ form.number(class="input is-danger") }}
+                    </div>
+                    <p class="help is-danger">required</p>
+                </div>
+                <div class="field">
                     <label class="label">{{ form.title.label }}</label>
                     <div class="control">
-                        {{ form.title(class="input") }}
+                        {{ form.title(class="input is-danger") }}
                     </div>
+                    <p class="help is-danger">required</p>
                 </div>
                 <div class="field">
                     <label class="label">{{ form.summary.label }}</label>
