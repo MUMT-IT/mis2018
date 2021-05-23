@@ -44,6 +44,7 @@ class DocDocument(db.Model):
     round_id = db.Column(db.ForeignKey('doc_rounds.id'))
     round = db.relationship(DocRound, backref=db.backref('documents',
                                                          lazy='dynamic',
+                                                         order_by='DocDocument.number',
                                                          cascade='all, delete-orphan'))
     number = db.Column(db.Integer(), info={'label': u'Number'})
     deadline = db.Column(db.DateTime(timezone=True),
