@@ -7,7 +7,7 @@ import requests
 from werkzeug.utils import secure_filename
 
 from . import docbp
-from flask_login import current_user
+from flask_login import current_user, login_required
 from flask import render_template, url_for, request, flash, redirect, jsonify
 from pytz import timezone
 from forms import *
@@ -191,6 +191,7 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
 @docbp.route('/')
+@login_required
 def index():
     rounds = DocRoundOrg.query.filter_by(org_id=current_user.personal_info.org.id) \
         .order_by(DocRoundOrg.sent_at.desc()).limit(60)
@@ -198,12 +199,14 @@ def index():
 
 
 @docbp.route('/admin/rounds/<int:round_id>/documents')
+@login_required
 def admin_view_round(round_id):
     round = DocRound.query.get(round_id)
     return render_template('documents/admin/docs.html', round=round)
 
 
 @docbp.route('/rounds/<int:round_id>/documents')
+@login_required
 def view_round(round_id):
     _org = current_user.personal_info.org
     round_org = DocRoundOrg.query.filter_by(round_id=round_id, org_id=_org.id).first()
@@ -219,6 +222,7 @@ def view_round(round_id):
 
 
 @docbp.route('/rounds/<int:round_org_id>')
+@login_required
 def mark_as_read(round_org_id):
     doc_reach = DocDocumentReach.query.filter_by(round_org_id=round_org_id, reacher=current_user).first()
     if doc_reach:
@@ -231,12 +235,14 @@ def mark_as_read(round_org_id):
 
 
 @docbp.route('/documents/<int:rec_id>')
+@login_required
 def view_recv_record(rec_id):
     rec = DocReceiveRecord.query.get(rec_id)
     return render_template('documents/recv_record.html', rec=rec)
 
 
 @docbp.route('/admin')
+@login_required
 def admin_index():
     rounds = DocRound.query.order_by(DocRound.date.desc()) \
         .order_by(DocRound.created_at.desc()).limit(60)
@@ -244,6 +250,7 @@ def admin_index():
 
 
 @docbp.route('/admin/rounds', methods=['GET', 'POST'])
+@login_required
 def add_round():
     form = RoundForm()
     if request.method == 'POST':
@@ -264,6 +271,7 @@ def add_round():
 
 @docbp.route('/admin/rounds/<int:round_id>/docs/<int:doc_id>', methods=['GET', 'POST'])
 @docbp.route('/admin/rounds/<int:round_id>/docs', methods=['GET', 'POST'])
+@login_required
 def add_document(round_id, doc_id=None):
     if doc_id:
         doc = DocDocument.query.get(doc_id)
@@ -325,6 +333,7 @@ def add_document(round_id, doc_id=None):
 
 
 @docbp.route('/admin/docs/<int:doc_id>/send', methods=['GET', 'POST'])
+@login_required
 def send_document(doc_id):
     doc = DocDocument.query.get(doc_id)
     if doc:
@@ -339,6 +348,7 @@ def send_document(doc_id):
 
 
 @docbp.route('/admin/rounds/<int:round_id>/send_for_review', methods=['GET', 'POST'])
+@login_required
 def send_round_for_review(round_id):
     form = RoundSendForm()
     select_orgs = (4, 6, 7, 8, 10)
@@ -382,6 +392,7 @@ def send_round_for_review(round_id):
 
 
 @docbp.route('/head/rounds/<int:round_id>/documents')
+@login_required
 def head_view_docs(round_id):
     _org = current_user.personal_info.org
     if _org.head == current_user.email:
@@ -391,6 +402,7 @@ def head_view_docs(round_id):
 
 
 @docbp.route('/head/rounds')
+@login_required
 def head_view_rounds():
     _org = current_user.personal_info.org
     if _org.head == current_user.email:
@@ -400,6 +412,7 @@ def head_view_rounds():
 
 
 @docbp.route('/head/sent_rounds/<int:sent_round_org_id>/docs/<int:doc_id>/review', methods=['GET', 'POST'])
+@login_required
 def head_review(doc_id, sent_round_org_id):
     doc = DocDocument.query.get(doc_id)
     if current_user.email == current_user.personal_info.org.head:
@@ -438,6 +451,7 @@ def head_review(doc_id, sent_round_org_id):
 
 
 @docbp.route('/head/sent_rounds/<int:sent_round_org_id>')
+@login_required
 def head_finish_round(sent_round_org_id):
     round_org = DocRoundOrg.query.get(sent_round_org_id)
     sent_records = DocReceiveRecord.query.filter_by(round_org_id=round_org.id).all()
@@ -456,6 +470,7 @@ def head_finish_round(sent_round_org_id):
 
 
 @docbp.route('/head/documents/<int:doc_id>/sent_round_org/<int:sent_round_org_id>/receipt')
+@login_required
 def head_view_send_receipt(doc_id, sent_round_org_id):
     receipt = DocReceiveRecord.query.filter_by(doc_id=doc_id, round_org_id=sent_round_org_id).first()
     if receipt:
@@ -467,6 +482,7 @@ def head_view_send_receipt(doc_id, sent_round_org_id):
 
 
 @docbp.route('/head/receipts/<int:receipt_id>/members/<int:member_id>', methods=['GET', 'POST'])
+@login_required
 def head_add_private_msg(receipt_id, member_id):
     receipt = DocReceiveRecord.query.get(receipt_id)
     doc_reach = DocDocumentReach.query.filter_by(
