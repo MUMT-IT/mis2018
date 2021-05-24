@@ -23,6 +23,14 @@ staff_group_assoc_table = db.Table('staff_group_assoc',
                                            )
 
 
+staff_attend_assoc_table = db.Table('staff_attend_assoc',
+                                    db.Column('staff_id', db.ForeignKey('staff_account.id'),
+                                              primary_key=True),
+                                    db.Column('attend_id', db.ForeignKey('staff_seminar_attends.id'),
+                                              primary_key=True),
+                                    )
+
+
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
     datetime_format = u'%d/%m/%Y %H:%M'
@@ -476,22 +484,34 @@ class StaffWorkFromHomeRequestSchema(ma.ModelSchema):
 class StaffSeminar(db.Model):
     __tablename__ = 'staff_seminar'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     start_datetime = db.Column('start_date', db.DateTime(timezone=True))
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
     created_at = db.Column('created_at',db.DateTime(timezone=True),
                            default=datetime.now())
     topic_type = db.Column('topic_type', db.String())
     topic = db.Column('topic', db.String())
-    role = db.Column('role', db.String())
     mission = db.Column('mission', db.String())
     location = db.Column('location', db.String())
     attend_online = db.Column('attend_online', db.Boolean(), default=False)
     country = db.Column('country', db.String())
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+
+
+class StaffSeminarAttend(db.Model):
+    __tablename__ = 'staff_seminar_attends'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    seminar_id = db.Column('seminar_id', db.ForeignKey('staff_seminar.id'))
+    start_datetime = db.Column('start_date', db.DateTime(timezone=True))
+    end_datetime = db.Column('end_date', db.DateTime(timezone=True))
+    created_at = db.Column('created_at',db.DateTime(timezone=True),
+                           default=datetime.now())
+    role = db.Column('role', db.String())
+    registration_fee = db.Column('registration_fee', db.Float())
     budget_type = db.Column('budget_type', db.String())
     budget = db.Column('budget', db.Float())
-    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     staff = db.relationship('StaffAccount',
+                            secondary=staff_attend_assoc_table,
                             backref=db.backref('seminar_request'))
     
     
