@@ -500,7 +500,6 @@ class StaffSeminar(db.Model):
 class StaffSeminarAttend(db.Model):
     __tablename__ = 'staff_seminar_attends'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     seminar_id = db.Column('seminar_id', db.ForeignKey('staff_seminar.id'))
     start_datetime = db.Column('start_date', db.DateTime(timezone=True))
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
@@ -512,7 +511,7 @@ class StaffSeminarAttend(db.Model):
     budget = db.Column('budget', db.Float())
     staff = db.relationship('StaffAccount',
                             secondary=staff_attend_assoc_table,
-                            backref=db.backref('seminar_request'))
+                            backref=db.backref('seminar_attends'))
     
     
 class StaffWorkLogin(db.Model):
