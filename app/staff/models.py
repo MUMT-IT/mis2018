@@ -495,6 +495,9 @@ class StaffSeminar(db.Model):
     country = db.Column('country', db.String())
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
 
+    def __str__(self):
+        return u'{}'.format(self.topic)
+
 
 class StaffSeminarAttend(db.Model):
     __tablename__ = 'staff_seminar_attends'
@@ -511,6 +514,7 @@ class StaffSeminarAttend(db.Model):
     staff = db.relationship('StaffAccount',
                             secondary=staff_attend_assoc_table,
                             backref=db.backref('seminar_attends'))
+    seminar = db.relationship('StaffSeminar', backref=db.backref('attends'), foreign_keys=[seminar_id])
     
     
 class StaffWorkLogin(db.Model):
