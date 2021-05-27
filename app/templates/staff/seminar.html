@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 {% block page_content %}
-<section class="section">
+<section class="section" xmlns="http://www.w3.org/1999/html">
     <h1 class="title">ข้อมูลอบรม</h1>
     <div class="columns">
         <div class="column">
             <div class="container has-text-centered">
                 <div class="box">
-                    <a href="{{ url_for('staff.add_seminar_record') }}">
-                            <span class="icon is-large"><i class="fas fa-edit fa-4x"></i></span><br><br>
-                            <span class="is-size-4">บันทึกข้อมูลเพิ่ม</span>
+                    <a href="{{ url_for('staff.create_seminar') }}">
+                            <span class="icon is-large"><i class="fas fa-calendar-plus fa-4x"></i></span><br><br>
+                            <span class="is-size-4">สร้างข้อมูลอบรม</span>
                     </a>
                 </div>
             </div>
@@ -17,10 +17,10 @@
         <div class="column">
             <div class="container has-text-centered">
                 <div class="box">
-                <a href="{{ url_for('staff.seminar_records') }}">
-                    <span class="icon is-large"><i class="far fa-clipboard fa-4x"></i></span><br><br>
-                    <span class="is-size-4">รายการอบรม</span>
-                </a>
+                    <a href="{{ url_for('staff.seminar_records') }}">
+                        <span class="icon is-large"><i class="far fa-clipboard fa-4x"></i></span><br><br>
+                        <span class="is-size-4">รายการอบรม</span>
+                    </a>
                 </div>
             </div>
         </div>
