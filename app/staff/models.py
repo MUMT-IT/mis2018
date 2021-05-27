@@ -491,7 +491,7 @@ class StaffSeminar(db.Model):
     topic = db.Column('topic', db.String())
     mission = db.Column('mission', db.String())
     location = db.Column('location', db.String())
-    attend_online = db.Column('attend_online', db.Boolean(), default=False)
+    is_online = db.Column('is_online', db.Boolean(), default=False)
     country = db.Column('country', db.String())
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
 
@@ -511,6 +511,7 @@ class StaffSeminarAttend(db.Model):
     registration_fee = db.Column('registration_fee', db.Float())
     budget_type = db.Column('budget_type', db.String())
     budget = db.Column('budget', db.Float())
+    attend_online = db.Column('attend_online', db.Boolean(), default=False)
     staff = db.relationship('StaffAccount',
                             secondary=staff_attend_assoc_table,
                             backref=db.backref('seminar_attends'))
