@@ -16,6 +16,9 @@ from pydrive.drive import GoogleDrive
 from app.models import Org
 from ..auth.views import line_bot_api
 from linebot.models import *
+from flask_mail import Message
+
+from ..main import mail
 
 bkk = timezone('Asia/Bangkok')
 
@@ -27,6 +30,33 @@ json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).js
 
 letter_header_image = '1Z1wYogBY-S1QMPfdZwnlpqHcYr_UZ0u-'
 letter_header_image_for_head = '1KCkyDRa-_5Uc0aSbCFXv8hZ2MfbORT4D'
+
+
+def send_mail(recp, title, message):
+    message = Message(subject=title, body=message, recipients=recp)
+    mail.send(message)
+
+
+def send_mail_recipient(member, round_org):
+    num_docs = len(member.doc_reaches.filter_by(round_org_id=round_org.id).all())
+    title = u'หนังสือเวียนรอบใหม่วันที่ {} มาถึงแล้ว'.format(round_org.round)
+    uri = url_for('doc.view_round', round_id=round_org.round_id, _external=True)
+    message = u'เรียน {}\n\nหนังสือเวียนรอบใหม่มาถึงแล้วจำนวน {} ฉบับ ส่งเมื่อวันที่ {} ' \
+              u'กรุณาคลิกที่ลิงค์เพื่อดูรายการ\n{}' \
+        .format(member.personal_info.fullname,
+                num_docs,
+                round_org.round,
+                uri)
+    message += u'\n\nDear {}\nNew {} circular letters have arrived. Circulated at {}.' \
+               u'Please click the link to see the list.\n{}' \
+        .format(member.personal_info.fullname,
+                num_docs, round_org.round, uri)
+    message += u'\n\n======================================================'
+    message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
+               u'หากมีปัญหาในการเข้าถึงลิงค์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
+    message += u'\nThis email was sent by an automated system. Please do not reply.' \
+               u' If you have problem visiting the link, please contact the IT unit.'
+    send_mail([u'{}@mahidol.ac.th'.format(member.email)], title, message)
 
 
 def create_bubble_message(round_org):
@@ -476,6 +506,7 @@ def head_finish_round(sent_round_org_id):
         line_bot_api.push_message(to=line_id,
                                   messages=FlexSendMessage(alt_text='New circular letters',
                                                            contents=bubble_message))
+        send_mail_recipient(member.staff_account, round_org)
     return redirect(url_for('doc.head_view_rounds'))
 
 
