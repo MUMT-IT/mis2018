@@ -98,8 +98,8 @@ def create_bubble_message(round_org):
     )
 
 
-def create_bubble_message_recipient(sent_record, member):
-    num_docs = len(member.doc_reaches.filter_by(round_org_id=sent_record.round_org_id).all())
+def create_bubble_message_recipient(round_org, member):
+    num_docs = len(member.doc_reaches.filter_by(round_org_id=round_org.id).all())
     return BubbleContainer(
         hero=ImageComponent(
             layout='vertical',
@@ -108,7 +108,7 @@ def create_bubble_message_recipient(sent_record, member):
             aspect_mode='cover',
             aspect_ratio='20:13',
             action=URIAction(
-                uri=url_for('doc.view_round', round_id=sent_record.round_org.round_id, _external=True),
+                uri=url_for('doc.view_round', round_id=round_org.round_id, _external=True),
                 label='Check'
             )
         ),
@@ -133,7 +133,7 @@ def create_bubble_message_recipient(sent_record, member):
                             color='#AAAAAA',
                         ),
                         TextComponent(
-                            text=str(sent_record.round_org.round),
+                            text=str(round_org.round),
                         )
                     ]
                 ),
@@ -145,7 +145,8 @@ def create_bubble_message_recipient(sent_record, member):
                             color='#AAAAAA',
                         ),
                         TextComponent(
-                            text=str(arrow.get(sent_record.round_org.finished_at.astimezone(bkk)).humanize()),
+                            text=str(arrow.get(round_org.finished_at.astimezone(bkk))
+                                     .humanize()),
                         )
                     ]
                 ),
@@ -170,7 +171,8 @@ def create_bubble_message_recipient(sent_record, member):
             contents=[
                 ButtonComponent(
                     action=URIAction(
-                        uri=url_for('doc.view_round', round_id=sent_record.round_org.round_id, _external=True),
+                        uri=url_for('doc.view_round',
+                                    round_id=round_org.round_id, _external=True),
                         label='Check'
                     ),
                     height='sm'
@@ -205,6 +207,7 @@ def admin_view_round(round_id):
     return render_template('documents/admin/docs.html', round=round)
 
 
+# TODO: replace the param round_id to round_org_id as it is more straight forward.
 @docbp.route('/rounds/<int:round_id>/documents')
 @login_required
 def view_round(round_id):
@@ -453,19 +456,26 @@ def head_review(doc_id, sent_round_org_id):
 @docbp.route('/head/sent_rounds/<int:sent_round_org_id>')
 @login_required
 def head_finish_round(sent_round_org_id):
+    """
+    Send documents to all selected members.
+
+    :param sent_round_org_id: an ID of a record of an organizational round
+    """
     round_org = DocRoundOrg.query.get(sent_round_org_id)
     sent_records = DocReceiveRecord.query.filter_by(round_org_id=round_org.id).all()
     if round_org:
         round_org.finished_at = datetime.datetime.now(bkk)
         db.session.add(round_org)
         db.session.commit()
+    members = set()
     for record in sent_records:
-        for member in record.members:
-            line_id = member.staff_account.line_id
-            bubble_message = create_bubble_message_recipient(record, member.staff_account)
-            line_bot_api.push_message(to=line_id,
-                                      messages=FlexSendMessage(alt_text='New circular letters',
-                                                               contents=bubble_message))
+        members.update(record.members)
+    for member in members:
+        line_id = member.staff_account.line_id
+        bubble_message = create_bubble_message_recipient(round_org, member.staff_account)
+        line_bot_api.push_message(to=line_id,
+                                  messages=FlexSendMessage(alt_text='New circular letters',
+                                                           contents=bubble_message))
     return redirect(url_for('doc.head_view_rounds'))
 
 
