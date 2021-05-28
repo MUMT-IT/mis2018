@@ -56,7 +56,7 @@ def send_mail_head(head, round_org):
                u'หากมีปัญหาในการเข้าถึงลิงค์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
     message += u'\nThis email was sent by an automated system. Please do not reply.' \
                u' If you have problem visiting the link, please contact the IT unit.'
-    send_mail([u'{}@mahidol.edu'.format(head.email)], title, message)
+    send_mail([u'{}@mahidol.ac.th'.format(head.email)], title, message)
 
 
 def send_mail_recipient(member, round_org):
