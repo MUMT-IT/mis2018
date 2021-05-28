@@ -37,6 +37,28 @@ def send_mail(recp, title, message):
     mail.send(message)
 
 
+def send_mail_head(head, round_org):
+    title = u'หนังสือเวียนรอบใหม่วันที่ {} มาถึงแล้ว'.format(round_org.round)
+    num_docs = len(round_org.round.documents.all())
+    uri = url_for('doc.head_view_docs', round_id=round_org.round_id, _external=True)
+    message = u'เรียนหัวหน้า {}\n\nหนังสือเวียนรอบใหม่มาถึงแล้วจำนวน {} ฉบับ ส่งเมื่อวันที่ {} ' \
+              u'กรุณาคลิกที่ลิงค์เพื่อตรวจสอบ\n{}' \
+        .format(head.personal_info.org,
+                num_docs,
+                round_org.round,
+                uri)
+    message += u'\n\nDear the head of {}\nNew {} circular letters have arrived. Circulated at {}.' \
+               u'Please click the link to view the list.\n{}' \
+        .format(head.personal_info.org,
+                num_docs, round_org.round, uri)
+    message += u'\n\n======================================================'
+    message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
+               u'หากมีปัญหาในการเข้าถึงลิงค์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
+    message += u'\nThis email was sent by an automated system. Please do not reply.' \
+               u' If you have problem visiting the link, please contact the IT unit.'
+    send_mail([u'{}@mahidol.edu'.format(head.email)], title, message)
+
+
 def send_mail_recipient(member, round_org):
     num_docs = len(member.doc_reaches.filter_by(round_org_id=round_org.id).all())
     title = u'หนังสือเวียนรอบใหม่วันที่ {} มาถึงแล้ว'.format(round_org.round)
@@ -48,7 +70,7 @@ def send_mail_recipient(member, round_org):
                 round_org.round,
                 uri)
     message += u'\n\nDear {}\nNew {} circular letters have arrived. Circulated at {}.' \
-               u'Please click the link to see the list.\n{}' \
+               u'Please click the link to view the list.\n{}' \
         .format(member.personal_info.fullname,
                 num_docs, round_org.round, uri)
     message += u'\n\n======================================================'
@@ -407,6 +429,7 @@ def send_round_for_review(round_id):
                                                       alt_text='Circular Letters',
                                                       contents=create_bubble_message(send_record)
                                                   ))
+                        send_mail_head(_head_org, send_record)
                 else:
                     _org = Org.query.get(target_id)
                     flash(u'Documents were sent to {} about {}.'
