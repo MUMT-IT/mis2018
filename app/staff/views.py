@@ -1569,26 +1569,25 @@ def summary_index():
                     })
             all = wfhs
         if tab == 'smr' or tab == 'all':
-            fiscal_years = StaffSeminar.query.distinct(
-                func.date_part('YEAR', StaffSeminar.start_datetime))
+            fiscal_years = StaffSeminarAttend.query.distinct(
+                func.date_part('YEAR', StaffSeminarAttend.start_datetime))
             fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
             start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
-            for smr in StaffSeminar.query.filter_by(staff=emp).filter(
-                    StaffSeminar.start_datetime.between(start_fiscal_date, end_fiscal_date)):
-                if not smr.cancelled_at:
-                    text_color = '#ffffff'
-                    bg_color = '#FF33A5'
-                    border_color = '#ffffff'
-                    seminars.append({
-                        'id': smr.id,
-                        'start': smr.start_datetime.astimezone(tz).isoformat(),
-                        'end': smr.end_datetime.astimezone(tz).isoformat(),
-                        'title': emp.th_firstname + " " + smr.topic_type,
-                        'backgroundColor': bg_color,
-                        'borderColor': border_color,
-                        'textColor': text_color,
-                        'type': 'smr'
-                    })
+            for smr in emp.staff_account.seminar_attends.filter(
+                    StaffSeminarAttend.start_datetime.between(start_fiscal_date, end_fiscal_date)):
+                text_color = '#ffffff'
+                bg_color = '#FF33A5'
+                border_color = '#ffffff'
+                seminars.append({
+                    'id': smr.id,
+                    'start': smr.start_datetime.astimezone(tz).isoformat(),
+                    'end': smr.end_datetime.astimezone(tz).isoformat(),
+                    'title': emp.th_firstname + " " + smr.seminar.topic,
+                    'backgroundColor': bg_color,
+                    'borderColor': border_color,
+                    'textColor': text_color,
+                    'type': 'smr'
+                })
             all = seminars
 
     if tab == 'all':
