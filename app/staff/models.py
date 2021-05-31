@@ -514,7 +514,7 @@ class StaffSeminarAttend(db.Model):
     attend_online = db.Column('attend_online', db.Boolean(), default=False)
     staff = db.relationship('StaffAccount',
                             secondary=staff_attend_assoc_table,
-                            backref=db.backref('seminar_attends'))
+                            backref=db.backref('seminar_attends', lazy='dynamic'))
     seminar = db.relationship('StaffSeminar', backref=db.backref('attends'), foreign_keys=[seminar_id])
     
     
