@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">บันทึกผู้เข้าร่วมประชุม อบรม สัมมนา</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="box">
+                    <table class="table is-fullwidth">
+                        <tr>
+                            <td>
+                                <label class="label">เรื่อง</label>
+                            </td>
+                            <td>
+                                <p class="is-size-5"><strong>{{ seminar.topic }}</strong></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">วันที่</label>
+                            </td>
+                            <td>
+                                {{ seminar.start_datetime|localdatetime }} - {{ seminar.end_datetime|localdatetime }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">ด้าน</label>
+                            </td>
+                            <td>
+                                {{ seminar.mission }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">สถานที่</label>
+                            </td>
+                            <td>
+                                {{ seminar.location }}
+                                {% if seminar.is_online %}
+                                (จัดผ่านช่องทาง online)
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if seminar.country %}
+                        <tr>
+                            <td>
+                                <label class="label">ประเทศ</label>
+                            </td>
+                            <td>
+                                {{ seminar.country }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+                <div class="box">
+                    <br>
+                    <table class="table is-fullwidth">
+                        <thead>
+                            <th>ชื่อบุคลากร</th>
+                            <th>ประเภทการเข้าร่วม</th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+
+                        </thead>
+                        <tbody>
+                            {% for attend in attends %}
+                            {% for participant in attend.staff  %}
+                            <tr>
+                                <td>
+                                    {{ participant.personal_info.fullname }}
+                                </td>
+                                <td>
+                                    {{ attend.role }}
+                                    {% if attend.attend_online %}
+                                    (เข้าร่วมผ่านทาง online)
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {{ attend.start_datetime|localdatetime }}
+                                </td>
+                                <td>
+                                    {{ attend.end_datetime|localdatetime }}
+                                </td>
+                                <td>
+                                    <a class="button is-warning" href="{{ url_for('staff.delete_participant',
+                                    attend_id=attend.id, participant_id=participant.id) }}">ลบ</a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="columns">
+                        <div class="column">
+                            <a href="{{ url_for('staff.seminar_add_attendee', seminar_id=seminar.id) }}"
+                               class="button is-rounded is-info">
+                                <span>เพิ่มผู้เข้าร่วม</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('staff.seminar_records') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                selectedDates: [],
+                stime: "fulltime",
+                payment: "unpaid",
+                data: []
+            }
+        },
+        methods: {
+            formatDate(dates){
+                let start = new moment(dates[0]).format("DD/MM/YYYY")
+                let end = new moment(dates[1]).format("DD/MM/YYYY")
+                return start + ' - ' + end
+            },
+        }
+    });
+</script>
+{% endblock %}

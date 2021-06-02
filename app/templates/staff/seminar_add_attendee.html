@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">เพิ่มข้อมูลผู้เข้าร่วมประชุม อบรม สัมมนา</h1>
+            </div>
+        </div>
+        <form method="post" enctype="multipart/form-data">
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <div class="box">
+                    <table class="table is-fullwidth">
+                        <tr>
+                            <td>
+                                <label class="label">เรื่อง</label>
+                            </td>
+                            <td>
+                                <p class="is-size-5"><strong>{{ seminar.topic }}</strong></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">ระยะเวลาที่จัดงาน</label>
+                            </td>
+                            <td>
+                                <p class="is-size-6">{{ seminar.start_datetime|localdatetime }} -
+                                    {{ seminar.end_datetime|localdatetime }}</p>
+                            </td>
+                        </tr>
+                    </table>
+                    </div>
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <div class="field">
+                        <b-field label="ประเภทที่ไป">
+                            <b-select placeholder="เลือกประเภท" name="role" required>
+                                <option value="ประชุม">ประชุม</option>
+                                <option value="อบรม">อบรม</option>
+                                <option value="อบรม">อบรมเชิงปฏิบัติการ</option>
+                                <option value="ประชุม">สัมมนา</option>
+                                <option value="อบรม">ราชการ</option>
+                                <option value="อาจารย์พิเศษ">อาจารย์พิเศษ</option>
+                                <option value="ผู้เข้าร่วม">ผู้เข้าร่วม</option>
+                                <option value="ที่ปรึกษา">ที่ปรึกษา</option>
+                                <option value="วิทยากร">วิทยากร</option>
+                                <option value="กรรมการ">กรรมการ</option>
+                                <option value="นิเทศน์งาน">นิเทศน์งาน</option>
+                                <option value="บริการสุขภาพ">บริการสุขภาพ</option>
+                                <option value="อบรม">อื่นๆ</option>
+                            </b-select>
+                        </b-field>
+                        <div class="field">
+                            <b-field>
+                                <b-checkbox value="yes" name="attend_online">
+                                    เข้าร่วมผ่านช่องทาง online
+                                </b-checkbox>
+                            </b-field>
+                        </div>
+                        <b-field label="ระยะเวลาเข้าร่วม" message="หากต้องการเลือก 1 วัน ให้ดับเบิ้ลคลิ๊กวันที่ต้องการ">
+                            <b-datepicker
+                                    required
+                                    name="dates"
+                                    v-model="selectedDates"
+                                    range
+                                    icon-pack="fa"
+                                    :date-formatter="formatDate"
+                                    :mobile-native="false"
+                                    placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                    icon="calendar-alt">
+                            </b-datepicker>
+                        </b-field>
+                        <div class="field">
+                            <div class="block">
+                                <b-radio native-value="fulltime" v-model="stime" name="stime">เต็มวัน</b-radio>
+                                <b-radio native-value="halfmorning" v-model="stime" name="stime">ครึ่งวันเช้า</b-radio>
+                                <b-radio native-value="halfafternoon" v-model="stime" name="stime">ครึ่งวันบ่าย</b-radio>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="field">
+                                <label class="label">ค่าใช้จ่าย</label>
+                            </div>
+                            <div class="block">
+                                <b-radio native-value="unpaid" v-model="payment" name="payment">ไม่มีค่าใช้จ่าย</b-radio>
+                                <b-radio native-value="paid" v-model="payment" name="payment">มีค่าใช้จ่าย</b-radio>
+                            </div>
+                        </div>
+                        <b-field label="งบประมาณ/ทุน" v-if="payment === 'paid'">
+                            <b-input type="text"
+                                     name="budget_type"
+                                     icon-pack="far"
+                                     icon="comment">
+                            </b-input>
+                        </b-field>
+                        <b-field label="ค่าลงทะเบียน" v-if="payment === 'paid'">
+                            <b-input type="text"
+                                     name="registration_fee"
+                                     icon-pack="far"
+                                     icon="dollar-sign">
+                            </b-input>
+                        </b-field>
+                        <b-field label="ค่าใช้จ่ายรวมต่อคน" v-if="payment === 'paid'">
+                            <b-input type="text"
+                                     name="budget"
+                                     icon-pack="far"
+                                     icon="dollar-sign">
+                            </b-input>
+                        </b-field>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <table class="table is-bordered is-striped" id="seminarTable">
+                        <thead>
+                        <th>เลือก</th>
+                        <th>สังกัด</th>
+                        </thead>
+                        <tbody>
+                        {% for record in staff_list %}
+                        <tr>
+                            <td>
+                                <b-field>
+                                    <b-checkbox v-model="participants" native-value="{{ record['staffid'] }}" name="participants">
+                                        {{ record["fullname"] }}
+                                    </b-checkbox>
+                                </b-field>
+                            </td>
+                            <td>
+                                {{ record["org"] }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <input type="submit" value="submit" class="button is-primary"/>
+                        </div>
+                        <div class="control">
+                            <a href="{{ url_for('staff.seminar_attend_info', seminar_id=seminar.id) }}" class="button is-danger">Cancel</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#seminarTable').DataTable();
+    });
+</script>
+<script>
+    let vm = new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                selectedDates: [],
+                stime: "fulltime",
+                payment: "unpaid",
+                data: [],
+                participants: []
+            }
+        },
+        methods: {
+            formatDate(dates){
+                let start = new moment(dates[0]).format("DD/MM/YYYY")
+                let end = new moment(dates[1]).format("DD/MM/YYYY")
+                return start + ' - ' + end
+            },
+        }
+    });
+</script>
+{% endblock %}

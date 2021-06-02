@@ -40,6 +40,14 @@
                 {% endif %}
             {% endwith %}
         </div>
+        <div class="column has-text-right">
+            <a href="{{ url_for('event.add_event') }}" class="button is-rounded is-info">
+                    <span class="icon">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                <span>สร้างกิจกรรมใหม่</span>
+            </a>
+        </div>
         <div id="event_calendar"></div>
     </div>
 </section>

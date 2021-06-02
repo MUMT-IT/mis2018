@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        {% for msg in get_flashed_messages() %}
+        <p class="notification is-warning">{{ msg }}</p>
+        {% endfor %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">บันทึกประชุม อบรม สัมมนา</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <b-notification type="is-warning is-light" aria-close-label="Close notification" role="alert">
+                        หากวันอบรมอยู่ในช่วง2ปีงบฯ ให้บันทึกครั้งเดียว
+                    </b-notification>
+                    <form method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        <div class="field">
+                            <b-field label="หัวข้อ"
+                                     type="is-danger">
+                                <b-input type="text"
+                                         name="topic"
+                                         icon-pack="far"
+                                         icon="tag"
+                                         placeholder="เรื่อง" required>
+                                </b-input>
+                            </b-field>
+                            <b-field label="ระยะเวลาการจัดงาน" message="หากต้องการเลือก 1 วัน ให้ดับเบิ้ลคลิ๊กวันที่ต้องการ">
+                                <b-datepicker
+                                        required
+                                        name="dates"
+                                        v-model="selectedDates"
+                                        range
+                                        icon-pack="fa"
+                                        :date-formatter="formatDate"
+                                        :mobile-native="false"
+                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                        icon="calendar-alt">
+                                </b-datepicker>
+                            </b-field>
+                            <div class="field">
+                                <div class="block">
+                                    <b-radio native-value="fulltime" v-model="stime" name="stime">เต็มวัน</b-radio>
+                                    <b-radio native-value="halfmorning" v-model="stime" name="stime">ครึ่งวันเช้า</b-radio>
+                                    <b-radio native-value="halfafternoon" v-model="stime" name="stime">ครึ่งวันบ่าย</b-radio>
+                                </div>
+                            </div>
+                            <b-field label="ด้าน">
+                                <b-select placeholder="เลือกด้าน" name="mission" required>
+                                    <option value="การศึกษา">การศึกษา</option>
+                                    <option value="วิจัย">วิจัย</option>
+                                    <option value="บริการวิชาการ/บริการสุขภาพ">บริการวิชาการ/บริการสุขภาพ</option>
+                                    <option value="บริหารจัดการ">บริหารจัดการ</option>
+                                    <option value="ทำนุบำรุงศิลปวัฒนธรรม">ทำนุบำรุงศิลปวัฒนธรรม</option>
+                                    <option value="พัฒนาคุณภาพ">พัฒนาคุณภาพ</option>
+                                    <option value="วิชาการ">วิชาการ</option>
+                                    <option value="วิชาชีพเทคนิคการแพทย์">วิชาชีพเทคนิคการแพทย์</option>
+                                    <option value="วิชาชีพรังสีเทคนิค">วิชาชีพรังสีเทคนิค</option>
+                                    <option value="อื่นๆ">อื่นๆ</option>
+                                </b-select>
+                            </b-field>
+                            <b-field label="สถานที่">
+                                <b-input type="text"
+                                         name="location"
+                                         icon-pack="far"
+                                         icon="map-marker-alt"
+                                         required>
+                                </b-input>
+                            </b-field>
+                            <b-field label="ประเทศ (ใส่ข้อมูลหากสถานที่ตั้งอยู่ต่างประเทศ)">
+                                <b-input type="text"
+                                         name="country"
+                                         icon-pack="far"
+                                         icon="flag">
+                                </b-input>
+                            </b-field>
+                            <div class="field">
+                               <label class="checkbox">
+                                   <input type="checkbox" value="yes" name="online">
+                                        จัดผ่านช่องทาง Online
+                               </label>
+                            </div>
+                        </div>
+                        <div class="field is-grouped">
+                            <div class="control">
+                                <input type="submit" value="submit" class="button is-primary"/>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('staff.seminar') }}" class="button is-danger">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                selectedDates: [],
+                stime: "fulltime",
+                data: []
+        }
+        },
+        methods: {
+            formatDate(dates){
+                let start = new moment(dates[0]).format("DD/MM/YYYY")
+                let end = new moment(dates[1]).format("DD/MM/YYYY")
+                return start + ' - ' + end
+            },
+        }
+    });
+</script>
+{% endblock %}

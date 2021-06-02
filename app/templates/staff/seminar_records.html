@@ -2,57 +2,58 @@
 {% include "nav.html" %}
 {% block page_content %}
 <section class="section">
-    <div class="container" id="app">
-            <div class="columns">
-                <div class="column">
-                    <div class="field">
-                        <label class="label">ปีงบประมาณ</label>
-                        <div class="select">
-                        <select v-model="year" v-on:change="proceed()">
-                            <option v-for="y in years" v-bind:value="y">
-                            <% y+543 %>
-                            </option>
-                        </select>
-                        </div>
-                        <label class="label">สังกัด</label>
-                        <div class="select">
-                        <select v-model="department" v-on:change="proceed()">
-                            <option v-for="d in departments" v-bind:value="d.id" key="d.id">
-                            <% d.name %>
-                            </option>
-                        </select>
-                        </div>
-                    </div>
-                </div>
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">รายการประชุม อบรม สัมมนา</h1>
             </div>
-            <div class="columns">
-                <div class="column">
-                    <table class="table is-bordered is-striped" id="seminarTable">
+            <div class="column has-text-right">
+                <a href="{{ url_for('staff.create_seminar') }}" class="button is-rounded is-info">
+                    <span class="icon">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span>สร้างอบรมใหม่</span>
+                </a>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-bordered is-striped" id="seminarTable">
                     <thead>
-                        <th>ชื่อ</th>
-                        <th>จำนวนครั้ง</th>
-                        <th>จำนวนวัน</th>
+                        <th>ชื่อกิจกรรม</th>
+                        <th>วันที่เริ่มต้น</th>
+                        <th>วันที่สิ้นสุด</th>
                     </thead>
                     <tbody>
                     {% for record in seminar_list %}
                     <tr>
                         <td>
-                            <a href="{{ url_for('staff.show_seminar_info_each_person', staff_id=record['staffid']) }}">
-                            {{ record["fullname"] }}
+                            <a href="{{ url_for('staff.seminar_attend_info', seminar_id=record['id']) }}">
+                            {{ record["name"] }}
                             </a>
                         </td>
                         <td>
-                            {{ record["total"] }}
+                            {{ record["start"]|localdatetime }}
                         </td>
                         <td>
-                            {{ record["total"] }}
+                            {{ record["end"]|localdatetime }}
                         </td>
                     </tr>
                     {% endfor %}
                     </tbody>
                 </table>
-                </div>
             </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('staff.seminar') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
     </div>
 </section>
 {% endblock %}
@@ -62,32 +63,5 @@
     $(document).ready(function(){
         $('#seminarTable').DataTable();
     });
-</script>
-<script>
-    new Vue({
-        el : "#app",
-        delimiters : ["<%", "%>"],
-        data(){
-            return {
-                departments : {{ departments|tojson|safe }},
-                department : {{ org_id|tojson|safe }},
-                years : {{ years|tojson|safe }},
-                year : {{ year|tojson|safe }}
-            }
-        },
-        methods: {
-            proceed: function() {
-                if (this.year === null && this.department !== null){
-                    window.location.href = "/staff/seminar/all-records?deptid="+this.department;
-                }
-                if (this.year !== null && this.department !== null){
-                    window.location.href = "/staff/seminar/all-records?deptid="+this.department+"&fiscal_year="+this.year;
-                }
-                if (this.year != null && this.department == null){
-                    window.location.href = "/staff/seminar/all-records?"+"&fiscal_year="+this.year;
-                }
-            }
-        }
-    })
 </script>
 {% endblock %}

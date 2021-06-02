@@ -1569,26 +1569,25 @@ def summary_index():
                     })
             all = wfhs
         if tab == 'smr' or tab == 'all':
-            fiscal_years = StaffSeminar.query.distinct(
-                func.date_part('YEAR', StaffSeminar.start_datetime))
+            fiscal_years = StaffSeminarAttend.query.distinct(
+                func.date_part('YEAR', StaffSeminarAttend.start_datetime))
             fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
             start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
-            for smr in StaffSeminar.query.filter_by(staff=emp).filter(
-                    StaffSeminar.start_datetime.between(start_fiscal_date, end_fiscal_date)):
-                if not smr.cancelled_at:
-                    text_color = '#ffffff'
-                    bg_color = '#FF33A5'
-                    border_color = '#ffffff'
-                    seminars.append({
-                        'id': smr.id,
-                        'start': smr.start_datetime.astimezone(tz).isoformat(),
-                        'end': smr.end_datetime.astimezone(tz).isoformat(),
-                        'title': emp.th_firstname + " " + smr.topic_type,
-                        'backgroundColor': bg_color,
-                        'borderColor': border_color,
-                        'textColor': text_color,
-                        'type': 'smr'
-                    })
+            for smr in emp.staff_account.seminar_attends.filter(
+                    StaffSeminarAttend.start_datetime.between(start_fiscal_date, end_fiscal_date)):
+                text_color = '#ffffff'
+                bg_color = '#FF33A5'
+                border_color = '#ffffff'
+                seminars.append({
+                    'id': smr.id,
+                    'start': smr.start_datetime.astimezone(tz).isoformat(),
+                    'end': smr.end_datetime.astimezone(tz).isoformat(),
+                    'title': emp.th_firstname + " " + smr.seminar.topic,
+                    'backgroundColor': bg_color,
+                    'borderColor': border_color,
+                    'textColor': text_color,
+                    'type': 'smr'
+                })
             all = seminars
 
     if tab == 'all':
@@ -1673,9 +1672,15 @@ def summary_org():
                            all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
 
 
-@staff.route('/seminar/record', methods=['GET', 'POST'])
+@staff.route('/for-hr/seminar')
 @login_required
-def add_seminar_record():
+def seminar():
+    return render_template('staff/seminar.html')
+
+
+@staff.route('/seminar/create', methods=['GET', 'POST'])
+@login_required
+def create_seminar():
     if request.method == 'POST':
         form = request.form
         stime = form.get('stime')
@@ -1693,75 +1698,110 @@ def add_seminar_record():
         end_dt = '{} {}'.format(end_d, end_t)
         start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
-        req = StaffSeminar(
+        seminar = StaffSeminar(
             start_datetime=tz.localize(start_datetime),
             end_datetime=tz.localize(end_datetime)
         )
-        req.staff_account_id = form.get('staffname')
-        req.topic_type = form.get('topic_type')
-        req.topic = form.get('topic')
-        req.mission = form.get('mission')
-        req.location = form.get('location')
-        req.attend_online = True if form.getlist("online") else False
-        req.country = form.get('country')
-        req.budget_type = form.get('budget_type')
-        req.budget = form.get('budget')
-        db.session.add(req)
+        seminar.topic = form.get('topic')
+        seminar.mission = form.get('mission')
+        seminar.location = form.get('location')
+        seminar.country = form.get('country')
+        seminar.is_online = True if form.getlist("online") else False
+        db.session.add(seminar)
         db.session.commit()
         return redirect(url_for('staff.seminar_records'))
-    return render_template('staff/seminar_request.html')
+    return render_template('staff/seminar_create_event.html')
 
 
-@staff.route('/seminar/all-records', methods=['GET', 'POST'])
+@staff.route('/seminar/add-attend/<int:seminar_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_attend_info(seminar_id):
+    seminar = StaffSeminar.query.get(seminar_id)
+    attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
+    return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
+
+
+@staff.route('/seminar/all-seminars', methods=['GET', 'POST'])
 @login_required
 def seminar_records():
-    org_id = request.args.get('deptid')
-    fiscal_year = request.args.get('fiscal_year')
-    if fiscal_year is not None:
-        start_date, end_date = get_start_end_date_for_fiscal_year(int(fiscal_year))
-    else:
-        start_date = None
-        end_date = None
-    years = set()
     seminar_list = []
-    departments = Org.query.all()
-    if org_id is None:
-        account_query = StaffAccount.query.all()
-    else:
-        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id))
+    seminar_query = StaffSeminar.query.all()
+    for seminar in seminar_query:
+        record = {}
+        record["id"] = seminar.id
+        record["name"] = seminar.topic
+        record["start"] = seminar.start_datetime
+        record["end"] = seminar.end_datetime
+        seminar_list.append(record)
+    return render_template('staff/seminar_records.html', seminar_list=seminar_list)
+
+
+@staff.route('/seminar/add-attend/add-attendee/<int:seminar_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_add_attendee(seminar_id):
+    seminar = StaffSeminar.query.get(seminar_id)
+    if request.method=="POST":
+        form = request.form
+        stime = form.get('stime')
+        if stime == 'fulltime':
+            start_t = "08:30"
+            end_t = "16:30"
+        elif stime == 'halfmorning':
+            start_t = "08:30"
+            end_t = "12:00"
+        else:
+            start_t = "13:00"
+            end_t = "16:30"
+        start_d, end_d = form.get('dates').split(' - ')
+        start_dt = '{} {}'.format(start_d, start_t)
+        end_dt = '{} {}'.format(end_d, end_t)
+        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
+        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
+        attend = StaffSeminarAttend(
+            staff=[StaffAccount.query.get(int(staff_id)) for staff_id in form.getlist("participants")],
+            seminar_id=seminar_id,
+            role=form.get('role'),
+            registration_fee=form.get('registration_fee'),
+            budget_type=form.get('budget_type'),
+            budget=form.get('budget'),
+            start_datetime=tz.localize(start_datetime),
+            end_datetime=tz.localize(end_datetime),
+            attend_online = True if form.get("attend_online") else False
+        )
+        db.session.add(attend)
+        db.session.commit()
+        seminar = StaffSeminar.query.get(seminar_id)
+        attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
+        return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
+    staff_list = []
+    account_query = StaffAccount.query.all()
     for account in account_query:
         record = {}
         record["staffid"] = account.id
         record["fullname"] = account.personal_info.fullname
-        record["total"] = 0
         if account.personal_info.org:
             record["org"] = account.personal_info.org.name
         else:
             record["org"] = ""
-        for seminar in account.seminar_request:
-            if not seminar.cancelled_at:
-                years.add(seminar.start_datetime.year)
-                if start_date and end_date:
-                    if seminar.start_datetime.date() < start_date or seminar.start_datetime.date() > end_date:
-                        continue
-                total_day = seminar.end_datetime.date() - seminar.start_datetime.date()
-                record["total"] += total_day.days + 1
-        seminar_list.append(record)
-    years = sorted(years)
-    if len(years) > 0:
-        years.append(years[-1] + 1)
-        years.insert(0, years[0] - 1)
-    return render_template('staff/seminar_records.html', org_id=org_id, fiscal_year=fiscal_year,
-                           seminar_list=seminar_list, departments=[{'id': d.id, 'name': d.name}
-                                                                   for d in departments], years=years, year=fiscal_year)
+        staff_list.append(record)
+    return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
 
 
-@staff.route('/for-hr/seminar')
+@staff.route('/seminar/seminar-attend/<int:attend_id>/participants/<int:participant_id>')
 @login_required
-def seminar():
-    return render_template('staff/seminar.html')
+def delete_participant(attend_id,participant_id):
+    participant = StaffAccount.query.get(participant_id)
+    attend = StaffSeminarAttend.query.get(attend_id)
+    attend.staff.remove(participant)
+    db.session.add(attend)
+    db.session.commit()
+    seminar = StaffSeminar.query.get(attend.seminar_id)
+    attends = StaffSeminarAttend.query.filter_by(seminar_id=attend.seminar_id).all()
+    return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
 
 
+
+#TODO : delete this function after finished edit seminar model
 @staff.route('/seminar/all-records/each-person/<int:staff_id>')
 @login_required
 def show_seminar_info_each_person(staff_id):
@@ -1769,13 +1809,7 @@ def show_seminar_info_each_person(staff_id):
     return render_template('staff/seminar_records_each_person.html', staff=staff)
 
 
-@staff.route('/seminar/all-records/each-record/<int:smr_id>')
-@login_required
-def semiar_each_record_info(smr_id):
-    smr = StaffSeminar.query.get(smr_id)
-    return render_template('staff/seminar_each_record.html', smr=smr)
-
-
+#TODO : deleted this function when finished edit seminar model
 @staff.route('/seminar/all-records/each-record/<int:smr_id>/cancel')
 @login_required
 def cancel_seminar_record(smr_id):
@@ -1895,6 +1929,31 @@ def staff_show_info(staff_id):
     return render_template('staff/staff_show_info.html', staff=staff)
 
 
+@staff.route('/for-hr/staff-info/search-account', methods=['GET', 'POST'])
+@login_required
+def staff_search_to_change_pwd():
+    if request.method == 'POST':
+        staff_id = request.form.get('staffname')
+        account = StaffAccount.query.filter_by(id=staff_id).first()
+        return render_template('staff/staff_edit_pwd.html', account=account)
+    return render_template('staff/staff_search_to_change_pwd.html')
+
+
+@staff.route('/for-hr/staff-info/search-account/edit-pwd/<int:staff_id>', methods=['GET', 'POST'])
+@login_required
+def staff_edit_pwd(staff_id):
+    if request.method == 'POST':
+        form = request.form
+        staff_email = StaffAccount.query.filter_by(id=staff_id).first()
+        staff_email.password = form.get('pwd')
+        db.session.add(staff_email)
+        db.session.commit()
+        flash(u'แก้ไขรหัสผ่านเรียบร้อย')
+        return render_template('staff/staff_index.html')
+    return render_template('staff/staff_search_to_change_pwadd_seminar_recordd.html')
+
+
+
 @staff.route('/for-hr/staff-info/approvers',
              methods=['GET', 'POST'])
 @login_required
@@ -1916,14 +1975,19 @@ def staff_show_approvers():
 @login_required
 def staff_add_approver(approver_id):
     if request.method == 'POST':
-        createrequester = StaffLeaveApprover(
-            staff_account_id = request.form.get('staffname'),
-            approver_account_id = approver_id
-        )
-        db.session.add(createrequester)
-        db.session.commit()
-        flash(u'เพิ่มบุคลากรเรียบร้อยแล้ว', 'success')
-
+        staff_account_id = request.form.get('staffname')
+        find_requester = StaffLeaveApprover.query.filter_by\
+            (approver_account_id=approver_id, staff_account_id=staff_account_id).first()
+        if find_requester:
+            flash(u'ไม่สามารถเพิ่มบุคลากรท่านนี้ได้ เนื่องจากมีข้อมูลบุคลากรท่านนี้อยู่แล้ว', 'warning')
+        else:
+            createrequester = StaffLeaveApprover(
+                staff_account_id = staff_account_id,
+                approver_account_id = approver_id
+            )
+            db.session.add(createrequester)
+            db.session.commit()
+            flash(u'เพิ่มบุคลากรเรียบร้อยแล้ว', 'success')
     approvers = StaffLeaveApprover.query.filter_by(approver_account_id=approver_id)
     return render_template('staff/leave_request_manage_approver.html', approvers=approvers )
 
@@ -1938,18 +2002,26 @@ def staff_approver_change_active_status(approver_id,requester_id):
     flash(u'แก้ไขสถานะการอนุมัติเรียบร้อยแล้ว', 'success')
     return redirect(request.referrer)
 
+
 @staff.route('/for-hr/staff-info/approvers/add/requester/<int:requester_id>',
              methods=['GET', 'POST'])
 @login_required
 def staff_add_requester(requester_id):
     if request.method == 'POST':
-        createapprover = StaffLeaveApprover(
-            approver_account_id = request.form.get('staffname'),
-            staff_account_id = requester_id
-        )
-        db.session.add(createapprover)
-        db.session.commit()
-        flash(u'เพิ่มผู้อนุมัติเรียบร้อยแล้ว', 'success')
+        approver_account_id = request.form.get('staffname'),
+        find_approver = StaffLeaveApprover.query.filter_by\
+            (approver_account_id=approver_account_id, staff_account_id=requester_id).first()
+        if find_approver:
+            flash(u'ไม่สามารถเพิ่มผู้อนุมัติได้เนื่องจากมีผู้อนุมัตินี้อยู่แล้ว', 'warning')
+        else:
+            createapprover = StaffLeaveApprover(
+                approver_account_id = approver_account_id,
+                staff_account_id = requester_id
+            )
+            db.session.add(createapprover)
+            db.session.commit()
+            flash(u'เพิ่มผู้อนุมัติเรียบร้อยแล้ว', 'success')
+
     requester = StaffLeaveApprover.query.filter_by(staff_account_id=requester_id)
     requester_name = StaffLeaveApprover.query.filter_by(staff_account_id=requester_id).first()
     return render_template('staff/leave_request_manage_requester.html', approvers=requester,
