@@ -3,7 +3,7 @@
 {% include "nav.html" %}
 {% block head %}
 {{ super() }}
-<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
 {% endblock %}
 {% block page_content %}
 <section class="section">
@@ -14,62 +14,82 @@
                 <h1 class="title">บันทึกกิจกรรมภายในคณะฯ</h1>
             </div>
         </div>
-        <form method="post">
-            {{ form.hidden_tag() }}
-            <div class="field">
-                <label class="label">{{ form.title.label }}</label>
-                <div class="control">
-                    {{ form.title(class="input") }}
-                </div>
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                <form method="post" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.event_type.label }}</label>
+                        <div class="select">
+                            {{ form.event_type() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.title.label }}</label>
+                        <div class="control">
+                            {{ form.title(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.desc.label }}</label>
+                        <div class="control">
+                            {{ form.desc(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.start.label }}</label>
+                        <div class="control">
+                            {{ form.start(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.end.label }}</label>
+                        <div class="control">
+                            {{ form.end(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.location.label }}</label>
+                        <div class="control">
+                            {{ form.location(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.organiser.label }}</label>
+                        <div class="select">
+                            {{ form.organiser() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.registration.label }}</label>
+                        <div class="control">
+                            {{ form.registration(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="file">
+                            <label class="file-label">
+                                {{ form.upload(class="file-input") }}
+                                <span class="file-cta">
+                              <span class="file-icon">
+                                <i class="fas fa-upload"></i>
+                              </span>
+                              <span class="file-label">
+                                {{ form.upload.label }}
+                              </span>
+                            </span>
+                                <span class="file-name" id="filename"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="buttons">
+                            <button class="button is-success" type="submit" value="submit">Submit</button>
+                        </div>
+                    </div>
+                </form>
             </div>
-            <div class="field">
-                <label class="label">{{ form.desc.label }}</label>
-                <div class="control">
-                    {{ form.desc(class="textarea") }}
-                </div>
-            </div>
-            <div class="field">
-                <label class="label">{{ form.start.label }}</label>
-                <div class="control">
-                    {{ form.start(class="input") }}
-                </div>
-            </div>
-            <div class="field">
-                <label class="label">{{ form.end.label }}</label>
-                <div class="control">
-                    {{ form.end(class="input") }}
-                </div>
-            </div>
-            <div class="field">
-                <label class="label">{{ form.location.label }}</label>
-                <div class="control">
-                    {{ form.location(class="input") }}
-                </div>
-            </div>
-            <div class="field">
-                <label class="label">{{ form.organiser.label }}</label>
-                <div class="select">
-                    {{ form.organiser() }}
-                </div>
-            </div>
-            <div class="field">
-                <label class="label">{{ form.registration.label }}</label>
-                <div class="control">
-                    {{ form.registration(class="input") }}
-                </div>
-            </div>
-            <div class="field">
-                <label class="label">{{ form.poster.label }}</label>
-                <div class="control">
-                    {{ form.poster(class="input") }}
-                </div>
-            </div>
-            <div class="field">
-                <div class="buttons">
-                    <button class="button is-success" type="submit" value="submit">Submit</button>
-                </div>
-            </div>
-        </form>
+        </div>
     </div>
 </section>
 {% endblock page_content %}
@@ -100,6 +120,11 @@
             format: 'YYYY-MM-DD HH:mm:ss'
         }
     });
-
+</script>
+<script>
+    $('#upload').change(function (e) {
+        let fileName = e.target.files[0].name;
+        $('#filename').text(fileName);
+    });
 </script>
 {% endblock %}
