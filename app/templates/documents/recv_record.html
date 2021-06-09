@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column">
+                <table class="table is-bordered is-fullwidth is-striped">
+                    <tr>
+                        <td><label class="label">Title</label></td>
+                        <td>{{ rec.doc.title }}</td>
+                    </tr>
+                    <tr>
+                        <td><label class="label">Summary</label></td>
+                        <td>{{ rec.doc.summary }}</td>
+                    </tr>
+                    <tr>
+                        <td><label class="label">Comment</label></td>
+                        <td>{{ rec.doc.comment }}</td>
+                    </tr>
+                    <tr>
+                        <td><label class="label">File</label></td>
+                        <td><a href="{{ 'https://drive.google.com/uc?id='+ rec.doc.url }}">Download</a></td>
+                    </tr>
+                    <tr>
+                        <td><label class="label">Private Comment</label></td>
+                        <td></td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

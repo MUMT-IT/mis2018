@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+
+{% block page_content %}
+{% include "documents/nav.html" %}
+<section class="section">
+    <div class="columns">
+        <div class="column has-text-centered">
+            {% include "messages.html" %}
+            <h1 class="title">New Document <span class="tag is-info is-rounded is-light">admin</span></h1>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            <form method="post" class="box" enctype="multipart/form-data">
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">{{ form.number.label }}</label>
+                    <div class="control">
+                        {{ form.number(class="input is-danger") }}
+                    </div>
+                    <p class="help is-danger">required</p>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.title.label }}</label>
+                    <div class="control">
+                        {{ form.title(class="input is-danger") }}
+                    </div>
+                    <p class="help is-danger">required</p>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.summary.label }}</label>
+                    <div class="control">
+                        {{ form.summary(class="textarea") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="file">
+                        <label class="file-label">
+                            {{ form.upload(class="file-input") }}
+                            <span class="file-cta">
+                              <span class="file-icon">
+                                <i class="fas fa-upload"></i>
+                              </span>
+                              <span class="file-label">
+                                Choose a file…
+                              </span>
+                            </span>
+                            <span class="file-name" id="filename"></span>
+                        </label>
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.category.label }}</label>
+                    <div class="select">
+                        {{ form.category() }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.priority.label }}</label>
+                    <div class="select">
+                        {{ form.priority() }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.deadline.label }}</label>
+                    <div class="control">
+                        {{ form.deadline(class="input", type="text") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">Comment from a secretary</label>
+                    <div class="control">
+                        {{ form.comment(class="textarea", placeholder='Optional') }}
+                    </div>
+                </div>
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('doc.admin_view_round', round_id=round_id) }}" class="button is-light">Back</a>
+                    <input type="submit" class="button is-success" value="Submit"></input>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    // set up the daterangepicker so that it starts off empty
+    // because not all documents have a deadline date.
+    $('input[name="deadline"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: true,
+        autoUpdateInput: false,
+        timePicker24Hour: true,
+        timePickerIncrement: 30,
+        locale: {
+            cancelLabel: 'Clear',
+            format: 'YYYY-MM-DD HH:mm:ss'
+        }
+    }, function(start, end, label) {
+        $(this.element).val(start.format('YYYY-MM-DD HH:mm:ss'))
+    });
+</script>
+<script>
+    $(document).ready(()=>{
+        $('#filename').text("{{ form.file_name.data }}");
+    })
+    $('#upload').change(function(e) {
+        let fileName = e.target.files[0].name;
+        $('#filename').text(fileName);
+    });
+</script>
+{% endblock %}

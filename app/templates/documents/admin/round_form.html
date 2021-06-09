@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+
+{% block page_content %}
+{% include "documents/nav.html" %}
+<section class="section">
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            <form method="post" class="box">
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">วันที่รับหนังสือเวียนในภาควิชา</label>
+                    <div class="control">
+                        {{ form.date(class="input", type="text") }}
+                    </div>
+                </div>
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('doc.admin_index') }}" class="button is-light">Back</a>
+                    <input type="submit" class="button is-success" value="Submit"></input>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    $('input[name="date"]').daterangepicker({
+        singleDatePicker: true,
+        locale: {
+            format: 'YYYY-MM-DD'
+        }
+    });
+</script>
+{% endblock %}

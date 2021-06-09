@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% include "nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
 {% block page_content %}
 <section class="section">
     <div class="container">
@@ -18,7 +22,7 @@
         </div>
         <div class="columns">
             <div class="column">
-                <table class="table is-bordered is-striped" id="seminarTable">
+                <table class="table is-striped" id="seminarTable">
                     <thead>
                         <th>ชื่อกิจกรรม</th>
                         <th>วันที่เริ่มต้น</th>

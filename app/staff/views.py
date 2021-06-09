@@ -1776,13 +1776,11 @@ def seminar_add_attendee(seminar_id):
     staff_list = []
     account_query = StaffAccount.query.all()
     for account in account_query:
-        record = {}
-        record["staffid"] = account.id
-        record["fullname"] = account.personal_info.fullname
-        if account.personal_info.org:
-            record["org"] = account.personal_info.org.name
-        else:
-            record["org"] = ""
+        record = dict(staffid=account.id,
+                      fullname=account.personal_info.fullname,
+                      email=account.email)
+        organization = account.personal_info.org
+        record["org"] = organization.name if organization else ""
         staff_list.append(record)
     return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
 

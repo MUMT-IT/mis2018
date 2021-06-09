@@ -60,15 +60,12 @@
                     </table>
                 </div>
                 <div class="box">
-                    <br>
                     <table class="table is-fullwidth">
                         <thead>
-                            <th>ชื่อบุคลากร</th>
+                            <th>ชื่อ</th>
                             <th>ประเภทการเข้าร่วม</th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-
+                            <th>วันและเวลา</th>
+                            <th>Actions</th>
                         </thead>
                         <tbody>
                             {% for attend in attends %}
@@ -84,14 +81,15 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    {{ attend.start_datetime|localdatetime }}
+                                    {{ attend.start_datetime|localdatetime }} - {{ attend.end_datetime|localdatetime }}
                                 </td>
                                 <td>
-                                    {{ attend.end_datetime|localdatetime }}
-                                </td>
-                                <td>
-                                    <a class="button is-warning" href="{{ url_for('staff.delete_participant',
-                                    attend_id=attend.id, participant_id=participant.id) }}">ลบ</a>
+                                    <a class="button is-danger is-light"href="{{ url_for('staff.delete_participant',
+                                    attend_id=attend.id, participant_id=participant.id) }}">
+                                        <span class="icon">
+                                            <i class="fas fa-user-minus"></i>
+                                        </span>
+                                    </a>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -99,9 +97,12 @@
                         </tbody>
                     </table>
                     <div class="columns">
-                        <div class="column">
+                        <div class="column has-text-centered">
                             <a href="{{ url_for('staff.seminar_add_attendee', seminar_id=seminar.id) }}"
-                               class="button is-rounded is-info">
+                               class="button is-light is-success">
+                                <span class="icon">
+                                    <i class="fas fa-user-plus"></i>
+                                </span>
                                 <span>เพิ่มผู้เข้าร่วม</span>
                             </a>
                         </div>

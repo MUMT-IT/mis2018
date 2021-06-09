@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+
+{% block page_content %}
+{% include "documents/nav.html" %}
+<section class="section">
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            <form method="post" class="box">
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">Sender's Message</label>
+                    <div class="control">
+                        {{ form.sender_comment(class="textarea") }}
+                    </div>
+                </div>
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('doc.head_view_send_receipt', doc_id=doc_reach.doc_id, sent_round_org_id=doc_reach.round_org_id) }}"
+                       class="button is-light">Back</a>
+                    <input type="submit" class="button is-success" value="Submit"></input>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}

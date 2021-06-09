@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<link ref="//cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block page_content %}
+{% include "documents/nav.html" %}
+<section class="section">
+    <div class="container">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+          <ul>
+            <li><a href="{{ url_for('doc.index') }}">Main</a></li>
+            <li class="is-active"><a href="#" aria-current="page">Rounds</a></li>
+          </ul>
+        </nav>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">Rounds <span class="tag is-info is-rounded is-light">admin</span></h1>
+            </div>
+        </div>
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <a class="button is-light is-link" href="{{ url_for('doc.add_round') }}">
+                    <span class="icon">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span>Add Round</span>
+                </a>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table id="myTable" class="table is-striped is-fullwidth">
+                    <thead>
+                    <th>
+                        <span class="icon">
+                            <i class="fas fa-shipping-fast"></i>
+                        </span>
+                        <span>
+                            Round
+                        </span>
+                    </th>
+                    <th>
+                        <span class="icon">
+                            <i class="far fa-calendar-alt"></i>
+                        </span>
+                        <span>
+                            Created At
+                        </span>
+                    </th>
+                    <th>
+                        <span class="icon">
+                            <i class="far fa-file-alt"></i>
+                        </span>
+                        <span>
+                            Total Documents
+                        </span>
+                    </th>
+                    <th>
+                        <span class="icon">
+                            <i class="fas fa-users"></i>
+                        </span>
+                        <span>
+                            Recipient Groups
+                        </span>
+                    </th>
+                    </thead>
+                    <tbody>
+                    {% for round in rounds %}
+                    <tr>
+                        <td>
+                            {{ round }}
+                        </td>
+                        <td>
+                            <h1 class="title is-size-6">
+                                {{ round.created_at|localdatetime }}
+                            </h1>
+                            <h1 class="subtitle is-size-7">
+                                {{ round.created_at|humanizedt }}
+                            </h1>
+                        </td>
+                        <td>
+                            <div class="field is-grouped is-grouped-multiline">
+                                <div class="control">
+                                    <a href="{{ url_for('doc.admin_view_round', round_id=round.id) }}">
+                                        <div class="tags has-addons">
+                                            <span class="tag">total</span>
+                                            <span class="tag is-info">
+                                                {{ round.documents.all()|length }}
+                                            </span>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="control">
+                                    <a href="{{ url_for('doc.admin_view_round', round_id=round.id) }}">
+                                        <div class="tags has-addons">
+                                            <span class="tag">ready</span>
+                                            <span class="tag is-success">
+                                                {{ round.documents.filter_by(stage='ready').all()|length }}
+                                            </span>
+                                        </div>
+                                    </a>
+                                </div>
+                                <div class="control">
+                                    <a href="{{ url_for('doc.admin_view_round', round_id=round.id) }}">
+                                        <div class="tags has-addons">
+                                            <span class="tag">draft</span>
+                                            <span class="tag is-warning">
+                                                {{ round.documents.filter_by(stage='drafting').all()|length }}
+                                            </span>
+                                        </div>
+                                    </a>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ round.targets.all()|length }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready( function () {
+        $('#myTable').DataTable(
+            {
+                "order": [[0, "desc"], [1, "desc"]],
+                "pageLength": 5
+            }
+        );
+    });
+</script>
+{% endblock %}

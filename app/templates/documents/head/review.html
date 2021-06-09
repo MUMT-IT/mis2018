@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+
+{% block page_content %}
+{% include "documents/nav.html" %}
+<section class="section" id="app">
+    <div class="columns">
+        <div class="column">
+            {% include "messages.html" %}
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            <form method="post" class="box">
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">Title</label>
+                        {{ doc.title }}
+                </div>
+                <div class="field">
+                    <label class="label">Admin's Memo</label>
+                    {{ doc.comment }}
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.predefined_comment.label }}</label>
+                    <div class="select">
+                        {{ form.predefined_comment() }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.comment.label }}</label>
+                    <div class="control">
+                        {{ form.comment(class="textarea") }}
+                    </div>
+                    <p class="help is-link">ความเห็นนี้จะส่งให้กับสมาชิกทุกคนที่ระบุ ท่านสามารถส่งความเห็นถึงเฉพาะบุคคลได้ภายหลัง</p>
+                    <p class="help is-link">The comment will be sent to all selected members. You can send a private comment afterwards.</p>
+                </div>
+                <div class="field">
+                    <label class="label">
+                        {{ form.send_all(class="checkbox") }}
+                        {{ form.send_all.label }}
+                    </label>
+                </div>
+                <div class="field">
+                    <label class="label">Select</label>
+                    {{ form.members() }}
+                </div>
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('doc.head_view_docs', round_id=doc.round_id) }}" class="button is-light">Back</a>
+                    <input type="submit" class="button is-success" value="Send"></input>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(()=>{
+        $('input:checkbox').prop('checked', true);
+        $("#send_all").click(function(){
+            $('input:checkbox').not(this).prop('checked', this.checked);
+        });
+        $("input[name='members']").click(function(){
+            if ($("input[name='members']").not(':checked').length > 0) {
+                $('#send_all').prop('checked', false)
+            } else {
+                $('#send_all').prop('checked', true)
+            }
+        })
+    })
+</script>
+{% endblock %}

@@ -32,6 +32,7 @@ class ResearchPub(db.Model):
     title = db.Column('title', db.String())
     abstract = db.Column('abstract', db.Text())
     cover_date = db.Column('cover_date', db.Date())
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     publication_name = db.Column('publication_name', db.String())
     scopus_link = db.Column('scopus_link', db.String())
     doi = db.Column('doi', db.String())

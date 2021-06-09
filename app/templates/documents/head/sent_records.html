@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+{% include "documents/nav.html" %}
+<section class="section">
+    <div class="container">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('doc.index') }}">Main</a></li>
+                <li><a href="{{ url_for('doc.head_view_rounds') }}">Rounds</a></li>
+                <li><a href="{{ url_for('doc.head_view_docs', round_id=receipt.round_org_id) }}">Documents</a></li>
+                <li class="is-active"><a href="#" aria-current="page">Recipients</a></li>
+            </ul>
+        </nav>
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">Sent Records <span class="tag is-danger is-rounded is-light">supervisor</span></h1>
+                <table class="table is-striped is-bordered is-fullwidth">
+                    <tr>
+                        <td><label class="label">Title</label></td>
+                        <td>{{ receipt.doc.title }}</td>
+                    </tr>
+                    <tr>
+                        <td><label class="label">Summary</label></td>
+                        <td>{{ receipt.doc.summary }}</td>
+                    </tr>
+                    <tr>
+                        <td><label class="label">Comment</label></td>
+                        <td>{{ receipt.doc.comment }}</td>
+                    </tr>
+                </table>
+                <table class="table is-striped is-fullwidth">
+                    <thead>
+                    <th>Date</th>
+                    <th>Recipient</th>
+                    <th>Private Comment</th>
+                    <th>Action</th>
+                    </thead>
+                    <tbody>
+                    {% for member in receipt.members %}
+                    <tr>
+                        <td>{{ receipt.sent_at|localdatetime }}</td>
+                        <td>{{ member.fullname }}</td>
+                        <td>
+                            {{ member.staff_account.doc_reaches.filter_by(doc_id=receipt.doc.id, round_org_id=receipt.round_org_id).first().sender_comment or '' }}
+                        </td>
+                        <td>
+                            {% if member.staff_account.doc_reaches.filter_by(doc_id=receipt.doc.id, round_org_id=receipt.round_org_id).first().sender_comment %}
+                            <button class="button is-light" disabled>
+                                <span class="icon">
+                                   <i class="far fa-comment-dots"></i>
+                                </span>
+                                <span>message</span>
+                            </button>
+                            {% else %}
+                            <a href="{{ url_for('doc.head_add_private_msg', receipt_id=receipt.id, member_id=member.staff_account.id) }}"
+                               class="button is-light is-link">
+                                <span class="icon">
+                                   <i class="far fa-comment-dots"></i>
+                                </span>
+                                <span>message</span>
+                            </a>
+                            {% endif %}
+                            <a href="{{ url_for('doc.head_add_private_msg', receipt_id=receipt.id, member_id=member.staff_account.id) }}"
+                               class="button is-light is-danger">
+                                <span class="icon">
+                                    <i class="fas fa-times"></i>
+                                </span>
+                                <span>cancel</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+                <div class="buttons is-centered">
+                    <a class="button is-light" href="{{ url_for('doc.head_view_docs', round_id=receipt.doc.round.id) }}">Back</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
