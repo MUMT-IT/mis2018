@@ -1,16 +1,31 @@
-
 {% extends "base.html" %}
 {% block title %}Global Events{% endblock %}
 {% include "nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
 {% block page_content %}
 <section class="section">
     <div class="box">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">บันทึกกิจกรรมภายในคณะฯ</h1>
+            </div>
+        </div>
         <form method="post">
             {{ form.hidden_tag() }}
             <div class="field">
                 <label class="label">{{ form.title.label }}</label>
                 <div class="control">
                     {{ form.title(class="input") }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.desc.label }}</label>
+                <div class="control">
+                    {{ form.desc(class="textarea") }}
                 </div>
             </div>
             <div class="field">
@@ -26,6 +41,30 @@
                 </div>
             </div>
             <div class="field">
+                <label class="label">{{ form.location.label }}</label>
+                <div class="control">
+                    {{ form.location(class="input") }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.organiser.label }}</label>
+                <div class="select">
+                    {{ form.organiser() }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.registration.label }}</label>
+                <div class="control">
+                    {{ form.registration(class="input") }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.poster.label }}</label>
+                <div class="control">
+                    {{ form.poster(class="input") }}
+                </div>
+            </div>
+            <div class="field">
                 <div class="buttons">
                     <button class="button is-success" type="submit" value="submit">Submit</button>
                 </div>
@@ -36,5 +75,31 @@
 {% endblock page_content %}
 {% block scripts %}
 {{ super() }}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    $('input[name="start"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: true,
+        timePickerIncrement: 15,
+        timePicker24Hour: true,
+        startDate: moment().startOf('hour'),
+        endDate: moment().startOf('hour').add(32, 'hour'),
+        locale: {
+            format: 'YYYY-MM-DD HH:mm:ss'
+        }
+    });
+    $('input[name="end"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: true,
+        timePickerIncrement: 15,
+        timePicker24Hour: true,
+        startDate: moment().startOf('hour'),
+        endDate: moment().startOf('hour').add(32, 'hour'),
+        locale: {
+            format: 'YYYY-MM-DD HH:mm:ss'
+        }
+    });
+
 </script>
 {% endblock %}
