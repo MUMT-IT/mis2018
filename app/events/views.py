@@ -6,11 +6,15 @@ import dateutil.parser
 import pytz
 from .forms import EventForm
 from . import event_bp as event
-from flask import jsonify, render_template, request
+from flask import jsonify, render_template, request, flash
 from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
+from pytz import timezone
 
+
+localtz = timezone('Asia/Bangkok')
 CALENDAR_ID = 'mumtpr@mahidol.edu'
+FOLDER_ID = '14D9JDuAx2Tr9tKWECQahx6gloaqY5U9I'
 
 service_account_info = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 credentials = Credentials.from_service_account_info(service_account_info)
@@ -70,11 +74,44 @@ def add_event():
     form = EventForm()
     if request.method == 'POST':
         if form.validate_on_submit():
-            event = {
-                'summary': form.title.data,
-                'start': form.start.data,
-                'end': form.end.data
-            }
-            return jsonify(event)
+            start = localtz.localize(form.data.get('start'))
+            end = localtz.localize(form.data.get('end'))
 
+            if start and end:
+                timedelta = end - start
+                if timedelta.days < 0 or timedelta.seconds == 0:
+                    flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'warning')
+                else:
+                    event = {
+                        'summary': form.title.data,
+                        'location': form.location.data,
+                        'sendUpdates': 'all',
+                        'status': 'tentative',
+                        'description': form.desc.data,
+                        'start': {
+                            'dateTime': start.isoformat(),
+                            'timeZone': 'Asia/Bangkok',
+                        },
+                        'end': {
+                            'dateTime': end.isoformat(),
+                            'timeZone': 'Asia/Bangkok',
+                        },
+                        'extendedProperties': {
+                            'private': {
+                                'organiser': form.organiser.data.id,
+                                'registration': form.registration.data,
+                                'poster_id' : form.poster.data
+                            }
+                        }
+                    }
+                    scoped_credentials = credentials.with_scopes([
+                        'https://www.googleapis.com/auth/calendar',
+                        'https://www.googleapis.com/auth/calendar.events'
+                    ])
+                    calendar_service = build('calendar', 'v3', credentials=scoped_credentials)
+                    event = calendar_service.events().insert(
+                        calendarId=CALENDAR_ID,
+                        body=event).execute()
+                    flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
+                    return render_template('events/global.html')
     return render_template('events/edit_form.html', form=form)
