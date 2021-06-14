@@ -525,10 +525,11 @@ def head_finish_round(sent_round_org_id):
         members.update(record.members)
     for member in members:
         line_id = member.staff_account.line_id
-        bubble_message = create_bubble_message_recipient(round_org, member.staff_account)
-        line_bot_api.push_message(to=line_id,
-                                  messages=FlexSendMessage(alt_text='New circular letters',
-                                                           contents=bubble_message))
+        if line_id:
+            bubble_message = create_bubble_message_recipient(round_org, member.staff_account)
+            line_bot_api.push_message(to=line_id,
+                                      messages=FlexSendMessage(alt_text='New circular letters',
+                                                               contents=bubble_message))
         send_mail_recipient(member.staff_account, round_org)
     return redirect(url_for('doc.head_view_rounds'))
 

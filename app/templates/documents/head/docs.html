@@ -138,10 +138,10 @@
                 {% endif %}
                 <div class="buttons is-centered">
                     <a class="button is-light" href="{{ url_for('doc.head_view_rounds', round_id=sent_round.round.id) }}">Back</a>
-                    {% if sent_round.doc_reaches.all()|length > 0 and not sent_round.finished_at %}
+                    {% if sent_round.doc_reaches.all()|length > 0 %}
                     <a class="button is-link" href="{{ url_for('doc.head_finish_round', sent_round_org_id=sent_round.id) }}">Finish</a>
                     {% else %}
-                    <a class="button is-link" disabled>Finish</a>
+                    <a class="button is-link" disabled>Finish</a> -->
                     {% endif %}
                 </div>
             </div>
