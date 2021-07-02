@@ -34,31 +34,37 @@
                                      type="is-danger">
                                 <b-input type="text"
                                          name="topic"
-                                         icon-pack="far"
+                                         icon-pack="fas"
                                          icon="tag"
                                          placeholder="เรื่อง" required>
                                 </b-input>
                             </b-field>
-                            <b-field label="ระยะเวลาการจัดงาน" message="หากต้องการเลือก 1 วัน ให้ดับเบิ้ลคลิ๊กวันที่ต้องการ">
-                                <b-datepicker
+                            <b-field label="เวลาเริ่มต้น">
+                                <b-datetimepicker
                                         required
-                                        name="dates"
-                                        v-model="selectedDates"
+                                        v-model="startDateTime"
                                         range
                                         icon-pack="fa"
-                                        :date-formatter="formatDate"
+                                        :timepicker="timepicker"
                                         :mobile-native="false"
                                         placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                         icon="calendar-alt">
-                                </b-datepicker>
+                                </b-datetimepicker>
                             </b-field>
-                            <div class="field">
-                                <div class="block">
-                                    <b-radio native-value="fulltime" v-model="stime" name="stime">เต็มวัน</b-radio>
-                                    <b-radio native-value="halfmorning" v-model="stime" name="stime">ครึ่งวันเช้า</b-radio>
-                                    <b-radio native-value="halfafternoon" v-model="stime" name="stime">ครึ่งวันบ่าย</b-radio>
-                                </div>
-                            </div>
+                            <input type="hidden" name="start_datetime" v-model="formattedStartDateTime">
+                            <b-field label="เวลาสิ้นสุด">
+                                <b-datetimepicker
+                                        required
+                                        v-model="endDateTime"
+                                        range
+                                        icon-pack="fa"
+                                        :timepicker="timepicker"
+                                        :mobile-native="false"
+                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                        icon="calendar-alt">
+                                </b-datetimepicker>
+                            </b-field>
+                            <input type="hidden" name="end_datetime" v-model="formattedEndDateTime">
                             <b-field label="ด้าน">
                                 <b-select placeholder="เลือกด้าน" name="mission" required>
                                     <option value="การศึกษา">การศึกษา</option>
@@ -77,7 +83,7 @@
                                 <b-input type="text"
                                          name="location"
                                          icon-pack="far"
-                                         icon="map-marker-alt"
+                                         icon="map"
                                          required>
                                 </b-input>
                             </b-field>
@@ -113,22 +119,32 @@
 {% block scripts %}
 {{ super() }}
 <script>
-    new Vue({
+    let vm = new Vue({
         el: '#app',
         delimiters: ['<%', '%>'],
         data() {
             return {
-                selectedDates: [],
-                stime: "fulltime",
-                data: []
+                startDateTime: null,
+                endDateTime: null,
+                data: [],
+                timepicker: {
+                    incrementMinutes: 15
+                }
         }
         },
-        methods: {
-            formatDate(dates){
-                let start = new moment(dates[0]).format("DD/MM/YYYY")
-                let end = new moment(dates[1]).format("DD/MM/YYYY")
-                return start + ' - ' + end
+        computed: {
+            formattedStartDateTime: function(){
+                if (this.startDateTime){
+                    return new moment(this.startDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
+                }
+                return null
             },
+            formattedEndDateTime: function(){
+                if (this.endDateTime){
+                    return new moment(this.endDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
+                }
+                return null
+            }
         }
     });
 </script>

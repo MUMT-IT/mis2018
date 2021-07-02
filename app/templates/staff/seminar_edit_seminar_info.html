@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">แก้ไขข้อมูลเรื่อง {{ seminar.topic }} {{ stime }}</h1>
+            </div>
+        </div>
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <b-notification type="is-warning is-light" aria-close-label="Close notification" role="alert">
+                        หากวันอบรมอยู่ในช่วง2ปีงบฯ ให้บันทึกครั้งเดียว
+                    </b-notification>
+                    <form method="post" enctype="multipart/form-data" action="{{ url_for('staff.edit_seminar_info', seminar_id=seminar.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">ประเภทกิจกรรม</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <b-select placeholder="เลือกประเภท" name="topic_type" v-model="topic_type" required>
+                                        <option value="ประชุม">ประชุม</option>
+                                        <option value="อบรม">อบรม</option>
+                                        <option value="อบรมเชิงปฏิบัติการ">อบรมเชิงปฏิบัติการ</option>
+                                        <option value="สัมมนา">สัมมนา</option>
+                                        <option value="ราชการ">ราชการ</option>
+                                        <option value="อื่นๆ">อื่นๆ</option>
+                                    </b-select>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">หัวข้อ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <input class="input"
+                                               name="topic" type="text"
+                                               value="{{ seminar.topic }}" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">เวลาเริ่มต้น</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <b-datetimepicker
+                                                required
+                                                v-model="startDateTime"
+                                                range
+                                                icon-pack="fa"
+                                                :timepicker="timepicker"
+                                                :mobile-native="false"
+                                                placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                                icon="calendar-alt">
+                                        </b-datetimepicker>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="start_datetime" v-model="formattedStartDateTime">
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">เวลาสิ้นสุด</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <b-datetimepicker
+                                                required
+                                                v-model="endDateTime"
+                                                range
+                                                icon-pack="fa"
+                                                :timepicker="timepicker"
+                                                :mobile-native="false"
+                                                placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                                icon="calendar-alt">
+                                        </b-datetimepicker>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" name="end_datetime" v-model="formattedEndDateTime">
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">ด้าน</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <b-select placeholder="เลือกด้าน" name="mission" v-model="mission" required>
+                                        <option value="การศึกษา">การศึกษา</option>
+                                        <option value="วิจัย">วิจัย</option>
+                                        <option value="บริการวิชาการ/บริการสุขภาพ">บริการวิชาการ/บริการสุขภาพ</option>
+                                        <option value="บริหารจัดการ">บริหารจัดการ</option>
+                                        <option value="ทำนุบำรุงศิลปวัฒนธรรม">ทำนุบำรุงศิลปวัฒนธรรม</option>
+                                        <option value="พัฒนาคุณภาพ">พัฒนาคุณภาพ</option>
+                                        <option value="วิชาการ">วิชาการ</option>
+                                        <option value="วิชาชีพเทคนิคการแพทย์">วิชาชีพเทคนิคการแพทย์</option>
+                                        <option value="วิชาชีพรังสีเทคนิค">วิชาชีพรังสีเทคนิค</option>
+                                        <option value="อื่นๆ">อื่นๆ</option>
+                                    </b-select>
+                                </div>
+                            </div>
+                            </b-field>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">สถานที่</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <input class="input"
+                                               name="location" type="text"
+                                               value="{{ seminar.location }}" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">ประเทศ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <input class="input"
+                                               name="country" type="text"
+                                               {% if seminar.country %}
+                                               value="{{ seminar.country }}"
+                                               {% endif %}>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">จัดonline</label>
+                            </div>
+                            <div class="field-body">
+                                <label class="checkbox">
+                                    <input type="checkbox" name="online"
+                                           {% if seminar.is_online %}
+                                               checked
+                                           {% endif %}>
+                                    จัดผ่าน Online
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <input type="submit" value="บันทึกการแก้ไข" class="button is-info"/>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('staff.seminar_records') }}" class="button is-danger">ยกเลิก</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                startDateTime: new Date({{ seminar.start_datetime.isoformat()|tojson|safe }}),
+                endDateTime: new Date({{ seminar.end_datetime.isoformat()|tojson|safe }}),
+                timepicker: {
+                    incrementMinutes: 15
+                },
+                topic_type: '{{ seminar.topic_type }}',
+                mission: '{{ seminar.mission }}'
+            }
+        },
+        computed: {
+            formattedStartDateTime: function(){
+                if (this.startDateTime){
+                    return new moment(this.startDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
+                }
+                return null
+            },
+            formattedEndDateTime: function(){
+                if (this.endDateTime){
+                    return new moment(this.endDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
+                }
+                return null
+            }
+        },
+    });
+</script>
+{% endblock %}
+
+
+
