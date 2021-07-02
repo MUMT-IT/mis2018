@@ -7,6 +7,7 @@
 {% block page_content %}
 <section class="section">
     <div class="container">
+        {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-left">
                 <h1 class="title">รายการประชุม อบรม สัมมนา</h1>
@@ -24,13 +25,18 @@
             <div class="column">
                 <table class="table is-striped" id="seminarTable">
                     <thead>
+                        <th>ประเภทกิจกรรม</th>
                         <th>ชื่อกิจกรรม</th>
                         <th>วันที่เริ่มต้น</th>
                         <th>วันที่สิ้นสุด</th>
+                        <th>แก้ไข</th>
                     </thead>
                     <tbody>
                     {% for record in seminar_list %}
                     <tr>
+                        <td>
+                            {{ record["topic_type"] }}
+                        </td>
                         <td>
                             <a href="{{ url_for('staff.seminar_attend_info', seminar_id=record['id']) }}">
                             {{ record["name"] }}
@@ -41,6 +47,13 @@
                         </td>
                         <td>
                             {{ record["end"]|localdatetime }}
+                        </td>
+                        <td>
+                            <span>
+                                <a href="{{ url_for('staff.edit_seminar_info', seminar_id=record['id']) }}">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </a>
+                            </span>
                         </td>
                     </tr>
                     {% endfor %}
