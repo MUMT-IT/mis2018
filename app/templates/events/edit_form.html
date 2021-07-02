@@ -83,6 +83,24 @@
                         </div>
                     </div>
                     <div class="field">
+                        <label class="label">{{ form.post_option.label }}</label>
+                        <div class="select">
+                            {{ form.post_option(id="post_option") }}
+                        </div>
+                    </div>
+                    <div class="field" id="postlater">
+                        <label class="label">{{ form.post_time.label }}</label>
+                        <div class="control">
+                            {{ form.post_time(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.remind_option.label }}</label>
+                        <div class="select">
+                            {{ form.remind_option() }}
+                        </div>
+                    </div>
+                    <div class="field">
                         <div class="buttons">
                             <button class="button is-success" type="submit" value="submit">Submit</button>
                         </div>
@@ -98,28 +116,60 @@
 <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script>
-    $('input[name="start"]').daterangepicker({
-        singleDatePicker: true,
-        timePicker: true,
-        timePickerIncrement: 15,
-        timePicker24Hour: true,
-        startDate: moment().startOf('hour'),
-        endDate: moment().startOf('hour').add(32, 'hour'),
-        locale: {
-            format: 'YYYY-MM-DD HH:mm:ss'
+    $(document).ready(function (){
+        $('input[name="start"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: true,
+            timePickerIncrement: 15,
+            timePicker24Hour: true,
+            startDate: moment().startOf('hour'),
+            endDate: moment().startOf('hour').add(32, 'hour'),
+            locale: {
+                format: 'YYYY-MM-DD HH:mm:ss'
+            }
+        });
+        $('input[name="end"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: true,
+            timePickerIncrement: 15,
+            timePicker24Hour: true,
+            startDate: moment().startOf('hour'),
+            endDate: moment().startOf('hour').add(32, 'hour'),
+            locale: {
+                format: 'YYYY-MM-DD HH:mm:ss'
+            }
+        });
+        $('input[name="post_time"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: true,
+            timePickerIncrement: 30,
+            timePicker24Hour: true,
+            startDate: moment().startOf('hour').add(24, 'hour'),
+            locale: {
+                format: 'YYYY-MM-DD HH:mm:ss'
+            }
+        });
+
+        let post_option = $('#post_option').find(':selected').val()
+        if(post_option === 'postnow'){
+            $('#postlater').hide()
         }
-    });
-    $('input[name="end"]').daterangepicker({
-        singleDatePicker: true,
-        timePicker: true,
-        timePickerIncrement: 15,
-        timePicker24Hour: true,
-        startDate: moment().startOf('hour'),
-        endDate: moment().startOf('hour').add(32, 'hour'),
-        locale: {
-            format: 'YYYY-MM-DD HH:mm:ss'
+        else if(post_option === undefined){
+            $('#postlater').hide()
         }
-    });
+        else{
+            $('#postlater').show()
+        }
+        $('#post_option').change(function(){
+            if (this.value === 'postnow'){
+                $('#postlater').hide()
+            }
+            else{
+                $('#postlater').show()
+            }
+        })
+    })
+
 </script>
 <script>
     $('#upload').change(function (e) {
