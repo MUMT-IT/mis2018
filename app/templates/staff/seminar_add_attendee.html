@@ -45,26 +45,32 @@
                             </b-checkbox>
                         </b-field>
                     </div>
-                    <b-field label="ระยะเวลาเข้าร่วม" message="หากต้องการเลือก 1 วัน ให้ดับเบิ้ลคลิ๊กวันที่ต้องการ">
-                        <b-datepicker
+                    <b-field label="เวลาเริ่มต้น">
+                        <b-datetimepicker
                                 required
-                                name="dates"
-                                v-model="selectedDates"
+                                v-model="startDateTime"
                                 range
                                 icon-pack="fa"
-                                :date-formatter="formatDate"
+                                :timepicker="timepicker"
                                 :mobile-native="false"
                                 placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                 icon="calendar-alt">
-                        </b-datepicker>
+                        </b-datetimepicker>
                     </b-field>
-                    <div class="field">
-                        <div class="block">
-                            <b-radio native-value="fulltime" v-model="stime" name="stime">เต็มวัน</b-radio>
-                            <b-radio native-value="halfmorning" v-model="stime" name="stime">ครึ่งวันเช้า</b-radio>
-                            <b-radio native-value="halfafternoon" v-model="stime" name="stime">ครึ่งวันบ่าย</b-radio>
-                        </div>
-                    </div>
+                    <input type="hidden" name="start_dt" v-model="formattedStartDateTime">
+                    <b-field label="เวลาสิ้นสุด">
+                        <b-datetimepicker
+                                required
+                                v-model="endDateTime"
+                                range
+                                icon-pack="fa"
+                                :timepicker="timepicker"
+                                :mobile-native="false"
+                                placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                icon="calendar-alt">
+                        </b-datetimepicker>
+                    </b-field>
+                    <input type="hidden" name="end_dt" v-model="formattedEndDateTime">
                     <div class="field">
                         <div class="field">
                             <label class="label">ค่าใช้จ่าย</label>
@@ -161,19 +167,29 @@
         delimiters: ['<%', '%>'],
         data() {
             return {
-                selectedDates: [start_datetime, end_datetime],
-                stime: "fulltime",
+                startDateTime: null,
+                endDateTime: null,
                 payment: "unpaid",
                 data: [],
-                participants: []
+                participants: [],
+                timepicker: {
+                    incrementMinutes: 15
+                }
             }
         },
-        methods: {
-            formatDate(dates){
-                let start = new moment(dates[0]).format("DD/MM/YYYY")
-                let end = new moment(dates[1]).format("DD/MM/YYYY")
-                return start + ' - ' + end
+        computed: {
+            formattedStartDateTime: function(){
+                if (this.startDateTime){
+                    return new moment(this.startDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
+                }
+                return null
             },
+            formattedEndDateTime: function(){
+                if (this.endDateTime){
+                    return new moment(this.endDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
+                }
+                return null
+            }
         }
     });
 </script>
