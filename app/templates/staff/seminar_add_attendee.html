@@ -22,6 +22,7 @@
             </div>
         </div>
         <hr>
+        {% include "messages.html" %}
         <form method="post">
         <div class="columns">
             <div class="column box is-half is-offset-3">
@@ -167,13 +168,13 @@
         delimiters: ['<%', '%>'],
         data() {
             return {
-                startDateTime: null,
-                endDateTime: null,
+                startDateTime: new Date({{ seminar.start_datetime.isoformat()|tojson|safe }}),
+                endDateTime: new Date({{ seminar.end_datetime.isoformat()|tojson|safe }}),
                 payment: "unpaid",
                 data: [],
                 participants: [],
                 timepicker: {
-                    incrementMinutes: 15
+                    incrementMinutes: 30
                 }
             }
         },
