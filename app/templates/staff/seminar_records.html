@@ -30,6 +30,7 @@
                         <th>วันที่เริ่มต้น</th>
                         <th>วันที่สิ้นสุด</th>
                         <th>แก้ไข</th>
+                        <th>ลบ</th>
                     </thead>
                     <tbody>
                     {% for record in seminar_list %}
@@ -55,6 +56,13 @@
                             <span>
                                 <a href="{{ url_for('staff.edit_seminar_info', seminar_id=record['id']) }}">
                                     <i class="fas fa-pencil-alt"></i>
+                                </a>
+                            </span>
+                        </td>
+                        <td>
+                            <span>
+                                <a href="{{ url_for('staff.cancel_seminar', seminar_id=record['id']) }}">
+                                    <i class="fas fa-trash"></i>
                                 </a>
                             </span>
                         </td>
