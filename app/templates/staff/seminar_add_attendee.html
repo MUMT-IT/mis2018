@@ -81,7 +81,7 @@
                             <b-radio native-value="paid" v-model="payment" name="payment">มีค่าใช้จ่าย</b-radio>
                         </div>
                     </div>
-                    <b-field label="งบประมาณ/ทุน" v-if="payment === 'paid'">
+                    <b-field label="ชื่องบประมาณ/ทุน" v-if="payment === 'paid'">
                         <b-input type="text"
                                  name="budget_type"
                                  icon-pack="far"
@@ -92,14 +92,16 @@
                         <b-input type="text"
                                  name="registration_fee"
                                  icon-pack="far"
-                                 icon="dollar-sign">
+                                 icon="dollar-sign"
+                                 required>
                         </b-input>
                     </b-field>
                     <b-field label="ค่าใช้จ่ายรวมต่อคน" v-if="payment === 'paid'">
                         <b-input type="text"
                                  name="budget"
                                  icon-pack="far"
-                                 icon="dollar-sign">
+                                 icon="dollar-sign"
+                                 required>
                         </b-input>
                     </b-field>
                 </div>
