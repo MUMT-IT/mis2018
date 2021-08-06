@@ -23,7 +23,7 @@ class EventForm(FlaskForm):
     organiser = QuerySelectField(query_factory=lambda:Org.query.all(),
                                  get_label='name',
                                  label=u'ผู้จัดงาน')
-    registration = StringField(u'ช่องทางลงทะเบียน', validators=[DataRequired()])
+    registration = StringField(u'ช่องทางลงทะเบียน (ใส่ link การลงทะเบียน)', validators=[DataRequired()])
     upload = FileField(u'อัพโหลดภาพ')
     post_option = SelectField(u'ตัวเลือกเวลาที่ประกาศ',
                              choices=[('postnow', u'ประกาศตอนนี้'),
