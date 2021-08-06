@@ -1,9 +1,11 @@
 # -*- coding:utf-8 -*-
+from datetime import datetime
 
 import requests
 import os
 import dateutil.parser
 import pytz
+import arrow
 from werkzeug.utils import secure_filename
 
 from .forms import EventForm
@@ -89,7 +91,6 @@ def add_event():
         if form.validate_on_submit():
             start = localtz.localize(form.data.get('start'))
             end = localtz.localize(form.data.get('end'))
-
             if start and end:
                 timedelta = end - start
                 if timedelta.days < 0 or timedelta.seconds == 0:
@@ -109,33 +110,56 @@ def add_event():
                                                                       'value': 'anyone',
                                                                       'role': 'reader'})
                         except:
-                            flash('Failed to upload the attached file to the Google drive.', 'danger')
+                            flash('ไม่สามารถบันทึกไฟล์นี้ได้ กรุณาลองใหม่', 'danger')
+                            return render_template('events/edit_form.html', form=form)
                         file_name = filename
                         file_url = file_drive['id']
-                        event = {
-                            'summary': form.title.data,
-                            'location': form.location.data,
-                            'sendUpdates': 'all',
-                            'status': 'tentative',
-                            'description': form.desc.data,
-                            'start': {
-                                'dateTime': start.isoformat(),
-                                'timeZone': 'Asia/Bangkok',
-                            },
-                            'end': {
-                                'dateTime': end.isoformat(),
-                                'timeZone': 'Asia/Bangkok',
-                            },
-                            'extendedProperties': {
-                                'private': {
-                                    'organiser': form.organiser.data.id,
-                                    'registration': form.registration.data,
-                                    'event_type': form.event_type.data,
-                                    'file_id': file_url,
-                                    'file_name': file_name
-                                }
+                    else:
+                        file_name = ''
+                        file_url = ''
+
+                    post_option = form.post_option.data
+                    if post_option == 'postnow':
+                        post_time = datetime.now(localtz)
+                    else:
+                        post_time = localtz.localize(form.data.get('post_time'))
+                    remind_option = form.remind_option.data
+                    if remind_option == '1day':
+                        remind_time = arrow.get(start).shift(days=-1)
+                    elif remind_option == '60mins':
+                        remind_time = arrow.get(start).shift(hours=-1)
+                    elif remind_option == '30mins':
+                        remind_time = arrow.get(start).shift(hours=-0.5)
+                    else:
+                        remind_time = None
+                    #TODO: recheck timezone of post_time
+                    event = {
+                        'summary': form.title.data,
+                        'location': form.location.data,
+                        'sendUpdates': 'all',
+                        'status': 'tentative',
+                        'description': form.desc.data,
+                        'start': {
+                            'dateTime': start.isoformat(),
+                            'timeZone': 'Asia/Bangkok',
+                        },
+                        'end': {
+                            'dateTime': end.isoformat(),
+                            'timeZone': 'Asia/Bangkok',
+                        },
+                        'extendedProperties': {
+                            'private': {
+                                'organiser': form.organiser.data.id,
+                                'registration': form.registration.data,
+                                'event_type': form.event_type.data,
+                                'file_id': file_url,
+                                'file_name': file_name,
+                                'post_time': post_time.isoformat(),
+                                'remind_time': remind_time.isoformat() if remind_time else ''
                             }
                         }
+                    }
+                    #return jsonify(event)
                     scoped_credentials = credentials.with_scopes([
                         'https://www.googleapis.com/auth/calendar',
                         'https://www.googleapis.com/auth/calendar.events'
