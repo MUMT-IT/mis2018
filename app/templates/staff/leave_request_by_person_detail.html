@@ -57,6 +57,43 @@
                 {% endfor %}
                 </tbody>
             </table>
+            <h4 class="subtitle">รายการที่ยังไม่ได้รับการอนุมัติ
+            </h4>
+            <table class="table is-bordered is-striped">
+                <thead>
+                <th>วันที่เริ่มลา</th>
+                <th>วันที่สิ้นสุดลา</th>
+                <th>จำนวนวัน</th>
+                <th>ประเภท</th>
+                </thead>
+                <tbody>
+                {% for requester in requester|sort(attribute='start_datetime') %}
+                {% if not requester.cancelled_at %}
+                {% if not requester.get_approved %}
+                {% if not requester.get_unapproved %}
+                <tr>
+                    <td>
+                        {{ requester.start_datetime|localdate }}
+                    </td>
+                    <td>
+                        {{ requester.end_datetime|localdate }}
+                    </td>
+                    <td>
+                        {{ requester.total_leave_days }}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('staff.record_each_request_leave_request', request_id=requester.id) }}"
+                           class="is-info is-light">
+                            {{ requester.quota.leave_type }}
+                        </a>
+                    </td>
+                </tr>
+                {% endif %}
+                {% endif %}
+                {% endif %}
+                {% endfor %}
+                </tbody>
+            </table>
             <a href="{{ url_for('staff.leave_request_result_by_person') }}" class="button is-rounded is-info is-light">
             <span class="icon">
             <i class="fas fa-arrow-left"></i>
