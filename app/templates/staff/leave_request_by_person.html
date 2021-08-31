@@ -3,44 +3,46 @@
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
-            <div class="columns">
-                <div class="column">
-                    <div class="field">
-                        <label class="label">ปีงบประมาณ</label>
-                        <div class="select">
+        <div class="columns">
+            <div class="column">
+                <div class="field">
+                    <label class="label">ปีงบประมาณ</label>
+                    <div class="select">
                         <select v-model="year" v-on:change="proceed()">
                             <option v-for="y in years" v-bind:value="y">
-                            <% y+543 %>
+                                <% y+543 %>
                             </option>
                         </select>
-                        </div>
-                        <label class="label">สังกัด</label>
-                        <div class="select">
+                    </div>
+                    <label class="label">สังกัด</label>
+                    <div class="select">
                         <select v-model="department" v-on:change="proceed()">
                             <option v-for="d in departments" v-bind:value="d.id" key="d.id">
-                            <% d.name %>
+                                <% d.name %>
                             </option>
                         </select>
-                        </div>
                     </div>
                 </div>
             </div>
-            <div class="columns">
-                <div class="column">
-                    <table class="table is-bordered is-striped" id="leaveTable">
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-bordered is-striped" id="leaveTable">
                     <thead>
-                        <th>ชื่อ</th>
-                        {% for leave_type in leave_types %}
-                        <th>{{ leave_type }}</th>
-                        {% endfor %}
-                        <th>Total</th>
+                    <th>ชื่อ</th>
+                    {% for leave_type in leave_types %}
+                    <th>{{ leave_type }}</th>
+                    {% endfor %}
+                    <th>รวม (วัน)</th>
+                    <th>รออนุมัติ (วัน)</th>
                     </thead>
                     <tbody>
                     {% for record in leaves_list %}
                     <tr>
                         <td>
-                            <a href="{{ url_for('staff.leave_request_by_person_detail', requester_id=record['staffid']) }}">
-                            {{ record["fullname"] }}
+                            <a href="{{ url_for('staff.leave_request_by_person_detail',
+                                    requester_id=record['staffid']) }}">
+                                {{ record["fullname"] }}
                             </a>
                         </td>
                         {% for leave_type in leave_types %}
@@ -49,22 +51,25 @@
                         <td>
                             {{ record["total"] }}
                         </td>
+                        <td>
+                            {{ record["pending"] }}
+                        </td>
                     </tr>
                     {% endfor %}
                     </tbody>
                 </table>
-                </div>
             </div>
-            <div class="has-text-right">
-                    <span>หมายเหตุ: จำนวนวันที่แสดง รวมการขอลาที่ยังไม่ได้รับการอนุมัติ</span>
-            </div>
+        </div>
+        <div class="has-text-right">
+            <span>หมายเหตุ: จำนวนรวมจะนับการขอลาที่รับการอนุมัติจากหัวหน้าแล้ว</span>
+        </div>
     </div>
 </section>
 {% endblock %}
 {% block scripts %}
 {{ super() }}
 <script>
-    $(document).ready(function(){
+    $(document).ready(function () {
         $('#leaveTable').DataTable();
     });
 </script>
@@ -75,10 +80,10 @@
         data(){
             return {
                 departments : {{ departments|tojson|safe }},
-                department : {{ sel_dept|tojson|safe }},
-                years : {{ years|tojson|safe }},
-                year : {{ year|tojson|safe }}
-            }
+            department : {{ sel_dept|tojson|safe }},
+            years : {{ years|tojson|safe }},
+            year : {{ year|tojson|safe }}
+        }
         },
         methods: {
             proceed: function() {

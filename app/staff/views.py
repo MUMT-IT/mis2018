@@ -1,12 +1,12 @@
 # -*- coding:utf-8 -*-
 from flask_login import login_required, current_user
-from pandas import read_excel, isna
+from pandas import read_excel, isna, DataFrame
 
 from models import *
 from . import staffbp as staff
 from app.main import db, get_weekdays, mail, app
 from app.models import Holidays, Org
-from flask import jsonify, render_template, request, redirect, url_for, flash, session
+from flask import jsonify, render_template, request, redirect, url_for, flash, session, send_from_directory
 from datetime import date, datetime
 from collections import defaultdict, namedtuple
 import pytz
@@ -1040,6 +1040,7 @@ def leave_request_result_by_person():
         record["staffid"] = account.id
         record["fullname"] = account.personal_info.fullname
         record["total"] = 0
+        record["pending"] = 0
         if account.personal_info.org:
             record["org"] = account.personal_info.org.name
         else:
@@ -1048,13 +1049,16 @@ def leave_request_result_by_person():
             record[leave_type] = 0
         for req in account.leave_requests:
             if not req.cancelled_at:
-                years.add(req.start_datetime.year)
-                if start_date and end_date:
-                    if req.start_datetime.date() < start_date or req.start_datetime.date() > end_date:
-                        continue
-                leave_type = req.quota.leave_type.type_
-                record[leave_type] += req.total_leave_days
-                record["total"] += req.total_leave_days
+                if req.get_approved:
+                    years.add(req.start_datetime.year)
+                    if start_date and end_date:
+                        if req.start_datetime.date() < start_date or req.start_datetime.date() > end_date:
+                            continue
+                    leave_type = req.quota.leave_type.type_
+                    record[leave_type] += req.total_leave_days
+                    record["total"] += req.total_leave_days
+                if not req.get_approved and not req.get_unapproved:
+                    record["pending"] += req.total_leave_days
         leaves_list.append(record)
     years = sorted(years)
     if len(years) > 0:
