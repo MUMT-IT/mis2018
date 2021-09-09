@@ -249,7 +249,9 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 def index():
     rounds = DocRoundOrg.query.filter_by(org_id=current_user.personal_info.org.id) \
         .order_by(DocRoundOrg.sent_at.desc()).limit(60)
-    return render_template('documents/index.html', rounds=rounds, DocDocumentReach=DocDocumentReach)
+    starred_docs = DocDocumentReach.query.filter_by(starred=True, reacher=current_user).all()
+    return render_template('documents/index.html',
+                           rounds=rounds, starred_docs=starred_docs, DocDocumentReach=DocDocumentReach)
 
 
 @docbp.route('/admin/rounds/<int:round_id>/documents')
@@ -276,15 +278,47 @@ def view_round(round_id):
         return render_template('documents/round.html', round_org=round_org)
 
 
-@docbp.route('/rounds/<int:round_org_id>')
+@docbp.route('/starred-documents/<int:doc_reach_id>')
 @login_required
-def mark_as_read(round_org_id):
-    doc_reach = DocDocumentReach.query.filter_by(round_org_id=round_org_id, reacher=current_user).first()
+def view_starred_doc(doc_reach_id):
+    _org = current_user.personal_info.org
+    doc_reach = DocDocumentReach.query.get(doc_reach_id)
+    return render_template('documents/starred_doc.html', doc_reach=doc_reach)
+
+
+@docbp.route('/rounds/mark-as-read/<int:doc_reach_id>')
+@login_required
+def mark_as_read(doc_reach_id):
+    star_view = request.args.get('star_view', 'false')
+    doc_reach = DocDocumentReach.query.get(doc_reach_id)
     if doc_reach:
         doc_reach.reached_at = datetime.datetime.now(bkk)
         db.session.add(doc_reach)
         db.session.commit()
-        return redirect(url_for('doc.view_round', round_id=doc_reach.round_org.round.id))
+        if star_view == 'true':
+            return redirect(url_for('doc.view_starred_doc', doc_reach_id=doc_reach_id))
+        else:
+            return redirect(url_for('doc.view_round', round_id=doc_reach.round_org.round.id))
+    else:
+        return 'Record not found.'
+
+
+@docbp.route('/rounds/starred/<int:doc_reach_id>')
+@login_required
+def star(doc_reach_id):
+    star_view = request.args.get('star_view', 'false')
+    doc_reach = DocDocumentReach.query.get(doc_reach_id)
+    if doc_reach:
+        if doc_reach.starred is not True:
+            doc_reach.starred = True
+        else:
+            doc_reach.starred = False
+        db.session.add(doc_reach)
+        db.session.commit()
+        if star_view == 'true':
+            return redirect(url_for('doc.view_starred_doc', doc_reach_id=doc_reach_id))
+        else:
+            return redirect(url_for('doc.view_round', round_id=doc_reach.round_org.round.id))
     else:
         return 'Record not found.'
 

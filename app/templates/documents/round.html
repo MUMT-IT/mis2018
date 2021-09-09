@@ -21,7 +21,8 @@
         <div class="columns">
             <div class="column has-text-centered is-two-thirds is-offset-2">
                 {% for doc in round_org.round.documents %}
-                {% if doc.reaches.filter_by(reacher_id=current_user.id, round_org_id=round_org.id).first() %}
+                {% set doc_reach = doc.reaches.filter_by(reacher_id=current_user.id, round_org_id=round_org.id).first() %}
+                {% if doc_reach %}
                 <div class="card">
                     <div class="card-header">
                         <h1 class="card-header-title">
@@ -92,26 +93,44 @@
                                 <td><label class="label">Private Message</label></td>
                                 <td>
                                     <span class="title is-size-6 has-text-info">
-                                        {{ doc.reaches.filter_by(reacher_id=current_user.id, round_org_id=round_org.id).first().sender_comment or '' }}
+                                        {{ doc_reach.sender_comment or '' }}
                                     </span>
                                 </td>
                             </tr>
                             <tr>
-                                <td><label class="label">Deadline</label></td>
+                                <td><label class="label">Deadline</label>
+                                </td>
                                 <td>{{ doc.deadline|humanizedt }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">Starred</label>
+                                    <p class="help is-info">เก็บเอกสารที่สำคัญเพื่อไว้ดูภายหลัง</p>
+                                </td>
+                                <td>
+                                    <a class="button" href="{{ url_for('doc.star', doc_reach_id=doc_reach.id) }}">
+                                    <span class="icon">
+                                    {% if doc_reach.starred %}
+                                        <i class="fas fa-star has-text-warning"></i>
+                                    {% else %}
+                                        <i class="far fa-star"></i>
+                                    {% endif %}
+                                    </span>
+                                    <span>Star This</span>
+                                    </a>
+                                </td>
                             </tr>
                             <tr>
                                 <td><label class="label">Action</label>
                                     <p class="help is-info">คลิกที่ปุ่ม Mark as read เพื่อบันทึกว่ารับทราบ</p>
                                 </td>
                                 <td>
-                                    {% if doc.reaches.filter_by(reacher_id=current_user.id, round_org_id=round_org.id).first().reached_at %}
+                                    {% if doc_reach.reached_at %}
                                     <span class="tag is-success is-light is-rounded">
-                                        Read {{ doc.reaches.filter_by(reacher_id=current_user.id, round_org_id=round_org.id).first().reached_at|humanizedt }}
+                                        Read {{ doc_reach.reached_at|humanizedt }}
                                     </span>
                                     {% else %}
-                                    <a class="button is-small is-rounded is-outlined is-light is-success"
-                                       href="{{ url_for('doc.mark_as_read', round_org_id=round_org.id) }}">
+                                    <a class="button is-outlined"
+                                       href="{{ url_for('doc.mark_as_read', doc_reach_id=doc_reach.id) }}">
                                         <span class="icon">
                                             <i class="fas fa-check"></i>
                                         </span>
