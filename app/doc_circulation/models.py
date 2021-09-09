@@ -123,6 +123,7 @@ class DocDocumentReach(db.Model):
     reacher_id = db.Column(db.ForeignKey('staff_account.id'))
     reacher = db.relationship(StaffAccount, backref=db.backref('doc_reaches', lazy='dynamic'))
     doc_id = db.Column(db.ForeignKey('doc_documents.id'))
+    starred = db.Column(db.Boolean(False))
     doc = db.relationship(DocDocument, backref=db.backref('reaches',
                                                           lazy='dynamic',
                                                           cascade='all, delete-orphan'))
