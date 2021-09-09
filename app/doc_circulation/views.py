@@ -268,8 +268,7 @@ def view_round(round_id):
     _org = current_user.personal_info.org
     round_org = DocRoundOrg.query.filter_by(round_id=round_id, org_id=_org.id).first()
     if round_org:
-        _round_reach = DocRoundOrgReach.query.filter_by(round_org_id=round_org.id,
-                                                        reacher=current_user).first()
+        _round_reach = DocRoundOrgReach.query.filter_by(round_org_id=round_org.id, reacher=current_user).first()
         if _round_reach:
             if not _round_reach.reached_at:
                 _round_reach.reached_at = datetime.datetime.now(bkk)
