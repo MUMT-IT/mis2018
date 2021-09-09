@@ -175,7 +175,12 @@
                             <span class="icon"><i class="fas fa-star has-text-warning"></i></span>
                         </td>
                         <td>
-                            {{ starred_doc.round_org.sent_at|localdatetime }}
+                            <h1 class="title is-size-7">
+                                {{ starred_doc.round_org.sent_at|localdatetime }}
+                            </h1>
+                            <h1 class="subtitle is-size-7">
+                                {{ starred_doc.round_org.sent_at|humanizedt }}
+                            </h1>
                         </td>
                         <td>
                             <a href="{{ url_for('doc.view_starred_doc', doc_reach_id=starred_doc.id) }}">
