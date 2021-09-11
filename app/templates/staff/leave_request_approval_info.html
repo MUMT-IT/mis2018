@@ -94,7 +94,7 @@
                     {% endfor %}
                     </thead>
                     <tbody>
-                    {% for requester in requester_cum_periods %}
+                    {% for requester in requester_cum_periods|sort(attribute='staff_account_id') %}
                     {% if requester.is_active %}
                     <tr>
                         <td>
