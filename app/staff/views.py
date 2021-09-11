@@ -753,6 +753,31 @@ def show_leave_approval_info():
                            leave_types=leave_types, line_notified=line_notified, today=today)
 
 
+@staff.route('/leave/requests/approval/info/download')
+@login_required
+def show_leave_approval_info_download():
+    requesters = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id, is_active=True).all()
+    requester_cum_periods = {}
+    records = []
+    for requester in requesters:
+        cum_periods = defaultdict(float)
+        for leave_request in requester.requester.leave_requests:
+            if leave_request.cancelled_at is None and leave_request.get_approved:
+                if leave_request.start_datetime.date() >= START_FISCAL_DATE.date() and leave_request.end_datetime.date() \
+                        <= END_FISCAL_DATE.date():
+                    cum_periods[u"{}".format(leave_request.quota.leave_type)] += leave_request.total_leave_days
+                    records.append({
+                        'name': requester.requester.personal_info.fullname,
+                        'leave_type': u"{}".format(leave_request.quota.leave_type)
+                    })
+        requester_cum_periods[requester] = cum_periods
+    df = DataFrame(records)
+    summary = df.pivot_table(index='name', columns='leave_type', aggfunc=len, fill_value=0)
+    summary.to_excel('leave_summary.xlsx')
+    flash(u'ดาวน์โหลดไฟล์เรียบร้อยแล้ว ชื่อไฟล์ leave_summary.xlsx')
+    return redirect(url_for('staff.show_leave_approval_info'))
+
+
 @staff.route('/api/leave/requests/linenotified')
 @login_required
 def update_line_notification():
