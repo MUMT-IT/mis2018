@@ -1814,12 +1814,11 @@ def delete_participant(attend_id,participant_id):
     return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
 
 
-#TODO : delete this function after finished edit seminar model
-@staff.route('/seminar/all-records/each-person/<int:staff_id>')
+@staff.route('/seminar/info/<int:record_id>')
 @login_required
-def show_seminar_info_each_person(staff_id):
-    staff = StaffSeminar.query.filter_by(staff_account_id=staff_id)
-    return render_template('staff/seminar_records_each_person.html', staff=staff)
+def show_seminar_info_each_person(record_id):
+    attend = StaffSeminarAttend.query.get(record_id)
+    return render_template('staff/seminar_each_record.html', attend=attend)
 
 
 @staff.route('/seminar/edit-seminar/<int:seminar_id>', methods=['GET', 'POST'])
