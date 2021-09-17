@@ -1867,6 +1867,41 @@ def cancel_seminar(seminar_id):
     return redirect(url_for('staff.seminar_records'))
 
 
+@staff.route('/seminar/attends-each-person/<int:staff_id>',methods=['GET', 'POST'])
+@login_required
+def seminar_attends_each_person(staff_id):
+    fiscal_year = request.args.get('fiscal_year')
+    if fiscal_year is not None:
+        start_date, end_date = get_start_end_date_for_fiscal_year(int(fiscal_year))
+    else:
+        start_date = None
+        end_date = None
+    years = set()
+    seminar_list = []
+    attend_name = StaffSeminarAttend.query.filter(StaffSeminarAttend.staff.any(id=staff_id)).first()
+    attends_query = StaffSeminarAttend.query.filter(StaffSeminarAttend.staff.any(id=staff_id)).all()
+    for attend in attends_query:
+        years.add(attend.start_datetime.year)
+        record = {}
+        if start_date and end_date:
+            if seminar.start_datetime.date() < start_date or seminar.start_datetime.date() > end_date:
+                continue
+        record["start"] = attend.start_datetime
+        record["end"] = attend.end_datetime
+        record["role"] = attend.role
+        record["online"] = attend.attend_online
+        record["fee"] = attend.registration_fee
+        record["topic_type"] = attend.seminar.topic_type
+        record["topic"] = attend.seminar.topic
+        seminar_list.append(record)
+    years = sorted(years)
+    if len(years) > 0:
+        years.append(years[-1] + 1)
+        years.insert(0, years[0] - 1)
+    return render_template('staff/seminar_records_each_person.html',year=fiscal_year,
+                           seminar_list=seminar_list, years=years, attend_name=attend_name)
+
+
 @staff.route('/time-report/report')
 @login_required
 def show_time_report():
