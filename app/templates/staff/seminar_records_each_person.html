@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% include "nav.html" %}
+{% include "staff/nav.html" %}
 {% block head %}
 {{ super() }}
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
@@ -57,7 +57,7 @@
         </div>
         <div class="columns">
             <div class="column">
-                <a href="{{ url_for('staff.staff_index') }}" class="button is-rounded is-info is-light">
+                <a href="{{ url_for('staff.index') }}" class="button is-rounded is-info is-light">
                     <span class="icon">
                         <i class="fas fa-arrow-left"></i>
                     </span>
