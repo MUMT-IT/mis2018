@@ -1611,6 +1611,7 @@ def summary_index():
                     'start': smr.start_datetime.astimezone(tz).isoformat(),
                     'end': smr.end_datetime.astimezone(tz).isoformat(),
                     'title': emp.th_firstname + " " + smr.seminar.topic,
+                    'staff_id' : emp.staff_account.id,
                     'backgroundColor': bg_color,
                     'borderColor': border_color,
                     'textColor': text_color,
@@ -1814,10 +1815,11 @@ def delete_participant(attend_id,participant_id):
     return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
 
 
-@staff.route('/seminar/info/<int:record_id>')
+@staff.route('/seminar/info/<int:record_id>/staff/<int:staff_id>')
 @login_required
-def show_seminar_info_each_person(record_id):
-    attend = StaffSeminarAttend.query.get(record_id)
+def show_seminar_info_each_person(record_id, staff_id):
+    attend = StaffSeminarAttend.query.filter(StaffSeminarAttend.id==record_id)\
+                                     .filter(StaffSeminarAttend.staff.any(id=staff_id)).first()
     return render_template('staff/seminar_each_record.html', attend=attend)
 
 
