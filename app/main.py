@@ -497,6 +497,60 @@ def add_update_staff_finger_print_gsheet():
                 print(u'{} {} failed'.format(row['firstname'], row['lastname']))
 
 
+@dbutils.command('import-leave-data')
+def import_leave_data():
+    tz = timezone('Asia/Bangkok')
+
+    sheetid = '1cM3T-kj1qgn24gZIUpOT3SGUQeIGhDdLdsCjgwj4Pgo'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("leave")
+    df = pandas.DataFrame(sheet.get_all_records())
+    df['start_date'] = df['start_date'].apply(pandas.to_datetime)
+    df['end_date'] = df['end_date'].apply(pandas.to_datetime)
+    for idx, row in df.iterrows():
+        email = row['email']
+        quota_id = row['quota_id']
+        start_date = row['start_date']
+        start_time = row['start_time']
+        end_date = row['end_date']
+        end_time = row['end_time']
+        total_day = row['days']
+        if not start_time:
+            new_start_datetime = datetime(start_date.year, start_date.month, start_date.day, 8, 30)
+        else:
+            hour, mins = start_time.split(':')
+            new_start_datetime = datetime(start_date.year, start_date.month, start_date.day, int(hour), int(mins))
+        if not end_time:
+            new_end_datetime = datetime(end_date.year, end_date.month, end_date.day, 8, 30)
+        else:
+            hour, mins = end_time.split(':')
+            new_end_datetime = datetime(end_date.year, end_date.month, end_date.day, int(hour), int(mins))
+        staff_account = StaffAccount.query.filter_by(email=row['email']).first()
+        if staff_account:
+            leave_request = StaffLeaveRequest(
+                leave_quota_id=quota_id,
+                staff_account_id=staff_account.id,
+                start_datetime=tz.localize(new_start_datetime),
+                end_datetime=tz.localize(new_end_datetime),
+                created_at=tz.localize(datetime.today()),
+                total_leave_days=total_day
+            )
+            db.session.add(leave_request)
+            for approver in staff_account.leave_requesters:
+                leave_approval = StaffLeaveApproval(
+                    request=leave_request,
+                    approver=approver,
+                    updated_at=tz.localize(datetime.today()),
+                    is_approved=True
+                )
+                db.session.add(leave_approval)
+        else:
+            print(u'Cannot save data of email: {} start date: {}'.format(email, start_date))
+    db.session.commit()
+
+
 @dbutils.command('add-update-staff-gsheet')
 def add_update_staff_gsheet():
     sheetid = '17lUlFNYk5znYqXL1vVCmZFtgTcjGvlNRZIlaDaEhy5E'

@@ -1,40 +1,181 @@
-
 {% extends "base.html" %}
 {% block title %}Global Events{% endblock %}
 {% include "nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+{% endblock %}
 {% block page_content %}
 <section class="section">
     <div class="box">
-        <form method="post">
-            {{ form.hidden_tag() }}
-            <div class="field">
-                <label class="label">{{ form.title.label }}</label>
-                <div class="control">
-                    {{ form.title(class="input") }}
-                </div>
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">บันทึกกิจกรรมภายในคณะฯ</h1>
             </div>
-            <div class="field">
-                <label class="label">{{ form.start.label }}</label>
-                <div class="control">
-                    {{ form.start(class="input") }}
-                </div>
+        </div>
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                <form method="post" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.event_type.label }}</label>
+                        <div class="select">
+                            {{ form.event_type() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.title.label }}</label>
+                        <div class="control">
+                            {{ form.title(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.desc.label }}</label>
+                        <div class="control">
+                            {{ form.desc(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.start.label }}</label>
+                        <div class="control">
+                            {{ form.start(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.end.label }}</label>
+                        <div class="control">
+                            {{ form.end(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.location.label }}</label>
+                        <div class="control">
+                            {{ form.location(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.organiser.label }}</label>
+                        <div class="select">
+                            {{ form.organiser() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.registration.label }}</label>
+                        <div class="control">
+                            {{ form.registration(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="file">
+                            <label class="file-label">
+                                {{ form.upload(class="file-input") }}
+                                <span class="file-cta">
+                              <span class="file-icon">
+                                <i class="fas fa-upload"></i>
+                              </span>
+                              <span class="file-label">
+                                {{ form.upload.label }}
+                              </span>
+                            </span>
+                                <span class="file-name" id="filename"></span>
+                            </label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.post_option.label }}</label>
+                        <div class="select">
+                            {{ form.post_option(id="post_option") }}
+                        </div>
+                    </div>
+                    <div class="field" id="postlater">
+                        <label class="label">{{ form.post_time.label }}</label>
+                        <div class="control">
+                            {{ form.post_time(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.remind_option.label }}</label>
+                        <div class="select">
+                            {{ form.remind_option() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="buttons">
+                            <button class="button is-success" type="submit" value="submit">Submit</button>
+                            <a href="{{ url_for('event.list_global_events') }}" class="button is-danger">Cancel</a>
+                        </div>
+                    </div>
+                </form>
             </div>
-            <div class="field">
-                <label class="label">{{ form.end.label }}</label>
-                <div class="control">
-                    {{ form.end(class="input") }}
-                </div>
-            </div>
-            <div class="field">
-                <div class="buttons">
-                    <button class="button is-success" type="submit" value="submit">Submit</button>
-                </div>
-            </div>
-        </form>
+        </div>
     </div>
 </section>
 {% endblock page_content %}
 {% block scripts %}
 {{ super() }}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    $(document).ready(function (){
+        $('input[name="start"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: true,
+            timePickerIncrement: 15,
+            timePicker24Hour: true,
+            startDate: moment().startOf('hour'),
+            endDate: moment().startOf('hour').add(32, 'hour'),
+            locale: {
+                format: 'YYYY-MM-DD HH:mm:ss'
+            }
+        });
+        $('input[name="end"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: true,
+            timePickerIncrement: 15,
+            timePicker24Hour: true,
+            startDate: moment().startOf('hour'),
+            endDate: moment().startOf('hour').add(32, 'hour'),
+            locale: {
+                format: 'YYYY-MM-DD HH:mm:ss'
+            }
+        });
+        $('input[name="post_time"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: true,
+            timePickerIncrement: 30,
+            timePicker24Hour: true,
+            startDate: moment().startOf('hour').add(24, 'hour'),
+            locale: {
+                format: 'YYYY-MM-DD HH:mm:ss'
+            }
+        });
+
+        let post_option = $('#post_option').find(':selected').val()
+        if(post_option === 'postnow'){
+            $('#postlater').hide()
+        }
+        else if(post_option === undefined){
+            $('#postlater').hide()
+        }
+        else{
+            $('#postlater').show()
+        }
+        $('#post_option').change(function(){
+            if (this.value === 'postnow'){
+                $('#postlater').hide()
+            }
+            else{
+                $('#postlater').show()
+            }
+        })
+    })
+
+</script>
+<script>
+    $('#upload').change(function (e) {
+        let fileName = e.target.files[0].name;
+        $('#filename').text(fileName);
+    });
 </script>
 {% endblock %}
