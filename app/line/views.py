@@ -110,12 +110,17 @@ def handle_message(event):
         bubbles = []
         for evt in events.json():
             start = dateutil.parser.parse(evt.get('start'))
+            #TODO: recheck if .get file_id condition
+            if evt.get('file_id'):
+                event_id = evt.get('file_id')
+            else:
+                event_id = event_photo
             if start.date() in this_week:
                 bubbles.append(
                     BubbleContainer(
                         hero=ImageComponent(
                             layout='vertical',
-                            url="https://drive.google.com/uc?id={}".format(event_photo),
+                            url="https://drive.google.com/uc?id={}".format(event_id),
                             size='full',
                             aspect_mode='cover',
                             aspect_ratio='20:13',
@@ -144,8 +149,9 @@ def handle_message(event):
                             contents=[
                                 ButtonComponent(
                                     action=URIAction(
-                                        label=u'ดูปฏิทิน (Calendar)',
-                                        uri='https://mt.mahidol.ac.th/calendar/events/'
+                                        label=u'ลงทะเบียนกิจกรรมนี้ (Register)',
+                                        uri = evt.get('registration')
+                                        #uri='https://mt.mahidol.ac.th/calendar/events/'
                                     ),
                                 ),
                             ]
@@ -167,7 +173,7 @@ def handle_message(event):
                         contents=[
                             ButtonComponent(
                                 action=URIAction(
-                                        label=u'ดูปฏิทิน (Calendar)',
+                                        label=u'ดูกิจกรรม (Event Detail)',
                                         uri='https://mt.mahidol.ac.th/calendar/events/'
                                 ),
                             )

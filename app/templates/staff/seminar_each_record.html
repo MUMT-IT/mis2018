@@ -13,7 +13,7 @@
                                <label class="label">วันที่</label>
                             </td>
                             <td>
-                                {{ smr.start_datetime|localdatetime }} - {{ smr.end_datetime|localdatetime }}
+                                {{ attend.start_datetime|localdatetime }} - {{ attend.end_datetime|localdatetime }}
                             </td>
                         </tr>
                         <tr>
@@ -21,33 +21,23 @@
                                <label class="label">ผู้ไปอบรม</label>
                             </td>
                             <td>
-                                <p class="is-size-5"><strong>{{ smr.staff.personal_info }}</strong></p>
+                                <p class="is-size-5"><strong>{{ attend.staff[0].personal_info }}</strong></p>
                             </td>
                         </tr>
-                        <tr>
-                            <td>
-                               <label class="label">ประเภท</label>
-                            </td>
-                            <td>
-                                {{ smr.topic_type }}
-                            </td>
-                        </tr>
-                        {% if smr.mission %}
-                        <tr>
-                            <td>
-                               <label class="label">ด้าน</label>
-                            </td>
-                            <td>
-                                {{ smr.mission }}
-                            </td>
-                        </tr>
-                        {% endif %}
                         <tr>
                             <td>
                                <label class="label">เรื่อง</label>
                             </td>
                             <td>
-                                <p class="is-size-5"><strong>{{ smr.topic }}</strong></p>
+                                <p class="is-size-5"><strong>{{ attend.seminar.topic }}</strong></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">ประเภท</label>
+                            </td>
+                            <td>
+                                {{ attend.seminar.topic_type }}
                             </td>
                         </tr>
                         <tr>
@@ -55,7 +45,7 @@
                                <label class="label">บทบาท</label>
                             </td>
                             <td>
-                                {{ smr.role }}
+                                {{ attend.role }}
                             </td>
                         </tr>
                         <tr>
@@ -63,26 +53,36 @@
                                <label class="label">สถานที่</label>
                             </td>
                             <td>
-                                {{ smr.location }}
+                                {{ attend.seminar.location }}
                             </td>
                         </tr>
-                        {% if smr.country %}
+                        {% if attend.attend_online %}
+                        <tr>
+                            <td>
+
+                            </td>
+                            <td>
+                                เข้าร่วมแบบออนไลน์
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.seminar.country %}
                         <tr>
                             <td>
                                <label class="label">ประเทศ</label>
                             </td>
                             <td>
-                                {{ smr.topic }}
+                                {{ attend.seminar.country }}
                             </td>
                         </tr>
                         {% endif %}
-                        {% if smr.budget_type %}
+                        {% if attend.budget_type %}
                         <tr>
                             <td>
                                <label class="label">ค่าใช้จ่าย</label>
                             </td>
                             <td>
-                                {{ smr.budget_type }}: {{ smr.budget }}
+                                {{ attend.budget_type }}: {{ attend.budget }}
                             </td>
                         </tr>
                         {% endif %}
@@ -90,7 +90,7 @@
                 </div>
                 <div class="columns">
                     <div class="column">
-                        <a href="{{ url_for('staff.show_seminar_info_each_person', staff_id=smr.staff_account_id) }}" class="button is-rounded is-info is-light">
+                        <a href="" class="button is-rounded is-info is-light">
                             <span class="icon">
                                 <i class="fas fa-arrow-left"></i>
                             </span>

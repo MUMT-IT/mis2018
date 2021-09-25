@@ -488,6 +488,7 @@ class StaffSeminar(db.Model):
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
     created_at = db.Column('created_at',db.DateTime(timezone=True),
                            default=datetime.now())
+    topic_type = db.Column('topic_type', db.String())
     topic = db.Column('topic', db.String())
     mission = db.Column('mission', db.String())
     location = db.Column('location', db.String())

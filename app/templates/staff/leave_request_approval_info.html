@@ -94,7 +94,7 @@
                     {% endfor %}
                     </thead>
                     <tbody>
-                    {% for requester in requester_cum_periods %}
+                    {% for requester in requester_cum_periods|sort(attribute='staff_account_id') %}
                     {% if requester.is_active %}
                     <tr>
                         <td>
@@ -110,6 +110,14 @@
                     {% endfor %}
                     </tbody>
                 </table>
+                <div class="column has-text-centered">
+                    <a href="{{ url_for('staff.show_leave_approval_info_download') }}" class="button is-rounded is-info is-light">
+                        <span class="icon">
+                            <i class="fas fa-download"></i>
+                        </span>
+                        <span>ดาวน์โหลดข้อมูลสรุปการลา</span>
+                    </a>
+                </div>
             </div>
         </div>
         <br>

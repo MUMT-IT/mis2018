@@ -1,12 +1,12 @@
 # -*- coding:utf-8 -*-
 from flask_login import login_required, current_user
-from pandas import read_excel, isna
+from pandas import read_excel, isna, DataFrame
 
 from models import *
 from . import staffbp as staff
 from app.main import db, get_weekdays, mail, app
 from app.models import Holidays, Org
-from flask import jsonify, render_template, request, redirect, url_for, flash, session
+from flask import jsonify, render_template, request, redirect, url_for, flash, session, send_from_directory
 from datetime import date, datetime
 from collections import defaultdict, namedtuple
 import pytz
@@ -753,6 +753,31 @@ def show_leave_approval_info():
                            leave_types=leave_types, line_notified=line_notified, today=today)
 
 
+@staff.route('/leave/requests/approval/info/download')
+@login_required
+def show_leave_approval_info_download():
+    requesters = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id, is_active=True).all()
+    requester_cum_periods = {}
+    records = []
+    for requester in requesters:
+        cum_periods = defaultdict(float)
+        for leave_request in requester.requester.leave_requests:
+            if leave_request.cancelled_at is None and leave_request.get_approved:
+                if leave_request.start_datetime.date() >= START_FISCAL_DATE.date() and leave_request.end_datetime.date() \
+                        <= END_FISCAL_DATE.date():
+                    cum_periods[u"{}".format(leave_request.quota.leave_type)] += leave_request.total_leave_days
+                    records.append({
+                        'name': requester.requester.personal_info.fullname,
+                        'leave_type': u"{}".format(leave_request.quota.leave_type)
+                    })
+        requester_cum_periods[requester] = cum_periods
+    df = DataFrame(records)
+    summary = df.pivot_table(index='name', columns='leave_type', aggfunc=len, fill_value=0)
+    summary.to_excel('leave_summary.xlsx')
+    flash(u'ดาวน์โหลดไฟล์เรียบร้อยแล้ว ชื่อไฟล์ leave_summary.xlsx')
+    return redirect(url_for('staff.show_leave_approval_info'))
+
+
 @staff.route('/api/leave/requests/linenotified')
 @login_required
 def update_line_notification():
@@ -893,7 +918,6 @@ def info_request_cancel_leave_request():
     approver_id = token_data.get("approver_id")
     req = StaffLeaveRequest.query.get(req_id)
     approval = StaffLeaveApproval.query.filter_by(approver_id=approver_id).first()
-    #print (u"info_req {} {}".format(approval.approver.account.personal_info, approval.approver.account.id))
     approvers = StaffLeaveApproval.query.filter_by(request_id=req_id)
     return render_template('staff/leave_request_cancel_request.html', req=req, approval=approval, approvers=approvers)
 
@@ -1041,6 +1065,7 @@ def leave_request_result_by_person():
         record["staffid"] = account.id
         record["fullname"] = account.personal_info.fullname
         record["total"] = 0
+        record["pending"] = 0
         if account.personal_info.org:
             record["org"] = account.personal_info.org.name
         else:
@@ -1049,13 +1074,16 @@ def leave_request_result_by_person():
             record[leave_type] = 0
         for req in account.leave_requests:
             if not req.cancelled_at:
-                years.add(req.start_datetime.year)
-                if start_date and end_date:
-                    if req.start_datetime.date() < start_date or req.start_datetime.date() > end_date:
-                        continue
-                leave_type = req.quota.leave_type.type_
-                record[leave_type] += req.total_leave_days
-                record["total"] += req.total_leave_days
+                if req.get_approved:
+                    years.add(req.start_datetime.year)
+                    if start_date and end_date:
+                        if req.start_datetime.date() < start_date or req.start_datetime.date() > end_date:
+                            continue
+                    leave_type = req.quota.leave_type.type_
+                    record[leave_type] += req.total_leave_days
+                    record["total"] += req.total_leave_days
+                if not req.get_approved and not req.get_unapproved:
+                    record["pending"] += req.total_leave_days
         leaves_list.append(record)
     years = sorted(years)
     if len(years) > 0:
@@ -1583,6 +1611,7 @@ def summary_index():
                     'start': smr.start_datetime.astimezone(tz).isoformat(),
                     'end': smr.end_datetime.astimezone(tz).isoformat(),
                     'title': emp.th_firstname + " " + smr.seminar.topic,
+                    'staff_id' : emp.staff_account.id,
                     'backgroundColor': bg_color,
                     'borderColor': border_color,
                     'textColor': text_color,
@@ -1683,33 +1712,26 @@ def seminar():
 def create_seminar():
     if request.method == 'POST':
         form = request.form
-        stime = form.get('stime')
-        if stime == 'fulltime':
-            start_t = "08:30"
-            end_t = "16:30"
-        elif stime == 'halfmorning':
-            start_t = "08:30"
-            end_t = "12:00"
+        start_datetime = datetime.strptime(form.get('start_datetime'), '%d/%m/%Y %H:%M')
+        end_datetime = datetime.strptime(form.get('end_datetime'), '%d/%m/%Y %H:%M')
+        timedelta = end_datetime - start_datetime
+        if timedelta.days < 0 or timedelta.seconds == 0:
+            flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
         else:
-            start_t = "13:00"
-            end_t = "16:30"
-        start_d, end_d = form.get('dates').split(' - ')
-        start_dt = '{} {}'.format(start_d, start_t)
-        end_dt = '{} {}'.format(end_d, end_t)
-        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
-        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
-        seminar = StaffSeminar(
-            start_datetime=tz.localize(start_datetime),
-            end_datetime=tz.localize(end_datetime)
-        )
-        seminar.topic = form.get('topic')
-        seminar.mission = form.get('mission')
-        seminar.location = form.get('location')
-        seminar.country = form.get('country')
-        seminar.is_online = True if form.getlist("online") else False
-        db.session.add(seminar)
-        db.session.commit()
-        return redirect(url_for('staff.seminar_records'))
+            seminar = StaffSeminar(
+                start_datetime=tz.localize(start_datetime),
+                end_datetime=tz.localize(end_datetime)
+            )
+            seminar.topic_type = form.get('topic_type')
+            seminar.topic = form.get('topic')
+            seminar.mission = form.get('mission')
+            seminar.location = form.get('location')
+            seminar.country = form.get('country')
+            seminar.is_online = True if form.getlist("online") else False
+            db.session.add(seminar)
+            db.session.commit()
+            flash(u'เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
+            return redirect(url_for('staff.seminar_records'))
     return render_template('staff/seminar_create_event.html')
 
 
@@ -1725,10 +1747,11 @@ def seminar_attend_info(seminar_id):
 @login_required
 def seminar_records():
     seminar_list = []
-    seminar_query = StaffSeminar.query.all()
+    seminar_query = StaffSeminar.query.filter(StaffSeminar.cancelled_at==None).all()
     for seminar in seminar_query:
         record = {}
         record["id"] = seminar.id
+        record["topic_type"] = seminar.topic_type
         record["name"] = seminar.topic
         record["start"] = seminar.start_datetime
         record["end"] = seminar.end_datetime
@@ -1740,39 +1763,6 @@ def seminar_records():
 @login_required
 def seminar_add_attendee(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
-    if request.method=="POST":
-        form = request.form
-        stime = form.get('stime')
-        if stime == 'fulltime':
-            start_t = "08:30"
-            end_t = "16:30"
-        elif stime == 'halfmorning':
-            start_t = "08:30"
-            end_t = "12:00"
-        else:
-            start_t = "13:00"
-            end_t = "16:30"
-        start_d, end_d = form.get('dates').split(' - ')
-        start_dt = '{} {}'.format(start_d, start_t)
-        end_dt = '{} {}'.format(end_d, end_t)
-        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
-        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
-        attend = StaffSeminarAttend(
-            staff=[StaffAccount.query.get(int(staff_id)) for staff_id in form.getlist("participants")],
-            seminar_id=seminar_id,
-            role=form.get('role'),
-            registration_fee=form.get('registration_fee'),
-            budget_type=form.get('budget_type'),
-            budget=form.get('budget'),
-            start_datetime=tz.localize(start_datetime),
-            end_datetime=tz.localize(end_datetime),
-            attend_online = True if form.get("attend_online") else False
-        )
-        db.session.add(attend)
-        db.session.commit()
-        seminar = StaffSeminar.query.get(seminar_id)
-        attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
-        return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
     staff_list = []
     account_query = StaffAccount.query.all()
     for account in account_query:
@@ -1782,6 +1772,33 @@ def seminar_add_attendee(seminar_id):
         organization = account.personal_info.org
         record["org"] = organization.name if organization else ""
         staff_list.append(record)
+    if request.method == "POST":
+        form = request.form
+        start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
+        end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
+        timedelta = end_datetime - start_datetime
+        if timedelta.days < 0 or timedelta.seconds == 0:
+            flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
+            return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
+        else:
+            attend = StaffSeminarAttend(
+                staff=[StaffAccount.query.get(int(staff_id)) for staff_id in form.getlist("participants")],
+                seminar_id=seminar_id,
+                role=form.get('role'),
+                registration_fee=form.get('registration_fee'),
+                budget_type=form.get('budget_type'),
+                budget=form.get('budget'),
+                start_datetime=tz.localize(start_datetime),
+                end_datetime=tz.localize(end_datetime),
+                attend_online=True if form.get("attend_online") else False
+            )
+            db.session.add(attend)
+            db.session.commit()
+            seminar = StaffSeminar.query.get(seminar_id)
+            attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
+            flash(u'เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
+            return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
+
     return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
 
 
@@ -1791,31 +1808,98 @@ def delete_participant(attend_id,participant_id):
     participant = StaffAccount.query.get(participant_id)
     attend = StaffSeminarAttend.query.get(attend_id)
     attend.staff.remove(participant)
-    db.session.add(attend)
+    db.session.delete(attend)
     db.session.commit()
     seminar = StaffSeminar.query.get(attend.seminar_id)
     attends = StaffSeminarAttend.query.filter_by(seminar_id=attend.seminar_id).all()
     return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
 
 
-
-#TODO : delete this function after finished edit seminar model
-@staff.route('/seminar/all-records/each-person/<int:staff_id>')
+@staff.route('/seminar/info/<int:record_id>/staff/<int:staff_id>')
 @login_required
-def show_seminar_info_each_person(staff_id):
-    staff = StaffSeminar.query.filter_by(staff_account_id=staff_id)
-    return render_template('staff/seminar_records_each_person.html', staff=staff)
+def show_seminar_info_each_person(record_id, staff_id):
+    attend = StaffSeminarAttend.query.filter(StaffSeminarAttend.id==record_id)\
+                                     .filter(StaffSeminarAttend.staff.any(id=staff_id)).first()
+    return render_template('staff/seminar_each_record.html', attend=attend)
 
 
-#TODO : deleted this function when finished edit seminar model
-@staff.route('/seminar/all-records/each-record/<int:smr_id>/cancel')
+@staff.route('/seminar/edit-seminar/<int:seminar_id>', methods=['GET', 'POST'])
 @login_required
-def cancel_seminar_record(smr_id):
-    smr = StaffSeminar.query.get(smr_id)
-    smr.cancelled_at = tz.localize(datetime.today())
-    db.session.add(smr)
-    db.session.commit()
-    return redirect(request.referrer)
+def edit_seminar_info(seminar_id):
+    seminar = StaffSeminar.query.get(seminar_id)
+    if request.method == 'POST':
+        form = request.form
+        start_datetime = datetime.strptime(form.get('start_datetime'), '%d/%m/%Y %H:%M')
+        end_datetime = datetime.strptime(form.get('end_datetime'), '%d/%m/%Y %H:%M')
+        timedelta = end_datetime - start_datetime
+        if timedelta.days < 0 or timedelta.seconds == 0:
+            flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
+            return render_template('staff/seminar_edit_seminar_info.html', seminar=seminar)
+        else:
+            seminar.start_datetime=tz.localize(start_datetime)
+            seminar.end_datetime=tz.localize(end_datetime)
+            seminar.topic_type = form.get('topic_type')
+            seminar.topic = form.get('topic')
+            seminar.mission = form.get('mission')
+            seminar.location = form.get('location')
+            seminar.country = form.get('country')
+            seminar.is_online = True if form.getlist("online") else False
+            db.session.add(seminar)
+            db.session.commit()
+            flash(u'การแก้ไขถูกบันทึกเรียบร้อย', 'success')
+            return redirect(url_for('staff.seminar_records'))
+
+    return render_template('staff/seminar_edit_seminar_info.html', seminar=seminar)
+
+
+@staff.route('/seminar/cancel-seminar/<int:seminar_id>', methods=['GET', 'POST'])
+@login_required
+def cancel_seminar(seminar_id):
+    seminar = StaffSeminar.query.get(seminar_id)
+    attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
+    if attends:
+        flash(u'ไม่สามารถลบกิจกรรมนี้ได้ เนื่องจากมีข้อมูลผู้เข้าร่วมอยู่ในกิจกรรม จำเป็นต้องลบข้อมูลผู้เข้าร่วมก่อน', 'danger')
+    else:
+        seminar.cancelled_at = tz.localize(datetime.today())
+        db.session.add(seminar)
+        db.session.commit()
+        flash(u'ลบกิจกรรมเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('staff.seminar_records'))
+
+
+@staff.route('/seminar/attends-each-person/<int:staff_id>',methods=['GET', 'POST'])
+@login_required
+def seminar_attends_each_person(staff_id):
+    fiscal_year = request.args.get('fiscal_year')
+    if fiscal_year is not None:
+        start_date, end_date = get_start_end_date_for_fiscal_year(int(fiscal_year))
+    else:
+        start_date = None
+        end_date = None
+    years = set()
+    seminar_list = []
+    attend_name = StaffSeminarAttend.query.filter(StaffSeminarAttend.staff.any(id=staff_id)).first()
+    attends_query = StaffSeminarAttend.query.filter(StaffSeminarAttend.staff.any(id=staff_id)).all()
+    for attend in attends_query:
+        years.add(attend.start_datetime.year)
+        record = {}
+        if start_date and end_date:
+            if seminar.start_datetime.date() < start_date or seminar.start_datetime.date() > end_date:
+                continue
+        record["start"] = attend.start_datetime
+        record["end"] = attend.end_datetime
+        record["role"] = attend.role
+        record["online"] = attend.attend_online
+        record["fee"] = attend.registration_fee
+        record["topic_type"] = attend.seminar.topic_type
+        record["topic"] = attend.seminar.topic
+        seminar_list.append(record)
+    years = sorted(years)
+    if len(years) > 0:
+        years.append(years[-1] + 1)
+        years.insert(0, years[0] - 1)
+    return render_template('staff/seminar_records_each_person.html',year=fiscal_year,
+                           seminar_list=seminar_list, years=years, attend_name=attend_name)
 
 
 @staff.route('/time-report/report')
@@ -1862,7 +1946,7 @@ def staff_create_info():
         db.session.add(create_email)
         db.session.commit()
 
-        flash(u'เพิ่มบุคลากรเรียบร้อย')
+        flash(u'เพิ่มบุคลากรเรียบร้อย', 'success')
         staff = StaffPersonalInfo.query.get(createstaff.id)
         return render_template('staff/staff_show_info.html', staff=staff)
     departments = Org.query.all()

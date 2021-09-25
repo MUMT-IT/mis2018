@@ -1,72 +1,78 @@
 {% extends "base.html" %}
-{% include "nav.html" %}
+{% include "staff/nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
 {% block page_content %}
 <section class="section">
-    <div class="container" id="app">
-        <div class="table-container">
-            <h4 class="subtitle">รายการอบรม สัมมนา ของ
-              {{ staff[0].staff.personal_info }}
-            </h4>
-<table class="table is-bordered is-striped ">
-    <thead>
-    <th>วันที่เริ่มต้น</th>
-    <th>วันที่สิ้นสุด</th>
-    <th>ประเภท</th>
-    </thead>
-    <tbody>
-    {% for requester in staff|sort(attribute='start_datetime') %}
-    {% if not requester.cancelled_at %}
-        <tr>
-            <td>
-                {{ requester.start_datetime|localdate }}
-            </td>
-            <td>
-                {{ requester.end_datetime|localdate }}
-            </td>
-            <td>
-                <a href="{{ url_for('staff.semiar_each_record_info', smr_id=requester.id) }}"
-                                                                                class="is-info is-light">
-                {{ requester.topic_type }}
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">ข้อมูลประชุม อบรม สัมมนาของ {{ attend_name.staff[0].personal_info }}</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="seminarTable">
+                    <thead>
+                    <th>ประเภทกิจกรรม</th>
+                    <th>ชื่อกิจกรรม</th>
+                    <th>วันที่เริ่มต้นเข้าร่วม</th>
+                    <th>วันที่สิ้นสุด</th>
+                    <th>บทบาท</th>
+                    <th>ค่าลงทะเบียน</th>
+                    <th>online</th>
+                    </thead>
+                    <tbody>
+                    {% for record in seminar_list|sort(attribute='start') %}
+                    <tr>
+                        <td>
+                            {{ record["topic_type"] }}
+                        </td>
+                        <td>
+                            {{ record["topic"] }}
+                        </td>
+                        <td>
+                            {{ record["start"]|localdatetime }}
+                        </td>
+                        <td>
+                            {{ record["end"]|localdatetime }}
+                        </td>
+                        <td>
+                            {{ record["role"] }}
+                        </td>
+                        <td>
+                            {{ record["fee"] }}
+                        </td>
+                        <td>
+                            {{ record["online"] }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('staff.index') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับหน้าบุคลากร</span>
                 </a>
-            </td>
-            <td>
-                <a class="button is-danger" @click="confirmCustomDelete({{ requester.id }})">ยกเลิกรายการนี้</a>
-            </td>
-        </tr>
-    {% endif %}
-    {% endfor %}
-    </tbody>
-</table>
-
-    <a href="{{ url_for('staff.seminar_records') }}" class="button is-rounded is-info is-light">
-        <span class="icon">
-            <i class="fas fa-arrow-left"></i>
-        </span>
-        <span>กลับ</span>
-    </a>
-
-    </div>
+            </div>
+        </div>
     </div>
 </section>
 {% endblock %}
 {% block scripts %}
 {{ super() }}
 <script>
-    new Vue({
-        el: '#app',
-        delimiters: ['<%', '%>'],
-        methods: {
-            confirmCustomDelete(smr_id) {
-                this.$buefy.dialog.confirm({
-                    title: 'ยกเลิกรายการ' + smr_id,
-                    message: 'แน่ใจหรือไม่ที่จะ<b>ยกเลิก</b>รายการนี้ หากยกเลิกแล้วจะไม่สามารถแก้ไขได้',
-                    confirmText: 'Delete this record',
-                    type: 'is-danger',
-                    hasIcon: true,
-                    onConfirm: () => window.location.href = "/staff/seminar/all-records/each-record/" + smr_id + "/cancel"
-                })
-            }
-        }
+    $(document).ready(function(){
+        $('#seminarTable').DataTable();
     });
 </script>
 {% endblock %}

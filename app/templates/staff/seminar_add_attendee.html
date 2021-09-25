@@ -22,6 +22,7 @@
             </div>
         </div>
         <hr>
+        {% include "messages.html" %}
         <form method="post">
         <div class="columns">
             <div class="column box is-half is-offset-3">
@@ -29,19 +30,13 @@
                 <div class="field">
                     <b-field label="บทบาทในการประชุม/อบรม">
                         <b-select placeholder="เลือกประเภท" name="role" required>
-                            <option value="ประชุม">ประชุม</option>
-                            <option value="อบรม">อบรม</option>
-                            <option value="อบรม">อบรมเชิงปฏิบัติการ</option>
-                            <option value="ประชุม">สัมมนา</option>
-                            <option value="อบรม">ราชการ</option>
                             <option value="อาจารย์พิเศษ">อาจารย์พิเศษ</option>
                             <option value="ผู้เข้าร่วม">ผู้เข้าร่วม</option>
                             <option value="ที่ปรึกษา">ที่ปรึกษา</option>
                             <option value="วิทยากร">วิทยากร</option>
                             <option value="กรรมการ">กรรมการ</option>
                             <option value="นิเทศน์งาน">นิเทศน์งาน</option>
-                            <option value="บริการสุขภาพ">บริการสุขภาพ</option>
-                            <option value="อบรม">อื่นๆ</option>
+                            <option value="อื่นๆ">อื่นๆ</option>
                         </b-select>
                     </b-field>
                     <div class="field">
@@ -51,26 +46,32 @@
                             </b-checkbox>
                         </b-field>
                     </div>
-                    <b-field label="ระยะเวลาเข้าร่วม" message="หากต้องการเลือก 1 วัน ให้ดับเบิ้ลคลิ๊กวันที่ต้องการ">
-                        <b-datepicker
+                    <b-field label="เวลาเริ่มต้น">
+                        <b-datetimepicker
                                 required
-                                name="dates"
-                                v-model="selectedDates"
+                                v-model="startDateTime"
                                 range
                                 icon-pack="fa"
-                                :date-formatter="formatDate"
+                                :timepicker="timepicker"
                                 :mobile-native="false"
                                 placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                 icon="calendar-alt">
-                        </b-datepicker>
+                        </b-datetimepicker>
                     </b-field>
-                    <div class="field">
-                        <div class="block">
-                            <b-radio native-value="fulltime" v-model="stime" name="stime">เต็มวัน</b-radio>
-                            <b-radio native-value="halfmorning" v-model="stime" name="stime">ครึ่งวันเช้า</b-radio>
-                            <b-radio native-value="halfafternoon" v-model="stime" name="stime">ครึ่งวันบ่าย</b-radio>
-                        </div>
-                    </div>
+                    <input type="hidden" name="start_dt" v-model="formattedStartDateTime">
+                    <b-field label="เวลาสิ้นสุด">
+                        <b-datetimepicker
+                                required
+                                v-model="endDateTime"
+                                range
+                                icon-pack="fa"
+                                :timepicker="timepicker"
+                                :mobile-native="false"
+                                placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                icon="calendar-alt">
+                        </b-datetimepicker>
+                    </b-field>
+                    <input type="hidden" name="end_dt" v-model="formattedEndDateTime">
                     <div class="field">
                         <div class="field">
                             <label class="label">ค่าใช้จ่าย</label>
@@ -80,7 +81,7 @@
                             <b-radio native-value="paid" v-model="payment" name="payment">มีค่าใช้จ่าย</b-radio>
                         </div>
                     </div>
-                    <b-field label="งบประมาณ/ทุน" v-if="payment === 'paid'">
+                    <b-field label="ชื่องบประมาณ/ทุน" v-if="payment === 'paid'">
                         <b-input type="text"
                                  name="budget_type"
                                  icon-pack="far"
@@ -91,14 +92,16 @@
                         <b-input type="text"
                                  name="registration_fee"
                                  icon-pack="far"
-                                 icon="dollar-sign">
+                                 icon="dollar-sign"
+                                 required>
                         </b-input>
                     </b-field>
                     <b-field label="ค่าใช้จ่ายรวมต่อคน" v-if="payment === 'paid'">
                         <b-input type="text"
                                  name="budget"
                                  icon-pack="far"
-                                 icon="dollar-sign">
+                                 icon="dollar-sign"
+                                 required>
                         </b-input>
                     </b-field>
                 </div>
@@ -167,19 +170,29 @@
         delimiters: ['<%', '%>'],
         data() {
             return {
-                selectedDates: [start_datetime, end_datetime],
-                stime: "fulltime",
+                startDateTime: new Date({{ seminar.start_datetime.isoformat()|tojson|safe }}),
+                endDateTime: new Date({{ seminar.end_datetime.isoformat()|tojson|safe }}),
                 payment: "unpaid",
                 data: [],
-                participants: []
+                participants: [],
+                timepicker: {
+                    incrementMinutes: 30
+                }
             }
         },
-        methods: {
-            formatDate(dates){
-                let start = new moment(dates[0]).format("DD/MM/YYYY")
-                let end = new moment(dates[1]).format("DD/MM/YYYY")
-                return start + ' - ' + end
+        computed: {
+            formattedStartDateTime: function(){
+                if (this.startDateTime){
+                    return new moment(this.startDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
+                }
+                return null
             },
+            formattedEndDateTime: function(){
+                if (this.endDateTime){
+                    return new moment(this.endDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
+                }
+                return null
+            }
         }
     });
 </script>
