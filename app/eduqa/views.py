@@ -1,7 +1,8 @@
 # -*- coding:utf-8 -*-
+import pandas as pd
 from datetime import datetime
 
-from flask import render_template, request, flash, redirect, url_for, session
+from flask import render_template, request, flash, redirect, url_for, session, jsonify
 from flask_login import current_user, login_required
 from sqlalchemy.orm import make_transient
 
@@ -12,6 +13,7 @@ from ..staff.models import StaffPersonalInfo
 from pytz import timezone
 
 localtz = timezone('Asia/Bangkok')
+
 
 def is_datetime_valid(start, end):
     if start > end:
@@ -467,3 +469,26 @@ def delete_session(session_id):
 def show_hours_summary(instructor_id):
     instructor = EduQAInstructor.query.get(instructor_id)
     return render_template('eduqa/QA/hours_summary.html', instructor=instructor)
+
+
+@edu.route('/qa/revisions/<int:revision_id>/summary/hours')
+@login_required
+def show_hours_summary_all(revision_id):
+    revision = EduQACurriculumnRevision.query.get(revision_id)
+    data = []
+    for session in EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id)).all():
+        for instructor in session.instructors:
+            d = {'course': session.course.en_code,
+                 'instructor': instructor.account.personal_info.fullname,
+                 'seconds': session.total_seconds
+                 }
+            data.append(d)
+    df = pd.DataFrame(data)
+    sum_hours = df.pivot_table(index='instructor',
+                   columns='course',
+                   values='seconds',
+                   aggfunc='sum',
+                   margins=True).apply(lambda x: (x // 3600) / 40.0).fillna('')
+    return render_template('eduqa/QA/mtc/summary_hours_all_courses.html',
+                           sum_hours=sum_hours,
+                           revision_id=revision_id)

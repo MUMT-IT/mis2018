@@ -805,6 +805,16 @@ def check_wfh_approval(wfh_request, approver_id):
         return False
 
 
+@app.template_filter("truncate")
+def truncate_text(text, length=150):
+    if text:
+        if len(text) > length:
+            return u'{}...'.format(text[:length])
+        else:
+            return text
+    return ''
+
+
 @app.template_filter("getweekdays")
 def count_weekdays(req):
     return get_weekdays(req)

@@ -29,12 +29,19 @@
                 <b-field>
                     <b-switch @input="changeMode()" v-model="displayMyCourseOnly">แสดงเฉพาะรายวิชาที่สอน</b-switch>
                 </b-field>
-                <div class="has-text-centered">
+                <div class="buttons is-centered">
                     <a href="{{ url_for('eduqa.add_course', revision_id=revision.id) }}" class="button is-success">
                     <span class="icon">
                         <i class="fas fa-plus"></i>
                     </span>
                         <span>เพิ่มรายวิชา</span>
+                    </a>
+                    <a href="{{ url_for('eduqa.show_hours_summary_all', revision_id=revision.id) }}"
+                       class="button is-info">
+                    <span class="icon">
+                        <i class="fas fa-chart-pie"></i>
+                    </span>
+                        <span>สรุปชั่วโมงสอน</span>
                     </a>
                 </div>
                 <table class="table is-fullwidth is-striped" id="courseTable">

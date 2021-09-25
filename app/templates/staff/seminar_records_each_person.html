@@ -8,11 +8,13 @@
 <section class="section">
     <div class="container">
         {% include "messages.html" %}
+        {% if attend_name.staff %}
         <div class="columns">
             <div class="column has-text-left">
                 <h1 class="title">ข้อมูลประชุม อบรม สัมมนาของ {{ attend_name.staff[0].personal_info }}</h1>
             </div>
         </div>
+        {% endif %}
         <div class="columns">
             <div class="column">
                 <table class="table is-striped" id="seminarTable">
@@ -57,12 +59,14 @@
         </div>
         <div class="columns">
             <div class="column">
-                <a href="{{ url_for('staff.index') }}" class="button is-rounded is-info is-light">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('staff.index') }}" class="button is-light">
                     <span class="icon">
                         <i class="fas fa-arrow-left"></i>
                     </span>
-                    <span>กลับหน้าบุคลากร</span>
-                </a>
+                        <span>กลับหน้าบุคลากร</span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>

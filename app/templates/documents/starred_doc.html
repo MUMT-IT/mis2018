@@ -13,30 +13,25 @@
         {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">
-                <h1 class="title">Documents</h1>
-                <h1 class="title is-size-5">Round {{ round_org.round }}</h1>
-                <h1 class="subtitle is-size-6">Approved {{ round_org.finished_at|humanizedt }}</h1>
+                <h1 class="title">Starred Documents</h1>
             </div>
         </div>
         <div class="columns">
             <div class="column has-text-centered is-two-thirds is-offset-2">
-                {% for doc in round_org.round.documents %}
-                {% set doc_reach = doc.reaches.filter_by(reacher_id=current_user.id, round_org_id=round_org.id).first() %}
-                {% if doc_reach %}
                 <div class="card">
                     <div class="card-header">
                         <h1 class="card-header-title">
-                            {% if doc.priority == 'ด่วนที่สุด' %}
+                            {% if doc_reach.doc.priority == 'ด่วนที่สุด' %}
                             <span class="tag is-danger">
-                            {% elif doc.priority == 'ด่วน' %}
+                            {% elif doc_reach.doc.priority == 'ด่วน' %}
                             <span class="tag is-warning">
                             {% else %}
                             <span class="tag">
                             {% endif %}
-                                {{ doc.priority }}
+                                {{ doc_reach.doc.priority }}
                             </span>&ensp;
                             <span>
-                                {{ doc.addedAt|localdatetime }}
+                                {{ doc_reach.doc.addedAt|localdatetime }}
                             </span>
                         </h1>
                     </div>
@@ -48,33 +43,33 @@
                             </colgroup>
                             <tr>
                                 <td><label class="label">Number</label></td>
-                                <td>{{ doc.number }}</td>
+                                <td>{{ doc_reach.doc.number }}</td>
                             </tr>
                             <tr>
                                 <td><label class="label">For</label></td>
-                                <td>{{ doc.doc_receipts.filter_by(round_org_id=round_org.id).first().predefined_comment }}</td>
+                                <td>{{ doc_reach.predefined_comment }}</td>
                             </tr>
                             <tr>
                                 <td><label class="label">Title</label></td>
-                                <td>{{ doc.title }}</td>
+                                <td>{{ doc_reach.doc.title }}</td>
                             </tr>
                             <tr>
                                 <td><label class="label">Category</label></td>
-                                <td>{{ doc.category }}</td>
+                                <td>{{ doc_reach.doc.category }}</td>
                             </tr>
                             <tr>
                                 <td><label class="label">Summary</label></td>
-                                <td>{{ doc.summary }}</td>
+                                <td>{{ doc_reach.doc.summary }}</td>
                             </tr>
                             <tr>
                                 <td><label class="label">File</label></td>
                                 <td>
-                                    {% if doc.url %}
-                                    <a href="{{ 'https://drive.google.com/uc?id=' + doc.url }}" target="_blank">
+                                    {% if doc_reach.doc.url %}
+                                    <a href="{{ 'https://drive.google.com/uc?id=' + doc_reach.doc.url }}" target="_blank">
                             <span class="icon">
                                 <i class="far fa-file-pdf"></i>
                             </span>
-                                        <span>{{ doc.file_name }}</span>
+                                        <span>{{ doc_reach.doc.file_name }}</span>
                                     </a>
                                     {% else %}
                                     -
@@ -83,11 +78,11 @@
                             </tr>
                             <tr>
                                 <td><label class="label">Secretary Comment</label></td>
-                                <td>{{ doc.comment or '-' }}</td>
+                                <td>{{ doc_reach.doc.comment or '-' }}</td>
                             </tr>
                             <tr>
                                 <td><label class="label">Supervisor Comment</label></td>
-                                <td>{{ doc.doc_receipts.filter_by(round_org_id=round_org.id).first().comment or '-' }}</td>
+                                <td>{{ doc_reach.comment or '-' }}</td>
                             </tr>
                             <tr>
                                 <td><label class="label">Private Message</label></td>
@@ -100,14 +95,14 @@
                             <tr>
                                 <td><label class="label">Deadline</label>
                                 </td>
-                                <td>{{ doc.deadline|humanizedt }}</td>
+                                <td>{{ doc_reach.doc.deadline|humanizedt }}</td>
                             </tr>
                             <tr>
                                 <td><label class="label">Starred</label>
                                     <p class="help is-info">เก็บเอกสารที่สำคัญเพื่อไว้ดูภายหลัง</p>
                                 </td>
                                 <td>
-                                    <a class="button" href="{{ url_for('doc.star', doc_reach_id=doc_reach.id) }}">
+                                    <a class="button" href="{{ url_for('doc.star', doc_reach_id=doc_reach.id, star_view='true') }}">
                                     <span class="icon">
                                     {% if doc_reach.starred %}
                                         <i class="fas fa-star has-text-warning"></i>
@@ -115,7 +110,6 @@
                                         <i class="far fa-star"></i>
                                     {% endif %}
                                     </span>
-                                    <span>Star This</span>
                                     </a>
                                 </td>
                             </tr>
@@ -129,8 +123,8 @@
                                         Read {{ doc_reach.reached_at|humanizedt }}
                                     </span>
                                     {% else %}
-                                    <a class="button is-outlined"
-                                       href="{{ url_for('doc.mark_as_read', doc_reach_id=doc_reach.id) }}">
+                                    <a class="button"
+                                       href="{{ url_for('doc.mark_as_read', doc_reach_id=doc_reach.id, star_view='true') }}">
                                         <span class="icon">
                                             <i class="fas fa-check"></i>
                                         </span>
@@ -145,19 +139,6 @@
                         <a href="{{ url_for('doc.index') }}" class="button is-light">Back</a>
                     </div>
                 </div>
-                <br>
-                {% endif %}
-                {% endfor %}
-                {% if round_org.doc_reaches.filter_by(reacher=current_user, round_org=round_org).all()|length == 0 %}
-                <div class="notification is-warning is-light">
-                    <p>
-                        กรุณารอให้หัวหน้างานให้ความเห็นหนังสือเวียน
-                    </p>
-                    <p>
-                        Please wait for your supervisor to review documents.
-                    </p>
-                </div>
-                {% endif %}
             </div>
         </div>
     </div>

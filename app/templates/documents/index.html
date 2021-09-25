@@ -133,10 +133,10 @@
                         </td>
                         <td>
                             <h1 class="title is-size-7">
-                                {{ rorg.round_reaches.filter_by(round_org=rorg, reacher=current_user).first().reached_at|localdatetime or '' }}
+                                {{ rorg.round_reaches.filter_by(reacher=current_user).first().reached_at|localdatetime or '' }}
                             </h1>
                             <h1 class="subtitle is-size-7">
-                                {{ rorg.round_reaches.filter_by(round_org=rorg, reacher=current_user).first().reached_at|humanizedt or '' }}
+                                {{ rorg.round_reaches.filter_by(reacher=current_user).first().reached_at|humanizedt or '' }}
                             </h1>
                         </td>
                     </tr>
@@ -156,6 +156,45 @@
                 </p>
             </div>
         </div>
+        <div class="columns">
+            <div class="column">
+                <h1 class="title has-text-centered">Starred Documents</h1>
+                <table class="table is-striped is-fullwidth" id="starredDocs">
+                    <thead>
+                    <th></th>
+                    <th>Sent At</th>
+                    <th>Title</th>
+                    <th>Deadline</th>
+                    </thead>
+                    {% if starred_docs|length == 0 %}
+                    <h1 class="subtitle has-text-centered">Starred document will be listed here.</h1>
+                    {% endif %}
+                    {% for starred_doc in starred_docs %}
+                    <tr>
+                        <td>
+                            <span class="icon"><i class="fas fa-star has-text-warning"></i></span>
+                        </td>
+                        <td>
+                            <h1 class="title is-size-7">
+                                {{ starred_doc.round_org.sent_at|localdatetime }}
+                            </h1>
+                            <h1 class="subtitle is-size-7">
+                                {{ starred_doc.round_org.sent_at|humanizedt }}
+                            </h1>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('doc.view_starred_doc', doc_reach_id=starred_doc.id) }}">
+                                {{ starred_doc.doc.title }}
+                            </a>
+                        </td>
+                        <td>
+                            {{ starred_doc.doc.deadline|localdatetime or '' }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
     </div>
 </section>
 {% endblock %}
@@ -166,7 +205,7 @@
     $(document).ready( function () {
         $('#myTable').DataTable(
             {
-                "order": [[0, "desc"], [1, "desc"]],
+                "ordering": false,
                 "pageLength": 5
             }
         );

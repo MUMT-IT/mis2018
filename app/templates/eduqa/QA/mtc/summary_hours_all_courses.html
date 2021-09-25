@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+
+{% block head %}
+{{ super() }}
+<style>
+    th, td { white-space: nowrap; }
+    div.dataTables_wrapper {
+        width: 1000px;
+        margin: 0 auto;
+    }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        <h1 class="title has-text-centered">จำนวนชั่วโมงสอนตามตารางสอนรายวิชา</h1>
+        <table style="width: 100%" class="stripe row-border order-column" id="myTable">
+            <thead>
+            <th>ผู้สอน</th>
+            {% for col in sum_hours.columns %}
+            <th>{{ col }}</th>
+            {% endfor %}
+            </thead>
+            <tbody>
+            {% for idx, row in sum_hours.iterrows() %}
+            {% if row.name != 'All' %}
+            <tr>
+                <td>{{ row.name }}</td>
+                {% for c in row %}
+                <td>{{ c }}</td>
+                {% endfor %}
+            </tr>
+            {% endif %}
+            {% endfor %}
+            </tbody>
+        </table>
+        <div class="buttons is-centered">
+            <a class="button is-light"
+               href="{{ url_for('eduqa.show_revision_detail', revision_id=revision_id) }}">
+                Back
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function() {
+    let table = $('#myTable').DataTable( {
+        scrollY:        "600px",
+        scrollX:        true,
+        scrollCollapse: true,
+        paging:         false,
+        } );
+    });
+</script>
+{% endblock %}

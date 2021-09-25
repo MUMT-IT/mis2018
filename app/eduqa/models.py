@@ -36,6 +36,9 @@ class EduQACurriculum(db.Model):
     en_name = db.Column(db.String(), nullable=False,
                         info={'label': 'Title'})
 
+    def __str__(self):
+        return self.th_name
+
 
 class EduQACurriculumnRevision(db.Model):
     __tablename__ = 'eduqa_curriculum_revisions'
@@ -43,6 +46,9 @@ class EduQACurriculumnRevision(db.Model):
     curriculum_id = db.Column(db.ForeignKey('eduqa_curriculums.id'))
     curriculum = db.relationship(EduQACurriculum, backref=db.backref('revisions'))
     revision_year = db.Column(db.Date(), nullable=False, info={'label': u'วันที่ปรับปรุงล่าสุด'})
+
+    def __str__(self):
+        return u'{}: ปี {}'.format(self.curriculum, self.revision_year)
 
 
 class EduQAAcademicStaff(db.Model):
@@ -103,7 +109,8 @@ class EduQAInstructor(db.Model):
     __tablename__ = 'eduqa_course_instructors'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     account_id = db.Column(db.ForeignKey('staff_account.id'))
-    account = db.relationship(StaffAccount)
+    account = db.relationship(StaffAccount, backref=db.backref('instructed_courses',
+                                                               lazy='dynamic'))
     courses = db.relationship('EduQACourse',
                               secondary=course_instructors,
                               backref=db.backref('instructors', lazy='dynamic'))
@@ -132,3 +139,8 @@ class EduQACourseSession(db.Model):
     def total_hours(self):
         delta = self.end - self.start
         return u'{} ชม. {} นาที'.format(delta.seconds//3600, (delta.seconds//60)%60)
+
+    @property
+    def total_seconds(self):
+        delta = self.end - self.start
+        return delta.seconds
