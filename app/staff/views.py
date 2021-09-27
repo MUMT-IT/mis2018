@@ -2032,7 +2032,7 @@ def staff_edit_pwd(staff_id):
         db.session.commit()
         flash(u'แก้ไขรหัสผ่านเรียบร้อย')
         return render_template('staff/staff_index.html')
-    return render_template('staff/staff_search_to_change_pwadd_seminar_recordd.html')
+    return render_template('staff/staff_search_to_change_pwd.html')
 
 
 
