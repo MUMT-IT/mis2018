@@ -2016,7 +2016,7 @@ def staff_show_info(staff_id):
 def staff_search_to_change_pwd():
     if request.method == 'POST':
         staff_id = request.form.get('staffname')
-        account = StaffAccount.query.filter_by(id=staff_id).first()
+        account = StaffAccount.query.filter_by(personal_id=staff_id).first()
         return render_template('staff/staff_edit_pwd.html', account=account)
     return render_template('staff/staff_search_to_change_pwd.html')
 
