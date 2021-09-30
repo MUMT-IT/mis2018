@@ -38,10 +38,10 @@ LEAVE_ANNUAL_QUOTA = 10
 today = datetime.today()
 if today.month >= 10:
     START_FISCAL_DATE = datetime(today.year, 10, 1)
-    END_FISCAL_DATE = datetime(today.year + 1, 9, 30)
+    END_FISCAL_DATE = datetime(today.year + 1, 9, 30, 23, 59, 59, 0)
 else:
     START_FISCAL_DATE = datetime(today.year - 1, 10, 1)
-    END_FISCAL_DATE = datetime(today.year, 9, 30)
+    END_FISCAL_DATE = datetime(today.year, 9, 30, 23, 59, 59, 0)
 
 
 def convert_to_fiscal_year(date):
