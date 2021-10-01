@@ -21,7 +21,7 @@ def index():
 
 @smartclass.route('/resources/<int:resource_type_id>')
 def list_resources(resource_type_id):
-    accounts = SmartClassOnlineAccount.query.all()
+    accounts = SmartClassOnlineAccount.query.filter_by(resource_type_id=resource_type_id)
     return render_template('smartclass_scheduler/online_accounts.html',
                            accounts=accounts,
                            resource_type_id=resource_type_id)
@@ -49,9 +49,10 @@ def get_events(resource_type_id):
     return jsonify(event_data)
 
 
-@smartclass.route('/api/resources')
-def get_resources():
-    accounts = SmartClassOnlineAccount.query.all()
+@smartclass.route('/api/resources/<int:resource_type_id>')
+def get_resources(resource_type_id):
+    accounts = SmartClassOnlineAccount.query\
+                    .filter_by(resource_type_id=resource_type_id)
     account_data = []
     for a in accounts:
         account_data.append({

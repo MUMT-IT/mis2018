@@ -46,7 +46,7 @@
             </div>
         </div>
         <div class="columns">
-            <div class="column is-one-third is-offset-4">
+            <div class="column is-two-thirds is-offset-2">
                 <div class="card">
                     <div class="card-content">
                         กรุณาตรวจสอบวันและเวลาเพื่อเลือกลงทะเบียนจองใช้งานบัญชีที่ท่านต้องการ โดยมีเงื่อนไขคือบัญชีเดียวกันไม่สามารถใช้งานในเวลาเดียวกันได้
@@ -120,7 +120,7 @@
             },
             events: "{{ url_for('smartclass_scheduler.get_events', resource_type_id=resource_type_id) }}",
             eventLimit: true,
-            resources: "{{ url_for('smartclass_scheduler.get_resources') }}",
+            resources: "{{ url_for('smartclass_scheduler.get_resources', resource_type_id=resource_type_id) }}",
             resourceLabelText: 'Account',
             resourceGroupField: 'resource_type',
             resourceAreaWidth: '10%',
