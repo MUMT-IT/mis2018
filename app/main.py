@@ -619,7 +619,7 @@ def update_remaining_leave_quota():
             db.session.commit()
             # print('{} updated..'.format(row['e-mail']))
         else:
-            print('{} not found..'.format(row['e-mail']))
+            print('{} not found..'.format(row['email']))
 
 
 @dbutils.command('update-approver-gsheet')
