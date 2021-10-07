@@ -12,6 +12,14 @@ from app.models import Org, OrgSchema
 from datetime import datetime, timedelta
 from app.main import get_weekdays
 import numpy as np
+today = datetime.today()
+if today.month >= 10:
+    START_FISCAL_DATE = datetime(today.year, 10, 1)
+    END_FISCAL_DATE = datetime(today.year + 1, 9, 30, 23, 59, 59, 0)
+else:
+    START_FISCAL_DATE = datetime(today.year - 1, 10, 1)
+    END_FISCAL_DATE = datetime(today.year, 9, 30, 23, 59, 59, 0)
+
 
 tz = timezone('Asia/Bangkok')
 
@@ -120,9 +128,14 @@ class StaffPersonalInfo(db.Model):
         period = relativedelta(today, self.employed_date)
         return period
 
+
+    def get_employ_period_of_current_fiscal_year(self):
+        period = relativedelta(START_FISCAL_DATE, self.employed_date)
+        return period
+
     @property
     def is_eligible_for_leave(self, minmonth=6.0):
-        period = self.get_employ_period()
+        period = self.get_employ_period_of_current_fiscal_year()
         if period.years > 0:
             return True
         elif period.years == 0 and period.months > minmonth:
@@ -131,7 +144,7 @@ class StaffPersonalInfo(db.Model):
             return False
 
     def get_max_cum_quota_per_year(self, leave_quota):
-        period = self.get_employ_period()
+        period = self.get_employ_period_of_current_fiscal_year()
         if self.is_eligible_for_leave:
             if period.years < 10:
                 return leave_quota.cum_max_per_year1
