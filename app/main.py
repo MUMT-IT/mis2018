@@ -602,10 +602,10 @@ def update_remaining_leave_quota():
     print('Authorizing with Google..')
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    sheet = wks.worksheet("remain")
+    sheet = wks.worksheet("remain2021")
     df = pandas.DataFrame(sheet.get_all_records())
     for idx, row in df.iterrows():
-        account = StaffAccount.query.filter_by(email=row['e-mail']).first()
+        account = StaffAccount.query.filter_by(email=row['email']).first()
         if account and account.personal_info:
             quota = StaffLeaveQuota.query.filter_by(leave_type_id=1,
                                                     employment=account.personal_info.employment).first()
