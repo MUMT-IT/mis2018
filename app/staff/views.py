@@ -38,10 +38,10 @@ LEAVE_ANNUAL_QUOTA = 10
 today = datetime.today()
 if today.month >= 10:
     START_FISCAL_DATE = datetime(today.year, 10, 1)
-    END_FISCAL_DATE = datetime(today.year + 1, 9, 30)
+    END_FISCAL_DATE = datetime(today.year + 1, 9, 30, 23, 59, 59, 0)
 else:
     START_FISCAL_DATE = datetime(today.year - 1, 10, 1)
-    END_FISCAL_DATE = datetime(today.year, 9, 30)
+    END_FISCAL_DATE = datetime(today.year, 9, 30, 23, 59, 59, 0)
 
 
 def convert_to_fiscal_year(date):
@@ -2016,7 +2016,7 @@ def staff_show_info(staff_id):
 def staff_search_to_change_pwd():
     if request.method == 'POST':
         staff_id = request.form.get('staffname')
-        account = StaffAccount.query.filter_by(id=staff_id).first()
+        account = StaffAccount.query.filter_by(personal_id=staff_id).first()
         return render_template('staff/staff_edit_pwd.html', account=account)
     return render_template('staff/staff_search_to_change_pwd.html')
 
@@ -2032,7 +2032,7 @@ def staff_edit_pwd(staff_id):
         db.session.commit()
         flash(u'แก้ไขรหัสผ่านเรียบร้อย')
         return render_template('staff/staff_index.html')
-    return render_template('staff/staff_search_to_change_pwadd_seminar_recordd.html')
+    return render_template('staff/staff_search_to_change_pwd.html')
 
 
 
