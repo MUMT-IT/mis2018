@@ -2106,5 +2106,6 @@ def staff_add_requester(requester_id):
 
     requester = StaffLeaveApprover.query.filter_by(staff_account_id=requester_id)
     requester_name = StaffLeaveApprover.query.filter_by(staff_account_id=requester_id).first()
+    name = StaffAccount.query.filter_by(id=requester_id).first()
     return render_template('staff/leave_request_manage_requester.html', approvers=requester,
-                           requester_name=requester_name)
+                           requester_name=requester_name, name=name)
