@@ -6,10 +6,16 @@
         {% include "messages.html" %}
         <div class="table-container">
             <div>
+                {% if requester_name %}
                 <h4 class="subtitle">ตารางการผู้ให้การอนุมัติการลาของ {{ requester_name.requester.personal_info }}
                 </h4>
+                {% else %}
+                <h4 class="subtitle">ตารางการเพิ่มผู้ให้การอนุมัติการลาของ {{ name.personal_info.fullname }}
+                </h4>
+                {% endif %}
             </div>
             <div class="box">
+                {% if approvers %}
                 <table class="table is-bordered is-striped">
                     <thead>
                     <th>บุคลากร</th>
@@ -52,6 +58,7 @@
                     {% endfor %}
                     </tbody>
                 </table>
+                {% endif %}
             </div>
             <div class="box">
                 <form method="post" enctype="multipart/form-data">
