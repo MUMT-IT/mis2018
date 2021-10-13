@@ -52,13 +52,13 @@ def login():
                 next = request.args.get('next')
                 if not is_safe_url(next):
                     return abort(400)
-                flash(u'You are now logged in. ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
+                flash(u'You have just logged in. ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
                 return redirect(next or url_for('index'))
             else:
-                flash(u'รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง')
+                flash(u'Wrong password, try again. รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
                 return redirect(url_for('auth.login'))
         else:
-            flash(u'User does not exists. ไม่พบบัญชีผู้ใช้ในระบบ')
+            flash(u'User does not exists. ไม่พบบัญชีผู้ใช้ในระบบ', 'danger')
             return redirect(url_for('auth.login'))
 
     return render_template('/auth/login.html', form=form, errors=form.errors, linking_line=linking_line)
