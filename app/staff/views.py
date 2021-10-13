@@ -129,7 +129,7 @@ def show_leave_info():
             (req.quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
         pending_days[leave_type] = pending_day
     for quota in current_user.personal_info.employment.quota:
-        delta = current_user.personal_info.get_employ_period()
+        delta = current_user.personal_info.get_employ_period_of_current_fiscal_year()
         max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
         last_quota = StaffLeaveRemainQuota.query.filter(and_(StaffLeaveRemainQuota.leave_quota_id == quota.id,
                                                              StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year - 1),
@@ -218,7 +218,7 @@ def request_for_leave(quota_id=None):
                 holidays = Holidays.query.filter(and_(Holidays.holiday_date >= start_datetime.date(),
                                                       Holidays.holiday_date <= end_datetime.date())).all()
                 req_duration = req_duration - len(holidays)
-                delta = current_user.personal_info.get_employ_period()
+                delta = current_user.personal_info.get_employ_period_of_current_fiscal_year()
                 if req_duration == 0:
                     flash(u'วันลาตรงกับวันหยุด')
                     return redirect(request.referrer)
@@ -300,7 +300,7 @@ def request_for_leave(quota_id=None):
         holidays = [h.tojson()['date'] for h in Holidays.query.all()]
         used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                  tz.localize(END_FISCAL_DATE))
-        delta = current_user.personal_info.get_employ_period()
+        delta = current_user.personal_info.get_employ_period_of_current_fiscal_year()
         max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
         if delta.years > 0:
             if max_cum_quota:
@@ -359,7 +359,7 @@ def request_for_leave_period(quota_id=None):
                 if req_duration <= 0:
                     flash(u'วันลาตรงกับวันหยุด')
                     return redirect(request.referrer)
-                delta = current_user.personal_info.get_employ_period()
+                delta = current_user.personal_info.get_employ_period_of_current_fiscal_year()
                 last_quota = StaffLeaveRemainQuota.query.filter(and_
                                                                 (StaffLeaveRemainQuota.leave_quota_id == quota.id,
                                                                  StaffLeaveRemainQuota.year == (
@@ -419,7 +419,7 @@ def request_for_leave_period(quota_id=None):
         holidays = [h.tojson()['date'] for h in Holidays.query.all()]
         used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                  tz.localize(END_FISCAL_DATE))
-        delta = current_user.personal_info.get_employ_period()
+        delta = current_user.personal_info.get_employ_period_of_current_fiscal_year()
         max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
         if delta.years > 0:
             if max_cum_quota:
@@ -459,7 +459,7 @@ def request_for_leave_info(quota_id=None):
     used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                              tz.localize(END_FISCAL_DATE))
 
-    delta = current_user.personal_info.get_employ_period()
+    delta = current_user.personal_info.get_employ_period_of_current_fiscal_year()
     max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
     if delta.years > 0:
         if max_cum_quota:
@@ -585,7 +585,7 @@ def edit_leave_request(req_id=None):
             holidays = Holidays.query.filter(and_(Holidays.holiday_date >= start_datetime,
                                                   Holidays.holiday_date <= end_datetime)).all()
             req_duration = req_duration - len(holidays)
-            delta = current_user.personal_info.get_employ_period()
+            delta = current_user.personal_info.get_employ_period_of_current_fiscal_year()
             if req_duration == 0:
                 flash(u'วันลาตรงกับวันหยุด')
                 return redirect(request.referrer)
@@ -686,7 +686,7 @@ def edit_leave_request_period(req_id=None):
                 flash(u'วันลาตรงกับเสาร์-อาทิตย์')
                 return redirect(request.referrer)
             # if duration not exceeds quota
-            delta = current_user.personal_info.get_employ_period()
+            delta = current_user.personal_info.get_employ_period_of_current_fiscal_year()
             last_quota = StaffLeaveRemainQuota.query.filter(and_
                                                             (StaffLeaveRemainQuota.leave_quota_id == quota.id,
                                                              StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year - 1),
@@ -2106,5 +2106,6 @@ def staff_add_requester(requester_id):
 
     requester = StaffLeaveApprover.query.filter_by(staff_account_id=requester_id)
     requester_name = StaffLeaveApprover.query.filter_by(staff_account_id=requester_id).first()
+    name = StaffAccount.query.filter_by(id=requester_id).first()
     return render_template('staff/leave_request_manage_requester.html', approvers=requester,
-                           requester_name=requester_name)
+                           requester_name=requester_name, name=name)

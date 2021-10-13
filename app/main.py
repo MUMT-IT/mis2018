@@ -596,30 +596,31 @@ def add_update_staff_gsheet():
         print('{} has been added/updated'.format(account.email))
 
 
-@dbutils.command('update-remaining-leave-quota')
+@dbutils.command('update-remaining-leave-quota-2020')
 def update_remaining_leave_quota():
     sheetid = '17lUlFNYk5znYqXL1vVCmZFtgTcjGvlNRZIlaDaEhy5E'
     print('Authorizing with Google..')
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    sheet = wks.worksheet("remain")
+    sheet = wks.worksheet("remain2021")
     df = pandas.DataFrame(sheet.get_all_records())
     for idx, row in df.iterrows():
-        account = StaffAccount.query.filter_by(email=row['e-mail']).first()
+        account = StaffAccount.query.filter_by(email=row['email']).first()
         if account and account.personal_info:
             quota = StaffLeaveQuota.query.filter_by(leave_type_id=1,
                                                     employment=account.personal_info.employment).first()
-            remain_quota = StaffLeaveRemainQuota.query.filter_by(quota=quota, staff=account).first()
+            remain_quota = StaffLeaveRemainQuota.query.filter_by(quota=quota, staff=account, year=2020).first()
             if not remain_quota:
                 remain_quota = StaffLeaveRemainQuota(quota=quota)
                 account.remain_quota.append(remain_quota)
             remain_quota.year = row['year']
             remain_quota.last_year_quota = row['quota']
+            remain_quota.staff_account_id = account.id
             db.session.add(account)
             db.session.commit()
             # print('{} updated..'.format(row['e-mail']))
         else:
-            print('{} not found..'.format(row['e-mail']))
+            print('{} not found..'.format(row['email']))
 
 
 @dbutils.command('update-approver-gsheet')
