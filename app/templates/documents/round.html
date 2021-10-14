@@ -2,7 +2,7 @@
 
 {% block page_content %}
 {% include "documents/nav.html" %}
-<section class="section">
+<section class="section" id="app">
     <div class="container">
         <nav class="breadcrumb" aria-label="breadcrumbs">
             <ul>
@@ -107,16 +107,7 @@
                                     <p class="help is-info">เก็บเอกสารที่สำคัญเพื่อไว้ดูภายหลัง</p>
                                 </td>
                                 <td>
-                                    <a class="button" href="{{ url_for('doc.star', doc_reach_id=doc_reach.id) }}">
-                                    <span class="icon">
-                                    {% if doc_reach.starred %}
-                                        <i class="fas fa-star has-text-warning"></i>
-                                    {% else %}
-                                        <i class="far fa-star"></i>
-                                    {% endif %}
-                                    </span>
-                                    <span>Star This</span>
-                                    </a>
+                                    <star-button doc-id={{ doc_reach.id|safe|tojson }}></star-button>
                                 </td>
                             </tr>
                             <tr>
@@ -162,4 +153,45 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        axios.defaults.headers.common['X-CSRF-TOKEN'] = {{ csrf_token()|safe|tojson }};
+        Vue.component('star-button', {
+            props: ['docId'],
+            delimiters: ['<%', '%>'],
+            data () {
+                return {
+                    starred: false
+                }
+            },
+            template: `<button class="button" @click="toggle"><span class="icon">
+                            <i :class="{ 'has-text-warning': starred, 'fas fa-star': starred, 'far fa-star': !starred }"></i>
+                        </span></button>`,
+            methods: {
+                toggle() {
+                    const self = this
+                    let url = '/docs/api/star/toggle/' + this.docId
+                    axios.post(url).then(resp => {
+                        self.starred = !self.starred
+                        console.log(self.starred)
+                    }).catch(e => {
+                        console.log(e.toString())
+                    })
+                }
+            },
+            mounted () {
+                let url = '/docs/api/star/' + this.docId
+                const self = this
+                axios.get(url).then(resp=>{
+                    self.starred = resp.data.data === true ? true : false
+                })
+            }
+        })
+        let vue = new Vue({
+            el: '#app',
+            delimiters: ['<%', '%>'],
+        })
+    </script>
 {% endblock %}

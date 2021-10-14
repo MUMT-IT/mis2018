@@ -277,6 +277,28 @@ def view_round(round_id):
         return render_template('documents/round.html', round_org=round_org)
 
 
+@docbp.route('/api/star/<int:doc_id>')
+@login_required
+def api_get_star(doc_id):
+    doc_reach = DocDocumentReach.query.get(doc_id)
+    return jsonify({'data': doc_reach.starred})
+
+
+@docbp.route('/api/star/toggle/<int:doc_id>', methods=['POST'])
+@login_required
+def api_toggle_star(doc_id):
+    if request.method == 'POST':
+        doc_reach = DocDocumentReach.query.get(doc_id)
+        if doc_reach.starred is not None:
+            doc_reach.starred = not doc_reach.starred
+        else:
+            doc_reach.starred = True
+        db.session.add(doc_reach)
+        db.session.commit()
+        print(doc_reach.starred)
+        return jsonify({'status': 'success'})
+
+
 @docbp.route('/starred-documents/<int:doc_reach_id>')
 @login_required
 def view_starred_doc(doc_reach_id):
