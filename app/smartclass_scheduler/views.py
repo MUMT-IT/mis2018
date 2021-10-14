@@ -9,6 +9,7 @@ from app.main import db
 import arrow
 from datetime import datetime
 from pytz import timezone
+import dateutil.parser
 
 localtz = timezone('Asia/Bangkok')
 
@@ -30,9 +31,15 @@ def list_resources(resource_type_id):
 @smartclass.route('/api/resources/<int:resource_type_id>/events')
 def get_events(resource_type_id):
     # only query events of the current year to reduce load time
+    start = request.args.get('start')
+    end = request.args.get('end')
+    if start:
+        start = dateutil.parser.isoparse(start)
+    if end:
+        end = dateutil.parser.isoparse(end)
     events = SmartClassOnlineAccountEvent.query.filter(
-        SmartClassOnlineAccountEvent.account.has(resource_type_id=resource_type_id)
-    ).filter(extract('year', SmartClassOnlineAccountEvent.start) == datetime.today().year)
+        SmartClassOnlineAccountEvent.account.has(resource_type_id=resource_type_id))\
+            .filter(SmartClassOnlineAccountEvent.start >= start).filter(SmartClassOnlineAccountEvent.end <= end)
     event_data = []
     for evt in events:
         if not evt.cancelled_at:

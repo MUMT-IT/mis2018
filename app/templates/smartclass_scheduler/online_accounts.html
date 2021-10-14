@@ -117,6 +117,7 @@
             header: {
                 left: 'title',
             },
+            lazyFetching: true,
             events: "{{ url_for('smartclass_scheduler.get_events', resource_type_id=resource_type_id) }}",
             eventLimit: true,
             resources: "{{ url_for('smartclass_scheduler.get_resources', resource_type_id=resource_type_id) }}",
