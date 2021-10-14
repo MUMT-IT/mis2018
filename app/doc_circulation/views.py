@@ -250,8 +250,12 @@ def index():
     rounds = DocRoundOrg.query.filter_by(org_id=current_user.personal_info.org.id) \
         .order_by(DocRoundOrg.sent_at.desc()).limit(60)
     starred_docs = DocDocumentReach.query.filter_by(starred=True, reacher=current_user).all()
+    notes = DocDocumentReach.query.filter(DocDocumentReach.note != None).all()
     return render_template('documents/index.html',
-                           rounds=rounds, starred_docs=starred_docs, DocDocumentReach=DocDocumentReach)
+                           rounds=rounds,
+                           starred_docs=starred_docs,
+                           notes=notes,
+                           DocDocumentReach=DocDocumentReach)
 
 
 @docbp.route('/admin/rounds/<int:round_id>/documents')
@@ -298,7 +302,7 @@ def api_toggle_star(doc_id):
             db.session.commit()
             return jsonify({'status': 'success'})
         else:
-            return jsonify({'status': 'failed'}), 400
+            return jsonify({'status': 'failed'}), 404
 
 
 @docbp.route('/starred-documents/<int:doc_reach_id>')
@@ -318,7 +322,7 @@ def api_has_read_yet(doc_reach_id):
             'data': True if doc_reach.reached_at is not None else False,
             'readAt': doc_reach.reached_at.isoformat() if doc_reach.reached_at else None
         })
-    return jsonify({'data': 'failed'}), 400
+    return jsonify({'data': 'failed'}), 404
 
 
 @docbp.route('/api/mark-as-read/<int:doc_reach_id>', methods=['POST'])
@@ -332,7 +336,32 @@ def api_mark_as_read(doc_reach_id):
             db.session.commit()
         return jsonify({'data': True, 'readAt': doc_reach.reached_at.isoformat() if doc_reach.reached_at else None})
     else:
-        return jsonify({'data': 'failed'}), 400
+        return jsonify({'data': 'failed'}), 404
+
+
+@docbp.route('/api/note-to-self/<int:doc_reach_id>', methods=['POST'])
+@login_required
+def api_note_to_self(doc_reach_id):
+    doc_reach = DocDocumentReach.query.get(doc_reach_id)
+    data = request.get_json()
+    if doc_reach:
+        if doc_reach.note is None:
+            doc_reach.note = data['note']
+            db.session.add(doc_reach)
+            db.session.commit()
+        return jsonify({'data': 'success'})
+    else:
+        return jsonify({'data': 'failed'}), 404
+
+
+@docbp.route('/api/has-note/<int:doc_reach_id>')
+@login_required
+def api_has_note(doc_reach_id):
+    doc_reach = DocDocumentReach.query.get(doc_reach_id)
+    if doc_reach:
+        return jsonify({'data': True if doc_reach.note is not None else False,
+                        'note': doc_reach.note})
+    return jsonify({'data': 'failed'}), 404
 
 
 @docbp.route('/rounds/mark-as-read/<int:doc_reach_id>', methods=['POST'])

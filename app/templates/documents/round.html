@@ -111,11 +111,19 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td><label class="label">Action</label>
+                                <td><label class="label">Seen</label>
                                     <p class="help is-info">คลิกที่ปุ่ม Mark as read เพื่อบันทึกว่ารับทราบ</p>
                                 </td>
                                 <td>
                                     <read-button doc-id={{ doc_reach.id|safe|tojson }}></read-button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                   <label class="label">Note to Self</label>
+                                </td>
+                                <td>
+                                    <self-note doc-id={{ doc_reach.id|safe|tojson }}></self-note>
                                 </td>
                             </tr>
                         </table>
@@ -144,6 +152,42 @@
     {{ super() }}
     <script>
         axios.defaults.headers.common['X-CSRF-TOKEN'] = {{ csrf_token()|safe|tojson }};
+        Vue.component('self-note', {
+            props: ['docId'],
+            delimiters: ['<%', '%>'],
+            data () {
+                return {
+                    note: "",
+                    hasNote: false,
+                }
+            },
+            template: `<div>
+                            <p v-if="hasNote"><% note %><p>
+                            <div class="field">
+                                <div class="control">
+                                    <textarea v-model="note" class="textarea" v-if="!hasNote"></textarea>
+                                </div>
+                            </div>
+                            <button @click="saveNote" class="button is-success is-outlined" v-if="!hasNote">Save</button></div>`,
+            methods: {
+                saveNote () {
+                    const self = this
+                    axios.post('/docs/api/note-to-self/' + this.docId, {note: self.note}).then(resp=>{
+                        self.hasNote = true
+                    }).catch(e => {
+                        alert(e.toString())
+                    })
+                }
+            },
+            mounted () {
+                let url = '/docs/api/has-note/' + this.docId
+                const self = this
+                axios.get(url).then(resp=>{
+                    self.hasNote = resp.data.data === true ? true : false
+                    self.note = resp.data.note
+                })
+            }
+        })
         Vue.component('read-button', {
             props: ['docId'],
             delimiters: ['<%', '%>'],
@@ -154,7 +198,7 @@
                 }
             },
             template: `<div><span class="tag is-success is-light is-rounded" v-if="readAt">
-                            Read <% moment(readAt).fromNow() %>
+                            <% moment(readAt).fromNow() %>
                         </span>
                         <button class="button" @click="hasRead" v-if="!read">
                             <span class="icon">
