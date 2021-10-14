@@ -8,27 +8,15 @@
 <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
 <style>
     #calendar {
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-    .fc-view-container {
-        width: auto;
-    }
-    .fc-view-container .fc-view {
-        overflow-x: scroll;
-    }
-    .fc-view-container .fc-view > table {
-        width: 2500px;
-    }
-    .fc-now-indicator {
-        border: 0 solid #FFC107
+        max-width: 100%;
+        margin: 40px auto;
     }
 </style>
 {% endblock head %}
 {% include "smartclass_scheduler/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <div class="container box">
+    <div class="container">
         <div class="columns">
             <div class="column has-text-centered">
                 <h1 class="title">New Schedule</h1>
@@ -87,7 +75,7 @@
                 <p>คลิกเพื่อข้ามไปวันที่ที่ต้องการตรวจสอบ</p>
                 <div class="field">
                     <div class="control has-icons-left">
-                        <input class="input" name="datePicker">
+                        <input class="input" name="datePicker" id="datePicker">
                         <span class="icon is-small is-left">
                             <i class="far fa-calendar-alt"></i>
                         </span>
@@ -112,7 +100,18 @@
 <script src="{{ url_for('static', filename='js/scheduler.min.js') }}"></script>
 <script>
     $(function() {
-        $('#calendar').fullCalendar({
+        $('#datePicker').daterangepicker({
+                singleDatePicker: true,
+                startDate: moment()
+            }, function(start, end, label) {
+                $('#calendar').data('fullCalendar').gotoDate(start);
+            }
+        );
+        let calendar = $('#calendar').fullCalendar({
+            viewRender: function(view, element) {
+                let date = $('#calendar').fullCalendar('getDate');
+                $('#datePicker').data('daterangepicker').setStartDate(date);
+            },
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             defaultView: 'timelineDay',
             header: {
@@ -123,7 +122,7 @@
             resources: "{{ url_for('smartclass_scheduler.get_resources', resource_type_id=resource_type_id) }}",
             resourceLabelText: 'Account',
             resourceGroupField: 'resource_type',
-            resourceAreaWidth: '10%',
+            resourceAreaWidth: '20%',
             minTime: '08:00:00',
             maxTime: '23:00:00',
             resourceColumns: [
@@ -138,12 +137,5 @@
             }
         });
     });
-    $('input[name="datePicker"]').daterangepicker({
-            singleDatePicker: true,
-            startDate: moment()
-        }, function(start, end, label) {
-            $('#calendar').fullCalendar('gotoDate', start);
-        }
-    );
 </script>
 {% endblock %}
