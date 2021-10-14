@@ -115,21 +115,7 @@
                                     <p class="help is-info">คลิกที่ปุ่ม Mark as read เพื่อบันทึกว่ารับทราบ</p>
                                 </td>
                                 <td>
-                                    {% if doc_reach.reached_at %}
-                                    <span class="tag is-success is-light is-rounded">
-                                        Read {{ doc_reach.reached_at|humanizedt }}
-                                    </span>
-                                    {% else %}
-                                    <a class="button is-outlined"
-                                       href="{{ url_for('doc.mark_as_read', doc_reach_id=doc_reach.id) }}">
-                                        <span class="icon">
-                                            <i class="fas fa-check"></i>
-                                        </span>
-                                        <span>
-                                            Mark as read
-                                        </span>
-                                    </a>
-                                    {% endif %}
+                                    <read-button doc-id={{ doc_reach.id|safe|tojson }}></read-button>
                                 </td>
                             </tr>
                         </table>
@@ -158,6 +144,46 @@
     {{ super() }}
     <script>
         axios.defaults.headers.common['X-CSRF-TOKEN'] = {{ csrf_token()|safe|tojson }};
+        Vue.component('read-button', {
+            props: ['docId'],
+            delimiters: ['<%', '%>'],
+            data () {
+                return {
+                    read: false,
+                    readAt: null,
+                }
+            },
+            template: `<div><span class="tag is-success is-light is-rounded" v-if="readAt">
+                            Read <% moment(readAt).fromNow() %>
+                        </span>
+                        <button class="button" @click="hasRead" v-if="!read">
+                            <span class="icon">
+                                <i class="fas fa-check" :class="{ 'has-text-success': read }"></i>
+                            </span>
+                        </button></div>`,
+            methods: {
+                hasRead() {
+                    const self = this
+                    let url = '/docs/api/mark-as-read/' + this.docId
+                    if (self.read === false) {
+                        axios.post(url).then(resp => {
+                            self.read = !self.read
+                            self.readAt = new Date(resp.data.readAt);
+                        }).catch(e => {
+                            console.log(e.toString())
+                        })
+                    }
+                }
+            },
+            mounted () {
+                let url = '/docs/api/has-read-yet/' + this.docId
+                const self = this
+                axios.get(url).then(resp=>{
+                    self.read = resp.data.data === true ? true : false
+                    self.readAt = resp.data.readAt
+                })
+            }
+        })
         Vue.component('star-button', {
             props: ['docId'],
             delimiters: ['<%', '%>'],
@@ -166,16 +192,17 @@
                     starred: false
                 }
             },
-            template: `<button class="button" @click="toggle"><span class="icon">
-                            <i :class="{ 'has-text-warning': starred, 'fas fa-star': starred, 'far fa-star': !starred }"></i>
-                        </span></button>`,
+            template: `<button class="button" @click="toggle">
+                            <span class="icon">
+                                <i :class="{ 'has-text-warning': starred, 'fas fa-star': starred, 'far fa-star': !starred }"></i>
+                            </span>
+                        </button>`,
             methods: {
                 toggle() {
                     const self = this
                     let url = '/docs/api/star/toggle/' + this.docId
                     axios.post(url).then(resp => {
                         self.starred = !self.starred
-                        console.log(self.starred)
                     }).catch(e => {
                         console.log(e.toString())
                     })

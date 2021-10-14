@@ -289,14 +289,16 @@ def api_get_star(doc_id):
 def api_toggle_star(doc_id):
     if request.method == 'POST':
         doc_reach = DocDocumentReach.query.get(doc_id)
-        if doc_reach.starred is not None:
-            doc_reach.starred = not doc_reach.starred
+        if doc_reach:
+            if doc_reach.starred is not None:
+                doc_reach.starred = not doc_reach.starred
+            else:
+                doc_reach.starred = True
+            db.session.add(doc_reach)
+            db.session.commit()
+            return jsonify({'status': 'success'})
         else:
-            doc_reach.starred = True
-        db.session.add(doc_reach)
-        db.session.commit()
-        print(doc_reach.starred)
-        return jsonify({'status': 'success'})
+            return jsonify({'status': 'failed'}), 400
 
 
 @docbp.route('/starred-documents/<int:doc_reach_id>')
@@ -307,7 +309,33 @@ def view_starred_doc(doc_reach_id):
     return render_template('documents/starred_doc.html', doc_reach=doc_reach)
 
 
-@docbp.route('/rounds/mark-as-read/<int:doc_reach_id>')
+@docbp.route('/api/has-read-yet/<int:doc_reach_id>')
+@login_required
+def api_has_read_yet(doc_reach_id):
+    doc_reach = DocDocumentReach.query.get(doc_reach_id)
+    if doc_reach:
+        return jsonify({
+            'data': True if doc_reach.reached_at is not None else False,
+            'readAt': doc_reach.reached_at.isoformat() if doc_reach.reached_at else None
+        })
+    return jsonify({'data': 'failed'}), 400
+
+
+@docbp.route('/api/mark-as-read/<int:doc_reach_id>', methods=['POST'])
+@login_required
+def api_mark_as_read(doc_reach_id):
+    doc_reach = DocDocumentReach.query.get(doc_reach_id)
+    if doc_reach:
+        if doc_reach.reached_at is None:
+            doc_reach.reached_at = datetime.datetime.now(bkk)
+            db.session.add(doc_reach)
+            db.session.commit()
+        return jsonify({'data': True, 'readAt': doc_reach.reached_at.isoformat() if doc_reach.reached_at else None})
+    else:
+        return jsonify({'data': 'failed'}), 400
+
+
+@docbp.route('/rounds/mark-as-read/<int:doc_reach_id>', methods=['POST'])
 @login_required
 def mark_as_read(doc_reach_id):
     star_view = request.args.get('star_view', 'false')
