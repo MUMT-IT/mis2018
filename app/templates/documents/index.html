@@ -195,6 +195,47 @@
                 </table>
             </div>
         </div>
+        <div class="columns">
+            <div class="column">
+                <h1 class="title has-text-centered">Notes</h1>
+                <table class="table is-striped is-fullwidth" id="notes">
+                    <thead>
+                    <th></th>
+                    <th>Sent At</th>
+                    <th>Title</th>
+                    <th>Note</th>
+                    </thead>
+                    {% if notes|length == 0 %}
+                        <h1 class="subtitle has-text-centered">Documents with a note will be listed here.</h1>
+                    {% endif %}
+                    {% for doc in notes %}
+                        <tr>
+                            <td>
+                                <span class="icon">
+                                    <i class="far fa-file-alt has-text-link"></i>
+                                </span>
+                            </td>
+                            <td>
+                                <h1 class="title is-size-7">
+                                    {{ doc.round_org.sent_at|localdatetime }}
+                                </h1>
+                                <h1 class="subtitle is-size-7">
+                                    {{ doc.round_org.sent_at|humanizedt }}
+                                </h1>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('doc.view_starred_doc', doc_reach_id=doc.id) }}">
+                                    {{ doc.doc.title }}
+                                </a>
+                            </td>
+                            <td>
+                                {{ doc.note }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </table>
+            </div>
+        </div>
     </div>
 </section>
 {% endblock %}
