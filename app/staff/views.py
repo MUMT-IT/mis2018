@@ -1509,7 +1509,8 @@ def summary_index():
             fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
             start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
             border_color = '#ffffff'
-            for rec in StaffWorkLogin.query.filter_by(staff=emp) \
+            #TODO: recheck staff login model
+            for rec in StaffWorkLogin.query.filter_by(staff=emp.staff_account) \
                     .filter(StaffWorkLogin.start_datetime.between(start_fiscal_date, end_fiscal_date)):
                 text_color = '#ffffff'
                 if (rec.checkin_mins < 0) or (rec.checkout_mins > 0):
@@ -1546,7 +1547,7 @@ def summary_index():
             fiscal_years = StaffLeaveRequest.query.distinct(func.date_part('YEAR', StaffLeaveRequest.start_datetime))
             fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
             start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
-            for leave_req in StaffLeaveRequest.query.filter_by(staff=emp) \
+            for leave_req in StaffLeaveRequest.query.filter_by(staff=emp.staff_account) \
                     .filter(StaffLeaveRequest.start_datetime.between(start_fiscal_date, end_fiscal_date)):
                 if not leave_req.cancelled_at:
                     if leave_req.get_approved:
@@ -1574,7 +1575,7 @@ def summary_index():
                 func.date_part('YEAR', StaffWorkFromHomeRequest.start_datetime))
             fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
             start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
-            for wfh_req in StaffWorkFromHomeRequest.query.filter_by(staff=emp).filter(
+            for wfh_req in StaffWorkFromHomeRequest.query.filter_by(staff=emp.staff_account).filter(
                     StaffWorkFromHomeRequest.start_datetime.between(start_fiscal_date, end_fiscal_date)):
                 if not wfh_req.cancelled_at:
                     if wfh_req.get_approved:
