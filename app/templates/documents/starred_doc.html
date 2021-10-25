@@ -114,7 +114,7 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td><label class="label">Action</label>
+                                <td><label class="label">Seen</label>
                                     <p class="help is-info">คลิกที่ปุ่ม Mark as read เพื่อบันทึกว่ารับทราบ</p>
                                 </td>
                                 <td>
@@ -133,6 +133,14 @@
                                         </span>
                                     </a>
                                     {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <label class="label">Note to Self</label>
+                                </td>
+                                <td>
+                                    {{ doc_reach.note }}
                                 </td>
                             </tr>
                         </table>
