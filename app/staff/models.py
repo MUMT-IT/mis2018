@@ -110,7 +110,7 @@ class StaffPersonalInfo(db.Model):
     finger_scan_id = db.Column('finger_scan_id', db.Integer)
     academic_staff = db.Column('academic_staff', db.Boolean())
     retired = db.Column('retired', db.Boolean(), default=False)
-    sap_no = db.Column('sap_no', db.Integer())
+
 
     def __str__(self):
         return self.fullname
