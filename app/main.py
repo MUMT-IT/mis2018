@@ -242,6 +242,13 @@ admin.add_view(LoginDataUploadView(
     category='Human Resource')
 )
 
+
+from ot import otbp as ot_blueprint
+
+app.register_blueprint(ot_blueprint, url_prefix='/ot')
+from ot.models import *
+
+
 from room_scheduler import roombp as room_blueprint
 
 app.register_blueprint(room_blueprint, url_prefix='/room')
