@@ -21,17 +21,24 @@ class OtPaymentAnnounce(db.Model):
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
 
 
-# class OtPaymentDetail(db.Model):
-#     __tablename__ = 'ot_payment_detail'
-#     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-#     announce_id = db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'))
-#     work_at_org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
-#     work_at_org = db.relationship(Org, backref=db.backref('ot_rate'))
-#     role = db.Column('role', db.String())
-#     per_period = db.Column('per_period', db.Integer())
-#     per_hour = db.Column('per_hour', db.Integer())
-#     is_faculty_employer = db.Column('is_faculty_employer', db.Boolean(), default=True)
-#     can_duplicate = db.Column('can_duplicate', db.Boolean(), default=True)
+class OtCompensationRate(db.Model):
+    __tablename__ = 'ot_compensation_rate'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    announce_id = db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'))
+    work_at_org_id = db.Column('work_at_org_id', db.ForeignKey('orgs.id'))
+    work_for_org_id = db.Column('work_for_org_id', db.ForeignKey('orgs.id'))
+    work_at_org = db.relationship(Org, backref=db.backref('ot_work_at_rate'), foreign_keys=[work_at_org_id])
+    work_for_org = db.relationship(Org, backref=db.backref('ot_work_for_rate'), foreign_keys=[work_for_org_id])
+    role = db.Column('role', db.String())
+    per_period = db.Column('per_period', db.Integer())
+    per_hour = db.Column('per_hour', db.Integer())
+    per_day = db.Column('per_day', db.Integer())
+    start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
+    end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
+    is_faculty_emp = db.Column('is_faculty_emp', db.Boolean())
+    is_workday = db.Column('is_workday', db.Boolean(), default=True, nullable=False)
+    max_hour = db.Column('max_hour', db.Integer())
+    double_payment = db.Column('double_payment', db.Boolean(), default=True, nullable=False)
 
 
 # class OtDocumentApproval(db.Model):
