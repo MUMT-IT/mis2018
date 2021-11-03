@@ -15,9 +15,8 @@ class OtPaymentAnnounce(db.Model):
     created_account_id = db.Column('created_account_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship(StaffAccount, backref=db.backref('ot_announcement'))
     created_at = db.Column('created_at', db.DateTime(timezone=True), default=datetime.now())
-    announce_at = db.Column('announce_at', db.Date(), nullable=False)
-    start_date = db.Column('start_date', db.Date(), nullable=False)
-    end_date = db.Column('end_date', db.Date(), nullable=True)
+    announce_at = db.Column('announce_at', db.DateTime(timezone=True))
+    start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
 
 
