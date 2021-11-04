@@ -170,6 +170,13 @@ from research.models import *
 admin.add_views(ModelView(ResearchPub, db.session, category='Research'))
 admin.add_views(ModelView(Author, db.session, category='Research'))
 
+from procurement import procurementbp as procurement_blueprint
+
+app.register_blueprint(procurement_blueprint, url_prefix='/procurement')
+from procurement.models import *
+
+admin.add_views(ModelView(ProcurementDetail, db.session, category='Procurement'))
+
 from staff import staffbp as staff_blueprint
 
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
