@@ -33,8 +33,6 @@ class OtCompensationRate(db.Model):
     per_period = db.Column('per_period', db.Integer(), info={'label':u'ต่อคาบ'})
     per_hour = db.Column('per_hour', db.Integer(), info={'label':u'ต่อชั่วโมง'})
     per_day = db.Column('per_day', db.Integer(), info={'label':u'ต่อวัน'})
-    start_datetime = db.Column('start_datetime', db.DateTime(timezone=True), info={'label':u'วันที่เริ่มต้น'})
-    end_datetime = db.Column('end_datetime', db.DateTime(timezone=True), info={'label':u'วันที่สิ้นสุด'})
     ot_start_datetime = db.Column('ot_start_datetime', db.DateTime(timezone=True))
     ot_end_datetime = db.Column('ot_end_datetime', db.DateTime(timezone=True))
     is_faculty_emp = db.Column('is_faculty_emp', db.Boolean(), info={'label':u'บุคลากรสังกัดคณะ'})
