@@ -12,8 +12,11 @@ def add_procurement():
     if request.method == 'POST':
         form = request.form
         procurement = ProcurementDetail(
-            name = form.get('name'),
-            number = form.get('number')
+        list = form.get('list'),
+        type = form.get('type'),
+        code = form.get('code'),
+        location = form.get('location'),
+        available = form.get('available')
         )
         db.session.add(procurement)
         db.session.commit()
@@ -23,6 +26,21 @@ def add_procurement():
 
 @procurement.route('/home')
 def index():
-    print ("Test")
     return render_template('procurement/index.html')
+
+
+@procurement.route('/alldata')
+def view_procurement():
+    procurement_list = []
+    procurement_query = ProcurementDetail.query.all()
+    for procurement in procurement_query:
+        record = {}
+        record["list"] = procurement.list
+        record["type"] = procurement.type
+        record["code"] = procurement.code
+        record["location"] = procurement.location
+        record["available"] = procurement.available
+        procurement_list.append(record)
+    return render_template('procurement/view_all_data.html', procurement_list=procurement_list)
+
 
