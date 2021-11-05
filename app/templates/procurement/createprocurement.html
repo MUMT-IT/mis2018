@@ -5,7 +5,7 @@
     <div class="container">
         <div class="columns">
             <div class="column has-text-centered">
-                <h1 class="title">เพิ่มข้อมูลครุภัณฑ์</h1>
+                <h1 class="title">เพิ่มข้อมูลครุภัณฑ์ใหม่</h1>
             </div>
         </div>
         <div class="columns">
@@ -15,33 +15,72 @@
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">ชื่อครุภัณฑ์</label>
+                            <label class="label">ชื่อ</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                        name="name" type="text" required>
+                                        type="text" name="list" placeholder="รายการชื่อครุภัณฑ์" required>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">รหัสครุภัณฑ์</label>
+                            <label class="label">ประเภท</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                        name="number" type="text" required>
+                                      type="text" name="type" placeholder="ประเภทครุภัณฑ์" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">รหัส</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                       type="text" name="code" placeholder="รหัสครุภัณฑ์" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">สถานที่</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                      type="text" name="location" placeholder="โลเคชั่นเก็บครุภัณฑ์" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">สถานะ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                       type="text" name="available" placeholder="สามารถใช้งานได้/ไม่สามารถใช้งาน" required>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
-                            <input type="submit" value="submit" class="button is-primary"/>
+                            <input type="submit" value="Submit" class="button is-primary"/>
                         </div>
                         <div class="control">
                             <a href="{{ url_for('procurement.index') }}" class="button is-danger">Cancel</a>
