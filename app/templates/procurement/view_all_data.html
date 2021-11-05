@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">ข้อมูลครุภัณฑ์ทั้งหมด</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="procurementTable">
+                    <thead>
+                        <th>รายการ</th>
+                        <th>ประเภท</th>
+                        <th>รหัส</th>
+                        <th>สถานที่</th>
+                        <th>สถานะ</th>
+                        <th>วันที่</th>
+                        <th>แก้ไข</th>
+                    </thead>
+                    <tbody>
+                    {% for record in procurement_list %}
+                    <tr>
+                        <td>
+                            {{ record["list"] }}
+                        </td>
+                        <td>
+                            {{ record["type"] }}
+                        </td>
+                        <td>
+                            {{ record["code"] }}
+                        </td>
+                          <td>
+                            {{ record["location"] }}
+                        </td>
+                        <td>
+                            {{ record["available"] }}
+                        </td>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-right">
+                <p>หมายเหตุ:สามารถเพิ่มรายการใหม่โดย คลิกที่เพิ่มข้อมูล</p>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('procurement.index') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#procurementTable').DataTable();
+    });
+</script>
+{% endblock %}
