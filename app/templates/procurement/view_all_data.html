@@ -6,6 +6,7 @@
 {% endblock %}
 {% block page_content %}
 <section class="section">
+    {% include "messages.html" %}
     <div class="container">
         <div class="columns">
             <div class="column has-text-left">
@@ -41,6 +42,13 @@
                         </td>
                         <td>
                             {{ record["available"] }}
+                        </td>
+                        <td>
+
+                        </td>
+                        <td>
+                            <a href="{{ url_for('procurement.edit_procurement', procurement_id = record['id']) }}">
+                                <i class="fas fa-edit"></i></a>
                         </td>
                     {% endfor %}
                     </tbody>
