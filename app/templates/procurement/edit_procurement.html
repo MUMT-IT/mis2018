@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">แก้ไขข้อมูลครุภัณฑ์ใหม่</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                <form method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ชื่อ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                        type="text" name="list" value="{{ procurement.list }}" placeholder="รายการชื่อครุภัณฑ์" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ประเภท</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                      type="text" name="type" value="{{ procurement.type }}" placeholder="ประเภทครุภัณฑ์" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">รหัส</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                       type="text" name="code" value="{{ procurement.code }}" placeholder="รหัสครุภัณฑ์" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">สถานที่</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                      type="text" name="location" value="{{ procurement.location }}" placeholder="โลเคชั่นเก็บครุภัณฑ์" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">สถานะ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                       type="text" name="available" value="{{ procurement.available }}" placeholder="สามารถใช้งานได้/ไม่สามารถใช้งาน" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <input type="submit" value="Submit" class="button is-primary"/>
+                        </div>
+                        <div class="control">
+                            <a href="{{ url_for('procurement.index') }}" class="button is-danger">Cancel</a>
+                        </div>
+                    </div>
+                </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
