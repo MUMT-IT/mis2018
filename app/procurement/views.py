@@ -7,7 +7,6 @@ from ..main import db
 
 
 @procurement.route('/add', methods=['GET','POST'])
-
 def add_procurement():
     if request.method == 'POST':
         form = request.form
@@ -35,6 +34,7 @@ def view_procurement():
     procurement_query = ProcurementDetail.query.all()
     for procurement in procurement_query:
         record = {}
+        record["id"] = procurement.id
         record["list"] = procurement.list
         record["type"] = procurement.type
         record["code"] = procurement.code
@@ -43,4 +43,26 @@ def view_procurement():
         procurement_list.append(record)
     return render_template('procurement/view_all_data.html', procurement_list=procurement_list)
 
+@procurement.route('/createqrcode')
+def create_qrcode():
+    return render_template('procurement/generate_qrcode.html')
 
+@procurement.route('/explanation')
+def explanation():
+    return render_template('procurement/explanation.html')
+
+@procurement.route('/edit/<int:procurement_id>', methods=['GET','POST'])
+def edit_procurement(procurement_id):
+    procurement = ProcurementDetail.query.get(procurement_id)
+    if request.method == 'POST':
+        form = request.form
+        procurement.list = form.get('list')
+        procurement.type = form.get('type')
+        procurement.code = form.get('code')
+        procurement.location = form.get('location')
+        procurement.available = form.get('available')
+        db.session.add(procurement)
+        db.session.commit()
+        flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
+        return redirect(url_for('procurement.view_procurement'))
+    return render_template('procurement/edit_procurement.html', procurement=procurement)
