@@ -1,11 +1,10 @@
 # -*- coding:utf-8 -*-
-from flask import render_template, request, flash, redirect, url_for, session, jsonify
+from flask import render_template, request, flash, redirect, url_for, session, jsonify, Flask
 
 from . import procurementbp as procurement
 from .models import ProcurementDetail
 from ..main import db
-#Import Library
-import qrcode
+from flask_qrcode import QRcode
 
 
 @procurement.route('/add', methods=['GET','POST'])
@@ -69,11 +68,22 @@ def edit_procurement(procurement_id):
         return redirect(url_for('procurement.view_procurement'))
     return render_template('procurement/edit_procurement.html', procurement=procurement)
 
-@procurement.route('/viewqrcode/<int:procurement_code>')
-def view_qrcode(procurement_code):
-    procurement = ProcurementDetail.query.get(procurement_code)
-    # Generate QR Code
-    img = qrcode.make('procurement.code')
-    img.save('procurement.png')
-    return render_template('procurement/view_qrcode.html', procurement=procurement)
+
+procurement = Flask(__name__)
+
+# this line is important
+QRcode(procurement)
+
+@procurement.route('/qrcode', methods=['POST', 'GET'])
+def view_qrcode():
+    qr = None
+    if request.method == 'POST':
+        qr = request.form['code']
+    return render_template('procurement/view_qrcode.html', qr=qr)
+
+
+if __name__ == '__main__':
+    procurement.run(port=5000, debug=True)
+
+
 
