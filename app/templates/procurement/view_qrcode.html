@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">สแกนดูข้อมูลครุภัณฑ์ใหม่</h1>
+            </div>
+             <tr>
+                <td><img src="{{ procurement }}/{{ procurement.code }}.png"></td>
+                <td>{{ procurement.code }}</td>
+            </tr>
+        </div>
+         <a href="{{ url_for('procurement.index') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+          </a>
+    </div>
+</section>
+{% endblock %}
