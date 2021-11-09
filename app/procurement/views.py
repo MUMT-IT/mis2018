@@ -4,6 +4,8 @@ from flask import render_template, request, flash, redirect, url_for, session, j
 from . import procurementbp as procurement
 from .models import ProcurementDetail
 from ..main import db
+#Import Library
+import qrcode
 
 
 @procurement.route('/add', methods=['GET','POST'])
@@ -66,3 +68,12 @@ def edit_procurement(procurement_id):
         flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
         return redirect(url_for('procurement.view_procurement'))
     return render_template('procurement/edit_procurement.html', procurement=procurement)
+
+@procurement.route('/viewqrcode/<int:procurement_code>')
+def view_qrcode(procurement_code):
+    procurement = ProcurementDetail.query.get(procurement_code)
+    # Generate QR Code
+    img = qrcode.make('procurement.code')
+    img.save('procurement.png')
+    return render_template('procurement/view_qrcode.html', procurement=procurement)
+
