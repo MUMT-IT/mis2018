@@ -1,19 +1,23 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>QRCode Page</title>
-</head>
-<body>
-<h2>QR Code Generator</h2>
-<form method="post" action="{{ url_for('procurement.view_qrcode') }}">
-    <input name="code" type="text" placeholder="Enter your code here."/>
-    <input type="submit" value="submit"/>
-</form>
-<br>
-<br>
-{% if qr %}
-    <img src="{{ qrcode(qr) }}">
-{% endif %}
-</body>
-</html>
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">สแกนดูข้อมูลครุภัณฑ์ใหม่</h1>
+            </div>
+             <tr>
+                <td><img src="{{ procurement }}/{{ procurement.code }}.png"></td>
+                <td>{{ procurement.code }}</td>
+            </tr>
+        </div>
+         <a href="{{ url_for('procurement.index') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+          </a>
+    </div>
+</section>
+{% endblock %}
