@@ -11,19 +11,14 @@
     <div class="columns">
         <div class="column is-4 is-offset-4 has-text-centered">
             <h1 class="title">Create Procurement QR Code</h1>
-            <form method="post" action="">
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <div class="field">
-                    <p class="control has-icons-right">
-                        <input class="input" type="text" name="code" placeholder="กรุณากรอกรหัสครุภัณฑ์">
-                        <span class="icon is-right">
-                            <i class="fas fa-search"></i>
-                        </span>
-                    </p>
-                </div>
-                <button type="submit" class="button is-rounded is-success">
-                    <strong>Generate</strong></button>
+            <form method="post" action="{{ url_for('procurement.create_qrcode') }}">
+                <input name="inputtext" type="text" placeholder="Enter procurement code"/>
+                <input type="submit" value="submit"/>
             </form>
+            <br>
+            {% if qr %}
+            <img src="{{ qrcode(qr) }}">
+            {% endif %}
             <p>
                 <a href="{{ url_for('procurement.view_procurement') }}">ดูรายการครุภัณฑ์ทั้งหมด</a>
             </p>
