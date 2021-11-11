@@ -4,9 +4,7 @@ from flask import render_template, request, flash, redirect, url_for, session, j
 from . import procurementbp as procurement
 from .models import ProcurementDetail
 from ..main import db
-#Import Library
-import qrcode
-from flask_qrcode import QRcode
+
 
 @procurement.route('/add', methods=['GET','POST'])
 def add_procurement():
@@ -45,10 +43,7 @@ def view_procurement():
         procurement_list.append(record)
     return render_template('procurement/view_all_data.html', procurement_list=procurement_list)
 
-app = Flask(__name__)
 
-# this line is important
-QRcode(app)
 @procurement.route('/createqrcode', methods=['POST', 'GET'])
 def create_qrcode():
     qr = None
@@ -77,11 +72,11 @@ def edit_procurement(procurement_id):
         return redirect(url_for('procurement.view_procurement'))
     return render_template('procurement/edit_procurement.html', procurement=procurement)
 
-@procurement.route('/viewqrcode/<int:procurement_code>')
-def view_qrcode(procurement_code):
-    procurement = ProcurementDetail.query.get(procurement_code)
-    # Generate QR Code
-    img = qrcode.make('procurement.code')
-    img.save('procurement.png')
-    return render_template('procurement/view_qrcode.html', procurement=procurement)
+
+@procurement.route('/viewqrcode/<int:procurement_id>')
+def view_qrcode(procurement_id):
+    item = ProcurementDetail.query.get(procurement_id)
+    return render_template('procurement/view_qrcode.html',
+                           item=item,
+                           code=item.code)
 
