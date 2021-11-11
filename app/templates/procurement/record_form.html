@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+
+{% block page_content %}
+{% include "documents/nav.html" %}
+<section class="section">
+    <div class="columns">
+        <div class="column has-text-centered">
+            {% include "messages.html" %}
+            <h1 class="title">New Document <span class="tag is-info is-rounded is-light">admin</span></h1>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            <form method="post" class="box">
+                {{ form.hidden_tag() }}
+                <div class="field">
+                    <label class="label">{{ form.location.label }}</label>
+                    <div class="select">
+                        {{ form.location() }}
+                    </div>
+                    <p class="help is-danger">required</p>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.status.label }}</label>
+                    <div class="select">
+                        {{ form.status() }}
+                    </div>
+                </div>
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('procurement.index') }}" class="button is-light">Back</a>
+                    <input type="submit" class="button is-success" value="Submit"></input>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %}
