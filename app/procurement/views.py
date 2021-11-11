@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 from flask import render_template, request, flash, redirect, url_for, session, jsonify, Flask
-from flask_login import current_user
+from flask_login import current_user, login_required
 from . import procurementbp as procurement
 from .models import ProcurementDetail
 from ..main import db
@@ -12,6 +12,7 @@ bangkok = timezone('Asia/Bangkok')
 
 
 @procurement.route('/add', methods=['GET','POST'])
+@login_required
 def add_procurement():
     if request.method == 'POST':
         form = request.form
@@ -34,6 +35,7 @@ def index():
 
 
 @procurement.route('/alldata')
+@login_required
 def view_procurement():
     procurement_list = []
     procurement_query = ProcurementDetail.query.all()
@@ -48,6 +50,7 @@ def view_procurement():
 
 
 @procurement.route('/createqrcode', methods=['POST', 'GET'])
+@login_required
 def create_qrcode():
     qr = None
     if request.method == 'POST':
@@ -60,6 +63,7 @@ def explanation():
     return render_template('procurement/explanation.html')
 
 @procurement.route('/edit/<int:procurement_id>', methods=['GET','POST'])
+@login_required
 def edit_procurement(procurement_id):
     procurement = ProcurementDetail.query.get(procurement_id)
     if request.method == 'POST':
@@ -77,6 +81,7 @@ def edit_procurement(procurement_id):
 
 
 @procurement.route('/viewqrcode/<int:procurement_id>')
+@login_required
 def view_qrcode(procurement_id):
     item = ProcurementDetail.query.get(procurement_id)
     return render_template('procurement/view_qrcode.html',
@@ -86,6 +91,7 @@ def view_qrcode(procurement_id):
 
 
 @procurement.route('/items/<int:item_id>/records/add', methods=['GET', 'POST'])
+@login_required
 def add_record(item_id):
     form = ProcurementRecordForm()
     if request.method == 'POST':
@@ -93,8 +99,7 @@ def add_record(item_id):
             new_record = ProcurementRecord()
             form.populate_obj(new_record)
             new_record.item_id = item_id
-            # TODO: use logged in user instead
-            new_record.staff_id = 1
+            new_record.staff = current_user
             new_record.updated_at = datetime.now(tz=bangkok)
             db.session.add(new_record)
             db.session.commit()
