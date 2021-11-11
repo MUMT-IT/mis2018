@@ -5,7 +5,8 @@
     <div class="container">
         <div class="columns">
             <div class="column has-text-centered">
-                <h1 class="title">เพิ่มข้อมูลครุภัณฑ์ใหม่</h1>
+                <h1 class="title">New Procurement</h1>
+                <h2 class="subtitle">เพิ่มข้อมูลครุภัณฑ์ใหม่</h2>
             </div>
         </div>
         <div class="columns">
@@ -15,7 +16,7 @@
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">ชื่อ</label>
+                            <label class="label">Item</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
@@ -28,20 +29,7 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">ประเภท</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input"
-                                      type="text" name="type" placeholder="ประเภทครุภัณฑ์" required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">รหัส</label>
+                            <label class="label">Code</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
@@ -54,26 +42,91 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">สถานที่</label>
+                            <label class="label">Category</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                      type="text" name="location" placeholder="โลเคชั่นเก็บครุภัณฑ์" required>
+                                       type="text" name="category" placeholder="หมวดหมู่-ประเภท" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">Model</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                       type="text" name="model" placeholder="รุ่น" required>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">สถานะ</label>
+                            <label class="label">Maker</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                       type="text" name="available" placeholder="สามารถใช้งานได้/ไม่สามารถใช้งาน" required>
+                                       type="text" name="maker" placeholder="ผู้ผลิต" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">Size</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                       type="text" name="size" placeholder="ขนาด" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">Available</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                       type="text" name="available" placeholder="สถานะ" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">Description</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                       type="text" name="desc" placeholder="คำอธิบาย" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                      <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">Comment</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                       type="text" name="comment" placeholder="ความคิดเห็น" required>
                                 </div>
                             </div>
                         </div>
