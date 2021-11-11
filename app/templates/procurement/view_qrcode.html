@@ -8,8 +8,7 @@
                 <h1 class="title">สแกนดูข้อมูลครุภัณฑ์ใหม่</h1>
             </div>
              <tr>
-                <td><img src="{{ procurement }}/{{ procurement.code }}.png"></td>
-                <td>{{ procurement.code }}</td>
+                <td><img src="{{ qrcode(code) }}"></td>
             </tr>
         </div>
          <a href="{{ url_for('procurement.index') }}" class="button is-rounded is-info is-light">
