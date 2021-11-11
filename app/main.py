@@ -16,6 +16,7 @@ from flask_login import LoginManager
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
+from flask_qrcode import QRcode
 from wtforms import DateTimeField
 from wtforms.validators import required
 from datetime import timedelta, datetime
@@ -47,13 +48,14 @@ ma = Marshmallow()
 csrf = CSRFProtect()
 admin = Admin()
 mail = Mail()
+qrcode = QRcode()
 
 dbutils = AppGroup('dbutils')
+
 
 def create_app():
     """Create app based on the config setting
     """
-
     app = Flask(__name__)
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
@@ -79,6 +81,7 @@ def create_app():
     admin.init_app(app)
     mail.init_app(app)
     cors.init_app(app)
+    qrcode.init_app(app)
 
     return app
 
