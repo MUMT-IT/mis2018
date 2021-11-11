@@ -29,7 +29,7 @@ class ProcurementCategory(db.Model):
     category = db.Column(db.String(255), nullable=False)
 
     def __str__(self):
-        return self.type
+        return self.category
 
 
 class ProcurementStatus(db.Model):
