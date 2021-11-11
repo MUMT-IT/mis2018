@@ -179,6 +179,10 @@ app.register_blueprint(procurement_blueprint, url_prefix='/procurement')
 from procurement.models import *
 
 admin.add_views(ModelView(ProcurementDetail, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementCategory, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementStatus, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementRecord, db.session, category='Procurement'))
+
 
 from staff import staffbp as staff_blueprint
 
