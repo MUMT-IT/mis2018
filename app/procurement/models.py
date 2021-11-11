@@ -19,6 +19,9 @@ class ProcurementDetail(db.Model):
     desc = db.Column('desc', db.String())
     comment = db.Column('comment', db.String())
 
+    def __str__(self):
+        return u'{}: {}'.format(self.list, self.code)
+
 
 class ProcurementCategory(db.Model):
     __tablename__ = 'procurement_categories'
