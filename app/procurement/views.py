@@ -17,16 +17,20 @@ def add_procurement():
     if request.method == 'POST':
         form = request.form
         procurement = ProcurementDetail(
-        list = form.get('list'),
-        type = form.get('type'),
-        code = form.get('code'),
-        location = form.get('location'),
-        available = form.get('available')
+            list=form.get('list'),
+            code=form.get('code'),
+            available=form.get('available'),
+            category_id=form.get('category_id'),
+            model=form.get('model'),
+            maker=form.get('maker'),
+            size=form.get('size'),
+            desc=form.get('desc'),
+            comment=form.get('comment'),
         )
         db.session.add(procurement)
         db.session.commit()
         return render_template('procurement/index.html')
-    return render_template('procurement/createprocurement.html')
+    return render_template('procurement/new_procurement.html')
 
 
 @procurement.route('/home')
