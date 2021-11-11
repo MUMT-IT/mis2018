@@ -48,7 +48,7 @@
                                 <i class="fas fa-eye"></i></a>
                         </td>
                         <td>
-                            <a href="{{ url_for('procurement.edit_procurement', procurement_id = record['id']) }}">
+                            <a href="{{ url_for('procurement.edit_procurement', procurement_id=record.id) }}">
                                 <i class="fas fa-edit"></i></a>
                         </td>
                     {% endfor %}
