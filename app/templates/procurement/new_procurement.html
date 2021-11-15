@@ -5,143 +5,75 @@
     <div class="container">
         <div class="columns">
             <div class="column has-text-centered">
-                <h1 class="title">New Procurement</h1>
-                <h2 class="subtitle">เพิ่มข้อมูลครุภัณฑ์ใหม่</h2>
+                <h1 class="title">เพิ่มข้อมูลครุภัณฑ์ใหม่</h1>
             </div>
         </div>
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
                 <form method="post" enctype="multipart/form-data">
-                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">Item</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input"
-                                        type="text" name="list" placeholder="รายการชื่อครุภัณฑ์" required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">Code</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input"
-                                       type="text" name="code" placeholder="รหัสครุภัณฑ์" required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">Category</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input"
-                                       type="text" name="category" placeholder="หมวดหมู่-ประเภท" required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                     <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">Model</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input"
-                                       type="text" name="model" placeholder="รุ่น" required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">Maker</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input"
-                                       type="text" name="maker" placeholder="ผู้ผลิต" required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">Size</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input"
-                                       type="text" name="size" placeholder="ขนาด" required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                     <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">Available</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input"
-                                       type="text" name="available" placeholder="สถานะ" required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                     <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">Description</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input"
-                                       type="text" name="desc" placeholder="คำอธิบาย" required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                      <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">Comment</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input"
-                                       type="text" name="comment" placeholder="ความคิดเห็น" required>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-grouped is-grouped-centered">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.list.label }}</label>
                         <div class="control">
-                            <input type="submit" value="Submit" class="button is-primary"/>
-                        </div>
-                        <div class="control">
-                            <a href="{{ url_for('procurement.index') }}" class="button is-danger">Cancel</a>
+                            {{ form.list(class="input") }}
                         </div>
                     </div>
-                </form>
+                    <div class="field">
+                        <label class="label">{{ form.code.label }}</label>
+                        <div class="control">
+                            {{ form.code(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.category.label }}</label>
+                        <div class="select">
+                            {{ form.category() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.model.label }}</label>
+                        <div class="control">
+                            {{ form.model(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.size.label }}</label>
+                        <div class="control">
+                            {{ form.size(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.maker.label }}</label>
+                        <div class="control">
+                            {{ form.maker(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.desc.label }}</label>
+                        <div class="control">
+                            {{ form.desc(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.comment.label }}</label>
+                        <div class="control">
+                            {{ form.comment(class="textarea") }}
+                        </div>
+                    </div>
+
+                        <div class="field is-horizontal">
+                            {{ form.submit() }}
+                        </div>
+                    <hr>
+                     {% if list %}
+                        รายการชื่อครุภัณฑ์ คือ {{ list }}
+                    {% else %}
+                        ไม่มีรายการ
+                    {% endif %}
+                    </form>
                 </div>
-            </div>
+             </div>
         </div>
     </div>
 </section>
