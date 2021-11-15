@@ -14,23 +14,21 @@ bangkok = timezone('Asia/Bangkok')
 @procurement.route('/add', methods=['GET','POST'])
 @login_required
 def add_procurement():
-    if request.method == 'POST':
-        form = request.form
-        procurement = ProcurementDetail(
-            list=form.get('list'),
-            code=form.get('code'),
-            available=form.get('available'),
-            category_id=form.get('category_id'),
-            model=form.get('model'),
-            maker=form.get('maker'),
-            size=form.get('size'),
-            desc=form.get('desc'),
-            comment=form.get('comment'),
-        )
-        db.session.add(procurement)
-        db.session.commit()
+    list = False
+    form = ProcurementForm()
+    if form.validate_on_submit():
+        list = form.list.data
+        code = form.code.data
+        category = form.category.data
+        model = form.model.data
+        size = form.size.data
+        maker = form.maker.data
+        desc = form.desc.data
+        comment = form.comment.data
+        form.list.data = ""
         return render_template('procurement/index.html')
-    return render_template('procurement/new_procurement.html')
+    return render_template('procurement/new_procurement.html', form=form)
+
 
 
 @procurement.route('/home')
