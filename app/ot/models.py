@@ -20,21 +20,25 @@ class OtPaymentAnnounce(db.Model):
     start_datetime = db.Column('start_datetime', db.DateTime(timezone=True), info={'label':u'เริ่มใช้ตั้งแต่'})
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
 
+    def __str__(self):
+        return self.topic
+
 
 class OtCompensationRate(db.Model):
     __tablename__ = 'ot_compensation_rate'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     announce_id = db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'))
-    work_at_org_id = db.Column('work_at_org_id', db.ForeignKey('orgs.id'))
+    announcement = db.relationship(OtPaymentAnnounce, backref=db.backref('ot_rate'))
+    work_at_org_id = db.Column('work_at_org_id', db.ForeignKey('orgs.id') )
     work_for_org_id = db.Column('work_for_org_id', db.ForeignKey('orgs.id'))
     work_at_org = db.relationship(Org, backref=db.backref('ot_work_at_rate'), foreign_keys=[work_at_org_id])
     work_for_org = db.relationship(Org, backref=db.backref('ot_work_for_rate'), foreign_keys=[work_for_org_id])
     role = db.Column('role', db.String(), info={'label':u'ตำแหน่ง'})
+    start_time = db.Column('start_time', db.Time(), info={'label':u'เวลาเริ่มต้น'})
+    end_time = db.Column('end_time', db.Time(), info={'label':u'เวลาสิ้นสุด'})
     per_period = db.Column('per_period', db.Integer(), info={'label':u'ต่อคาบ'})
     per_hour = db.Column('per_hour', db.Integer(), info={'label':u'ต่อชั่วโมง'})
     per_day = db.Column('per_day', db.Integer(), info={'label':u'ต่อวัน'})
-    ot_start_datetime = db.Column('ot_start_datetime', db.DateTime(timezone=True))
-    ot_end_datetime = db.Column('ot_end_datetime', db.DateTime(timezone=True))
     is_faculty_emp = db.Column('is_faculty_emp', db.Boolean(), info={'label':u'บุคลากรสังกัดคณะ'})
     is_workday = db.Column('is_workday', db.Boolean(), default=True, nullable=False, info={'label':u'นอกเวลาราชการ'})
     max_hour = db.Column('max_hour', db.Integer(), info={'label':u'จำนวนชั่วโมงสูงสุดที่สามารถทำได้'})
