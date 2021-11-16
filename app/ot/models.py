@@ -49,6 +49,7 @@ class OtCompensationRate(db.Model):
 class OtDocumentApproval(db.Model):
     __tablename__ = 'ot_document_approval'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    title = db.Column('title', db.String(), info={'label': u'เรื่อง'})
     approval_no = db.Column('approval_no', db.String(), info={'label': u'เลขที่หนังสือ'})
     approved_date = db.Column('approved_date', db.Date(), nullable=True, info={'label': u'วันที่อนุมัติ'})
     created_at = db.Column('created_at',db.DateTime(timezone=True),default=datetime.now())
