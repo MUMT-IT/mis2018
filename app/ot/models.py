@@ -46,22 +46,28 @@ class OtCompensationRate(db.Model):
                                info={'label':u'เบิกซ้ำกับอันอื่นได้'})
 
 
-# class OtDocumentApproval(db.Model):
-#     __tablename__ = 'ot_document_approval'
-#     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-#     approval_no = db.Column('approval_no', db.String())
-#     approved_date = db.Column('approved_date', db.Date(), nullable=True)
-#     created_at = db.Column('created_at',db.DateTime(timezone=True),default=datetime.now())
-#     start_datetime = db.Column('start_datetime', db.DateTime(), nullable=False)
-#     end_datetime = db.Column('end_datetime', db.DateTime())
-#     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
-#     org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
-#     org = db.relationship(Org, backref=db.backref('document_approval'))
-#     upload_file_url = db.Column('upload_file_url', db.String())
-#     io_no
-#     cost_no
-#
-#
+class OtDocumentApproval(db.Model):
+    __tablename__ = 'ot_document_approval'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    approval_no = db.Column('approval_no', db.String(), info={'label': u'เลขที่หนังสือ'})
+    approved_date = db.Column('approved_date', db.Date(), nullable=True, info={'label': u'วันที่อนุมัติ'})
+    created_at = db.Column('created_at',db.DateTime(timezone=True),default=datetime.now())
+    start_datetime = db.Column('start_datetime', db.DateTime(), nullable=False, info={'label': u'เริ่มต้นการอนุมัติ'})
+    end_datetime = db.Column('end_datetime', db.DateTime(), info={'label': u'สิ้นสุดการอนุมัติ'})
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
+    org = db.relationship(Org, backref=db.backref('document_approval'))
+    upload_file_url = db.Column('upload_file_url', db.String())
+    file_name = db.Column('file_name', db.String())
+    created_staff_id = db.Column('created_staff_id', db.ForeignKey('staff_account.id'))
+    created_staff = db.relationship(StaffAccount, backref=db.backref('ot_approval'))
+#    announce_id = db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'))
+#    announcement = db.relationship(OtPaymentAnnounce, backref=db.backref('ot_document'))
+#    cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'))
+#    io_code = db.Column('io_code', db.ForeignKey('iocodes.id'))
+
+
+
 # class OtApprovalDetail(db.Model):
 #     __tablename__ = 'ot_approval_detail'
 #     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
