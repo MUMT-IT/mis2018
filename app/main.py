@@ -248,6 +248,10 @@ from ot import otbp as ot_blueprint
 app.register_blueprint(ot_blueprint, url_prefix='/ot')
 from ot.models import *
 
+admin.add_views(ModelView(OtPaymentAnnounce, db.session, category='OT'))
+admin.add_views(ModelView(OtCompensationRate, db.session, category='OT'))
+
+
 
 from room_scheduler import roombp as room_blueprint
 
