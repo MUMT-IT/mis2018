@@ -30,13 +30,18 @@ class ProcurementRecordForm(ModelForm):
                                 blank_text='Select status..', allow_blank=False)
 
 class ProcurementForm(FlaskForm):
+    category = QuerySelectField(u'หมวดหมู่/ประเภท', query_factory=lambda: ProcurementCategory.query.all(),
+                                blank_text='Select Category..', allow_blank=False)
     list = TextField(u'ชื่อรายการครุภัณฑ์')
     code = TextField(u'รหัสครุภัณฑ์')
     model = TextField(u'รุ่น')
     size = TextField(u'ขนาด')
     maker = TextField(u'ผู้รับผิดชอบ')
+    status = QuerySelectField(u'สถานะ', query_factory=lambda: ProcurementStatus.query.all(),
+                              blank_text='Select status..', allow_blank=False)
+    location = QuerySelectField(u'สถานที่', query_factory=lambda: RoomResource.query.all(),
+                                blank_text='Select location..', allow_blank=False)
     desc = TextAreaField(u'รายละเอียด')
     comment = TextField()
     submit = SubmitField()
-    category = QuerySelectField(u'หมวดหมู่/ประเภท', query_factory=lambda: ProcurementCategory.query.all(),
-                                blank_text='Select Category..', allow_blank=False)
+
