@@ -10,26 +10,28 @@ from pytz import timezone
 
 bangkok = timezone('Asia/Bangkok')
 
-
 @procurement.route('/add', methods=['GET','POST'])
-@login_required
+#@login_required
 def add_procurement():
-    list = False
-    form = ProcurementForm()
-    if form.validate_on_submit():
-        list = form.list.data
-        code = form.code.data
-        category = form.category.data
-        model = form.model.data
-        size = form.size.data
-        maker = form.maker.data
-        desc = form.desc.data
-        comment = form.comment.data
-        form.list.data = ""
+    form = ProcurementRecordForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            category = form.category.data
+            list = form.list.data
+            code = form.code.data
+            model = form.model.data
+            size = form.size.data
+            maker = form.maker.data
+            status = form.status.data
+            location = form.location.data
+            desc = form.desc.data
+            comment = form.comment.data
+            db.session.add(procurement)
+            db.session.commit()
+            form.list.data = ""
+            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
         return render_template('procurement/index.html')
     return render_template('procurement/new_procurement.html', form=form)
-
-
 
 @procurement.route('/home')
 def index():
@@ -37,7 +39,7 @@ def index():
 
 
 @procurement.route('/alldata')
-@login_required
+#@login_required
 def view_procurement():
     procurement_list = []
     procurement_query = ProcurementDetail.query.all()
@@ -103,8 +105,22 @@ def add_record(item_id):
             new_record.item_id = item_id
             new_record.staff = current_user
             new_record.updated_at = datetime.now(tz=bangkok)
+            new_record.list = form.list.data
+            new_record.code = form.code.data
+            new_record.model = form.model.data
+            new_record.size = form.size.data
+            new_record.maker = form.maker.data
+            new_record.status = form.status.data
+            new_record.location = form.location.data
+            new_record.desc = form.desc.data
+            new_record.comment = form.comment.data
+            new_record.category_id = form.category.data
             db.session.add(new_record)
             db.session.commit()
             flash('New Record Has Been Added.', 'success')
             return redirect(url_for('procurement.view_procurement'))
     return render_template('procurement/record_form.html', form=form)
+
+
+
+
