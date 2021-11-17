@@ -24,12 +24,14 @@
                         <div class="control">
                             {{ form.list(class="input is-info") }}
                         </div>
+                        <p class="help is-danger">Required</p>
                     </div>
                     <div class="field">
                         <label class="label">{{ form.code.label }}</label>
                         <div class="control">
                             {{ form.code(class="input is-focused") }}
                         </div>
+                        <p class="help is-danger">Required</p>
                     </div>
                     <div class="field-body">
                     <div class="field">
@@ -52,16 +54,11 @@
                         </div>
                     </div>
                     <div class="field">
-                        <label class="label">{{ form.status.label }}</label>
-                        <div class="select is-fullwidth is-info">
-                            {{ form.status() }}
+                        <label class="label">{{ form.available.label }}</label>
+                        <div class="control">
+                            {{ form.available(class="input is-info") }}
                         </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.location.label }}</label>
-                        <div class="select is-fullwidth is-info">
-                            {{ form.location() }}
-                        </div>
+                        <p class="help is-danger">Required</p>
                     </div>
                     <div class="field">
                         <label class="label">{{ form.desc.label }}</label>
