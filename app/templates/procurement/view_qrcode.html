@@ -1,38 +1,44 @@
 {% extends "base.html" %}
-{% include "nav.html" %}
+{% include "procurement/nav.html" %}
 {% block page_content %}
     <section class="section">
-        <div class="container">
+        <div class="container has-text-centered">
             <div class="columns">
-                <div class="column has-text-centered">
-                    <h1 class="title">สแกนดูข้อมูลครุภัณฑ์ใหม่</h1>
+            <div class="column is-one-third is-offset-4">
+                    <h1 class="title has-text-centered">รหัสครุภัณฑ์ล่าสุด
+                        <a class="button is-primary" href="{{ url_for('procurement.add_record', item_id=item.id) }}">
+                    Add Record
+                        </a>
+                    </h1>
+                <div class="box">
+                    <tr>
+                        <td>
+                            {{  item.list }} : {{  item.code }}
+                        </td>
+                    </tr><br>
+                {% set last_record = item.records.order_by(model.updated_at.desc()).first() %}
+                <tr>
+                    <td>{{ last_record.location }}</td><br>
+                    <td>{{ last_record.status }}</td><br>
+                    <td>{{ last_record.updated_at|humanizedt }}</td>
+                </tr>
+                </div>
                 </div>
                 <tr>
                     <td><img src="{{ qrcode(code) }}"></td>
                 </tr>
-                <tr>
-                    <td>
-                        {{  item.list }} : {{  item.code }}
-                    </td>
-                </tr>
-                {% set last_record = item.records.order_by(model.updated_at.desc()).first() %}
-                <tr>
-                    <td>{{ last_record.location }}</td>
-                    <td>{{ last_record.status }}</td>
-                    <td>{{ last_record.updated_at|humanizedt }}</td>
-                </tr>
+
             </div>
             <div class="buttons is-centered">
-                <a href="{{ url_for('procurement.index') }}" class="button is-rounded is-info is-light">
+                <a href="{{ url_for('procurement.view_procurement') }}" class="button is-rounded is-info is-light">
                     <span class="icon">
                         <i class="fas fa-arrow-left"></i>
                     </span>
                     <span>กลับ</span>
                 </a>
-                <a class="button is-primary" href="{{ url_for('procurement.add_record', item_id=item.id) }}">
-                    Add Record
-                </a>
+
             </div>
         </div>
+      </div>
     </section>
 {% endblock %}
