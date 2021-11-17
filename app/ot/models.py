@@ -66,16 +66,20 @@ class OtDocumentApproval(db.Model):
 #    announcement = db.relationship(OtPaymentAnnounce, backref=db.backref('ot_document'))
 #    cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'))
 #    io_code = db.Column('io_code', db.ForeignKey('iocodes.id'))
-
-
-
-# class OtApprovalDetail(db.Model):
-#     __tablename__ = 'ot_approval_detail'
-#     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-#     doc_id = db.Column('doc_id', db.ForeignKey('ot_document_approval.id'))
-#     role = db.Column('role', db.String())
 #
 #
+class OtDocumentApprovalStaff(db.Model):
+    __tablename__ = 'ot_document_approval_staff'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    document_id = db.Column('document_id', db.ForeignKey('ot_document_approval.id'))
+    document = db.relationship(OtDocumentApproval, backref=db.backref('ot_approval_staff'), foreign_keys=[document_id])
+    created_staff_id = db.Column('created_staff_id', db.ForeignKey('staff_account.id'))
+    created_staff = db.relationship(StaffAccount, backref=db.backref('ot_approval_created_staff'),
+                                    foreign_keys=[created_staff_id])
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship(StaffAccount, backref=db.backref('ot_approval_staff'), foreign_keys=[staff_id])
+
+
 # class OtPerson(db.Model):
 #     __tablename__ = 'ot_document_approval'
 #     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
