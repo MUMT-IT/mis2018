@@ -11,7 +11,7 @@
     <div class="container">
         <div class="columns">
             <div class="column has-text-centered">
-                <h1 class="title">เพิ่มข้อมูลครุภัณฑ์ใหม่</h1>
+                <h1 class="title">อัพเดตข้อมูลครุภัณฑ์ใหม่</h1>
             </div>
         </div>
         <div class="columns">
@@ -19,44 +19,6 @@
                 <div class="box">
                 <form method="post" enctype="multipart/form-data">
                     {{ form.hidden_tag() }}
-                    <div class="field">
-                        <label class="label">{{ form.category.label }}</label>
-                        <div class="select is-fullwidth is-info">
-                            {{ form.category() }}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.list.label }}</label>
-                        <div class="control">
-                            {{ form.list(class="input is-info") }}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.code.label }}</label>
-                        <div class="control">
-                            {{ form.code(class="input is-focused") }}
-                        </div>
-                    </div>
-                    <div class="field-body">
-                    <div class="field">
-                        <label class="label">{{ form.model.label }}</label>
-                        <div class="control">
-                            {{ form.model(class="input is-info") }}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.size.label }}</label>
-                        <div class="control">
-                            {{ form.size(class="input is-info") }}
-                        </div>
-                    </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.maker.label }}</label>
-                        <div class="control">
-                            {{ form.maker(class="input is-info") }}
-                        </div>
-                    </div>
                     <div class="field">
                         <label class="label">{{ form.status.label }}</label>
                         <div class="select is-fullwidth is-info">
@@ -68,23 +30,11 @@
                         <div class="select is-fullwidth is-info">
                             {{ form.location() }}
                         </div>
-                        <p class="help is-danger">required</p>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.desc.label }}</label>
-                        <div class="control">
-                            {{ form.desc(class="input is-info") }}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.comment.label }}</label>
-                        <div class="control">
-                            {{ form.comment(class="textarea is-info") }}
-                        </div>
+                        <p class="help is-danger">Required</p>
                     </div>
                     <br>
                 <div class="buttons is-centered">
-                    <a href="{{ url_for('procurement.index') }}" class="button is-light">Back</a>
+                    <a href="{{ url_for('procurement.view_procurement') }}" class="button is-light">Back</a>
                     <input type="submit" class="button is-success" value="Submit"></input>
                 </div>
                  </form>
