@@ -37,5 +37,6 @@ class ProcurementRecordForm(ModelForm):
     maker = TextField(u'ผู้รับผิดชอบ')
     desc = TextAreaField(u'รายละเอียด')
     comment = TextField()
+    available = TextField(u'ความสามารถการใช้งาน')
     submit = SubmitField()
 
