@@ -64,18 +64,15 @@ def explanation():
 @login_required
 def edit_procurement(procurement_id):
     procurement = ProcurementDetail.query.get(procurement_id)
+    form = ProcurementRecordForm(obj=procurement)
     if request.method == 'POST':
-        form = request.form
-        procurement.list = form.get('list')
-        procurement.type = form.get('type')
-        procurement.code = form.get('code')
-        procurement.location = form.get('location')
-        procurement.available = form.get('available')
-        db.session.add(procurement)
+        pro_edit = ProcurementDetail()
+        form.populate_obj(pro_edit)
+        db.session.add(pro_edit)
         db.session.commit()
         flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
         return redirect(url_for('procurement.view_procurement'))
-    return render_template('procurement/edit_procurement.html', procurement=procurement)
+    return render_template('procurement/edit_procurement.html', form=form, procurement=procurement)
 
 
 @procurement.route('/viewqrcode/<int:procurement_id>')
