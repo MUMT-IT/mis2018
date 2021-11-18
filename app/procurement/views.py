@@ -11,7 +11,7 @@ from pytz import timezone
 bangkok = timezone('Asia/Bangkok')
 
 @procurement.route('/add', methods=['GET','POST'])
-#@login_required
+@login_required
 def add_procurement():
     form = ProcurementRecordForm()
     if request.method == 'POST':
@@ -32,8 +32,8 @@ def index():
     return render_template('procurement/index.html')
 
 
-@procurement.route('/alldata')
-#@login_required
+@procurement.route('/allData')
+@login_required
 def view_procurement():
     procurement_list = []
     procurement_query = ProcurementDetail.query.all()
@@ -47,13 +47,10 @@ def view_procurement():
     return render_template('procurement/view_all_data.html', procurement_list=procurement_list)
 
 
-@procurement.route('/createqrcode', methods=['POST', 'GET'])
+@procurement.route('/findData', methods=['POST', 'GET'])
 @login_required
-def create_qrcode():
-    qr = None
-    if request.method == 'POST':
-        qr = request.form['inputtext']
-    return render_template('procurement/generate_qrcode.html', qr=qr)
+def find_data():
+    return render_template('procurement/find_data.html')
 
 
 @procurement.route('/explanation')
