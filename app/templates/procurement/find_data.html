@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Procurement Page{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
+{% endblock head %}
+{% include "procurement/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="columns">
+        <div class="column is-4 is-offset-4 has-text-centered">
+        <article class="panel is-link">
+          <p class="panel-heading">
+            Find Procurement Information
+          </p>
+          <p class="panel-tabs">
+            <a class="is-active">All</a>
+            <a>Code</a>
+            <a>Location</a>
+          </p>
+          <div class="panel-block">
+            <p class="control has-icons-left">
+              <input class="input is-info" type="text" placeholder="Search">
+              <span class="icon is-left">
+                <i class="fas fa-search" aria-hidden="true"></i>
+              </span>
+            </p>
+          </div>
+          <a class="panel-block is-active">
+            <span class="panel-icon">
+              <i class="fas fa-book" aria-hidden="true"></i>
+            </span>
+            items
+          </a>
+        </article>
+            <p>
+                <a href="{{ url_for('procurement.view_procurement') }}">ดูรายการครุภัณฑ์ทั้งหมด</a>
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %}
