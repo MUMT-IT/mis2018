@@ -7,6 +7,14 @@ from app.staff.models import StaffAccount
 from datetime import datetime
 
 
+ot_announce_document_assoc_table = db.Table('ot_announce_document_assoc',
+                                         db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'),
+                                                   primary_key=True),
+                                         db.Column('document_id', db.ForeignKey('ot_document_approval.id'),
+                                                   primary_key=True),
+                                         )
+
+
 class OtPaymentAnnounce(db.Model):
     __tablename__ = 'ot_payment_announce'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -62,6 +70,10 @@ class OtDocumentApproval(db.Model):
     file_name = db.Column('file_name', db.String())
     created_staff_id = db.Column('created_staff_id', db.ForeignKey('staff_account.id'))
     created_staff = db.relationship(StaffAccount, backref=db.backref('ot_approval'))
+    announce = db.relationship('OtPaymentAnnounce',
+                               secondary=ot_announce_document_assoc_table,
+                               backref=db.backref('document_approval', lazy='dynamic'))
+
 #    announce_id = db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'))
 #    announcement = db.relationship(OtPaymentAnnounce, backref=db.backref('ot_document'))
 #    cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'))
