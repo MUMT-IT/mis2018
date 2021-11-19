@@ -12,27 +12,36 @@
         <div class="column is-4 is-offset-4 has-text-centered">
         <article class="panel is-link">
           <p class="panel-heading">
-            Find Procurement Information
+            ค้นหาข้อมูลครุภัณฑ์
           </p>
           <p class="panel-tabs">
-            <a class="is-active">All</a>
+            <a class="is-active" >All</a>
             <a>Code</a>
             <a>Location</a>
           </p>
           <div class="panel-block">
-            <p class="control has-icons-left">
-              <input class="input is-info" type="text" placeholder="Search">
-              <span class="icon is-left">
-                <i class="fas fa-search" aria-hidden="true"></i>
-              </span>
-            </p>
+              <form method="post" action="{{ url_for('procurement.view_procurement') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <div class="field">
+                    <p class="control has-icons-right">
+                        <input class="input" type="text" name="code" placeholder="ค้นหารหัสครุภัณฑ์">
+                        <span class="icon is-right">
+                            <i class="fas fa-search"></i>
+                        </span>
+                    </p>
+                </div>
+                <div class="field">
+                    <p class="control has-icons-right">
+                        <input class="input" type="text" name="location" placeholder="ค้นหาสถานที่เก็บครุภัณฑ์">
+                        <span class="icon is-right">
+                           <i class="fas fa-search"></i>
+                        </span>
+                    </p>
+                </div>
+                <button type="submit" class="button is-rounded is-success">
+                    <strong>Find</strong></button>
+            </form>
           </div>
-          <a class="panel-block is-active">
-            <span class="panel-icon">
-              <i class="fas fa-book" aria-hidden="true"></i>
-            </span>
-            items
-          </a>
         </article>
             <p>
                 <a href="{{ url_for('procurement.view_procurement') }}">ดูรายการครุภัณฑ์ทั้งหมด</a>
