@@ -183,6 +183,9 @@ admin.add_views(ModelView(ProcurementCategory, db.session, category='Procurement
 admin.add_views(ModelView(ProcurementStatus, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementRecord, db.session, category='Procurement'))
 
+from purchase_tracker import purchase_tracker_bp as purchase_tracker_blueprint
+
+app.register_blueprint(purchase_tracker_blueprint, url_prefix='/purchase_tracker')
 
 from staff import staffbp as staff_blueprint
 
