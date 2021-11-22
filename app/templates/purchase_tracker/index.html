@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Purchase Tracker Page{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
+{% endblock head %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <h1 class="title">Purchase Tracker</h1>
+    <h2 class="subtitle">ระบบติดตามการจัดซื้อ</h2>
+    <div class="columns">
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('purchase_tracker.add_account') }}">
+                        <span class="icon is-large"><i class="fas fa-plus-square fa-4x"></i></span><br><br>
+                        <span class="is-size-4">สร้างบัญชีใหม่</span>
+                    </a>
+                </div>
+                  <div class="box">
+                    <a href="{{ url_for('purchase_tracker.add_account') }}">
+                        <span class="icon is-large"><i class="fas fa-file-alt fa-4x"></i></span><br><br>
+                        <span class="is-size-4">ภาควิชาพัสดุ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('purchase_tracker.add_account') }}">
+                        <span class="icon is-large"><i class="fas fa-search fa-4x"></i></span><br><br>
+                        <span class="is-size-4">ติดตามพัสดุ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        </div>
+
+</section>
+{% endblock %}
