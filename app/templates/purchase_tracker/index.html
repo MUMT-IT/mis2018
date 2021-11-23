@@ -8,37 +8,329 @@
 {% include "nav.html" %}
 {% block page_content %}
 <section class="section">
-    {% include "messages.html" %}
-    <h1 class="title">Purchase Tracker</h1>
-    <h2 class="subtitle">ระบบติดตามการจัดซื้อ</h2>
-    <div class="columns">
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('purchase_tracker.add_account') }}">
-                        <span class="icon is-large"><i class="fas fa-plus-square fa-4x"></i></span><br><br>
-                        <span class="is-size-4">สร้างบัญชีใหม่</span>
-                    </a>
-                </div>
-                  <div class="box">
-                    <a href="{{ url_for('purchase_tracker.add_account') }}">
-                        <span class="icon is-large"><i class="fas fa-file-alt fa-4x"></i></span><br><br>
-                        <span class="is-size-4">ภาควิชาพัสดุ</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('purchase_tracker.add_account') }}">
-                        <span class="icon is-large"><i class="fas fa-search fa-4x"></i></span><br><br>
-                        <span class="is-size-4">ติดตามพัสดุ</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        </div>
+{% include "messages.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <link rel="stylesheet" href="style.css" />
+    <script
+      defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js">
+    </script>
+  </head>
+  <body>
+{# <header class="section has-background-link py-4 has-text-white">#}
+ <section class="section" id="hero">
+  <div class="container">
+    <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
+      <div class="navbar-brand">
+        <a class="navbar-item" href="https://bulma.io">
+          <img src="https://bulma.io/images/bulma-logo.png" width="112" height="28"/>
+        </a>
+          <a role="button" class="navbar-burger burger has-text-white" aria-label="menu" aria-expanded="false"
+             data-target="navbarBasicExample">
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+          <span aria-hidden="true"></span>
+        </a>
+      </div>
+      <div id="navbarBasicExample" class="navbar-menu">
+        <div class="navbar-start">
+          <a class="navbar-item ">
+            Home
+          </a>
+          <a class="navbar-item ">
+            Services
+          </a>
+          <div class="navbar-item has-dropdown is-hoverable">
+            <a class="navbar-link ">
+              More
+            </a>
+            <div class="navbar-dropdown">
+              <a class="navbar-item">
+                About
+              </a>
+              <a class="navbar-item">
+                Contact
+              </a>
+              <hr class="navbar-divider" />
+              <a class="navbar-item">
+                Report an issue
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+    <div class="columns pt-6">
+      <div class="column mt-6">
+        <span class="icon has-text-warning">
+          <i class="far fa-chart-bar fa-lg"></i>
+        </span>
+        <h1 class="is-size-1 has-text-weight-semibold">
+          Purchase Tracker<br/>
+            ระบบติดตามการจัดซื้อ
+        </h1>
+        <p class="subtitle is-6 has-text-grey">
+          Description
+        </p>
+        <button class="button is-warning mt-4">
+          Learn more
+        </button>
+      </div>
+      <div class="column mt-6">
+        <img src="img/order_processed.png" />
+      </div>
+    </div>
+  </div>
+</section>
+ <section class="section" id="services">
+  <div class="container">
+    <div class="has-text-centered">
+      <h2 class="title is-2"> Purchase Tracker Service </h2>
+      <h6 class="subtitle is-6 has-text-grey">
+        Description
+      </h6>
+    </div>
+ <div class="columns pt-6">
+  <div class="column">
+    <div class="card">
+      <div class="card-content">
+        <div class="has-text-centered">
+          <span class="icon is-large">
+            <i class="fas fa-user-circle fa-4x"></i>
+          </span>
+        </div><br>
+        <p class="title is-4">
+          Create Account
+        </p>
+        <div class="content">
+         Description
+        </div>
+      </div>
+      <footer class="card-footer">
+        <a href="{{ url_for('purchase_tracker.add_account') }}" class="card-footer-item">สร้าง Account</a>
+      </footer>
+    </div>
+  </div>
+  <div class="column">
+    <div class="card">
+      <div class="card-content">
+        <div class="has-text-centered">
+          <span class="icon is-large">
+            <i class="fas fa-search fa-4x"></i>
+          </span>
+        </div><br>
+        <p class="title is-4">
+          Track & Trace
+        </p>
+        <div class="content">
+          Description
+        </div>
+      </div>
+      <footer class="card-footer">
+        <a href="{{ url_for('purchase_tracker.add_account') }}" class="card-footer-item">ติดตาม</a>
+      </footer>
+    </div>
+  </div>
+  <div class="column">
+    <div class="card">
+      <div class="card-content">
+        <div class="has-text-centered">
+          <span class="icon is-large">
+            <i class="fas fa-server fa-4x"></i>
+          </span>
+        </div><br>
+        <p class="title is-4">
+          ภาควิชาพัสดุ
+        </p>
+        <div class="content">
+          Description
+        </div>
+      </div>
+      <footer class="card-footer">
+        <a href="{{ url_for('purchase_tracker.add_account') }}" class="card-footer-item">ภาควิชาพัสดุ</a>
+      </footer>
+    </div>
+  </div>
+  <div class="column">
+    <div class="card">
+      <div class="card-content">
+        <div class="has-text-centered">
+          <span class="icon is-large">
+            <i class="fas fa-mobile-alt fa-4x"></i>
+          </span>
+        </div><br>
+        <p class="title is-4">
+          Function
+        </p>
+        <div class="content">
+          Description
+        </div>
+      </div>
+      <footer class="card-footer">
+        <a href="#" class="card-footer-item">Function</a>
+      </footer>
+    </div>
+  </div>
+</div>
+<div class="columns pt-6">
+  <div class="column">
+    <div class="card">
+      <div class="card-content">
+        <div class="has-text-centered">
+          <span class="icon is-large">
+            <i class="far fa-chart-bar fa-4x"></i>
+          </span>
+        </div><br>
+        <p class="title is-4">
+          Function
+        </p>
+        <div class="content">
+          Description
+        </div>
+      </div>
+      <footer class="card-footer">
+        <a href="#" class="card-footer-item">Function</a>
+      </footer>
+    </div>
+  </div>
+  <div class="column">
+    <div class="card">
+      <div class="card-content">
+        <div class="has-text-centered">
+          <span class="icon is-large">
+            <i class="fas fa-ad fa-4x"></i>
+          </span>
+        </div><br>
+        <p class="title is-4">
+          Function
+        </p>
+        <div class="content">
+          Description
+        </div>
+      </div>
+      <footer class="card-footer">
+        <a href="#" class="card-footer-item">Function</a>
+      </footer>
+    </div>
+  </div>
+  <div class="column">
+    <div class="card">
+      <div class="card-content">
+        <div class="has-text-centered">
+          <span class="icon is-large">
+            <i class="fas fa-funnel-dollar fa-4x"></i>
+          </span>
+        </div><br>
+        <p class="title is-4">
+          Function
+        </p>
+        <div class="content">
+          Description
+        </div>
+      </div>
+      <footer class="card-footer">
+        <a href="#" class="card-footer-item">Function</a>
+      </footer>
+    </div>
+  </div>
+  <div class="column">
+    <div class="card">
+      <div class="card-content">
+        <div class="has-text-centered">
+          <span class="icon is-large">
+            <i class="fas fa-cog fa-4x"></i>
+          </span>
+        </div><br>
+        <p class="title is-4">
+          Maintenance
+        </p>
+        <div class="content">
+          Description
+        </div>
+      </div>
+      <footer class="card-footer">
+        <a href="#" class="card-footer-item">Maintenance</a>
+      </footer>
+    </div>
+  </div>
+</div>
+      <div class="field is-grouped mt-6 is-flex service-buttons">
+  <p class="control">
+    <button class="button is-success">
+      Contact staff
+    </button>
+  </p>
+  <p class="control">
+    <button class="button is-info">
+      Contact IT
+    </button>
+  </p>
+</div>
+ <section class="section" id="contact">
+  <div class="container">
+    <div class="columns">
+      <div class="column">
+        <div class="card">
+          <header class="card-header has-background-warning">
+            <p class="card-header-title">
+              Contact
+            </p>
+          </header>
+          <div class="card-content">
+            <div class="field">
+              <label class="label">Name</label>
+              <p class="control">
+                <input class="input" type="text" placeholder="Name">
+              </p>
+            </div>
+            <div class="field">
+              <label class="label">Phone number</label>
+              <p class="control">
+                <input class="input" type="text" placeholder="Phone number">
+              </p>
+            </div>
+            <div class="field">
+              <label class="label">Email</label>
+              <p class="control">
+                <input class="input" type="email" placeholder="Email">
+              </p>
+            </div>
+            <div class="field">
+              <p class="control">
+                <button class="button is-warning">
+                  Submit
+                </button>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+      <div class="column has-text-white pt-6 pl-6">
+  <span class="icon is-size-1 pb-6 my-3 has-text-grey-lighter">
+    <i class="fas fa-quote-left"></i>
+  </span>
+  <p>Description!</p>
+  <p class="has-text-weight-bold pt-3 is-size-4">IT</p>
+  <span class="icon is-size-1 pt-6 pr-3 my-3 has-text-grey-lighter is-pulled-right">
+    <i class="fas fa-quote-right"></i>
+  </span>
+</div>
+    </div>
+  </div>
+</div>
+</div>
+</section>
+{#  </header>#}
+<script>
+</script>
+</body>
+</html>
 </section>
 {% endblock %}
