@@ -7,27 +7,26 @@
 {% endblock head %}
 {% include "nav.html" %}
 {% block page_content %}
-<section class="section">
 {% include "messages.html" %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
     <link rel="stylesheet" href="style.css" />
     <script
       defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js">
     </script>
   </head>
   <body>
+
 {# <header class="section has-background-link py-4 has-text-white">#}
- <section class="section" id="hero">
+ <section class="section-padding" id="hero">
   <div class="container">
     <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
       <div class="navbar-brand">
         <a class="navbar-item" href="https://bulma.io">
-          <img src="https://bulma.io/images/bulma-logo.png" width="112" height="28"/>
+          <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}" />
         </a>
           <a role="button" class="navbar-burger burger has-text-white" aria-label="menu" aria-expanded="false"
              data-target="navbarBasicExample">
@@ -38,7 +37,7 @@
       </div>
       <div id="navbarBasicExample" class="navbar-menu">
         <div class="navbar-start">
-          <a class="navbar-item ">
+          <a href="{{ url_for('purchase_tracker.index') }}" class="navbar-item ">
             Home
           </a>
           <a class="navbar-item ">
@@ -74,14 +73,14 @@
             ระบบติดตามการจัดซื้อ
         </h1>
         <p class="subtitle is-6 has-text-grey">
-          Description
+          ทำไมต้องมีระบบติดตามการจัดซื้อ? ปัญหาที่พบ.. หน่วยงานที่เกี่ยวข้อง!
         </p>
         <button class="button is-warning mt-4">
           Learn more
         </button>
       </div>
-      <div class="column mt-6">
-        <img src="img/order_processed.png" />
+      <div class="column mt">
+        <img src="{{ url_for('static', filename='img/tracking_icon.png') }}" />
       </div>
     </div>
   </div>
@@ -91,185 +90,92 @@
     <div class="has-text-centered">
       <h2 class="title is-2"> Purchase Tracker Service </h2>
       <h6 class="subtitle is-6 has-text-grey">
-        Description
+        All the features can ...
       </h6>
     </div>
- <div class="columns pt-6">
-  <div class="column">
-    <div class="card">
-      <div class="card-content">
-        <div class="has-text-centered">
-          <span class="icon is-large">
-            <i class="fas fa-user-circle fa-4x"></i>
-          </span>
-        </div><br>
-        <p class="title is-4">
-          Create Account
-        </p>
-        <div class="content">
-         Description
+     <div class="columns pt-6">
+      <div class="column">
+        <div class="card">
+          <div class="card-content">
+            <div class="has-text-centered">
+              <span class="icon is-large">
+                <i class="fas fa-user-circle fa-4x"></i>
+              </span>
+            </div><br>
+            <p class="title is-4">
+              Create Account
+            </p>
+            <div class="content">
+             การเพิ่มรายละเอียดข้อมูลและอัพโหลดไฟล์สำหรับหน่วยงานและภาควิชา
+            </div>
+          </div>
+          <footer class="card-footer">
+            <a href="{{ url_for('purchase_tracker.add_account') }}" class="card-footer-item">สร้าง Account</a>
+          </footer>
         </div>
       </div>
-      <footer class="card-footer">
-        <a href="{{ url_for('purchase_tracker.add_account') }}" class="card-footer-item">สร้าง Account</a>
-      </footer>
-    </div>
-  </div>
-  <div class="column">
-    <div class="card">
-      <div class="card-content">
-        <div class="has-text-centered">
-          <span class="icon is-large">
-            <i class="fas fa-search fa-4x"></i>
-          </span>
-        </div><br>
-        <p class="title is-4">
-          Track & Trace
-        </p>
-        <div class="content">
-          Description
+      <div class="column">
+        <div class="card">
+          <div class="card-content">
+            <div class="has-text-centered">
+              <span class="icon is-large">
+                <i class="fas fa-search fa-4x"></i>
+              </span>
+            </div><br>
+            <p class="title is-4">
+              Track & Trace
+            </p>
+            <div class="content">
+              การติดตามข้อมูลและไฟล์เอกสารสำหรับหน่วยงานและภาควิชา
+            </div>
+          </div>
+          <footer class="card-footer">
+            <a href="{{ url_for('purchase_tracker.track') }}" class="card-footer-item">ติดตาม</a>
+          </footer>
         </div>
       </div>
-      <footer class="card-footer">
-        <a href="{{ url_for('purchase_tracker.add_account') }}" class="card-footer-item">ติดตาม</a>
-      </footer>
-    </div>
-  </div>
-  <div class="column">
-    <div class="card">
-      <div class="card-content">
-        <div class="has-text-centered">
-          <span class="icon is-large">
-            <i class="fas fa-server fa-4x"></i>
-          </span>
-        </div><br>
-        <p class="title is-4">
-          ภาควิชาพัสดุ
-        </p>
-        <div class="content">
-          Description
+      <div class="column">
+        <div class="card">
+          <div class="card-content">
+            <div class="has-text-centered">
+              <span class="icon is-large">
+                <i class="fas fa-server fa-4x"></i>
+              </span>
+            </div><br>
+            <p class="title is-4">
+              ภาควิชาพัสดุ
+            </p>
+            <div class="content">
+              ขั้นตอนการทำงานและการปรับสถานะของข้อมูลรวมถึงอัพเดตข้อมูลต่างๆ
+            </div>
+          </div>
+          <footer class="card-footer">
+            <a href="{{ url_for('purchase_tracker.add_account') }}" class="card-footer-item">ภาควิชาพัสดุ</a>
+          </footer>
         </div>
       </div>
-      <footer class="card-footer">
-        <a href="{{ url_for('purchase_tracker.add_account') }}" class="card-footer-item">ภาควิชาพัสดุ</a>
-      </footer>
-    </div>
-  </div>
-  <div class="column">
-    <div class="card">
-      <div class="card-content">
-        <div class="has-text-centered">
-          <span class="icon is-large">
-            <i class="fas fa-mobile-alt fa-4x"></i>
-          </span>
-        </div><br>
-        <p class="title is-4">
-          Function
-        </p>
-        <div class="content">
-          Description
+      <div class="column">
+        <div class="card">
+          <div class="card-content">
+            <div class="has-text-centered">
+              <span class="icon is-large">
+                <i class="fas fa-funnel-dollar fa-4x"></i>
+              </span>
+            </div><br>
+            <p class="title is-4">
+              ภาคการเงิน
+            </p>
+            <div class="content">
+              การตรวจสอบข้อมูลและติดตามสถานะของข้อมูลรวมถึงเอกสารสำคัญต่างๆ
+            </div>
+          </div>
+          <footer class="card-footer">
+            <a href="#" class="card-footer-item">ภาคการเงิน</a>
+          </footer>
         </div>
       </div>
-      <footer class="card-footer">
-        <a href="#" class="card-footer-item">Function</a>
-      </footer>
     </div>
-  </div>
-</div>
 <div class="columns pt-6">
-  <div class="column">
-    <div class="card">
-      <div class="card-content">
-        <div class="has-text-centered">
-          <span class="icon is-large">
-            <i class="far fa-chart-bar fa-4x"></i>
-          </span>
-        </div><br>
-        <p class="title is-4">
-          Function
-        </p>
-        <div class="content">
-          Description
-        </div>
-      </div>
-      <footer class="card-footer">
-        <a href="#" class="card-footer-item">Function</a>
-      </footer>
-    </div>
-  </div>
-  <div class="column">
-    <div class="card">
-      <div class="card-content">
-        <div class="has-text-centered">
-          <span class="icon is-large">
-            <i class="fas fa-ad fa-4x"></i>
-          </span>
-        </div><br>
-        <p class="title is-4">
-          Function
-        </p>
-        <div class="content">
-          Description
-        </div>
-      </div>
-      <footer class="card-footer">
-        <a href="#" class="card-footer-item">Function</a>
-      </footer>
-    </div>
-  </div>
-  <div class="column">
-    <div class="card">
-      <div class="card-content">
-        <div class="has-text-centered">
-          <span class="icon is-large">
-            <i class="fas fa-funnel-dollar fa-4x"></i>
-          </span>
-        </div><br>
-        <p class="title is-4">
-          Function
-        </p>
-        <div class="content">
-          Description
-        </div>
-      </div>
-      <footer class="card-footer">
-        <a href="#" class="card-footer-item">Function</a>
-      </footer>
-    </div>
-  </div>
-  <div class="column">
-    <div class="card">
-      <div class="card-content">
-        <div class="has-text-centered">
-          <span class="icon is-large">
-            <i class="fas fa-cog fa-4x"></i>
-          </span>
-        </div><br>
-        <p class="title is-4">
-          Maintenance
-        </p>
-        <div class="content">
-          Description
-        </div>
-      </div>
-      <footer class="card-footer">
-        <a href="#" class="card-footer-item">Maintenance</a>
-      </footer>
-    </div>
-  </div>
-</div>
-      <div class="field is-grouped mt-6 is-flex service-buttons">
-  <p class="control">
-    <button class="button is-success">
-      Contact staff
-    </button>
-  </p>
-  <p class="control">
-    <button class="button is-info">
-      Contact IT
-    </button>
-  </p>
-</div>
  <section class="section" id="contact">
   <div class="container">
     <div class="columns">
@@ -277,7 +183,7 @@
         <div class="card">
           <header class="card-header has-background-warning">
             <p class="card-header-title">
-              Contact
+              Contact Us
             </p>
           </header>
           <div class="card-content">
@@ -312,12 +218,13 @@
     </div>
   </div>
 </section>
-      <div class="column has-text-white pt-6 pl-6">
+ <div class="column has-text-grey-light pt-6 pl-6">
   <span class="icon is-size-1 pb-6 my-3 has-text-grey-lighter">
     <i class="fas fa-quote-left"></i>
   </span>
-  <p>Description!</p>
-  <p class="has-text-weight-bold pt-3 is-size-4">IT</p>
+  <p class="has-text-weight-bold has-text-centered pt-3 is-size-4">
+      Contact us about anything related to our services.<br>
+      We'll do our best to get back to you as soon as possible!</p>
   <span class="icon is-size-1 pt-6 pr-3 my-3 has-text-grey-lighter is-pulled-right">
     <i class="fas fa-quote-right"></i>
   </span>
@@ -327,10 +234,9 @@
 </div>
 </div>
 </section>
-{#  </header>#}
+{#</header>#}
 <script>
 </script>
 </body>
 </html>
-</section>
 {% endblock %}
