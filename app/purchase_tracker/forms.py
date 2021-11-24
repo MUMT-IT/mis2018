@@ -10,7 +10,7 @@ class RegisterAccountForm(FlaskForm):
     number = StringField(u'เลขหนังสือ')
     section = StringField(u'หัวข้อการจัดซื้อ')
     description = TextAreaField(u'คำอธิบาย')
-    creation_date = DateTimeField(u';วันที่สร้าง Account', validators=[DataRequired()])
+    creation_date = DateTimeField(u'วันที่สร้าง Account', validators=[DataRequired()])
     upload_file = FileField(u'อัพโหลดไฟล์')
 
 
