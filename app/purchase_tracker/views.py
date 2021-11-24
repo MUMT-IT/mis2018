@@ -32,5 +32,14 @@ def add_account():
         return render_template('purchase_tracker/index.html')
     return render_template('purchase_tracker/create_account.html', form=form)
 
+@purchase_tracker.route('/track')
+def track():
+    return render_template('purchase_tracker/tracking.html')
 
+@purchase_tracker.route('/finance')
+def finance():
+    return render_template('purchase_tracker/tracking.html')
 
+@purchase_tracker.route('/supplies')
+def supplies():
+    return render_template('purchase_tracker/procedure_supplies.html')
