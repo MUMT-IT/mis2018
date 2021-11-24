@@ -11,7 +11,7 @@
         {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">
-                <h1 class="title">สร้างบัญชีใหม่</h1>
+                <h1 class="title">สร้าง Account ใหม่</h1>
             </div>
         </div>
         <div class="columns">
@@ -31,9 +31,9 @@
                         </div>
                     </div>
                     <div class="field">
-                        <label class="label">{{ form.purchase.label }}</label>
+                        <label class="label">{{ form.section.label }}</label>
                         <div class="control">
-                            {{ form.purchase(class="input") }}
+                            {{ form.section(class="input") }}
                         </div>
                     </div>
                     <div class="field">
@@ -67,7 +67,7 @@
                     <div class="field">
                         <div class="buttons">
                             <button class="button is-success" type="submit" value="submit">Submit</button>
-                            <a href="{{ url_for('event.list_global_events') }}" class="button is-danger">Cancel</a>
+                            <a href="{{ url_for('purchase_tracker.index') }}" class="button is-danger">Cancel</a>
                         </div>
                     </div>
                 </form>
