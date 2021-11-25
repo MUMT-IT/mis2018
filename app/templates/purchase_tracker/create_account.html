@@ -1,58 +1,54 @@
 {% extends "base.html" %}
 {% block title %}Mail Merge{% endblock %}
 {% include "nav.html" %}
-{% block head %}
-{{ super() }}
-<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
-{% endblock %}
 {% block page_content %}
-<section class="section">
-    <div class="box">
-        {% include "messages.html" %}
-        <div class="columns">
-            <div class="column has-text-centered">
-                <h1 class="title">สร้าง Account ใหม่</h1>
+    <section class="section">
+        <div class="box">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">สร้าง Account ใหม่</h1>
+                </div>
             </div>
-        </div>
-        <div class="columns">
-            <div class="column is-one-third is-offset-4">
-                <form method="post" enctype="multipart/form-data">
-                    {{ form.hidden_tag() }}
-                    <div class="field">
-                        <label class="label">{{ form.title.label }}</label>
-                        <div class="control">
-                            {{ form.title(class="input") }}
+            <div class="columns">
+                <div class="column is-one-third is-offset-4">
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">{{ form.title.label }}</label>
+                            <div class="control">
+                                {{ form.title(class="input") }}
+                            </div>
                         </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.number.label }}</label>
-                        <div class="control">
-                            {{ form.number(class="input") }}
+                        <div class="field">
+                            <label class="label">{{ form.number.label }}</label>
+                            <div class="control">
+                                {{ form.number(class="input") }}
+                            </div>
                         </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.section.label }}</label>
-                        <div class="control">
-                            {{ form.section(class="input") }}
+                        <div class="field">
+                            <label class="label">{{ form.section.label }}</label>
+                            <div class="control">
+                                {{ form.section(class="input") }}
+                            </div>
                         </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.description.label }}</label>
-                        <div class="control">
-                            {{ form.description(class="textarea") }}
+                        <div class="field">
+                            <label class="label">{{ form.description.label }}</label>
+                            <div class="control">
+                                {{ form.description(class="textarea") }}
+                            </div>
                         </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.creation_date.label }}</label>
-                        <div class="control">
-                            {{ form.creation_date(class="input") }}
+                        <div class="field">
+                            <label class="label">{{ form.creation_date.label }}</label>
+                            <div class="control">
+                                {{ form.creation_date(class="input") }}
+                            </div>
                         </div>
-                    </div>
-                    <div class="field">
-                        <div class="file">
-                            <label class="file-label">
-                                {{ form.upload_file(class="file-input") }}
-                                <span class="file-cta">
+                        <div class="field">
+                            <div class="file">
+                                <label class="file-label">
+                                    {{ form.upload_file(class="file-input") }}
+                                    <span class="file-cta">
                               <span class="file-icon">
                                 <i class="fas fa-upload"></i>
                               </span>
@@ -60,45 +56,45 @@
                                 {{ form.upload_file.label }}
                               </span>
                             </span>
-                                <span class="file-name" id="filename"></span>
-                            </label>
+                                    <span class="file-name" id="filename"></span>
+                                </label>
+                            </div>
                         </div>
-                    </div>
-                    <div class="field">
-                        <div class="buttons">
-                            <button class="button is-success" type="submit" value="submit">Submit</button>
-                            <a href="{{ url_for('purchase_tracker.index') }}" class="button is-danger">Cancel</a>
+                        <div class="field">
+                            <div class="buttons">
+                                <button class="button is-success" type="submit" value="submit">Submit</button>
+                                <a href="{{ url_for('purchase_tracker.index') }}" class="button is-danger">Cancel</a>
+                            </div>
                         </div>
-                    </div>
-                </form>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock page_content %}
 {% block scripts %}
-{{ super() }}
-<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-<script>
-    $(document).ready(function (){
-        $('input[name="creation_date"]').daterangepicker({
-            singleDatePicker: true,
-            timePicker: true,
-            timePickerIncrement: 15,
-            timePicker24Hour: true,
-            startDate: moment().startOf('hour'),
-            endDate: moment().startOf('hour').add(32, 'hour'),
-            locale: {
-                format: 'YYYY-MM-DD HH:mm:ss'
-            }
+    {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('input[name="creation_date"]').daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
+                startDate: moment().startOf('hour'),
+                endDate: moment().startOf('hour').add(32, 'hour'),
+                locale: {
+                    format: 'YYYY-MM-DD HH:mm:ss'
+                }
+            });
+        })
+    </script>
+    <script>
+        $('#upload_file').change(function (e) {
+            let fileName = e.target.files[0].name;
+            $('#filename').text(fileName);
         });
-    })
-</script>
-<script>
-    $('#upload_file').change(function (e) {
-        let fileName = e.target.files[0].name;
-        $('#filename').text(fileName);
-    });
-</script>
+    </script>
 {% endblock %}
