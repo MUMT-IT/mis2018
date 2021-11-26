@@ -60,63 +60,73 @@
             </nav>
         </div>
     </section>
-    <div class="columns">
+<section class="section">
+    <div class="container">
         <div class="column has-text-centered">
             <h1 class="title">Update Status</h1>
             <h2 class="subtitle">ขั้นตอนการปรับสถานะของพัสดุ</h2>
         </div>
-    </div>
     <div class="columns">
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('purchase_tracker.sender') }}">
-                        <span class="icon is-large"><i class="far fa-paper-plane fa-4x"></i></span><br><br>
-                        <span class="is-size-4">พัสดุนำส่ง</span>
-                    </a>
-                </div>
-                <div class="box">
-                    <a href="{{ url_for('purchase_tracker.receive') }}">
-                        <span class="icon is-large"><i class="far fa-check-circle fa-4x"></i></span><br><br>
-                        <span class="is-size-4">รับพัสดุ</span>
+                <div class="column has-text-left">
+                    <a class="button is-link is-medium"
+                        href="{{ url_for('purchase_tracker.update') }}">
+                        <span class="icon">
+                            <i class="fas fa-plus"></i>
+                        </span>
+                        <span>Update</span>
                     </a>
                 </div>
             </div>
-        </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('purchase_tracker.arrive') }}">
-                        <span class="icon is-large"><i class="fas fa-archive fa-4x"></i></span><br><br>
-                        <span class="is-size-4">พัสดุถึง</span>
-                    </a>
-                </div>
-                <div class="box">
-                    <a href="{{ url_for('purchase_tracker.deliver_back') }}">
-                        <span class="icon is-large"><i class="fas fa-backspace fa-4x"></i></span><br><br>
-                        <span class="is-size-4">ตีกลับพัสดุ</span>
-                    </a>
-                </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="procurementTable">
+                    <thead>
+                        <th>ชื่อเรื่อง</th>
+                        <th>เลขที่อว.</th>
+                        <th>สถานะ</th>
+                    </thead>
+                    <tbody>
+                    {% for record in tracker_records %}
+                    <tr>
+                        <td>
+                            {{ record["order_id"] }}
+                        </td>
+                        <td>
+                            {{ record["updated_at"] }}
+                        </td>
+                        <td>
+                            {{ record["status_id"] }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('purchase_tracker.update_status', purchase_tracker_id=order_id) }}">
+                                <i class="fas fa-edit"></i></a>
+                        </td>
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('purchase_tracker.problem') }}">
-                        <span class="icon is-large"><i class="fas fa-exclamation-circle fa-4x"></i></span><br><br>
-                        <span class="is-size-4">พัสดุมีปัญหา</span>
-                    </a>
-                </div>
-                <div class="box">
-                    <a href="{{ url_for('purchase_tracker.remain') }}">
-                        <span class="icon is-large"><i class="fas fa-business-time fa-4x"></i></span><br><br>
-                        <span class="is-size-4">พัสดุตกค้าง</span>
-                    </a>
-                </div>
+
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('purchase_tracker.index') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
             </div>
         </div>
     </div>
-
+</section>
     </body>
     </html>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#procurementTable').DataTable();
+    });
+</script>
 {% endblock %}

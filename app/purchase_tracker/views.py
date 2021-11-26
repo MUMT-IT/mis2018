@@ -7,23 +7,23 @@ from .forms import *
 from datetime import datetime
 from pytz import timezone
 
-from .models import PurchaseTrackerAccount, PurchaseTrackerRecord
+from .models import PurchaseTrackerAccount
 
 bangkok = timezone('Asia/Bangkok')
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
+
 @purchase_tracker.route('/home')
 def index():
     return render_template('purchase_tracker/index.html')
+
 
 @purchase_tracker.route('/create', methods=['GET', 'POST'])
 def add_account():
     form = RegisterAccountForm()
     if request.method == 'POST':
         if form.validate_on_submit():
-            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        else:
             purchase_tracker = PurchaseTrackerAccount()
             form.populate_obj(purchase_tracker)
             db.session.add(purchase_tracker)
@@ -32,114 +32,54 @@ def add_account():
         return render_template('purchase_tracker/index.html')
     return render_template('purchase_tracker/create_account.html', form=form)
 
+
 @purchase_tracker.route('/track')
 def track():
     return render_template('purchase_tracker/tracking.html')
 
-@purchase_tracker.route('/finance')
-def finance():
-    return render_template('purchase_tracker/finance_record.html')
 
 @purchase_tracker.route('/supplies')
 def supplies():
     return render_template('purchase_tracker/procedure_supplies.html')
 
+
 @purchase_tracker.route('/description')
 def description():
     return render_template('purchase_tracker/description.html')
 
-@purchase_tracker.route('/receive', methods=['GET', 'POST'])
-def receive():
-    form = DeliveryForm()
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        else:
-            purchase_record = PurchaseTrackerRecord()
-            purchase_record.staff = current_user
-            form.populate_obj(purchase_record)
-            db.session.add(purchase_record)
-            db.session.commit()
-            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        return render_template('purchase_tracker/procedure_supplies.html')
-    return render_template('purchase_tracker/receive_record.html', form=form)
 
-@purchase_tracker.route('/sender', methods=['GET', 'POST'])
-def sender():
-    form = DeliveryForm()
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        else:
-            purchase_record = PurchaseTrackerRecord()
-            purchase_record.staff = current_user
-            form.populate_obj(purchase_record)
-            db.session.add(purchase_record)
-            db.session.commit()
-            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        return render_template('purchase_tracker/procedure_supplies.html')
-    return render_template('purchase_tracker/sender_record.html', form=form)
+@purchase_tracker.route('/contact')
+def contact():
+    return render_template('purchase_tracker/contact_us.html')
 
-@purchase_tracker.route('/arrive', methods=['GET', 'POST'])
-def arrive():
-    form = DeliveryForm()
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        else:
-            purchase_record = PurchaseTrackerRecord()
-            purchase_record.staff = current_user
-            form.populate_obj(purchase_record)
-            db.session.add(purchase_record)
-            db.session.commit()
-            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        return render_template('purchase_tracker/procedure_supplies.html')
-    return render_template('purchase_tracker/arrive_at_record.html', form=form)
 
-@purchase_tracker.route('/back', methods=['GET', 'POST'])
-def deliver_back():
-    form = DeliveryForm()
+@purchase_tracker.route('/update_record', methods=['GET', 'POST'])
+def update():
+    form = RegisterAccountForm()
     if request.method == 'POST':
         if form.validate_on_submit():
             flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
         else:
-            purchase_record = PurchaseTrackerRecord()
+            purchase_record = RegisterAccountForm()
             purchase_record.staff = current_user
             form.populate_obj(purchase_record)
             db.session.add(purchase_record)
             db.session.commit()
             flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
         return render_template('purchase_tracker/procedure_supplies.html')
-    return render_template('purchase_tracker/deliver_back_record.html', form=form)
+    return render_template('purchase_tracker/update_record.html', form=form)
 
-@purchase_tracker.route('/problem', methods=['GET', 'POST'])
-def problem():
-    form = DeliveryForm()
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        else:
-            purchase_record = PurchaseTrackerRecord()
-            purchase_record.staff = current_user
-            form.populate_obj(purchase_record)
-            db.session.add(purchase_record)
-            db.session.commit()
-            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        return render_template('purchase_tracker/procedure_supplies.html')
-    return render_template('purchase_tracker/problem_record.html', form=form)
 
-@purchase_tracker.route('/remain', methods=['GET', 'POST'])
-def remain():
-    form = DeliveryForm()
+@purchase_tracker.route('/update/<int:purchase_tracker_id>', methods=['GET', 'POST'])
+@login_required
+def update_status(purchase_tracker_id):
+    purchase_tracker = PurchaseTrackerAccount.query.get(purchase_tracker_id)
+    form = RegisterAccountForm(obj=purchase_tracker)
     if request.method == 'POST':
-        if form.validate_on_submit():
-            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        else:
-            purchase_record = PurchaseTrackerRecord()
-            purchase_record.staff = current_user
-            form.populate_obj(purchase_record)
-            db.session.add(purchase_record)
-            db.session.commit()
-            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        return render_template('purchase_tracker/procedure_supplies.html')
-    return render_template('purchase_tracker/remain_record.html', form=form)
+        pur_edit = PurchaseTrackerAccount()
+        form.populate_obj(pur_edit)
+        db.session.add(pur_edit)
+        db.session.commit()
+        flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
+        return redirect(url_for('purchase_tracker.update'))
+    return render_template('purchase_tracker/update_record.html', form=form, purchase_tracker=purchase_tracker)
