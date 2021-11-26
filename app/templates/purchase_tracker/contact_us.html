@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% block title %}Purchase Tracker Page{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    {% include "messages.html" %}
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+        <link rel="stylesheet" href="style.css"/>
+        <script
+                defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js">
+        </script>
+    </head>
+    <body>
+
+    {# <header class="section has-background-link py-4 has-text-white">#}
+    <section class="section-padding" id="hero">
+        <div class="container">
+            <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
+                <div class="navbar-brand">
+                    <a class="navbar-item" href="https://bulma.io">
+                        <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}"/>
+                    </a>
+                    <a role="button" class="navbar-burger burger has-text-white" aria-label="menu" aria-expanded="false"
+                       data-target="navbarBasicExample">
+                        <span aria-hidden="true"></span>
+                        <span aria-hidden="true"></span>
+                        <span aria-hidden="true"></span>
+                    </a>
+                </div>
+                <div id="navbarBasicExample" class="navbar-menu">
+                    <div class="navbar-start">
+                        <a href="{{ url_for('purchase_tracker.index') }}" class="navbar-item ">
+                            Home
+                        </a>
+                        <a class="navbar-item ">
+                            Services
+                        </a>
+                        <div class="navbar-item has-dropdown is-hoverable">
+                            <a class="navbar-link ">
+                                More
+                            </a>
+                            <div class="navbar-dropdown">
+                                <a class="navbar-item">
+                                    About
+                                </a>
+                                <a class="navbar-item">
+                                    Contact
+                                </a>
+                                <hr class="navbar-divider"/>
+                                <a class="navbar-item">
+                                    Report an issue
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </section>
+    <div class="columns">
+        <div class="column has-text-centered">
+            <h1 class="title">LET'S CONNECT</h1>
+            <h2 class="subtitle"></h2>
+        </div>
+    </div>
+    <div class="columns pt-6">
+        <div class="column">
+            <div class="card">
+                <div class="card-content">
+                    <div class="has-text-centered">
+              <span class="icon is-large">
+                <i class="fas fa-map-marker-alt fa-4x"></i>
+              </span>
+                    </div>
+                    <br>
+                    <div class="has-text-centered">
+                        <p class="title is-4">
+                            OUR MAIN OFFICE
+                        </p>
+                    </div>
+                    <div class="content">
+                        - Salaya Campus (Head Office) <br>
+                        999 Phutthamonthon 4 Road Salaya, Phutthamonthon Nakhon Pathom 73170 Thailand
+                        - Bangkok-Noi Campus <br>
+                        2 Wang Lang Road Siriraj, Bangkok-Noi Bangkok 10700 Thailand
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="card">
+                <div class="card-content">
+                    <div class="has-text-centered">
+              <span class="icon is-large">
+                <i class="fas fa-phone fa-4x"></i>
+              </span>
+                    </div>
+                    <br>
+                    <div class="has-text-centered">
+                        <p class="title is-4">
+                            PHONE NUMBER
+                        </p>
+                    </div>
+                    <div class="content">
+                        Faculty of Medical Technology Mahidol University <br>
+                        - Salaya Campus (Head Office) <br>
+                        +66 (0) 2441 4371-5 Ext.2202 <br>
+                        - Bangkok-Noi Campus <br>
+                        +66 (0) 2411 2258 Ext.111
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="card">
+                <div class="card-content">
+                    <div class="has-text-centered">
+              <span class="icon is-large">
+                <i class="fas fa-fax fa-4x"></i>
+              </span>
+                    </div>
+                    <br>
+                    <div class="has-text-centered">
+                        <p class="title is-4">
+                            FAX
+                        </p>
+                    </div>
+                    <div class="content">
+                        Faculty of Medical Technology Mahidol University <br>
+                        - Salaya Campus (Head Office) <br>
+                        +66 (0) 2441 4380 <br>
+                        - Bangkok-Noi Campus <br>
+                        +66 (0) 2412 4110
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="card">
+                <div class="card-content">
+                    <div class="has-text-centered">
+              <span class="icon is-large">
+                <i class="fas fa-envelope fa-4x"></i>
+              </span>
+                    </div>
+                    <br>
+                    <div class="has-text-centered">
+                        <p class="title is-4">
+                            MAIL
+                        </p>
+                    </div>
+                    <div class="content">
+                        Faculty of Medical Technology Mahidol University <br>
+                        - Salaya Campus (Head Office) <br>
+                        mumtpr@mahidol.edu <br>
+                        - Bangkok-Noi Campus <br>
+                        mumtpr@mahidol.edu
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="columns pt-6">
+        <section class="section" id="contact">
+            <div class="container">
+                <div class="columns">
+                    <div class="column">
+                        <div class="card">
+                            <header class="card-header has-background-warning">
+                                <p class="card-header-title">
+                                    GET A FREE CASE EVALUATION TODAY!
+                                </p>
+                            </header>
+                            <div class="card-content">
+                                <div class="field">
+                                    <label class="label">Enter your name</label>
+                                    <p class="control">
+                                        <input class="input" type="text" placeholder="Name">
+                                    </p>
+                                </div>
+                                <div class="field">
+                                    <label class="label">Enter a valid email address</label>
+                                    <p class="control">
+                                        <input class="input" type="email" placeholder="Email">
+                                    </p>
+                                </div>
+                                <div class="field">
+                                    <label class="label">Enter your message</label>
+                                    <p class="control">
+                                        <input class="textarea" type="text" placeholder="Message">
+                                    </p>
+                                </div>
+                                <div class="field">
+                                    <p class="control">
+                                        <button class="button is-warning">
+                                            Submit
+                                        </button>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <div class="column has-text-grey-light pt-6 pl-6">
+            <div class="has-text-centered">
+                <p class="title is-4">
+                    WE ARE HERE
+                </p>
+                <p class="subtitle is-6 has-text-grey">
+                    MON-FRI 8:30 AM - 5 PM
+                </p>
+            </div>
+        </div>
+    </div>
+    </body>
+    </html>
+{% endblock %}
