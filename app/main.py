@@ -26,6 +26,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from flask_restful import Api, Resource
 
 
+
 scope = ['https://spreadsheets.google.com/feeds',
          'https://www.googleapis.com/auth/drive']
 
@@ -186,6 +187,10 @@ admin.add_views(ModelView(ProcurementRecord, db.session, category='Procurement')
 from purchase_tracker import purchase_tracker_bp as purchase_tracker_blueprint
 
 app.register_blueprint(purchase_tracker_blueprint, url_prefix='/purchase_tracker')
+from app.purchase_tracker.models import *
+
+admin.add_views(ModelView(PurchaseTrackerAccount, db.session, category='PurchaseTracker'))
+admin.add_views(ModelView(PurchaseTrackerStatus, db.session, category='PurchaseTracker'))
 
 from staff import staffbp as staff_blueprint
 
