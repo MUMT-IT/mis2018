@@ -4,6 +4,7 @@ from flask_wtf import FlaskForm
 from wtforms import StringField, DateTimeField, TextAreaField, FileField, SelectField
 from wtforms.validators import DataRequired
 from wtforms_alchemy import model_form_factory
+from wtforms_alchemy import QuerySelectField
 
 from app.main import db
 from app.models import Org
@@ -24,6 +25,9 @@ class RegisterAccountForm(ModelForm):
         exclude = ['creation_date']
         # field_args = {'desc': {'widget': TextAreaField()}}
 
-    upload = FileField('File Upload')
+    upload = FileField(u'อัพโหลดไฟล์')
+    organiser = QuerySelectField(query_factory=lambda: Org.query.all(),
+                                 get_label='name',
+                                 label=u'ผู้รับผิดชอบ')
 
 
