@@ -26,6 +26,8 @@ def add_account():
         if form.validate_on_submit():
             purchase_tracker = PurchaseTrackerAccount()
             form.populate_obj(purchase_tracker)
+            purchase_tracker.creation_date = bangkok.localize(datetime.now())
+            purchase_tracker.staff = current_user
             db.session.add(purchase_tracker)
             db.session.commit()
             flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
@@ -83,3 +85,8 @@ def update_status(purchase_tracker_id):
         flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
         return redirect(url_for('purchase_tracker.update'))
     return render_template('purchase_tracker/update_record.html', form=form, purchase_tracker=purchase_tracker)
+
+
+@purchase_tracker.route('/choice')
+def choice():
+    return render_template('purchase_tracker/choice_fiscal.html')
