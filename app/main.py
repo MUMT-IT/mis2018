@@ -191,7 +191,6 @@ from app.purchase_tracker.models import *
 
 admin.add_views(ModelView(PurchaseTrackerAccount, db.session, category='PurchaseTracker'))
 admin.add_views(ModelView(PurchaseTrackerStatus, db.session, category='PurchaseTracker'))
-admin.add_views(ModelView(PurchaseTrackerContact, db.session, category='PurchaseTracker'))
 
 from staff import staffbp as staff_blueprint
 
