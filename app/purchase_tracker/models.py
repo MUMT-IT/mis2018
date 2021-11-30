@@ -36,23 +36,5 @@ class PurchaseTrackerStatus(db.Model):
         return self.status
 
 
-class PurchaseTrackerContact(db.Model):
-    __tablename__ = 'tracker_contacts'
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(64), index=True, info={'label': u"ชื่อ"})
-    age = db.Column(db.Integer, index=True, info={'label': u"อายุ"})
-    address = db.Column(db.String(256), info={'label': u"ที่อยู่"})
-    phone = db.Column(db.String(20), info={'label': u"เบอร์โทรศัพท์"})
-    email = db.Column(db.String(120), info={'label': u"อีเมล"})
-
-    def to_dict(self):
-        return {
-            'name': self.name,
-            'age': self.age,
-            'address': self.address,
-            'phone': self.phone,
-            'email': self.email
-        }
-
 
 
