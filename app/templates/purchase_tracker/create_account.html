@@ -72,21 +72,6 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
-        $(document).ready(function () {
-            $('input[name="creation_date"]').daterangepicker({
-                singleDatePicker: true,
-                timePicker: true,
-                timePickerIncrement: 15,
-                timePicker24Hour: true,
-                startDate: moment().startOf('hour'),
-                endDate: moment().startOf('hour').add(32, 'hour'),
-                locale: {
-                    format: 'YYYY-MM-DD HH:mm:ss'
-                }
-            });
-        })
-    </script>
-    <script>
         $('#upload_file').change(function (e) {
             let fileName = e.target.files[0].name;
             $('#filename').text(fileName);
