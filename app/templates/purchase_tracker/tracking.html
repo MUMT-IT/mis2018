@@ -60,56 +60,59 @@
             </nav>
         </div>
     </section>
-{#   to do searching #}
-    <section>
-        <p class="content"><b>Selected:</b> {{ selected }}</p>
-        <b-field label="Find a JS framework">
-            <b-autocomplete
-                rounded
-                v-model="name"
-                :data="filteredDataArray"
-                placeholder="e.g. jQuery"
-                icon="magnify"
-                clearable
-                @select="option => selected = option">
-                <template #empty>No results found</template>
-            </b-autocomplete>
-        </b-field>
+    <section class="section ">
+        <div class="columns">
+            <div class="column is-6">
+                <div class="container is-max-desktop">
+                    <div class="notification is-primary">
+
+                        <div class="field is-grouped">
+                            <p class="control is-expanded">
+                                <input class="input" type="text" placeholder="Find a number">
+                            </p>
+                            <p class="control">
+                                <a class="button is-info">
+                                    Search
+                                </a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="hero-body">
+                    <div class="columns">
+                        <div class="column">
+                            <figure class="image is-64x64">
+                                <img src="{{ url_for('static', filename='img/file_icon.png') }}"/>
+                            </figure>
+                            <i class="fas fa-sync-alt"></i>
+                            <p>Pending</p>
+                        </div>
+                         <div class="column">
+                            <figure class="image is-64x64">
+                                <img src="{{ url_for('static', filename='img/reject_icon.png') }}"/>
+                            </figure>
+                            <i class="fas fa-times"></i>
+                            <p>Reject</p>
+                        </div>
+                        <div class="column">
+                            <figure class="image is-64x64">
+                                <img src="{{ url_for('static', filename='img/checks_icon.png') }}"/>
+                            </figure>
+                            <i class="fas fa-check"></i>
+                            <p>Receive</p>
+                        </div>
+                        <div class="column">
+                            <figure class="image is-64x64">
+                                <img src="{{ url_for('static', filename='img/sending_icon.png') }}"/>
+                            </figure>
+                            <i class="far fa-paper-plane"></i>
+                            <p>Sending</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </section>
     </body>
     </html>
 {% endblock %}
-<script>
-    export default {
-        data() {
-            return {
-                data: [
-                    'Angular',
-                    'Angular 2',
-                    'Aurelia',
-                    'Backbone',
-                    'Ember',
-                    'jQuery',
-                    'Meteor',
-                    'Node.js',
-                    'Polymer',
-                    'React',
-                    'RxJS',
-                    'Vue.js'
-                ],
-                name: '',
-                selected: null
-            }
-        },
-        computed: {
-            filteredDataArray() {
-                return this.data.filter((option) => {
-                    return option
-                        .toString()
-                        .toLowerCase()
-                        .indexOf(this.name.toLowerCase()) >= 0
-                })
-            }
-        }
-    }
-</script>

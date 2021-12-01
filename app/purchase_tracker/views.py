@@ -24,6 +24,8 @@ def add_account():
     form = RegisterAccountForm()
     if request.method == 'POST':
         if form.validate_on_submit():
+            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
+        else:
             purchase_tracker = PurchaseTrackerAccount()
             form.populate_obj(purchase_tracker)
             purchase_tracker.creation_date = bangkok.localize(datetime.now())
@@ -42,7 +44,15 @@ def track():
 
 @purchase_tracker.route('/supplies')
 def supplies():
-    return render_template('purchase_tracker/procedure_supplies.html')
+    purchase_tracker_list = []
+    purchase_tracker_query = PurchaseTrackerAccount.query.all()
+    for purchase_tracker in purchase_tracker_query:
+        record = {}
+        record["id"] = purchase_tracker.id
+        record["subject"] = purchase_tracker.subject
+        record["number"] = purchase_tracker.number
+        purchase_tracker_list.append(record)
+    return render_template('purchase_tracker/procedure_supplies.html', purchase_tracker_list=purchase_tracker_list)
 
 
 @purchase_tracker.route('/description')
@@ -54,18 +64,20 @@ def description():
 def contact():
     return render_template('purchase_tracker/contact_us.html')
 
-
-@purchase_tracker.route('/update_record', methods=['GET', 'POST'])
-def update():
-    form = RegisterAccountForm()
+@purchase_tracker.route('/items/<int:item_id>/records/update', methods=['GET', 'POST'])
+def update_items(item_id):
+    form = TrackerStatusForm()
     if request.method == 'POST':
         if form.validate_on_submit():
             flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
         else:
-            purchase_record = RegisterAccountForm()
-            purchase_record.staff = current_user
-            form.populate_obj(purchase_record)
-            db.session.add(purchase_record)
+            new_record = TrackerStatusForm()
+            form.populate_obj(new_record)
+            new_record.item_id = item_id
+            new_record.staff = current_user
+            new_record.creation_date = bangkok.localize(datetime.now())
+            new_record.status_date = bangkok.localize(datetime.now())
+            db.session.add(new_record)
             db.session.commit()
             flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
         return render_template('purchase_tracker/procedure_supplies.html')

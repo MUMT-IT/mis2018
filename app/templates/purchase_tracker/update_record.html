@@ -7,7 +7,7 @@
             {% include "messages.html" %}
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="title">Update</h1>
+                    <h1 class="title">Update สถานะ</h1>
                 </div>
             </div>
             <div class="columns">
@@ -15,45 +15,15 @@
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <label class="label">{{ form.previous_location.label }}</label>
-                            <div class="control">
-                                {{ form.previous_location(class="input") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.next_locations.label }}</label>
-                            <div class="control">
-                                {{ form.next_locations(class="input") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.no.label }}</label>
-                            <div class="control">
-                                {{ form.no(class="input") }}
-                            </div>
-                        </div>
-{#                        <div class="field">#}
-{#                        <label class="label">{{ form.status.label }}</label>#}
-{#                        <div class="select is-fullwidth is-info">#}
-{#                            {{ form.status() }}#}
-{#                        </div>#}
-{#                    </div>#}
-                        <div class="field">
-                            <label class="label">{{ form.employee_name.label }}</label>
-                            <div class="control">
-                                {{ form.employee_name(class="input") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.desc.label }}</label>
-                            <div class="control">
-                                {{ form.desc(class="textarea") }}
+                            <label class="label">{{ form.status.label }}</label>
+                            <div class="select is-fullwidth is-info">
+                                {{ form.status() }}
                             </div>
                         </div>
                          <div class="field">
-                            <label class="label">{{ form.note.label }}</label>
+                            <label class="label">{{ form.comment.label }}</label>
                             <div class="control">
-                                {{ form.note(class="input") }}
+                                {{ form.comment(class="input") }}
                             </div>
                         </div>
                         <div class="field">
@@ -87,9 +57,8 @@
 {% endblock page_content %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
     <script>
-        $('#upload_file').change(function (e) {
+        $('#upload').change(function (e) {
             let fileName = e.target.files[0].name;
             $('#filename').text(fileName);
         });

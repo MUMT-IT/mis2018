@@ -8,7 +8,7 @@ from wtforms_alchemy import QuerySelectField
 
 from app.main import db
 from app.models import Org
-from app.purchase_tracker.models import PurchaseTrackerAccount
+from app.purchase_tracker.models import PurchaseTrackerAccount, PurchaseTrackerStatus
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -30,4 +30,8 @@ class RegisterAccountForm(ModelForm):
                                  get_label='name',
                                  label=u'ผู้รับผิดชอบ')
 
-
+class TrackerStatusForm(ModelForm):
+    class Meta:
+        model = PurchaseTrackerStatus
+        exclude = ['creation_date']
+    upload = FileField(u'อัพโหลดไฟล์')

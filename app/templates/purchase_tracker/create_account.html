@@ -38,7 +38,12 @@
                                 {{ form.desc(class="textarea") }}
                             </div>
                         </div>
-
+                         <div class="field">
+                            <label class="label">{{ form.comment.label }}</label>
+                            <div class="control">
+                                {{ form.comment(class="input") }}
+                            </div>
+                        </div>
                         <div class="field">
                             <div class="file">
                                 <label class="file-label">
@@ -69,8 +74,6 @@
 {% endblock page_content %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
         $('#upload').change(function (e) {
             let fileName = e.target.files[0].name;

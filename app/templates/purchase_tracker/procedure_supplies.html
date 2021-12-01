@@ -8,14 +8,8 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-        <link rel="stylesheet" href="style.css"/>
-        <script
-                defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js">
-        </script>
     </head>
     <body>
-
-    {# <header class="section has-background-link py-4 has-text-white">#}
     <section class="section-padding" id="hero">
         <div class="container">
             <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
@@ -60,73 +54,63 @@
             </nav>
         </div>
     </section>
-<section class="section">
-    <div class="container">
-        <div class="column has-text-centered">
-            <h1 class="title">Update Status</h1>
-            <h2 class="subtitle">ขั้นตอนการปรับสถานะของพัสดุ</h2>
-        </div>
-    <div class="columns">
-                <div class="column has-text-left">
-                    <a class="button is-link is-medium"
-                        href="{{ url_for('purchase_tracker.update') }}">
-                        <span class="icon">
-                            <i class="fas fa-plus"></i>
-                        </span>
-                        <span>Update</span>
-                    </a>
+    <section class="section">
+        <div class="container">
+            <div class="column has-text-centered">
+                <h1 class="title">Update Status</h1>
+                <h2 class="subtitle">ดูข้อมูลทั้งหมดเพื่อปรับสถานะ</h2>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped" id="PurchaseTrackerTable">
+                        <thead>
+                        <th>ชื่อเรื่อง</th>
+                        <th>เลขที่</th>
+                        <th>วันที่</th>
+                        <th>ดูสถานะ</th>
+                        </thead>
+                        <tbody>
+                        {% for record in purchase_tracker_list %}
+                            <tr>
+                            <td>
+                                {{ record["subject"] }}
+                            </td>
+                            <td>
+                                {{ record["number"] }}
+                            </td>
+                            <td>
+                                {{ record["creation_date"] }}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('purchase_tracker.update_items', item_id=record.id) }}">
+                                    <i class="fas fa-eye"></i></a>
+                            </td>
+                        {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        <div class="columns">
-            <div class="column">
-                <table class="table is-striped" id="procurementTable">
-                    <thead>
-                        <th>ชื่อเรื่อง</th>
-                        <th>เลขที่อว.</th>
-                        <th>สถานะ</th>
-                    </thead>
-                    <tbody>
-                    {% for record in tracker_records %}
-                    <tr>
-                        <td>
-                            {{ record["order_id"] }}
-                        </td>
-                        <td>
-                            {{ record["updated_at"] }}
-                        </td>
-                        <td>
-                            {{ record["status_id"] }}
-                        </td>
-                        <td>
-                            <a href="{{ url_for('purchase_tracker.update_status', purchase_tracker_id=order_id) }}">
-                                <i class="fas fa-edit"></i></a>
-                        </td>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
 
-        <div class="columns">
-            <div class="column">
-                <a href="{{ url_for('purchase_tracker.choice') }}" class="button is-rounded is-info is-light">
+            <div class="columns">
+                <div class="column">
+                    <a href="{{ url_for('purchase_tracker.index') }}" class="button is-rounded is-info is-light">
                     <span class="icon">
                         <i class="fas fa-arrow-left"></i>
                     </span>
-                    <span>กลับ</span>
-                </a>
+                        <span>กลับ</span>
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
     </body>
     </html>
 {% endblock %}
 {% block scripts %}
-{{ super() }}
-<script>
-    $(document).ready(function(){
-        $('#procurementTable').DataTable();
-    });
-</script>
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#PurchaseTrackerTable').DataTable();
+        });
+    </script>
 {% endblock %}
