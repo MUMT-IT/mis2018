@@ -28,10 +28,8 @@ class RegisterAccountForm(ModelForm):
     upload = FileField(u'อัพโหลดไฟล์')
     organiser = QuerySelectField(query_factory=lambda: Org.query.all(),
                                  get_label='name',
-                                 label=u'ผู้รับผิดชอบ')
+                                 label=u'องค์กร/หน่วยงาน')
+    status = QuerySelectField(u'สถานะ', query_factory=lambda: PurchaseTrackerStatus.query.all(), get_label='status',
+                                blank_text='Select status..', allow_blank=False)
 
-class TrackerStatusForm(ModelForm):
-    class Meta:
-        model = PurchaseTrackerStatus
-        exclude = ['creation_date']
-    upload = FileField(u'อัพโหลดไฟล์')
+
