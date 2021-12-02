@@ -15,6 +15,14 @@ ot_announce_document_assoc_table = db.Table('ot_announce_document_assoc',
                                          )
 
 
+ot_staff_assoc_table = db.Table('ot_staff_assoc',
+                                db.Column('staff_id', db.ForeignKey('staff_account.id'),
+                                          primary_key=True),
+                                db.Column('document_id', db.ForeignKey('ot_document_approval.id'),
+                                          primary_key=True),
+                                )
+
+
 class OtPaymentAnnounce(db.Model):
     __tablename__ = 'ot_payment_announce'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -73,6 +81,9 @@ class OtDocumentApproval(db.Model):
     announce = db.relationship('OtPaymentAnnounce',
                                secondary=ot_announce_document_assoc_table,
                                backref=db.backref('document_approval', lazy='dynamic'))
+    staff = db.relationship('StaffAccount',
+                            secondary=ot_staff_assoc_table,
+                            backref=db.backref('document_approval', lazy='dynamic'))
 #    cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'))
 #    io_code = db.Column('io_code', db.ForeignKey('iocodes.id'))
 
