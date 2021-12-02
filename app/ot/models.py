@@ -51,7 +51,7 @@ class OtCompensationRate(db.Model):
     is_workday = db.Column('is_workday', db.Boolean(), default=True, nullable=False, info={'label':u'นอกเวลาราชการ'})
     max_hour = db.Column('max_hour', db.Integer(), info={'label':u'จำนวนชั่วโมงสูงสุดที่สามารถทำได้'})
     double_payment = db.Column('double_payment', db.Boolean(), default=True, nullable=False,
-                               info={'label':u'เบิกซ้ำกับอันอื่นได้'})
+                               info={'label': u'เบิกซ้ำกับอันอื่นได้'})
 
 
 class OtDocumentApproval(db.Model):
@@ -73,23 +73,8 @@ class OtDocumentApproval(db.Model):
     announce = db.relationship('OtPaymentAnnounce',
                                secondary=ot_announce_document_assoc_table,
                                backref=db.backref('document_approval', lazy='dynamic'))
-
-#    announce_id = db.Column('announce_id', db.ForeignKey('ot_payment_announce.id'))
-#    announcement = db.relationship(OtPaymentAnnounce, backref=db.backref('ot_document'))
 #    cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'))
 #    io_code = db.Column('io_code', db.ForeignKey('iocodes.id'))
-#
-#
-class OtDocumentApprovalStaff(db.Model):
-    __tablename__ = 'ot_document_approval_staff'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    document_id = db.Column('document_id', db.ForeignKey('ot_document_approval.id'))
-    document = db.relationship(OtDocumentApproval, backref=db.backref('ot_approval_staff'), foreign_keys=[document_id])
-    created_staff_id = db.Column('created_staff_id', db.ForeignKey('staff_account.id'))
-    created_staff = db.relationship(StaffAccount, backref=db.backref('ot_approval_created_staff'),
-                                    foreign_keys=[created_staff_id])
-    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
-    staff = db.relationship(StaffAccount, backref=db.backref('ot_approval_staff'), foreign_keys=[staff_id])
 
 
 # class OtPerson(db.Model):
