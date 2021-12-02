@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Purchase Tracker Page{% endblock %}
+{% block title %}Description Page{% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
     {% include "messages.html" %}
@@ -8,10 +8,6 @@
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-        <link rel="stylesheet" href="style.css"/>
-        <script
-                defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js">
-        </script>
     </head>
     <body>
 
@@ -46,7 +42,7 @@
                                 <a class="navbar-item">
                                     About
                                 </a>
-                                <a class="navbar-item">
+                                <a href="{{ url_for('purchase_tracker.contact') }}"  class="navbar-item">
                                     Contact
                                 </a>
                                 <hr class="navbar-divider"/>
@@ -64,7 +60,6 @@
         <div class="column">
             <div class="container has-text-centered">
                 <div class="box">
-                    <a href="{{ url_for('purchase_tracker.sender') }}">
                         <span class="icon is-large"><i class="far fa-file-alt fa-4x"></i></span><br><br>
                         <span class="is-size-4">ส่วนใหญ่เวลาที่เราซื้อของจะส่งข้อมูลจากหน่วยงาน,ภาควิชาหรือสำนักคณบดี
                             หน่วยงานต่างๆให้คณบดีอนุมัติ<br>หลังจากนั้นหนังสืออนุมัติจะถุกส่งไปที่พัสดุเพื่อดำเนินการต่อ

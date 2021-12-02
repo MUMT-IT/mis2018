@@ -9,6 +9,7 @@ from pytz import timezone
 
 from .models import PurchaseTrackerAccount
 
+
 bangkok = timezone('Asia/Bangkok')
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
@@ -66,12 +67,12 @@ def contact():
 
 @purchase_tracker.route('/items/<int:item_id>/records/update', methods=['GET', 'POST'])
 def update_items(item_id):
-    form = TrackerStatusForm()
+    form = RegisterAccountForm()
     if request.method == 'POST':
         if form.validate_on_submit():
             flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
         else:
-            new_record = TrackerStatusForm()
+            new_record = RegisterAccountForm()
             form.populate_obj(new_record)
             new_record.item_id = item_id
             new_record.staff = current_user
@@ -80,7 +81,7 @@ def update_items(item_id):
             db.session.add(new_record)
             db.session.commit()
             flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        return render_template('purchase_tracker/procedure_supplies.html')
+        return redirect(url_for('purchase_tracker.supplies'))
     return render_template('purchase_tracker/update_record.html', form=form)
 
 
