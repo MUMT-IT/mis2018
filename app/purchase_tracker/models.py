@@ -15,6 +15,7 @@ class PurchaseTrackerAccount(db.Model):
     staff = db.relationship(StaffAccount)
     desc = db.Column('desc', db.Text(), info={'label': u"รายละเอียด"})
     comment = db.Column('comment', db.Text(), info={'label': u"หมายเหตุ"})
+    url = db.Column(db.String(255), nullable=True)
 
 
     def __str__(self):
