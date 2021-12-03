@@ -70,16 +70,24 @@
                         <th>ดูรายละเอียด</th>
                         </thead>
                         <tbody>
-                        {% for record in purchase_tracker_list %}
+                        {% for record in purchase_trackers %}
                             <tr>
                             <td>
-                                {{ record["subject"] }}
+                                {{ record.subject }}
                             </td>
                             <td>
-                                {{ record["number"] }}
+                                {{ record.number }}
                             </td>
                             <td>
-                                {{ record["creation_date"] }}
+                                {{ record.creation_date }}
+                            </td>
+                            <td>
+                                {% if record.records.count() == 0 %}
+                                    รออนุมัติจากคณบดี
+                                {% else %}
+                                    {{ record.records.order_by(desc(PurchaseTrackerStatus.creation_date)).first().status }}
+
+                                {% endif %}
                             </td>
                             <td>
                                 <a href="{{ url_for('purchase_tracker.view_items', item_id=record.id) }}">
