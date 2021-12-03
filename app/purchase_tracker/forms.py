@@ -19,17 +19,19 @@ class ModelForm(BaseModelForm):
         return db.session
 
 
-class RegisterAccountForm(ModelForm):
+class CreateAccountForm(ModelForm):
     class Meta:
         model = PurchaseTrackerAccount
         exclude = ['creation_date']
+    upload = FileField(u'อัพโหลดไฟล์')
+
+
+class EditAccountForm(ModelForm):
+    class Meta:
+        model = PurchaseTrackerStatus
+        exclude = ['creation_date']
         # field_args = {'desc': {'widget': TextAreaField()}}
 
-    upload = FileField(u'อัพโหลดไฟล์')
-    organiser = QuerySelectField(query_factory=lambda: Org.query.all(),
-                                 get_label='name',
-                                 label=u'องค์กร/หน่วยงาน')
-    status = QuerySelectField(u'สถานะ', query_factory=lambda: PurchaseTrackerStatus.query.all(), get_label='status',
-                                blank_text='Select status..', allow_blank=False)
+
 
 
