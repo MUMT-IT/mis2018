@@ -103,22 +103,29 @@ def contact():
 
 @purchase_tracker.route('/items/<int:item_id>/records/update', methods=['GET', 'POST'])
 def view_items(item_id):
-    form = EditAccountForm(obj=purchase_tracker)
+    form = StatusForm(obj=purchase_tracker)
     purchase_tracker.staff = current_user
     tracker = PurchaseTrackerAccount.query.get(item_id)
     return render_template('purchase_tracker/update_record.html', tracker=tracker, form=form)
 
 
-@purchase_tracker.route('/update/<int:purchase_tracker_id>', methods=['GET', 'POST'])
+@purchase_tracker.route('/update/<int:account_id>', methods=['GET', 'POST'])
 @login_required
-def update_status(purchase_tracker_id):
-    purchase_tracker = PurchaseTrackerAccount.query.get(purchase_tracker_id)
-    form = EditAccountForm(obj=purchase_tracker)
+def update_status(account_id):
+    form = StatusForm()
     if request.method == 'POST':
-        pur_edit = PurchaseTrackerAccount()
-        form.populate_obj(pur_edit)
-        db.session.add(pur_edit)
+        status = PurchaseTrackerStatus()
+        form.populate_obj(status)
+        status.account_id = account_id
+        status.status_date = bangkok.localize(datetime.now())
+        status.creation_date = bangkok.localize(datetime.now())
+        status.staff = current_user
+        db.session.add(status)
         db.session.commit()
-        flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
-        return redirect(url_for('purchase_tracker.supplies'))
-    return render_template('purchase_tracker/update_record.html', form=form, purchase_tracker=purchase_tracker)
+        flash(u'อัพเดตข้อมูลเรียบร้อย', 'success')
+        # Check Error
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
+    return redirect(url_for('purchase_tracker.view_items', item_id=account_id))
+

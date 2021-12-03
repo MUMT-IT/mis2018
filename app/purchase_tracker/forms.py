@@ -26,7 +26,7 @@ class CreateAccountForm(ModelForm):
     upload = FileField(u'อัพโหลดไฟล์')
 
 
-class EditAccountForm(ModelForm):
+class StatusForm(ModelForm):
     class Meta:
         model = PurchaseTrackerStatus
         exclude = ['creation_date']
