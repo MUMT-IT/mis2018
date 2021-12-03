@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Update Status{% endblock %}
+{% block title %}Information{% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
     <section class="section">
@@ -7,49 +7,98 @@
             {% include "messages.html" %}
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="title">Update สถานะ</h1>
+                    <h1 class="title">Information
+                    </h1>
                 </div>
             </div>
             <div class="columns">
-                <div class="column is-one-third is-offset-4">
-                    <form method="post" enctype="multipart/form-data">
-                        {{ form.hidden_tag() }}
-                        <div class="field">
-                            <label class="label">{{ form.status.label }}</label>
-                            <div class="select is-fullwidth is-info">
-                                {{ form.status() }}
-                            </div>
-                        </div>
-                         <div class="field">
-                            <label class="label">{{ form.comment.label }}</label>
-                            <div class="control">
-                                {{ form.comment(class="input") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <div class="file">
-                                <label class="file-label">
-                                    {{ form.upload(class="file-input") }}
-                                    <span class="file-cta">
-                              <span class="file-icon">
-                                <i class="fas fa-upload"></i>
-                              </span>
-                              <span class="file-label">
-                                {{ form.upload.label }}
-                              </span>
+                <div class="column has-text-centered is-two-thirds is-offset-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h1 class="card-header-title">
+                            <span>
+                                {{ tracker.creation_date }}
                             </span>
-                                    <span class="file-name" id="filename"></span>
-                                </label>
-                            </div>
+                            </h1>
                         </div>
-                        {#buttons center#}
-                        <div class="field is-grouped is-grouped-centered">
-                            <div class="buttons">
-                                <button class="button is-success" type="submit" value="submit">ยืนยัน</button>
-                                <a href="{{ url_for('purchase_tracker.supplies') }}" class="button is-danger">ยกเลิก</a>
+                        <div class="card-content">
+                            <table class="table is-striped is-bordered is-fullwidth">
+                                <colgroup>
+                                    <col span="1" style="width: 25%;">
+                                    <col span="1" style="width: 75%;">
+                                </colgroup>
+                                <tr>
+                                    <td><label class="label">Subject: ชื่อ</label></td>
+                                    <td>{{ tracker.subject }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">Section: หัวข้อ</label></td>
+                                    <td>{{ tracker.section }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">Number: เลขที่</label></td>
+                                    <td>{{ tracker.number }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">Description: รายละเอียด</label></td>
+                                    <td>{{ tracker.desc }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">Comment: หมายเหตุ</label></td>
+                                    <td>{{ tracker.comment }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">File: ไฟล์</label></td>
+                                    <td>
+                                        {% if tracker.url %}
+                                            <a href="{{ 'https://drive.google.com/uc?id=' + tracker.url }}"
+                                               target="_blank">
+                            <span class="icon">
+                                <i class="far fa-file-pdf"></i>
+                            </span>
+                                                <span>ไฟล์เอกสาร</span>
+                                            </a>
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                </tr>
+
+                            </table>
+                            <div class="columns">
+                                <div class="column is-one-third is-offset-4">
+                                    <form method="post" enctype="multipart/form-data">
+                                        {{ form.hidden_tag() }}
+                                        <h2 class="subtitle">Update Status
+                                            <span class="icon">
+                        <i class="far fa-edit"></i>
+                    </span></h2>
+                                        <div class="field">
+                                            <label class="label">{{ form.status.label }}</label>
+                                            <div class="select is-fullwidth is-info">
+                                                {{ form.status(class="input") }}
+                                            </div>
+                                        </div>
+                                        <div class="field">
+                                            <label class="label">{{ form.comment.label }}</label>
+                                            <div class="control">
+                                                {{ form.comment(class="input") }}
+                                            </div>
+                                        </div>
+                                        <div class="field">
+                                            <div class="buttons ">
+                                                <button class="button is-success" type="submit" value="submit">Submit
+                                                </button>
+                                                <a href="{{ url_for('purchase_tracker.supplies') }}"
+                                                   class="button is-danger">Back</a>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
                             </div>
+
                         </div>
-                    </form>
+                    </div>
                 </div>
             </div>
         </div>

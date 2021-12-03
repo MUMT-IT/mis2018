@@ -57,8 +57,7 @@
     <section class="section">
         <div class="container">
             <div class="column has-text-centered">
-                <h1 class="title">Update Status</h1>
-                <h2 class="subtitle">ดูข้อมูลทั้งหมดเพื่อปรับสถานะ</h2>
+                <h1 class="title">รายการแสดงข้อมูล Accounts</h1>
             </div>
             <div class="columns">
                 <div class="column">
@@ -67,7 +66,8 @@
                         <th>ชื่อเรื่อง</th>
                         <th>เลขที่</th>
                         <th>วันที่</th>
-                        <th>ดูสถานะ</th>
+                        <th>สถานะ</th>
+                        <th>ดูรายละเอียด</th>
                         </thead>
                         <tbody>
                         {% for record in purchase_tracker_list %}
@@ -82,7 +82,7 @@
                                 {{ record["creation_date"] }}
                             </td>
                             <td>
-                                <a href="{{ url_for('purchase_tracker.update_items', item_id=record.id) }}">
+                                <a href="{{ url_for('purchase_tracker.view_items', item_id=record.id) }}">
                                     <i class="fas fa-eye"></i></a>
                             </td>
                         {% endfor %}
