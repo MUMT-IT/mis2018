@@ -83,7 +83,7 @@ class OtDocumentApproval(db.Model):
                                backref=db.backref('document_approval', lazy='dynamic'))
     staff = db.relationship('StaffAccount',
                             secondary=ot_staff_assoc_table,
-                            backref=db.backref('document_approval', lazy='dynamic'))
+                            backref=db.backref('document_approval_staff', lazy='dynamic'))
 #    cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'))
 #    io_code = db.Column('io_code', db.ForeignKey('iocodes.id'))
 

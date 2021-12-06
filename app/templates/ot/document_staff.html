@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
+
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="subtitle">อนุมัติในหลักการ</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <div class="box">
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">เลขที่</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ approval.approval_no }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field-label is-normal">
+                            <label class="label">approved_date</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ approval.approved_date }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">เรื่อง</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ approval.title }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field-label is-normal">
+                            <label class="label">ระยะเวลาอนุมัติ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ approval.start_datetime }} - {{ approval.end_datetime }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ไฟล์</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                {% if upload_file_url %}
+                                <a href="{{ upload_file_url }}">{{ approval.file_name }}</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="box">
+                        <div class="columns">
+                            <div class="column is-two-thirds is-offset-2">
+                                <table class="table is-striped" id="approvedStaffTable">
+                                    <thead>
+                                    <th>ชื่อ นามสกุล</th>
+                                    <th>สังกัด</th>
+                                    </thead>
+                                    <tbody>
+                                    {% for staff in approval.staff %}
+                                    <tr>
+                                        <td>
+                                            {{ staff.personal_info.fullname }}
+                                        </td>
+                                        <td>
+                                            {{ staff.personal_info.org.name }}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">เพิ่มผู้ปฏิบัติงาน</h1>
+            </div>
+        </div>
+        <div class="box">
+            <form method="post">
+                <div class="columns">
+                    <div class="column is-two-thirds is-offset-2">
+                        <table class="table is-striped" id="staffTable">
+                            <thead>
+                            <th>ชื่อ-นามสกุล</th>
+                            <th>สังกัด</th>
+                            <th></th>
+                            </thead>
+                            <tbody>
+                            {% for staff in staff %}
+                            <tr>
+                                <td>
+                                    {{ staff.personal_info.fullname }}
+                                </td>
+                                <td>
+                                    {{ staff.personal_info.org.name }}
+                                </td>
+                                <td>
+                                    {% if staff not in approval.staff %}
+                                        <a href="{{ url_for('ot.document_approval_add_staff',
+                                                                  document_id=approval.id, staff_id=staff.id) }}"
+                                            class="button is-success">เพิ่ม</a>
+                                    {% else %}
+                                        <a href="{{ url_for('ot.document_approval_delete_staff',
+                                                                  document_id=approval.id, staff_id=staff.id) }}"
+                                            class="button is-danger">ลบ</a>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a class="button is-info is-light"
+                   href="{{ url_for('ot.document_approval_show_announcement', document_id=approval.id) }}">
+                                    <span class="icon">
+                                        <i class="fas fa-arrow-left"></i>
+                                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#approvedStaffTable').DataTable();
+    });
+    $(document).ready(function(){
+        $('#staffTable').DataTable();
+    });
+</script>
+{% endblock %}

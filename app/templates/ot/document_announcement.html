@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
+
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">เพิ่มประกาศสำหรับอนุมัติในหลักการ</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">เลขที่</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ approval.approval_no }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field-label is-normal">
+                            <label class="label">approved_date</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ approval.approved_date }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">เรื่อง</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ approval.title }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ระยะเวลาอนุมัติ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ approval.start_datetime }} - {{ approval.end_datetime }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ไฟล์</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                {% if upload_file_url %}
+                                    <a href="{{ upload_file_url }}">{{ approval.file_name }}</a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-body">
+                        <a class="button is-info is-light is-centered"
+                           href="{{ url_for('ot.document_approval_show_approved_staff', document_id=approval.id) }}">
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>
+                            <span>เพิ่มรายชื่อ</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="box">
+                    <div class="columns">
+                        <div class="column is-two-thirds is-offset-2">
+                            <table class="table is-striped">
+                                <thead>
+                                    <th>ประกาศที่เกี่ยวข้องกับอนุมัตินี้</th>
+                                </thead>
+                                <tbody>
+                                {% for announcement in approval.announce %}
+                                    <tr>
+
+                                        <td>
+                                            {{ announcement.topic }}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="box">
+                    <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        <div class="columns">
+                            <div class="column is-two-thirds is-offset-2">
+                                <table class="table is-striped" id="announcementTable">
+                                    <thead>
+                                    <th>ประกาศ</th>
+                                    <th>วันที่เริ่มต้นใช้ประกาศ</th>
+                                    <th>สถานะ</th>
+                                    </thead>
+                                    <tbody>
+                                    {% for ann in announcements %}
+                                    <tr>
+                                        <td>
+                                            {{ ann.topic }}
+                                        </td>
+                                        <td>
+                                            {{ ann.startdatetime }}
+                                        </td>
+                                        <td>
+                                            {% if ann not in approval.announce %}
+                                                <a href="{{ url_for('ot.document_approval_add_announcement',
+                                                                  document_id=approval.id, announce_id=ann.id) }}"
+                                                    class="button is-success">เพิ่ม</a>
+                                            {% else %}
+                                                <a href="{{ url_for('ot.document_approval_delete_announcement',
+                                                                  document_id=approval.id, announce_id=ann.id) }}"
+                                                    class="button is-danger">ลบ</a>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <a class="button is-info is-light"
+                           href="{{ url_for('ot.document_approval_records') }}">
+                                    <span class="icon">
+                                        <i class="fas fa-arrow-left"></i>
+                                    </span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#announcementTable').DataTable();
+    });
+</script>
+{% endblock %}
+
