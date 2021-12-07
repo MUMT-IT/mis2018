@@ -97,6 +97,7 @@ class OtRecord(db.Model):
     end_datetime = db.Column('end_datetime', db.DateTime())
     compensation_id = db.Column('compensation_id', db.ForeignKey('ot_compensation_rate.id'))
     compensation = db.relationship(OtCompensationRate, backref=db.backref('ot_record_compensation'))
+    created_at = db.Column('created_at', db.DateTime(timezone=True), default=datetime.now())
 
 
 # class OtPerson(db.Model):
