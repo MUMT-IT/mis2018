@@ -22,7 +22,7 @@ class ModelForm(BaseModelForm):
 class CreateAccountForm(ModelForm):
     class Meta:
         model = PurchaseTrackerAccount
-        exclude = ['creation_date']
+        exclude = ['creation_date', 'end_datetime']
     upload = FileField(u'อัพโหลดไฟล์')
 
 

@@ -23,6 +23,16 @@ bangkok = timezone('Asia/Bangkok')
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
+@purchase_tracker.route('/first/')
+def first_page():
+    return render_template('purchase_tracker/first_page.html')
+
+
+@purchase_tracker.route('/personnel/personnel_index')
+def staff_index():
+    return render_template('purchase_tracker/personnel/personnel_index.html')
+
+
 @purchase_tracker.route('/home')
 def index():
     return render_template('purchase_tracker/index.html')
@@ -61,12 +71,13 @@ def add_account():
             db.session.add(purchase_tracker)
             db.session.commit()
             flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-            return render_template('purchase_tracker/index.html')
+            return render_template('purchase_tracker/personnel/personnel_index.html')
         # Check Error
         else:
             for er in form.errors:
                 flash(er, 'danger')
     return render_template('purchase_tracker/create_account.html', form=form)
+
 
 def initialize_gdrive():
     gauth = GoogleAuth()
@@ -119,6 +130,7 @@ def update_status(account_id):
         status.account_id = account_id
         status.status_date = bangkok.localize(datetime.now())
         status.creation_date = bangkok.localize(datetime.now())
+        status.cancel_datetime = bangkok.localize(datetime.now())
         status.staff = current_user
         db.session.add(status)
         db.session.commit()
