@@ -112,11 +112,11 @@ def contact():
     return render_template('purchase_tracker/contact_us.html')
 
 
-@purchase_tracker.route('/items/<int:item_id>/records/update', methods=['GET', 'POST'])
-def view_items(item_id):
+@purchase_tracker.route('/items/<int:account_id>/records/update', methods=['GET', 'POST'])
+def view_items(account_id):
     form = StatusForm(obj=purchase_tracker)
     purchase_tracker.staff = current_user
-    tracker = PurchaseTrackerAccount.query.get(item_id)
+    tracker = PurchaseTrackerAccount.query.get(account_id)
     return render_template('purchase_tracker/update_record.html', tracker=tracker, form=form)
 
 
@@ -125,6 +125,12 @@ def view_items(item_id):
 def update_status(account_id):
     form = StatusForm()
     if request.method == 'POST':
+        start_date = bangkok.localize(form.data.get('start'))
+        end_date = bangkok.localize(form.data.get('end'))
+        if start_date and end_date:
+            timedelta = end_date - start_date
+            if timedelta.days < 0 or timedelta.seconds == 0:
+                flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'warning')
         status = PurchaseTrackerStatus()
         form.populate_obj(status)
         status.account_id = account_id
@@ -139,5 +145,5 @@ def update_status(account_id):
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return redirect(url_for('purchase_tracker.view_items', item_id=account_id))
+    return redirect(url_for('purchase_tracker.view_items', account_id=account_id))
 

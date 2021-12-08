@@ -90,7 +90,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ url_for('purchase_tracker.view_items', item_id=record.id) }}">
+                                <a href="{{ url_for('purchase_tracker.view_items', account_id=record.id) }}">
                                     <i class="fas fa-eye"></i></a>
                             </td>
                         {% endfor %}

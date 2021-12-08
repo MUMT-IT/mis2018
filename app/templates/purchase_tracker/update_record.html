@@ -2,111 +2,140 @@
 {% block title %}Information{% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
-    <section class="section">
-        <div class="box">
-            {% include "messages.html" %}
-            <div class="columns">
-                <div class="column has-text-centered">
-                    <h1 class="title"> Show Information
-                    </h1>
-                </div>
+    <header class="section">
+    <div class="box">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title"> Show Information
+                </h1>
             </div>
-            <div class="columns">
-                <div class="column has-text-centered is-two-thirds is-offset-2">
-                    <div class="card">
-                        <div class="card-header">
-                            <h1 class="card-header-title">
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h1 class="card-header-title">
                             <span>
                                 {{ tracker.creation_date }}
                             </span>
-                            </h1>
-                        </div>
-                        <div class="card-content">
-                            <table class="table is-striped is-bordered is-fullwidth">
-                                <colgroup>
-                                    <col span="1" style="width: 25%;">
-                                    <col span="1" style="width: 75%;">
-                                </colgroup>
-                                <tr>
-                                    <td><label class="label">Subject: ชื่อ</label></td>
-                                    <td>{{ tracker.subject }}</td>
-                                </tr>
-                                <tr>
-                                    <td><label class="label">Section: หัวข้อ</label></td>
-                                    <td>{{ tracker.section }}</td>
-                                </tr>
-                                <tr>
-                                    <td><label class="label">Number: เลขที่</label></td>
-                                    <td>{{ tracker.number }}</td>
-                                </tr>
-                                <tr>
-                                    <td><label class="label">Description: รายละเอียด</label></td>
-                                    <td>{{ tracker.desc }}</td>
-                                </tr>
-                                <tr>
-                                    <td><label class="label">Comment: หมายเหตุ</label></td>
-                                    <td>{{ tracker.comment }}</td>
-                                </tr>
-                                <tr>
-                                    <td><label class="label">File: ไฟล์</label></td>
-                                    <td>
-                                        {% if tracker.url %}
-                                            <a href="{{ 'https://drive.google.com/uc?id=' + tracker.url }}"
-                                               target="_blank">
+                        </h1>
+                    </div>
+                    <div class="card-content">
+                        <table class="table is-striped is-bordered is-fullwidth">
+                            <colgroup>
+                                <col span="1" style="width: 25%;">
+                                <col span="1" style="width: 75%;">
+                            </colgroup>
+                            <div id="chart_div"></div>
+                            <tr>
+                                <td><label class="label">Subject: ชื่อ</label></td>
+                                <td>{{ tracker.subject }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">Section: หัวข้อ</label></td>
+                                <td>{{ tracker.section }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">Number: เลขที่</label></td>
+                                <td>{{ tracker.number }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">Description: รายละเอียด</label></td>
+                                <td>{{ tracker.desc }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">Comment: หมายเหตุ</label></td>
+                                <td>{{ tracker.comment }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">File: ไฟล์</label></td>
+                                <td>
+                                    {% if tracker.url %}
+                                        <a href="{{ 'https://drive.google.com/uc?id=' + tracker.url }}"
+                                           target="_blank">
                             <span class="icon">
                                 <i class="far fa-file-pdf"></i>
                             </span>
-                                                <span>ไฟล์เอกสาร</span>
-                                            </a>
-                                        {% else %}
-                                            -
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                                <tr>
-                                        <td><label class="label">Status: สถานะ</label></td>
+                                            <span>ไฟล์เอกสาร</span>
+                                        </a>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">Update: อัพเดต</label>
+                                <td><span>ดูข้อมูลล่าสุด</span>
+                                    {{ tracker.update_datetime|humanizedt }}</td>
+                                </td>
+                            </tr>
 
-                                </tr>
-
-                            </table>
-                            <div class="columns">
-                                <div class="column is-one-third is-offset-4">
-                                    <form method="post" action="{{ url_for("purchase_tracker.update_status",account_id=tracker.id) }}" enctype="multipart/form-data">
-                                        {{ form.hidden_tag() }}
-                                        <h2 class="subtitle">Update Status
-                                            <span class="icon">
+                        </table>
+                        {#                         <header class="section has-background-grey-light py-4 has-text-white">#}
+                        <div class="columns">
+                            <div class="column is-one-third is-offset-4">
+                                <form method="post"
+                                      action="{{ url_for("purchase_tracker.update_status",account_id=tracker.id) }}"
+                                      enctype="multipart/form-data">
+                                    {{ form.hidden_tag() }}
+                                    <h2 class="subtitle">Update Information
+                                        <span class="icon">
                                                  <i class="far fa-edit"></i>
                                             </span></h2>
-                                        <div class="field">
-                                            <label class="label">{{ form.status.label }}</label>
-                                            <div class="select is-fullwidth is-info">
-                                                {{ form.status(class="input") }}
-                                            </div>
+                                    <div class="field">
+                                        <label class="label">{{ form.activity.label }}</label>
+                                        <div class="control">
+                                            {{ form.activity(class="input") }}
                                         </div>
-                                        <div class="field">
-                                            <label class="label">{{ form.comment.label }}</label>
-                                            <div class="control">
-                                                {{ form.comment(class="input") }}
-                                            </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">{{ form.status.label }}</label>
+                                        <div class="select is-fullwidth is-info">
+                                            {{ form.status(class="input") }}
                                         </div>
-                                        <div class="field">
-                                            <div class="buttons ">
-                                                <button class="button is-success" type="submit" value="submit">Submit
-                                                </button>
-                                                <a href="{{ url_for('purchase_tracker.supplies') }}"
-                                                   class="button is-danger">Back</a>
-                                            </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">{{ form.start_date.label }}</label>
+                                        <div class="control">
+                                            {{ form.start_date(class="input") }}
                                         </div>
-                                    </form>
-                                </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">{{ form.end_date.label }}</label>
+                                        <div class="control">
+                                            {{ form.end_date(class="input") }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">{{ form.period.label }}</label>
+                                        <div class="control">
+                                            {{ form.period(class="input") }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">{{ form.comment.label }}</label>
+                                        <div class="control">
+                                            {{ form.comment(class="input") }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <div class="buttons ">
+                                            <button class="button is-success" type="submit" value="submit">Submit
+                                            </button>
+                                            <a href="{{ url_for('purchase_tracker.supplies') }}"
+                                               class="button is-danger">Back</a>
+                                        </div>
+                                    </div>
+                                </form>
                             </div>
-
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </section>
+    </div>
+   </header>
 {% endblock page_content %}
 {% block scripts %}
     {{ super() }}
@@ -115,5 +144,48 @@
             let fileName = e.target.files[0].name;
             $('#filename').text(fileName);
         });
+    </script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+        google.charts.load('current', {'packages': ['gantt']});
+        google.charts.setOnLoadCallback(drawChart);
+
+        function daysToMilliseconds(days) {
+            return days * 24 * 60 * 60 * 1000;
+        }
+
+        function drawChart() {
+
+            var data = new google.visualization.DataTable();
+            data.addColumn('string', 'Task ID');
+            data.addColumn('string', 'Task Name');
+            data.addColumn('string', 'Resource');
+            data.addColumn('date', 'Start Date');
+            data.addColumn('date', 'End Date');
+            data.addColumn('number', 'Duration');
+            data.addColumn('number', 'Percent Complete');
+            data.addColumn('string', 'Dependencies');
+
+            data.addRows([
+                ['Research', 'รับเรื่องขออนุมัติหลักการ / ใบเบิก', null,
+                    new Date(2015, 0, 1), new Date(2015, 0, 5), null, 100, null],
+                ['Write', 'เสนอหัวหน้าหน่วยพัสดุตรวจสอบและอนุมัติ A1', 'write',
+                    null, new Date(2015, 0, 9), daysToMilliseconds(3), 25, 'Research,Outline'],
+                ['Cite', 'ดำเนินการสืบราคา 3 บริษัท', 'write',
+                    null, new Date(2015, 0, 7), daysToMilliseconds(1), 20, 'Research'],
+                ['Complete', 'ขอใบจองงบประมาณจากงานงบประมาณ', 'complete',
+                    null, new Date(2015, 0, 10), daysToMilliseconds(1), 0, 'Cite,Write'],
+                ['Outline', 'จัดทำ PR ขอซื้อขอจ้าง พร้อมตั้งผู้ตรวจรับ', 'write',
+                    null, new Date(2015, 0, 6), daysToMilliseconds(1), 100, 'Research']
+            ]);
+
+            var options = {
+                height: 275
+            };
+
+            var chart = new google.visualization.Gantt(document.getElementById('chart_div'));
+
+            chart.draw(data, options);
+        }
     </script>
 {% endblock %}

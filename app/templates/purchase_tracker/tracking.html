@@ -4,14 +4,12 @@
 {% block page_content %}
     {% include "messages.html" %}
     <!DOCTYPE html>
-    <html lang="en" xmlns="http://www.w3.org/1999/html">
+    <html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     </head>
     <body>
-
-{#    <header class="section has-background-link py-4 has-text-white">#}
     <section class="section-padding" id="hero">
         <div class="container">
             <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
@@ -56,74 +54,115 @@
             </nav>
         </div>
     </section>
-    <section class="section ">
-                <div class="container ">
-                    <div class="notification is-primary">
-                        <div class="field is-grouped">
-                            <p class="control is-expanded">
-                                <input class="input" type="text" placeholder="Find a number">
-                            </p>
-                            <p class="control">
-                                <a class="button is-info">
-                                    Search
-                                </a>
-                            </p>
-                        </div>
-                    </div>
-                </div><br>
-                <div class="container">
-                    <div class="columns ">
-                        <div class="column">
-                            <figure class="image is-64x64">
-                                <img src="{{ url_for('static', filename='img/file_icon.png') }}"/>
-                            </figure>
-                            <i class="fas fa-sync-alt"></i>
-                            <p>Pending</p>
-                        </div>
-                         <div class="column">
-                            <figure class="image is-64x64">
-                                <img src="{{ url_for('static', filename='img/reject_icon.png') }}"/>
-                            </figure>
-                            <i class="fas fa-times"></i>
-                            <p>Reject</p>
-                        </div>
-                        <div class="column">
-                            <figure class="image is-64x64">
-                                <img src="{{ url_for('static', filename='img/checks_icon.png') }}"/>
-                            </figure>
-                            <i class="fas fa-check"></i>
-                            <p>Receive</p>
-                        </div>
-                        <div class="column">
-                            <figure class="image is-64x64">
-                                <img src="{{ url_for('static', filename='img/sending_icon.png') }}"/>
-                            </figure>
-                            <i class="far fa-paper-plane"></i>
-                            <p>Sending</p>
-                        </div>
-                    </div>
+    <section class="section">
+        <div class="container">
+            <div class="column has-text-centered">
+                <h1 class="title">การดำเนินงานจัดซื้อจัดจ้าง</h1>
+            </div>
+            <div id="chart_div_1"></div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped" id="PurchaseTrackerTable">
+                        <thead>
+                        <th>ชื่อเรื่อง</th>
+                        <th>เลขที่</th>
+                        <th>วันที่</th>
+                        <th>สถานะ</th>
+                        <th>ดูรายละเอียด</th>
+                        </thead>
+                        <tbody>
+                        {% for record in purchase_trackers %}
+                            <tr>
+                            <td>
+                                {{ record.subject }}
+                            </td>
+                            <td>
+                                {{ record.number }}
+                            </td>
+                            <td>
+                                {{ record.creation_date }}
+                            </td>
+                            <td>
+                                {% if record.records.count() == 0 %}
+                                    รออนุมัติจากคณบดี
+                                {% else %}
+                                    {{ record.records.order_by(desc(PurchaseTrackerStatus.creation_date)).first().status }}
+
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('purchase_tracker.view_items', account_id=record.id) }}">
+                                    <i class="fas fa-eye"></i></a>
+                            </td>
+                        {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
-        <div class="tile is-ancestor">
-                      <div class="tile is-vertical is-8">
-                        <div class="tile">
-                          <div class="tile is-parent is-vertical">
-                          </div>
-                          <div class="tile is-parent">
-                            <article class="tile is-child notification is-warning">
-                              <p class="title">Subject:</p>
-                              <p class="subtitle">No.</p>
-                              <p class="subtitle">Create Date:</p>
-                              <p class="subtitle">Status: </p>
-                              <p class="subtitle">Status Date:</p>
-                            </article>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+
+            <div class="columns">
+                <div class="column">
+                    <a href="{{ url_for('purchase_tracker.staff_index') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
         </div>
     </section>
-{#    </header>#}
     </body>
     </html>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#PurchaseTrackerTable').DataTable();
+        });
+    </script>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript">
+    google.charts.load('current', {'packages':['gantt']});
+    google.charts.setOnLoadCallback(drawChart);
+
+    function daysToMilliseconds(days) {
+      return days * 24 * 60 * 60 * 1000;
+    }
+
+    function drawChart() {
+
+      var data = new google.visualization.DataTable();
+      data.addColumn('string', 'Task ID');
+      data.addColumn('string', 'Task Name');
+      data.addColumn('string', 'Resource');
+      data.addColumn('date', 'Start Date');
+      data.addColumn('date', 'End Date');
+      data.addColumn('number', 'Duration');
+      data.addColumn('number', 'Percent Complete');
+      data.addColumn('string', 'Dependencies');
+
+      data.addRows([
+        ['Research', 'Find sources', null,
+         new Date(2015, 0, 1), new Date(2015, 0, 5), null,  100,  null],
+        ['Write', 'Write paper', 'write',
+         null, new Date(2015, 0, 9), daysToMilliseconds(3), 25, 'Research,Outline'],
+        ['Cite', 'Create bibliography', 'write',
+         null, new Date(2015, 0, 7), daysToMilliseconds(1), 20, 'Research'],
+        ['Complete', 'Hand in paper', 'complete',
+         null, new Date(2015, 0, 10), daysToMilliseconds(1), 0, 'Cite,Write'],
+        ['Outline', 'Outline paper', 'write',
+         null, new Date(2015, 0, 6), daysToMilliseconds(1), 100, 'Research']
+      ]);
+
+      var options = {
+        height: 275
+      };
+
+      var chart = new google.visualization.Gantt(document.getElementById('chart_div_1'));
+
+      chart.draw(data, options);
+    }
+  </script>
 {% endblock %}
