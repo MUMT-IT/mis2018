@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+import wtforms
 from flask_login import login_required, current_user
 import pytz
 import requests
@@ -34,6 +35,15 @@ def initialize_gdrive():
     scopes = ['https://www.googleapis.com/auth/drive']
     gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
     return GoogleDrive(gauth)
+
+
+def edit_ot_record_factory(announces):
+    class EditOtRecordForm(OtRecordForm):
+        compensation = QuerySelectField(
+            query_factory=lambda: OtCompensationRate.query.filter(OtCompensationRate.announce_id.in_(announces)),
+            get_label='role',
+        )
+    return EditOtRecordForm
 
 
 # TODO: สร้าง permission สำหรับคนที่สามารถใส่ข้อมูลเอกสารประกาศ rateOT
