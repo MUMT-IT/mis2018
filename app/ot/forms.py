@@ -6,10 +6,15 @@ from flask_wtf.file import FileField
 from wtforms import SelectMultipleField, widgets, BooleanField
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
 from .models import *
-from app.ot.models import (OtPaymentAnnounce)
+from app.ot.models import *
 from app.models import Org
 
 BaseModelForm = model_form_factory(FlaskForm)
+
+class MultiCheckboxField(SelectMultipleField):
+    widget = widgets.ListWidget(prefix_label=False)
+    option_widget = widgets.CheckboxInput()
+
 
 class ModelForm(BaseModelForm):
     @classmethod
@@ -41,5 +46,19 @@ class OtCompensationRateForm(ModelForm):
                                    query_factory=lambda: Org.query.all())
 
 
+class OtDocumentApprovalForm(ModelForm):
+    class Meta:
+        model = OtDocumentApproval
+    upload = FileField('File Upload')
+    # cost_center = QuerySelectField(get_label='id',
+    #                                query_factory=lambda: CostCenter.query.all())
+    # io = QuerySelectField(get_label='id',
+    #                        query_factory=lambda: IOCode.query.all())
 
+
+class OtRecordForm(ModelForm):
+    class Meta:
+        model = OtRecord
+    compensation = QuerySelectField(get_label='role',
+                                   query_factory=lambda: OtCompensationRate.query.all())
 
