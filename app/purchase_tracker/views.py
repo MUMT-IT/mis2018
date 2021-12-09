@@ -6,10 +6,10 @@ from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.auth import GoogleAuth
 from werkzeug.utils import secure_filename
 from . import purchase_tracker_bp as purchase_tracker
-from ..doc_circulation.models import DocDocument, DocDocumentReach
+
 from ..main import db
 from .forms import *
-from datetime import datetime
+from datetime import datetime, timedelta
 from pytz import timezone
 from pydrive.drive import GoogleDrive
 from .models import PurchaseTrackerAccount
@@ -88,8 +88,9 @@ def initialize_gdrive():
 
 @purchase_tracker.route('/track')
 def track():
-    trackers = PurchaseTrackerAccount.query.filter_by().first()
+    trackers = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
     return render_template('purchase_tracker/tracking.html', trackers=trackers)
+
 
 
 @purchase_tracker.route('/supplies')
@@ -125,25 +126,23 @@ def view_items(account_id):
 def update_status(account_id):
     form = StatusForm()
     if request.method == 'POST':
-        start_date = bangkok.localize(form.data.get('start'))
-        end_date = bangkok.localize(form.data.get('end'))
-        if start_date and end_date:
-            timedelta = end_date - start_date
-            if timedelta.days < 0 or timedelta.seconds == 0:
-                flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'warning')
-        status = PurchaseTrackerStatus()
-        form.populate_obj(status)
-        status.account_id = account_id
-        status.status_date = bangkok.localize(datetime.now())
-        status.creation_date = bangkok.localize(datetime.now())
-        status.cancel_datetime = bangkok.localize(datetime.now())
-        status.staff = current_user
-        db.session.add(status)
-        db.session.commit()
-        flash(u'อัพเดตข้อมูลเรียบร้อย', 'success')
+        if form.validate_on_submit():
+            status = PurchaseTrackerStatus()
+            form.populate_obj(status)
+            status.account_id = account_id
+            status.status_date = bangkok.localize(datetime.now())
+            status.creation_date = bangkok.localize(datetime.now())
+            status.cancel_datetime = bangkok.localize(datetime.now())
+            status.update_datetime = bangkok.localize(datetime.now())
+            status.staff = current_user
+            status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
+            # TODO: calculate end date from time needed to finish the task
+            db.session.add(status)
+            db.session.commit()
+            flash(u'อัพเดตข้อมูลเรียบร้อย', 'success')
         # Check Error
-    else:
-        for er in form.errors:
-            flash(er, 'danger')
-    return redirect(url_for('purchase_tracker.view_items', account_id=account_id))
+        else:
+            for er in form.errors:
+                flash(er, 'danger')
+    return redirect(url_for('purchase_tracker.view_items', account_id=account_id, form=form))
 

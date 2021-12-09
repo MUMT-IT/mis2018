@@ -60,6 +60,7 @@
                 <h1 class="title">การดำเนินงานจัดซื้อจัดจ้าง</h1>
             </div>
             <div id="chart_div_1"></div>
+
             <div class="columns">
                 <div class="column">
                     <table class="table is-striped" id="PurchaseTrackerTable">
@@ -144,16 +145,16 @@
       data.addColumn('string', 'Dependencies');
 
       data.addRows([
-        ['Research', 'Find sources', null,
+        ['Receive', 'รับเรื่องขออนุมัติหลักการ / ใบเบิก', null,
          new Date(2015, 0, 1), new Date(2015, 0, 5), null,  100,  null],
-        ['Write', 'Write paper', 'write',
-         null, new Date(2015, 0, 9), daysToMilliseconds(3), 25, 'Research,Outline'],
-        ['Cite', 'Create bibliography', 'write',
-         null, new Date(2015, 0, 7), daysToMilliseconds(1), 20, 'Research'],
-        ['Complete', 'Hand in paper', 'complete',
-         null, new Date(2015, 0, 10), daysToMilliseconds(1), 0, 'Cite,Write'],
-        ['Outline', 'Outline paper', 'write',
-         null, new Date(2015, 0, 6), daysToMilliseconds(1), 100, 'Research']
+        ['Offer', 'เสนอหัวหน้าหน่วยพัสดุตรวจสอบและอนุมัติ A1', 'เสนอหัวหน้าหน่วยพัสดุ',
+         null, new Date(2015, 0, 9), daysToMilliseconds(3), 25, 'Receive,PR'],
+        ['Price', 'ดำเนินการสืบราคา 3 บริษัท', 'ดำเนินการสืบราคา',
+         null, new Date(2015, 0, 7), daysToMilliseconds(1), 20, 'Receive'],
+        ['Budget', 'ขอใบจองงบประมาณจากงานงบประมาณ', 'ขอใบจองงบ',
+         null, new Date(2015, 0, 10), daysToMilliseconds(1), 0, 'Price,Offer'],
+        ['PR', 'จัดทำ PR ขอซื้อขอจ้าง', 'จัดทำ PR',
+         null, new Date(2015, 0, 6), daysToMilliseconds(1), 100, 'Receive']
       ]);
 
       var options = {

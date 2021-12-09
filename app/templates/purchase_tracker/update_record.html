@@ -28,13 +28,10 @@
                                 <col span="1" style="width: 75%;">
                             </colgroup>
                             <div id="chart_div"></div>
+
                             <tr>
                                 <td><label class="label">Subject: ชื่อ</label></td>
                                 <td>{{ tracker.subject }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Section: หัวข้อ</label></td>
-                                <td>{{ tracker.section }}</td>
                             </tr>
                             <tr>
                                 <td><label class="label">Number: เลขที่</label></td>
@@ -66,7 +63,9 @@
                             </tr>
                             <tr>
                                 <td><label class="label">Update: อัพเดต</label>
-                                <td><span>ดูข้อมูลล่าสุด</span>
+                                <td>
+                                 <a href="{{ url_for('purchase_tracker.view_items', account_id=tracker.id) }}">
+                                    <span>ดูข้อมูลล่าสุด</span></a>
                                     {{ tracker.update_datetime|humanizedt }}</td>
                                 </td>
                             </tr>
@@ -102,15 +101,9 @@
                                         </div>
                                     </div>
                                     <div class="field">
-                                        <label class="label">{{ form.end_date.label }}</label>
+                                        <label class="label">{{ form.days.label }}</label>
                                         <div class="control">
-                                            {{ form.end_date(class="input") }}
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="label">{{ form.period.label }}</label>
-                                        <div class="control">
-                                            {{ form.period(class="input") }}
+                                            {{ form.days(class="input", value=1) }}
                                         </div>
                                     </div>
                                     <div class="field">
@@ -178,7 +171,6 @@
                 ['Outline', 'จัดทำ PR ขอซื้อขอจ้าง พร้อมตั้งผู้ตรวจรับ', 'write',
                     null, new Date(2015, 0, 6), daysToMilliseconds(1), 100, 'Research']
             ]);
-
             var options = {
                 height: 275
             };

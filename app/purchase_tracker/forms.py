@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, DateTimeField, TextAreaField, FileField, SelectField
+from wtforms import StringField, DateTimeField, TextAreaField, FileField, SelectField, IntegerField
 from wtforms.validators import DataRequired
 from wtforms_alchemy import model_form_factory
 from wtforms_alchemy import QuerySelectField
@@ -29,7 +29,8 @@ class CreateAccountForm(ModelForm):
 class StatusForm(ModelForm):
     class Meta:
         model = PurchaseTrackerStatus
-        exclude = ['creation_date']
+        exclude = ['creation_date', 'status_date', 'end_date']
+    days = IntegerField(u'ระยะเวลา')
         # field_args = {'desc': {'widget': TextAreaField()}}
 
 
