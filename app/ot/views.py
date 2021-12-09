@@ -143,8 +143,8 @@ def document_approval_create_document():
     form = OtDocumentApprovalForm()
     if request.method == 'POST':
         if form.validate_on_submit():
-            approval = OtDocumentApproval()
-            form.populate_obj(approval)
+            document = OtDocumentApproval()
+            form.populate_obj(document)
             drive = initialize_gdrive()
             if form.upload.data:
                 upload_file = form.upload.data
@@ -162,14 +162,54 @@ def document_approval_create_document():
                     flash('ไม่สามารถอัพโหลดไฟล์ขึ้น Google drive ได้', 'danger')
                 else:
                     flash('ไฟล์ที่แนบมา ถูกบันทึกบน Google drive เรียบร้อยแล้ว', 'success')
-                    approval.upload_file_url = file_drive['id']
-                    approval.file_name = file_name
-            approval.created_staff = current_user
-            approval.org = current_user.personal_info.org
-            db.session.add(approval)
+                    document.upload_file_url = file_drive['id']
+                    document.file_name = file_name
+            document.created_staff = current_user
+            document.org = current_user.personal_info.org
+            db.session.add(document)
             db.session.commit()
             flash(u'เพิ่มอนุมัติในหลักการเรียบร้อยแล้ว', 'success')
-            return redirect(url_for('ot.document_approval_show_announcement', document_id=approval.id))
+            return redirect(url_for('ot.document_approval_show_announcement', document_id=document.id))
+        else:
+            for field, err in form.errors.items():
+                flash('{} {}'.format(field, err), 'danger')
+    return render_template('ot/document_create_approval.html', form=form)
+
+
+@ot.route('/document-approval/edit/<int:document_id>', methods=['GET', 'POST'])
+@login_required
+def document_approval_edit_document(document_id):
+    document = OtDocumentApproval.query.get(document_id)
+    form = OtDocumentApprovalForm(obj=document)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(document)
+            drive = initialize_gdrive()
+            #TODO: ถ้าไม่บันทึกไฟล์ใหม่(แก้ข้อมูลส่วนอื่น) ไฟล์เก่าจะหายไปจาก db แต่ไม่หายจาก gg
+            if form.upload.data:
+                upload_file = form.upload.data
+                file_name = secure_filename(upload_file.filename)
+                upload_file.save(file_name)
+                file_drive = drive.CreateFile({'title': file_name,
+                                               'parents': [{'id': FOLDER_DOCUMENT_ID, 'kind': 'drive#fileLink'}]})
+                file_drive.SetContentFile(file_name)
+                try:
+                    file_drive.Upload()
+                    permission = file_drive.InsertPermission({'type': 'anyone',
+                                                              'value': 'anyone',
+                                                              'role': 'reader'})
+                except:
+                    flash('ไม่สามารถอัพโหลดไฟล์ขึ้น Google drive ได้', 'danger')
+                else:
+                    flash('ไฟล์ที่แนบมา ถูกบันทึกบน Google drive เรียบร้อยแล้ว', 'success')
+                    document.upload_file_url = file_drive['id']
+                    document.file_name = file_name
+            document.created_staff = current_user
+            document.org = current_user.personal_info.org
+            db.session.add(document)
+            db.session.commit()
+            flash(u'แก้ไขอนุมัติในหลักการเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('ot.document_approval_records'))
         else:
             for field, err in form.errors.items():
                 flash('{} {}'.format(field, err), 'danger')
@@ -268,3 +308,55 @@ def document_approval_delete_staff(document_id, staff_id):
     else:
         flash(u'ไม่สามารถลบบุคลากรได้', 'danger')
         return redirect(url_for('ot.document_approval_show_approved_staff', document_id=document_id))
+
+
+@ot.route('/schedule')
+@login_required
+def schedule():
+    # TODO: filter valid document
+    documents = OtDocumentApproval.query.all()
+    for document in documents:
+        if document.upload_file_url:
+            upload_file = drive.CreateFile({'id': document.upload_file_url})
+            upload_file.FetchMetadata()
+            upload_file_url = upload_file.get('embedLink')
+        else:
+            upload_file_url = None
+    return render_template('ot/schedule_home.html', documents=documents, upload_file_url=upload_file_url)
+
+
+@ot.route('/schedule/create/<int:document_id>', methods=['GET', 'POST'])
+@login_required
+def add_schedule(document_id):
+    doc = OtDocumentApproval.query.get(document_id)
+    EditOtRecordForm = edit_ot_record_factory([a.id for a in doc.announce])
+    form = EditOtRecordForm()
+    org_id = current_user.personal_info.org.id
+    #TODO: filter only same org
+    #TODO: filter all paymentannouncement from document_id and filter compensationrate
+    staff = OtDocumentApproval.staff
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            record = OtRecord()
+            form.populate_obj(record)
+            db.session.add(record)
+            db.session.commit()
+            flash(u'เพิ่มบันทึก OT เรียบร้อยแล้ว', 'success')
+            return redirect(url_for('ot.announcement'))
+        else:
+            flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
+    return render_template('ot/schedule_add.html', form=form, announces=[a.id for a in doc.announce])
+
+
+@ot.route('/api/get-file-url/<int:announcement_id>')
+@login_required
+def get_file_url(announcement_id):
+    ann = OtPaymentAnnounce.query.get(announcement_id)
+    return jsonify({'url': ann.upload_file_url})
+
+
+@ot.route('/api/compensation-detail/<int:compensation_id>')
+@login_required
+def get_compensation_detail(compensation_id):
+    comp = OtCompensationRate.query.get(compensation_id)
+    return jsonify({'info': comp.to_dict()})
