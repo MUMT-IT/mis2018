@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">เพิ่มข้อมูลการปฏิบัติงานนอกเวลา</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <div class="box">
+                        {{ announces }}
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">เลือกตำแหน่ง</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="select">
+                                        {{ form.compensation(**{'v-model': 'compId'}) }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <table class="table is-fullwidth" v-if="compId !== null">
+                            <tr>
+                                <td><% info.role %></td>
+                                <td><% info.per_hour || 'NA' %></td>
+                            </tr>
+                        </table>
+                        <div class="notification is-warning" v-else>
+                            Please select rate.
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">ปฏิบัติงาน ณ, ปฏิบัติงานให้แก่,เวลาเริ่มต้น-สิ้นสุด(ถ้ามี ถ้าไม่มีต้องให้เลือกเวลาด้วย)</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="select">
+
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">วันที่ทำ OT</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="select">
+                                        {{ form.start_datetime(class="input") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <input type="submit" value="submit" class="button is-primary"/>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('ot.schedule') }}" class="button is-danger">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data () {
+            return {
+                info: {},
+                compId: null
+            }
+        },
+        watch: {
+            compId () {
+                axios.get('/ot/api/compensation-detail/' + this.compId).then((response) => {
+                    this.info = response.data.info
+                })
+            }
+        }
+
+    })
+</script>
+<script>
+    $('input[name="start_datetime"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: false,
+        autoUpdateInput: false,
+        locale: {
+            cancelLabel: 'Clear',
+            format: 'YYYY-MM-DD'
+        }
+    }, function(start, end, label) {
+        $(this.element).val(start.format('YYYY-MM-DD HH:mm:ss'))
+    });
+</script>
+{% endblock %}
+
+
+
