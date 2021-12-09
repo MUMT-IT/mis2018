@@ -61,6 +61,13 @@ class OtCompensationRate(db.Model):
     double_payment = db.Column('double_payment', db.Boolean(), default=True, nullable=False,
                                info={'label': u'เบิกซ้ำกับอันอื่นได้'})
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'role': self.role,
+            'per_hour': self.per_hour
+        }
+
 
 class OtDocumentApproval(db.Model):
     __tablename__ = 'ot_document_approval'
@@ -92,12 +99,15 @@ class OtRecord(db.Model):
     __tablename__ = 'ot_record'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
-    staff = db.relationship(StaffAccount, backref=db.backref('ot_record_staff'))
+    staff = db.relationship(StaffAccount, backref=db.backref('ot_record_staff'), foreign_keys=[staff_account_id])
     start_datetime = db.Column('start_datetime', db.DateTime())
     end_datetime = db.Column('end_datetime', db.DateTime())
     compensation_id = db.Column('compensation_id', db.ForeignKey('ot_compensation_rate.id'))
     compensation = db.relationship(OtCompensationRate, backref=db.backref('ot_record_compensation'))
     created_at = db.Column('created_at', db.DateTime(timezone=True), default=datetime.now())
+    created_account_id = db.Column('created_account_id', db.ForeignKey('staff_account.id'))
+    created_staff = db.relationship(StaffAccount, backref=db.backref('ot_record_created_staff'),
+                                    foreign_keys=[created_account_id])
 
 
 # class OtPerson(db.Model):
