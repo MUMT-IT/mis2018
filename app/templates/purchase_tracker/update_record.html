@@ -62,11 +62,51 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td><label class="label">Update: อัพเดต</label>
+                                <td><label class="label">Update: อัพเดตล่าสุด</label>
                                 <td>
-                                 <a href="{{ url_for('purchase_tracker.view_items', account_id=tracker.id) }}">
-                                    <span>ดูข้อมูลล่าสุด</span></a>
-                                    {{ tracker.update_datetime|humanizedt }}</td>
+                                <table class="table is-fullwidth is-striped">
+                                    <thead>
+                                    <th>กิจกรรม</th>
+                                    <th>วันเริ่มต้น</th>
+                                    <th>วันสิ้นสุด</th>
+                                    <th>รายละเอียด</th>
+                                    </thead>
+                                    <tbody>
+                                    {% for tracker in tracker.gantt_activities|sort(attribute='account_id') %}
+                                    <tr>
+                                        <td>{{ tracker.activity }}</td>
+                                        <td>{{ tracker.start_date|localdate }}</td>
+                                        <td>{{ tracker.end_date|localdate }}</td>
+                                        <td>{{ tracker.account_id }}</td>
+                                        <td>
+                                            <a href=""
+                                                class="button is-small is-primary is-outlined">
+                                                <span class="icon">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </span>
+                                                <span>แก้ไข</span>
+                                            </a>
+                                            <a href=""
+                                                class="button is-small is-danger is-outlined">
+                                                <span class="icon">
+                                                   <i class="far fa-trash-alt"></i>
+                                                </span>
+                                                <span>ลบ</span>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                                <div class="buttons is-centered">
+                                    <a class="button is-info"
+                                       href="">
+                                        <span class="icon">
+                                            <i class="fas fa-plus"></i>
+                                        </span>
+                                        <span>เพิ่มรายการกิจกรรม</span>
+                                    </a>
+                                </div>
                                 </td>
                             </tr>
 
@@ -173,6 +213,7 @@
                 ['Outline', 'จัดทำ PR ขอซื้อขอจ้าง พร้อมตั้งผู้ตรวจรับ', 'write',
                     null, new Date(2015, 0, 6), daysToMilliseconds(1), 100, 'Research']
             ]);
+
             var options = {
                 height: 275
             };

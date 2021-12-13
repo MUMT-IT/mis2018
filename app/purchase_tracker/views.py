@@ -4,6 +4,7 @@ from flask import render_template, request, flash, redirect, url_for, session, j
 from flask_login import current_user, login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.auth import GoogleAuth
+from sqlalchemy_utils.types.arrow import arrow
 from werkzeug.utils import secure_filename
 from . import purchase_tracker_bp as purchase_tracker
 
@@ -21,7 +22,22 @@ json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).js
 bangkok = timezone('Asia/Bangkok')
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
-
+GANTT_ACTIVITIES = dict([(1, '1. รับเรื่องขออนุมัติหลักการ/ใบเบิก ดำเนินการลงรับหนังสือ เสนอหัวหน้าหน่วยพิจารณา'),
+                         (2, '2. ดำเนินการสืบราคา 3 บริษัท(กรณีไม่มีใบเสนอราคาแนบมา)'),
+                         (3, '3. จัดทำ PR ขอซื้อขอจ้าง พร้อมตั้งผุ้ตรวจรับหรือคณะกรรมการตรวจรับพัสดุ ผ่านระบบ MUERP'),
+                         (4, '4. เสนอหัวหน้าหน่วยพัสดุตรวจสอบและอนุมัติ A1 ผ่านระบบ MUERP'),
+                         (5, '5. ขอใบจองงบประมาณจากงานงบประมาณ ผ่านระบบ MUERP'),
+                         (6, '6. เสนอหัวหน้าหน่วยคลังฯตรวจสอบและอนุมัติ A3 ผ่านระบบ MUERP'),
+                         (7, '7. เสนอรองคณบดีฯ, คณบดี ลงนาม'),
+                         (8, '8. เสนอหัวหน้าหน่วยพัสดุตรวจสอบและอนุมัติ A4 ผ่านระบบ MUERP'),
+                         (9, '9. จัดทำ PO สั่งซื้อสั่งจ้าง(บันทึกในระบบเท่านั้น) และเสนอหัวหน้าหน่วยพัสดุตรวจสอบ'),
+                         (10, '10. จัดส่งใบสั่งซื้อให้ทางบริษัท/โทรแจ้งบริษัทจัดส่งพัสดุ'),
+                         (11, '11. บริษัทจัดส่งพัสดุ และทำการตรวจรับพัสดุในระบบ และเวียนลงนามตรวจรับ ผ่านระบบ MUERP'),
+                         (12, '12. เสนอขออนุมัติเบิกจ่าย ผ่านหัวหน้าหน่วยพัสดุ หัวหน้างานคลังฯ รองคณบดีฝ่ายการคลังฯ และคณบดีลงนาม'),
+                         (13, '13. สแกนเอกสารเก็บไฟล์ และส่งเอกสารเพื่อตั้งฎีกาเบิกจ่าย'),
+                         (14, '14. ตั้งฎีกาเบิกจ่าย+เสนอคณบดีลงนามฎีกาเบิกจ่าย+ส่งเอกสารไปกองคลัง ผ่านระบบ MUERP'),
+                         (15, '15. รอเช็คสั่งจ่ายจากกองคลัง ผ่านระบบ MUERP')]
+                        )
 
 @purchase_tracker.route('/first/')
 def first_page():
@@ -146,3 +162,24 @@ def update_status(account_id):
                 flash(er, 'danger')
     return redirect(url_for('purchase_tracker.view_items', account_id=account_id, form=form))
 
+
+@purchase_tracker.route('/update_detail/<int:account_id>', methods=['GET', 'POST'])
+def display_account(account_id):
+    account = PurchaseTrackerAccount.query.get(account_id)
+
+    if account.creator_id != current_user.id:
+        return redirect(url_for('purchase_tracker.first_page', account_id=account.id))
+
+    gantt_activities = []
+    for tracker in sorted(account.gantt_activities, key=lambda x: x.account_id):
+        gantt_activities.append([
+            str(tracker.account_id),
+            GANTT_ACTIVITIES.get(tracker.account_id),
+            tracker.start_date.isoformat(),
+            tracker.end_date.isoformat(),
+            None, 0, None,
+            tracker.start_date,
+            tracker.end_date,
+            tracker.id
+        ])
+    return render_template('purchase_tracker/update_record.html', account=account, gantt_activities=gantt_activities)
