@@ -35,10 +35,13 @@
                         เรื่อง
                     </th>
                     <th>
+                        เพิ่มประกาศ
+                    </th>
+                    <th>
                         หน่วยงาน
                     </th>
                     <th>
-                        จำนวนคน
+                        ผู้ปฏิบัติงาน
                     </th>
                     <th>
                         เริ่มต้น
@@ -64,7 +67,7 @@
                     {% if not document.cancelled_at  %}
                     <tr>
                         <td>
-                            <a href="{{ url_for('ot.document_approval_show_announcement', document_id=document.id) }}">
+                            <a href="{{ url_for('ot.document_approval_edit_document', document_id=document.id) }}">
                                 {{ document.title }}
                                 <span class="icon">
                                         <i class="fas fa-pencil-alt"></i>
@@ -72,10 +75,17 @@
                             </a>
                         </td>
                         <td>
+                            <a href="{{ url_for('ot.document_approval_show_announcement', document_id=document.id) }}">
+                                <span class="icon">
+                                        <i class="far fa-plus-square"></i>
+                                </span>
+                            </a>
+                        </td>
+                        <td>
                             {{ document.org.name }}
                         </td>
                         <td>
-                            <a href="">
+                            <a href="{{ url_for('ot.document_approval_show_approved_staff', document_id=document.id) }}">
                                 รายชื่อ
                             </a>
                         </td>
@@ -93,7 +103,7 @@
                         </td>
                         <td>
                             {% if document.upload_file_url %}
-                                <a href="{{ upload_file_url }}">{{ document.title }}</a>
+                                <a href="{{ upload_file_url }}">{{ document.file_name }}</a>
                             {% else %}
                                 {{ document.title }}
                             {% endif %}
