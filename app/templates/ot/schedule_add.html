@@ -18,7 +18,6 @@
         <div class="columns">
             <div class="column is-two-thirds is-offset-2">
                 <div class="box">
-                        {{ announces }}
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         <div class="field is-horizontal">
@@ -36,32 +35,77 @@
                         <table class="table is-fullwidth" v-if="compId !== null">
                             <tr>
                                 <td><% info.role %></td>
-                                <td><% info.per_hour || 'NA' %></td>
+                                <td><% info.announcement %></td>
+                                <td>ปฏิบัติงาน ณ: <% info.work_at_org %></td>
+                                <td>ปฏิบัติงานให้แก่: <% info.work_for_org %></td>
+                                <td>ระยะเวลา: <% info.start_time %> ถึง <% info.end_time %></td>
+                                <td>ต่อคาบ: <% info.per_period || 'NA' %></td>
+                                <td>ต่อชั่วโมง: <% info.per_hour || 'NA' %></td>
+                                <td>ต่อวัน: <% info.per_day || 'NA' %></td>
+                                <td>ในวันราชการ: <% info.is_workday %></td>
                             </tr>
                         </table>
                         <div class="notification is-warning" v-else>
-                            Please select rate.
+                            กรุณาเลือกตำแหน่ง
                         </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">ปฏิบัติงาน ณ, ปฏิบัติงานให้แก่,เวลาเริ่มต้น-สิ้นสุด(ถ้ามี ถ้าไม่มีต้องให้เลือกเวลาด้วย)</label>
+                        <div class="box">
+                            <div class="field is-horizontal">
+                                <div class="field-label is-normal">
+                                    <label class="label">วันที่ทำ OT</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <div class="select">
+                                            {{ form.start_datetime(class="input") }}
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="select">
-
+                            <div class="field" v-if="info.start_time === ''">
+                                <div class="control">
+                                    <div>
+                                        <label>เวลาเริ่มต้น</label>
+                                        <input name="start_time">
+                                        <label>เวลาสิ้นสุด</label>
+                                        <input name="end_time">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field" v-if="info.is_role_required">
+                                <div class="control">
+                                    <div>
+                                        <label>ชื่อตำแหน่ง</label>
+                                        <input name="sub_role">
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="field is-horizontal">
-                            <div class="field-label is-normal">
-                                <label class="label">วันที่ทำ OT</label>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <div class="select">
-                                        {{ form.start_datetime(class="input") }}
+                        <div class="box">
+                            <div class="control">
+                                <div class="columns">
+                                    <div class="column is-two-thirds is-offset-2">
+                                        <table class="table is-striped" id="staffTable">
+                                            <thead>
+                                            <th>ชื่อ-นามสกุล</th>
+                                            <th>สังกัด</th>
+                                            </thead>
+                                            <tbody>
+                                            {% for staff in document.staff %}
+                                            <tr>
+                                                <td>
+                                                    <b-field>
+                                                        <b-checkbox native-value="{{ staff.id }}" name="otworker">
+                                                            {{ staff.personal_info.fullname }}
+                                                        </b-checkbox>
+                                                    </b-field>
+                                                </td>
+                                                <td>
+                                                    {{ staff.personal_info.org.name }}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
                                     </div>
                                 </div>
                             </div>
@@ -91,7 +135,8 @@
         data () {
             return {
                 info: {},
-                compId: null
+                compId: null,
+                otworker: [],
             }
         },
         watch: {
@@ -105,6 +150,9 @@
     })
 </script>
 <script>
+    $(document).ready(function(){
+        $('#staffTable').DataTable();
+    });
     $('input[name="start_datetime"]').daterangepicker({
         singleDatePicker: true,
         timePicker: false,
