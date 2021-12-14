@@ -74,9 +74,11 @@
                             {% endif %}
                         </td>
                         <td>
-                            <a href="">
+                            {% if compensation.announcement.upload_file_url %}
+                            <a href="{{ upload_file_url }}">{{ compensation.announcement.topic }}</a>
+                            {% else %}
                             {{ compensation.announcement.topic }}
-                            </a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endif %}

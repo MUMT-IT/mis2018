@@ -28,7 +28,6 @@
                             </div>
                             <div class="field-body">
                                 <div class="field">
-                                    <% announcement_id %>
                                     <div class="select">
                                         {{ form.announcement(**{'v-model': 'announcement_id'}) }}
                                     </div>
@@ -176,6 +175,18 @@
                                 <div class="field">
                                     <div class="control">
                                         {{ form.double_payment }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">{{ form.is_role_required.label }}</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.is_role_required }}
                                     </div>
                                 </div>
                             </div>
