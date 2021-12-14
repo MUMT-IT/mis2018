@@ -60,11 +60,13 @@ class OtCompensationRate(db.Model):
     max_hour = db.Column('max_hour', db.Integer(), info={'label': u'จำนวนชั่วโมงสูงสุดที่สามารถทำได้'})
     double_payment = db.Column('double_payment', db.Boolean(), default=True, nullable=False,
                                info={'label': u'เบิกซ้ำกับอันอื่นได้'})
+    is_role_required = db.Column('is_role_required', db.Boolean(), info={'label': u'จำเป็นต้องระบุรายละเอียดตำแหน่ง'})
 
     def to_dict(self):
         return {
             'id': self.id,
             'role': self.role,
+            'announcement': self.announcement.topic,
             'work_at_org': self.work_at_org.name,
             'work_for_org': self.work_for_org.name,
             'start_time': self.start_time.strftime('%H:%M') if self.start_time is not None else "",
