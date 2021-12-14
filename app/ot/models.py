@@ -65,7 +65,14 @@ class OtCompensationRate(db.Model):
         return {
             'id': self.id,
             'role': self.role,
-            'per_hour': self.per_hour
+            'work_at_org': self.work_at_org.name,
+            'work_for_org': self.work_for_org.name,
+            'start_time': self.start_time.strftime('%H:%M') if self.start_time is not None else "",
+            'end_time': self.end_time.strftime('%H:%M') if self.end_time is not None else "",
+            'per_period': self.per_period,
+            'per_hour': self.per_hour,
+            'per_day': self.per_day,
+            'is_workday': self.is_workday
         }
 
 
@@ -108,6 +115,8 @@ class OtRecord(db.Model):
     created_account_id = db.Column('created_account_id', db.ForeignKey('staff_account.id'))
     created_staff = db.relationship(StaffAccount, backref=db.backref('ot_record_created_staff'),
                                     foreign_keys=[created_account_id])
+    org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
+    org = db.relationship(Org, backref=db.backref('ot_record'))
 
 
 # class OtPerson(db.Model):
