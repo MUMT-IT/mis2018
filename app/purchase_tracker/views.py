@@ -22,7 +22,7 @@ json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).js
 bangkok = timezone('Asia/Bangkok')
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
-GANTT_ACTIVITIES = dict([(1, '1. รับเรื่องขออนุมัติหลักการ/ใบเบิก ดำเนินการลงรับหนังสือ เสนอหัวหน้าหน่วยพิจารณา'),
+ACTIVITIES = dict([(1, '1. รับเรื่องขออนุมัติหลักการ/ใบเบิก ดำเนินการลงรับหนังสือ เสนอหัวหน้าหน่วยพิจารณา'),
                          (2, '2. ดำเนินการสืบราคา 3 บริษัท(กรณีไม่มีใบเสนอราคาแนบมา)'),
                          (3, '3. จัดทำ PR ขอซื้อขอจ้าง พร้อมตั้งผุ้ตรวจรับหรือคณะกรรมการตรวจรับพัสดุ ผ่านระบบ MUERP'),
                          (4, '4. เสนอหัวหน้าหน่วยพัสดุตรวจสอบและอนุมัติ A1 ผ่านระบบ MUERP'),
@@ -105,7 +105,8 @@ def initialize_gdrive():
 @purchase_tracker.route('/track')
 def track():
     trackers = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
-    return render_template('purchase_tracker/tracking.html', trackers=trackers)
+    chart_data = ACTIVITIES
+    return render_template('purchase_tracker/tracking.html', trackers=trackers, chart_data=chart_data)
 
 
 
@@ -162,24 +163,3 @@ def update_status(account_id):
                 flash(er, 'danger')
     return redirect(url_for('purchase_tracker.view_items', account_id=account_id, form=form))
 
-
-@purchase_tracker.route('/update_detail/<int:account_id>', methods=['GET', 'POST'])
-def display_account(account_id):
-    account = PurchaseTrackerAccount.query.get(account_id)
-
-    if account.creator_id != current_user.id:
-        return redirect(url_for('purchase_tracker.first_page', account_id=account.id))
-
-    gantt_activities = []
-    for tracker in sorted(account.gantt_activities, key=lambda x: x.account_id):
-        gantt_activities.append([
-            str(tracker.account_id),
-            GANTT_ACTIVITIES.get(tracker.account_id),
-            tracker.start_date.isoformat(),
-            tracker.end_date.isoformat(),
-            None, 0, None,
-            tracker.start_date,
-            tracker.end_date,
-            tracker.id
-        ])
-    return render_template('purchase_tracker/update_record.html', account=account, gantt_activities=gantt_activities)
