@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-import requests, os
+import requests, os, smtplib
 from flask import render_template, request, flash, redirect, url_for, session, jsonify, Flask
 from flask_login import current_user, login_required
 from oauth2client.service_account import ServiceAccountCredentials
