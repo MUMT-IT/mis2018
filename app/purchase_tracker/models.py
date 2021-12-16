@@ -40,7 +40,7 @@ class PurchaseTrackerStatus(db.Model):
     start_date = db.Column('start_date', db.Date(), nullable=False, info={'label': u'วันที่เริ่มต้น'})
     end_date = db.Column('end_date', db.Date(), nullable=False, info={'label': u'วันที่สิ้นสุด'})
     update_datetime = db.Column('update_date', db.DateTime(timezone=True), info={'label': u'วันที่แก้ไข'})
-    activity = db.Column('activity', db.String(), nullable=False, info={'label': u'กิจกรรม'})
+    activity = db.Column('activity', db.String(255), nullable=False, info={'label': u'กิจกรรม'})
 
 
     def __str__(self):

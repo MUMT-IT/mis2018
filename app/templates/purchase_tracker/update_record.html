@@ -120,20 +120,21 @@
                                     {{ form.hidden_tag() }}
                                     <h2 class="subtitle">Update Information
                                         <span class="icon">
-                                                 <i class="far fa-edit"></i>
-                                            </span></h2>
+                                            <i class="far fa-edit"></i>
+                                        </span>
+                                    </h2>
+                                    <div class="field">
+                                        <label class="label">{{ form.status.label }}</label>
+                                        <div class="select is-fullwidth is-info">
+                                            {{ form.status() }}
+                                        </div>
+                                    </div>
                                     <div class="field">
                                         <label class="label">{{ form.activity.label }}</label>
                                         <div class="control">
                                             <div class="select is-fullwidth is-info">
                                             {{ form.activity() }}
                                             </div>
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="label">{{ form.status.label }}</label>
-                                        <div class="select is-fullwidth is-info">
-                                            {{ form.status(class="input") }}
                                         </div>
                                     </div>
                                     <div class="field">
