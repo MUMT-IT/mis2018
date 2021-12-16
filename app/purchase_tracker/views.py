@@ -115,14 +115,6 @@ def contact():
     return render_template('purchase_tracker/contact_us.html')
 
 
-@purchase_tracker.route('/items/<int:account_id>/records/update', methods=['GET', 'POST'])
-def view_items(account_id):
-    form = StatusForm(obj=purchase_tracker)
-    purchase_tracker.staff = current_user
-    tracker = PurchaseTrackerAccount.query.get(account_id)
-    return render_template('purchase_tracker/update_record.html', tracker=tracker, form=form)
-
-
 @purchase_tracker.route('/update/<int:account_id>', methods=['GET', 'POST'])
 @login_required
 def update_status(account_id):
