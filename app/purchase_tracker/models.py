@@ -42,6 +42,17 @@ class PurchaseTrackerStatus(db.Model):
     update_datetime = db.Column('update_date', db.DateTime(timezone=True), info={'label': u'วันที่แก้ไข'})
     activity = db.Column('activity', db.String(255), nullable=False, info={'label': u'กิจกรรม'})
 
-
     def __str__(self):
         return u'{}:{}'.format(self.status, self.activity)
+
+    def to_list(self):
+        delta = self.end_date - self.start_date
+        duration = delta.days
+        return [str(self.id),
+                self.activity,
+                self.start_date.isoformat(),
+                self.end_date.isoformat(),
+                duration,
+                100,
+                "",
+                ]

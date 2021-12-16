@@ -69,15 +69,13 @@
                                     <th>กิจกรรม</th>
                                     <th>วันเริ่มต้น</th>
                                     <th>วันสิ้นสุด</th>
-                                    <th>รายละเอียด</th>
                                     </thead>
                                     <tbody>
-                                    {% for tracker in tracker.gantt_activities|sort(attribute='account_id') %}
+                                    {% for tracker in tracker.records %}
                                     <tr>
                                         <td>{{ tracker.activity }}</td>
-                                        <td>{{ tracker.start_date|localdate }}</td>
-                                        <td>{{ tracker.end_date|localdate }}</td>
-                                        <td>{{ tracker.account_id }}</td>
+                                        <td>{{ tracker.start_date }}</td>
+                                        <td>{{ tracker.end_date }}</td>
                                         <td>
                                             <a href=""
                                                 class="button is-small is-primary is-outlined">
@@ -140,7 +138,7 @@
                                     <div class="field">
                                         <label class="label">{{ form.start_date.label }}</label>
                                         <div class="control">
-                                            {{ form.start_date(class="input") }}
+                                            {{ form.start_date(class="input", value=default_date) }}
                                         </div>
                                     </div>
                                     <div class="field">
@@ -184,7 +182,20 @@
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
         google.charts.load('current', {'packages': ['gantt']});
-        google.charts.setOnLoadCallback(drawChart);
+        var _activities = {{ activities|tojson|safe }};
+        var activities = [];
+        _activities.forEach(a=>{
+            activities.push([
+                a[0],
+                a[1],
+                new Date(a[2]),
+                new Date(a[3]),
+                a[4],
+                a[5],
+                a[6]
+            ])
+        })
+        console.log(activities)
 
         function daysToMilliseconds(days) {
             return days * 24 * 60 * 60 * 1000;
@@ -193,27 +204,15 @@
         function drawChart() {
 
             var data = new google.visualization.DataTable();
-            data.addColumn('string', 'Task ID');
-            data.addColumn('string', 'Task Name');
-            data.addColumn('string', 'Resource');
+            data.addColumn('string', 'ID')
+            data.addColumn('string', 'Activity');
             data.addColumn('date', 'Start Date');
             data.addColumn('date', 'End Date');
             data.addColumn('number', 'Duration');
             data.addColumn('number', 'Percent Complete');
             data.addColumn('string', 'Dependencies');
 
-            data.addRows([
-                ['Research', 'รับเรื่องขออนุมัติหลักการ / ใบเบิก', null,
-                    new Date(2015, 0, 1), new Date(2015, 0, 5), null, 100, null],
-                ['Write', 'เสนอหัวหน้าหน่วยพัสดุตรวจสอบและอนุมัติ A1', 'write',
-                    null, new Date(2015, 0, 9), daysToMilliseconds(3), 25, 'Research,Outline'],
-                ['Cite', 'ดำเนินการสืบราคา 3 บริษัท', 'write',
-                    null, new Date(2015, 0, 7), daysToMilliseconds(1), 20, 'Research'],
-                ['Complete', 'ขอใบจองงบประมาณจากงานงบประมาณ', 'complete',
-                    null, new Date(2015, 0, 10), daysToMilliseconds(1), 0, 'Cite,Write'],
-                ['Outline', 'จัดทำ PR ขอซื้อขอจ้าง พร้อมตั้งผู้ตรวจรับ', 'write',
-                    null, new Date(2015, 0, 6), daysToMilliseconds(1), 100, 'Research']
-            ]);
+            data.addRows(activities);
 
             var options = {
                 height: 275
@@ -223,5 +222,6 @@
 
             chart.draw(data, options);
         }
+        google.charts.setOnLoadCallback(drawChart);
     </script>
 {% endblock %}

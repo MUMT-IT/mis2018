@@ -119,6 +119,7 @@ def contact():
 @login_required
 def update_status(account_id):
     form = StatusForm()
+    tracker = PurchaseTrackerAccount.query.get(account_id)
     if request.method == 'POST':
         if form.validate_on_submit():
             status = PurchaseTrackerStatus()
@@ -138,5 +139,10 @@ def update_status(account_id):
         else:
             for er in form.errors:
                 flash(er, 'danger')
-    return redirect(url_for('purchase_tracker.view_items', account_id=account_id, form=form))
+    activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(staff=current_user)
+        .filter_by(account_id=account_id)
+        .order_by(PurchaseTrackerStatus.start_date)]
+    return render_template('purchase_tracker/update_record.html',
+                            account_id=account_id, form=form, activities=activities, tracker=tracker,
+                           default_date=activities[-1][3])
 
