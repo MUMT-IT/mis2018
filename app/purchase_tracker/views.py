@@ -24,7 +24,7 @@ bangkok = timezone('Asia/Bangkok')
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
-@purchase_tracker.route('/first/')
+@purchase_tracker.route('/official/')
 def first_page():
     return render_template('purchase_tracker/first_page.html')
 
@@ -34,7 +34,7 @@ def staff_index():
     return render_template('purchase_tracker/personnel/personnel_index.html')
 
 
-@purchase_tracker.route('/home')
+@purchase_tracker.route('/main')
 def index():
     return render_template('purchase_tracker/index.html')
 
@@ -87,12 +87,21 @@ def initialize_gdrive():
     return GoogleDrive(gauth)
 
 
-@purchase_tracker.route('/track')
-def track():
+@purchase_tracker.route('/track/')
+def track(account_id=None):
+    from sqlalchemy import desc
+    account = PurchaseTrackerAccount.query.get(account_id)
     trackers = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
-    chart_data = ACTIVITIES
-    return render_template('purchase_tracker/tracking.html', trackers=trackers, chart_data=chart_data)
-
+    activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(staff=current_user)
+        .filter_by(account_id=account_id)
+        .order_by(PurchaseTrackerStatus.start_date)]
+    return render_template('purchase_tracker/tracking.html',
+                           account_id=account_id,
+                           trackers=trackers,
+                           account=account,
+                           desc=desc,
+                           PurchaseTrackerStatus=PurchaseTrackerStatus,
+                           activities=activities)
 
 
 @purchase_tracker.route('/supplies')
