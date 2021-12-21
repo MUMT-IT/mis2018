@@ -54,24 +54,13 @@
             </nav>
         </div>
     </section>
+
     <section class="section">
         <div class="container">
             <div class="column has-text-centered">
                 <h1 class="title">การดำเนินงานจัดซื้อจัดจ้าง</h1>
             </div>
-           <div class="field has-addons">
-          <div class="control">
-            <input class="input" type="text" placeholder="ค้นหาชื่อเรื่อง">
-          </div>
-          <div class="control">
-            <a class="button is-info">
-              Search
-            </a>
-          </div>
-        </div>
-            <div id="chart_div"></div>
-
-            <div class="columns">
+         <div class="columns">
                 <div class="column">
                     <table class="table is-striped" id="PurchaseTrackerTable">
                         <thead>
@@ -110,6 +99,83 @@
                     </table>
                 </div>
             </div>
+        {% if activities  %}
+            <div id="chart_div"></div>
+
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <div class="card">
+                    <div class="card-header">
+                        <h1 class="card-header-title">
+                            <span>
+                                {{ tracker.creation_date }}
+                            </span>
+                        </h1>
+                    </div>
+                    <div class="card-content">
+                        <table class="table is-striped is-bordered is-fullwidth">
+                            <colgroup>
+                                <col span="1" style="width: 25%;">
+                                <col span="1" style="width: 75%;">
+                            </colgroup>
+
+
+                            <tr>
+                                <td><label class="label">Subject: ชื่อ</label></td>
+                                <td>{{ tracker.subject }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">Number: เลขที่</label></td>
+                                <td>{{ tracker.number }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">Description: รายละเอียด</label></td>
+                                <td>{{ tracker.desc }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">Comment: หมายเหตุ</label></td>
+                                <td>{{ tracker.comment }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">File: ไฟล์</label></td>
+                                <td>
+                                    {% if tracker.url %}
+                                        <a href="{{ 'https://drive.google.com/uc?id=' + tracker.url }}"
+                                           target="_blank">
+                            <span class="icon">
+                                <i class="far fa-file-pdf"></i>
+                            </span>
+                                            <span>ไฟล์เอกสาร</span>
+                                        </a>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">Update: อัพเดตล่าสุด</label>
+                                <td>
+                                <table class="table is-fullwidth is-striped">
+                                    <thead>
+                                    <th>กิจกรรม</th>
+                                    <th>วันเริ่มต้น</th>
+                                    <th>วันสิ้นสุด</th>
+                                    </thead>
+                                    <tbody>
+                                    {% for tracker in tracker.records %}
+                                    <tr>
+                                        <td>{{ tracker.activity }}</td>
+                                        <td>{{ tracker.start_date }}</td>
+                                        <td>{{ tracker.end_date }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                                </td>
+                            </tr>
+
+                        </table>
+{% endif %}
 
             <div class="columns">
                 <div class="column">
@@ -135,10 +201,9 @@
     </script>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script type="text/javascript">
-    google.charts.load('current', {'packages':['gantt']});
-    google.charts.setOnLoadCallback(drawChart);
-    var _activities = {{ activities|tojson|safe }};
-    var activities = [];
+        google.charts.load('current', {'packages': ['gantt']});
+        var _activities = {{ activities|tojson|safe }};
+        var activities = [];
         _activities.forEach(a=>{
             activities.push([
                 a[0],
@@ -152,30 +217,31 @@
         })
         console.log(activities)
 
-    function daysToMilliseconds(days) {
-      return days * 24 * 60 * 60 * 1000;
-    }
+        function daysToMilliseconds(days) {
+            return days * 24 * 60 * 60 * 1000;
+        }
 
-    function drawChart() {
+        function drawChart() {
 
-      var data = new google.visualization.DataTable();
-      data.addColumn('string', 'ID')
-      data.addColumn('string', 'Activity');
-      data.addColumn('date', 'Start Date');
-      data.addColumn('date', 'End Date');
-      data.addColumn('number', 'Duration');
-      data.addColumn('number', 'Percent Complete');
-      data.addColumn('string', 'Dependencies');
+            var data = new google.visualization.DataTable();
+            data.addColumn('string', 'ID')
+            data.addColumn('string', 'Activity');
+            data.addColumn('date', 'Start Date');
+            data.addColumn('date', 'End Date');
+            data.addColumn('number', 'Duration');
+            data.addColumn('number', 'Percent Complete');
+            data.addColumn('string', 'Dependencies');
 
-      data.addRows(activities);
+            data.addRows(activities);
 
-      var options = {
-        height: 275
-      };
+            var options = {
+                height: 275
+            };
 
-      var chart = new google.visualization.Gantt(document.getElementById('chart_div'));
+            var chart = new google.visualization.Gantt(document.getElementById('chart_div'));
 
-      chart.draw(data, options);
-    }
+            chart.draw(data, options);
+        }
+        google.charts.setOnLoadCallback(drawChart);
   </script>
 {% endblock %}

@@ -40,6 +40,7 @@ def index():
 
 
 @purchase_tracker.route('/create', methods=['GET', 'POST'])
+@login_required
 def add_account():
     form = CreateAccountForm()
     if request.method == 'POST':
@@ -88,20 +89,45 @@ def initialize_gdrive():
 
 
 @purchase_tracker.route('/track/')
+@purchase_tracker.route('/track/<int:account_id>')
+@login_required
 def track(account_id=None):
-    from sqlalchemy import desc
-    account = PurchaseTrackerAccount.query.get(account_id)
-    trackers = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
-    activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(staff=current_user)
-        .filter_by(account_id=account_id)
-        .order_by(PurchaseTrackerStatus.start_date)]
-    return render_template('purchase_tracker/tracking.html',
-                           account_id=account_id,
-                           trackers=trackers,
-                           account=account,
-                           desc=desc,
-                           PurchaseTrackerStatus=PurchaseTrackerStatus,
-                           activities=activities)
+    if account_id is not None:
+        from sqlalchemy import desc
+        tracker = PurchaseTrackerAccount.query.get(account_id)
+        trackers = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
+        activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
+            .order_by(PurchaseTrackerStatus.start_date)]
+        if not activities:
+            default_date = datetime.now().isoformat()
+        else:
+            default_date = activities[-1][3]
+        return render_template('purchase_tracker/tracking.html',
+                               account_id=account_id,
+                               tracker=tracker,
+                               trackers=trackers,
+                               desc=desc,
+                               PurchaseTrackerStatus=PurchaseTrackerStatus,
+                               activities=activities,
+                               default_date=default_date)
+    else:
+        from sqlalchemy import desc
+        tracker = PurchaseTrackerAccount.query.get(account_id)
+        trackers = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
+        activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
+            .order_by(PurchaseTrackerStatus.start_date)]
+        if not activities:
+            default_date = datetime.now().isoformat()
+        else:
+            default_date = activities[-1][3]
+        return render_template('purchase_tracker/tracking.html',
+                               account_id=account_id,
+                               tracker=tracker,
+                               trackers=trackers,
+                               desc=desc,
+                               PurchaseTrackerStatus=PurchaseTrackerStatus,
+                               activities=activities,
+                               default_date=default_date)
 
 
 @purchase_tracker.route('/supplies')
@@ -148,10 +174,14 @@ def update_status(account_id):
         else:
             for er in form.errors:
                 flash(er, 'danger')
-    activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(staff=current_user)
-        .filter_by(account_id=account_id)
+    activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
         .order_by(PurchaseTrackerStatus.start_date)]
+    if not activities:
+        default_date = datetime.now().isoformat()
+    else:
+        default_date = activities[-1][3]
     return render_template('purchase_tracker/update_record.html',
                             account_id=account_id, form=form, activities=activities, tracker=tracker,
-                           default_date=activities[-1][3])
+                           default_date=default_date)
+
 
