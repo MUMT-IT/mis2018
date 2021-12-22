@@ -32,21 +32,18 @@
                 </div>
                 <div id="navbarBasicExample" class="navbar-menu">
                     <div class="navbar-start">
-                        <a href="{{ url_for('purchase_tracker.index') }}" class="navbar-item ">
+                        <a href="{{ url_for('purchase_tracker.staff_index') }}" class="navbar-item ">
                             Home
-                        </a>
-                        <a class="navbar-item ">
-                            Services
                         </a>
                         <div class="navbar-item has-dropdown is-hoverable">
                             <a class="navbar-link ">
                                 More
                             </a>
                             <div class="navbar-dropdown">
-                                <a class="navbar-item">
+                                <a href="{{ url_for('purchase_tracker.description') }}" class="navbar-item">
                                     About
                                 </a>
-                                <a class="navbar-item">
+                                <a href="{{ url_for('purchase_tracker.contact') }}" class="navbar-item">
                                     Contact
                                 </a>
                                 <hr class="navbar-divider"/>

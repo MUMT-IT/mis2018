@@ -90,7 +90,6 @@ def initialize_gdrive():
 
 @purchase_tracker.route('/track/')
 @purchase_tracker.route('/track/<int:account_id>')
-@login_required
 def track(account_id=None):
     if account_id is not None:
         from sqlalchemy import desc
