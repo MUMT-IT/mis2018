@@ -114,14 +114,15 @@
                                         <td>{{ tracker.start_date }}</td>
                                         <td>{{ tracker.end_date }}</td>
                                         <td>
-                                            <a href=""
+{#                                            <a href="{{ url_for('purchase_tracker.edit_update_status', account_id=tracker.id) }}"#}
+                                            <a href="{{ url_for('purchase_tracker.edit_update_status', account_id=tracker.id) }}"
                                                 class="button is-small is-primary is-outlined">
                                                 <span class="icon">
                                                     <i class="fas fa-pencil-alt"></i>
                                                 </span>
                                                 <span>แก้ไข</span>
                                             </a>
-                                            <a href=""
+                                            <a href="{{ url_for('purchase_tracker.delete_update_status', account_id=tracker.id) }}"
                                                 class="button is-small is-danger is-outlined">
                                                 <span class="icon">
                                                    <i class="far fa-trash-alt"></i>
@@ -135,7 +136,7 @@
                                 </table>
                                 <div class="buttons is-centered">
                                     <a class="button is-info"
-                                       href="">
+                                       href="#update">
                                         <span class="icon">
                                             <i class="fas fa-plus"></i>
                                         </span>
@@ -147,7 +148,8 @@
 
                         </table>
                         {#                         <header class="section has-background-grey-light py-4 has-text-white">#}
-                        <div class="columns">
+                        <div class="columns" id="update">
+                            <a name="#update"></a>
                             <div class="column is-one-third is-offset-4">
                                 <form method="post"
                                       action="{{ url_for("purchase_tracker.update_status",account_id=tracker.id) }}"

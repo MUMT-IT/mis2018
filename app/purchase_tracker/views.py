@@ -184,3 +184,40 @@ def update_status(account_id):
                            default_date=default_date)
 
 
+@purchase_tracker.route('/edit_update/<int:account_id>', methods=['GET', 'POST'])
+@login_required
+def edit_update_status(account_id):
+    tracker = PurchaseTrackerStatus.query.get(account_id)
+    form = StatusForm(obj=tracker)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            status = PurchaseTrackerStatus()
+            form.populate_obj(status)
+            status.account_id = account_id
+            status.status_date = bangkok.localize(datetime.now())
+            status.creation_date = bangkok.localize(datetime.now())
+            status.cancel_datetime = bangkok.localize(datetime.now())
+            status.update_datetime = bangkok.localize(datetime.now())
+            status.staff = current_user
+            status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
+            # TODO: calculate end date from time needed to finish the task
+            db.session.add(status)
+            db.session.commit()
+            flash(u'อัพเดตข้อมูลเรียบร้อย', 'success')
+        # Check Error
+        else:
+            for er in form.errors:
+                flash(er, 'danger')
+    return render_template('purchase_tracker/edit_update_record.html',
+                                account_id=account_id, form=form, tracker=tracker)
+
+
+@purchase_tracker.route('/edit_update/delete/<int:account_id>')
+@login_required
+def delete_update_status(account_id):
+    if account_id:
+        tracker = PurchaseTrackerStatus.query.get(account_id)
+        flash(u'Information {} has been removed from the update status.')
+        db.session.delete(tracker)
+        db.session.commit()
+    return redirect(url_for('purchase_tracker.update_status', account_id=tracker.id))

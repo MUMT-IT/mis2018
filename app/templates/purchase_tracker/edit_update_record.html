@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Edit Activity{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="box">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">แก้ไขกิจกรรมที่อัพเดต</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-one-third is-offset-4">
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">{{ form.status.label }}</label>
+                            <div class="select is-fullwidth is-info">
+                             {{ form.status() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.activity.label }}</label>
+                            <div class="control">
+                                <div class="select is-fullwidth is-info">
+                                    {{ form.activity() }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.start_date.label }}</label>
+                            <div class="control">
+                                {{ form.start_date(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.days.label }}</label>
+                            <div class="control">
+                                {{ form.days(class="input", value=1) }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.comment.label }}</label>
+                            <div class="control">
+                                {{ form.comment(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="buttons ">
+                                <button class="button is-success" type="submit" value="submit">Submit
+                                </button>
+                                <a href="{{ url_for('purchase_tracker.supplies') }}"
+                                   class="button is-danger">Back</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock page_content %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $('#upload').change(function (e) {
+            let fileName = e.target.files[0].name;
+            $('#filename').text(fileName);
+        });
+    </script>
+{% endblock %}
