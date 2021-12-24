@@ -200,14 +200,10 @@ def edit_update_status(account_id):
             status.update_datetime = bangkok.localize(datetime.now())
             status.staff = current_user
             status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
-            # TODO: calculate end date from time needed to finish the task
             db.session.add(status)
             db.session.commit()
-            flash(u'อัพเดตข้อมูลเรียบร้อย', 'success')
-        # Check Error
-        else:
-            for er in form.errors:
-                flash(er, 'danger')
+            flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
+        return redirect(url_for('purchase_tracker.update_status', account_id=tracker.id))
     return render_template('purchase_tracker/edit_update_record.html',
                                 account_id=account_id, form=form, tracker=tracker)
 
@@ -217,7 +213,7 @@ def edit_update_status(account_id):
 def delete_update_status(account_id):
     if account_id:
         tracker = PurchaseTrackerStatus.query.get(account_id)
-        flash(u'Information {} has been removed from the update status.')
+        flash(u'Information has been removed from the update status.')
         db.session.delete(tracker)
         db.session.commit()
-    return redirect(url_for('purchase_tracker.update_status', account_id=tracker.id))
+    return redirect(url_for('purchase_tracker.update_status', account_id=account_id, tracker=tracker))
