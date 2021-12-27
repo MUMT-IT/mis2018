@@ -59,6 +59,6 @@ class ProcurementRecord(db.Model):
     status = db.relationship('ProcurementStatus',
                              backref=db.backref('records', lazy='dynamic'))
 
-
+#
 
 
