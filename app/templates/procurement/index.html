@@ -11,40 +11,128 @@
     {% include "messages.html" %}
     <h1 class="title">Procurement</h1>
     <h2 class="subtitle">ระบบจัดการครุภัณฑ์</h2>
+    <div class="field has-addons">
+      <div class="control">
+        <input class="input" type="text" placeholder="Find a repository">
+      </div>
+      <div class="control">
+        <a class="button is-info">
+          Search
+        </a>
+      </div>
+    </div>
     <div class="columns">
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('procurement.add_procurement') }}">
-                        <span class="icon is-large"><i class="fas fa-plus-square fa-4x"></i></span><br><br>
-                        <span class="is-size-4">เพิ่มข้อมูล</span>
-                    </a>
-                </div>
-                  <div class="box">
-                    <a href="{{ url_for('procurement.find_data') }}">
-                        <span class="icon is-large"><i class="fas fa-search fa-4x"></i></span><br><br>
-                        <span class="is-size-4">ค้นหา</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('procurement.view_procurement') }}">
-                        <span class="icon is-large"><i class="fas fa-file-alt fa-4x"></i></span><br><br>
-                        <span class="is-size-4">ดูข้อมูลทั้งหมด</span>
-                    </a>
-                </div>
-                 <div class="box">
-                    <a href="{{ url_for('procurement.view_procurement') }}">
-                        <span class="icon is-large"><i class="fas fa-check-square fa-4x"></i></span><br><br>
-                        <span class="is-size-4">ตรวจนับ</span>
-                    </a>
-                </div>
-            </div>
-        </div>
+        <div class="column is-one-third">
+            <aside class="menu">
+              <p class="menu-label">
+                General
+              </p>
+              <ul class="menu-list">
+                <li><a>Dashboard</a></li>
+              </ul>
+              <p class="menu-label">
+                จัดการทะเบียน
+              </p>
+              <ul class="menu-list">
+                <li><a>ลงทะเบียนครุภัณฑ์</a></li>
+                <li><a>ตั้งค่าประเภทครุภัณฑ์</a></li>
+                <li><a>จัดประเภทครุภัณฑ์</a></li>
+                <li><a>แก้ไขข้อมูลครุภัณฑ์</a></li>
+              </ul>
+              <p class="menu-label">
+                รายงาน
+              </p>
+              <ul class="menu-list">
+                <li><a>ครุภัณฑ์ภายในภาค</a></li>
+                <li><a>สรุปค่าเสื่อมราคา</a></li>
+                <li><a>Print ทะเบียนทรัพย์สิน</a></li>
+                <li><a>ค่าเสื่อมแยกตามทรัพย์สิน</a></li>
+                <li><a>ครุภัณฑ์ไม่ตรงกับทะเบียน</a></li>
+                <li><a>ค้นหาครุภัณฑ์ไม่ตรงกับทะเบียน</a></li>
+              </ul>
+              <p class="menu-label">
+                แจ้งครุภัณฑ์
+              </p>
+              <ul class="menu-list">
+                <li><a>แจ้งซ่อม</a></li>
+                <li><a>รายงานบริการ</a></li>
+                <li><a>ค้นหารายการ</a></li>
+              </ul>
+              <p class="menu-label">
+                ตั้งค่า
+              </p>
+              <ul class="menu-list">
+                <li><a>ตั้งรหัสห้อง</a></li>
+              </ul>
+            </aside>
         </div>
 
+         <div class="columns pt-6">
+                <div class="column">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="has-text-centered">
+                              <span class="icon is-large">
+                                <i class="fas fa-user-circle fa-4x"></i>
+                              </span>
+                            </div>
+                            <br>
+                            <p class="title is-4">
+                                เพิ่มข้อมูล
+                            </p>
+                            <div class="content">
+                                การเพิ่มรายละเอียดข้อมูลและอัพโหลดไฟล์ของครุภัณฑ์
+                            </div>
+                        </div>
+                        <footer class="card-footer">
+                            <a href="{{ url_for('procurement.add_procurement') }}" class="card-footer-item">ลงทะเบียน</a>
+                        </footer>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="has-text-centered">
+                              <span class="icon is-large">
+                                <i class="fas fa-search fa-4x"></i>
+                              </span>
+                            </div>
+                            <br>
+                            <p class="title is-4">
+                                ค้นหา
+                            </p>
+                            <div class="content">
+                                การค้นหาข้อมูลและไฟล์เอกสารของครุภัณฑ์
+                            </div>
+                        </div>
+                        <footer class="card-footer">
+                            <a href="{{ url_for('procurement.find_data') }}" class="card-footer-item">ค้นหา</a>
+                        </footer>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="has-text-centered">
+                              <span class="icon is-large">
+                                <i class="fas fa-server fa-4x"></i>
+                              </span>
+                            </div>
+                            <br>
+                            <p class="title is-4">
+                                ข้อมูลครุภัณฑ์
+                            </p>
+                            <div class="content">
+                                การดูข้อมูลและไฟล์เอกสารของข้อมูลครุภัณฑ์ทั้งหมด
+                            </div>
+                        </div>
+                        <footer class="card-footer">
+                            <a href="{{ url_for('procurement.view_procurement') }}"
+                               class="card-footer-item">ดูข้อมูล</a>
+                        </footer>
+                    </div>
+                </div>
+            </div>
+        </div>
 </section>
 {% endblock %}
