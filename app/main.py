@@ -16,6 +16,7 @@ from flask_login import LoginManager
 from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
+from flask_qrcode import QRcode
 from wtforms import DateTimeField
 from wtforms.validators import required
 from datetime import timedelta, datetime
@@ -23,6 +24,7 @@ from flask_mail import Mail
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from flask_restful import Api, Resource
+
 
 
 scope = ['https://spreadsheets.google.com/feeds',
@@ -47,13 +49,14 @@ ma = Marshmallow()
 csrf = CSRFProtect()
 admin = Admin()
 mail = Mail()
+qrcode = QRcode()
 
 dbutils = AppGroup('dbutils')
+
 
 def create_app():
     """Create app based on the config setting
     """
-
     app = Flask(__name__)
     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
@@ -79,6 +82,7 @@ def create_app():
     admin.init_app(app)
     mail.init_app(app)
     cors.init_app(app)
+    qrcode.init_app(app)
 
     return app
 
@@ -169,6 +173,24 @@ from research.models import *
 
 admin.add_views(ModelView(ResearchPub, db.session, category='Research'))
 admin.add_views(ModelView(Author, db.session, category='Research'))
+
+from procurement import procurementbp as procurement_blueprint
+
+app.register_blueprint(procurement_blueprint, url_prefix='/procurement')
+from procurement.models import *
+
+admin.add_views(ModelView(ProcurementDetail, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementCategory, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementStatus, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementRecord, db.session, category='Procurement'))
+
+from purchase_tracker import purchase_tracker_bp as purchase_tracker_blueprint
+
+app.register_blueprint(purchase_tracker_blueprint, url_prefix='/purchase_tracker')
+from app.purchase_tracker.models import *
+
+admin.add_views(ModelView(PurchaseTrackerAccount, db.session, category='PurchaseTracker'))
+admin.add_views(ModelView(PurchaseTrackerStatus, db.session, category='PurchaseTracker'))
 
 from staff import staffbp as staff_blueprint
 

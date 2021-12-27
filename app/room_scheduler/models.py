@@ -30,6 +30,7 @@ class RoomResource(db.Model):
                     autoincrement=True)
     location = db.Column('location', db.String(length=16))
     number = db.Column('number', db.String(16))
+    floor = db.Column('floor', db.String())
     occupancy = db.Column('occupancy', db.Integer(), nullable=False)
     desc = db.Column('desc', db.Text())
     business_hour_start = db.Column('business_hour_start', db.Time())

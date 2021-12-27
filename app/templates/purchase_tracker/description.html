@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Description Page{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    {% include "messages.html" %}
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    </head>
+    <body>
+
+    {# <header class="section has-background-link py-4 has-text-white">#}
+    <section class="section-padding" id="hero">
+        <div class="container">
+            <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
+                <div class="navbar-brand">
+                    <a class="navbar-item" href="https://bulma.io">
+                        <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}"/>
+                    </a>
+                    <a role="button" class="navbar-burger burger has-text-white" aria-label="menu" aria-expanded="false"
+                       data-target="navbarBasicExample">
+                        <span aria-hidden="true"></span>
+                        <span aria-hidden="true"></span>
+                        <span aria-hidden="true"></span>
+                    </a>
+                </div>
+                <div id="navbarBasicExample" class="navbar-menu">
+                    <div class="navbar-start">
+                        <a href="{{ url_for('purchase_tracker.staff_index') }}" class="navbar-item ">
+                            Home
+                        </a>
+                        <div class="navbar-item has-dropdown is-hoverable">
+                            <a class="navbar-link ">
+                                More
+                            </a>
+                            <div class="navbar-dropdown">
+                                <a class="navbar-item">
+                                    About
+                                </a>
+                                <a href="{{ url_for('purchase_tracker.contact') }}"  class="navbar-item">
+                                    Contact
+                                </a>
+                                <hr class="navbar-divider"/>
+                                <a class="navbar-item">
+                                    Report an issue
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </section>
+     <div class="columns">
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                        <div class="column mt">
+                            <img src="{{ url_for('static', filename='img/order.jpg') }}" width="350" />
+                        </div>
+                        <span class="is-size-4">ส่วนใหญ่เวลาที่เราซื้อของจะส่งข้อมูลจากหน่วยงาน,ภาควิชาหรือสำนักคณบดี
+                            หน่วยงานต่างๆให้คณบดีอนุมัติ<br>หลังจากนั้นหนังสืออนุมัติจะถุกส่งไปที่พัสดุเพื่อดำเนินการต่อ
+                            ซึ่งพัสดุหรือการเงินจะทำเรื่องจัดซื้อจัดจ้าง<br>ปัญหาคือคนที่ทำเรื่องจัดซื้อไม่ทราบว่าตอนนี้พัสดุถึงขั้นตอนไหนแล้ว
+                            ดังนั้นจึงเกิดเป็น"ระบบติดตามการจัดซื้อ" โดยใบสั่งซื้อ,ใบการเงิน,ใบขอเบิก ฯลฯ
+                            เป็นการสร้าง Account หน่วยงาน ภาควิชาต้องการซื้อของจะให้หัวหน้าภาควิชาเป็นคนเซ็น หลังจากเซ็นเรียบร้อยจะเสนอคณบดี
+                            แล้วนำหนังสือเข้าระบบเพื่อจะเวียนให้คณบดีเว็นก่อนที่ภาควิชาจะส่งออก จะมีการสร้าง Account หนึ่งเพื่อใส่รายละเอียด อัพโหลดไฟล์
+                            จากนั้นพัสดุจะเห็น Account ที่ถูกสร้างแต่จะไม่ทำอะไรจนกว่าหนังสือจะได้รับการอนุมัติจากคณบดี หลังจากที่หนังสืออนุมัติเรียบร้อย
+                            จะส่งมาที่พัสดุ และภาควิชาพัสดุจะอัพเดต ปรับสถานะและขั้นตอนต่างๆ
+                        </span>
+                    </a>
+                </div>
+         </div>
+        </div>
+     </div>
+    </body>
+    </html>
+{% endblock %}
