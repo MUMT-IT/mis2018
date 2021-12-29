@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 from flask_wtf import FlaskForm
-from wtforms import SelectMultipleField, widgets, TextAreaField, TextField, SubmitField
+from wtforms import SelectMultipleField, widgets, FileField
 from wtforms_alchemy import (model_form_factory, QuerySelectField)
 from .models import *
 
@@ -18,6 +18,10 @@ class ModelForm(BaseModelForm):
     def get_session(self):
         return db.session
 
+class CreateProcurementForm(ModelForm):
+    class Meta:
+        model = ProcurementDetail
+    upload = FileField(u'อัพโหลดไฟล์')
 
 class ProcurementRecordForm(ModelForm):
     class Meta:
@@ -30,13 +34,5 @@ class ProcurementRecordForm(ModelForm):
                                 blank_text='Select status..', allow_blank=False)
     category = QuerySelectField(u'หมวดหมู่/ประเภท', query_factory=lambda: ProcurementCategory.query.all(),
                                 blank_text='Select Category..', allow_blank=False)
-    list = TextField(u'ชื่อรายการครุภัณฑ์')
-    code = TextField(u'รหัสครุภัณฑ์')
-    model = TextField(u'รุ่น')
-    size = TextField(u'ขนาด')
-    maker = TextField(u'ผู้รับผิดชอบ')
-    desc = TextAreaField(u'รายละเอียด')
-    comment = TextField()
-    available = TextField(u'ความสามารถการใช้งาน')
-    submit = SubmitField()
+
 
