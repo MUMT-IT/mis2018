@@ -21,7 +21,9 @@ class ModelForm(BaseModelForm):
 class CreateProcurementForm(ModelForm):
     class Meta:
         model = ProcurementDetail
-    upload = FileField(u'อัพโหลดไฟล์')
+    upload = FileField(u'อัพโหลดหลักฐานการจ่าย')
+    category = QuerySelectField(u'หมวดหมู่/ประเภท', query_factory=lambda: ProcurementCategory.query.all(),
+                                blank_text='Select Category..', allow_blank=False)
 
 class ProcurementRecordForm(ModelForm):
     class Meta:
@@ -32,7 +34,6 @@ class ProcurementRecordForm(ModelForm):
                                 blank_text='Select location..', allow_blank=False)
     status = QuerySelectField(u'สถานะ', query_factory=lambda: ProcurementStatus.query.all(),
                                 blank_text='Select status..', allow_blank=False)
-    category = QuerySelectField(u'หมวดหมู่/ประเภท', query_factory=lambda: ProcurementCategory.query.all(),
-                                blank_text='Select Category..', allow_blank=False)
+
 
 

@@ -1,30 +1,76 @@
 # -*- coding:utf-8 -*-
+import os, requests
+
 from flask import render_template, request, flash, redirect, url_for, session, jsonify, Flask
 from flask_login import current_user, login_required
+from oauth2client.service_account import ServiceAccountCredentials
+from pydrive.auth import GoogleAuth
+from werkzeug.utils import secure_filename
+
 from . import procurementbp as procurement
 from .models import ProcurementDetail
 from ..main import db
 from .forms import *
 from datetime import datetime
 from pytz import timezone
+from pydrive.drive import GoogleDrive
+# Upload images for Google Drive
+FOLDER_ID = "1JYkU2kRvbvGnmpQ1Tb-TcQS-vWQKbXvy"
+
+json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 
 bangkok = timezone('Asia/Bangkok')
+
+ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
+
 
 @procurement.route('/add', methods=['GET','POST'])
 @login_required
 def add_procurement():
-    form = ProcurementRecordForm()
+    form = CreateProcurementForm()
     if request.method == 'POST':
         if form.validate_on_submit():
-            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        else:
-            pro_detail = ProcurementDetail()
-            form.populate_obj(pro_detail)
-            db.session.add(pro_detail)
+            filename = ''
+            procurement = ProcurementDetail()
+            form.populate_obj(procurement)
+            procurement.creation_date = bangkok.localize(datetime.now())
+            procurement.staff = current_user
+            drive = initialize_gdrive()
+            if form.upload.data:
+                if not filename or (form.upload.data.filename != filename):
+                    upfile = form.upload.data
+                    filename = secure_filename(upfile.filename)
+                    upfile.save(filename)
+                    file_drive = drive.CreateFile({'title': filename,
+                                                   'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
+                    file_drive.SetContentFile(filename)
+                    try:
+                        file_drive.Upload()
+                        permission = file_drive.InsertPermission({'type': 'anyone',
+                                                                  'value': 'anyone',
+                                                                  'role': 'reader'})
+                    except:
+                        flash('Failed to upload the attached file to the Google drive.', 'danger')
+                    else:
+                        flash('The attached file has been uploaded to the Google drive', 'success')
+                        procurement.url = file_drive['id']
+
+            db.session.add(procurement)
             db.session.commit()
             flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-            return render_template('procurement/index.html')
+            return render_template('procurement/view_all_data.html')
+        # Check Error
+        else:
+            for er in form.errors:
+                flash(er, 'danger')
     return render_template('procurement/new_procurement.html', form=form)
+
+
+def initialize_gdrive():
+    gauth = GoogleAuth()
+    scopes = ['https://www.googleapis.com/auth/drive']
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
+    return GoogleDrive(gauth)
 
 
 @procurement.route('/home')
@@ -40,8 +86,8 @@ def view_procurement():
     for procurement in procurement_query:
         record = {}
         record["id"] = procurement.id
-        record["list"] = procurement.list
-        record["code"] = procurement.code
+        record["name"] = procurement.name
+        record["procurement_no"] = procurement.procurement_no
         record["available"] = procurement.available
         procurement_list.append(record)
     return render_template('procurement/view_all_data.html', procurement_list=procurement_list)
@@ -79,7 +125,7 @@ def view_qrcode(procurement_id):
     return render_template('procurement/view_qrcode.html',
                            model=ProcurementRecord,
                            item=item,
-                           code=item.code)
+                           procurement_no=item.procurement_no)
 
 
 @procurement.route('/items/<int:item_id>/records/add', methods=['GET', 'POST'])
