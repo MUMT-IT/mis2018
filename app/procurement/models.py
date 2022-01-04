@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 from app.main import db
+from app.models import Org
 from app.room_scheduler.models import RoomResource
 from app.staff.models import StaffAccount
 
@@ -36,31 +37,14 @@ class ProcurementDetail(db.Model):
     size = db.Column('size', db.String(), info={'label': u'ขนาด'})
     desc = db.Column('desc', db.String(), info={'label': u'รายละเอียด'})
     comment = db.Column('comment', db.String(), info={'label': u'หมายเหตุ'})
-    department = db.Column('department', db.String(), info={'label': u'ภาควิชา',
-                                                                'choices': [(c, c) for c in
-                                                                      [u'-', u'Lab กลาง', u'ภาควิชาเคมีคลินิก',
-                                                                       u'สถานเวชศาสตร์ชันสูตร',
-                                                                       u'ศูนย์เหมืองข้อมูลและชีวการแพทย์สารสนเทศ',
-                                                                       u'ศูนย์พัฒนามาตรฐานและประเมินผลิตภัณฑ์',
-                                                                       u'ศูนย์วิจัยพัฒนานวัตกรรม',
-                                                                       u'ภาควิชาจุลชีววิทยาคลินิก',
-                                                                       u'ภาควิชาจุลทรรศนศาสตร์คลินิก',
-                                                                       u'สำนักงานคณบดี', u'เทคนิคการแพทย์ชุมชน',
-                                                                       u'ภาควิชารังสีเทคนิค',
-                                                                       u'ศูนย์เทคนิคการแพทย์และรังสีเทคนิคนานาชาติ']]})
-    building = db.Column('building', db.String(), info={'label': u'อาคาร',
-                                                            'choices': [(c, c) for c in
-                                                                        [u'ยังไม่ระบุอาคาร',
-                                                                         u'ตึกคณะเทคนิคการแพทย์ ศิริราช',
-                                                                         u'อาคารวิทยาศาตร์และเทคโนโลยีการแพทย์ ศาลายา',
-                                                                         u'อาคารห้องเอ็กซเรย์คอมพิวเตอร์ ศาลายา',
-                                                                         u'OPD ชั้น 4 รพ.ศิริราช',
-                                                                         u'ศูนย์การแพทย์กาญจนาภิเษก']]})
-    floor = db.Column('floor', db.String(), info={'label': u'ชั้น'})
-    room = db.Column('room', db.String(), info={'label': u'ห้อง'})
     responsible_person = db.Column('responsible_person', db.String(), info={'label': u'ผู้ดูแลครุภัณฑ์'})
+    org_id = db.Column('org_id', db.ForeignKey('orgs.id'))
+    org = db.relationship('Org', backref=db.backref('procurements',
+                                                    lazy='dynamic',
+                                                    cascade='all, delete-orphan'))
+
     def __str__(self):
-        return u'{}: {}'.format(self.list, self.code)
+        return u'{}: {}'.format(self.name, self.procurement_no)
 
 
 class ProcurementCategory(db.Model):
