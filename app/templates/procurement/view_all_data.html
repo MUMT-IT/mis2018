@@ -18,7 +18,13 @@
                 <table class="table is-striped" id="procurementTable">
                     <thead>
                         <th>รายการ</th>
-                        <th>รหัส</th>
+                        <th>รหัสครุภัณฑ์</th>
+                        <th>ERP</th>
+                        <th>ปีงบประมาณ</th>
+                        <th>วันที่ได้รับ</th>
+                        <th>จัดซื้อด้วยเงิน</th>
+                        <th>ภาควิชา</th>
+                        <th>ที่ตั้งปัจจุบัน</th>
                         <th>สถานะ</th>
                         <th>ดูข้อมูล</th>
                         <th>แก้ไข</th>
@@ -27,10 +33,28 @@
                     {% for record in procurement_list %}
                     <tr>
                         <td>
-                            {{ record["list"] }}
+                            {{ record["name"] }}
                         </td>
                         <td>
-                            {{ record["code"] }}
+                            {{ record["procurement_no"] }}
+                        </td>
+                        <td>
+                            {{ record["erp_code"] }}
+                        </td>
+                        <td>
+                            {{ record["budget_year"] }}
+                        </td>
+                        <td>
+                            {{ record["received_date"] }}
+                        </td>
+                        <td>
+                            {{ record["bought_by"] }}
+                        </td>
+                        <td>
+                            {{ record["organiser"] }}
+                        </td>
+                        <td>
+                            {{ record["location"] }}
                         </td>
                         <td>
                             {{ record["available"] }}
@@ -46,11 +70,6 @@
                     {% endfor %}
                     </tbody>
                 </table>
-            </div>
-        </div>
-        <div class="columns">
-            <div class="column has-text-right">
-                <p>หมายเหตุ:สามารถเพิ่มรายการใหม่โดย คลิกที่เพิ่มข้อมูล</p>
             </div>
         </div>
         <div class="columns">

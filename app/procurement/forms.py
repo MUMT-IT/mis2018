@@ -3,7 +3,7 @@ from flask_wtf import FlaskForm
 from wtforms import SelectMultipleField, widgets, FileField
 from wtforms_alchemy import (model_form_factory, QuerySelectField)
 from .models import *
-
+from ..models import Org
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -24,6 +24,11 @@ class CreateProcurementForm(ModelForm):
     upload = FileField(u'อัพโหลดหลักฐานการจ่าย')
     category = QuerySelectField(u'หมวดหมู่/ประเภท', query_factory=lambda: ProcurementCategory.query.all(),
                                 blank_text='Select Category..', allow_blank=False)
+    organiser = QuerySelectField(query_factory=lambda: Org.query.all(),
+                                 get_label='name',
+                                 label=u'ภาควิชา')
+    location = QuerySelectField(u'สถานที่', query_factory=lambda: RoomResource.query.all(),
+                                blank_text='Select location..', allow_blank=False)
 
 class ProcurementRecordForm(ModelForm):
     class Meta:

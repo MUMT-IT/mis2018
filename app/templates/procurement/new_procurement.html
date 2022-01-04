@@ -178,36 +178,24 @@
                             <h2 class="title is-3">ภาควิชาที่ซื้อและสถานที่ตั้ง</h2>
                         </div>
                     </div>
-                    <div class="field">
-                        <label class="label">{{ form.department.label }}</label>
-                        <div class="select is-fullwidth is-info">
-                            {{ form.department() }}
-                        </div>
-                    </div>
                     <div class="field-body">
                         <div class="field">
-                            <label class="label">{{ form.building.label }}</label>
+                            <label class="label">{{ form.organiser.label }}</label>
                             <div class="select is-fullwidth is-info">
-                                {{ form.building() }}
+                                {{ form.organiser() }}
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.floor.label }}</label>
-                            <div class="control">
-                                {{ form.floor(class="input is-info") }}
-                            </div>
+                                <label class="label">{{ form.location.label }}</label>
+                                <div class="select is-fullwidth is-info">
+                                    {{ form.location() }}
+                                </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.room.label }}</label>
+                            <label class="label">{{ form.responsible_person.label }}</label>
                             <div class="control">
-                                {{ form.room(class="input is-info") }}
+                                {{ form.responsible_person(class="input is-info") }}
                             </div>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.responsible_person.label }}</label>
-                        <div class="control">
-                            {{ form.responsible_person(class="input is-info") }}
                         </div>
                     </div>
                     <br>

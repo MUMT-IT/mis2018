@@ -88,6 +88,12 @@ def view_procurement():
         record["id"] = procurement.id
         record["name"] = procurement.name
         record["procurement_no"] = procurement.procurement_no
+        record["erp_code"] = procurement.erp_code
+        record["budget_year"] = procurement.budget_year
+        record["received_date"] = procurement.received_date
+        record["bought_by"] = procurement.bought_by
+        record["organiser"] = procurement.organiser
+        record["location"] = procurement.location
         record["available"] = procurement.available
         procurement_list.append(record)
     return render_template('procurement/view_all_data.html', procurement_list=procurement_list)
