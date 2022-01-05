@@ -92,8 +92,6 @@ def view_procurement():
         record["budget_year"] = procurement.budget_year
         record["received_date"] = procurement.received_date
         record["bought_by"] = procurement.bought_by
-        record["organiser"] = procurement.organiser
-        record["location"] = procurement.location
         record["available"] = procurement.available
         procurement_list.append(record)
     return render_template('procurement/view_all_data.html', procurement_list=procurement_list)
@@ -113,7 +111,7 @@ def explanation():
 @login_required
 def edit_procurement(procurement_id):
     procurement = ProcurementDetail.query.get(procurement_id)
-    form = ProcurementRecordForm(obj=procurement)
+    form = CreateProcurementForm(obj=procurement)
     if request.method == 'POST':
         pro_edit = ProcurementDetail()
         form.populate_obj(pro_edit)
@@ -152,5 +150,18 @@ def add_record(item_id):
     return render_template('procurement/record_form.html', form=form)
 
 
+@procurement.route('/category/add', methods=['GET', 'POST'])
+def add_category_ref():
+    category = db.session.query(ProcurementCategory)
+    form = ProcurementCategoryForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            new_category = ProcurementCategory()
+            form.populate_obj(new_category)
+            db.session.add(new_category)
+            db.session.commit()
+            flash('New record has been added.', 'success')
+            return redirect(url_for('procurement.index'))
+    return render_template('procurement/category_ref.html', form=form, category=category)
 
 
