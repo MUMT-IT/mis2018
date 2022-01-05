@@ -39,9 +39,9 @@
                     </p>
                     <ul class="menu-list">
                         <li><a href="{{ url_for('procurement.add_procurement') }}">ลงทะเบียนครุภัณฑ์</a></li>
-                        <li><a>ตั้งค่าประเภทครุภัณฑ์</a></li>
-                        <li><a>จัดประเภทครุภัณฑ์</a></li>
-                        <li><a>แก้ไขข้อมูลครุภัณฑ์</a></li>
+                        <li><a href="{{ url_for('procurement.add_category_ref') }}">ตั้งค่าประเภทครุภัณฑ์</a></li>
+                        <li><a href="{{ url_for('procurement.view_procurement') }}">จัดประเภทครุภัณฑ์</a></li>
+                        <li><a href="{{ url_for('procurement.view_procurement') }}"> แก้ไขข้อมูลครุภัณฑ์</a></li>
                     </ul>
                     <p class="menu-label is-size-6">
                         รายงาน

@@ -40,5 +40,7 @@ class ProcurementRecordForm(ModelForm):
     status = QuerySelectField(u'สถานะ', query_factory=lambda: ProcurementStatus.query.all(),
                                 blank_text='Select status..', allow_blank=False)
 
-
+class ProcurementCategoryForm(ModelForm):
+    class Meta:
+        model = ProcurementCategory
 
