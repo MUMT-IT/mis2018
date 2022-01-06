@@ -21,6 +21,7 @@ else:
 service_account_info = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 credentials = Credentials.from_service_account_info(service_account_info)
 
+
 @room.route('/api/iocodes')
 def get_iocodes():
     codes = []
@@ -202,7 +203,7 @@ def edit_detail(event_id=None):
         event.occupancy = occupancy
         event.refreshment = refreshment
         event.note = note
-        event.updated_at=tz.localize(datetime.utcnow())
+        event.updated_at = tz.localize(datetime.utcnow())
         event.approved = True if approved == 'yes' else False
         db.session.add(event)
         db.session.commit()
@@ -254,22 +255,22 @@ def edit_detail(event_id=None):
             event.start = event.start.astimezone(tz)
             event.end = event.end.astimezone(tz)
             return render_template('scheduler/event_edit.html',
-                        event=event, categories=categories)
+                                   event=event, categories=categories)
     else:
         return 'No room ID specified.'
 
 
 @room.route('/list', methods=['POST', 'GET'])
 def room_list():
-    if request.method=='GET':
+    if request.method == 'GET':
         rooms = RoomResource.query.all()
     else:
         room_number = request.form.get('room_number', None)
         users = request.form.get('users', 0)
         if room_number:
-            rooms = RoomResource.query.filter_by(number=room_number)
+            rooms = RoomResource.query.filter(RoomResource.number.like('%{}%'.format(room_number)))
         elif users > 0:
-            rooms = RoomResource.query.filter(RoomResource.occupancy>=users)
+            rooms = RoomResource.query.filter(RoomResource.occupancy >= users)
         else:
             rooms = []
 
@@ -278,7 +279,7 @@ def room_list():
 
 @room.route('/reserve/<room_id>', methods=['GET', 'POST'])
 def room_reserve(room_id):
-    if request.method=='POST':
+    if request.method == 'POST':
         room_no = request.form.get('number', None)
         location = request.form.get('location', None)
         category_id = request.form.get('category_id', None)
@@ -314,7 +315,7 @@ def room_reserve(room_id):
 
         if iocode and room and startdate \
                 and starttime and enddate and endtime:
-            approval_needed = True if room.availability_id==3 else False
+            approval_needed = True if room.availability_id == 3 else False
 
             new_event = RoomEvent(room_id=room.id, iocode_id=iocode.id,
                                   start=startdatetime, end=enddatetime,
@@ -382,9 +383,8 @@ def room_reserve(room_id):
         categories = EventCategory.query.all()
         if room:
             timeslots = []
-            for i in range(8,19):
+            for i in range(5, 24):
                 for j in [0, 30]:
-                    timeslots.append('{:02}:{:02}'.format(i,j))
+                    timeslots.append('{:02}:{:02}'.format(i, j))
             return render_template('scheduler/reserve_form.html',
-                        room=room, timeslots=timeslots, categories=categories)
-
+                                   room=room, timeslots=timeslots, categories=categories)
