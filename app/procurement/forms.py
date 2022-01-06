@@ -44,3 +44,13 @@ class ProcurementCategoryForm(ModelForm):
     class Meta:
         model = ProcurementCategory
 
+
+class ProcurementMaintenancForm(ModelForm):
+    class Meta:
+        model = ProcurementMaintanance
+
+    procurement_no = QuerySelectField(query_factory=lambda: ProcurementDetail.query.all(),
+                                 get_label='procurement_no',
+                                 label=u'เลขครุภัณฑ์')
+    location = QuerySelectField(u'สถานที่ให้บริการ', query_factory=lambda: RoomResource.query.all(),
+                                blank_text='Select location..', allow_blank=False)

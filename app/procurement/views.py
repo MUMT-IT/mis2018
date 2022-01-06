@@ -165,3 +165,6 @@ def add_category_ref():
     return render_template('procurement/category_ref.html', form=form, category=category)
 
 
+@procurement.route('/contact/select')
+def select_contact():
+    return render_template('procurement/maintenance_contact.html')
