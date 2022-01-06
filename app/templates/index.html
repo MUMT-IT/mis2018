@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block title %}MUMT Internal Information System{% endblock %}
-{% include "nav.html" %}
+{% include "kpi/nav.html" %}
 {% block page_content %}
 <section class="section">
     <div class="container">
@@ -11,7 +11,7 @@
         </div>
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
-                <nav class="panel is-info">
+                <nav class="panel is-primary">
                     <p class="panel-heading">Staff</p>
                     <a class="panel-block"
                         href="{{ url_for('staff.index') }}">
@@ -116,6 +116,15 @@
                         </span>
                         <span class="is-size-5">
                             ระบบฐานข้อมูลตัวชี้วัดองค์กร
+                        </span>
+                    </a>
+                    <a href="{{ url_for('kpi_blueprint.dashboard_index') }}"
+                       class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </span>
+                        <span class="is-size-5">
+                            Dashboard รายงานข้อมูลเพื่อการตัดสินใจ
                         </span>
                     </a>
                     <a href="{{ url_for('chemdb.index') }}" class="panel-block">
