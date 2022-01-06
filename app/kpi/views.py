@@ -1779,3 +1779,8 @@ def get_boardeval_data():
 @kpi.route('/management/boardeval')
 def show_boardeval():
     return render_template('management/boardeval.html')
+
+
+@kpi.route('/dashboard')
+def dashboard_index():
+    return render_template('kpi/dashboard/index.html')
