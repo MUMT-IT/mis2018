@@ -168,3 +168,17 @@ def add_category_ref():
 @procurement.route('/contact/select')
 def select_contact():
     return render_template('procurement/maintenance_contact.html')
+
+
+@procurement.route('/contact/select/it')
+def contact_it():
+    form = ProcurementMaintenancForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            new_contact = ProcurementMaintanance()
+            form.populate_obj(new_contact)
+            db.session.add(new_contact)
+            db.session.commit()
+            flash('New record has been added.', 'success')
+            return redirect(url_for('procurement.select_contact'))
+    return render_template('procurement/contact_it.html', form=form)
