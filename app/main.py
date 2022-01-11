@@ -183,7 +183,8 @@ admin.add_views(ModelView(ProcurementDetail, db.session, category='Procurement')
 admin.add_views(ModelView(ProcurementCategory, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementStatus, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementRecord, db.session, category='Procurement'))
-admin.add_views(ModelView(ProcurementMaintanance, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementRequire, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementMaintenance, db.session, category='Procurement'))
 
 from purchase_tracker import purchase_tracker_bp as purchase_tracker_blueprint
 
