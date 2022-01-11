@@ -170,12 +170,12 @@ def select_contact():
     return render_template('procurement/maintenance_contact.html')
 
 
-@procurement.route('/contact/select/it')
+@procurement.route('/contact/select/it', methods=['GET', 'POST'])
 def contact_it():
-    form = ProcurementMaintenancForm()
+    form = ProcurementRequireForm()
     if request.method == 'POST':
         if form.validate_on_submit():
-            new_contact = ProcurementMaintanance()
+            new_contact = ProcurementRequire()
             form.populate_obj(new_contact)
             new_contact.staff = current_user
             db.session.add(new_contact)
@@ -185,13 +185,14 @@ def contact_it():
     return render_template('procurement/contact_it.html', form=form)
 
 
-@procurement.route('/contact/select/repair')
+@procurement.route('/contact/select/repair', methods=['GET', 'POST'])
 def contact_repair():
-    form = ProcurementMaintenancForm()
+    form = ProcurementRequireForm()
     if request.method == 'POST':
         if form.validate_on_submit():
-            new_contact = ProcurementMaintanance()
+            new_contact = ProcurementRequire()
             form.populate_obj(new_contact)
+            new_contact.staff = current_user
             db.session.add(new_contact)
             db.session.commit()
             flash('New record has been added.', 'success')
@@ -203,14 +204,12 @@ def contact_repair():
 @login_required
 def view_maintenance():
     maintenance_list = []
-    maintenance_query = ProcurementMaintanance.query.all()
+    maintenance_query = ProcurementRequire.query.all()
     for maintenance in maintenance_query:
         record = {}
         record["id"] = maintenance.id
         record["service"] = maintenance.service
-        record["procurement_no"] = maintenance.procurement_no
         record["notice_date"] = maintenance.notice_date
-        record["location"] = maintenance.location
         record["explan"] = maintenance.explan
         maintenance_list.append(record)
     return render_template('procurement/view_all_maintenance.html', maintenance_list=maintenance_list)

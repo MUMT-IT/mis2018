@@ -18,10 +18,8 @@
                 <table class="table is-striped" id="maintenanceTable">
                     <thead>
                         <th>วันที่ขอบริการ</th>
-                        <th>รหัสครุภัณฑ์</th>
                         <th>ชื่อเครื่อง/การบริการ</th>
                         <th>รายละเอียดขอบริการ</th>
-                        <th>สถานที่</th>
                         <th>สถานะ</th>
                         <th>ดูข้อมูล</th>
                         <th>แก้ไข</th>
@@ -33,16 +31,10 @@
                             {{ record["notice_date"] }}
                         </td>
                         <td>
-                            {{ record["procurement_no"] }}
-                        </td>
-                        <td>
                             {{ record["service"] }}
                         </td>
                         <td>
                             {{ record["explan"] }}
-                        </td>
-                        <td>
-                            {{ record["location"] }}
                         </td>
                         <td>
 

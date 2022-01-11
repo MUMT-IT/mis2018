@@ -84,33 +84,41 @@ class ProcurementRecord(db.Model):
                              backref=db.backref('records', lazy='dynamic'))
 
 
-class ProcurementMaintanance(db.Model):
-    __tablename__ = 'procurement_maintanances'
+class ProcurementRequire(db.Model):
+    __tablename__ = 'procurement_requires'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'),
                          nullable=False)
     staff = db.relationship(StaffAccount)
     service = db.Column('service', db.String(255), info={'label': u'ชื่อเครื่อง/การบริการ'})
-    explan = db.Column('explan', db.String(), info={'label': u'คำอธิบาย'})
+    explan = db.Column('explan', db.Text(), info={'label': u'คำอธิบาย'})
     notice_date = db.Column('start_date', db.Date(), nullable=False, info={'label': u'วันที่แจ้งซ่อม'})
+
+    def __str__(self):
+        return self.service
+
+
+class ProcurementMaintenance(db.Model):
+    __tablename__ = 'procurement_maintenances'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'),
+                         nullable=False)
+    staff = db.relationship(StaffAccount)
     repair_date = db.Column('repair_date', db.Date(), info={'label': u'วันที่ซ่อมแซม'})
-    detail = db.Column('detail', db.String(), info={'label': u'รายละเอียด'})
+    detail = db.Column('detail', db.Text(), info={'label': u'รายละเอียด'})
     note = db.Column('note', db.String(), info={'label': u'หมายเหตุ'})
     type = db.Column('type', db.String(), info={'label': u'ลักษณะการซ่อม',
-                                                                      'choices': [(c, c) for c in
-                                                                                  [u'ซ่อมได้เลย', u'ซ่อมได้ต้องรออะไหล่',
-                                                                                   u'ซ่อมค่อนข้างยาก', u'ส่งบริษัทซ่อม',
-                                                                                   u'ควรแทงจำหน่าย', u'อื่นๆ']]})
+                                                'choices': [(c, c) for c in
+                                                            [u'ซ่อมได้เลย', u'ซ่อมได้ต้องรออะไหล่',
+                                                             u'ซ่อมค่อนข้างยาก', u'ส่งบริษัทซ่อม',
+                                                             u'ควรแทงจำหน่าย', u'อื่นๆ']]})
     company_name = db.Column('company_name', db.String(255), info={'label': u'ชื่อบริษัทส่งซ่อม'})
     contact_name = db.Column('contact_name', db.String(255), info={'label': u'ชื่อผู้ติดต่อ'})
     tel = db.Column('tel', db.Integer(), info={'label': u'เบอร์ผู้ติดต่อ'})
     cost = db.Column('cost', db.Integer(), info={'label': u'ราคาซ่อมที่เสนอ'})
     company_des = db.Column('company_des', db.String(), info={'label': u'รายละเอียดการซ่อมจากบริษัท'})
     require = db.Column('require', db.String(), info={'label': u'ความต้องการอะไหล่',
-                                                'choices': [(c, c) for c in
-                                                            [u'ต้องการเบิกอะไหล่', u'ไม่ต้องการเบิกอะไหล่',
-                                                             u'อื่นๆ']]})
-
-    def __str__(self):
-        return self.service
+                                                      'choices': [(c, c) for c in
+                                                                  [u'ต้องการเบิกอะไหล่', u'ไม่ต้องการเบิกอะไหล่',
+                                                                   u'อื่นๆ']]})
 

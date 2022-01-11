@@ -45,9 +45,9 @@ class ProcurementCategoryForm(ModelForm):
         model = ProcurementCategory
 
 
-class ProcurementMaintenancForm(ModelForm):
+class ProcurementRequireForm(ModelForm):
     class Meta:
-        model = ProcurementMaintanance
+        model = ProcurementRequire
 
     procurement_no = QuerySelectField(query_factory=lambda: ProcurementDetail.query.all(),
                                  get_label='procurement_no',
