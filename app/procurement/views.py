@@ -58,7 +58,7 @@ def add_procurement():
             db.session.add(procurement)
             db.session.commit()
             flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-            return render_template('procurement/view_all_data.html')
+            return redirect(url_for('procurement.view_procurement'))
         # Check Error
         else:
             for er in form.errors:
@@ -213,3 +213,35 @@ def view_maintenance():
         record["explan"] = maintenance.explan
         maintenance_list.append(record)
     return render_template('procurement/view_all_maintenance.html', maintenance_list=maintenance_list)
+
+
+@procurement.route('/maintenance/user_require/')
+@login_required
+def view_require_service():
+    require_list = []
+    maintenance_query = ProcurementRequire.query.all()
+    for maintenance in maintenance_query:
+        record = {}
+        record["id"] = maintenance.id
+        record["service"] = maintenance.service
+        record["notice_date"] = maintenance.notice_date
+        record["explan"] = maintenance.explan
+        require_list.append(record)
+    return render_template('procurement/view_by_ITxRepair.html', require_list=require_list)
+
+
+@procurement.route('/service/<int:service_id>/update', methods=['GET', 'POST'])
+@login_required
+def update_record(service_id):
+    form = ProcurementMaintenanceForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            update_record = ProcurementMaintenance()
+            form.populate_obj(update_record)
+            update_record.service_id = service_id
+            update_record.staff = current_user
+            db.session.add(update_record)
+            db.session.commit()
+            flash('Update record has been added.', 'success')
+            return redirect(url_for('procurement.view_require_service'))
+    return render_template('procurement/update_by_ITxRepair.html', form=form)

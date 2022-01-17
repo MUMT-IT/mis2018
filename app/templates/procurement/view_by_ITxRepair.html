@@ -17,14 +17,19 @@
             <div class="column">
                 <table class="table is-striped" id="maintenanceTable">
                     <thead>
+                        <th>รหัสบริการ</th>
                         <th>วันที่ขอบริการ</th>
                         <th>ชื่อเครื่อง/การบริการ</th>
                         <th>รายละเอียดขอบริการ</th>
                         <th>สถานะ</th>
+                        <th>Update</th>
                     </thead>
                     <tbody>
-                    {% for record in maintenance_list %}
+                    {% for record in require_list %}
                     <tr>
+                        <td>
+
+                        </td>
                         <td>
                             {{ record["notice_date"] }}
                         </td>
@@ -33,6 +38,14 @@
                         </td>
                         <td>
                             {{ record["explan"] }}
+                        </td>
+                        <td>
+
+                        </td>
+                        <td>
+                             <a href="{{ url_for('procurement.update_record', service_id=record.id) }}">
+                                <i class="fas fa-edit"></i>
+                             </a>
                         </td>
                     {% endfor %}
                     </tbody>
