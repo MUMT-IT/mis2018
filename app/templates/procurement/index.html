@@ -58,7 +58,7 @@
                         แจ้งครุภัณฑ์
                     </p>
                     <ul class="menu-list">
-                        <li><a href="{{ url_for('procurement.select_contact') }}">แจ้งซ่อม</a></li>
+                        <li><a href="{{ url_for('procurement.require_service') }}">แจ้งซ่อม</a></li>
                         <li><a>รายงานบริการ</a></li>
                         <li><a href="{{ url_for('procurement.view_maintenance') }}">ค้นหารายการ</a></li>
                     </ul>
@@ -67,6 +67,9 @@
                     </p>
                     <ul class="menu-list">
                         <li><a>ตั้งรหัสห้อง</a></li>
+                    </ul>
+                    <ul class="menu-list">
+                        <li><a href="{{ url_for('procurement.view_require_service') }}">IT & หน่วยซ่อมบำรุง</a></li>
                     </ul>
                 </aside>
             </div>

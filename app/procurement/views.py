@@ -113,9 +113,8 @@ def edit_procurement(procurement_id):
     procurement = ProcurementDetail.query.get(procurement_id)
     form = CreateProcurementForm(obj=procurement)
     if request.method == 'POST':
-        pro_edit = ProcurementDetail()
-        form.populate_obj(pro_edit)
-        db.session.add(pro_edit)
+        form.populate_obj(procurement)
+        db.session.add(procurement)
         db.session.commit()
         flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
         return redirect(url_for('procurement.view_procurement'))
@@ -165,13 +164,8 @@ def add_category_ref():
     return render_template('procurement/category_ref.html', form=form, category=category)
 
 
-@procurement.route('/contact/select')
-def select_contact():
-    return render_template('procurement/maintenance_contact.html')
-
-
-@procurement.route('/contact/select/it', methods=['GET', 'POST'])
-def contact_it():
+@procurement.route('/service/require/', methods=['GET', 'POST'])
+def require_service():
     form = ProcurementRequireForm()
     if request.method == 'POST':
         if form.validate_on_submit():
@@ -181,23 +175,8 @@ def contact_it():
             db.session.add(new_contact)
             db.session.commit()
             flash('New record has been added.', 'success')
-            return redirect(url_for('procurement.select_contact'))
-    return render_template('procurement/contact_it.html', form=form)
-
-
-@procurement.route('/contact/select/repair', methods=['GET', 'POST'])
-def contact_repair():
-    form = ProcurementRequireForm()
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            new_contact = ProcurementRequire()
-            form.populate_obj(new_contact)
-            new_contact.staff = current_user
-            db.session.add(new_contact)
-            db.session.commit()
-            flash('New record has been added.', 'success')
-            return redirect(url_for('procurement.select_contact'))
-    return render_template('procurement/contact_repair.html', form=form)
+            return redirect(url_for('procurement.view_maintenance'))
+    return render_template('procurement/contact_maintenance.html', form=form)
 
 
 @procurement.route('/allMaintenance')

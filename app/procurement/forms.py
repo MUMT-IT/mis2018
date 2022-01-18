@@ -25,9 +25,9 @@ class CreateProcurementForm(ModelForm):
     upload = FileField(u'อัพโหลดหลักฐานการจ่าย')
     category = QuerySelectField(u'หมวดหมู่/ประเภท', query_factory=lambda: ProcurementCategory.query.all(),
                                 blank_text='Select Category..', allow_blank=False)
-    organiser = QuerySelectField(query_factory=lambda: Org.query.all(),
+    org = QuerySelectField(query_factory=lambda: Org.query.all(),
                                  get_label='name',
-                                 label=u'ภาควิชา')
+                                 label=u'ภาควิชา/หน่วยงาน')
     location = QuerySelectField(u'สถานที่', query_factory=lambda: RoomResource.query.all(),
                                 blank_text='Select location..', allow_blank=False)
 
