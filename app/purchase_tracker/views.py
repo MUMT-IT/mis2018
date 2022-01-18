@@ -216,4 +216,4 @@ def delete_update_status(account_id):
         flash(u'Information has been removed from the update status.')
         db.session.delete(tracker)
         db.session.commit()
-    return redirect(url_for('purchase_tracker.update_status', account_id=account_id, tracker=tracker))
+        return redirect(url_for('purchase_tracker.supplies', account_id=account_id, tracker=tracker))
