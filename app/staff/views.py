@@ -1920,6 +1920,14 @@ def staff_index():
 def staff_create_info():
     if request.method == 'POST':
         form = request.form
+        getemail = form.get('email')
+        for staff in StaffAccount.query.all() :
+            if staff.email == getemail:
+                flash(u'มีบัญชีนี้อยู่ในระบบแล้ว', 'warning')
+                departments = Org.query.all()
+                employments = StaffEmployment.query.all()
+                return render_template('staff/staff_create_info.html', departments=departments, employments=employments)
+
         start_d = form.get('employed_date')
         start_date = datetime.strptime(start_d, '%d/%m/%Y')
         createstaff = StaffPersonalInfo(
