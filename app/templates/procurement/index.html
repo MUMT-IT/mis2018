@@ -17,7 +17,7 @@
         </div>
         <div class="field has-addons">
             <div class="control">
-                <input class="input" type="text" placeholder="Find a repository">
+                <input class="input" id="mySearch" onkeyup="myFunction()" type="text" placeholder="Find a repository">
             </div>
             <div class="control">
                 <a class="button is-info">
@@ -25,9 +25,9 @@
                 </a>
             </div>
         </div>
-        <div class="columns">
+        <div class="columns" >
             <div class="column is-one-third">
-                <aside class="menu">
+                <aside class="menu" id="myMenu">
                     <p class="menu-label is-size-6">
                         General
                     </p>
@@ -169,5 +169,22 @@
                 }
             });
         });
+    </script>
+    <script>
+        function myFunction() {
+          var input, filter, ul, li, a, i;
+          input = document.getElementById("mySearch");
+          filter = input.value.toUpperCase();
+          ul = document.getElementById("myMenu");
+          li = ul.getElementsByTagName("li");
+          for (i = 0; i < li.length; i++) {
+            a = li[i].getElementsByTagName("a")[0];
+            if (a.innerHTML.toUpperCase().indexOf(filter) > -1) {
+              li[i].style.display = "";
+            } else {
+              li[i].style.display = "none";
+            }
+          }
+        }
     </script>
 {% endblock %}
