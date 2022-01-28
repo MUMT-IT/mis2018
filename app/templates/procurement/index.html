@@ -5,6 +5,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css"
           media="print">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.css">
 {% endblock head %}
 {% include "procurement/nav.html" %}
 {% block page_content %}
@@ -75,7 +76,8 @@
             </div>
             <div class="columns">
                 <div class="column">
-                    <p class="bd-notification is-info" id="room_calendar"><br>
+                    <p class="bd-notification is-info"><br>
+                    <div id='calendar'></div>
                     <div class="has-text-centered">
                         <h5 class="subtitle is-6 has-text-grey">
                             All the features can ...
@@ -156,20 +158,7 @@
     {{ super() }}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
-    <script>
-        $(function () {
-            $('#room_calendar').fullCalendar({
-                header: {
-                    left: 'title',
-                },
-                events: '/room/api/events',
-                eventLimit: true,
-                eventClick: function (calEvent, jsEvent, view) {
-                    window.location = '/room/events/' + calEvent.id;
-                }
-            });
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.10.1/main.min.js"></script>
     <script>
         function myFunction() {
           var input, filter, ul, li, a, i;
@@ -186,5 +175,44 @@
             }
           }
         }
+    </script>
+    <script>
+       document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      initialDate: '2022-01-07',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+      },
+      events: [
+        {
+          title: '-SMN-65/0409',
+          start: '2022-01-04'
+        },
+        {
+          title: '-SMN-65/0355',
+          start: '2022-01-05'
+        },
+        {
+          title: '-SMN-65/0356',
+          start: '2022-01-05'
+        },
+        {
+          title: '-SMN-65/0411',
+          start: '2022-01-05'
+        },
+        {
+          title: '-SMN-65/0413',
+          start: '2022-01-11'
+        }
+      ]
+    });
+
+    calendar.render();
+  });
     </script>
 {% endblock %}
