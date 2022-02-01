@@ -269,10 +269,10 @@ def room_list():
         users = request.form.get('users', 0)
         if room_number:
             rooms = RoomResource.query.filter(RoomResource.number.like('%{}%'.format(room_number)))
-        elif users > 0:
-            rooms = RoomResource.query.filter(RoomResource.occupancy >= users)
         else:
             rooms = []
+        if request.headers.get('HX-Request') == 'true':
+            return render_template('scheduler/partials/room_list.html', rooms=rooms)
 
     return render_template('scheduler/room_list.html', rooms=rooms)
 

@@ -1,13 +1,19 @@
 {% extends "base.html" %}
 {% block title %}Add New Event{% endblock %}
 {% include "scheduler/nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
 {% block page_content %}
 <section class="section" id="app">
     <div class="columns">
         <div class="column">
             {% include "messages.html" %}
         </div>
-        <div class="column is-8 is-offset-2">
+    </div>
+    <div class="columns">
+        <div class="column is-two-thirds is-offset-2">
             <div class="box">
                 <p class="has-text-centered">กรุณากรอกข้อมูลการจองห้องให้สมบูรณ์</p>
                 {% if room.required_permission %}
@@ -65,7 +71,7 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input " v-model="title"
+                                    <input class="input is-danger" v-model="title"
                                         name="title" type="text" placeholder="จุดประสงค์การใช้ห้อง หัวข้อกิจกรรม">
                                 </div>
                             </div>
@@ -98,8 +104,11 @@
                         </div>
                         <div class="field-body">
                             <div class="field">
-                                <div class="control">
-                                    <input class="input" type="date" name="startdate" v-model="startdate" @change="checkDate()">
+                                <div class="control has-icons-left">
+                                    <input class="input is-danger" name="startdate" v-on:apply.daterangepicker="startdate=$event.target.value">
+                                    <span class="icon is-small is-left">
+                                        <i class="far fa-calendar-alt"></i>
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -109,7 +118,7 @@
                             <label class="label">เวลา</label>
                         </div>
                         <div class="field-body">
-                            <div class="select">
+                            <div class="select is-danger">
                                 <select name="starttime">
                                     {% for ts in timeslots %}
                                         <option value="{{ ts }}">{{ ts }}</option>
@@ -119,14 +128,18 @@
                             </div>
                         </div>
                     </div>
+                    <% enddate %> End date
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
                             <label class="label">สิ้นสุดวันที่</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
-                                <div class="control">
-                                    <input class="input" type="date" name="enddate" v-model="enddate" @change="checkDate()">
+                                <div class="control has-icons-left">
+                                    <input class="input is-danger" name="enddate" v-on:apply.daterangepicker="enddate=$event.target.value">
+                                    <span class="icon is-small is-left">
+                                        <i class="far fa-calendar-alt"></i>
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -136,7 +149,7 @@
                             <label class="label">เวลา</label>
                         </div>
                         <div class="field-body">
-                            <div class="select">
+                            <div class="select is-danger">
                                 <select name="endtime">
                                     {% for ts in timeslots %}
                                     <option value="{{ ts }}">{{ ts }}</option>
@@ -228,7 +241,32 @@
 
 {% block scripts %}
 {{super()}}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script type="text/javascript">
+    $(document).ready(function() {
+        $('input[name="startdate"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: false,
+            startDate: new Date(),
+            endDate: new Date(),
+            autoUpdateInput: true,
+            autoApply: true,
+            locale: {
+                format: 'YYYY-MM-DD'
+            }
+        });
+        $('input[name="enddate"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: false,
+            startDate: new Date(),
+            endDate: new Date(),
+            autoUpdateInput: true,
+            autoApply: true,
+            locale: {
+                format: 'YYYY-MM-DD'
+            }
+        });
+    });
     var vm = new Vue({
         el: '#app',
         delimiters: ['<%', '%>'],
@@ -250,9 +288,8 @@
         },
         computed: {
             datedelta: function() {
-                var self = this
-                if (self.startdate !== undefined && self.enddate !== undefined) {
-                    return new Date(self.enddate) - new Date(self.startdate)
+                if (this.startdate !== undefined && this.enddate !== undefined) {
+                    return new Date(this.enddate) - new Date(this.startdate)
                 } else {
                     return 0
                 }
@@ -268,15 +305,14 @@
         },
         methods: {
             checkDate: function() {
-                var self = this
-                if (self.datedelta < 0) {
-                    self.$toast.open({
+                if (this.datedelta < 0) {
+                    this.$toast.open({
                         duration: 2000,
                         message: 'วันสิ้นสุดต้องมาหลังวันเริ่มต้น',
                         position: 'is-bottom',
                         type: 'is-danger'
                     })
-                }
+                } 
             },
             checkFood: function() {
                 var self = this
@@ -301,10 +337,10 @@
                 }
             },
             isNotReady: function() {
-                var self = this
-                if(self.datedelta >= 0 && self.iocode !== '' &&
-                    self.startdate !== undefined &&
-                    self.title !== '' && self.participant >= 1) {
+                console.log(this.startdate)
+                if(this.datedelta >= 0 &&
+                    this.startdate !== undefined &&
+                    this.title !== '' && this.participant >= 1) {
                     return false
                 } else {
                     return true
