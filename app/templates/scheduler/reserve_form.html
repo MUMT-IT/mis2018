@@ -80,7 +80,7 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <v-date-picker mode="dateTime"
+                                    <v-date-picker mode="dateTime" @input="checkDate"
                                                    v-model="startdate" is24hr :minute-increment="30">
                                     </v-date-picker>
                                 </div>
@@ -95,7 +95,7 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <v-date-picker mode="dateTime"
+                                    <v-date-picker mode="dateTime" @input="checkDate"
                                                    v-model="enddate" is24hr :minute-increment="30">
                                     </v-date-picker>
                                     <input name="enddate" :value="enddate.toISOString()" type="hidden">
@@ -135,7 +135,7 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">รายละเอียดเพิ่มเติม</label>
+                            <label class="label">ความต้องการเพิ่มเติม</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
@@ -193,7 +193,7 @@
         methods: {
             checkDate: function() {
                 if (this.datedelta < 0) {
-                    this.$toast.open({
+                    this.$buefy.toast.open({
                         duration: 2000,
                         message: 'วันสิ้นสุดต้องมาหลังวันเริ่มต้น',
                         position: 'is-bottom',
@@ -203,7 +203,7 @@
             },
             checkParticipant: function() {
                 if (this.participant < 1) {
-                    this.$toast.open({
+                    this.$buefy.toast.open({
                         duration: 2000,
                         message: 'ผู้ใช้งานห้องต้องมีจำนวนอย่างน้อยหนึ่งคน',
                         position: 'is-bottom',
@@ -212,9 +212,7 @@
                 }
             },
             isNotReady: function() {
-                if(this.datedelta >= 0 &&
-                    this.startdate !== undefined &&
-                    this.title !== '' && this.participant >= 1) {
+                if(this.datedelta > 0 && this.title !== '' && this.participant >= 1) {
                     return false
                 } else {
                     return true

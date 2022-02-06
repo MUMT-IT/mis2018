@@ -5,6 +5,11 @@
     <section class="section" id="app">
         <div class="container">
             <div class="columns">
+                <div class="column">
+                    {% include "messages.html" %}
+                </div>
+            </div>
+            <div class="columns">
                 <div class="column is-one-third is-offset-one-third">
                     <div class="card">
                         <div class="card-image">
@@ -45,14 +50,14 @@
                                             <i class="far fa-check-circle has-text-success"></i>
                                         </span>
                                             <span class="has-text-success">
-                                            &nbsp;ยืนยันแล้ว
+                                            &nbsp;อนุมัติแล้ว
                                             </span>
                                         {% else %}
                                             <span class="icon">
                                                 <i class="far fa-circle has-text-danger"></i>
                                             </span>
                                             <span class="has-text-danger">
-                                                &nbsp;รอการยืนยัน
+                                                &nbsp;รอการอนุมัติ
                                             </span>
                                         {% endif %}
                                     </span>
@@ -60,24 +65,35 @@
                             </div>
                         </div>
                         <footer class="card-footer">
-                            <a href="{{ url_for('room.index') }}" class="card-footer-item">กลับ</a>
+                            <a href="{{ url_for('room.index') }}" class="card-footer-item">
+                                <span class="icon">
+                                    <i class="fas fa-chevron-left has-text-link"></i>
+                                </span>
+                                <span>กลับ</span>
+                            </a>
                             {% if not event.approved %}
                                 <a href="{{ url_for('room.approve_event', event_id=event.id) }}"
                                    class="card-footer-item">
-                                    <span class="icon has-text-success">
-                                        <span>ยืนยัน</span>
+                                    <span class="icon">
+                                        <i class="far fa-calendar-check has-text-success"></i>
                                     </span>
+                                    <span class="has-text-success">อนุมัติ (สำหรับผู้ดูแลห้อง)</span>
                                 </a>
                                 <a href="{{ url_for('room.edit_detail', event_id=event.id) }}"
                                    class="card-footer-item">
-                                    แก้ไขหรือเพิ่มรายละเอียด
+                                    <span class="icon">
+                                        <i class="fas fa-pencil-alt has-text-link"></i>
+                                    </span>
+                                    <span>
+                                        แก้ไขหรือเพิ่มรายละเอียด
+                                    </span>
                                 </a>
                                 <a href="{{ url_for('room.cancel', event_id=event.id) }}"
                                    class="card-footer-item">
-                                    <span class="icon has-text-danger">
-                                        <i class="far fa-trash-alt"></i>
+                                    <span class="icon">
+                                        <i class="far fa-trash-alt has-text-danger"></i>
                                     </span>
-                                    <span>ยกเลิก</span></a>
+                                    <span class="has-text-danger">ยกเลิก</span></a>
                             {% endif %}
                         </footer>
                     </div>
