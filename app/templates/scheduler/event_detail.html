@@ -61,14 +61,16 @@
                         </div>
                         <footer class="card-footer">
                             <a href="{{ url_for('room.index') }}" class="card-footer-item">กลับ</a>
-                            <a href="{{ url_for('room.edit_detail', event_id=event.id) }}"
-                               class="card-footer-item">แก้ไข</a>
                             {% if not event.approved %}
-                                <a href="{{ url_for('room.edit_detail', event_id=event.id) }}"
+                                <a href="{{ url_for('room.approve_event', event_id=event.id) }}"
                                    class="card-footer-item">
                                     <span class="icon has-text-success">
                                         <span>ยืนยัน</span>
                                     </span>
+                                </a>
+                                <a href="{{ url_for('room.edit_detail', event_id=event.id) }}"
+                                   class="card-footer-item">
+                                    แก้ไขหรือเพิ่มรายละเอียด
                                 </a>
                                 <a href="{{ url_for('room.cancel', event_id=event.id) }}"
                                    class="card-footer-item">
