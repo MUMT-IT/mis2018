@@ -1,14 +1,8 @@
 {% extends "base.html" %}
 {% block title %}Purchase Tracker Page{% endblock %}
-{% include "nav.html" %}
-{% block page_content %}
-    {% include "messages.html" %}
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-        <style>
+{% block head %}
+    {{ super() }}
+    <style>
             .hero {
                   background: linear-gradient(#0006, #0006), url();
                 /*   background-image: url(); */
@@ -22,8 +16,9 @@
                   align-items: center;
                 }
         </style>
-    </head>
-    <body>
+{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
 
 <section class="hero is-small is-white">
     <div class="hero-body">
@@ -74,7 +69,4 @@
         </header>
     </div>
 </section>
-</header>
-</body>
-</html>
 {% endblock %}
