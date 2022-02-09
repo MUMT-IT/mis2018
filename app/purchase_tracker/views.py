@@ -8,7 +8,6 @@ from sqlalchemy_utils.types.arrow import arrow
 from werkzeug.utils import secure_filename
 from . import purchase_tracker_bp as purchase_tracker
 
-from ..main import db
 from .forms import *
 from datetime import datetime, timedelta
 from pytz import timezone
