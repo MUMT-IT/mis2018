@@ -15,6 +15,8 @@ from pytz import timezone
 from pydrive.drive import GoogleDrive
 from .models import PurchaseTrackerAccount
 # Upload images for Google Drive
+
+
 FOLDER_ID = "1JYkU2kRvbvGnmpQ1Tb-TcQS-vWQKbXvy"
 
 json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -31,6 +33,7 @@ def first_page():
 
 @purchase_tracker.route('/personnel/personnel_index')
 def staff_index():
+
     return render_template('purchase_tracker/personnel/personnel_index.html')
 
 
