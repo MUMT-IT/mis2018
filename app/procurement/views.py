@@ -14,6 +14,7 @@ from .forms import *
 from datetime import datetime
 from pytz import timezone
 from pydrive.drive import GoogleDrive
+
 # Upload images for Google Drive
 FOLDER_ID = "1JYkU2kRvbvGnmpQ1Tb-TcQS-vWQKbXvy"
 
@@ -24,7 +25,7 @@ bangkok = timezone('Asia/Bangkok')
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
-@procurement.route('/add', methods=['GET','POST'])
+@procurement.route('/add', methods=['GET', 'POST'])
 @login_required
 def add_procurement():
     form = CreateProcurementForm()
@@ -107,7 +108,8 @@ def find_data():
 def explanation():
     return render_template('procurement/explanation.html')
 
-@procurement.route('/edit/<int:procurement_id>', methods=['GET','POST'])
+
+@procurement.route('/edit/<int:procurement_id>', methods=['GET', 'POST'])
 @login_required
 def edit_procurement(procurement_id):
     procurement = ProcurementDetail.query.get(procurement_id)
