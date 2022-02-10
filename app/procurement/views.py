@@ -73,7 +73,7 @@ def initialize_gdrive():
     return GoogleDrive(gauth)
 
 
-@procurement.route('/home')
+@procurement.route('/')
 def index():
     return render_template('procurement/index.html')
 
