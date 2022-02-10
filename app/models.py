@@ -238,6 +238,15 @@ class IOCode(db.Model):
     def __repr__(self):
         return u'{}:{}'.format(self.id, self.name)
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'costCenter': u'{}'.format(self.cost_center.id),
+            'name': u'{}'.format(self.name),
+            'org': u'{}'.format(self.org.name),
+            'mission': u'{}'.format(self.mission.name)
+        }
+
 
 class OrgSchema(ma.ModelSchema):
     class Meta:

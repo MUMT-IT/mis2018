@@ -10,26 +10,41 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="field">
                     <p class="control has-icons-right">
-                        <input class="input" type="text" name="room_number" placeholder="ค้นหาห้องหมายเลขห้อง">
+                        <input class="input" type="text" name="room_number"
+                            hx-post="{{ url_for('room.room_list') }}"
+                            hx-trigger="keyup changed delay:500ms"
+                            hx-target="#roomTable"
+                            hx-swap="innerHTML"
+                            placeholder="ค้นหาห้องหมายเลขห้อง">
                         <span class="icon is-right">
                             <i class="fas fa-search"></i>
                         </span>
                     </p>
                 </div>
-                <div class="field">
-                    <p class="control has-icons-right">
-                        <input class="input" type="text" name="users" placeholder="ค้นหาห้องตามจำนวนคน">
-                        <span class="icon is-right">
-                            <i class="fas fa-users"></i>
-                        </span>
-                    </p>
-                </div>
-                <button type="submit" class="button is-rounded is-success">
-                    <strong>Go</strong></button>
             </form>
-            <p>
-                <a href="{{ url_for('room.room_list') }}">ดูรายการห้องทั้งหมด</a>
-            </p>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-two-thirds is-offset-2">
+            <table class="table">
+                <thead>
+                    <th>หมายเลขห้อง</th>
+                    <th>จำนวนคนสูงสุด</th>
+                    <th>รายละเอียด</th>
+                    <th>ความพร้อมใช้</th>
+                    <th>ชนิดของห้อง</th>
+                    <th>เวลาทำการ</th>
+                    <th>วิทยาเขต</th>
+                    <th>ดูข้อมูลการจอง</th>
+                    <th></th>
+                </thead>
+                <tbody id="roomTable"></tbody>
+            </table>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-two-thirds is-offset-2">
+            <a href="{{ url_for('room.room_list') }}">ดูรายการห้องทั้งหมด</a>
         </div>
     </div>
 </section>

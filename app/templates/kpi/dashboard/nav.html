@@ -1,4 +1,4 @@
-<nav class="navbar is-link">
+<nav class="navbar is-primary">
     <div class="container">
         <div class="navbar-brand">
             <span class="navbar-burger burger" data-target="navbarMenuHeroA">
@@ -9,7 +9,7 @@
         </div>
         <div id="navbarMenuHeroA" class="navbar-menu">
             <div class="navbar-end">
-                <a class="navbar-item" href="{{ url_for('room.index') }}">
+                <a class="navbar-item" href="{{ url_for('doc.index') }}">
                     หน้าหลัก
                 </a>
                 <a class="navbar-item" href="{{ url_for('auth.account') }}">
@@ -26,7 +26,7 @@
                     </span>
                     <span>ออกจากระบบ</span>
                 </a>
-                <a class="navbar-item" href="/">
+                <a class="navbar-item" href="/staff">
                     <span>ปิด</span>
                     <span class="icon">
                         <i class="far fa-times-circle"></i>
