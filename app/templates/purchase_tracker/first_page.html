@@ -3,70 +3,69 @@
 {% block head %}
     {{ super() }}
     <style>
-            .hero {
-                  background: linear-gradient(#0006, #0006), url();
-                /*   background-image: url(); */
-                  background-position: bottom;
-                  background-size: cover;
-                  background-repeat: no-repeat;
-                  {#height: 70vh;#}
-                /*   background-color: #eee; */
-                  display: flex;
-                  justify-content: center;
-                  align-items: center;
-                }
-        </style>
+        .hero {
+            background: linear-gradient(#0006, #0006), url();
+            /*   background-image: url(); */
+            background-position: bottom;
+            background-size: cover;
+            background-repeat: no-repeat;
+        {#height: 70vh;#}
+            /*   background-color: #eee; */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+    </style>
 {% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
 
-<section class="hero is-small is-white">
-    <div class="hero-body">
-         <div class="columns">
-            <div class="column has-text-centered">
-                    {% include "messages.html" %}
-{#                <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}" width="200"/>#}
-                <h1 class="title has-text-White">Purchase Tracker</h1>
-                <h1 class="subtitle has-text-White">ระบบติดตามการจัดซื้อ</h1>
+    <section class="hero is-small is-white">
+        <div class="hero-body">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    {% include "messages.html" %}<br><br><br>
+                    <h1 class="title has-text-White">Purchase Tracker</h1>
+                    <h1 class="subtitle has-text-White">ระบบติดตามการจัดซื้อ</h1>
+                </div>
+                <div class="column mt">
+                    <img src="{{ url_for('static', filename='img/purchase.png') }}" width="350"/>
+                </div>
             </div>
-             <div class="column mt">
-                 <img src="{{ url_for('static', filename='img/purchase.png') }}" width="350" />
-             </div>
+            <header class="section has-background-Info py-4 has-text-white">
+                <div class="columns ">
+                    <div class="column ">
+                        <div class="container has-text-centered">
+                            <div class="box">
+                                <a href="{{ url_for('purchase_tracker.staff_index') }}">
+                                    <span class="icon is-large"><i class="fas fa-user-cog fa-4x"></i></span><br><br>
+                                    <span class="is-size-4">Staff</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column ">
+                        <div class="container has-text-centered">
+                            <div class="box">
+                                <a href="{{ url_for('purchase_tracker.staff_index') }}">
+                                    <span class="icon is-large"><i class="fas fa-user-check fa-4x"></i></span><br><br>
+                                    <span class="is-size-4">Supervisor</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column ">
+                        <div class="container has-text-centered">
+                            <div class="box">
+                                <a href="{{ url_for('purchase_tracker.supplies') }}">
+                                    <span class="icon is-large"><i class="fas fa-money-check-alt fa-4x"></i></span><br>
+                                    <span class="is-size-4">Finance Procurement</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </header>
         </div>
-        <header class="section has-background-Info py-4 has-text-white">
-            <div class="columns ">
-                 <div class="column ">
-                    <div class="container has-text-centered">
-                        <div class="box">
-                            <a href="{{ url_for('purchase_tracker.staff_index') }}">
-                                <span class="icon is-large"><i class="fas fa-user-cog fa-4x"></i></span><br><br>
-                                <span class="is-size-4">Staff</span>
-                            </a>
-                        </div>
-                        </div>
-                     </div>
-                <div class="column ">
-                    <div class="container has-text-centered">
-                        <div class="box">
-                            <a href="{{ url_for('purchase_tracker.staff_index') }}">
-                                <span class="icon is-large"><i class="fas fa-user-check fa-4x"></i></span><br><br>
-                                <span class="is-size-4">Supervisor</span>
-                            </a>
-                          </div>
-                        </div>
-                 </div>
-                     <div class="column ">
-                    <div class="container has-text-centered">
-                        <div class="box">
-                            <a href="{{ url_for('purchase_tracker.supplies') }}">
-                                <span class="icon is-large"><i class="fas fa-money-check-alt fa-4x"></i></span><br>
-                                <span class="is-size-4">Finance Procurement</span>
-                            </a>
-                          </div>
-                        </div>
-                 </div>
-            </div>
-        </header>
-    </div>
-</section>
+    </section>
 {% endblock %}
