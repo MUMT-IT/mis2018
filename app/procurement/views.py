@@ -6,10 +6,7 @@ from flask_login import current_user, login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.auth import GoogleAuth
 from werkzeug.utils import secure_filename
-
 from . import procurementbp as procurement
-from .models import ProcurementDetail
-from ..main import db
 from .forms import *
 from datetime import datetime
 from pytz import timezone
@@ -226,3 +223,10 @@ def update_record(service_id):
             flash('Update record has been added.', 'success')
             return redirect(url_for('procurement.view_require_service'))
     return render_template('procurement/update_by_ITxRepair.html', form=form)
+
+
+@procurement.route('/qrcode_render/<int:procurement_id>/')
+def qrcode_render(procurement_id):
+    item = ProcurementDetail.query.get(procurement_id)
+    return render_template('procurement/qrcode_render.html',
+                           item=item)
