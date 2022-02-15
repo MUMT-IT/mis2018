@@ -2,9 +2,9 @@
 {% block title %}Purchase Tracker Page{% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
-    {% include "messages.html" %}
-    <!DOCTYPE html>
-    <html lang="en">
+{% include "messages.html" %}
+<!DOCTYPE html>
+<html lang="en">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -57,7 +57,7 @@
             <div class="column has-text-centered">
                 <h1 class="title">การดำเนินงานจัดซื้อจัดจ้าง</h1>
             </div>
-         <div class="columns">
+            <div class="columns">
                 <div class="column">
                     <table class="table is-striped" id="PurchaseTrackerTable">
                         <thead>
@@ -99,8 +99,6 @@
                 </div>
             </div>
         {% if activities  %}
-            <div id="chart_div"></div>
-
         <div class="columns">
             <div class="column is-two-thirds is-offset-2">
                 <div class="card">
@@ -117,8 +115,6 @@
                                 <col span="1" style="width: 25%;">
                                 <col span="1" style="width: 75%;">
                             </colgroup>
-
-
                             <tr>
                                 <td><label class="label">Subject: ชื่อ</label></td>
                                 <td>{{ tracker.subject }}</td>
@@ -141,9 +137,9 @@
                                     {% if tracker.url %}
                                         <a href="{{ 'https://drive.google.com/uc?id=' + tracker.url }}"
                                            target="_blank">
-                            <span class="icon">
-                                <i class="far fa-file-pdf"></i>
-                            </span>
+                                            <span class="icon">
+                                                <i class="far fa-file-pdf"></i>
+                                            </span>
                                             <span>ไฟล์เอกสาร</span>
                                         </a>
                                     {% else %}
@@ -172,24 +168,36 @@
                                 </table>
                                 </td>
                             </tr>
-
                         </table>
-{% endif %}
-
+                        <div class="columns">
+                            <div class="column">
+                                <a href="{{ url_for('purchase_tracker.staff_index') }}"
+                                   class="button is-rounded is-info is-light">
+                                    <span class="icon">
+                                        <i class="fas fa-arrow-left"></i>
+                                    </span>
+                                    <span>กลับ</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+    </section>
+    <section class="section">
+        <div class="container">
             <div class="columns">
                 <div class="column">
-                    <a href="{{ url_for('purchase_tracker.staff_index') }}" class="button is-rounded is-info is-light">
-                    <span class="icon">
-                        <i class="fas fa-arrow-left"></i>
-                    </span>
-                        <span>กลับ</span>
-                    </a>
+                     <div id="chart_div"></div>
                 </div>
             </div>
         </div>
     </section>
-    </body>
-    </html>
+        {% endif %}
+</body>
+</html>
 {% endblock %}
 {% block scripts %}
     {{ super() }}

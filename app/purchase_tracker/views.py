@@ -8,13 +8,14 @@ from sqlalchemy_utils.types.arrow import arrow
 from werkzeug.utils import secure_filename
 from . import purchase_tracker_bp as purchase_tracker
 
-from ..main import db
 from .forms import *
 from datetime import datetime, timedelta
 from pytz import timezone
 from pydrive.drive import GoogleDrive
 from .models import PurchaseTrackerAccount
 # Upload images for Google Drive
+
+
 FOLDER_ID = "1JYkU2kRvbvGnmpQ1Tb-TcQS-vWQKbXvy"
 
 json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -31,6 +32,7 @@ def first_page():
 
 @purchase_tracker.route('/personnel/personnel_index')
 def staff_index():
+
     return render_template('purchase_tracker/personnel/personnel_index.html')
 
 
@@ -149,7 +151,7 @@ def contact():
     return render_template('purchase_tracker/contact_us.html')
 
 
-@purchase_tracker.route('/update/<int:account_id>', methods=['GET', 'POST'])
+@purchase_tracker.route('/account/<int:account_id>/update', methods=['GET', 'POST'])
 @login_required
 def update_status(account_id):
     form = StatusForm()
@@ -191,16 +193,15 @@ def edit_update_status(account_id):
     form = StatusForm(obj=tracker)
     if request.method == 'POST':
         if form.validate_on_submit():
-            status = PurchaseTrackerStatus()
-            form.populate_obj(status)
-            status.account_id = account_id
-            status.status_date = bangkok.localize(datetime.now())
-            status.creation_date = bangkok.localize(datetime.now())
-            status.cancel_datetime = bangkok.localize(datetime.now())
-            status.update_datetime = bangkok.localize(datetime.now())
-            status.staff = current_user
-            status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
-            db.session.add(status)
+            form.populate_obj(tracker)
+            tracker.account_id = account_id
+            tracker.status_date = bangkok.localize(datetime.now())
+            tracker.creation_date = bangkok.localize(datetime.now())
+            tracker.cancel_datetime = bangkok.localize(datetime.now())
+            tracker.update_datetime = bangkok.localize(datetime.now())
+            tracker.staff = current_user
+            tracker.end_date = form.start_date.data + timedelta(days=int(form.days.data))
+            db.session.add(tracker)
             db.session.commit()
             flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
         return redirect(url_for('purchase_tracker.update_status', account_id=tracker.id))
@@ -208,12 +209,12 @@ def edit_update_status(account_id):
                                 account_id=account_id, form=form, tracker=tracker)
 
 
-@purchase_tracker.route('/edit_update/delete/<int:account_id>')
+@purchase_tracker.route('/account/<int:account_id>/status/<int:status_id>/delete')
 @login_required
-def delete_update_status(account_id):
+def delete_update_status(account_id, status_id):
     if account_id:
-        tracker = PurchaseTrackerStatus.query.get(account_id)
+        status = PurchaseTrackerStatus.query.get(status_id)
         flash(u'Information has been removed from the update status.')
-        db.session.delete(tracker)
+        db.session.delete(status)
         db.session.commit()
-    return redirect(url_for('purchase_tracker.update_status', account_id=account_id, tracker=tracker))
+        return redirect(url_for('purchase_tracker.update_status', account_id=account_id))

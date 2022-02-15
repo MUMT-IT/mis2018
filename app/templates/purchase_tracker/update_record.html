@@ -88,9 +88,9 @@
                                     {% if tracker.url %}
                                         <a href="{{ 'https://drive.google.com/uc?id=' + tracker.url }}"
                                            target="_blank">
-                            <span class="icon">
-                                <i class="far fa-file-pdf"></i>
-                            </span>
+                                            <span class="icon">
+                                                <i class="far fa-file-pdf"></i>
+                                            </span>
                                             <span>ไฟล์เอกสาร</span>
                                         </a>
                                     {% else %}
@@ -121,7 +121,7 @@
                                                 </span>
                                                 <span>แก้ไข</span>
                                             </a>
-                                            <a href="{{ url_for('purchase_tracker.delete_update_status', account_id=tracker.id) }}"
+                                            <a href="{{ url_for('purchase_tracker.delete_update_status', account_id=account_id, status_id=tracker.id) }}"
                                                 class="button is-small is-danger is-outlined">
                                                 <span class="icon">
                                                    <i class="far fa-trash-alt"></i>
@@ -151,7 +151,6 @@
                             <a name="#update"></a>
                             <div class="column is-one-third is-offset-4">
                                 <form method="post"
-                                      action="{{ url_for("purchase_tracker.update_status",account_id=tracker.id) }}"
                                       enctype="multipart/form-data">
                                     {{ form.hidden_tag() }}
                                     <h2 class="subtitle">Update Information

@@ -1,3 +1,5 @@
+# -*- coding:utf-8 -*-
+
 from main import db, ma
 from sqlalchemy.sql import func
 
@@ -10,9 +12,9 @@ class Org(db.Model):
     head = db.Column('head', db.String())
     parent_id = db.Column('parent_id', db.Integer, db.ForeignKey('orgs.id'))
     children = db.relationship('Org',
-                    backref=db.backref('parent', remote_side=[id]))
+                               backref=db.backref('parent', remote_side=[id]))
     strategies = db.relationship('Strategy',
-                    backref=db.backref('org'))
+                                 backref=db.backref('org'))
 
     def __repr__(self):
         return self.name
@@ -23,12 +25,12 @@ class Strategy(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     refno = db.Column('refno', db.String(), nullable=False)
     created_at = db.Column('created_at', db.DateTime(),
-                    server_default=func.now())
+                           server_default=func.now())
     content = db.Column('content', db.String(), nullable=False)
     org_id = db.Column('org_id', db.Integer(),
-                db.ForeignKey('orgs.id'), nullable=False)
+                       db.ForeignKey('orgs.id'), nullable=False)
     tactics = db.relationship('StrategyTactic',
-                backref=db.backref('strategy'))
+                              backref=db.backref('strategy'))
 
 
 class StrategyTactic(db.Model):
@@ -38,9 +40,9 @@ class StrategyTactic(db.Model):
     created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
     content = db.Column('content', db.String(), nullable=False)
     strategy_id = db.Column('strategy_id', db.Integer(),
-                    db.ForeignKey('strategies.id'), nullable=False)
+                            db.ForeignKey('strategies.id'), nullable=False)
     themes = db.relationship('StrategyTheme',
-                    backref=db.backref('tactic'))
+                             backref=db.backref('tactic'))
 
 
 class StrategyTheme(db.Model):
@@ -50,9 +52,9 @@ class StrategyTheme(db.Model):
     created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
     content = db.Column('content', db.String(), nullable=False)
     tactic_id = db.Column('tactic_id', db.Integer(),
-                    db.ForeignKey('strategy_tactics.id'), nullable=False)
+                          db.ForeignKey('strategy_tactics.id'), nullable=False)
     activities = db.relationship('StrategyActivity',
-                    backref=db.backref('theme'))
+                                 backref=db.backref('theme'))
 
 
 class StrategyActivity(db.Model):
@@ -62,9 +64,9 @@ class StrategyActivity(db.Model):
     created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
     content = db.Column('content', db.String, nullable=False)
     theme_id = db.Column('theme_id', db.Integer(),
-                            db.ForeignKey('strategy_themes.id'))
+                         db.ForeignKey('strategy_themes.id'))
     kpis = db.relationship('KPI',
-            backref=db.backref('strategy_activity'))
+                           backref=db.backref('strategy_activity'))
 
 
 class KPI(db.Model):
@@ -99,7 +101,7 @@ class KPI(db.Model):
     pfm_consult = db.Column('pfm_consult', db.String())
     pfm_informed = db.Column('pfm_informed', db.String())
     strategy_activity_id = db.Column('strategy_activity_id',
-                            db.ForeignKey('strategy_activities.id'))
+                                     db.ForeignKey('strategy_activities.id'))
     reportlink = db.Column('reportlink', db.String())
 
 
@@ -149,7 +151,7 @@ class StudentCheckInRecord(db.Model):
     stud_id = db.Column('stud_id', db.ForeignKey('students.id'))
     student = db.relationship('Student', backref=db.backref('check_in_records'))
     classchk_id = db.Column('classchk_id', db.Integer(),
-                    db.ForeignKey('class_check_in.id'), nullable=False)
+                            db.ForeignKey('class_check_in.id'), nullable=False)
     classchk = db.relationship('ClassCheckIn', backref=db.backref('student_records'))
     check_in_time = db.Column('checkin', db.DateTime(timezone=True), nullable=False)
     check_in_status = db.Column('status', db.String())
@@ -162,7 +164,7 @@ class Province(db.Model):
     code = db.Column('code', db.String(), nullable=False)
     name = db.Column('name', db.String(40), nullable=False)
     districts = db.relationship("District",
-                        backref=db.backref('parent'))
+                                backref=db.backref('parent'))
 
 
 class District(db.Model):
@@ -171,9 +173,9 @@ class District(db.Model):
     name = db.Column('name', db.String(40), nullable=False)
     code = db.Column('code', db.String(), nullable=False)
     province_id = db.Column(db.Integer(),
-                        db.ForeignKey('provinces.id'))
+                            db.ForeignKey('provinces.id'))
     subdistricts = db.relationship('Subdistrict',
-                        backref=db.backref('district'))
+                                   backref=db.backref('district'))
 
 
 class Subdistrict(db.Model):
@@ -182,7 +184,7 @@ class Subdistrict(db.Model):
     name = db.Column('name', db.String(80), nullable=False)
     code = db.Column('code', db.String(), nullable=False)
     district_id = db.Column(db.Integer(),
-                        db.ForeignKey('districts.id'))
+                            db.ForeignKey('districts.id'))
 
 
 class KPISchema(ma.ModelSchema):
@@ -225,7 +227,7 @@ class IOCode(db.Model):
     __tablename__ = 'iocodes'
     id = db.Column('id', db.String(16), primary_key=True)
     cost_center_id = db.Column('cost_center_id', db.String(),
-                        db.ForeignKey('cost_centers.id'), nullable=False)
+                               db.ForeignKey('cost_centers.id'), nullable=False)
     cost_center = db.relationship('CostCenter', backref=db.backref('iocodes'))
     mission_id = db.Column('mission_id', db.Integer(), db.ForeignKey('missions.id'), nullable=False)
     mission = db.relationship('Mission', backref=db.backref('iocodes'))
@@ -258,6 +260,4 @@ class Holidays(db.Model):
     holiday_name = db.Column('holiday_name', db.String())
 
     def tojson(self):
-        return { "date": self.holiday_date, "name" : self.holiday_name }
-
-
+        return {"date": self.holiday_date, "name": self.holiday_name}

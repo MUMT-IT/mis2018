@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">Update แจ้งซ่อม/ขอบริการ</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-10 is-offset-1">
+                <div class="box">
+                <form method="post" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">{{ form.repair_date.label }}</label>
+                            <div class="control">
+                                {{ form.repair_date() }}
+                            </div>
+                        </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <label class="label">{{ form.service.label }}</label>
+                            <div class="control">
+                                {{ form.service(class="input is-info") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.procurement_no.label }}</label>
+                            <div class="control">
+                                {{ form.procurement_no(class="input is-info") }}
+                            </div>
+                            <p class="help is-danger">ถ้ามี</p>
+                        </div>
+                    </div>
+                        <div class="field">
+                            <label class="label">{{ form.location.label }}</label>
+                            <div class="select is-fullwidth is-info">
+                                {{ form.location() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.detail.label }}</label>
+                            <div class="control">
+                                {{ form.detail(class="textarea is-info") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.note.label }}</label>
+                            <div class="control">
+                                {{ form.note(class="input is-info")}}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.type.label }}</label>
+                            <div class="select is-fullwidth">
+                                {{ form.type() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                                <label class="label">{{ form.company_name.label }}</label>
+                                <div class="control">
+                                    {{ form.company_name(class="input") }}
+                                </div>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">{{ form.contact_name.label }}</label>
+                                <div class="control">
+                                    {{ form.contact_name(class="input") }}
+                                </div>
+                            </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">{{ form.tel.label }}</label>
+                                <div class="control">
+                                    {{ form.tel(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.cost.label }}</label>
+                                <div class="control">
+                                    {{ form.cost(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.require.label }}</label>
+                                <div class="select is-fullwidth">
+                                    {{ form.require() }}
+                                </div>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.company_des.label }}</label>
+                            <div class="control">
+                                {{ form.company_des(class="input") }}
+                            </div>
+                        </div><br>
+                        <div class="field">
+                            <div class="buttons">
+                                <button class="button is-success" type="submit" value="submit">Submit
+                                </button>
+                                <a href="{{ url_for('procurement.view_require_service') }}"
+                                   class="button is-danger">Back</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+{% endblock %}
