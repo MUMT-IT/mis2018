@@ -100,6 +100,21 @@
                         </span>
                     </a>
                 </nav>
+                <nav class="panel is-danger">
+                    <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
+                    <a href="{{ url_for('procurement.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                        <span class="is-size-5">ระบบงานพัสดุและซ่อมบำรุง</span>
+                    </a>
+                    <a href="{{ url_for('purchase_tracker.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                        <span class="is-size-5">ระบบติดตามการจัดซื้อจัดจ้าง</span>
+                    </a>
+                </nav>
                 <nav class="panel is-info">
                     <p class="panel-heading">Analytics</p>
                     <a href="{{ url_for('research.dashboard') }}" class="panel-block">
