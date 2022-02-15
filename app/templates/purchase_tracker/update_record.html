@@ -4,111 +4,109 @@
 {% block page_content %}
  <div class="container">
     <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
-                <div class="navbar-brand">
-                    <a class="navbar-item" href="https://bulma.io">
-                        <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}"/>
+        <div class="navbar-brand">
+            <a class="navbar-item" href="https://bulma.io">
+                <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}"/>
+            </a>
+            <a role="button" class="navbar-burger burger has-text-white" aria-label="menu" aria-expanded="false"
+               data-target="navbarBasicExample">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+        <div id="navbarBasicExample" class="navbar-menu">
+            <div class="navbar-start">
+                <a href="{{ url_for('purchase_tracker.index') }}" class="navbar-item ">
+                    Home
+                </a>
+                <a href="{{ url_for('purchase_tracker.supplies') }}" class="navbar-item ">
+                    All Information
+                </a>
+                <div class="navbar-item has-dropdown is-hoverable">
+                    <a class="navbar-link ">
+                        More
                     </a>
-                    <a role="button" class="navbar-burger burger has-text-white" aria-label="menu" aria-expanded="false"
-                       data-target="navbarBasicExample">
-                        <span aria-hidden="true"></span>
-                        <span aria-hidden="true"></span>
-                        <span aria-hidden="true"></span>
-                    </a>
-                </div>
-                <div id="navbarBasicExample" class="navbar-menu">
-                    <div class="navbar-start">
-                        <a href="{{ url_for('purchase_tracker.index') }}" class="navbar-item ">
-                            Home
+                    <div class="navbar-dropdown">
+                        <hr class="navbar-divider"/>
+                        <a class="navbar-item">
+                            Report an issue
                         </a>
-                        <a href="{{ url_for('purchase_tracker.supplies') }}" class="navbar-item ">
-                            All Information
-                        </a>
-                        <div class="navbar-item has-dropdown is-hoverable">
-                            <a class="navbar-link ">
-                                More
-                            </a>
-                            <div class="navbar-dropdown">
-                                <hr class="navbar-divider"/>
-                                <a class="navbar-item">
-                                    Report an issue
-                                </a>
-                            </div>
-                        </div>
                     </div>
                 </div>
-            </nav>
-     </div>
-    <header class="section">
-{#    <div class="box">#}
-        {% include "messages.html" %}
-        <div class="columns">
-            <div class="column has-text-centered">
-                <h1 class="title"> Show Information
-                </h1>
             </div>
         </div>
-        <div class="columns">
-            <div class="column is-two-thirds is-offset-2">
-                <div class="card">
-                    <div class="card-header">
-                        <h1 class="card-header-title">
-                            <span>
-                                {{ tracker.creation_date }}
-                            </span>
-                        </h1>
-                    </div>
-                    <div class="card-content">
-                        <table class="table is-striped is-bordered is-fullwidth">
-                            <colgroup>
-                                <col span="1" style="width: 25%;">
-                                <col span="1" style="width: 75%;">
-                            </colgroup>
+    </nav>
+ </div>
+ <header class="section">
+     {% include "messages.html" %}
+     <div class="columns">
+         <div class="column has-text-centered">
+             <h1 class="title"> Show Information</h1>
+         </div>
+     </div>
+     <div class="columns">
+         <div class="column is-two-thirds is-offset-2">
+             <div class="card">
+                 <div class="card-header">
+                     <h1 class="card-header-title">
+                         <span>
+                             {{ tracker.creation_date }}
+                         </span>
+                     </h1>
+                 </div>
+                 <div class="card-content">
+                     <table class="table is-striped is-bordered is-fullwidth">
+                         <colgroup>
+                             <col span="1" style="width: 25%;">
+                             <col span="1" style="width: 75%;">
+                         </colgroup>
                         {% if activities  %}
                             <div id="chart_div"></div>
                         {% endif %}
-                            <tr>
-                                <td><label class="label">Subject: ชื่อ</label></td>
-                                <td>{{ tracker.subject }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Number: เลขที่</label></td>
-                                <td>{{ tracker.number }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Description: รายละเอียด</label></td>
-                                <td>{{ tracker.desc }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Comment: หมายเหตุ</label></td>
-                                <td>{{ tracker.comment }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">File: ไฟล์</label></td>
-                                <td>
-                                    {% if tracker.url %}
-                                        <a href="{{ 'https://drive.google.com/uc?id=' + tracker.url }}"
-                                           target="_blank">
-                                            <span class="icon">
-                                                <i class="far fa-file-pdf"></i>
-                                            </span>
-                                            <span>ไฟล์เอกสาร</span>
-                                        </a>
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Update: อัพเดตล่าสุด</label>
-                                <td>
-                                <table class="table is-fullwidth is-striped">
-                                    <thead>
-                                    <th>กิจกรรม</th>
-                                    <th>วันเริ่มต้น</th>
-                                    <th>วันสิ้นสุด</th>
-                                    </thead>
-                                    <tbody>
-                                    {% for tracker in tracker.records %}
+                         <tr>
+                             <td><label class="label">Subject: ชื่อ</label></td>
+                             <td>{{ tracker.subject }}</td>
+                         </tr>
+                         <tr>
+                             <td><label class="label">Number: เลขที่</label></td>
+                             <td>{{ tracker.number }}</td>
+                         </tr>
+                         <tr>
+                             <td><label class="label">Description: รายละเอียด</label></td>
+                             <td>{{ tracker.desc }}</td>
+                         </tr>
+                         <tr>
+                             <td><label class="label">Comment: หมายเหตุ</label></td>
+                             <td>{{ tracker.comment }}</td>
+                         </tr>
+                         <tr>
+                             <td><label class="label">File: ไฟล์</label></td>
+                             <td>
+                                 {% if tracker.url %}
+                                     <a href="{{ 'https://drive.google.com/uc?id=' + tracker.url }}"
+                                        target="_blank">
+                                         <span class="icon">
+                                             <i class="far fa-file-pdf"></i>
+                                         </span>
+                                         <span>ไฟล์เอกสาร</span>
+                                     </a>
+                                 {% else %}
+                                     -
+                                 {% endif %}
+                             </td>
+                         </tr>
+                         <tr>
+                             <td><label class="label">Update: อัพเดตล่าสุด</label>
+                             <td>
+                             <table class="table is-fullwidth is-striped">
+                                 <thead>
+                                 <th>กิจกรรม</th>
+                                 <th>วันเริ่มต้น</th>
+                                 <th>วันสิ้นสุด</th>
+                                 </thead>
+                                 <tbody>
+                                 {% for tracker in tracker.records %}
                                     <tr>
                                         <td>{{ tracker.activity }}</td>
                                         <td>{{ tracker.start_date }}</td>
@@ -130,23 +128,21 @@
                                             </a>
                                         </td>
                                     </tr>
-                                    {% endfor %}
-                                    </tbody>
+                                 {% endfor %}
+                                 </tbody>
                                 </table>
                                 <div class="buttons is-centered">
                                     <a class="button is-info"
                                        href="#update">
                                         <span class="icon">
-                                            <i class="fas fa-plus"></i>
+                                           <i class="fas fa-plus"></i>
                                         </span>
                                         <span>เพิ่มรายการกิจกรรม</span>
                                     </a>
                                 </div>
-                                </td>
-                            </tr>
-
+                             </td>
+                         </tr>
                         </table>
-                        {#                         <header class="section has-background-grey-light py-4 has-text-white">#}
                         <div class="columns" id="update">
                             <a name="#update"></a>
                             <div class="column is-one-third is-offset-4">
@@ -205,7 +201,6 @@
                 </div>
             </div>
         </div>
-{#    </div>#}
    </header>
 {% endblock page_content %}
 {% block scripts %}
@@ -252,7 +247,7 @@
             data.addRows(activities);
 
             var options = {
-                height: 700
+                height: 330
             };
 
             var chart = new google.visualization.Gantt(document.getElementById('chart_div'));
