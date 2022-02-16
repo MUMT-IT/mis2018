@@ -65,12 +65,16 @@
                             <div id="chart_div"></div>
                         {% endif %}
                          <tr>
-                             <td><label class="label">Subject: ชื่อ</label></td>
+                             <td><label class="label">Subject: เรื่อง</label></td>
                              <td>{{ tracker.subject }}</td>
                          </tr>
                          <tr>
                              <td><label class="label">Number: เลขที่</label></td>
                              <td>{{ tracker.number }}</td>
+                         </tr>
+                        <tr>
+                             <td><label class="label">Coordinator: ผู้ประสานงาน</label></td>
+                             <td>{{ tracker.staff.personal_info.fullname }}</td>
                          </tr>
                          <tr>
                              <td><label class="label">Description: รายละเอียด</label></td>
