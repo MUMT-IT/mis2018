@@ -55,6 +55,7 @@
                         <thead>
                         <th>ชื่อเรื่อง</th>
                         <th>เลขที่</th>
+                        <th>หน่วยงาน/ภาควิชา</th>
                         <th>วันที่</th>
                         <th>สถานะ</th>
                         <th>ดูรายละเอียด</th>
@@ -67,6 +68,9 @@
                             </td>
                             <td>
                                 {{ record.number }}
+                            </td>
+                            <td>
+                                {{ record.staff.personal_info.org.name }}
                             </td>
                             <td>
                                 {{ record.creation_date }}
