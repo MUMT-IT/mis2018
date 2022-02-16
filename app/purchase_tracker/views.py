@@ -186,7 +186,7 @@ def update_status(account_id):
                            default_date=default_date)
 
 
-@purchase_tracker.route('/edit_update/<int:account_id>', methods=['GET', 'POST'])
+@purchase_tracker.route('/account/<int:account_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_update_status(account_id):
     tracker = PurchaseTrackerStatus.query.get(account_id)
