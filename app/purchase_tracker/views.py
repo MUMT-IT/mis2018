@@ -26,7 +26,7 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
 @purchase_tracker.route('/official/')
-def first_page():
+def landing_page():
     return render_template('purchase_tracker/first_page.html')
 
 
