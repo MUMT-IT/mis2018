@@ -150,10 +150,10 @@
                         <div class="columns" id="update">
                             <a name="#update"></a>
                             <div class="column is-one-third is-offset-4">
-                                <form method="post"
+                                <form action="{{ url_for('purchase_tracker.send_mail_recipient') }}"method="post"
                                       enctype="multipart/form-data">
                                     {{ form.hidden_tag() }}
-                                    <h2 class="subtitle">Update Information
+                                    <h2 class="subtitle">Update Information {{ success }}
                                         <span class="icon">
                                             <i class="far fa-edit"></i>
                                         </span>
