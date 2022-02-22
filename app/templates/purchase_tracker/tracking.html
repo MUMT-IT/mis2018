@@ -63,7 +63,7 @@
                         <thead>
                         <th>ชื่อเรื่อง</th>
                         <th>เลขที่หนังสือ</th>
-                        <th>วันที่</th>
+                        <th>วันที(ปี-เดือน-วัน) เวลา</th>
                         <th>สถานะ</th>
                         <th>Dashboard</th>
                         </thead>
@@ -81,10 +81,9 @@
                             </td>
                             <td>
                                 {% if record.records.count() == 0 %}
-                                    รออนุมัติจากคณบดี
+                                    รอดำเนินการ
                                 {% else %}
                                     {{ record.records.order_by(desc(PurchaseTrackerStatus.creation_date)).first().status }}
-
                                 {% endif %}
                             </td>
                             <td>
@@ -242,7 +241,7 @@
             data.addRows(activities);
 
             var options = {
-                height: 700
+                height: 330
             };
 
             var chart = new google.visualization.Gantt(document.getElementById('chart_div'));
