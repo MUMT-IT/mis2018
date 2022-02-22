@@ -1,18 +1,19 @@
 # -*- coding:utf-8 -*-
-import requests, os, smtplib
-from flask import render_template, request, flash, redirect, url_for, session, jsonify, Flask
+import requests, os
+from flask import render_template, request, flash, redirect, url_for
 from flask_login import current_user, login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.auth import GoogleAuth
-from sqlalchemy_utils.types.arrow import arrow
 from werkzeug.utils import secure_filename
 from . import purchase_tracker_bp as purchase_tracker
-
 from .forms import *
 from datetime import datetime, timedelta
 from pytz import timezone
 from pydrive.drive import GoogleDrive
 from .models import PurchaseTrackerAccount
+from flask_mail import Message
+from ..main import mail
+
 # Upload images for Google Drive
 
 
@@ -218,3 +219,23 @@ def delete_update_status(account_id, status_id):
         db.session.delete(status)
         db.session.commit()
         return redirect(url_for('purchase_tracker.update_status', account_id=account_id))
+
+
+@purchase_tracker.route('/send_message', methods=['GET', 'POST'])
+def send_mail_recipient():
+    if request.method == "POST":
+        status = request.form['status']
+        activity = request.form['activity']
+        start_date = request.form['start_date']
+        days = request.form['days']
+        comment = request.form['comment']
+
+        message = Message(subject="TEST PurchaseTracker", recipients=[current_user.email+"@mahidol.ac.th"])
+
+        message.body = activity
+
+        mail.send(message)
+
+        success = "Message sent"
+
+        return redirect(url_for('purchase_tracker.supplies', success=success))

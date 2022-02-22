@@ -225,8 +225,13 @@ def update_record(service_id):
     return render_template('procurement/update_by_ITxRepair.html', form=form)
 
 
-@procurement.route('/qrcode_render/<int:procurement_id>/')
-def qrcode_render(procurement_id):
-    item = ProcurementDetail.query.get(procurement_id)
+@procurement.route('/qrcode_render/<int:procurement_no>/')
+def qrcode_render(procurement_no):
+    item = ProcurementDetail.query.filter_by(procurement_no=procurement_no)
     return render_template('procurement/qrcode_render.html',
                            item=item)
+
+
+@procurement.route('/qr_scanner')
+def qrcode_scanner():
+    return render_template('procurement/qr_scanner.html')
