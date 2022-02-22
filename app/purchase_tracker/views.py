@@ -187,27 +187,27 @@ def update_status(account_id):
                            default_date=default_date)
 
 
-@purchase_tracker.route('/account/<int:account_id>/edit', methods=['GET', 'POST'])
+@purchase_tracker.route('/account/<int:account_id>/status/<int:status_id>/edit', methods=['GET', 'POST'])
 @login_required
-def edit_update_status(account_id):
-    tracker = PurchaseTrackerStatus.query.get(account_id)
-    form = StatusForm(obj=tracker)
+def edit_update_status(account_id, status_id):
+    status = PurchaseTrackerStatus.query.get(status_id)
+    form = StatusForm(obj=status)
     if request.method == 'POST':
         if form.validate_on_submit():
-            form.populate_obj(tracker)
-            tracker.account_id = account_id
-            tracker.status_date = bangkok.localize(datetime.now())
-            tracker.creation_date = bangkok.localize(datetime.now())
-            tracker.cancel_datetime = bangkok.localize(datetime.now())
-            tracker.update_datetime = bangkok.localize(datetime.now())
-            tracker.staff = current_user
-            tracker.end_date = form.start_date.data + timedelta(days=int(form.days.data))
-            db.session.add(tracker)
+            form.populate_obj(status)
+            status.account_id = account_id
+            status.status_date = bangkok.localize(datetime.now())
+            status.creation_date = bangkok.localize(datetime.now())
+            status.cancel_datetime = bangkok.localize(datetime.now())
+            status.update_datetime = bangkok.localize(datetime.now())
+            status.staff = current_user
+            status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
+            db.session.add(status)
             db.session.commit()
             flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
-        return redirect(url_for('purchase_tracker.update_status', account_id=tracker.id))
+        return redirect(url_for('purchase_tracker.update_status', account_id=status.id))
     return render_template('purchase_tracker/edit_update_record.html',
-                                account_id=account_id, form=form, tracker=tracker)
+                                account_id=account_id, form=form)
 
 
 @purchase_tracker.route('/account/<int:account_id>/status/<int:status_id>/delete')
@@ -230,7 +230,7 @@ def send_mail_recipient():
         days = request.form['days']
         comment = request.form['comment']
 
-        message = Message(subject="TEST PurchaseTracker", recipients=[current_user.email+"@mahidol.ac.th"])
+        message = Message(subject="Get notified when PurchaseTracker update your shared file", recipients=[current_user.email+"@mahidol.ac.th"])
 
         message.body = activity
 
@@ -238,4 +238,4 @@ def send_mail_recipient():
 
         success = "Message sent"
 
-        return redirect(url_for('purchase_tracker.supplies', success=success))
+        return redirect(url_for('purchase_tracker.update_status', success=success))
