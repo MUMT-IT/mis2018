@@ -10,7 +10,8 @@ from flask_login import current_user, login_required
 
 @data_bp.route('/')
 def index():
-    return 'This is our data blueprint.'
+    core_services = CoreService.query.all()
+    return render_template('data_blueprint/index.html', core_services=core_services)
 
 
 @data_bp.route('/core-services/new', methods=['GET', 'POST'])

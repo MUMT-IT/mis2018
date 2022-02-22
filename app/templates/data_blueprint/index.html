@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% include "data_blueprint/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div>
+        <h1 class="title has-text-centered has-text-info">Organizational Data Blueprint</h1>
+        <div class="tile is-ancestor">
+            <div class="tile is-parent is-2">
+                <article class="tile is-child notification is-success is-light">
+                    <h1 class="title is-size-4 has-text-centered">Performance Management</h1>
+                </article>
+            </div>
+            <div class="tile is-parent is-2">
+                <article class="tile is-child notification is-success is-light">
+                    <h1 class="title is-size-4 has-text-centered">Experience Management</h1>
+                </article>
+            </div>
+            <div class="tile is-parent">
+                <article class="tile is-child notification is-info is-light">
+                    <h1 class="title is-size-4 has-text-centered">Core Services
+                        <a class="button is-small is-rounded is-info" href={{ url_for('data_bp.core_service_form') }}>
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                        </a>
+                    </h1>
+                    {% for sv in core_services %}
+                    <div class="field has-addons">
+                        <p class="control">
+                            <button class="button is-info is-outlined">{{ sv.service }}</button>
+                        </p>
+                        <p class="control">
+                            <button class="button is-info">
+                                <span class="icon">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </span>
+                            </button>
+                        </p>
+                    </div>
+                    {% endfor %}
+                </article>
+            </div>
+            <div class="tile is-parent is-2">
+                <article class="tile is-child notification is-warning is-light">
+                    <h1 class="title is-size-4 has-text-centered">Back Office</h1>
+                </article>
+            </div>
+            <div class="tile is-parent is-2">
+                <article class="tile is-child notification is-warning is-light">
+                    <h1 class="title is-size-4 has-text-centered">Law, Compliance</h1>
+                </article>
+            </div>
+        </div>
+        <div class="tile is-ancestor">
+            <div class="tile is-parent">
+                <article class="tile is-child notification is-danger is-light">
+                    <h1 class="title is-size-4 has-text-centered">Data</h1>
+                </article>
+            </div>
+        </div>
+        <div class="tile is-ancestor">
+            <div class="tile is-parent">
+                <article class="tile is-child notification is-light">
+                    <h1 class="title is-size-4 has-text-centered">Monitoring Technology Management</h1>
+                </article>
+            </div>
+            <div class="tile is-parent">
+                <article class="tile is-child notification is-light">
+                    <h1 class="title is-size-4 has-text-centered">Technology Infrastructure</h1>
+                </article>
+            </div>
+            <div class="tile is-parent">
+                <article class="tile is-child notification is-light">
+                    <h1 class="title is-size-4 has-text-centered">Security Technology Management</h1>
+                </article>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
