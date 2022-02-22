@@ -9,23 +9,15 @@
                 <form method=post>
                     {{ form.hidden_tag() }}
                     <div class="field">
-                        <label class="label">{{ form.mission.label }}</label>
+                        <label class="label">{{ form.name.label }}</label>
                         <div class="control">
-                            <div class="select">
-                                {{form.mission()}}
-                            </div>
+                            {{form.name(class="input")}}
                         </div>
                     </div>
                     <div class="field">
-                        <label class="label">{{ form.service.label }}</label>
+                        <label class="label">{{ form.core_services.label }}</label>
                         <div class="control">
-                            {{form.service(class="input")}}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.data.label }}</label>
-                        <div class="control">
-                            {{form.data()}}
+                            {{form.core_services()}}
                         </div>
                     </div>
                     <div class="field has-text-centered">
@@ -38,3 +30,4 @@
     </div>
 </section>
 {% endblock %}
+
