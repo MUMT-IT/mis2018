@@ -5,6 +5,12 @@ from app.models import Mission
 from sqlalchemy.sql import func
 
 
+data_service_assoc = db.Table('data_service_assoc',
+    db.Column('data_id', db.Integer, db.ForeignKey('db_data.id'), primary_key=True),
+    db.Column('core_service_id', db.Integer, db.ForeignKey('db_core_services.id'), primary_key=True)
+)
+
+
 class CoreService(db.Model):
     __tablename__ =  'db_core_services'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
@@ -15,3 +21,14 @@ class CoreService(db.Model):
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now)
     mission = db.relationship(Mission, backref=db.backref('services', lazy='dynamic',
                                                             cascade='all, delete-orphan'))
+    data = db.relationship('Data', secondary=data_service_assoc, lazy='subquery',
+                                        backref=db.backref('core_services', lazy=True))
+
+
+class Data(db.Model):
+    __tablename__ =  'db_data'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    name = db.Column('name', db.String(255), nullable=False, info={'label': u'ข้อมูล'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True), default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now)
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
