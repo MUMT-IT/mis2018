@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% include "data_blueprint/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-one-third is-offset-4 box">
+                <form method=post>
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.mission.label }}</label>
+                        <div class="control">
+                            <div class="select">
+                                {{form.mission()}}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.service.label }}</label>
+                        <div class="control">
+                            {{form.service(class="input")}}
+                        </div>
+                    </div>
+                    <div class="field has-text-centered">
+                        <input type="submit" value="Add" class="button is-success">
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
