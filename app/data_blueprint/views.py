@@ -2,8 +2,8 @@
 
 from . import data_bp
 from app.main import db
-from forms import *
-from models import CoreService
+from app.models import CoreService, Process, Data
+from forms import CoreServiceForm, ProcessForm, DataForm
 from flask import url_for, render_template, redirect, flash, request
 from flask_login import current_user, login_required
 

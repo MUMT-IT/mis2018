@@ -491,9 +491,6 @@ from data_blueprint import data_bp as data_blueprint
 
 app.register_blueprint(data_blueprint, url_prefix='/data-blueprint')
 
-from data_blueprint.models import *
-admin.add_view(ModelView(CoreService, db.session, category='Data Blueprint'))
-
 
 # Commands
 
