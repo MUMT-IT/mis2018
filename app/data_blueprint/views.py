@@ -12,7 +12,11 @@ from flask_login import current_user, login_required
 def index():
     data = Data.query.all()
     core_services = CoreService.query.all()
-    return render_template('data_blueprint/index.html', core_services=core_services, data=data)
+    processes = Process.query.all()
+    return render_template('data_blueprint/index.html',
+                                core_services=core_services,
+                                data=data,
+                                processes=processes)
 
 
 @data_bp.route('/core-services/new', methods=['GET', 'POST'])
@@ -63,3 +67,28 @@ def data_form(data_id=None):
             flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
             return redirect(url_for('data_bp.index'))
     return render_template('data_blueprint/data_form.html', form=form)
+
+
+@data_bp.route('/process/new', methods=['GET', 'POST'])
+@data_bp.route('/process/<int:process_id>/edit', methods=['GET', 'POST'])
+@login_required
+def process_form(process_id=None):
+    if process_id:
+        data_ = Process.query.get(process_id)
+        form = ProcessForm(obj=data_)
+    else:
+        form = ProcessForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            if not process_id:
+                new_data = Process()
+                form.populate_obj(new_data)
+                new_data.creator_id = current_user.id
+                db.session.add(new_data)
+            else:
+                form.populate_obj(data_)
+                db.session.add(data_)
+            db.session.commit()
+            flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('data_bp.index'))
+    return render_template('data_blueprint/process_form.html', form=form)

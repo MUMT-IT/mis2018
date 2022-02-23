@@ -6,15 +6,10 @@ from flask_wtf.file import FileField
 from wtforms import SelectMultipleField, widgets, BooleanField
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
 from .models import *
-from app.models import Mission
+from app.models import Mission, Org
 
 
 BaseModelForm = model_form_factory(FlaskForm)
-
-
-class MultiCheckboxField(SelectMultipleField):
-    widget = widgets.ListWidget(prefix_label=False)
-    option_widget = widgets.CheckboxInput()
 
 
 class ModelForm(BaseModelForm):
@@ -41,5 +36,21 @@ class DataForm(BaseModelForm):
         only = ['name']
     core_services = QuerySelectMultipleField(u'บริการที่ใช้ข้อมูลนี้', get_label='service',
                                      query_factory=lambda: CoreService.query.all(),
+                                     widget=widgets.ListWidget(prefix_label=False),
+                                     option_widget=widgets.CheckboxInput())
+    processes = QuerySelectMultipleField(u'กระบวนการที่ใช้ข้อมูลนี้', get_label='name',
+                                     query_factory=lambda: Process.query.all(),
+                                     widget=widgets.ListWidget(prefix_label=False),
+                                     option_widget=widgets.CheckboxInput())
+
+
+class ProcessForm(BaseModelForm):
+    class Meta:
+        model = Process
+        only = ['name', 'category']
+    org = QuerySelectField(u'หน่วยงาน', query_factory=lambda: Org.query.all(),
+                                get_label='name', blank_text='Select organization..', allow_blank=False)
+    data = QuerySelectMultipleField(u'ข้อมูลที่ใช้', get_label='name',
+                                     query_factory=lambda: Data.query.all(),
                                      widget=widgets.ListWidget(prefix_label=False),
                                      option_widget=widgets.CheckboxInput())

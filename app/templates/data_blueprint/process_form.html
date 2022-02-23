@@ -9,21 +9,27 @@
                 <form method=post>
                     {{ form.hidden_tag() }}
                     <div class="field">
+                        <label class="label">{{ form.category.label }}</label>
+                        <div class="select">
+                            {{form.category()}}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.org.label }}</label>
+                        <div class="select">
+                            {{form.org()}}
+                        </div>
+                    </div>
+                    <div class="field">
                         <label class="label">{{ form.name.label }}</label>
                         <div class="control">
                             {{form.name(class="input")}}
                         </div>
                     </div>
                     <div class="field">
-                        <label class="label">{{ form.core_services.label }}</label>
+                        <label class="label">{{ form.data.label }}</label>
                         <div class="control">
-                            {{form.core_services()}}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.processes.label }}</label>
-                        <div class="control">
-                            {{form.processes()}}
+                            {{form.data()}}
                         </div>
                     </div>
                     <div class="field has-text-centered">
@@ -36,4 +42,5 @@
     </div>
 </section>
 {% endblock %}
+
 
