@@ -9,12 +9,40 @@
         <div class="tile is-ancestor">
             <div class="tile is-parent is-2">
                 <article class="tile is-child notification is-success">
-                    <h1 class="title is-size-4 has-text-centered">Performance Management</h1>
+                    <h1 class="title is-size-4 has-text-centered">Performance Management
+                        <a class="button is-small is-inverted is-outlined is-success" href={{ url_for('data_bp.process_form') }}>
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                        </a>
+                    </h1>
+                    <div class="tags">
+                        {% for p in performance_processes %}
+                        <p class="tag is-light is-medium is-success">
+                            {{ p.name }}
+                            <a href="{{ url_for('data_bp.process_form', process_id=p.id) }}" class="delete is-small"></a>
+                        </p>
+                        {% endfor %}
+                    </div>
                 </article>
             </div>
             <div class="tile is-parent is-2">
                 <article class="tile is-child notification is-success">
-                    <h1 class="title is-size-4 has-text-centered">Experience Management</h1>
+                    <h1 class="title is-size-4 has-text-centered">Experience Management
+                        <a class="button is-small is-inverted is-outlined is-success" href={{ url_for('data_bp.process_form') }}>
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                        </a>
+                    </h1>
+                    <div class="tags">
+                        {% for p in crm_processes %}
+                        <p class="tag is-light is-medium is-success">
+                            {{ p.name }}
+                            <a href="{{ url_for('data_bp.process_form', process_id=p.id) }}" class="delete is-small"></a>
+                        </p>
+                        {% endfor %}
+                    </div>
                 </article>
             </div>
             <div class="tile is-parent">
@@ -46,7 +74,7 @@
                         </a>
                     </h1>
                     <div class="tags">
-                        {% for p in processes %}
+                        {% for p in back_office_processes %}
                         <p class="tag is-light is-medium is-warning">
                             {{ p.name }}
                             <a href="{{ url_for('data_bp.process_form', process_id=p.id) }}" class="delete is-small"></a>
@@ -57,7 +85,21 @@
             </div>
             <div class="tile is-parent is-2">
                 <article class="tile is-child notification is-warning">
-                    <h1 class="title is-size-4 has-text-centered">Law, Compliance</h1>
+                    <h1 class="title is-size-4 has-text-centered">Law, Compliance
+                        <a class="button is-small is-inverted is-outlined is-warning" href={{ url_for('data_bp.process_form') }}>
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                        </a>
+                    </h1>
+                    <div class="tags">
+                        {% for p in regulation_processes %}
+                        <p class="tag is-light is-medium is-warning">
+                            {{ p.name }}
+                            <a href="{{ url_for('data_bp.process_form', process_id=p.id) }}" class="delete is-small"></a>
+                        </p>
+                        {% endfor %}
+                    </div>
                 </article>
             </div>
         </div>

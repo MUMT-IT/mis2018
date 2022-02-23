@@ -12,11 +12,18 @@ from flask_login import current_user, login_required
 def index():
     data = Data.query.all()
     core_services = CoreService.query.all()
-    processes = Process.query.all()
+    back_office_processes = Process.query.filter_by(category='back_office').all()
+    crm_processes = Process.query.filter_by(category='crm').all()
+    performance_processes = Process.query.filter_by(category='performance').all()
+    regulation_processes = Process.query.filter_by(category='regulation').all()
     return render_template('data_blueprint/index.html',
                                 core_services=core_services,
                                 data=data,
-                                processes=processes)
+                                back_office_processes=back_office_processes,
+                                crm_processes=crm_processes,
+                                performance_processes=performance_processes,
+                                regulation_processes=regulation_processes,
+                                )
 
 
 @data_bp.route('/core-services/new', methods=['GET', 'POST'])
