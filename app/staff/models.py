@@ -12,7 +12,10 @@ from app.models import Org, OrgSchema
 from datetime import datetime, timedelta
 from app.main import get_weekdays
 import numpy as np
+
+
 today = datetime.today()
+
 if today.month >= 10:
     START_FISCAL_DATE = datetime(today.year, 10, 1)
     END_FISCAL_DATE = datetime(today.year + 1, 9, 30, 23, 59, 59, 0)
