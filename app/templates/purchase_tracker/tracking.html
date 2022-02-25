@@ -152,6 +152,7 @@
                                 <table class="table is-fullwidth is-striped">
                                     <thead>
                                     <th>กิจกรรม</th>
+                                    <th>ผู้รับผิดชอบ</th>
                                     <th>วันเริ่มต้น</th>
                                     <th>วันสิ้นสุด</th>
                                     </thead>
@@ -159,6 +160,7 @@
                                     {% for tracker in tracker.records %}
                                     <tr>
                                         <td>{{ tracker.activity }}</td>
+                                        <td>{{ tracker.staff }}</td>
                                         <td>{{ tracker.start_date }}</td>
                                         <td>{{ tracker.end_date }}</td>
                                     </tr>
@@ -241,7 +243,7 @@
             data.addRows(activities);
 
             var options = {
-                height: 330
+                height: 600
             };
 
             var chart = new google.visualization.Gantt(document.getElementById('chart_div'));
