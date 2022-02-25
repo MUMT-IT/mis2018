@@ -275,6 +275,18 @@ data_process_assoc = db.Table('data_process_assoc',
 )
 
 
+kpi_service_assoc = db.Table('kpi_service_assoc',
+    db.Column('kpi_id', db.Integer, db.ForeignKey('kpis.id'), primary_key=True),
+    db.Column('core_service_id', db.Integer, db.ForeignKey('db_core_services.id'), primary_key=True)
+)
+
+
+kpi_process_assoc = db.Table('kpi_process_assoc',
+    db.Column('kpi_id', db.Integer, db.ForeignKey('kpis.id'), primary_key=True),
+    db.Column('process_id', db.Integer, db.ForeignKey('db_processes.id'), primary_key=True)
+)
+
+
 class CoreService(db.Model):
     __tablename__ =  'db_core_services'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
@@ -286,6 +298,8 @@ class CoreService(db.Model):
     mission = db.relationship(Mission, backref=db.backref('services', lazy='dynamic',
                                                             cascade='all, delete-orphan'))
     data = db.relationship('Data', secondary=data_service_assoc, lazy='subquery',
+                                        backref=db.backref('core_services', lazy=True))
+    kpis = db.relationship(KPI, secondary=kpi_service_assoc, lazy='subquery',
                                         backref=db.backref('core_services', lazy=True))
 
 
@@ -311,4 +325,6 @@ class Process(db.Model):
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     data = db.relationship(Data, secondary=data_process_assoc, lazy='subquery',
+                                        backref=db.backref('processes', lazy=True))
+    kpis = db.relationship(KPI, secondary=kpi_process_assoc, lazy='subquery',
                                         backref=db.backref('processes', lazy=True))
