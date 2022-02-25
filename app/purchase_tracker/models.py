@@ -10,7 +10,7 @@ class PurchaseTrackerAccount(db.Model):
     number = db.Column(db.String(255), nullable=False, info={'label': u"เลขที่หนังสือ"})
     booking_date = db.Column('booking_date', db.Date(), nullable=False, info={'label': u'วันที่หนังสือ'})
     amount = db.Column('amount', db.Integer(), info={'label': u'วงเงินหลักการ'})
-    format = db.Column('format', db.Boolean())
+    formats = db.Column('formats', db.String(255), info={'label': u'รูปแบบหลักการ'})
     creation_date = db.Column('creation_datetime', db.DateTime(timezone=True), nullable=False)
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'), nullable=False)
     staff = db.relationship(StaffAccount)
