@@ -5,7 +5,7 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
 from wtforms import SelectMultipleField, widgets, BooleanField
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
-from app.models import Mission, Org, CoreService, Process, Data
+from app.models import Mission, Org, CoreService, Process, Data, KPI
 
 
 BaseModelForm = model_form_factory(FlaskForm)
@@ -17,7 +17,7 @@ class ModelForm(BaseModelForm):
         return db.session
 
 
-class CoreServiceForm(BaseModelForm):
+class CoreServiceForm(ModelForm):
     class Meta:
         model = CoreService
         only = ['service']
@@ -29,7 +29,7 @@ class CoreServiceForm(BaseModelForm):
                                      option_widget=widgets.CheckboxInput())
 
 
-class DataForm(BaseModelForm):
+class DataForm(ModelForm):
     class Meta:
         model = Data
         only = ['name']
@@ -43,7 +43,7 @@ class DataForm(BaseModelForm):
                                      option_widget=widgets.CheckboxInput())
 
 
-class ProcessForm(BaseModelForm):
+class ProcessForm(ModelForm):
     class Meta:
         model = Process
         only = ['name', 'category']
@@ -51,5 +51,19 @@ class ProcessForm(BaseModelForm):
                                 get_label='name', blank_text='Select organization..', allow_blank=False)
     data = QuerySelectMultipleField(u'ข้อมูลที่ใช้', get_label='name',
                                      query_factory=lambda: Data.query.all(),
+                                     widget=widgets.ListWidget(prefix_label=False),
+                                     option_widget=widgets.CheckboxInput())
+
+
+
+class KPIForm(ModelForm):
+    class Meta:
+        model = KPI
+    core_services = QuerySelectMultipleField(u'บริการที่เกี่ยวข้อง', get_label='service',
+                                     query_factory=lambda: CoreService.query.all(),
+                                     widget=widgets.ListWidget(prefix_label=False),
+                                     option_widget=widgets.CheckboxInput())
+    processes = QuerySelectMultipleField(u'กระบวนการที่เกี่ยวข้อง', get_label='name',
+                                     query_factory=lambda: Process.query.all(),
                                      widget=widgets.ListWidget(prefix_label=False),
                                      option_widget=widgets.CheckboxInput())

@@ -2,8 +2,8 @@
 
 from . import data_bp
 from app.main import db
-from app.models import CoreService, Process, Data
-from forms import CoreServiceForm, ProcessForm, DataForm
+from app.models import CoreService, Process, Data, KPI
+from forms import CoreServiceForm, ProcessForm, DataForm, KPIForm
 from flask import url_for, render_template, redirect, flash, request
 from flask_login import current_user, login_required
 
@@ -99,3 +99,28 @@ def process_form(process_id=None):
             flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
             return redirect(url_for('data_bp.index'))
     return render_template('data_blueprint/process_form.html', form=form)
+
+
+@data_bp.route('/kpi/new', methods=['GET', 'POST'])
+@data_bp.route('/kpi/<int:kpi_id>/edit', methods=['GET', 'POST'])
+@login_required
+def kpi_form(kpi_id=None):
+    if kpi_id:
+        data_ = KPI.query.get(kpi_id)
+        form = KPIForm(obj=data_)
+    else:
+        form = KPIForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            if not kpi_id:
+                new_data = KPI()
+                form.populate_obj(new_data)
+                new_data.creator_id = current_user.id
+                db.session.add(new_data)
+            else:
+                form.populate_obj(data_)
+                db.session.add(data_)
+            db.session.commit()
+            flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('data_bp.index'))
+    return render_template('data_blueprint/kpi_form.html', form=form)
