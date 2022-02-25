@@ -328,3 +328,13 @@ class Process(db.Model):
                                         backref=db.backref('processes', lazy=True))
     kpis = db.relationship(KPI, secondary=kpi_process_assoc, lazy='subquery',
                                         backref=db.backref('processes', lazy=True))
+
+
+class Dataset(db.Model):
+    __tablename__ =  'db_datasets'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    reference = db.Column('reference', db.String(255), nullable=False)
+    desc = db.Column('desc', db.Text())
+    source_url = db.Column('source_url', db.Text())
+    data_id = db.Column('data_id', db.ForeignKey('db_data.id'))
+    data = db.relationship(Data, backref=db.backref('datasets', lazy='dynamic', cascade='all, delete-orphan'))
