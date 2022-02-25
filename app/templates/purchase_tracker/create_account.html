@@ -21,15 +21,34 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.number.label }}</label>
+                            <label class="label">{{ form.amount.label }}</label>
                             <div class="control">
-                                {{ form.number(class="input") }}
+                                {{ form.amount(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">{{ form.number.label }}</label>
+                                <div class="control">
+                                    {{ form.number(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.booking_date.label }}</label>
+                                <div class="control">
+                                    {{ form.booking_date(class="input") }}
+                                </div>
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
                             <div class="control">
                                 {{ form.desc(class="textarea") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="radio">
+                                {{ form.formats(class="radio") }}
                             </div>
                         </div>
                         <div class="field">
