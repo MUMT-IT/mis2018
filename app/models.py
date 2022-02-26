@@ -285,6 +285,10 @@ dataset_process_assoc = db.Table('dataset_process_assoc',
     db.Column('process_id', db.Integer, db.ForeignKey('db_processes.id'), primary_key=True),
 )
 
+dataset_kpi_assoc = db.Table('dataset_kpi_assoc',
+    db.Column('dataset_id', db.Integer, db.ForeignKey('db_datasets.id'), primary_key=True),
+    db.Column('kpi_id', db.Integer, db.ForeignKey('kpis.id'), primary_key=True),
+)
 
 kpi_service_assoc = db.Table('kpi_service_assoc',
     db.Column('kpi_id', db.Integer, db.ForeignKey('kpis.id'), primary_key=True),
@@ -360,3 +364,5 @@ class Dataset(db.Model):
     maintainer_id = db.Column('maintainer_id', db.ForeignKey('staff_account.id'))
     sensitive = db.Column('sensitive', db.Boolean(), default=False, info={'label': u'ข้อมูลอ่อนไหว'})
     data = db.relationship(Data, backref=db.backref('datasets', lazy='dynamic', cascade='all, delete-orphan'))
+    kpis = db.relationship(KPI, secondary=dataset_kpi_assoc, lazy='subquery',
+                                        backref=db.backref('datasets', lazy=True))
