@@ -167,3 +167,16 @@ def dataset_form(data_id, dataset_id=None):
 def dataset_detail(dataset_id):
     ds = Dataset.query.get(dataset_id)
     return render_template('data_blueprint/dataset_detail.html', dataset=ds)
+
+
+@data_bp.route('/core_services/<int:service_id>')
+@login_required
+def core_service_detail(service_id):
+    cs = CoreService.query.get(service_id)
+    data = []
+    for d in cs.data:
+        data.append([cs.service, d.name, 1])
+        for ds in d.datasets:
+            if cs in ds.core_services:
+                data.append([d.name, ds.name or ds.reference, 1])
+    return render_template('data_blueprint/core_service_detail.html', core_service=cs, data=data)

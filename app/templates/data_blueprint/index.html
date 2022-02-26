@@ -57,7 +57,7 @@
                     <div class="tags">
                         {% for sv in core_services %}
                         <p class="tag is-info is-medium is-light">
-                            {{ sv.service }}
+                            <a href="{{url_for('data_bp.core_service_detail', service_id=sv.id)}}">{{ sv.service }}</a>
                             <a href="{{ url_for('data_bp.core_service_form', service_id=sv.id) }}" class="delete is-small"></a>
                         </p>
                         {% endfor %}
