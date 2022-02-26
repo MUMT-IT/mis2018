@@ -150,12 +150,15 @@ def dataset_form(data_id, dataset_id=None):
                 new_dataset.creator_id = current_user.id
                 new_dataset.data_id = data_id
                 db.session.add(new_dataset)
+                db.session.commit()
+                flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
+                return redirect(url_for('data_bp.data_detail', data_id=data_id))
             else:
                 form.populate_obj(dataset)
                 db.session.add(dataset)
-            db.session.commit()
-            flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
-            return redirect(url_for('data_bp.data_detail', data_id=data_id))
+                db.session.commit()
+                flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
+                return render_template('data_blueprint/dataset_detail.html', dataset=dataset)
     return render_template('data_blueprint/dataset_form.html', form=form)
 
 
@@ -163,4 +166,4 @@ def dataset_form(data_id, dataset_id=None):
 @login_required
 def dataset_detail(dataset_id):
     ds = Dataset.query.get(dataset_id)
-    return render_template('data_blueprint/data_detail.html', data=ds)
+    return render_template('data_blueprint/dataset_detail.html', dataset=ds)
