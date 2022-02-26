@@ -5,7 +5,7 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
 from wtforms import SelectMultipleField, widgets, BooleanField
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
-from app.models import Mission, Org, CoreService, Process, Data, KPI
+from app.models import Mission, Org, CoreService, Process, Data, KPI, Dataset
 
 
 BaseModelForm = model_form_factory(FlaskForm)
@@ -67,3 +67,22 @@ class KPIForm(ModelForm):
                                      query_factory=lambda: Process.query.all(),
                                      widget=widgets.ListWidget(prefix_label=False),
                                      option_widget=widgets.CheckboxInput())
+
+
+
+def createDatasetForm(data_id):
+    data = Data.query.get(data_id)
+    class DatasetForm(ModelForm):
+        class Meta:
+            model = Dataset
+            only = ['reference', 'desc', 'source_url', 'sensitive']
+        processes = QuerySelectMultipleField(u'กระบวนการที่เกี่ยวข้อง', get_label='name',
+                                         query_factory=lambda: data.processes,
+                                         widget=widgets.ListWidget(prefix_label=False),
+                                         option_widget=widgets.CheckboxInput())
+        core_services = QuerySelectMultipleField(u'บริการที่เกี่ยวข้อง', get_label='service',
+                                         query_factory=lambda: data.core_services,
+                                         widget=widgets.ListWidget(prefix_label=False),
+                                         option_widget=widgets.CheckboxInput())
+    return DatasetForm
+

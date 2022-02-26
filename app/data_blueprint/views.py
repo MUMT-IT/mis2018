@@ -3,7 +3,7 @@
 from . import data_bp
 from app.main import db
 from app.models import CoreService, Process, Data, KPI
-from forms import CoreServiceForm, ProcessForm, DataForm, KPIForm
+from forms import *
 from flask import url_for, render_template, redirect, flash, request
 from flask_login import current_user, login_required
 
@@ -124,3 +124,43 @@ def kpi_form(kpi_id=None):
             flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
             return redirect(url_for('data_bp.index'))
     return render_template('data_blueprint/kpi_form.html', form=form)
+
+
+@data_bp.route('/data/<int:data_id>', methods=['GET'])
+@login_required
+def data_detail(data_id):
+    data = Data.query.get(data_id)
+    return render_template('data_blueprint/data_detail.html', data=data)
+
+
+@data_bp.route('/data/<int:data_id>/datasets/<int:dataset_id>/edit', methods=['GET', 'POST'])
+@data_bp.route('/data/<int:data_id>/datasets/form', methods=['GET', 'POST'])
+@login_required
+def dataset_form(data_id, dataset_id=None):
+    if dataset_id:
+        dataset = Dataset.query.get(dataset_id)
+        form = createDatasetForm(data_id=data_id)(obj=dataset)
+    else:
+        form = createDatasetForm(data_id=data_id)()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            if not dataset_id:
+                new_dataset = Dataset()
+                form.populate_obj(new_dataset)
+                new_dataset.creator_id = current_user.id
+                new_dataset.data_id = data_id
+                db.session.add(new_dataset)
+            else:
+                form.populate_obj(dataset)
+                db.session.add(dataset)
+            db.session.commit()
+            flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('data_bp.data_detail', data_id=data_id))
+    return render_template('data_blueprint/dataset_form.html', form=form)
+
+
+@data_bp.route('/datasets/<int:dataset_id>', methods=['GET'])
+@login_required
+def dataset_detail(dataset_id):
+    ds = Dataset.query.get(dataset_id)
+    return render_template('data_blueprint/data_detail.html', data=ds)

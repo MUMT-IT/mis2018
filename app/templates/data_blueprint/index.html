@@ -116,7 +116,9 @@
                     <div class="tags">
                         {% for dt in data %}
                         <p class="tag is-danger is-light is-medium">
-                            {{ dt.name }}
+                            <a href="{{ url_for('data_bp.data_detail', data_id=dt.id) }}">
+                                {{ dt.name }}
+                            </a>
                             <a href="{{ url_for('data_bp.data_form', data_id=dt.id) }}" class="delete is-small"></a>
                         </p>
                         {% endfor %}

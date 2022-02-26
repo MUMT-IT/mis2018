@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bm/dt-1.11.4/datatables.min.css"/>
+{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                <h1 class="title is-size-4">Datasets</h1>
+                <table id="myTable">
+                    <thead>
+                        <th>รหัส</th>
+                        <th>รายละเอียด</th>
+                        <th>ข้อมูลอ่อนไหว</th>
+                        <th><th>
+                    </thead>
+                    <tbody>
+                        {% for d in data.datasets %}
+                        <tr>
+                            <td>{{ d.reference }}</td>
+                            <td>{{ d.desc }}</td>
+                            <td>
+                                <span class="icon">
+                                {% if d.sensitive %}
+                                    <i class="far fa-check-square has-text-success"></i>
+                                {% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('data_bp.dataset_detail', dataset_id=d.id) }}">
+                                    <span class="icon">
+                                        <i class="far fa-eye"></i>
+                                    </span>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div class="buttons is-centered">
+                    <a class="button is-light">Back</a>
+                    <a href="{{ url_for('data_bp.dataset_form', data_id=data.id) }}"
+                        class="button is-primary">Add dataset</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script type="text/javascript" src="https://cdn.datatables.net/v/bm/jq-3.6.0/dt-1.11.4/datatables.min.js"></script>
+<script>
+    $('document').ready(()=>{
+            $('#myTable').DataTable();
+        });
+</script>
+{% endblock %}
