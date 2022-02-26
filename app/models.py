@@ -274,6 +274,17 @@ data_process_assoc = db.Table('data_process_assoc',
     db.Column('process_id', db.Integer, db.ForeignKey('db_processes.id'), primary_key=True),
 )
 
+dataset_service_assoc = db.Table('dataset_service_assoc',
+    db.Column('dataset_id', db.Integer, db.ForeignKey('db_datasets.id'), primary_key=True),
+    db.Column('core_service_id', db.Integer, db.ForeignKey('db_core_services.id'), primary_key=True)
+)
+
+
+dataset_process_assoc = db.Table('dataset_process_assoc',
+    db.Column('dataset_id', db.Integer, db.ForeignKey('db_datasets.id'), primary_key=True),
+    db.Column('process_id', db.Integer, db.ForeignKey('db_processes.id'), primary_key=True),
+)
+
 
 kpi_service_assoc = db.Table('kpi_service_assoc',
     db.Column('kpi_id', db.Integer, db.ForeignKey('kpis.id'), primary_key=True),
@@ -300,6 +311,8 @@ class CoreService(db.Model):
     data = db.relationship('Data', secondary=data_service_assoc, lazy='subquery',
                                         backref=db.backref('core_services', lazy=True))
     kpis = db.relationship(KPI, secondary=kpi_service_assoc, lazy='subquery',
+                                        backref=db.backref('core_services', lazy=True))
+    datasets = db.relationship('Dataset', secondary=dataset_service_assoc, lazy='subquery',
                                         backref=db.backref('core_services', lazy=True))
 
 
@@ -328,13 +341,21 @@ class Process(db.Model):
                                         backref=db.backref('processes', lazy=True))
     kpis = db.relationship(KPI, secondary=kpi_process_assoc, lazy='subquery',
                                         backref=db.backref('processes', lazy=True))
+    datasets = db.relationship('Dataset', secondary=dataset_process_assoc, lazy='subquery',
+                                        backref=db.backref('processes', lazy=True))
 
 
 class Dataset(db.Model):
     __tablename__ =  'db_datasets'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    reference = db.Column('reference', db.String(255), nullable=False)
-    desc = db.Column('desc', db.Text())
-    source_url = db.Column('source_url', db.Text())
+    reference = db.Column('reference', db.String(255),
+                            nullable=False, info={'label': u'รหัสข้อมูล'})
+    desc = db.Column('desc', db.Text(), info={'label': u'รายละเอียด'})
+    source_url = db.Column('source_url', db.Text(), info={'label': u'URL แหล่งข้อมูล'})
     data_id = db.Column('data_id', db.ForeignKey('db_data.id'))
+    created_at = db.Column('created_at', db.DateTime(timezone=True), default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    maintainer_id = db.Column('maintainer_id', db.ForeignKey('staff_account.id'))
+    sensitive = db.Column('sensitive', db.Boolean(), default=False, info={'label': u'ข้อมูลอ่อนไหว'})
     data = db.relationship(Data, backref=db.backref('datasets', lazy='dynamic', cascade='all, delete-orphan'))
