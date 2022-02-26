@@ -48,7 +48,7 @@ def core_service_form(service_id=None):
             db.session.commit()
             flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
             return redirect(url_for('data_bp.index'))
-    return render_template('data_blueprint/core_services.html', form=form)
+    return render_template('data_blueprint/core_services.html', form=form, service_id=service_id)
 
 
 @data_bp.route('/data/new', methods=['GET', 'POST'])
@@ -195,6 +195,16 @@ def dataset_detail(dataset_id):
     return render_template('data_blueprint/dataset_detail.html', dataset=ds)
 
 
+@data_bp.route('/core_services/<int:service_id>/delete')
+@login_required
+def delete_core_service(service_id):
+    sv = CoreService.query.get(service_id)
+    db.session.delete(sv)
+    db.session.commit()
+    flash(u'ลบข้อมูลเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('data_bp.index'))
+
+
 @data_bp.route('/core_services/<int:service_id>')
 @login_required
 def core_service_detail(service_id):
@@ -205,13 +215,13 @@ def core_service_detail(service_id):
         kpis_from_datasets = set()
         for ds in d.datasets:
             if cs in ds.core_services:
-                data.append([d.name + '(data)', ds.name + '(ds)' or ds.reference + '(ds)', 1])
-            for kpi in ds.kpis:
-                if kpi in cs.kpis:
-                    data.append([ds.name + '(ds)', kpi.name + '(kpi)', 1])
-                    kpis_from_datasets.add(kpi)
-            if not ds.kpis:
-                    data.append([ds.name + '(ds)', 'ไม่มีตัวชี้วัด', 1])
+                data.append([d.name + '(data)', (ds.name or ds.reference) + '(ds)', 1])
+                for kpi in ds.kpis:
+                    if kpi in cs.kpis:
+                        data.append([ds.name + '(ds)', kpi.name + '(kpi)', 1])
+                        kpis_from_datasets.add(kpi)
+                if not ds.kpis:
+                        data.append([(ds.name or ds.reference) + '(ds)', u'ไม่มีตัวชี้วัด', 1])
     for kpi in cs.kpis:
         if kpi not in kpis_from_datasets:
             data.append([cs.service, kpi.name + '(kpi)', 1])

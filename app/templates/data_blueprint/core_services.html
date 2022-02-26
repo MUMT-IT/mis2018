@@ -29,8 +29,18 @@
                         </div>
                     </div>
                     <div class="field has-text-centered">
-                        <a href="{{ url_for('data_bp.index') }}" class="button is-light">Cancel</a>
-                        <input type="submit" value="Save" class="button is-success">
+                        <a href="{{ url_for('data_bp.index') }}" class="button is-light">ยกเลิก</a>
+                        {% if service_id %}
+                        <a href="{{ url_for('data_bp.delete_core_service', service_id=service_id) }}" class="button is-danger">
+                            <span class="icon">
+                                <i class="fas fa-trash-alt"></i>
+                            </span>
+                            <span>
+                                ลบทิ้ง
+                            </span>
+                        </a>
+                        {% endif %}
+                        <input type="submit" value="บันทึก" class="button is-success">
                     </div>
                 </form>
             </div>
