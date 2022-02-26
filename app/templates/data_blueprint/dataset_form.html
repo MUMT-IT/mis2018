@@ -17,6 +17,12 @@
                         </div>
                     </div>
                     <div class="field">
+                        <label class="label">{{ form.name.label }}</label>
+                        <div class="control">
+                            {{ form.name(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
                         <label class="label">{{ form.desc.label }}</label>
                         <div class="control">
                             {{ form.desc(class="input", rows="50") }}

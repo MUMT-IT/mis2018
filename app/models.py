@@ -350,6 +350,7 @@ class Dataset(db.Model):
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     reference = db.Column('reference', db.String(255),
                             nullable=False, info={'label': u'รหัสข้อมูล'})
+    name = db.Column('name', db.String(255), info={'label': u'ชื่อ'})
     desc = db.Column('desc', db.Text(), info={'label': u'รายละเอียด'})
     source_url = db.Column('source_url', db.Text(), info={'label': u'URL แหล่งข้อมูล'})
     data_id = db.Column('data_id', db.ForeignKey('db_data.id'))
