@@ -1,10 +1,12 @@
 {% extends "base.html" %}
 
 {% block page_content %}
+{% include "data_blueprint/nav.html" %}
 <section class="section">
     <div class="container">
         <div class="columns">
             <div class="column is-one-third is-offset-4 box">
+                {% include "messages.html" %}
                 <h1 class="title has-text-centered is-size-3">Dataset</h1>
                 <form method="post">
                     {{ form.hidden_tag() }}
@@ -26,7 +28,7 @@
                             {{ form.source_url(class="input", rows="50") }}
                         </div>
                     </div>
-                    <div class="field is-info">
+                    <div class="field">
                         <label class="label checkbox">
                             {{ form.sensitive(class="checkbox") }}
                             {{ form.sensitive.label }}
@@ -45,12 +47,12 @@
                         </div>
                     </div>
                     <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a class="button is-light" href="{{ request.referrer }}">Cancel</a>
+                        </div>
                         <label class="label"></label>
                         <div class="control">
                             <input type="submit" value="Submit" class="button is-success">
-                        </div>
-                        <div class="control">
-                            <a class="button is-light">Cancel</a>
                         </div>
                     </div>
                 </form>

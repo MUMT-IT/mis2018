@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% include "data_blueprint/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                <table class="table is-bordered is-fullwidth">
+                    <tr>
+                        <td>รหัสข้อมูล</td>
+                        <td>{{ dataset.reference }}</td>
+                    </tr>
+                    <tr>
+                        <td>รายละเอียด</td>
+                        <td>{{ dataset.desc }}</td>
+                    </tr>
+                    <tr>
+                        <td>ข้อมูลอ่อนไหว</td>
+                        <td>
+                            {% if dataset.sensitive %}
+                            <span class="icon">
+                                <i class="far fa-check-square has-text-success"></i>
+                            </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>บริการที่ใช้ข้อมูลนี้</td>
+                        <td>
+                            <ul>
+                            {% for sv in dataset.core_services %}
+                                <li>{{ sv.service }}</li>
+                            {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>กระบวนการที่ใช้ข้อมูลนี้</td>
+                        <td>
+                            <ul>
+                            {% for proc in dataset.processes %}
+                            <li>{{ proc.name }}</li>
+                            {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                </table>
+                <div class="buttons is-centered">
+                    <a class="button is-light" href="{{ url_for('data_bp.data_detail', data_id=dataset.data.id) }}">Back</a>
+                    <a class="button is-primary" href="{{ url_for('data_bp.dataset_form', data_id=dataset.data.id, dataset_id=dataset.id) }}">แก้ไข</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}
