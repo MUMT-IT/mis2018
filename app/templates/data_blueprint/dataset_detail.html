@@ -7,6 +7,7 @@
     <div class="container">
         <div class="columns">
             <div class="column">
+                {% include "messages.html" %}
                 <table class="table is-bordered is-fullwidth">
                     <tr>
                         <td>รหัสข้อมูล</td>
@@ -44,6 +45,35 @@
                             <li>{{ proc.name }}</li>
                             {% endfor %}
                             </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>ตัวชี้วัดที่ใช้ข้อมูลนี้</td>
+                        <td>
+                            <ul>
+                            {% for kpi in dataset.kpis %}
+                            <li>{{ kpi.refno }} {{ kpi.name }}</li>
+                            {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <form action="{{url_for('data_bp.add_kpi_to_dataset', dataset_id=dataset.id)}}" method="post">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="field">
+                                    <label class="label">เพิ่มตัวชี้วัด</label>
+                                    <div class="control">
+                                        <input type="text" name="refno" placeholder="รหัสอ้างอิงตัวชี้วัด" class="input">
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <div class="control">
+                                        <input type="submit" value="Add" class="button is-success">
+                                    </div>
+                                </div>
+                            </form>
                         </td>
                     </tr>
                 </table>

@@ -10,7 +10,6 @@
             <li><a href="#" aria-current="page" class="is-active">บริการหลัก</a></li>
           </ul>
         </nav>
-
         <div class="columns">
             <div class="column box">
                 <h1 class="title has-text-centered is-size-4">รายละเอียด</h1>
@@ -26,6 +25,33 @@
                     <tr>
                         <td>แก้ไขเมื่อ</td>
                         <td>{{core_service.updated_at|localdatetime}}</td>
+                    </tr>
+                    <tr>
+                        <td>ตัวชี้วัด (KPI)</td>
+                        <td>
+                            <table class="table is-bordered is-fullwidth">
+                                <thead>
+                                    <th>หมายเลข</th>
+                                    <th>ชื่อตัวชี้วัด</th>
+                                </thead>
+                                {% for kpi in core_service.kpis %}
+                                <tr>
+                                    <td>{{kpi.refno}}</td>
+                                    <td>
+                                        <a href="{{url_for('data_bp.kpi_form', kpi_id=kpi.id, service_id=core_service.id)}}">
+                                        {{kpi.name}}
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                <tr>
+                                    <td colspan="2">
+                                        <a href="{{url_for('data_bp.kpi_form', service_id=core_service.id)}}"
+                                            class="button is-small is-primary">เพิ่มตัวชี้วัด</a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
                     </tr>
                 </table>
                 <h1 class="title has-text-centered is-size-4">ผังข้อมูล</h1>

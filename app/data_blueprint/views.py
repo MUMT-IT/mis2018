@@ -105,6 +105,9 @@ def process_form(process_id=None):
 @data_bp.route('/kpi/<int:kpi_id>/edit', methods=['GET', 'POST'])
 @login_required
 def kpi_form(kpi_id=None):
+    section = request.args.get('section', 'general')
+    service_id = request.args.get('service_id', type=int)
+    service = CoreService.query.get(service_id)
     if kpi_id:
         data_ = KPI.query.get(kpi_id)
         form = KPIForm(obj=data_)
@@ -116,6 +119,7 @@ def kpi_form(kpi_id=None):
                 new_data = KPI()
                 form.populate_obj(new_data)
                 new_data.creator_id = current_user.id
+                new_data.core_services.append(service)
                 db.session.add(new_data)
             else:
                 form.populate_obj(data_)
@@ -123,7 +127,29 @@ def kpi_form(kpi_id=None):
             db.session.commit()
             flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
             return redirect(url_for('data_bp.index'))
-    return render_template('data_blueprint/kpi_form.html', form=form)
+        else:
+            flash(form.errors, 'danger')
+    if section == 'general':
+        return render_template('data_blueprint/kpi_form.html', form=form)
+    elif section == 'target':
+        return render_template('data_blueprint/kpi_form_target.html', form=form)
+    else:
+        return render_template('data_blueprint/kpi_form_report.html', form=form)
+
+
+@data_bp.route('/datasets/<int:dataset_id>/kpis/add', methods=['POST'])
+@login_required
+def add_kpi_to_dataset(dataset_id):
+    ds = Dataset.query.get(dataset_id)
+    kpi = KPI.query.filter_by(refno=request.form['refno']).first()
+    if kpi:
+        ds.kpis.append(kpi)
+        db.session.add(ds)
+        db.session.commit()
+        flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
+    else:
+        flash(u'ไม่พบตัวชี้วัดดังกล่าว', 'warning')
+    return redirect(url_for('data_bp.dataset_detail', dataset_id=dataset_id))
 
 
 @data_bp.route('/data/<int:data_id>', methods=['GET'])
@@ -175,8 +201,19 @@ def core_service_detail(service_id):
     cs = CoreService.query.get(service_id)
     data = []
     for d in cs.data:
-        data.append([cs.service, d.name, 1])
+        data.append([cs.service, d.name + '(data)', 1])
+        kpis_from_datasets = set()
         for ds in d.datasets:
             if cs in ds.core_services:
-                data.append([d.name, ds.name or ds.reference, 1])
+                data.append([d.name + '(data)', ds.name + '(ds)' or ds.reference + '(ds)', 1])
+            for kpi in ds.kpis:
+                if kpi in cs.kpis:
+                    data.append([ds.name + '(ds)', kpi.name + '(kpi)', 1])
+                    kpis_from_datasets.add(kpi)
+            if not ds.kpis:
+                    data.append([ds.name + '(ds)', 'ไม่มีตัวชี้วัด', 1])
+    for kpi in cs.kpis:
+        if kpi not in kpis_from_datasets:
+            data.append([cs.service, kpi.name + '(kpi)', 1])
+
     return render_template('data_blueprint/core_service_detail.html', core_service=cs, data=data)
