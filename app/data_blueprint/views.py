@@ -106,8 +106,12 @@ def process_form(process_id=None):
 @login_required
 def kpi_form(kpi_id=None):
     section = request.args.get('section', 'general')
+    process_id = request.args.get('process_id', type=int)
     service_id = request.args.get('service_id', type=int)
-    service = CoreService.query.get(service_id)
+    if service_id:
+        service = CoreService.query.get(service_id)
+    if process_id:
+        proc = Process.query.get(process_id)
     if kpi_id:
         data_ = KPI.query.get(kpi_id)
         form = KPIForm(obj=data_)
@@ -119,7 +123,10 @@ def kpi_form(kpi_id=None):
                 new_data = KPI()
                 form.populate_obj(new_data)
                 new_data.creator_id = current_user.id
-                new_data.core_services.append(service)
+                if service_id:
+                    new_data.core_services.append(service)
+                if process_id:
+                    new_data.processes.append(proc)
                 db.session.add(new_data)
             else:
                 form.populate_obj(data_)
@@ -227,3 +234,27 @@ def core_service_detail(service_id):
             data.append([cs.service, kpi.name + '(kpi)', 1])
 
     return render_template('data_blueprint/core_service_detail.html', core_service=cs, data=data)
+
+
+@data_bp.route('/processes/<int:process_id>')
+@login_required
+def process_detail(process_id):
+    proc = Process.query.get(process_id)
+    data = []
+    for d in proc.data:
+        data.append([proc.name, d.name + '(data)', 1])
+        kpis_from_datasets = set()
+        for ds in d.datasets:
+            if proc in ds.processes:
+                data.append([d.name + '(data)', (ds.name or ds.reference) + '(ds)', 1])
+                for kpi in ds.kpis:
+                    if kpi in proc.kpis:
+                        data.append([ds.name + '(ds)', kpi.name + '(kpi)', 1])
+                        kpis_from_datasets.add(kpi)
+                if not ds.kpis:
+                        data.append([(ds.name or ds.reference) + '(ds)', u'ไม่มีตัวชี้วัด', 1])
+    for kpi in proc.kpis:
+        if kpi not in kpis_from_datasets:
+            data.append([proc.name, kpi.name + '(kpi)', 1])
+
+    return render_template('data_blueprint/process_detail.html', process=proc, data=data)
