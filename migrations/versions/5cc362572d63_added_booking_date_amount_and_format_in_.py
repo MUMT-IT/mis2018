@@ -24,7 +24,7 @@ def upgrade():
     op.add_column('procurement_details', sa.Column('org_id', sa.Integer(), nullable=True))
     op.create_foreign_key(None, 'procurement_details', 'orgs', ['org_id'], ['id'])
     op.add_column('tracker_accounts', sa.Column('amount', sa.Integer(), nullable=True))
-    op.add_column('tracker_accounts', sa.Column('booking_date', sa.Date(), nullable=False))
+    op.add_column('tracker_accounts', sa.Column('booking_date', sa.Date()))
     op.add_column('tracker_accounts', sa.Column('format', sa.String(), nullable=True))
     # ### end Alembic commands ###
 
