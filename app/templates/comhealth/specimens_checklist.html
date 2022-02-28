@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
 {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bm/dt-1.11.4/datatables.min.css"/>
     <style>
     div.dataTables_wrapper {
         width: 1000px;
@@ -48,42 +49,18 @@
             </div>
             <div class="columns">
                 <div class="column">
-                    <table class="table is-fullwidth is-narrow is-striped" id="specimensTable">
+                    <table id="specimensTable">
                         <thead>
                             <th>Lab No.</th>
-                            {% for ct in containers %}
-                            <th><a href="{{ url_for('comhealth.list_tests_in_container', service_id=service.id, container_id=ct.id) }}">
-                                {{ ct.name }}</a>
+                            {% for ct in headers %}
+                            <th>
+                                <a href="{{ url_for('comhealth.list_tests_in_container', service_id=service.id, container_id=ct.id) }}">
+                                    {{ ct.name }}
+                                </a>
                             </th>
                             {% endfor %}
                         </thead>
-                        <tbody>
-                            {% for rec in service.records|sort(attribute='labno') %}
-                                {% if rec.labno %}
-                                <tr>
-                                    <td>{{ rec.labno }}</td>
-                                        {% for ct in containers %}
-                                        {% if ct.name in rec.container_set %}
-                                            <td>
-                                                <span class="icon">
-                                                    <i class="fas fa-check has-text-success"></i>
-                                                </span>
-                                            </td>
-                                        {% else %}
-                                            <td>
-                                            </td>
-                                        {% endif %}
-                                    {% endfor %}
-                                </tr>
-                                {% endif %}
-                            {% endfor %}
-                        </tbody>
-                        <tfoot>
-                        <th>Lab No.</th>
-                        {% for ct in containers %}
-                            <th>{{ ct }}</th>
-                        {% endfor %}
-                        </tfoot>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>
@@ -92,13 +69,15 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script type="text/javascript" src="https://cdn.datatables.net/v/bm/dt-1.11.4/datatables.min.js"></script>
     <script>
         $(document).ready(function() {
             $('#specimensTable').DataTable({
-                "scrollY": 400,
                 "scrollX": true,
-                "pageLength": 50,
-                "ordering": false
+                "serverSide": true,
+                "ordering": false,
+                "ajax": {{ url_for('comhealth.get_specimens_summary_data', service_id=service.id)|tojson|safe }},
+                "columns": {{ columns|tojson|safe }},
             });
         });
     </script>
