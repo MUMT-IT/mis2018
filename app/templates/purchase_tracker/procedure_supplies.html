@@ -77,7 +77,7 @@
                             </td>
                             <td>
                                 {% if record.records.count() == 0 %}
-                                    รออนุมัติจากคณบดี
+                                    รอดำเนินการ
                                 {% else %}
                                     {{ record.records.order_by(desc(PurchaseTrackerStatus.creation_date)).first().status }}
 
