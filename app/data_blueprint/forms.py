@@ -59,15 +59,28 @@ class ProcessForm(ModelForm):
 class KPIForm(ModelForm):
     class Meta:
         model = KPI
-    core_services = QuerySelectMultipleField(u'บริการที่เกี่ยวข้อง', get_label='service',
-                                     query_factory=lambda: CoreService.query.all(),
-                                     widget=widgets.ListWidget(prefix_label=False),
-                                     option_widget=widgets.CheckboxInput())
-    processes = QuerySelectMultipleField(u'กระบวนการที่เกี่ยวข้อง', get_label='name',
-                                     query_factory=lambda: Process.query.all(),
-                                     widget=widgets.ListWidget(prefix_label=False),
-                                     option_widget=widgets.CheckboxInput())
+        only = ['name', 'refno', 'frequency', 'unit', 'source', 'intent',
+                'available', 'availability', 'formula', 'note', 'keeper']
+    # core_services = QuerySelectMultipleField(u'บริการที่เกี่ยวข้อง', get_label='service',
+                                     # query_factory=lambda: CoreService.query.all(),
+                                     # widget=widgets.ListWidget(prefix_label=False),
+                                     # option_widget=widgets.CheckboxInput())
+    # processes = QuerySelectMultipleField(u'กระบวนการที่เกี่ยวข้อง', get_label='name',
+                                     # query_factory=lambda: Process.query.all(),
+                                     # widget=widgets.ListWidget(prefix_label=False),
+                                     # option_widget=widgets.CheckboxInput())
 
+class KPITargetForm(ModelForm):
+    class Meta:
+        model = KPI
+        only = ['target', 'target_source', 'target_setter', 'target_account', 'target_reporter']
+
+
+class KPIReportForm(ModelForm):
+    class Meta:
+        model = KPI
+        only = ['account', 'reporter', 'consult', 'informed', 'reportlink',
+                'pfm_account', 'pfm_responsible', 'pfm_consult', 'pfm_informed']
 
 
 def createDatasetForm(data_id):

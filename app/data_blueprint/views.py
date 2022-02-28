@@ -108,15 +108,21 @@ def kpi_form(kpi_id=None):
     section = request.args.get('section', 'general')
     process_id = request.args.get('process_id', type=int)
     service_id = request.args.get('service_id', type=int)
+    if section == 'general':
+        Form = KPIForm
+    elif section == 'target':
+        Form = KPITargetForm
+    else:
+        Form = KPIReportForm
     if service_id:
         service = CoreService.query.get(service_id)
     if process_id:
         proc = Process.query.get(process_id)
     if kpi_id:
         data_ = KPI.query.get(kpi_id)
-        form = KPIForm(obj=data_)
+        form = Form(obj=data_)
     else:
-        form = KPIForm()
+        form = Form()
     if request.method == 'POST':
         if form.validate_on_submit():
             if not kpi_id:
@@ -241,9 +247,9 @@ def core_service_detail(service_id):
 def process_detail(process_id):
     proc = Process.query.get(process_id)
     data = []
+    kpis_from_datasets = set()
     for d in proc.data:
         data.append([proc.name, d.name + '(data)', 1])
-        kpis_from_datasets = set()
         for ds in d.datasets:
             if proc in ds.processes:
                 data.append([d.name + '(data)', (ds.name or ds.reference) + '(ds)', 1])

@@ -49,9 +49,16 @@
                     </tbody>
                 </table>
                 <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('data_bp.index') }}">Back</a>
+                    <a class="button is-light" href="{{ url_for('data_bp.index') }}">กลับ</a>
                     <a href="{{ url_for('data_bp.dataset_form', data_id=data.id) }}"
-                        class="button is-primary">Add dataset</a>
+                        class="button is-link">
+                        <span class="icon">
+                            <i class="fas fa-plus-circle"></i>
+                        </span>
+                        <span>
+                            เพิ่มชุดข้อมูล
+                        </span>
+                    </a>
                 </div>
             </div>
         </div>
