@@ -1,13 +1,11 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import StringField, DateTimeField, TextAreaField, FileField, SelectField, IntegerField
+from wtforms import FileField, SelectField, IntegerField, RadioField
 from wtforms.validators import DataRequired
 from wtforms_alchemy import model_form_factory
-from wtforms_alchemy import QuerySelectField
 
 from app.main import db
-from app.models import Org
 from app.purchase_tracker.models import PurchaseTrackerAccount, PurchaseTrackerStatus
 
 BaseModelForm = model_form_factory(FlaskForm)
@@ -24,13 +22,24 @@ class CreateAccountForm(ModelForm):
         model = PurchaseTrackerAccount
         exclude = ['creation_date', 'end_datetime']
     upload = FileField(u'อัพโหลดไฟล์')
+    formats = RadioField(u'รูปแบบหลักการ',
+                           choices=[(c, c) for c in [u'หลักการตามขั้นตอนปกติ', u'รายงานผลจัดซื้อกรณีจำเป็นเร่งด่วนฯ']],
+                           coerce=unicode,
+                           validators=[DataRequired()])
 
 ACTIVITIES = [u'รับเรื่องขออนุมัติหลักการ/ใบเบิก',
-                         u'จัดทำ PR ขอซื้อขอจ้าง',
-                         u'ขอใบจองงบประมาณ+อนุมัติ A3',
-                         u'จัดทำ PO สั่งซื้อสั่งจ้าง/สัญญา',
-                         u'บริษัทจัดส่งพัสดุและตรวจรับพัสดุในระบบ MUERP',
-                         u'ส่งหน่วยการเงินและบัญชี ตั้งฎีกาเบิกจ่าย']
+              u'จัดทำแผน/แต่งตั้งคณะกรรมการกำหนด TOR',
+              u'กำหนด TOR',
+              u'นำ TOR/SPEC รับฟังความคิดเห็น/พิจารณาความคิดเห็น',
+              u'จัดทำรายงานขอซื้อขอจ้าง/PR/แต่งตั้งคณะกรรมการ',
+              u'ขอใบจองงบประมาณ+A3',
+              u'ประกาศเชิญชวน/เชิญยื่นข้อเสนอ',
+              u'พิจารณาผลการจัดซื้อจัดจ้าง/รายงานผลการพิจารณา',
+              u'เชิญมาทำสัญญา/ร่างสัญญา',
+              u'จัดทำ PO สั่งซื้อสั่งจ้าง/สัญญา',
+              u'บริษัทจัดส่งพัสดุ/ตรวจรับพัสดุในระบบ MU-ERP/ระบบ EGP',
+              u'รายงานผลตรวจรับ/ขออนุมัติเบิกจ่ายเงิน',
+              u'ส่งหน่วยการเงินและบัญชี ตั้งฎีกาเบิกจ่าย']
 
 
 class StatusForm(ModelForm):
