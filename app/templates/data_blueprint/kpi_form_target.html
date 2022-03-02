@@ -26,27 +26,27 @@
                     <div class="field">
                         <label class="label">{{form.target_source.label}}</label>
                         <div class="control">
-                            {{form.target_source(class="input")}}
+                            {{form.target_source(class="input", placeholder="ฐานที่ใช้ในการตั้งเป้าหมาย ที่มาของเป้าหมายที่คาดหวัง")}}
                         </div>
                     </div>
                     <div class="field">
                         <label class="label">{{form.target_account.label}}</label>
                         <div class="control">
-                            {{form.target_account(class="input", pattern="\w+\.\w{3}")}}
+                            {{form.target_account(class="input", pattern="\w+\.\w{3}", placeholder="ผู้ที่รับผิดชอบในการดำเนินแผนให้ได้ตามเป้าหมาย")}}
                         </div>
                         <p class="help">เช่น likit.pre</p>
                     </div>
                     <div class="field">
                         <label class="label">{{form.target_reporter.label}}</label>
                         <div class="control">
-                            {{form.target_reporter(class="input", pattern="\w+\.\w{3}")}}
+                            {{form.target_reporter(class="input", pattern="\w+\.\w{3}", placeholder="ผู้รับผิดชอบในการติดตามและรายงานเป้าหมายเป็นระยะ")}}
                         </div>
                         <p class="help">เช่น likit.pre</p>
                     </div>
                     <div class="field">
                         <label class="label">{{form.target_setter.label}}</label>
                         <div class="control">
-                            {{form.target_setter(class="input", pattern="\w+\.\w{3}")}}
+                            {{form.target_setter(class="input", pattern="\w+\.\w{3}", placeholder="ผู้รับผิดชอบในการกำหนดเป้าหมาย")}}
                         </div>
                         <p class="help">เช่น likit.pre</p>
                     </div>

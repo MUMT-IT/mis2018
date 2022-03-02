@@ -83,7 +83,8 @@ class KPI(db.Model):
     unit = db.Column('unit', db.String(), info={'label': u'หน่วย'})
     source = db.Column('source', db.String(), info={'label': u'แหล่งข้อมูล'})
     available = db.Column('available', db.Boolean(), info={'label': u'พร้อมใช้'})
-    availability = db.Column('availability', db.String(), info={'label': u'การเข้าถึงข้อมูล'})
+    availability = db.Column('availability', db.String(), info={'label': u'การเข้าถึงข้อมูล',
+        'choices': [(c, c) for c in [u'ไม่มีการรวบรวมข้อมูล', u'ผ่านระบบอัตโนมัติทั้งหมด', u'ต้องเตรียมข้อมูลเล็กน้อย', u'ต้องเตรียมข้อมูลอย่างมาก']]})
     formula = db.Column('formula', db.String(), info={'label': u'สูตรคำนวณ'})
     keeper = db.Column('keeper', db.ForeignKey('staff_account.email'), info={'label': u'เก็บโดย'})
     note = db.Column('note', db.Text(), info={'label': u'หมายเหตุ'})
