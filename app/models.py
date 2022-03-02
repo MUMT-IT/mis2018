@@ -74,35 +74,36 @@ class KPI(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     created_by = db.Column('created_by', db.String())
     created_at = db.Column('created_at', db.DateTime(), server_default=func.now())
-    updated_at = db.Column('updated_at', db.DateTime(), server_default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(), onupdate=func.now())
     updated_by = db.Column('updated_by', db.String())
-    name = db.Column('name', db.String, nullable=False)
-    refno = db.Column('refno', db.String())
-    intent = db.Column('intent', db.String())
-    frequency = db.Column('frequency', db.Integer())
-    unit = db.Column('unit', db.String())
-    source = db.Column('source', db.String())
-    available = db.Column('available', db.Boolean())
-    availability = db.Column('availability', db.String())
-    formula = db.Column('formula', db.String())
-    keeper = db.Column('keeper', db.String(), db.ForeignKey('staff_account.email'))
-    note = db.Column('note', db.String())
-    target = db.Column('target', db.String())
-    target_source = db.Column('target_source', db.String())
-    target_setter = db.Column('target_setter', db.String())
-    target_reporter = db.Column('target_reporter', db.String())
-    target_account = db.Column('target_account', db.String())
-    reporter = db.Column('reporter', db.String())
-    consult = db.Column('consult', db.String())
-    account = db.Column('account', db.String())
-    informed = db.Column('informed', db.String())
-    pfm_account = db.Column('pfm_account', db.String())
-    pfm_responsible = db.Column('pfm_resposible', db.String())
-    pfm_consult = db.Column('pfm_consult', db.String())
-    pfm_informed = db.Column('pfm_informed', db.String())
+    name = db.Column('name', db.String, nullable=False, info={'label': u'ชื่อตัวชี้วัด'})
+    refno = db.Column('refno', db.String(), info={'label': u'รหัสอ้างอิงตัวชี้วัด'})
+    intent = db.Column('intent', db.String(), info={'label': u'จุดประสงค์'})
+    frequency = db.Column('frequency', db.Integer(), info={'label': u'ความถี่'})
+    unit = db.Column('unit', db.String(), info={'label': u'หน่วย'})
+    source = db.Column('source', db.String(), info={'label': u'แหล่งข้อมูล'})
+    available = db.Column('available', db.Boolean(), info={'label': u'พร้อมใช้'})
+    availability = db.Column('availability', db.String(), info={'label': u'การเข้าถึงข้อมูล',
+        'choices': [(c, c) for c in [u'ไม่มีการรวบรวมข้อมูล', u'ผ่านระบบอัตโนมัติทั้งหมด', u'ต้องเตรียมข้อมูลเล็กน้อย', u'ต้องเตรียมข้อมูลอย่างมาก']]})
+    formula = db.Column('formula', db.String(), info={'label': u'สูตรคำนวณ'})
+    keeper = db.Column('keeper', db.ForeignKey('staff_account.email'), info={'label': u'เก็บโดย'})
+    note = db.Column('note', db.Text(), info={'label': u'หมายเหตุ'})
+    target = db.Column('target', db.String(), info={'label': u'เป้าหมาย'})
+    target_source = db.Column('target_source', db.String(), info={'label': u'ที่มาของการตั้งเป้าหมาย'})
+    target_setter = db.Column('target_setter', db.String(), info={'label': u'ผู้ตั้งเป้าหมาย'})
+    target_reporter = db.Column('target_reporter', db.String(), info={'label': u'ผู้รายงานเป้าหมาย'})
+    target_account = db.Column('target_account', db.String(), info={'label': u'ผู้ดูแลเป้าหมาย'})
+    reporter = db.Column('reporter', db.String(), info={'label': u'ผู้รายงาน'})
+    consult = db.Column('consult', db.String(), info={'label': u'ที่ปรึกษา'})
+    account = db.Column('account', db.String(), info={'label': u'ผู้รับผิดชอบ'})
+    informed = db.Column('informed', db.String(),info={'label': u'ผู้รับรายงานหลัก'})
+    pfm_account = db.Column('pfm_account', db.String(), info={'label': u'ผู้รับดูแลประสิทธิภาพตัวชี้วัด'})
+    pfm_responsible = db.Column('pfm_resposible', db.String(), info={'label': u'ผู้รับผิดชอบประสิทธิภาพของตัวชี้วัด'})
+    pfm_consult = db.Column('pfm_consult', db.String(), info={'label': u'ที่ปรึกษาประสิทธิภาพของตัวชี้วัด'})
+    pfm_informed = db.Column('pfm_informed', db.String(), info={'label': u'ผู้รับรายงานเรื่องประสิทธิภาพตัวชี้วัดหลัก'})
     strategy_activity_id = db.Column('strategy_activity_id',
                                      db.ForeignKey('strategy_activities.id'))
-    reportlink = db.Column('reportlink', db.String())
+    reportlink = db.Column('reportlink', db.String(), info={'label': u'หน้าแสดงผล (dashboard)'})
 
 
 class Student(db.Model):
@@ -261,3 +262,108 @@ class Holidays(db.Model):
 
     def tojson(self):
         return {"date": self.holiday_date, "name": self.holiday_name}
+
+
+data_service_assoc = db.Table('data_service_assoc',
+    db.Column('data_id', db.Integer, db.ForeignKey('db_data.id'), primary_key=True),
+    db.Column('core_service_id', db.Integer, db.ForeignKey('db_core_services.id'), primary_key=True)
+)
+
+
+data_process_assoc = db.Table('data_process_assoc',
+    db.Column('data_id', db.Integer, db.ForeignKey('db_data.id'), primary_key=True),
+    db.Column('process_id', db.Integer, db.ForeignKey('db_processes.id'), primary_key=True),
+)
+
+dataset_service_assoc = db.Table('dataset_service_assoc',
+    db.Column('dataset_id', db.Integer, db.ForeignKey('db_datasets.id'), primary_key=True),
+    db.Column('core_service_id', db.Integer, db.ForeignKey('db_core_services.id'), primary_key=True)
+)
+
+
+dataset_process_assoc = db.Table('dataset_process_assoc',
+    db.Column('dataset_id', db.Integer, db.ForeignKey('db_datasets.id'), primary_key=True),
+    db.Column('process_id', db.Integer, db.ForeignKey('db_processes.id'), primary_key=True),
+)
+
+dataset_kpi_assoc = db.Table('dataset_kpi_assoc',
+    db.Column('dataset_id', db.Integer, db.ForeignKey('db_datasets.id'), primary_key=True),
+    db.Column('kpi_id', db.Integer, db.ForeignKey('kpis.id'), primary_key=True),
+)
+
+kpi_service_assoc = db.Table('kpi_service_assoc',
+    db.Column('kpi_id', db.Integer, db.ForeignKey('kpis.id'), primary_key=True),
+    db.Column('core_service_id', db.Integer, db.ForeignKey('db_core_services.id'), primary_key=True)
+)
+
+
+kpi_process_assoc = db.Table('kpi_process_assoc',
+    db.Column('kpi_id', db.Integer, db.ForeignKey('kpis.id'), primary_key=True),
+    db.Column('process_id', db.Integer, db.ForeignKey('db_processes.id'), primary_key=True)
+)
+
+
+class CoreService(db.Model):
+    __tablename__ =  'db_core_services'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    service = db.Column('service', db.String(255), nullable=False, info={'label': u'บริการ'})
+    mission_id = db.Column('mission_id', db.ForeignKey('missions.id'))
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    created_at = db.Column('created_at', db.DateTime(timezone=True), default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
+    mission = db.relationship(Mission, backref=db.backref('services', lazy='dynamic',
+                                                            cascade='all, delete-orphan'))
+    data = db.relationship('Data', secondary=data_service_assoc, lazy='subquery',
+                                        backref=db.backref('core_services', lazy=True))
+    kpis = db.relationship(KPI, secondary=kpi_service_assoc, lazy='subquery',
+                                        backref=db.backref('core_services', lazy=True))
+    datasets = db.relationship('Dataset', secondary=dataset_service_assoc, lazy='subquery',
+                                        backref=db.backref('core_services', lazy=True))
+
+
+class Data(db.Model):
+    __tablename__ =  'db_data'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    name = db.Column('name', db.String(255), nullable=False, info={'label': u'ข้อมูล'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True), default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+
+
+class Process(db.Model):
+    __tablename__ =  'db_processes'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    category = db.Column('category', db.String(), nullable=False,
+            info={'label': u'กลุ่มงาน', 'choices': [(c,c) for c in ['back_office', 'regulation',
+                                                                    'performance', 'crm']]})
+    name = db.Column('name', db.String(255), nullable=False, info={'label': u'กระบวนการ'})
+    org_id = db.Column('org_id', db.ForeignKey('orgs.id'))
+    org = db.relationship(Org, backref=db.backref('processes', lazy=True))
+    created_at = db.Column('created_at', db.DateTime(timezone=True), default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    data = db.relationship(Data, secondary=data_process_assoc, lazy='subquery',
+                                        backref=db.backref('processes', lazy=True))
+    kpis = db.relationship(KPI, secondary=kpi_process_assoc, lazy='subquery',
+                                        backref=db.backref('processes', lazy=True))
+    datasets = db.relationship('Dataset', secondary=dataset_process_assoc, lazy='subquery',
+                                        backref=db.backref('processes', lazy=True))
+
+
+class Dataset(db.Model):
+    __tablename__ =  'db_datasets'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    reference = db.Column('reference', db.String(255),
+                            nullable=False, info={'label': u'รหัสข้อมูล'})
+    name = db.Column('name', db.String(255), info={'label': u'ชื่อ'})
+    desc = db.Column('desc', db.Text(), info={'label': u'รายละเอียด'})
+    source_url = db.Column('source_url', db.Text(), info={'label': u'URL แหล่งข้อมูล'})
+    data_id = db.Column('data_id', db.ForeignKey('db_data.id'))
+    created_at = db.Column('created_at', db.DateTime(timezone=True), default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
+    creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
+    maintainer_id = db.Column('maintainer_id', db.ForeignKey('staff_account.id'))
+    sensitive = db.Column('sensitive', db.Boolean(), default=False, info={'label': u'ข้อมูลอ่อนไหว'})
+    data = db.relationship(Data, backref=db.backref('datasets', lazy='dynamic', cascade='all, delete-orphan'))
+    kpis = db.relationship(KPI, secondary=dataset_kpi_assoc, lazy='subquery',
+                                        backref=db.backref('datasets', lazy=True))

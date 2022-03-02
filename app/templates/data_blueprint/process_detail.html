@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% include "data_blueprint/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+          <ul>
+            <li><a href="{{url_for('data_bp.index')}}">หน้าหลัก</a></li>
+            <li><a href="#" aria-current="page" class="is-active">กระบวนการ</a></li>
+          </ul>
+        </nav>
+        <div class="columns">
+            <div class="column box">
+                <h1 class="title has-text-centered is-size-4">รายละเอียด</h1>
+                <table class="table is-bordered is-fullwidth">
+                    <tr>
+                        <td>บริการหลัก</td>
+                        <td>{{process.name}}</td>
+                    </tr>
+                    <tr>
+                        <td>หน่วยงาน</td>
+                        <td>{{process.org.name}}</td>
+                    </tr>
+                    <tr>
+                        <td>แก้ไขเมื่อ</td>
+                        <td>{{process.updated_at|localdatetime}}</td>
+                    </tr>
+                    <tr>
+                        <td>ตัวชี้วัด (KPI)</td>
+                        <td>
+                            <table class="table is-bordered is-fullwidth">
+                                <thead>
+                                    <th>หมายเลข</th>
+                                    <th>ชื่อตัวชี้วัด</th>
+                                </thead>
+                                {% for kpi in process.kpis %}
+                                <tr>
+                                    <td>{{kpi.refno}}</td>
+                                    <td>
+                                        <a href="{{url_for('data_bp.kpi_form', kpi_id=kpi.id, process_id=process.id)}}">
+                                        {{kpi.name}}
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                <tr>
+                                    <td colspan="2">
+                                        <a href="{{url_for('data_bp.kpi_form', process_id=process.id)}}"
+                                            class="button is-small is-outlined is-striped is-info">
+                                            <span class="icon">
+                                                <i class="fas fa-plus-circle"></i>
+                                            </span>
+                                            <span>
+                                                เพิ่มตัวชี้วัด
+                                            </span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                <h1 class="title has-text-centered is-size-4">ผังข้อมูล</h1>
+                <div id="sankey_basic"></div>
+                <div class="buttons is-centered">
+                    <a class="button is-light" href="{{ url_for('data_bp.index') }}">Back</a>
+                    <a class="button is-outlined is-light is-danger" href="{{ url_for('data_bp.process_form', process_id=process.id) }}">แก้ไข</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script type="text/javascript">
+      google.charts.load('current', {'packages':['sankey']});
+      google.charts.setOnLoadCallback(drawChart);
+
+      function drawChart() {
+        var data = new google.visualization.DataTable();
+        data.addColumn('string', 'From');
+        data.addColumn('string', 'To');
+        data.addColumn('number', 'Weight');
+        data.addRows({{ data|tojson|safe }});
+
+        // Sets chart options.
+        var options = {
+          width: 1200,
+            sankey: {
+                    node: {
+                            label: {
+                                    fontSize: 18,
+                                }
+                        }
+                }
+        };
+
+        // Instantiates and draws our chart, passing in some options.
+        var chart = new google.visualization.Sankey(document.getElementById('sankey_basic'));
+        chart.draw(data, options);
+      }
+    </script>
+{% endblock %}
+

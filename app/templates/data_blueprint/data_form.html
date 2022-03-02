@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% include "data_blueprint/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-one-third is-offset-4 box">
+                <form method=post>
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.name.label }}</label>
+                        <div class="control">
+                            {{form.name(class="input")}}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.core_services.label }}</label>
+                        <div class="control">
+                            {{form.core_services()}}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.processes.label }}</label>
+                        <div class="control">
+                            {{form.processes()}}
+                        </div>
+                    </div>
+                    <div class="field has-text-centered">
+                        <a href="{{ url_for('data_bp.index') }}" class="button is-light">Cancel</a>
+                        <input type="submit" value="Save" class="button is-success">
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

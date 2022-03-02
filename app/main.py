@@ -130,6 +130,7 @@ def index():
 
 json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()
 
+
 from kpi import kpibp as kpi_blueprint
 
 app.register_blueprint(kpi_blueprint, url_prefix='/kpi')
@@ -484,6 +485,12 @@ admin.add_view(ModelView(DocCategory, db.session, category='Docs Circulation'))
 admin.add_view(ModelView(DocDocument, db.session, category='Docs Circulation'))
 admin.add_view(ModelView(DocDocumentReach, db.session, category='Docs Circulation'))
 admin.add_view(ModelView(DocReceiveRecord, db.session, category='Docs Circulation'))
+
+
+from data_blueprint import data_bp as data_blueprint
+
+app.register_blueprint(data_blueprint, url_prefix='/data-blueprint')
+
 
 # Commands
 

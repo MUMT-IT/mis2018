@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% include "data_blueprint/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-one-third is-offset-4 box">
+                <form method=post>
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.mission.label }}</label>
+                        <div class="control">
+                            <div class="select">
+                                {{form.mission()}}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.service.label }}</label>
+                        <div class="control">
+                            {{form.service(class="input")}}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.data.label }}</label>
+                        <div class="control">
+                            {{form.data()}}
+                        </div>
+                    </div>
+                    <div class="field has-text-centered">
+                        <a href="{{ url_for('data_bp.index') }}" class="button is-light">ยกเลิก</a>
+                        {% if service_id %}
+                        <a href="{{ url_for('data_bp.delete_core_service', service_id=service_id) }}" class="button is-danger">
+                            <span class="icon">
+                                <i class="fas fa-trash-alt"></i>
+                            </span>
+                            <span>
+                                ลบทิ้ง
+                            </span>
+                        </a>
+                        {% endif %}
+                        <input type="submit" value="บันทึก" class="button is-success">
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

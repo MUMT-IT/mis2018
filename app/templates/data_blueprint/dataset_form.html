@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+{% include "data_blueprint/nav.html" %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-one-third is-offset-4 box">
+                {% include "messages.html" %}
+                <h1 class="title has-text-centered is-size-3">Dataset</h1>
+                <form method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.reference.label }}</label>
+                        <div class="control">
+                            {{ form.reference(class="input is-danger") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.name.label }}</label>
+                        <div class="control">
+                            {{ form.name(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.desc.label }}</label>
+                        <div class="control">
+                            {{ form.desc(class="input", rows="50") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.source_url.label }}</label>
+                        <div class="control">
+                            {{ form.source_url(class="input", rows="50") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label checkbox">
+                            {{ form.sensitive(class="checkbox") }}
+                            {{ form.sensitive.label }}
+                        </label>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.core_services.label }}</label>
+                        <div class="control">
+                            {{ form.core_services() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.processes.label }}</label>
+                        <div class="control">
+                            {{ form.processes() }}
+                        </div>
+                    </div>
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a class="button is-light" href="{{ request.referrer }}">Cancel</a>
+                        </div>
+                        <label class="label"></label>
+                        <div class="control">
+                            <input type="submit" value="Submit" class="button is-success">
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

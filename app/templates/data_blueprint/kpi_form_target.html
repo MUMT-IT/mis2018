@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Add/Edit KPI{% endblock %}
+{% include "data_blueprint/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        {% include "messages.html" %}
+        <h1 class="title">ข้อมูลตัวชี้วัด</h1>
+        <form method="post">
+            {{ form.hidden_tag() }}
+            <div class="tabs is-centered is-boxed">
+              <ul>
+                <li><a href="{{request.path.replace('?section=target', '').replace('?section=report', '')+'?section=general'}}">ข้อมูลทั่วไป</a></li>
+                <li class="is-active"><a href="#">เป้าหมาย</a></li>
+                <li><a href="{{request.path.replace('?section=target', '').replace('?section=general', '')+'?section=report'}}">รายงาน</a></li>
+              </ul>
+            </div>
+            <div class="columns">
+                <div class="column box is-one-third is-offset-4">
+                    <div class="field">
+                        <label class="label">{{form.target.label}}</label>
+                        <div class="control">
+                            {{form.target(class="input")}}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{form.target_source.label}}</label>
+                        <div class="control">
+                            {{form.target_source(class="input", placeholder="ฐานที่ใช้ในการตั้งเป้าหมาย ที่มาของเป้าหมายที่คาดหวัง")}}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{form.target_account.label}}</label>
+                        <div class="control">
+                            {{form.target_account(class="input", pattern="\w+\.\w{3}", placeholder="ผู้ที่รับผิดชอบในการดำเนินแผนให้ได้ตามเป้าหมาย")}}
+                        </div>
+                        <p class="help">เช่น likit.pre</p>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{form.target_reporter.label}}</label>
+                        <div class="control">
+                            {{form.target_reporter(class="input", pattern="\w+\.\w{3}", placeholder="ผู้รับผิดชอบในการติดตามและรายงานเป้าหมายเป็นระยะ")}}
+                        </div>
+                        <p class="help">เช่น likit.pre</p>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{form.target_setter.label}}</label>
+                        <div class="control">
+                            {{form.target_setter(class="input", pattern="\w+\.\w{3}", placeholder="ผู้รับผิดชอบในการกำหนดเป้าหมาย")}}
+                        </div>
+                        <p class="help">เช่น likit.pre</p>
+                    </div>
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a href="{{url_for('data_bp.index')}}" class="button is-light">ยกเลิก</a>
+                        </div>
+                        <div class="control">
+                            <input class="button is-success" type="submit" value="บันทึก"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{super()}}
+<script type="text/javascript">
+</script>
+</section>
+{% endblock %}
+
+
