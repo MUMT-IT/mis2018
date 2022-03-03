@@ -1,8 +1,9 @@
 # -*- coding:utf-8 -*-
 import requests, os
-from flask import render_template, request, flash, redirect, url_for
+from flask import render_template, request, flash, redirect, url_for, send_from_directory
 from flask_login import current_user, login_required
 from oauth2client.service_account import ServiceAccountCredentials
+from pandas import DataFrame
 from pydrive.auth import GoogleAuth
 from werkzeug.utils import secure_filename
 from . import purchase_tracker_bp as purchase_tracker
@@ -233,3 +234,30 @@ def delete_update_status(account_id, status_id):
         db.session.delete(status)
         db.session.commit()
         return redirect(url_for('purchase_tracker.update_status', account_id=account_id))
+
+
+@purchase_tracker.route('/account/update_status/info/download')
+@login_required
+def update_status_info_download():
+    trackers = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
+    records = []
+    for account in trackers:
+        for record in account.records:
+            delta = record.end_date-record.start_date
+            records.append({
+                'account_id': u"{}".format(account.id),
+                'number': u"{}".format(account.number),
+                'booking_date': u"{}".format(account.booking_date),
+                'subject': u"{}".format(account.subject),
+                'amount': u"{}".format(account.amount),
+                'formats': u"{}".format(account.formats),
+                'activity': u"{}".format(record.activity),
+                'staff': u"{}".format(record.staff.personal_info.fullname),
+                'start_date': u"{}".format(record.start_date),
+                'end_date': u"{}".format(record.end_date),
+                'comment': u"{}".format(record.comment),
+                'days': u"{}".format(delta.days),
+                    })
+    df = DataFrame(records)
+    df.to_excel('account_summary.xlsx')
+    return send_from_directory(os.getcwd(), filename='account_summary.xlsx')
