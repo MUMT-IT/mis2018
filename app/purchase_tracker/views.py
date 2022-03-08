@@ -153,6 +153,11 @@ def contact():
     return render_template('purchase_tracker/contact_us.html')
 
 
+def send_mail(recp, title, message):
+    message = Message(subject=title, body=message, recipients=recp)
+    mail.send(message)
+
+
 @purchase_tracker.route('/account/<int:account_id>/update', methods=['GET', 'POST'])
 @login_required
 def update_status(account_id):
@@ -172,13 +177,15 @@ def update_status(account_id):
             # TODO: calculate end date from time needed to finish the task
             db.session.add(status)
             db.session.commit()
-            message = Message(subject=u'แจ้งเตือนการปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.
-                              format(status.account.number),
-                              recipients=[current_user.email + "@mahidol.ac.th"])
-
-            message.body = status.activity
-
-            mail.send(message)
+            title = u'แจ้งเตือนการปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.format(status.account.number)
+            message = u'เรียน {}\n\nสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {} คือ {}'\
+                .format(current_user.personal_info.fullname, status.account.number, status.activity)
+            message += u'\n\n======================================================'
+            message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ '\
+                       u'หากมีปัญหาในการเข้าถึงลิงค์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
+            message += u'\nThis email was sent by an automated system. Please do not reply.'\
+                       u' If you have problem visiting the link, please contact the IT unit.'
+            send_mail([u'{}@mahidol.ac.th'.format(current_user.email)], title, message)
             flash(u'อัพเดตข้อมูลเรียบร้อย', 'success')
         # Check Error
         else:
@@ -212,13 +219,15 @@ def edit_update_status(account_id, status_id):
             status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
             db.session.add(status)
             db.session.commit()
-            message = Message(subject=u'แจ้งเตือนการแก้ไขปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.
-                              format(status.account.number),
-                              recipients=[current_user.email + "@mahidol.ac.th"])
-
-            message.body = status.activity
-
-            mail.send(message)
+            title = u'แจ้งเตือนการแก้ไขปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.format(status.account.number)
+            message = u'เรียน {}\n\nสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {} คือ {}' \
+                .format(current_user.personal_info.fullname, status.account.number, status.activity)
+            message += u'\n\n======================================================'
+            message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
+                       u'หากมีปัญหาในการเข้าถึงลิงค์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
+            message += u'\nThis email was sent by an automated system. Please do not reply.' \
+                       u' If you have problem visiting the link, please contact the IT unit.'
+            send_mail([u'{}@mahidol.ac.th'.format(current_user.email)], title, message)
             flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
         return redirect(url_for('purchase_tracker.update_status', status_id=status.id, account_id=account_id))
     return render_template('purchase_tracker/edit_update_record.html',
