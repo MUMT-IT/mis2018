@@ -3,7 +3,7 @@ from wtforms.validators import DataRequired
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
-from wtforms import SelectMultipleField, widgets, BooleanField
+from wtforms import SelectMultipleField, widgets, SelectField
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
 from .models import *
 from app.ot.models import *
@@ -55,10 +55,16 @@ class OtDocumentApprovalForm(ModelForm):
     # io = QuerySelectField(get_label='id',
     #                        query_factory=lambda: IOCode.query.all())
 
+time_slots = []
+for hour in range(0,24):
+    for minute in (0,30):
+        time_slots.append('{:02d}:{:02d}'.format(hour,minute))
 
 class OtRecordForm(ModelForm):
     class Meta:
         model = OtRecord
+    start_time = SelectField(u'เวลาเริ่มต้น', choices=[(t,t) for t in time_slots])
+    end_time = SelectField(u'เวลาสิ้นสุด', choices=[(t,t) for t in time_slots])
     compensation = QuerySelectField(get_label='role',
                                    query_factory=lambda: OtCompensationRate.query.all())
 
