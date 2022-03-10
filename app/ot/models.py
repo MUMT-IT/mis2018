@@ -74,7 +74,8 @@ class OtCompensationRate(db.Model):
             'per_period': self.per_period,
             'per_hour': self.per_hour,
             'per_day': self.per_day,
-            'is_workday': self.is_workday
+            'is_workday': self.is_workday,
+            'is_role_required': self.is_role_required,
         }
 
 
@@ -119,14 +120,6 @@ class OtRecord(db.Model):
                                     foreign_keys=[created_account_id])
     org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
     org = db.relationship(Org, backref=db.backref('ot_record'))
-
-
-# class OtPerson(db.Model):
-#     __tablename__ = 'ot_document_approval'
-#     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-#     doc_id = db.Column('doc_id', db.ForeignKey('ot_document_approval.id'))
-#     created_at = db.Column('created_at',db.DateTime(timezone=True),default=datetime.now())
-#     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
-#     staff = db.relationship(StaffAccount, backref=db.backref('ot_person'))
+    sub_role = db.Column('sub_role', db.String())
 
 
