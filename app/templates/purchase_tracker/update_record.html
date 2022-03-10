@@ -69,8 +69,16 @@
                              <td>{{ tracker.subject }}</td>
                          </tr>
                          <tr>
-                             <td><label class="label">Number: เลขที่</label></td>
+                             <td><label class="label">Number: เลขที่หนังสือ</label></td>
                              <td>{{ tracker.number }}</td>
+                         </tr>
+                        <tr>
+                             <td><label class="label">Booking Date: วันที่หนังสือ</label></td>
+                             <td>{{ tracker.booking_date }}</td>
+                         </tr>
+                        <tr>
+                             <td><label class="label">Amount: วงเงินหลักการ</label></td>
+                             <td>{{ tracker.amount }}</td>
                          </tr>
                         <tr>
                              <td><label class="label">Coordinator: ผู้ประสานงาน</label></td>
@@ -107,6 +115,7 @@
                                  <thead>
                                  <th>กิจกรรม</th>
                                  <th>ผู้รับผิดชอบ</th>
+                                 <th>หมายเหตุเพิ่มเติม</th>
                                  <th>วันเริ่มต้น</th>
                                  <th>วันสิ้นสุด</th>
                                  </thead>
@@ -115,6 +124,7 @@
                                     <tr>
                                         <td>{{ tracker.activity }}</td>
                                         <td>{{ tracker.staff }}</td>
+                                        <td>{{ tracker.comment }}</td>
                                         <td>{{ tracker.start_date }}</td>
                                         <td>{{ tracker.end_date }}</td>
                                         <td>

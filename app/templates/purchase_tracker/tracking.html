@@ -63,7 +63,7 @@
                         <thead>
                         <th>ชื่อเรื่อง</th>
                         <th>เลขที่หนังสือ</th>
-                        <th>วันที(ปี-เดือน-วัน) เวลา</th>
+                        <th>วันทีหนังสือ</th>
                         <th>สถานะ</th>
                         <th>Dashboard</th>
                         </thead>
@@ -77,7 +77,7 @@
                                 {{ record.number }}
                             </td>
                             <td>
-                                {{ record.creation_date }}
+                                {{ record.booking_date }}
                             </td>
                             <td>
                                 {% if record.records.count() == 0 %}
@@ -153,6 +153,7 @@
                                     <thead>
                                     <th>กิจกรรม</th>
                                     <th>ผู้รับผิดชอบ</th>
+                                    <th>หมายเหตุเพิ่มเติม</th>
                                     <th>วันเริ่มต้น</th>
                                     <th>วันสิ้นสุด</th>
                                     </thead>
@@ -161,6 +162,7 @@
                                     <tr>
                                         <td>{{ tracker.activity }}</td>
                                         <td>{{ tracker.staff }}</td>
+                                        <td>{{ tracker.comment }}</td>
                                         <td>{{ tracker.start_date }}</td>
                                         <td>{{ tracker.end_date }}</td>
                                     </tr>

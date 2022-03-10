@@ -54,9 +54,9 @@
                     <table class="table is-striped" id="PurchaseTrackerTable">
                         <thead>
                         <th>ชื่อเรื่อง</th>
-                        <th>เลขที่</th>
+                        <th>เลขที่หนังสือ</th>
+                        <th>วันที่หนังสือ</th>
                         <th>หน่วยงาน/ภาควิชา</th>
-                        <th>วันที่</th>
                         <th>สถานะ</th>
                         <th>ดูรายละเอียด</th>
                         </thead>
@@ -69,11 +69,11 @@
                             <td>
                                 {{ record.number }}
                             </td>
-                            <td>
-                                {{ record.staff.personal_info.org.name }}
+                             <td>
+                                {{ record.booking_date }}
                             </td>
                             <td>
-                                {{ record.creation_date }}
+                                {{ record.staff.personal_info.org.name }}
                             </td>
                             <td>
                                 {% if record.records.count() == 0 %}
