@@ -48,12 +48,21 @@
                         <div class="notification is-warning" v-else>
                             กรุณาเลือกตำแหน่ง
                         </div>
+                        <div class="box" v-if="info.is_role_required">
+                                <div class="control">
+                                    <div>
+                                        <label class="subtitle">กรอกชื่อตำแหน่ง</label>
+                                        <input name="sub_role" class="input" placeholder="เช่น พนักงานขับรถ" required>
+
+                                    </div>
+                                </div>
+                        </div>
                         <div class="box">
                             <div class="field is-horizontal">
                                 <div class="field-label is-normal">
-                                    <label class="label">วันที่ทำ OT</label>
+                                    <label class="label">ระบุวันที่ทำ</label>
                                 </div>
-                                <div class="field-body">
+                                <div class="field-body has-text-centered">
                                     <div class="field">
                                         <div class="select">
                                             {{ form.start_datetime(class="input") }}
@@ -62,20 +71,22 @@
                                 </div>
                             </div>
                             <div class="field" v-if="info.start_time === ''">
-                                <div class="control">
-                                    <div>
-                                        <label>เวลาเริ่มต้น</label>
-                                        <input name="start_time">
-                                        <label>เวลาสิ้นสุด</label>
-                                        <input name="end_time">
-                                    </div>
+                                <div class="field-label is-normal has-text-centered">
+                                    <label class="label">เวลาเริ่มต้น</label>
                                 </div>
-                            </div>
-                            <div class="field" v-if="info.is_role_required">
-                                <div class="control">
-                                    <div>
-                                        <label>ชื่อตำแหน่ง</label>
-                                        <input name="sub_role">
+                                <div class="control has-text-centered">
+                                    <div class="field">
+                                        <div class="select">
+                                            {{ form.start_time() }}
+                                        </div>
+                                    </div>
+                                    <div class="field-label is-normal has-text-centered">
+                                        <label class="label">เวลาสิ้นสุด</label>
+                                    </div>
+                                    <div class="field">
+                                        <div class="select">
+                                            {{ form.end_time() }}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
