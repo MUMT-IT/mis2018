@@ -2,6 +2,7 @@
 import requests, os
 from flask import render_template, request, flash, redirect, url_for, send_from_directory
 from flask_login import current_user, login_required
+from flask_user import roles_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pandas import DataFrame
 from pydrive.auth import GoogleAuth
@@ -34,7 +35,6 @@ def landing_page():
 
 @purchase_tracker.route('/personnel/personnel_index')
 def staff_index():
-
     return render_template('purchase_tracker/personnel/personnel_index.html')
 
 
@@ -134,6 +134,7 @@ def track(account_id=None):
 
 
 @purchase_tracker.route('/supplies')
+# @roles_required('')
 def supplies():
     from sqlalchemy import desc
     purchase_trackers = PurchaseTrackerAccount.query.all()
@@ -181,11 +182,11 @@ def update_status(account_id):
             message = u'เรียน {}\n\nสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {} คือ {}'\
                 .format(current_user.personal_info.fullname, status.account.number, status.activity)
             message += u'\n\n======================================================'
-            message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ '\
-                       u'หากมีปัญหาในการเข้าถึงลิงค์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
-            message += u'\nThis email was sent by an automated system. Please do not reply.'\
-                       u' If you have problem visiting the link, please contact the IT unit.'
-            send_mail([u'{}@mahidol.ac.th'.format(current_user.email)], title, message)
+            message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
+                       u'หากมีปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
+            message += u'\nThis email was sent by an automated system. Please do not reply.' \
+                       u' If you have any problem about website, please contact the IT unit.'
+            send_mail([u'{}@mahidol.ac.th'.format(tracker.staff.email)], title, message)
             flash(u'อัพเดตข้อมูลเรียบร้อย', 'success')
         # Check Error
         else:
@@ -224,10 +225,10 @@ def edit_update_status(account_id, status_id):
                 .format(current_user.personal_info.fullname, status.account.number, status.activity)
             message += u'\n\n======================================================'
             message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
-                       u'หากมีปัญหาในการเข้าถึงลิงค์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
+                       u'หากมีปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
             message += u'\nThis email was sent by an automated system. Please do not reply.' \
-                       u' If you have problem visiting the link, please contact the IT unit.'
-            send_mail([u'{}@mahidol.ac.th'.format(current_user.email)], title, message)
+                       u' If you have any problem about website, please contact the IT unit.'
+            send_mail([u'{}@mahidol.ac.th'.format(status.account.staff.email)], title, message)
             flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
         return redirect(url_for('purchase_tracker.update_status', status_id=status.id, account_id=account_id))
     return render_template('purchase_tracker/edit_update_record.html',
