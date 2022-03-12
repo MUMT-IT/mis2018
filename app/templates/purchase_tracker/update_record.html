@@ -120,9 +120,9 @@
                                  <th>วันสิ้นสุด</th>
                                  </thead>
                                  <tbody>
-                                 {% for tracker in tracker.records %}
+                                 {% for tracker in tracker.records.order_by("id") %}
                                     <tr>
-                                        <td>{{ tracker.activity }}</td>
+                                        <td>{{ tracker.activity.activity }}</td>
                                         <td>{{ tracker.staff }}</td>
                                         <td>{{ tracker.comment }}</td>
                                         <td>{{ tracker.start_date }}</td>
