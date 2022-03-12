@@ -22,6 +22,7 @@ class PurchaseTrackerAccount(db.Model):
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True), nullable=True,
                              info={'label': u'วันที่สิ้นสุด'})
 
+
     def __str__(self):
         return u'{}: {}'.format(self.subject, self.number)
 
@@ -43,7 +44,8 @@ class PurchaseTrackerStatus(db.Model):
     start_date = db.Column('start_date', db.Date(), nullable=False, info={'label': u'วันที่เริ่มต้น'})
     end_date = db.Column('end_date', db.Date(), nullable=False, info={'label': u'วันที่สิ้นสุด'})
     update_datetime = db.Column('update_date', db.DateTime(timezone=True), info={'label': u'วันที่แก้ไข'})
-    activity = db.Column('activity', db.String(255), nullable=False, info={'label': u'กิจกรรม'})
+    activity = db.relationship("PurchaseTrackerActivity")
+    activity_id = db.Column('activity_id', db.ForeignKey('tracker_activities.id'))
 
     def __str__(self):
         return u'{}:{}'.format(self.status, self.activity)
@@ -52,10 +54,15 @@ class PurchaseTrackerStatus(db.Model):
         delta = self.end_date - self.start_date
         duration = delta.days
         return [str(self.id),
-                self.activity,
+                self.activity.activity,
                 self.start_date.isoformat(),
                 self.end_date.isoformat(),
                 duration,
                 100,
                 "",
                 ]
+
+class PurchaseTrackerActivity(db.Model):
+    __tablename__ = 'tracker_activities'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    activity = db.Column('activity', db.String(255), nullable=False, info={'label': u'กิจกรรม'})
