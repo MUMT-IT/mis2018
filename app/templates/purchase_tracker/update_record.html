@@ -149,11 +149,18 @@
                                 </table>
                                 <div class="buttons is-centered">
                                     <a class="button is-info"
-                                       href="#update">
+                                       href="{{ url_for('purchase_tracker.add_activity', account_id=account_id) }}">
                                         <span class="icon">
                                            <i class="fas fa-plus"></i>
                                         </span>
-                                        <span>เพิ่มรายการกิจกรรม</span>
+                                        <span>เพิ่มกิจกรรมใหม่</span>
+                                    </a>
+                                     <a class="button is-primary"
+                                       href="#update">
+                                        <span class="icon">
+                                           <i class="fas fa-retweet"></i>
+                                        </span>
+                                        <span>อัพเดตกิจกรรม</span>
                                     </a>
                                     <a class="button is-warning"
                                        href="{{ url_for('purchase_tracker.update_status_info_download') }}">

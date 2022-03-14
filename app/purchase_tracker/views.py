@@ -43,7 +43,7 @@ def index():
     return render_template('purchase_tracker/index.html')
 
 
-@purchase_tracker.route('/create', methods=['GET', 'POST'])
+@purchase_tracker.route('/create/account', methods=['GET', 'POST'])
 @login_required
 def add_account():
     form = CreateAccountForm()
@@ -134,7 +134,7 @@ def track(account_id=None):
 
 
 @purchase_tracker.route('/supplies')
-# @roles_required('')
+# @roles_required('PurchaseTracker')
 def supplies():
     from sqlalchemy import desc
     purchase_trackers = PurchaseTrackerAccount.query.all()
@@ -180,7 +180,7 @@ def update_status(account_id):
             db.session.commit()
             title = u'แจ้งเตือนการปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.format(status.account.number)
             message = u'เรียน {}\n\nสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {} คือ {}'\
-                .format(current_user.personal_info.fullname, status.account.number, status.activity)
+                .format(current_user.personal_info.fullname, status.account.number, status.activity.activity)
             message += u'\n\n======================================================'
             message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
                        u'หากมีปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
@@ -222,7 +222,7 @@ def edit_update_status(account_id, status_id):
             db.session.commit()
             title = u'แจ้งเตือนการแก้ไขปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.format(status.account.number)
             message = u'เรียน {}\n\nสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {} คือ {}' \
-                .format(current_user.personal_info.fullname, status.account.number, status.activity)
+                .format(current_user.personal_info.fullname, status.account.number, status.activity.activity)
             message += u'\n\n======================================================'
             message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
                        u'หากมีปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
@@ -271,3 +271,24 @@ def update_status_info_download():
     df = DataFrame(records)
     df.to_excel('account_summary.xlsx')
     return send_from_directory(os.getcwd(), filename='account_summary.xlsx')
+
+
+@purchase_tracker.route('/create/<int:account_id>/activity', methods=['GET', 'POST'])
+@login_required
+def add_activity(account_id):
+    activity = db.session.query(PurchaseTrackerActivity)
+    form = CreateActivityForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            new_activity = PurchaseTrackerActivity()
+            form.populate_obj(new_activity)
+            db.session.add(new_activity)
+            db.session.commit()
+            flash(u'บันทึกการเพิ่มกิจกรรมใหม่สำเร็จ.', 'success')
+            return redirect(url_for('purchase_tracker.update_status', account_id=account_id))
+        # Check Error
+        else:
+            for er in form.errors:
+                flash(er, 'danger')
+    return render_template('purchase_tracker/create_activity.html', form=form, activity=activity, account_id=account_id)
+
