@@ -40,3 +40,9 @@ class StatusForm(ModelForm):
                                 get_label='activity', blank_text='Select category..', allow_blank=False,
                                 validators=[DataRequired()])
 
+
+class CreateActivityForm(ModelForm):
+    class Meta:
+        model = PurchaseTrackerActivity
+
+
