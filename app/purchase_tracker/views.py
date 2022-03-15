@@ -15,6 +15,7 @@ from pydrive.drive import GoogleDrive
 from .models import PurchaseTrackerAccount
 from flask_mail import Message
 from ..main import mail
+from ..staff.models import StaffAccount
 
 # Upload images for Google Drive
 
@@ -135,13 +136,17 @@ def track(account_id=None):
 
 @purchase_tracker.route('/supplies')
 # @roles_required('PurchaseTracker')
-def supplies():
-    from sqlalchemy import desc
-    purchase_trackers = PurchaseTrackerAccount.query.all()
-    return render_template('purchase_tracker/procedure_supplies.html',
-                           purchase_trackers=purchase_trackers,
-                           desc=desc,
-                           PurchaseTrackerStatus=PurchaseTrackerStatus)
+def supplies(role_id=None):
+    permission = StaffAccount.query.filter_by(roles=role_id)
+    if not permission:
+        flash('Permission not allow', 'danger')
+    else:
+        from sqlalchemy import desc
+        purchase_trackers = PurchaseTrackerAccount.query.all()
+        return render_template('purchase_tracker/procedure_supplies.html',
+                               purchase_trackers=purchase_trackers,
+                               desc=desc,
+                               PurchaseTrackerStatus=PurchaseTrackerStatus)
 
 
 @purchase_tracker.route('/description')
@@ -163,7 +168,7 @@ def send_mail(recp, title, message):
 @login_required
 def update_status(account_id):
     form = StatusForm()
-    tracker = PurchaseTrackerAccount.query.get(account_id)
+    account = PurchaseTrackerAccount.query.get(account_id)
     if request.method == 'POST':
         if form.validate_on_submit():
             status = PurchaseTrackerStatus()
@@ -174,6 +179,16 @@ def update_status(account_id):
             status.cancel_datetime = bangkok.localize(datetime.now())
             status.update_datetime = bangkok.localize(datetime.now())
             status.staff = current_user
+            # delta = status.end_date - status.start_date
+            # n = 0
+            # weekdays = 0
+            # while n <= delta.days:
+            #     d = status.start_date + timedelta(n)
+            #     if d.weekday() < 5:
+            #         # if holidays and d not in holidays:
+            #         weekdays += 1
+            #     n += 1
+            # # status.end_date = delta
             status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
             # TODO: calculate end date from time needed to finish the task
             db.session.add(status)
@@ -186,7 +201,7 @@ def update_status(account_id):
                        u'หากมีปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
             message += u'\nThis email was sent by an automated system. Please do not reply.' \
                        u' If you have any problem about website, please contact the IT unit.'
-            send_mail([u'{}@mahidol.ac.th'.format(tracker.staff.email)], title, message)
+            send_mail([u'{}@mahidol.ac.th'.format(account.staff.email)], title, message)
             flash(u'อัพเดตข้อมูลเรียบร้อย', 'success')
         # Check Error
         else:
@@ -199,7 +214,7 @@ def update_status(account_id):
     else:
         default_date = activities[-1][3]
     return render_template('purchase_tracker/update_record.html',
-                            account_id=account_id, form=form, activities=activities, tracker=tracker,
+                            account_id=account_id, form=form, activities=activities, account=account,
                            default_date=default_date)
 
 
@@ -255,18 +270,18 @@ def update_status_info_download():
         for record in account.records:
             delta = record.end_date-record.start_date
             records.append({
-                'account_id': u"{}".format(account.id),
-                'number': u"{}".format(account.number),
-                'booking_date': u"{}".format(account.booking_date),
-                'subject': u"{}".format(account.subject),
-                'amount': u"{}".format(account.amount),
-                'formats': u"{}".format(account.formats),
-                'activity': u"{}".format(record.activity),
-                'staff': u"{}".format(record.staff.personal_info.fullname),
-                'start_date': u"{}".format(record.start_date),
-                'end_date': u"{}".format(record.end_date),
-                'comment': u"{}".format(record.comment),
-                'days': u"{}".format(delta.days),
+                u'ลำดับ': u"{}".format(account.id),
+                u'เลขที่หนังสือ': u"{}".format(account.number),
+                u'วันที่หนังสือ': u"{}".format(account.booking_date),
+                u'ชื่อ': u"{}".format(account.subject),
+                u'วงเงินหลักการ': u"{}".format(account.amount),
+                u'รูปแบบหลักการ': u"{}".format(account.formats),
+                u'กิจกรรม': u"{}".format(record.activity.activity),
+                u'ผู้รับผิดชอบ': u"{}".format(record.staff.personal_info.fullname),
+                u'วันเริ่มกิจกรรม': u"{}".format(record.start_date),
+                u'วันสิ้นสุดกิจกรรม': u"{}".format(record.end_date),
+                u'หมายเหตุเพิ่มเติม': u"{}".format(record.comment),
+                u'เวลาดำเนินกิจกรรม': u"{}".format(delta.days),
                     })
     df = DataFrame(records)
     df.to_excel('account_summary.xlsx')
