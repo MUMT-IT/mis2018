@@ -51,7 +51,7 @@
                  <div class="card-header">
                      <h1 class="card-header-title">
                          <span>
-                             {{ tracker.creation_date }}
+                             {{ account.creation_date }}
                          </span>
                      </h1>
                  </div>
@@ -66,37 +66,37 @@
                         {% endif %}
                          <tr>
                              <td><label class="label">Subject: เรื่อง</label></td>
-                             <td>{{ tracker.subject }}</td>
+                             <td>{{ account.subject }}</td>
                          </tr>
                          <tr>
                              <td><label class="label">Number: เลขที่หนังสือ</label></td>
-                             <td>{{ tracker.number }}</td>
+                             <td>{{ account.number }}</td>
                          </tr>
                         <tr>
                              <td><label class="label">Booking Date: วันที่หนังสือ</label></td>
-                             <td>{{ tracker.booking_date }}</td>
+                             <td>{{ account.booking_date }}</td>
                          </tr>
                         <tr>
                              <td><label class="label">Amount: วงเงินหลักการ</label></td>
-                             <td>{{ tracker.amount }}</td>
+                             <td>{{ account.amount }}</td>
                          </tr>
                         <tr>
                              <td><label class="label">Coordinator: ผู้ประสานงาน</label></td>
-                             <td>{{ tracker.staff.personal_info.fullname }}</td>
+                             <td>{{ account.staff.personal_info.fullname }}</td>
                          </tr>
                          <tr>
                              <td><label class="label">Description: รายละเอียด</label></td>
-                             <td>{{ tracker.desc }}</td>
+                             <td>{{ account.desc }}</td>
                          </tr>
                          <tr>
                              <td><label class="label">Comment: หมายเหตุ</label></td>
-                             <td>{{ tracker.comment }}</td>
+                             <td>{{ account.comment }}</td>
                          </tr>
                          <tr>
                              <td><label class="label">File: ไฟล์</label></td>
                              <td>
-                                 {% if tracker.url %}
-                                     <a href="{{ 'https://drive.google.com/uc?id=' + tracker.url }}"
+                                 {% if account.url %}
+                                     <a href="{{ 'https://drive.google.com/uc?id=' + account.url }}"
                                         target="_blank">
                                          <span class="icon">
                                              <i class="far fa-file-pdf"></i>
@@ -120,22 +120,22 @@
                                  <th>วันสิ้นสุด</th>
                                  </thead>
                                  <tbody>
-                                 {% for tracker in tracker.records.order_by("id") %}
+                                 {% for account in account.records.order_by("id") %}
                                     <tr>
-                                        <td>{{ tracker.activity.activity }}</td>
-                                        <td>{{ tracker.staff }}</td>
-                                        <td>{{ tracker.comment }}</td>
-                                        <td>{{ tracker.start_date }}</td>
-                                        <td>{{ tracker.end_date }}</td>
+                                        <td>{{ account.activity.activity }}</td>
+                                        <td>{{ account.staff }}</td>
+                                        <td>{{ account.comment }}</td>
+                                        <td>{{ account.start_date }}</td>
+                                        <td>{{ account.end_date }}</td>
                                         <td>
-                                            <a href="{{ url_for('purchase_tracker.edit_update_status', account_id=account_id, status_id=tracker.id) }}"
+                                            <a href="{{ url_for('purchase_tracker.edit_update_status', account_id=account_id, status_id=account.id) }}"
                                                 class="button is-small is-primary is-outlined">
                                                 <span class="icon">
                                                     <i class="fas fa-pencil-alt"></i>
                                                 </span>
                                                 <span>แก้ไข</span>
                                             </a>
-                                            <a href="{{ url_for('purchase_tracker.delete_update_status', account_id=account_id, status_id=tracker.id) }}"
+                                            <a href="{{ url_for('purchase_tracker.delete_update_status', account_id=account_id, status_id=account.id) }}"
                                                 class="button is-small is-danger is-outlined">
                                                 <span class="icon">
                                                    <i class="far fa-trash-alt"></i>
