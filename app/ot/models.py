@@ -121,5 +121,14 @@ class OtRecord(db.Model):
     org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
     org = db.relationship(Org, backref=db.backref('ot_record'))
     sub_role = db.Column('sub_role', db.String())
+    document_id = db.Column('document_id', db.ForeignKey('ot_document_approval.id'))
+    document = db.relationship(OtDocumentApproval, backref=db.backref('ot_record_document'))
 
 
+# class OtRecordsApproved(db.Model):
+#     __tablename__ = 'ot_records_approved'
+#     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+#     record_id = db.Column('ot_record', db.ForeignKey('ot_record.id'))
+#     approved_at = db.Column('approved_at', db.DateTime(timezone=True), default=datetime.now())
+#     approved_by_account_id = db.Column('approved_by_account_id', db.ForeignKey('staff_account.id'))
+#     approved_by = db.relationship(StaffAccount, backref=db.backref('ot_record_approved_by'), foreign_keys=[approved_by_account_id])
