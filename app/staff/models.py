@@ -542,3 +542,22 @@ class StaffWorkLogin(db.Model):
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
     checkin_mins = db.Column('checkin_mins', db.Integer())
     checkout_mins = db.Column('checkout_mins', db.Integer())
+
+
+class StaffShiftSchedule(db.Model):
+    __tablename__ = 'staff_shift_schedule'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', backref=db.backref('shift_schedule'))
+    start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
+    end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
+
+
+# class StaffSapNo(db.Model):
+#     __tablename__ = 'staff_sap_no'
+#     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+#     sap_no = db.Column('sap_no', db.Integer)
+#     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+#     created_at = db.Column('created_at',db.DateTime(timezone=True),
+#                            default=datetime.now())
+#     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
