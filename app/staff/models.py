@@ -553,6 +553,13 @@ class StaffShiftSchedule(db.Model):
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
 
 
+class StaffShiftRole(db.Model):
+    __tablename__ = 'staff_shift_role'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    role = db.Column('role', db.String())
+    org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
+    org = db.relationship(Org, backref=db.backref('shift_role'))
+
 # class StaffSapNo(db.Model):
 #     __tablename__ = 'staff_sap_no'
 #     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
