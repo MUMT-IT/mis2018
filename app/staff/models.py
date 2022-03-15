@@ -551,6 +551,8 @@ class StaffShiftSchedule(db.Model):
     staff = db.relationship('StaffAccount', backref=db.backref('shift_schedule'))
     start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
+    role_id = db.Column('role_id', db.ForeignKey('staff_shift_role.id'))
+    role = db.relationship('StaffShiftRole', backref=db.backref('shift_schedule'))
 
 
 class StaffShiftRole(db.Model):
@@ -559,6 +561,10 @@ class StaffShiftRole(db.Model):
     role = db.Column('role', db.String())
     org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
     org = db.relationship(Org, backref=db.backref('shift_role'))
+
+    def __str__(self):
+        return self.role
+
 
 # class StaffSapNo(db.Model):
 #     __tablename__ = 'staff_sap_no'
