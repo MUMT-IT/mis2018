@@ -68,7 +68,7 @@
                         <th>Dashboard</th>
                         </thead>
                         <tbody>
-                        {% for record in trackers %}
+                        {% for record in accounts %}
                             <tr>
                             <td>
                                 {{ record.subject }}
@@ -104,7 +104,7 @@
                     <div class="card-header">
                         <h1 class="card-header-title">
                             <span>
-                                {{ tracker.creation_date }}
+                                {{ account.creation_date }}
                             </span>
                         </h1>
                     </div>
@@ -116,25 +116,25 @@
                             </colgroup>
                             <tr>
                                 <td><label class="label">Subject: ชื่อ</label></td>
-                                <td>{{ tracker.subject }}</td>
+                                <td>{{ account.subject }}</td>
                             </tr>
                             <tr>
                                 <td><label class="label">Number: เลขที่</label></td>
-                                <td>{{ tracker.number }}</td>
+                                <td>{{ account.number }}</td>
                             </tr>
                             <tr>
                                 <td><label class="label">Description: รายละเอียด</label></td>
-                                <td>{{ tracker.desc }}</td>
+                                <td>{{ account.desc }}</td>
                             </tr>
                             <tr>
                                 <td><label class="label">Comment: หมายเหตุ</label></td>
-                                <td>{{ tracker.comment }}</td>
+                                <td>{{ account.comment }}</td>
                             </tr>
                             <tr>
                                 <td><label class="label">File: ไฟล์</label></td>
                                 <td>
-                                    {% if tracker.url %}
-                                        <a href="{{ 'https://drive.google.com/uc?id=' + tracker.url }}"
+                                    {% if account.url %}
+                                        <a href="{{ 'https://drive.google.com/uc?id=' + account.url }}"
                                            target="_blank">
                                             <span class="icon">
                                                 <i class="far fa-file-pdf"></i>
@@ -156,15 +156,17 @@
                                     <th>หมายเหตุเพิ่มเติม</th>
                                     <th>วันเริ่มต้น</th>
                                     <th>วันสิ้นสุด</th>
+                                    <th>จำนวนวัน</th>
                                     </thead>
                                     <tbody>
-                                    {% for tracker in tracker.records %}
+                                    {% for account in account.records %}
                                     <tr>
-                                        <td>{{ tracker.activity }}</td>
-                                        <td>{{ tracker.staff }}</td>
-                                        <td>{{ tracker.comment }}</td>
-                                        <td>{{ tracker.start_date }}</td>
-                                        <td>{{ tracker.end_date }}</td>
+                                        <td>{{ account.activity.activity }}</td>
+                                        <td>{{ account.staff }}</td>
+                                        <td>{{ account.comment }}</td>
+                                        <td>{{ account.start_date }}</td>
+                                        <td>{{ account.end_date }}</td>
+{#                                        <td>{{ account.totals }}</td>#}
                                     </tr>
                                     {% endfor %}
                                     </tbody>
