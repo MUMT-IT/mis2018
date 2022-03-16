@@ -77,6 +77,8 @@ class OtCompensationRate(db.Model):
             'is_workday': self.is_workday,
             'is_role_required': self.is_role_required,
         }
+    def __str__(self):
+        return self.role
 
 
 class OtDocumentApproval(db.Model):
@@ -103,7 +105,8 @@ class OtDocumentApproval(db.Model):
                             backref=db.backref('document_approval_staff', lazy='dynamic'))
 #    cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'))
 #    io_code = db.Column('io_code', db.ForeignKey('iocodes.id'))
-
+    def __str__(self):
+        return self.title
 
 class OtRecord(db.Model):
     __tablename__ = 'ot_record'
