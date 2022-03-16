@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 import wtforms
 from flask_login import login_required, current_user
+from pandas import DataFrame
 import pytz
 import requests
 import os
@@ -10,7 +11,7 @@ from werkzeug.utils import secure_filename
 from models import *
 from forms import *
 from . import otbp as ot
-from app.main import db, get_weekdays, app, func, StaffPersonalInfo, StaffWorkLogin
+from app.main import db, get_weekdays, app, func, StaffPersonalInfo, StaffSpecialGroup, StaffShiftSchedule
 from app.models import Holidays, Org
 from flask import jsonify, render_template, request, redirect, url_for, flash, session, send_from_directory
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
@@ -70,7 +71,6 @@ def edit_ot_record_factory(announces):
     return EditOtRecordForm
 
 
-# TODO: สร้าง permission สำหรับคนที่สามารถใส่ข้อมูลเอกสารประกาศ rateOT
 @ot.route('/')
 @login_required
 def index():
@@ -80,6 +80,10 @@ def index():
 @ot.route('/announce')
 @login_required
 def announcement():
+    finance = StaffSpecialGroup.query.filter_by(group_code='finance').first()
+    if current_user not in finance.staffs:
+        flash(u'ไม่พบสิทธิในการเข้าถึงหน้าดังกล่าว', 'danger')
+        return render_template('ot/index.html')
     compensations = OtCompensationRate.query.all()
     for compensation in compensations:
         if compensation.announcement.upload_file_url:
@@ -377,6 +381,8 @@ def add_schedule(document_id):
     EditOtRecordForm = edit_ot_record_factory([a.id for a in document.announce])
     form = EditOtRecordForm()
     if request.method == 'POST':
+        print (form.start_datetime.data)
+        form.start_datetime.data = datetime(form.start_datetime.data.year, form.start_datetime.data.month, form.start_datetime.data.day)
         if form.validate_on_submit():
             for staff_id in request.form.getlist("otworker"):
                 record = OtRecord()
@@ -385,16 +391,18 @@ def add_schedule(document_id):
                     start_t = form.compensation.data.start_time
                     end_t = form.compensation.data.end_time
                 else:
-                    start_t = form.start_time.data+':00'
-                    end_t = form.end_time.data+':00'
+                    if form.start_time.data == "None" or form.end_time.data == "None":
+                        flash(u'จำเป็นต้องใส่เวลาเริ่มต้น สิ้นสุด', 'danger')
+                        return render_template('ot/schedule_add.html', form=form, document=document)
+                    else:
+                        start_t = form.start_time.data+':00'
+                        end_t = form.end_time.data+':00'
                 start_d = form.start_datetime.data.date()
                 end_d = form.start_datetime.data.date()
                 start_dt = '{} {}'.format(start_d, start_t)
                 end_dt = '{} {}'.format(end_d, end_t)
                 start_datetime = datetime.strptime(start_dt, '%Y-%m-%d %H:%M:%S')
                 end_datetime = datetime.strptime(end_dt, '%Y-%m-%d %H:%M:%S')
-                #TODO: check ว่าขาดเวลาเข้าหรือออกงานมั้ย
-                #TODO: check ว่าเข้าช้าหรืออกก่อนเวลาที่จะเบิกมั้ย
                 #TODO: เช็คว่าซ้ำกับอันอื่นมั้ย
                 #for ot_records in OtRecord.query.all():
                 #     if ot_records.staff_account_id==staff_id and ot_records.start_datetime == start_datetime or ot_records.start_datetime == end_datetime or \
@@ -406,6 +414,7 @@ def add_schedule(document_id):
                 record.created_staff = current_user
                 record.org = current_user.personal_info.org
                 record.staff_account_id = staff_id
+                record.document_id = document_id
                 staff_name = StaffAccount.query.get(staff_id)
                 if request.form.get('sub_role'):
                     record.sub_role = request.form.get('sub_role')
@@ -414,6 +423,7 @@ def add_schedule(document_id):
                 db.session.commit()
             return redirect(url_for('ot.schedule'))
         else:
+            print (form.errors, form.start_time.data)
             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
     return render_template('ot/schedule_add.html', form=form, document=document)
 
@@ -473,56 +483,113 @@ def get_compensation_detail(compensation_id):
     return jsonify({'info': comp.to_dict()})
 
 
-# @ot.route('/schedule/summary')
+@ot.route('/schedule/summary')
+@login_required
+def summary_index():
+    depts = Org.query.all()
+    fiscal_year = request.args.get('fiscal_year')
+    if fiscal_year is None:
+        if today.month in [10, 11, 12]:
+            fiscal_year = today.year + 1
+        else:
+            fiscal_year = today.year
+        init_date = today
+    else:
+        fiscal_year = int(fiscal_year)
+        init_date = date(fiscal_year - 1, 10, 1)
+    if len(depts) == 0:
+        # return redirect(request.referrer)
+        return redirect(url_for("ot.schedule"))
+    curr_dept_id = request.args.get('curr_dept_id')
+    tab = request.args.get('tab', 'all')
+    if curr_dept_id is None:
+        curr_dept_id = depts[0].id
+    employees = StaffPersonalInfo.query.all()
+    ot_r = []
+    for emp in employees:
+        if tab == 'ot' or tab == 'all':
+            fiscal_years = OtRecord.query.distinct(func.date_part('YEAR', OtRecord.start_datetime))
+            fiscal_years = [convert_to_fiscal_year(ot.start_datetime) for ot in fiscal_years]
+            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
+            for ot_record in OtRecord.query.filter_by(org_id=current_user.personal_info.org.id, staff=emp.staff_account)\
+                                .filter(OtRecord.start_datetime.between(start_fiscal_date, end_fiscal_date)):
+                text_color = '#ffffff'
+                bg_color = '#FF785C'
+                border_color = '#ffffff'
+                ot_r.append({
+                        'id': ot_record.id,
+                        'start': ot_record.start_datetime,
+                        'end': ot_record.end_datetime,
+                        'title': u'{} {}'.format(emp.th_firstname, ot_record.compensation.role),
+                        'backgroundColor': bg_color,
+                        'borderColor': border_color,
+                        'textColor': text_color,
+                        'type': 'ot'
+                    })
+            all = ot_r
+    return render_template('ot/schedule_summary.html',
+                           init_date=init_date,
+                           depts=depts, curr_dept_id=int(curr_dept_id),
+                           all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
+
+@ot.route('/schedule/summary/each-org')
+@login_required
+def summary_ot_each_org():
+    #TODO: cutoff month (group working_ot month)
+    documents = set()
+    records = OtRecord.query.filter_by(org_id=current_user.personal_info.org.id).all()
+    for record in records:
+        documents.add((record.document.id, record.document.title, record.start_datetime.month))
+    return render_template('ot/schedule_summary_each_org.html', documents=documents)
+
+
+@ot.route('/schedule/summary/each-org/<int:document_id>')
+@login_required
+def summary_ot_each_document(document_id):
+    #TODO: filter only non-approved record
+    #TODO: filter only same requested org
+    records = OtRecord.query.filter_by(document_id=document_id).all()
+    document = OtDocumentApproval.query.get(document_id)
+    ot_records = []
+    for record in records:
+        ot_record = dict(staff=record.staff.personal_info.fullname,
+                      start_datetime=record.start_datetime,
+                      end_datetime=record.end_datetime,
+                      compensation=record.compensation,
+                      sub_role=record.sub_role,
+                      condition=None
+                      )
+        shift_schedule_overlaps = StaffShiftSchedule.query.filter(StaffShiftSchedule.staff == record.staff)\
+                .filter(StaffShiftSchedule.start_datetime<=record.start_datetime)\
+                .filter(StaffShiftSchedule.end_datetime>=record.start_datetime).all()
+        shift_schedules = StaffShiftSchedule.query.filter(cast(StaffShiftSchedule.start_datetime, Date)==record.start_datetime.date()).all()
+        #TODO: compare ot record with worklogin
+        if shift_schedule_overlaps:
+            ot_record["condition"] = u'เวลาปฏิบัติงานปกติตรงกับเวลาที่ขอเบิกค่าล่วงเวลา'
+
+        if not shift_schedules:
+            ot_record["condition"] = u'ไม่พบเวลาปฏิบัติงาน'
+        ot_records.append(ot_record)
+    return render_template('ot/schedule_each_document.html', records=records, document=document, ot_records=ot_records)
+
+
+# @ot.route('/schedule/summary/each-org/<int:document_id>/download')
 # @login_required
-# def summary_index():
-#     depts = Org.query.all()
-#     fiscal_year = request.args.get('fiscal_year')
-#     if fiscal_year is None:
-#         if today.month in [10, 11, 12]:
-#             fiscal_year = today.year + 1
-#         else:
-#             fiscal_year = today.year
-#         init_date = today
-#     else:
-#         fiscal_year = int(fiscal_year)
-#         init_date = date(fiscal_year - 1, 10, 1)
-#     if len(depts) == 0:
-#         # return redirect(request.referrer)
-#         return redirect(url_for("ot.schedule"))
-#     curr_dept_id = request.args.get('curr_dept_id')
-#     tab = request.args.get('tab', 'all')
-#     if curr_dept_id is None:
-#         curr_dept_id = depts[0].id
-#     employees = StaffPersonalInfo.query.all()
-#     ot_r = []
-#     for emp in employees:
-#         if tab == 'ot' or tab == 'all':
-#             fiscal_years = OtRecord.query.distinct(func.date_part('YEAR', OtRecord.start_datetime))
-#             fiscal_years = [convert_to_fiscal_year(ot.start_datetime) for ot in fiscal_years]
-#             start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
-#             for ot_record in OtRecord.query.filter_by(org_id=current_user.personal_info.org.id, staff=emp.staff_account)\
-#                                 .filter(OtRecord.start_datetime.between(start_fiscal_date, end_fiscal_date)):
-#                 text_color = '#ffffff'
-#                 bg_color = '#FF785C'
-#                 border_color = '#ffffff'
-#                 ot_r.append({
-#                         'id': ot_record.id,
-#                         'start': ot_record.start_datetime,
-#                         'end': ot_record.end_datetime,
-#                         'title': u'{} {}'.format(emp.th_firstname, ot_record.compensation.role),
-#                         'backgroundColor': bg_color,
-#                         'borderColor': border_color,
-#                         'textColor': text_color,
-#                         'type': 'ot'
-#                     })
-#             all = ot_r
-#     return render_template('ot/schedule_ot_summary.html',
-#                            init_date=init_date,
-#                            depts=depts, curr_dept_id=int(curr_dept_id),
-#                            all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
-#
-#
+# def summary_ot_each_document_download(document_id):
+#     ot_list = []
+#     ot_records_query = OtRecord.query.filter_by(document_id=document_id).all()
+#     for ot_record in ot_records_query:
+#         record = {}
+#         record["start_datetime"] = ot_record.start_datetime
+#         record["staff"] = ot_record.staff.personal_info.fullname
+#         ot_list.append(record)
+#     df = DataFrame(record)
+#     summary = df.pivot_table(index='staff', columns='start_datetime', aggfunc=len, fill_value=0)
+#     summary.to_excel('ot_summary.xlsx')
+#     flash(u'ดาวน์โหลดไฟล์เรียบร้อยแล้ว ชื่อไฟล์ ot_summary.xlsx')
+#     return redirect(url_for('staff.summary_ot_each_org'))
+
+
 # @ot.route('/schedule/summary/each-person')
 # @login_required
 # def summary_ot_each_person():
@@ -557,6 +624,6 @@ def get_compensation_detail(compensation_id):
 #                     'type': 'ot'
 #                 })
 #         all = ot_r
-#     return render_template('ot/schedule_summary_ot_each_person.html',
+#     return render_template('ot/schedule_summary_each_person.html',
 #                            init_date=init_date,
 #                            all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
