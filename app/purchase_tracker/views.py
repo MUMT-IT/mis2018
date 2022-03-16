@@ -98,8 +98,8 @@ def initialize_gdrive():
 def track(account_id=None):
     if account_id is not None:
         from sqlalchemy import desc
-        tracker = PurchaseTrackerAccount.query.get(account_id)
-        trackers = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
+        account = PurchaseTrackerAccount.query.get(account_id)
+        accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
         activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
             .order_by(PurchaseTrackerStatus.start_date)]
         if not activities:
@@ -108,16 +108,16 @@ def track(account_id=None):
             default_date = activities[-1][3]
         return render_template('purchase_tracker/tracking.html',
                                account_id=account_id,
-                               tracker=tracker,
-                               trackers=trackers,
+                               account=account,
+                               accounts=accounts,
                                desc=desc,
                                PurchaseTrackerStatus=PurchaseTrackerStatus,
                                activities=activities,
                                default_date=default_date)
     else:
         from sqlalchemy import desc
-        tracker = PurchaseTrackerAccount.query.get(account_id)
-        trackers = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
+        account = PurchaseTrackerAccount.query.get(account_id)
+        accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
         activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
             .order_by(PurchaseTrackerStatus.start_date)]
         if not activities:
@@ -126,8 +126,8 @@ def track(account_id=None):
             default_date = activities[-1][3]
         return render_template('purchase_tracker/tracking.html',
                                account_id=account_id,
-                               tracker=tracker,
-                               trackers=trackers,
+                               tracker=account,
+                               trackers=accounts,
                                desc=desc,
                                PurchaseTrackerStatus=PurchaseTrackerStatus,
                                activities=activities,
@@ -179,16 +179,6 @@ def update_status(account_id):
             status.cancel_datetime = bangkok.localize(datetime.now())
             status.update_datetime = bangkok.localize(datetime.now())
             status.staff = current_user
-            # delta = status.end_date - status.start_date
-            # n = 0
-            # weekdays = 0
-            # while n <= delta.days:
-            #     d = status.start_date + timedelta(n)
-            #     if d.weekday() < 5:
-            #         # if holidays and d not in holidays:
-            #         weekdays += 1
-            #     n += 1
-            # # status.end_date = delta
             status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
             # TODO: calculate end date from time needed to finish the task
             db.session.add(status)
@@ -207,6 +197,8 @@ def update_status(account_id):
         else:
             for er in form.errors:
                 flash(er, 'danger')
+    # totals = [account.count_weekdays() for account in PurchaseTrackerAccount.query.all()]-\
+    #         [status.weekdays() for status in PurchaseTrackerStatus.query.all()]
     activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
         .order_by(PurchaseTrackerStatus.start_date)]
     if not activities:
@@ -306,4 +298,12 @@ def add_activity(account_id):
             for er in form.errors:
                 flash(er, 'danger')
     return render_template('purchase_tracker/create_activity.html', form=form, activity=activity, account_id=account_id)
+
+
+@purchase_tracker.route('/Dashboard/')
+def show_info_page():
+    account = PurchaseTrackerAccount.query.all()
+    form = StatusForm()
+    return render_template('purchase_tracker/info_page.html', account=account, form=form)
+
 

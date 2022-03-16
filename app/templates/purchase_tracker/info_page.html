@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+{% block title %}Purchase Tracker Page{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+    {% include "messages.html" %}
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    </head>
+    <section class="section-padding" id="hero">
+        <div class="container">
+            <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
+                <div class="navbar-brand">
+                    <a class="navbar-item" href="https://bulma.io">
+                        <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}"/>
+                    </a>
+                    <a role="button" class="navbar-burger burger has-text-white" aria-label="menu" aria-expanded="false"
+                       data-target="navbarBasicExample">
+                        <span aria-hidden="true"></span>
+                        <span aria-hidden="true"></span>
+                        <span aria-hidden="true"></span>
+                    </a>
+                </div>
+                <div id="navbarBasicExample" class="navbar-menu">
+                    <div class="navbar-start">
+                        <a href="{{ url_for('purchase_tracker.index') }}" class="navbar-item ">
+                            Home
+                        </a>
+                        <a href="{{ url_for('purchase_tracker.index') }}" class="navbar-item ">
+                            Services
+                        </a>
+                        <div class="navbar-item has-dropdown is-hoverable">
+                            <a class="navbar-link ">
+                                More
+                            </a>
+                            <div class="navbar-dropdown">
+                                <a class="navbar-item">
+                                    Report an issue
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </section>
+    <section class="section">
+        <div class="container">
+            <div class="column has-text-centered">
+                <h5 class="subtitle is-5">รายงานผลการดำเนินงานการจัดซื้อจัดจ้าง หน่วยพัสดุ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h5>
+            </div>
+            <div class="columns">
+                <div class="column">
+{#                 <div class="column is-5 is-offset-one-quarter">#}
+{#                    <label for="from">From</label>#}
+{#                    <input type="text" id="from" name="from">#}
+{#                    <label for="to">to</label>#}
+{#                    <input type="text" id="to" name="to">#}
+{#                     <input type="button" name="range" id="range" value="Range" class="btn btn-success">#}
+{#                </div>#}
+                <div class="column is-5 is-offset-one-quarter">
+                     <div class="field-body">
+                         <div class="field">
+                             <label class="label">{{ form.start_date.label }}</label>
+                             <div class="control">
+                                 {{ form.start_date(class="input", value=default_date) }}
+                             </div>
+                         </div>
+                         <div class="field">
+                             <label class="label">{{ form.end_date.label }}</label>
+                             <div class="control">
+                                 {{ form.end_date(class="input") }}
+                             </div>
+                          </div>
+                         <div class="field is-grouped is-grouped-centered">
+                            <div class="buttons ">
+                                <button class="button is-success" type="button">Find</button>
+                            </div>
+                         </div>
+                    </div>
+                </div>
+                    <br>
+                    <table class="table table-bordered" id="PurchaseTrackerInfoTable">
+                        <thead>
+                        <tr>
+                            <th width="5%">ID</th>
+                            <th width="10%">เลขที่หนังสือ</th>
+                            <th width="10%">วันที่หนังสือ</th>
+                            <th width="20%">ชื่อ</th>
+                            <th width="10%">วงเงินหลักการ</th>
+                            <th width="20%">รูปแบบหลักการ</th>
+                            <th width="30%">กิจกรรม</th>
+                            <th width="20%">ผู้รับผิดชอบ</th>
+                            <th width="20%">วันเริ่มกิจกรรม</th>
+                            <th width="20%">วันสิ้นสุดกิจกรรม</th>
+                            <th width="35%">หมายเหตุเพิ่มเติม</th>
+                            <th width="35%">เวลาดำเนินกิจกรรม</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for record in account %}
+                            <tr>
+                            <td>
+                                {{ record.id }}
+                            </td>
+                            <td>
+                                {{ record.number }}
+                            </td>
+                             <td>
+                                {{ record.booking_date }}
+                            </td>
+                            <td>
+                                {{ record.subject }}
+                            </td>
+                            <td>
+                                {{ record.amount }}
+                            </td>
+                            <td>
+                                {{ record.formats }}
+                            </td>
+                            <td>
+                                {{ record.formats }}
+                            </td>
+                            <td>
+                                {{ record.staff.personal_info.org.name }}
+                            </td>
+                            <td>
+                                {{ record.formats }}
+                            </td><td>
+                                {{ record.formats }}
+                            </td><td>
+                                {{ record.formats }}
+                            </td><td>
+                                {{ record.formats }}
+                            </td>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.js"></script>
+<!-- Script -->
+{#<script>#}
+{#$(document).ready(function(){#}
+{#    $.datepicker.setDefaults({#}
+{#        dateFormat: 'yy-mm-dd'#}
+{#    });#}
+{#    $(function(){#}
+{#        $("#from").datepicker();#}
+{#        $("#to").datepicker();#}
+{#    });#}
+{#    $('#range').click(function(){#}
+{#        var from = $('#from').val();#}
+{#        var to = $('#to').val();#}
+{#        if(from != '' && to != '')#}
+{#        {#}
+{#            $.ajax({#}
+{#                url:"/range",#}
+{#                method:"POST",#}
+{#                data:{from:from, to:to},#}
+{#                success:function(data)#}
+{#                {#}
+{#                    $('#PurchaseTrackerInfoTable').html(data);#}
+{#                    $('#PurchaseTrackerInfoTable').append(data.htmlresponse);#}
+{#                }#}
+{#            });#}
+{#        }#}
+{#        else#}
+{#        {#}
+{#            alert("Please Select the Date");#}
+{#        }#}
+{#    });#}
+{#});#}
+{#</script>#}
+{% endblock %}
