@@ -3,7 +3,7 @@ from wtforms.validators import DataRequired
 
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
-from wtforms import SelectMultipleField, widgets, SelectField
+from wtforms import SelectMultipleField, widgets, SelectField, DateField
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
 from .models import *
 from app.ot.models import *
@@ -63,8 +63,9 @@ for hour in range(0,24):
 class OtRecordForm(ModelForm):
     class Meta:
         model = OtRecord
-    start_time = SelectField(u'เวลาเริ่มต้น', choices=[(t,t) for t in time_slots])
-    end_time = SelectField(u'เวลาสิ้นสุด', choices=[(t,t) for t in time_slots])
+    start_datetime = DateField(u'วันที่')
+    start_time = SelectField(u'เวลาเริ่มต้น', choices=[("None","")]+[(t,t) for t in time_slots])
+    end_time = SelectField(u'เวลาสิ้นสุด', choices=[("None","")]+[(t,t) for t in time_slots])
     compensation = QuerySelectField(get_label='role',
                                    query_factory=lambda: OtCompensationRate.query.all())
 
