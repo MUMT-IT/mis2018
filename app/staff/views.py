@@ -1702,6 +1702,67 @@ def summary_org():
                            all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
 
 
+@staff.route('/shift-schedule')
+@login_required
+def shift_schedule():
+    employees = StaffPersonalInfo.query.all()
+    shift_record = []
+    tab = request.args.get('tab', 'all')
+    for emp in employees:
+        for record in StaffShiftSchedule.query.filter_by(staff=emp.staff_account):
+                text_color = '#ffffff'
+                bg_color = '#9D8E00'
+                border_color = '#ffffff'
+                shift_record.append({
+                    'id': record.id,
+                    'start': record.start_datetime.astimezone(tz).isoformat(),
+                    'end': record.end_datetime.astimezone(tz).isoformat(),
+                    'title': u'({}-{}) {}'.format(record.start_datetime.time(), record.end_datetime.time(), emp.th_firstname),
+                    'backgroundColor': bg_color,
+                    'borderColor': border_color,
+                    'textColor': text_color,
+                    'type': 'ot'
+                })
+        all = shift_record
+    return render_template('staff/shift_schedule.html', all=all)
+
+
+@staff.route('/shift-schedule/create', methods=['GET', 'POST'])
+@login_required
+def create_shift_schedule():
+    staff_list = []
+    account_query = StaffAccount.query.all()
+    for account in account_query:
+        record = dict(staffid=account.id,
+                      fullname=account.personal_info.fullname,
+                      email=account.email)
+        organization = account.personal_info.org
+        record["org"] = organization.name if organization else ""
+        staff_list.append(record)
+    if request.method == "POST":
+        form = request.form
+        print (form.get('start_dt'))
+        #TODO: sart_dt and end_dt sent None (edited send method from template)
+        start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
+        end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
+        timedelta = end_datetime - start_datetime
+        if timedelta.days < 0 or timedelta.seconds == 0:
+            flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
+            return render_template('staff/shift_schedule_create_schedule.html', staff_list=staff_list)
+        else:
+            for staff_id in form.getlist("worker"):
+                schedule = StaffShiftSchedule(
+                    staff_id=int(staff_id),
+                    start_datetime=tz.localize(start_datetime),
+                    end_datetime=tz.localize(end_datetime)
+                )
+                db.session.add(schedule)
+            db.session.commit()
+            flash(u'เพิ่มเวลาปฏิบัติงานเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('staff.shift_schedule'))
+    return render_template('staff/shift_schedule_create_schedule.html', staff_list=staff_list)
+
+
 @staff.route('/for-hr/seminar')
 @login_required
 def seminar():
@@ -1906,7 +1967,8 @@ def seminar_attends_each_person(staff_id):
 @staff.route('/time-report/report')
 @login_required
 def show_time_report():
-    return render_template('staff/time_report.html')
+    gj = StaffSpecialGroup.query.filter_by(group_code='gj').first()
+    return render_template('staff/time_report.html', gj=gj)
 
 
 @staff.route('/for-hr/staff-info')
