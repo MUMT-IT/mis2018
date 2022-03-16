@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link ref="//cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="table-container">
+            <h4 class="subtitle">รายการที่ต้องการเบิก OT ของ
+                {{ current_user.personal_info.org.name }} สำหรับอนุมัติ {{ document.title }}
+            </h4>
+        </div>
+        <table id="otTable" class="table is-striped is-fullwidth">
+            <thead>
+                <th>
+                    ช่วงเวลาที่ปฏิบัติงาน
+                </th>
+                <th>
+                    ผู้ปฏิบัติงาน
+                </th>
+                <th>
+                    ตำแหน่ง
+                </th>
+                <th>
+                   ตำแหน่งย่อย(ถ้ามี)
+                </th>
+                <th>
+                    ปฏิบัติงาน ณ
+                </th>
+                <th>
+                    ปฏิบัติงานให้แก่ (หน่วยงาน)
+                </th>
+                <th>
+                    หมายเหตุ
+                </th>
+            </thead>
+            <tbody>
+            {% for record in ot_records %}
+            <tr>
+                <td>
+                    {{ record["start_datetime"] }} - {{ record["end_datetime"] }}
+                </td>
+                <td>
+                    {{ record["staff"] }}
+                </td>
+                <td>
+                    {{ record["compensation"] }}
+                </td>
+                <td>
+                    {{ record["sub_role"] }}
+                </td>
+                <td>
+                </td>
+                <td>
+
+                </td>
+                <td {% if record["condition"] %} bgcolor="red" {% endif %}>
+                    {{ record ["condition"] or "" }}
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <a class="button is-info" href="{{ url_for('ot.summary_ot_each_document_download', document_id=document.id) }}">
+                    <span>ส่งเบิก</span>
+                </a>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a class="button is-info is-light" href="{{ url_for('ot.summary_ot_each_org') }}">
+                     <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready( function () {
+        $('#otTable').DataTable(
+            {
+                "pageLength": 5
+            }
+        );
+    });
+</script>
+{% endblock %}
+
+
