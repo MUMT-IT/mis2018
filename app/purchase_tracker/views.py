@@ -15,7 +15,7 @@ from pydrive.drive import GoogleDrive
 from .models import PurchaseTrackerAccount
 from flask_mail import Message
 from ..main import mail
-from ..staff.models import StaffAccount
+from ..staff.models import Role
 
 # Upload images for Google Drive
 
@@ -126,27 +126,30 @@ def track(account_id=None):
             default_date = activities[-1][3]
         return render_template('purchase_tracker/tracking.html',
                                account_id=account_id,
-                               tracker=account,
-                               trackers=accounts,
+                               account=account,
+                               accounts=accounts,
                                desc=desc,
                                PurchaseTrackerStatus=PurchaseTrackerStatus,
                                activities=activities,
                                default_date=default_date)
 
 
-@purchase_tracker.route('/supplies')
+@purchase_tracker.route('/supplies/')
 # @roles_required('PurchaseTracker')
-def supplies(role_id=None):
-    permission = StaffAccount.query.filter_by(roles=role_id)
-    if not permission:
-        flash('Permission not allow', 'danger')
-    else:
+def supplies():
+    role = Role.query.filter_by(name='admin', app_name='PurchaseTracker').first()
+    if role in current_user.roles:
         from sqlalchemy import desc
         purchase_trackers = PurchaseTrackerAccount.query.all()
         return render_template('purchase_tracker/procedure_supplies.html',
                                purchase_trackers=purchase_trackers,
                                desc=desc,
                                PurchaseTrackerStatus=PurchaseTrackerStatus)
+    else:
+        flash('Permission not allow', 'danger')
+        return redirect(url_for('purchase_tracker.landing_page'))
+
+
 
 
 @purchase_tracker.route('/description')
@@ -179,7 +182,7 @@ def update_status(account_id):
             status.cancel_datetime = bangkok.localize(datetime.now())
             status.update_datetime = bangkok.localize(datetime.now())
             status.staff = current_user
-            status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
+            # status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
             # TODO: calculate end date from time needed to finish the task
             db.session.add(status)
             db.session.commit()
@@ -197,8 +200,6 @@ def update_status(account_id):
         else:
             for er in form.errors:
                 flash(er, 'danger')
-    # totals = [account.count_weekdays() for account in PurchaseTrackerAccount.query.all()]-\
-    #         [status.weekdays() for status in PurchaseTrackerStatus.query.all()]
     activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
         .order_by(PurchaseTrackerStatus.start_date)]
     if not activities:
@@ -224,7 +225,7 @@ def edit_update_status(account_id, status_id):
             status.cancel_datetime = bangkok.localize(datetime.now())
             status.update_datetime = bangkok.localize(datetime.now())
             status.staff = current_user
-            status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
+            # status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
             db.session.add(status)
             db.session.commit()
             title = u'แจ้งเตือนการแก้ไขปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.format(status.account.number)
@@ -247,7 +248,7 @@ def edit_update_status(account_id, status_id):
 def delete_update_status(account_id, status_id):
     if account_id:
         status = PurchaseTrackerStatus.query.get(status_id)
-        flash(u'Information has been removed from the update status.')
+        flash(u'The update status has been removed.')
         db.session.delete(status)
         db.session.commit()
         return redirect(url_for('purchase_tracker.update_status', account_id=account_id))
@@ -256,9 +257,9 @@ def delete_update_status(account_id, status_id):
 @purchase_tracker.route('/account/update_status/info/download')
 @login_required
 def update_status_info_download():
-    trackers = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
+    accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
     records = []
-    for account in trackers:
+    for account in accounts:
         for record in account.records:
             delta = record.end_date-record.start_date
             records.append({
@@ -266,7 +267,7 @@ def update_status_info_download():
                 u'เลขที่หนังสือ': u"{}".format(account.number),
                 u'วันที่หนังสือ': u"{}".format(account.booking_date),
                 u'ชื่อ': u"{}".format(account.subject),
-                u'วงเงินหลักการ': u"{}".format(account.amount),
+                u'วงเงินหลักการ': u"{:,.2f}".format(account.amount),
                 u'รูปแบบหลักการ': u"{}".format(account.formats),
                 u'กิจกรรม': u"{}".format(record.activity.activity),
                 u'ผู้รับผิดชอบ': u"{}".format(record.staff.personal_info.fullname),
