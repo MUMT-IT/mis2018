@@ -90,3 +90,6 @@ class PurchaseTrackerActivity(db.Model):
     __tablename__ = 'tracker_activities'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     activity = db.Column('activity', db.String(255), nullable=False, info={'label': u'กิจกรรม'})
+
+    def __str__(self):
+        return u'{}'.format(self.activity)
