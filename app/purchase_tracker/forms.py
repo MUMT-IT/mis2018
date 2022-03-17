@@ -32,7 +32,7 @@ class CreateAccountForm(ModelForm):
 class StatusForm(ModelForm):
     class Meta:
         model = PurchaseTrackerStatus
-        exclude = ['creation_date', 'status_date', 'end_date']
+        exclude = ['creation_date', 'status_date']
 
     days = IntegerField(u'ระยะเวลา')
     activity = QuerySelectField(u'กิจกรรม',
