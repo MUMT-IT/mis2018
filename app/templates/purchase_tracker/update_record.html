@@ -69,16 +69,16 @@
                              <td>{{ account.subject }}</td>
                          </tr>
                          <tr>
-                             <td><label class="label">Number: เลขที่หนังสือ</label></td>
+                             <td><label class="label">Ref. Number: เลขที่หนังสือ</label></td>
                              <td>{{ account.number }}</td>
                          </tr>
                         <tr>
-                             <td><label class="label">Booking Date: วันที่หนังสือ</label></td>
+                             <td><label class="label">Date: วันที่หนังสือ</label></td>
                              <td>{{ account.booking_date }}</td>
                          </tr>
                         <tr>
-                             <td><label class="label">Amount: วงเงินหลักการ</label></td>
-                             <td>{{ account.amount }}</td>
+                             <td><label class="label">Cost Amount ( Baht ): วงเงินหลักการ</label></td>
+                             <td>{{ "{:,.2f}".format(account.amount) }}</td>
                          </tr>
                         <tr>
                              <td><label class="label">Coordinator: ผู้ประสานงาน</label></td>
@@ -109,7 +109,7 @@
                              </td>
                          </tr>
                          <tr>
-                             <td><label class="label">Update: อัพเดตล่าสุด</label>
+                             <td><label class="label">Last Updated: อัพเดตล่าสุด</label>
                              <td>
                              <table class="table is-fullwidth is-striped">
                                  <thead>
@@ -121,23 +121,23 @@
                                  <th>จำนวนวัน</th>
                                  </thead>
                                  <tbody>
-                                 {% for account in account.records.order_by("id") %}
+                                 {% for status in account.records.order_by("id") %}
                                     <tr>
-                                        <td>{{ account.activity.activity }}</td>
-                                        <td>{{ account.staff }}</td>
-                                        <td>{{ account.comment }}</td>
-                                        <td>{{ account.start_date }}</td>
-                                        <td>{{ account.end_date }}</td>
-                                        <td>{{ account.end_date }}</td>
+                                        <td>{{ status.activity.activity }}</td>
+                                        <td>{{ status.staff }}</td>
+                                        <td>{{ status.comment }}</td>
+                                        <td>{{ status.start_date }}</td>
+                                        <td>{{ status.end_date }}</td>
+                                        <td>{{ status.weekdays }}</td>
                                         <td>
-                                            <a href="{{ url_for('purchase_tracker.edit_update_status', account_id=account_id, status_id=account.id) }}"
+                                            <a href="{{ url_for('purchase_tracker.edit_update_status', account_id=account_id, status_id=status.id) }}"
                                                 class="button is-small is-primary is-outlined">
                                                 <span class="icon">
                                                     <i class="fas fa-pencil-alt"></i>
                                                 </span>
                                                 <span>แก้ไข</span>
                                             </a>
-                                            <a href="{{ url_for('purchase_tracker.delete_update_status', account_id=account_id, status_id=account.id) }}"
+                                            <a href="{{ url_for('purchase_tracker.delete_update_status', account_id=account_id, status_id=status.id) }}"
                                                 class="button is-small is-danger is-outlined">
                                                 <span class="icon">
                                                    <i class="far fa-trash-alt"></i>
@@ -147,6 +147,11 @@
                                         </td>
                                     </tr>
                                  {% endfor %}
+                                  <tr>
+                                     <td><label class="label">จำนวนวันทั้งหมด</label></td>
+                                      <td></td><td></td><td></td><td></td>
+                                     <td>{{ account.weekdays }}</td>
+                                  </tr>
                                  </tbody>
                                 </table>
                                 <div class="buttons is-centered">
@@ -170,13 +175,6 @@
                                           <i class="fas fa-download"></i>
                                         </span>
                                         <span>Download</span>
-                                    </a>
-                                    <a class="button is-warning"
-                                       href="{{ url_for('purchase_tracker.show_info_page') }}">
-                                        <span class="icon">
-                                          <i class="fas fa-info-circle"></i>
-                                        </span>
-                                        <span>Dashboard</span>
                                     </a>
                                 </div>
                              </td>
@@ -213,11 +211,17 @@
                                         </div>
                                     </div>
                                     <div class="field">
-                                        <label class="label">{{ form.days.label }}</label>
+                                        <label class="label">{{ form.end_date.label }}</label>
                                         <div class="control">
-                                            {{ form.days(class="input", value=1) }}
+                                            {{ form.end_date(class="input") }}
                                         </div>
                                     </div>
+{#                                    <div class="field">#}
+{#                                        <label class="label">{{ form.days.label }}</label>#}
+{#                                        <div class="control">#}
+{#                                            {{ form.days(class="input", value=1) }}#}
+{#                                        </div>#}
+{#                                    </div>#}
                                     <div class="field">
                                         <label class="label">{{ form.comment.label }}</label>
                                         <div class="control">
