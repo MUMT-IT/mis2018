@@ -1,6 +1,11 @@
 # -*- coding:utf-8 -*-
+from datetime import timedelta
+from sqlalchemy import and_
 from app.main import db
+from app.models import Holidays
 from app.staff.models import StaffAccount
+from sqlalchemy import Date
+from sqlalchemy import cast
 
 
 class PurchaseTrackerAccount(db.Model):
@@ -22,9 +27,12 @@ class PurchaseTrackerAccount(db.Model):
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True), nullable=True,
                              info={'label': u'วันที่สิ้นสุด'})
 
-
     def __str__(self):
         return u'{}: {}'.format(self.subject, self.number)
+
+    @property
+    def weekdays(self):
+        return sum([status.weekdays for status in self.records.all()])
 
 
 class PurchaseTrackerStatus(db.Model):
@@ -61,6 +69,22 @@ class PurchaseTrackerStatus(db.Model):
                 100,
                 "",
                 ]
+
+    @property
+    def weekdays(self):
+        delta = self.end_date - self.start_date
+        n = 0
+        weekdays = 0
+        while n <= delta.days:
+            d = self.start_date + timedelta(n)
+            if d.weekday() < 5:
+                # if holidays and d not in holidays:
+                weekdays += 1
+            n += 1
+        holidays = Holidays.query.filter(and_(cast(Holidays.holiday_date, Date) >= self.start_date,
+                                              cast(Holidays.holiday_date, Date) <= self.end_date)).all()
+        return weekdays - len(holidays)
+
 
 class PurchaseTrackerActivity(db.Model):
     __tablename__ = 'tracker_activities'
