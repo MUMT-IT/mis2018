@@ -119,9 +119,17 @@
                                 <td>{{ account.subject }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Number: เลขที่</label></td>
+                                <td><label class="label">Ref. Number:<br>เลขที่หนังสือ</label></td>
                                 <td>{{ account.number }}</td>
                             </tr>
+                            <tr>
+                                 <td><label class="label">Date: วันที่หนังสือ</label></td>
+                                 <td>{{ account.booking_date }}</td>
+                             </tr>
+                            <tr>
+                                 <td><label class="label">Cost Amount ( Baht ): วงเงินหลักการ</label></td>
+                                 <td>{{ "{:,.2f}".format(account.amount) }}</td>
+                             </tr>
                             <tr>
                                 <td><label class="label">Description: รายละเอียด</label></td>
                                 <td>{{ account.desc }}</td>
@@ -147,7 +155,7 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td><label class="label">Update: อัพเดตล่าสุด</label>
+                                <td><label class="label">Last Updated:<br>อัพเดตล่าสุด</label>
                                 <td>
                                 <table class="table is-fullwidth is-striped">
                                     <thead>
@@ -159,16 +167,21 @@
                                     <th>จำนวนวัน</th>
                                     </thead>
                                     <tbody>
-                                    {% for account in account.records %}
+                                    {% for status in account.records.order_by("id") %}
                                     <tr>
-                                        <td>{{ account.activity.activity }}</td>
-                                        <td>{{ account.staff }}</td>
-                                        <td>{{ account.comment }}</td>
-                                        <td>{{ account.start_date }}</td>
-                                        <td>{{ account.end_date }}</td>
-{#                                        <td>{{ account.totals }}</td>#}
+                                        <td>{{ status.activity.activity }}</td>
+                                        <td>{{ status.staff }}</td>
+                                        <td>{{ status.comment }}</td>
+                                        <td>{{ status.start_date }}</td>
+                                        <td>{{ status.end_date }}</td>
+                                        <td>{{ status.weekdays }}</td>
                                     </tr>
                                     {% endfor %}
+                                    <tr>
+                                     <td><label class="label">จำนวนวันทั้งหมด</label></td>
+                                     <td></td><td></td><td></td><td></td>
+                                     <td>{{ account.weekdays }}</td>
+                                  </tr>
                                     </tbody>
                                 </table>
                                 </td>
