@@ -30,6 +30,7 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
 @purchase_tracker.route('/official/')
+@login_required
 def landing_page():
     return render_template('purchase_tracker/first_page.html')
 
