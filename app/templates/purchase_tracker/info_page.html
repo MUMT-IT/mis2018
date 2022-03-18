@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Purchase Tracker Page{% endblock %}
 {% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+{% endblock %}
 {% block page_content %}
     {% include "messages.html" %}
     <section class="section-padding" id="hero">
@@ -43,17 +47,10 @@
     <section class="section">
         <div class="container">
             <div class="column has-text-centered">
-                <h5 class="subtitle is-5">รายงานผลการดำเนินงานการจัดซื้อจัดจ้าง หน่วยพัสดุ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h5>
+                <h5 class="subtitle is-5">รายงานผลการดำเนินงานการจัดซื้อจัดจ้าง หน่วยพัสดุ คณะเทคนิคการแพทย์
+                    มหาวิทยาลัยมหิดล</h5>
             </div>
             <div class="columns">
-                <div class="column">
-{#                 <div class="column is-5 is-offset-one-quarter">#}
-{#                    <label for="from">From</label>#}
-{#                    <input type="text" id="from" name="from">#}
-{#                    <label for="to">to</label>#}
-{#                    <input type="text" id="to" name="to">#}
-{#                     <input type="button" name="range" id="range" value="Range" class="btn btn-success">#}
-{#                </div>#}
                 <div class="column is-5 is-offset-one-quarter">
                     <form method="post">
                         {{ form.hidden_tag() }}
