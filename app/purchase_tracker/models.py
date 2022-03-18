@@ -39,7 +39,9 @@ class PurchaseTrackerStatus(db.Model):
     __tablename__ = 'tracker_statuses'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     account_id = db.Column('account_id', db.ForeignKey('tracker_accounts.id'))
-    account = db.relationship('PurchaseTrackerAccount', backref=db.backref('records', lazy='dynamic'))
+    account = db.relationship('PurchaseTrackerAccount', backref=db.backref('records',
+                                                                           lazy='dynamic',
+                                                                           order_by='PurchaseTrackerStatus.start_date'))
     status = db.Column('status', db.String(), info={'label': u'สถานะ',
                                                     'choices': [(c, c) for c in
                                                                 [u'กำลังดำเนินการ', u'ดำเนินการเสร็จสิ้น', u'ยกเลิก']]})
