@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import FileField, IntegerField, RadioField
+from wtforms import FileField, IntegerField, RadioField, DateField, StringField
 from wtforms.validators import DataRequired
 from wtforms_alchemy import model_form_factory, QuerySelectField
 
@@ -37,7 +37,7 @@ class StatusForm(ModelForm):
     days = IntegerField(u'ระยะเวลา')
     activity = QuerySelectField(u'กิจกรรม',
                                 query_factory=lambda: PurchaseTrackerActivity.query.all(),
-                                get_label='activity', blank_text='Select category..', allow_blank=False,
+                                get_label='activity', blank_text='Select category..', allow_blank=True,
                                 validators=[DataRequired()])
 
 
@@ -46,3 +46,6 @@ class CreateActivityForm(ModelForm):
         model = PurchaseTrackerActivity
 
 
+class ReportDateForm(FlaskForm):
+   start_date = StringField(u'วันที่เริ่มต้น')
+   end_date = StringField(u'วันที่สิ้นสุด')
