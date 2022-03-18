@@ -205,6 +205,11 @@
                                         </div>
                                     </div>
                                     <div class="field">
+                                        <div class="control">
+                                            <input id="other_activity" class="input">
+                                        </div>
+                                    </div>
+                                    <div class="field">
                                         <label class="label">{{ form.start_date.label }}</label>
                                         <div class="control">
                                             {{ form.start_date(class="input", value=default_date) }}
@@ -297,5 +302,19 @@
             chart.draw(data, options);
         }
         google.charts.setOnLoadCallback(drawChart);
+    </script>
+    <script>
+        $(document).ready(()=>{
+            $('#activity').change(e=>{
+                if ($('#activity').val() === null) {
+                $('#other_activity').show()
+            } else {
+                    $('#other_activity').hide()
+                }
+            })
+            if ($('#activity').val() === null) {
+                $('#other_activity').show()
+            }
+        })
     </script>
 {% endblock %}
