@@ -6,6 +6,7 @@ from flask_user import roles_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pandas import DataFrame
 from pydrive.auth import GoogleAuth
+from sqlalchemy import cast, Date
 from werkzeug.utils import secure_filename
 from . import purchase_tracker_bp as purchase_tracker
 from .forms import *
@@ -302,10 +303,18 @@ def add_activity(account_id):
     return render_template('purchase_tracker/create_activity.html', form=form, activity=activity, account_id=account_id)
 
 
-@purchase_tracker.route('/Dashboard/')
+@purchase_tracker.route('/dashboard/', methods=['GET', 'POST'])
 def show_info_page():
-    account = PurchaseTrackerAccount.query.all()
-    form = StatusForm()
-    return render_template('purchase_tracker/info_page.html', account=account, form=form)
+    account_query = PurchaseTrackerAccount.query.all()
+    form = ReportDateForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            start_date = datetime.strptime(form.start_date.data, '%d-%m-%Y')
+            end_date = datetime.strptime(form.end_date.data, '%d-%m-%Y')
+            account_query = PurchaseTrackerAccount.query.filter(cast(PurchaseTrackerAccount.creation_date, Date) >= start_date)\
+                .filter(cast(PurchaseTrackerAccount.creation_date, Date) <= end_date)
+        else:
+            flash(form.errors, 'danger')
+    return render_template('purchase_tracker/info_page.html', account_query=account_query, form=form)
 
 
