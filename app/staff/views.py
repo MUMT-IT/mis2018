@@ -1707,22 +1707,21 @@ def summary_org():
 def shift_schedule():
     employees = StaffPersonalInfo.query.all()
     shift_record = []
-    tab = request.args.get('tab', 'all')
     for emp in employees:
         for record in StaffShiftSchedule.query.filter_by(staff=emp.staff_account):
-                text_color = '#ffffff'
-                bg_color = '#9D8E00'
-                border_color = '#ffffff'
-                shift_record.append({
-                    'id': record.id,
-                    'start': record.start_datetime.astimezone(tz).isoformat(),
-                    'end': record.end_datetime.astimezone(tz).isoformat(),
-                    'title': u'({}-{}) {}'.format(record.start_datetime.time(), record.end_datetime.time(), emp.th_firstname),
-                    'backgroundColor': bg_color,
-                    'borderColor': border_color,
-                    'textColor': text_color,
-                    'type': 'ot'
-                })
+            text_color = '#ffffff'
+            bg_color = '#9D8E00'
+            border_color = '#ffffff'
+            shift_record.append({
+                'id': record.id,
+                'start': record.start_datetime.astimezone(tz).isoformat(),
+                'end': record.end_datetime.astimezone(tz).isoformat(),
+                'title': u'({}-{}) {}'.format(record.start_datetime.time(), record.end_datetime.time(), emp.th_firstname),
+                'backgroundColor': bg_color,
+                'borderColor': border_color,
+                'textColor': text_color,
+                'type': 'ot'
+            })
         all = shift_record
     return render_template('staff/shift_schedule.html', all=all)
 
@@ -1741,8 +1740,6 @@ def create_shift_schedule():
         staff_list.append(record)
     if request.method == "POST":
         form = request.form
-        print (form.get('start_dt'))
-        #TODO: sart_dt and end_dt sent None (edited send method from template)
         start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
         timedelta = end_datetime - start_datetime
