@@ -66,7 +66,16 @@
             <div class="columns">
                 <div class="column">
                     <h1 class="title has-text-centered is-size-4">ผังข้อมูล</h1>
-                    <div id="sankey_basic" style="height: 900px;"></div>
+                    <div class="select">
+                        <select id="kpi_selection" onchange="select_handler(this.value)">
+                            <option>กรุณาเลือกตัวชี้วัด</option>
+                            <option value="all">ทั้งหมด</option>
+                            {% for kpi in process.kpis %}
+                                <option value="{{ kpi.id }}" {% if kpi_id==kpi.id %}selected{% endif %}>{{ kpi.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div id="sankey_basic"></div>
                     <div class="buttons is-centered">
                         <a class="button is-light" href="{{ url_for('data_bp.index') }}">Back</a>
                         <a class="button is-outlined is-light is-danger"
@@ -79,6 +88,11 @@
 {% endblock %}
 {% block scripts %}
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script>
+        function select_handler(value) {
+            window.location.assign(`/data-blueprint/processes/{{ process.id|tojson|safe }}/kpis/${value}`);
+        }
+    </script>
     <script type="text/javascript">
         google.charts.load('current', {'packages': ['sankey']});
         google.charts.setOnLoadCallback(drawChart);
@@ -92,10 +106,19 @@
 
             // Sets chart options.
             let options = {
+                height: 400,
                 sankey: {
+                    link: {
+                        colorMode: 'gradient'
+                    },
                     node: {
                         label: {
-                            fontSize: 14,
+                            fontSize: 12,
+                        }
+                    },
+                    tooltip: {
+                        textStyle: {
+                            fontSize: 16
                         }
                     }
                 }

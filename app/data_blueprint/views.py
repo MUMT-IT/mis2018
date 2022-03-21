@@ -243,24 +243,28 @@ def core_service_detail(service_id):
 
 
 @data_bp.route('/processes/<int:process_id>')
+@data_bp.route('/processes/<int:process_id>/kpis/all')
+@data_bp.route('/processes/<int:process_id>/kpis/<int:kpi_id>')
 @login_required
-def process_detail(process_id):
+def process_detail(process_id, kpi_id=None):
     proc = Process.query.get(process_id)
     data = []
-    kpis_from_datasets = set()
-    for d in proc.data:
-        data.append([proc.name, d.name + '(data)', 1])
-        for ds in d.datasets:
-            if proc in ds.processes:
-                data.append([d.name + '(data)', (ds.name or ds.reference) + '(ds)', 1])
-                for kpi in ds.kpis:
-                    if kpi in proc.kpis:
-                        data.append([ds.name + '(ds)', kpi.name + '(kpi)', 1])
-                        kpis_from_datasets.add(kpi)
-                if not ds.kpis:
-                        data.append([(ds.name or ds.reference) + '(ds)', u'ไม่มีตัวชี้วัด', 1])
-    for kpi in proc.kpis:
-        if kpi not in kpis_from_datasets:
-            data.append([proc.name, kpi.name + '(kpi)', 1])
+    if kpi_id:
+        kpi = KPI.query.get(kpi_id)
+        all_kpis = [kpi]
+    else:
+        all_kpis = proc.kpis
 
-    return render_template('data_blueprint/process_detail.html', process=proc, data=data)
+    dataset_data_pairs = set()
+    data_list = []
+    for k in all_kpis:
+        data.append([proc.name, k.name + '(kpi)', 1])
+        for ds in k.datasets:
+            data.append([k.name + '(kpi)', (ds.name or ds.reference) + '(ds)', 1])
+            ds_dt_pair = ((ds.name or ds.reference), ds.data.name)
+            if ds_dt_pair not in dataset_data_pairs:
+                data.append([(ds.name or ds.reference) + '(ds)', ds.data.name + '(data)', 1])
+                dataset_data_pairs.add(ds_dt_pair)
+                data_list.append(ds.data.name)
+
+    return render_template('data_blueprint/process_detail.html', process=proc, data=data, kpi_id=kpi_id)
