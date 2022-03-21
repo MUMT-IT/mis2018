@@ -88,7 +88,7 @@ def createDatasetForm(data_id):
     class DatasetForm(ModelForm):
         class Meta:
             model = Dataset
-            only = ['reference', 'desc', 'source_url', 'sensitive', 'name']
+            only = ['reference', 'desc', 'source_url', 'sensitive', 'name', 'personal']
         processes = QuerySelectMultipleField(u'กระบวนการที่เกี่ยวข้อง', get_label='name',
                                          query_factory=lambda: data.processes,
                                          widget=widgets.ListWidget(prefix_label=False),

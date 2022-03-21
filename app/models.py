@@ -364,6 +364,7 @@ class Dataset(db.Model):
     creator_id = db.Column('creator_id', db.ForeignKey('staff_account.id'))
     maintainer_id = db.Column('maintainer_id', db.ForeignKey('staff_account.id'))
     sensitive = db.Column('sensitive', db.Boolean(), default=False, info={'label': u'ข้อมูลอ่อนไหว'})
+    personal = db.Column('personal', db.Boolean(), default=False, info={'label': u'ข้อมูลส่วนบุคคล'})
     data = db.relationship(Data, backref=db.backref('datasets', lazy='dynamic', cascade='all, delete-orphan'))
     kpis = db.relationship(KPI, secondary=dataset_kpi_assoc, lazy='subquery',
                                         backref=db.backref('datasets', lazy=True))
