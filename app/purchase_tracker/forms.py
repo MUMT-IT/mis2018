@@ -37,7 +37,7 @@ class StatusForm(ModelForm):
     days = IntegerField(u'ระยะเวลา')
     activity = QuerySelectField(u'กิจกรรม',
                                 query_factory=lambda: PurchaseTrackerActivity.query.all(),
-                                get_label='activity', blank_text='Select category..', allow_blank=True,
+                                get_label='activity', blank_text='Select activities..', allow_blank=True,
                                 validators=[DataRequired()])
 
 
