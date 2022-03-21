@@ -200,8 +200,10 @@ def update_status(account_id):
             flash(u'อัพเดตข้อมูลเรียบร้อย', 'success')
         # Check Error
         else:
-            for er in form.errors:
-                flash(er, 'danger')
+            flash(form.errors, 'danger')
+        # else:
+        #     for er in form.errors:
+        #         flash(er, 'danger')
     activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
         .order_by(PurchaseTrackerStatus.start_date)]
     if not activities:
@@ -317,4 +319,29 @@ def show_info_page():
             flash(form.errors, 'danger')
     return render_template('purchase_tracker/info_page.html', account_query=account_query, form=form)
 
+
+@purchase_tracker.route('/dashboard/info/download')
+def dashboard_info_download():
+    accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
+    records = []
+    for account in accounts:
+        for record in account.records:
+            delta = record.end_date-record.start_date
+            records.append({
+                u'ลำดับ': u"{}".format(account.id),
+                u'เลขที่หนังสือ': u"{}".format(account.number),
+                u'วันที่หนังสือ': u"{}".format(account.booking_date),
+                u'ชื่อ': u"{}".format(account.subject),
+                u'วงเงินหลักการ': u"{:,.2f}".format(account.amount),
+                u'รูปแบบหลักการ': u"{}".format(account.formats),
+                u'กิจกรรม': u"{}".format(record.activity.activity),
+                u'ผู้รับผิดชอบ': u"{}".format(record.staff.personal_info.fullname),
+                u'วันเริ่มกิจกรรม': u"{}".format(record.start_date),
+                u'วันสิ้นสุดกิจกรรม': u"{}".format(record.end_date),
+                u'หมายเหตุเพิ่มเติม': u"{}".format(record.comment),
+                u'เวลาดำเนินกิจกรรม': u"{}".format(delta.days),
+                    })
+    df = DataFrame(records)
+    df.to_excel('info_summary.xlsx')
+    return send_from_directory(os.getcwd(), filename='info_summary.xlsx')
 
