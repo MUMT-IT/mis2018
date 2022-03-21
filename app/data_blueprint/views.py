@@ -165,6 +165,18 @@ def add_kpi_to_dataset(dataset_id):
     return redirect(url_for('data_bp.dataset_detail', dataset_id=dataset_id))
 
 
+@data_bp.route('/datasets/<int:dataset_id>/kpis/<int:kpi_id>/remove', methods=['GET'])
+@login_required
+def remove_kpi_from_dataset(dataset_id, kpi_id):
+    ds = Dataset.query.get(dataset_id)
+    kpi = KPI.query.get(kpi_id)
+    ds.kpis.remove(kpi)
+    db.session.add(ds)
+    db.session.commit()
+    flash(u'ลบตัวชี้วัดออกจากชุดข้อมูลเรียบร้อย', 'success')
+    return redirect(url_for('data_bp.dataset_detail', dataset_id=dataset_id))
+
+
 @data_bp.route('/data/<int:data_id>', methods=['GET'])
 @login_required
 def data_detail(data_id):
