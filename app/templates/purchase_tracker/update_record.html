@@ -40,13 +40,14 @@
  </div>
  <header class="section">
      {% include "messages.html" %}
+    <div class="container">
      <div class="columns">
          <div class="column has-text-centered">
              <h1 class="title"> Show Information</h1>
          </div>
      </div>
      <div class="columns">
-         <div class="column is-two-thirds is-offset-2">
+         <div class="column">
              <div class="card">
                  <div class="card-header">
                      <h1 class="card-header-title">
@@ -114,6 +115,7 @@
                              <table class="table is-fullwidth is-striped">
                                  <thead>
                                  <th>กิจกรรม</th>
+                                 <th>กิจกรรมอื่นๆ</th>
                                  <th>ผู้รับผิดชอบ</th>
                                  <th>หมายเหตุเพิ่มเติม</th>
                                  <th>วันเริ่มต้น</th>
@@ -124,6 +126,7 @@
                                  {% for status in account.records.order_by("id") %}
                                     <tr>
                                         <td>{{ status.activity.activity }}</td>
+                                        <td>{{ status.other_activity }}</td>
                                         <td>{{ status.staff }}</td>
                                         <td>{{ status.comment }}</td>
                                         <td>{{ status.start_date }}</td>
@@ -149,20 +152,13 @@
                                  {% endfor %}
                                   <tr>
                                      <td><label class="label">จำนวนวันทั้งหมด</label></td>
-                                      <td></td><td></td><td></td><td></td>
+                                      <td></td><td></td><td></td><td></td><td></td>
                                      <td>{{ account.weekdays }}</td>
                                   </tr>
                                  </tbody>
                                 </table>
                                 <div class="buttons is-centered">
-                                    <a class="button is-info"
-                                       href="{{ url_for('purchase_tracker.add_activity', account_id=account_id) }}">
-                                        <span class="icon">
-                                           <i class="fas fa-plus"></i>
-                                        </span>
-                                        <span>เพิ่มกิจกรรมใหม่</span>
-                                    </a>
-                                     <a class="button is-primary"
+                                     <a class="button is-info"
                                        href="#update">
                                         <span class="icon">
                                            <i class="fas fa-retweet"></i>
@@ -197,7 +193,13 @@
                                         </div>
                                     </div>
                                     <div class="field">
-                                        <label class="label">{{ form.activity.label }}</label>
+                                        <label class="label">{{ form.activity.label }}
+                                            <a class="control" href="{{ url_for('purchase_tracker.add_activity', account_id=account_id) }}">
+                                                <span class="icon">
+                                                    <i class="far fa-plus-square"></i>
+                                                </span>
+                                            </a>
+                                        </label>
                                         <div class="control">
                                             <div class="select is-fullwidth is-info">
                                             {{ form.activity() }}
@@ -206,7 +208,7 @@
                                     </div>
                                     <div class="field">
                                         <div class="control">
-                                            <input id="other_activity" class="input">
+                                            {{ form.other_activity(class="input", id="other_activity", placeholder="กิจกรรมอื่นๆ(เพิ่มเติม)") }}
                                         </div>
                                     </div>
                                     <div class="field">
@@ -221,12 +223,6 @@
                                             {{ form.end_date(class="input") }}
                                         </div>
                                     </div>
-{#                                    <div class="field">#}
-{#                                        <label class="label">{{ form.days.label }}</label>#}
-{#                                        <div class="control">#}
-{#                                            {{ form.days(class="input", value=1) }}#}
-{#                                        </div>#}
-{#                                    </div>#}
                                     <div class="field">
                                         <label class="label">{{ form.comment.label }}</label>
                                         <div class="control">
@@ -248,6 +244,7 @@
                 </div>
             </div>
         </div>
+    </div>
    </header>
 {% endblock page_content %}
 {% block scripts %}
@@ -306,7 +303,7 @@
     <script>
         $(document).ready(()=>{
             $('#activity').change(e=>{
-                if ($('#activity').val() === null) {
+                if ($('#activity').val() !== null) {
                 $('#other_activity').show()
             } else {
                     $('#other_activity').hide()
