@@ -99,7 +99,7 @@
             </div>
         {% if activities  %}
         <div class="columns">
-            <div class="column is-two-thirds is-offset-2">
+            <div class="column">
                 <div class="card">
                     <div class="card-header">
                         <h1 class="card-header-title">
@@ -160,16 +160,18 @@
                                 <table class="table is-fullwidth is-striped">
                                     <thead>
                                     <th>กิจกรรม</th>
+                                    <th>กิจกรรมอื่นๆ</th>
                                     <th>ผู้รับผิดชอบ</th>
                                     <th>หมายเหตุเพิ่มเติม</th>
                                     <th>วันเริ่มต้น</th>
                                     <th>วันสิ้นสุด</th>
-                                    <th>จำนวนวัน</th>
+                                    <th>ระยะเวลา(วัน)</th>
                                     </thead>
                                     <tbody>
                                     {% for status in account.records.order_by("id") %}
                                     <tr>
                                         <td>{{ status.activity.activity }}</td>
+                                        <td>{{ status.other_activity }}</td>
                                         <td>{{ status.staff }}</td>
                                         <td>{{ status.comment }}</td>
                                         <td>{{ status.start_date }}</td>
@@ -178,8 +180,8 @@
                                     </tr>
                                     {% endfor %}
                                     <tr>
-                                     <td><label class="label">จำนวนวันทั้งหมด</label></td>
-                                     <td></td><td></td><td></td><td></td>
+                                     <td><label class="label">ระยะเวลาทั้งหมด</label></td>
+                                     <td></td><td></td><td></td><td></td><td></td>
                                      <td>{{ account.weekdays }}</td>
                                   </tr>
                                     </tbody>
