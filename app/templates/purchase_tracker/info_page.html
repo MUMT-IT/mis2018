@@ -48,10 +48,11 @@
         <div class="container">
             <div class="column has-text-centered">
                 <h5 class="subtitle is-5">รายงานผลการดำเนินงานการจัดซื้อจัดจ้าง หน่วยพัสดุ คณะเทคนิคการแพทย์
-                    มหาวิทยาลัยมหิดล</h5>
+                    มหาวิทยาลัยมหิดล
+                </h5>
             </div>
             <div class="columns">
-                <div class="column is-5 is-offset-one-quarter">
+                <div class="column is-half is-offset-one-quarter">
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field-body">
@@ -67,10 +68,13 @@
                                     {{ form.end_date(class="input") }}
                                 </div>
                             </div>
+                            <div class="field">
+                                <label class="label"></label><br>
+                            <div class="control">
+                                    <input class="button is-success" type="submit" value="ค้นหาข้อมูล"/>
+                                </div></div>
+                            </div><br>
                             <div class="field is-grouped is-grouped-centered">
-                                <div class="control">
-                                    <input class="button is-success" type="submit" value="Find"/>
-                                </div>
                                 <div class="control">
                                     <a class="button is-warning"
                                        href="{{ url_for('purchase_tracker.dashboard_info_download') }}">
@@ -78,8 +82,14 @@
                                         <span>Download</span>
                                     </a>
                                 </div>
+                                <div class="control">
+                                    <a class="button is-danger"
+                                        href="{{ url_for('purchase_tracker.show_info_page') }}">
+                                        <span class="icon"><i class="fas fa-redo-alt"></i></span>
+                                        <span>Refresh</span>
+                                    </a>
+                                </div>
                             </div>
-                        </div>
                     </form>
                 </div>
             </div>
@@ -105,7 +115,7 @@
                         <tbody>
                         {% for account in account_query %}
                             {% set first_record = account.records.first() %}
-                            <tr>
+                            <tr class="is-selected">
                                 <td>{{ account.id }}</td>
                                 <td>{{ account.number }}</td>
                                 <td>{{ account.booking_date }}</td>
