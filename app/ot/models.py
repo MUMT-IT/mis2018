@@ -144,14 +144,6 @@ class OtRoundRequest(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True), default=datetime.now())
     created_by_account_id = db.Column('created_by_account_id', db.ForeignKey('staff_account.id'))
     created_by = db.relationship(StaffAccount, backref=db.backref('ot_round_created_by'), foreign_keys=[created_by_account_id])
-    approval_at = db.Column('approval_at', db.DateTime(timezone=True), default=datetime.now())
+    approval_at = db.Column('approval_at', db.DateTime(timezone=True))
     approval_by_account_id = db.Column('approval_by_account_id', db.ForeignKey('staff_account.id'))
     approval_by = db.relationship(StaffAccount, backref=db.backref('ot_round_approval_by'), foreign_keys=[approval_by_account_id])
-
-
-class OtRecordApproval(db.Model):
-    __tablename__ = 'ot_record_approval'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    approval_at = db.Column('approval_at', db.DateTime(timezone=True), default=datetime.now())
-    approval_by_account_id = db.Column('approval_by_account_id', db.ForeignKey('staff_account.id'))
-    approval_by = db.relationship(StaffAccount, backref=db.backref('ot_record_approval_by'), foreign_keys=[approval_by_account_id])
