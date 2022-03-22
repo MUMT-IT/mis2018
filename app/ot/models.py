@@ -23,6 +23,14 @@ ot_staff_assoc_table = db.Table('ot_staff_assoc',
                                 )
 
 
+# ot_approval_assoc_table = db.Table('ot_approval_assoc',
+#                                 db.Column('record_id', db.ForeignKey('record.id'),
+#                                           primary_key=True),
+#                                 db.Column('approval_id', db.ForeignKey('ot_record_approval.id'),
+#                                           primary_key=True),
+#                                 )
+
+
 class OtPaymentAnnounce(db.Model):
     __tablename__ = 'ot_payment_announce'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -122,10 +130,23 @@ class OtRecord(db.Model):
     created_staff = db.relationship(StaffAccount, backref=db.backref('ot_record_created_staff'),
                                     foreign_keys=[created_account_id])
     org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
-    org = db.relationship(Org, backref=db.backref('ot_record'))
+    org = db.relationship(Org, backref=db.backref('ot_records'))
     sub_role = db.Column('sub_role', db.String())
     document_id = db.Column('document_id', db.ForeignKey('ot_document_approval.id'))
     document = db.relationship(OtDocumentApproval, backref=db.backref('ot_record_document'))
+    round_id = db.Column('round_id', db.ForeignKey('ot_round_request.id'))
+    round = db.relationship('OtRoundRequest', backref=db.backref('ot_records'))
+
+
+class OtRoundRequest(db.Model):
+    __tablename__ = 'ot_round_request'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    created_at = db.Column('created_at', db.DateTime(timezone=True), default=datetime.now())
+    created_by_account_id = db.Column('created_by_account_id', db.ForeignKey('staff_account.id'))
+    created_by = db.relationship(StaffAccount, backref=db.backref('ot_round_created_by'), foreign_keys=[created_by_account_id])
+    approval_at = db.Column('approval_at', db.DateTime(timezone=True), default=datetime.now())
+    approval_by_account_id = db.Column('approval_by_account_id', db.ForeignKey('staff_account.id'))
+    approval_by = db.relationship(StaffAccount, backref=db.backref('ot_round_approval_by'), foreign_keys=[approval_by_account_id])
 
 
 class OtRecordApproval(db.Model):
