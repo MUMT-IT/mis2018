@@ -11,7 +11,8 @@ from werkzeug.utils import secure_filename
 from models import *
 from forms import *
 from . import otbp as ot
-from app.main import db, get_weekdays, app, func, StaffPersonalInfo, StaffSpecialGroup, StaffShiftSchedule
+from app.main import db, get_weekdays, app, func, StaffPersonalInfo, StaffSpecialGroup, StaffShiftSchedule, \
+    StaffWorkLogin
 from app.models import Holidays, Org
 from flask import jsonify, render_template, request, redirect, url_for, flash, session, send_from_directory
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
@@ -75,6 +76,16 @@ def edit_ot_record_factory(announces):
 @login_required
 def index():
     return render_template('ot/index.html')
+
+
+@ot.route('/s')
+@login_required
+def index_secretary():
+    ot_secretary = StaffSpecialGroup.query.filter_by(group_code='ot_secretary').first()
+    if current_user not in ot_secretary.staffs:
+        flash(u'ไม่พบสิทธิในการเข้าถึงหน้าดังกล่าว', 'danger')
+        return render_template('ot/index.html')
+    return render_template('ot/index_secretary.html')
 
 
 @ot.route('/announce')
@@ -230,7 +241,7 @@ def document_approval_edit_document(document_id):
         if form.validate_on_submit():
             form.populate_obj(document)
             drive = initialize_gdrive()
-            #TODO: ถ้าไม่บันทึกไฟล์ใหม่(แก้ข้อมูลส่วนอื่น) ไฟล์เก่าจะหายไปจาก db แต่ไม่หายจาก gg
+            # TODO: ถ้าไม่บันทึกไฟล์ใหม่(แก้ข้อมูลส่วนอื่น) ไฟล์เก่าจะหายไปจาก db แต่ไม่หายจาก gg
             if form.upload.data:
                 upload_file = form.upload.data
                 file_name = secure_filename(upload_file.filename)
@@ -298,7 +309,7 @@ def document_approval_delete_announcement(document_id, announce_id):
     announcement = OtPaymentAnnounce.query.get(announce_id)
     approval = OtDocumentApproval.query.get(document_id)
     if approval and announcement:
-        #TODO: หาว่ามีrecord ไหนที่ใช้อยู่่และเชื่อม ประกาศนี้อยู่ ยังไม่อนุญาตให้ลบหรือไม่ หรือจะหาทางออกยังไง
+        # TODO: หาว่ามีrecord ไหนที่ใช้อยู่่และเชื่อม ประกาศนี้อยู่ ยังไม่อนุญาตให้ลบหรือไม่ หรือจะหาทางออกยังไง
         approval.announce.remove(announcement)
         db.session.add(approval)
         db.session.commit()
@@ -371,7 +382,7 @@ def schedule():
         return render_template('ot/schedule_home.html', documents=documents, upload_file_url=upload_file_url)
     else:
         flash(u'หน่วยงานของท่านไม่มีอนุมัติในหลักการ กรุณาสร้างอนุมัติในหลักการก่อนทำการเบิกค่าตอบแทนล่วงเวลา', 'warning')
-        return  render_template('ot/index.html')
+        return render_template('ot/index.html')
 
 
 @ot.route('/schedule/create/<int:document_id>', methods=['GET', 'POST'])
@@ -382,7 +393,8 @@ def add_schedule(document_id):
     form = EditOtRecordForm()
     if request.method == 'POST':
         print (form.start_datetime.data)
-        form.start_datetime.data = datetime(form.start_datetime.data.year, form.start_datetime.data.month, form.start_datetime.data.day)
+        form.start_datetime.data = datetime(form.start_datetime.data.year, form.start_datetime.data.month,
+                                            form.start_datetime.data.day)
         if form.validate_on_submit():
             for staff_id in request.form.getlist("otworker"):
                 record = OtRecord()
@@ -395,32 +407,36 @@ def add_schedule(document_id):
                         flash(u'จำเป็นต้องใส่เวลาเริ่มต้น สิ้นสุด', 'danger')
                         return render_template('ot/schedule_add.html', form=form, document=document)
                     else:
-                        start_t = form.start_time.data+':00'
-                        end_t = form.end_time.data+':00'
+                        start_t = form.start_time.data + ':00'
+                        end_t = form.end_time.data + ':00'
                 start_d = form.start_datetime.data.date()
                 end_d = form.start_datetime.data.date()
                 start_dt = '{} {}'.format(start_d, start_t)
                 end_dt = '{} {}'.format(end_d, end_t)
                 start_datetime = datetime.strptime(start_dt, '%Y-%m-%d %H:%M:%S')
                 end_datetime = datetime.strptime(end_dt, '%Y-%m-%d %H:%M:%S')
-                #TODO: เช็คว่าซ้ำกับอันอื่นมั้ย
-                #for ot_records in OtRecord.query.all():
-                #     if ot_records.staff_account_id==staff_id and ot_records.start_datetime == start_datetime or ot_records.start_datetime == end_datetime or \
-                #             ot_records.end_datetime == end_datetime or ot_records.end_datetime == end_datetime:
-                #             flash(u'{} มีข้อมูลการทำOT ในเวลานี้แล้ว กรุณาตรวจสอบเวลาใหม่อีกครั้ง'.format(
-                #             ot_records.staff.personal_info.fullname), 'danger')
-                record.start_datetime = start_datetime
-                record.end_datetime = end_datetime
-                record.created_staff = current_user
-                record.org = current_user.personal_info.org
-                record.staff_account_id = staff_id
-                record.document_id = document_id
+                ot_records_begin_overlaps = OtRecord.query.filter(OtRecord.staff_account_id == staff_id) \
+                    .filter(OtRecord.start_datetime <= start_datetime) \
+                    .filter(OtRecord.end_datetime >= start_datetime).all()
+                ot_records_end_overlaps = OtRecord.query.filter(OtRecord.staff_account_id == staff_id) \
+                    .filter(OtRecord.start_datetime <= end_datetime) \
+                    .filter(OtRecord.end_datetime >= end_datetime).all()
                 staff_name = StaffAccount.query.get(staff_id)
-                if request.form.get('sub_role'):
-                    record.sub_role = request.form.get('sub_role')
-                flash(u'บันทึกการทำงานของ {} เรียบร้อยแล้ว'.format(staff_name.personal_info.fullname), 'success')
-                db.session.add(record)
-                db.session.commit()
+                if ot_records_begin_overlaps or ot_records_end_overlaps:
+                    flash(u'{} มีข้อมูลการทำOT ในช่วงเวลานี้แล้ว กรุณาตรวจสอบเวลาใหม่อีกครั้ง'.format(
+                        staff_name.personal_info.fullname), 'danger')
+                else:
+                    record.start_datetime = start_datetime
+                    record.end_datetime = end_datetime
+                    record.created_staff = current_user
+                    record.org = current_user.personal_info.org
+                    record.staff_account_id = staff_id
+                    record.document_id = document_id
+                    if request.form.get('sub_role'):
+                        record.sub_role = request.form.get('sub_role')
+                    flash(u'บันทึกการทำงานของ {} เรียบร้อยแล้ว'.format(staff_name.personal_info.fullname), 'success')
+                    db.session.add(record)
+                    db.session.commit()
             return redirect(url_for('ot.schedule'))
         else:
             print (form.errors, form.start_time.data)
@@ -511,84 +527,172 @@ def summary_index():
             fiscal_years = OtRecord.query.distinct(func.date_part('YEAR', OtRecord.start_datetime))
             fiscal_years = [convert_to_fiscal_year(ot.start_datetime) for ot in fiscal_years]
             start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
-            for ot_record in OtRecord.query.filter_by(org_id=current_user.personal_info.org.id, staff=emp.staff_account)\
-                                .filter(OtRecord.start_datetime.between(start_fiscal_date, end_fiscal_date)):
-                text_color = '#ffffff'
-                bg_color = '#FF785C'
+            for ot_record in OtRecord.query.filter_by(org_id=current_user.personal_info.org.id,
+                                                      staff=emp.staff_account).filter(
+                                                      OtRecord.start_datetime.between(start_fiscal_date, end_fiscal_date)):
+                shift_schedule_overlaps = StaffShiftSchedule.query.filter(StaffShiftSchedule.staff == ot_record.staff) \
+                    .filter(StaffShiftSchedule.start_datetime <= ot_record.start_datetime) \
+                    .filter(StaffShiftSchedule.end_datetime >= ot_record.start_datetime).all()
+                shift_schedules = StaffShiftSchedule.query.filter(cast(StaffShiftSchedule.start_datetime, Date)
+                                                          == ot_record.start_datetime.date()).all()
+                work_login_checkin = StaffWorkLogin.query.filter(cast(StaffWorkLogin.start_datetime, Date)
+                                                         == ot_record.start_datetime.date()).all()
+                work_login_checkout = StaffWorkLogin.query.filter(cast(StaffWorkLogin.end_datetime, Date)
+                                                          == ot_record.end_datetime.date()).all()
+                if not shift_schedules and not work_login_checkin and not work_login_checkout:
+                    text_color = '#ffffff'
+                    bg_color = '#F0475A'
+                    #u'ไม่พบเวลาปฏิบัติงาน และไม่พบบันทึกเวลาสแกนเข้า-ออกงาน'
+                elif shift_schedule_overlaps and not work_login_checkin or not work_login_checkout:
+                    text_color = '#ffffff'
+                    bg_color = '#F0475A'
+                    #u'เวลาปฏิบัติงานปกติตรงกับเวลาที่ขอเบิกค่าล่วงเวลา และไม่พบบันทึกเวลาสแกนเข้า-ออกงาน'
+                elif not shift_schedules and not work_login_checkin:
+                    text_color = '#ffffff'
+                    bg_color = '#F0475A'
+                    #u'ไม่พบเวลาปฏิบัติงาน และไม่พบบันทึกเวลาสแกนเข้างาน'
+                elif not shift_schedules and not work_login_checkout:
+                    text_color = '#ffffff'
+                    bg_color = '#F0475A'
+                    #u'ไม่พบเวลาปฏิบัติงาน และไม่พบบันทึกเวลาสแกนออกงาน'
+                elif not work_login_checkin or not work_login_checkout:
+                    text_color = '#ffffff'
+                    bg_color = '#F0475A'
+                    #u'ไม่พบบันทึกเวลาสแกนเข้า-ออกงาน'
+                elif not shift_schedules:
+                    text_color = '#ffffff'
+                    bg_color = '#F0475A'
+                    #u'ไม่พบเวลาปฏิบัติงาน'
+                elif shift_schedule_overlaps:
+                    text_color = '#ffffff'
+                    bg_color = '#F0475A'
+                    #u'เวลาปฏิบัติงานปกติตรงกับเวลาที่ขอเบิกค่าล่วงเวลา'
+                elif not work_login_checkin:
+                    text_color = '#ffffff'
+                    bg_color = '#F0475A'
+                    #u'ไม่พบบันทึกเวลาสแกนเข้างาน'
+                elif not work_login_checkout:
+                    text_color = '#ffffff'
+                    bg_color = '#F0475A'
+                    #ot_record["condition"] = u'ไม่พบบันทึกเวลาสแกนสิ้นสุดงาน'
+                else:
+                    text_color = '#ffffff'
+                    bg_color = '#5028E4'
                 border_color = '#ffffff'
                 ot_r.append({
-                        'id': ot_record.id,
-                        'start': ot_record.start_datetime,
-                        'end': ot_record.end_datetime,
-                        'title': u'{} {}'.format(emp.th_firstname, ot_record.compensation.role),
-                        'backgroundColor': bg_color,
-                        'borderColor': border_color,
-                        'textColor': text_color,
-                        'type': 'ot'
-                    })
+                    'id': ot_record.id,
+                    'start': ot_record.start_datetime,
+                    'end': ot_record.end_datetime,
+                    'title': u'{} {}'.format(emp.th_firstname, ot_record.compensation.role),
+                    'backgroundColor': bg_color,
+                    'borderColor': border_color,
+                    'textColor': text_color,
+                    'type': 'ot'
+                })
             all = ot_r
     return render_template('ot/schedule_summary.html',
                            init_date=init_date,
                            depts=depts, curr_dept_id=int(curr_dept_id),
                            all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
 
+
 @ot.route('/schedule/summary/each-org')
 @login_required
 def summary_ot_each_org():
-    #TODO: cutoff month (group working_ot month)
     documents = set()
-    records = OtRecord.query.filter_by(org_id=current_user.personal_info.org.id).all()
+    records = OtRecord.query.filter_by(org_id=current_user.personal_info.org.id).filter(OtRecord.round_id==None).all()
     for record in records:
-        documents.add((record.document.id, record.document.title, record.start_datetime.month))
+        documents.add((record.document.id, record.document.title, record.start_datetime.month, record.start_datetime.year))
     return render_template('ot/schedule_summary_each_org.html', documents=documents)
 
 
-@ot.route('/schedule/summary/each-org/<int:document_id>')
+@ot.route('/schedule/summary/each-org/<int:document_id>/<int:month>/<int:year>')
 @login_required
-def summary_ot_each_document(document_id):
-    #TODO: filter only non-approved record
-    #TODO: filter only same requested org
-    records = OtRecord.query.filter_by(document_id=document_id).all()
+def summary_ot_each_document(document_id, month, year):
+    # TODO: filter only same requested org
+    records = OtRecord.query.filter_by(document_id=document_id, org_id=current_user.personal_info.org.id).filter(extract('month',OtRecord.start_datetime)==month)\
+                .filter(extract('year',OtRecord.start_datetime)==year).filter(OtRecord.round_id==None).all()
     document = OtDocumentApproval.query.get(document_id)
     ot_records = []
     for record in records:
         ot_record = dict(staff=record.staff.personal_info.fullname,
-                      start_datetime=record.start_datetime,
-                      end_datetime=record.end_datetime,
-                      compensation=record.compensation,
-                      sub_role=record.sub_role,
-                      condition=None
-                      )
-        shift_schedule_overlaps = StaffShiftSchedule.query.filter(StaffShiftSchedule.staff == record.staff)\
-                .filter(StaffShiftSchedule.start_datetime<=record.start_datetime)\
-                .filter(StaffShiftSchedule.end_datetime>=record.start_datetime).all()
-        shift_schedules = StaffShiftSchedule.query.filter(cast(StaffShiftSchedule.start_datetime, Date)==record.start_datetime.date()).all()
-        #TODO: compare ot record with worklogin
-        if shift_schedule_overlaps:
-            ot_record["condition"] = u'เวลาปฏิบัติงานปกติตรงกับเวลาที่ขอเบิกค่าล่วงเวลา'
-
-        if not shift_schedules:
+                         start_datetime=record.start_datetime,
+                         start_time=record.start_datetime.time(),
+                         end_time=record.end_datetime.time(),
+                         compensation=record.compensation,
+                         work_at=record.compensation.work_at_org,
+                         work_for=record.compensation.work_for_org,
+                         sub_role=record.sub_role,
+                         condition=None
+                         )
+        shift_schedule_overlaps = StaffShiftSchedule.query.filter(StaffShiftSchedule.staff == record.staff) \
+            .filter(StaffShiftSchedule.start_datetime <= record.start_datetime) \
+            .filter(StaffShiftSchedule.end_datetime >= record.start_datetime).all()
+        shift_schedules = StaffShiftSchedule.query.filter(cast(StaffShiftSchedule.start_datetime, Date)
+                                                          == record.start_datetime.date()).all()
+        work_login_checkin = StaffWorkLogin.query.filter(cast(StaffWorkLogin.start_datetime, Date)
+                                                         == record.start_datetime.date()).all()
+        work_login_checkout = StaffWorkLogin.query.filter(cast(StaffWorkLogin.end_datetime, Date)
+                                                          == record.end_datetime.date()).all()
+        # TODO: compare ot record with worklogin
+        if not shift_schedules and not work_login_checkin and not work_login_checkout:
+            ot_record["condition"] = u'ไม่พบเวลาปฏิบัติงาน และไม่พบบันทึกเวลาสแกนเข้า-ออกงาน'
+        elif shift_schedule_overlaps and not work_login_checkin or not work_login_checkout:
+            ot_record[
+                "condition"] = u'เวลาปฏิบัติงานปกติตรงกับเวลาที่ขอเบิกค่าล่วงเวลา และไม่พบบันทึกเวลาสแกนเข้า-ออกงาน'
+        elif not shift_schedules and not work_login_checkin:
+            ot_record["condition"] = u'ไม่พบเวลาปฏิบัติงาน และไม่พบบันทึกเวลาสแกนเข้างาน'
+        elif not shift_schedules and not work_login_checkout:
+            ot_record["condition"] = u'ไม่พบเวลาปฏิบัติงาน และไม่พบบันทึกเวลาสแกนออกงาน'
+        elif not work_login_checkin or not work_login_checkout:
+            ot_record["condition"] = u'ไม่พบบันทึกเวลาสแกนเข้า-ออกงาน'
+        elif not shift_schedules:
             ot_record["condition"] = u'ไม่พบเวลาปฏิบัติงาน'
+        elif shift_schedule_overlaps:
+            ot_record["condition"] = u'เวลาปฏิบัติงานปกติตรงกับเวลาที่ขอเบิกค่าล่วงเวลา'
+        elif not work_login_checkin:
+            ot_record["condition"] = u'ไม่พบบันทึกเวลาสแกนเข้างาน'
+        elif not work_login_checkout:
+            ot_record["condition"] = u'ไม่พบบันทึกเวลาสแกนสิ้นสุดงาน'
         ot_records.append(ot_record)
-    return render_template('ot/schedule_each_document.html', records=records, document=document, ot_records=ot_records)
+    return render_template('ot/schedule_each_document.html', records=records, document=document, ot_records=ot_records,
+                           month=month, year=year)
 
 
-# @ot.route('/schedule/summary/each-org/<int:document_id>/download')
-# @login_required
-# def summary_ot_each_document_download(document_id):
-#     ot_list = []
-#     ot_records_query = OtRecord.query.filter_by(document_id=document_id).all()
-#     for ot_record in ot_records_query:
-#         record = {}
-#         record["start_datetime"] = ot_record.start_datetime
-#         record["staff"] = ot_record.staff.personal_info.fullname
-#         ot_list.append(record)
-#     df = DataFrame(record)
-#     summary = df.pivot_table(index='staff', columns='start_datetime', aggfunc=len, fill_value=0)
-#     summary.to_excel('ot_summary.xlsx')
-#     flash(u'ดาวน์โหลดไฟล์เรียบร้อยแล้ว ชื่อไฟล์ ot_summary.xlsx')
-#     return redirect(url_for('staff.summary_ot_each_org'))
+@ot.route('/schedule/summary/each-org/<int:document_id>/<int:month>/<int:year>/create-approval-create-download')
+@login_required
+def create_ot_approval_and_download(document_id, month, year):
+    approver = Org.query.filter_by(id=current_user.personal_info.org.id).first()
+    org_head = StaffAccount.query.filter_by(email=approver.head).first()
+    round = OtRoundRequest(
+        created_at=datetime.now(tz),
+        created_by_account_id=current_user.id,
+        approval_by_account_id=org_head.id
+    )
+    db.session.add(round)
+    for record in OtRecord.query.filter_by(document_id=document_id).filter(extract('month',OtRecord.start_datetime)==month) \
+            .filter(extract('year',OtRecord.start_datetime)==year).all():
+        record.round = round
+        db.session.add(record)
+    db.session.commit()
+    flash(u'ส่งคำขอเรียบร้อยแล้ว', 'success')
+    # for ot_record in ot_records_query:
+    #     record = {}
+    #     record["start_datetime"] = ot_record.start_datetime
+    #     record["staff"] = ot_record.staff.personal_info.fullname
+    #     ot_list.append(record)
+    # df = DataFrame(record)
+    # summary = df.pivot_table(index='staff', columns='start_datetime', aggfunc=len, fill_value=0)
+    # summary.to_excel('ot_summary.xlsx')
+    flash(u'ดาวน์โหลดไฟล์เรียบร้อยแล้ว ชื่อไฟล์ ot_summary.xlsx', 'success')
+    return redirect(url_for('ot.round_request_status'))
 
+
+@ot.route('/summary/each-org/round-request/status')
+@login_required
+def round_request_status():
+    rounds = OtRoundRequest.query.filter_by(created_by=current_user).all()
+    return render_template('ot/request_status.html', rounds=rounds)
 
 # @ot.route('/schedule/summary/each-person')
 # @login_required
