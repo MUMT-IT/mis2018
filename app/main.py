@@ -254,6 +254,7 @@ admin.add_views(ModelView(OtPaymentAnnounce, db.session, category='OT'))
 admin.add_views(ModelView(OtCompensationRate, db.session, category='OT'))
 admin.add_views(ModelView(OtDocumentApproval, db.session, category='OT'))
 admin.add_views(ModelView(OtRecord, db.session, category='OT'))
+admin.add_views(ModelView(OtRoundRequest, db.session, category='OT'))
 
 
 
