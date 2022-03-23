@@ -1,11 +1,14 @@
 # -*- coding:utf-8 -*-
+import datetime
 
 from . import data_bp
 from app.main import db
-from app.models import CoreService, Process, Data, KPI
 from forms import *
 from flask import url_for, render_template, redirect, flash, request
 from flask_login import current_user, login_required
+from pytz import timezone
+
+tz = timezone('Asia/Bangkok')
 
 
 @data_bp.route('/')
@@ -280,3 +283,47 @@ def process_detail(process_id, kpi_id=None):
                 data_list.append(ds.data.name)
 
     return render_template('data_blueprint/process_detail.html', process=proc, data=data, kpi_id=kpi_id)
+
+
+@data_bp.route('/datasets/<int:dataset_id>/ropas')
+def get_ropa_detail(dataset_id):
+    ds = Dataset.query.get(dataset_id)
+    if not ds.ropa:
+        r = ROPA(dataset=ds, updater=current_user)
+        form = ROPAForm(obj=r)
+        db.session.add(r)
+        db.session.commit()
+        flash(u'เพิ่มรายการ ROPA เรียบร้อย', 'success')
+        return render_template('data_blueprint/ropa_form.html', dataset=ds, form=form)
+    return render_template('data_blueprint/ropa_detail.html', dataset=ds)
+
+
+@data_bp.route('/datasets/<int:dataset_id>/ropas/<int:ropa_id>', methods=['GET', 'POST'])
+def edit_ropa(dataset_id, ropa_id):
+    ropa = ROPA.query.get(ropa_id)
+    form = ROPAForm(obj=ropa)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(ropa)
+            ropa.updated_at = datetime.datetime.now(tz)
+            db.session.add(ropa)
+            db.session.commit()
+            flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
+            return redirect(url_for('data_bp.get_ropa_detail', dataset_id=dataset_id))
+        else:
+            flash(u'{}'.format(form.errors), 'danger')
+    return render_template('data_blueprint/ropa_form.html', dataset=ropa.dataset, form=form)
+
+
+@data_bp.route('/ropas/<int:ropa_id>/data-subjects/add', methods=['GET', 'POST'])
+def add_subject(ropa_id):
+    ropa = ROPA.query.get(ropa_id)
+    form = DataSubjectForm()
+    if form.validate_on_submit():
+        subject = DataSubject()
+        form.populate_obj(subject)
+        db.session.add(subject)
+        db.session.commit()
+        flash(u'เพิ่มรายการเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('data_bp.edit_ropa', ropa_id=ropa.id, dataset_id=ropa.dataset.id))
+    return render_template('data_blueprint/data_subject_form.html', form=form, ropa_id=ropa_id)

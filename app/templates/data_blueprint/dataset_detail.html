@@ -25,9 +25,13 @@
                         <td>ข้อมูลส่วนบุคคล</td>
                         <td>
                             {% if dataset.personal %}
-                            <span class="icon">
-                                <i class="fas fa-user-secret has-text-info"></i>
-                            </span>
+                            <a class="button is-small is-light is-info"
+                                href="{{ url_for('data_bp.get_ropa_detail', dataset_id=dataset.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-user-secret has-text-info"></i>
+                                </span>
+                                <span>ROPA</span>
+                            </a>
                             {% endif %}
                         </td>
                     </tr>
@@ -35,9 +39,15 @@
                         <td>ข้อมูลอ่อนไหว</td>
                         <td>
                             {% if dataset.sensitive %}
-                            <span class="icon">
-                                <i class="fas fa-heartbeat has-text-danger"></i>
-                            </span>
+                            <a class="button is-small is-light is-danger"
+                                href="{{ url_for('data_bp.get_ropa_detail', dataset_id=dataset.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-heartbeat has-text-danger"></i>
+                                </span>
+                                <span>
+                                    ROPA
+                                </span>
+                            </a>
                             {% endif %}
                         </td>
                     </tr>
@@ -97,7 +107,7 @@
                 </table>
                 <div class="buttons is-centered">
                     <a class="button is-light" href="{{ url_for('data_bp.data_detail', data_id=dataset.data.id) }}">Back</a>
-                    <a class="button is-primary" href="{{ url_for('data_bp.dataset_form', data_id=dataset.data.id, dataset_id=dataset.id) }}">แก้ไข</a>
+                    <a class="button is-info" href="{{ url_for('data_bp.dataset_form', data_id=dataset.data.id, dataset_id=dataset.id) }}">แก้ไข</a>
                 </div>
             </div>
         </div>
