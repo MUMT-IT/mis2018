@@ -190,7 +190,7 @@ def update_status(account_id):
             db.session.commit()
             title = u'แจ้งเตือนการปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.format(status.account.number)
             message = u'เรียน {}\n\nสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {} คือ {}'\
-                .format(current_user.personal_info.fullname, status.account.number, status.activity.activity)
+                .format(current_user.personal_info.fullname, status.account.number, status.other_activity or status.activity.activity)
             message += u'\n\n======================================================'
             message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
                        u'หากมีปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
@@ -229,12 +229,13 @@ def edit_update_status(account_id, status_id):
             status.cancel_datetime = bangkok.localize(datetime.now())
             status.update_datetime = bangkok.localize(datetime.now())
             status.staff = current_user
+            status.other_activity = None
             # status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
             db.session.add(status)
             db.session.commit()
             title = u'แจ้งเตือนการแก้ไขปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.format(status.account.number)
             message = u'เรียน {}\n\nสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {} คือ {}' \
-                .format(current_user.personal_info.fullname, status.account.number, status.activity.activity)
+                .format(current_user.personal_info.fullname, status.account.number, status.other_activity or status.activity.activity)
             message += u'\n\n======================================================'
             message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
                        u'หากมีปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
@@ -265,20 +266,18 @@ def update_status_info_download():
     records = []
     for account in accounts:
         for record in account.records:
-            delta = record.end_date-record.start_date
             records.append({
-                u'ลำดับ': u"{}".format(account.id),
                 u'เลขที่หนังสือ': u"{}".format(account.number),
                 u'วันที่หนังสือ': u"{}".format(account.booking_date),
                 u'ชื่อ': u"{}".format(account.subject),
                 u'วงเงินหลักการ': u"{:,.2f}".format(account.amount),
                 u'รูปแบบหลักการ': u"{}".format(account.formats),
-                u'กิจกรรม': u"{}".format(record.activity.activity),
+                u'กิจกรรม': u"{}".format(record.other_activity or record.activity.activity),
                 u'ผู้รับผิดชอบ': u"{}".format(record.staff.personal_info.fullname),
                 u'วันเริ่มกิจกรรม': u"{}".format(record.start_date),
                 u'วันสิ้นสุดกิจกรรม': u"{}".format(record.end_date),
                 u'หมายเหตุเพิ่มเติม': u"{}".format(record.comment),
-                u'เวลาดำเนินกิจกรรม': u"{}".format(delta.days),
+                u'เวลาดำเนินกิจกรรม': u"{}".format(record.weekdays),
                     })
     df = DataFrame(records)
     df.to_excel('account_summary.xlsx')
@@ -313,8 +312,8 @@ def show_info_page():
         if form.validate_on_submit():
             start_date = datetime.strptime(form.start_date.data, '%d-%m-%Y')
             end_date = datetime.strptime(form.end_date.data, '%d-%m-%Y')
-            account_query = PurchaseTrackerAccount.query.filter(cast(PurchaseTrackerAccount.creation_date, Date) >= start_date)\
-                .filter(cast(PurchaseTrackerAccount.creation_date, Date) <= end_date)
+            account_query = PurchaseTrackerAccount.query.filter(cast(PurchaseTrackerAccount.booking_date, Date) >= start_date)\
+                .filter(cast(PurchaseTrackerAccount.booking_date, Date) <= end_date)
         else:
             flash(form.errors, 'danger')
     return render_template('purchase_tracker/info_page.html', account_query=account_query, form=form)
@@ -326,22 +325,20 @@ def dashboard_info_download():
     records = []
     for account in accounts:
         for record in account.records:
-            delta = record.end_date-record.start_date
             records.append({
-                u'ลำดับ': u"{}".format(account.id),
                 u'เลขที่หนังสือ': u"{}".format(account.number),
                 u'วันที่หนังสือ': u"{}".format(account.booking_date),
                 u'ชื่อ': u"{}".format(account.subject),
                 u'วงเงินหลักการ': u"{:,.2f}".format(account.amount),
                 u'รูปแบบหลักการ': u"{}".format(account.formats),
-                u'กิจกรรม': u"{}".format(record.activity.activity),
+                u'กิจกรรม': u"{}".format(record.other_activity or record.activity.activity),
                 u'ผู้รับผิดชอบ': u"{}".format(record.staff.personal_info.fullname),
                 u'วันเริ่มกิจกรรม': u"{}".format(record.start_date),
                 u'วันสิ้นสุดกิจกรรม': u"{}".format(record.end_date),
                 u'หมายเหตุเพิ่มเติม': u"{}".format(record.comment),
-                u'เวลาดำเนินกิจกรรม': u"{}".format(delta.days),
-                    })
+                u'เวลาดำเนินกิจกรรม': u"{}".format(record.weekdays),
+            })
     df = DataFrame(records)
-    df.to_excel('info_summary.xlsx')
-    return send_from_directory(os.getcwd(), filename='info_summary.xlsx')
+    df.to_excel('account_summary.xlsx')
+    return send_from_directory(os.getcwd(), filename='account_summary.xlsx')
 
