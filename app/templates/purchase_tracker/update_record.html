@@ -185,6 +185,11 @@
                                         <span class="icon">
                                             <i class="far fa-edit"></i>
                                         </span>
+                                        <a class="control" href="{{ url_for('purchase_tracker.update_status', account_id=account_id) }}">
+                                            <span class="icon">
+                                                <i class="fas fa-redo"></i>
+                                            </span>
+                                        </a>
                                     </h2>
                                     <div class="field">
                                         <label class="label">{{ form.status.label }}</label>
@@ -229,7 +234,7 @@
                                             {{ form.comment(class="input") }}
                                         </div>
                                     </div>
-                                    <div class="field">
+                                    <div class="field is-grouped is-grouped-centered">
                                         <div class="buttons ">
                                             <button class="button is-success" type="submit" value="submit">Submit
                                             </button>
@@ -303,7 +308,7 @@
     <script>
         $(document).ready(()=>{
             $('#activity').change(e=>{
-                if ($('#activity').val() !== null) {
+                if ($('#activity').val() === null) {
                 $('#other_activity').show()
             } else {
                     $('#other_activity').hide()
