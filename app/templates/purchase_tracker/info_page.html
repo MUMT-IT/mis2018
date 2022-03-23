@@ -70,9 +70,10 @@
                             </div>
                             <div class="field">
                                 <label class="label"></label><br>
-                            <div class="control">
-                                    <input class="button is-success" type="submit" value="ค้นหาข้อมูล"/>
-                                </div></div>
+                                <div class="control">
+                                    <input class="button is-success" type="submit" value="ค้นหาข้อมูล">
+                                </div>
+                            </div>
                             </div><br>
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="control">
@@ -98,7 +99,6 @@
                     <table id="data" class="table table-striped">
                         <thead>
                         <tr>
-                            <th>ID</th>
                             <th>เลขที่</th>
                             <th>วันที่</th>
                             <th>ชื่อ</th>
@@ -116,13 +116,12 @@
                         {% for account in account_query %}
                             {% set first_record = account.records.first() %}
                             <tr class="is-selected">
-                                <td>{{ account.id }}</td>
                                 <td>{{ account.number }}</td>
                                 <td>{{ account.booking_date }}</td>
                                 <td>{{ account.subject }}</td>
                                 <td>{{ "{:,.2f}".format(account.amount) }}</td>
                                 <td>{{ account.formats }}</td>
-                                <td>{{ first_record.activity.activity }}</td>
+                                <td>{{ first_record.other_activity or first_record.activity.activity }}</td>
                                 <td>{{ first_record.staff.personal_info.fullname }}</td>
                                 <td>{{ first_record.start_date }}</td>
                                 <td>{{ first_record.end_date }}</td>
@@ -138,9 +137,8 @@
                                         <td></td>
                                         <td></td>
                                         <td></td>
-                                        <td></td>
 
-                                        <td>{{ record.activity.activity }}</td>
+                                        <td>{{ record.other_activity or record.activity.activity }}</td>
                                         <td>{{ record.staff.personal_info.fullname }}</td>
                                         <td>{{ record.start_date }}</td>
                                         <td>{{ record.end_date }}</td>
