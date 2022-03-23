@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Purchase Tracker Page{% endblock %}
+{% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+{% endblock %}
+{% block page_content %}
+    {% include "messages.html" %}
+    <section class="section-padding" id="hero">
+        <div class="container">
+            <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
+                <div class="navbar-brand">
+                    <a class="navbar-item" href="https://bulma.io">
+                        <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}"/>
+                    </a>
+                    <a role="button" class="navbar-burger burger has-text-white" aria-label="menu" aria-expanded="false"
+                       data-target="navbarBasicExample">
+                        <span aria-hidden="true"></span>
+                        <span aria-hidden="true"></span>
+                        <span aria-hidden="true"></span>
+                    </a>
+                </div>
+                <div id="navbarBasicExample" class="navbar-menu">
+                    <div class="navbar-start">
+                        <a href="{{ url_for('purchase_tracker.index') }}" class="navbar-item ">
+                            Home
+                        </a>
+                        <a href="{{ url_for('purchase_tracker.index') }}" class="navbar-item ">
+                            Services
+                        </a>
+                        <div class="navbar-item has-dropdown is-hoverable">
+                            <a class="navbar-link ">
+                                More
+                            </a>
+                            <div class="navbar-dropdown">
+                                <a class="navbar-item">
+                                    Report an issue
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </section>
+    <section class="section">
+        <div class="container">
+            <div class="column has-text-centered">
+                <h5 class="subtitle is-5">รายงานผลการดำเนินงานการจัดซื้อจัดจ้าง หน่วยพัสดุ คณะเทคนิคการแพทย์
+                    มหาวิทยาลัยมหิดล
+                </h5>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">{{ form.start_date.label }}</label>
+                                <div class="control">
+                                    {{ form.start_date(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.end_date.label }}</label>
+                                <div class="control">
+                                    {{ form.end_date(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label"></label><br>
+                                <div class="control">
+                                    <input class="button is-success" type="submit" value="ค้นหาข้อมูล">
+                                </div>
+                            </div>
+                            </div><br>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="control">
+                                    <a class="button is-warning"
+                                       href="{{ url_for('purchase_tracker.dashboard_info_download') }}">
+                                        <span class="icon"><i class="fas fa-download"></i></span>
+                                        <span>Download</span>
+                                    </a>
+                                </div>
+                                <div class="control">
+                                    <a class="button is-danger"
+                                        href="{{ url_for('purchase_tracker.show_info_page') }}">
+                                        <span class="icon"><i class="fas fa-redo-alt"></i></span>
+                                        <span>Refresh</span>
+                                    </a>
+                                </div>
+                            </div>
+                    </form>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table id="data" class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>เลขที่</th>
+                            <th>วันที่</th>
+                            <th>ชื่อ</th>
+                            <th>วงเงิน</th>
+                            <th>รูปแบบ</th>
+                            <th>กิจกรรม</th>
+                            <th>ผู้รับผิดชอบ</th>
+                            <th>เริ่ม</th>
+                            <th>สิ้นสุด</th>
+                            <th>หมายเหตุเพิ่มเติม</th>
+                            <th>ระยะเวลา</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for account in account_query %}
+                            {% set first_record = account.records.first() %}
+                            <tr class="is-selected">
+                                <td>{{ account.number }}</td>
+                                <td>{{ account.booking_date }}</td>
+                                <td>{{ account.subject }}</td>
+                                <td>{{ "{:,.2f}".format(account.amount) }}</td>
+                                <td>{{ account.formats }}</td>
+                                <td>{{ first_record.other_activity or first_record.activity.activity }}</td>
+                                <td>{{ first_record.staff.personal_info.fullname }}</td>
+                                <td>{{ first_record.start_date }}</td>
+                                <td>{{ first_record.end_date }}</td>
+                                <td>{{ first_record.comment }}</td>
+                                <td>{{ first_record.weekdays }}</td>
+
+                            </tr>
+                            {% for record in account.records %}
+                                {% if record.id != first_record.id %}
+                                    <tr>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+
+                                        <td>{{ record.other_activity or record.activity.activity }}</td>
+                                        <td>{{ record.staff.personal_info.fullname }}</td>
+                                        <td>{{ record.start_date }}</td>
+                                        <td>{{ record.end_date }}</td>
+                                        <td>{{ record.comment }}</td>
+                                        <td>{{ record.weekdays }}</td>
+                                    </tr>
+                                {% endif %}
+                            {% endfor %}
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('input[name="start_date"]').daterangepicker({
+                singleDatePicker: true,
+                locale: {
+                    format: 'DD-MM-YYYY'
+                }
+            })
+            $('input[name="end_date"]').daterangepicker({
+                singleDatePicker: true,
+                locale: {
+                    format: 'DD-MM-YYYY'
+                }
+            })
+        });
+    </script>
+{% endblock %}

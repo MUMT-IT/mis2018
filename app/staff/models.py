@@ -48,6 +48,19 @@ def local_datetime(dt):
     return dt.astimezone(bangkok).strftime(datetime_format)
 
 
+# Define the Roles data model
+class Role(db.Model):
+    __tablename__ = 'roles'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(), unique=True)
+    app_name = db.Column(db.String())
+
+
+user_roles = db.Table('user_roles',
+                      db.Column('staff_account_id', db.Integer(), db.ForeignKey('staff_account.id')),
+                      db.Column('role_id', db.Integer(), db.ForeignKey('roles.id')))
+
+
 class StaffAccount(db.Model):
     __tablename__ = 'staff_account'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -56,6 +69,7 @@ class StaffAccount(db.Model):
     personal_info = db.relationship("StaffPersonalInfo", backref=db.backref("staff_account", uselist=False))
     line_id = db.Column('line_id', db.String(), index=True, unique=True)
     __password_hash = db.Column('password', db.String(255), nullable=True)
+    roles = db.relationship('Role', secondary=user_roles, backref=db.backref('staff_account', lazy='dynamic'))
 
     @property
     def has_password(self):

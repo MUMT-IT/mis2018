@@ -29,15 +29,20 @@
                             </div>
                         </div>
                         <div class="field">
+                            <div class="control">
+                                {{ form.other_activity(class="input", id="other_activity", placeholder="กิจกรรมอื่นๆ(เพิ่มเติม)") }}
+                            </div>
+                        </div>
+                        <div class="field">
                             <label class="label">{{ form.start_date.label }}</label>
                             <div class="control">
                                 {{ form.start_date(class="input") }}
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.days.label }}</label>
+                            <label class="label">{{ form.end_date.label }}</label>
                             <div class="control">
-                                {{ form.days(class="input", value=1) }}
+                                {{ form.end_date(class="input") }}
                             </div>
                         </div>
                         <div class="field">
@@ -67,5 +72,19 @@
             let fileName = e.target.files[0].name;
             $('#filename').text(fileName);
         });
+    </script>
+    <script>
+        $(document).ready(()=>{
+            $('#activity').change(e=>{
+                if ($('#activity').val() === null) {
+                $('#other_activity').show()
+            } else {
+                    $('#other_activity').hide()
+                }
+            })
+            if ($('#activity').val() === null) {
+                $('#other_activity').show()
+            }
+        })
     </script>
 {% endblock %}

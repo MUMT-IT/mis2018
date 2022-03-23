@@ -63,12 +63,12 @@
                         <thead>
                         <th>ชื่อเรื่อง</th>
                         <th>เลขที่หนังสือ</th>
-                        <th>วันที(ปี-เดือน-วัน) เวลา</th>
+                        <th>วันทีหนังสือ</th>
                         <th>สถานะ</th>
                         <th>Dashboard</th>
                         </thead>
                         <tbody>
-                        {% for record in trackers %}
+                        {% for record in accounts %}
                             <tr>
                             <td>
                                 {{ record.subject }}
@@ -77,7 +77,7 @@
                                 {{ record.number }}
                             </td>
                             <td>
-                                {{ record.creation_date }}
+                                {{ record.booking_date }}
                             </td>
                             <td>
                                 {% if record.records.count() == 0 %}
@@ -99,12 +99,12 @@
             </div>
         {% if activities  %}
         <div class="columns">
-            <div class="column is-two-thirds is-offset-2">
+            <div class="column">
                 <div class="card">
                     <div class="card-header">
                         <h1 class="card-header-title">
                             <span>
-                                {{ tracker.creation_date }}
+                                {{ account.creation_date }}
                             </span>
                         </h1>
                     </div>
@@ -116,25 +116,33 @@
                             </colgroup>
                             <tr>
                                 <td><label class="label">Subject: ชื่อ</label></td>
-                                <td>{{ tracker.subject }}</td>
+                                <td>{{ account.subject }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Number: เลขที่</label></td>
-                                <td>{{ tracker.number }}</td>
+                                <td><label class="label">Ref. Number:<br>เลขที่หนังสือ</label></td>
+                                <td>{{ account.number }}</td>
                             </tr>
+                            <tr>
+                                 <td><label class="label">Date: วันที่หนังสือ</label></td>
+                                 <td>{{ account.booking_date }}</td>
+                             </tr>
+                            <tr>
+                                 <td><label class="label">Cost Amount ( Baht ): วงเงินหลักการ</label></td>
+                                 <td>{{ "{:,.2f}".format(account.amount) }}</td>
+                             </tr>
                             <tr>
                                 <td><label class="label">Description: รายละเอียด</label></td>
-                                <td>{{ tracker.desc }}</td>
+                                <td>{{ account.desc }}</td>
                             </tr>
                             <tr>
                                 <td><label class="label">Comment: หมายเหตุ</label></td>
-                                <td>{{ tracker.comment }}</td>
+                                <td>{{ account.comment }}</td>
                             </tr>
                             <tr>
                                 <td><label class="label">File: ไฟล์</label></td>
                                 <td>
-                                    {% if tracker.url %}
-                                        <a href="{{ 'https://drive.google.com/uc?id=' + tracker.url }}"
+                                    {% if account.url %}
+                                        <a href="{{ 'https://drive.google.com/uc?id=' + account.url }}"
                                            target="_blank">
                                             <span class="icon">
                                                 <i class="far fa-file-pdf"></i>
@@ -147,24 +155,35 @@
                                 </td>
                             </tr>
                             <tr>
-                                <td><label class="label">Update: อัพเดตล่าสุด</label>
+                                <td><label class="label">Last Updated:<br>อัพเดตล่าสุด</label>
                                 <td>
                                 <table class="table is-fullwidth is-striped">
                                     <thead>
                                     <th>กิจกรรม</th>
+                                    <th>กิจกรรมอื่นๆ</th>
                                     <th>ผู้รับผิดชอบ</th>
+                                    <th>หมายเหตุเพิ่มเติม</th>
                                     <th>วันเริ่มต้น</th>
                                     <th>วันสิ้นสุด</th>
+                                    <th>ระยะเวลา(วัน)</th>
                                     </thead>
                                     <tbody>
-                                    {% for tracker in tracker.records %}
+                                    {% for status in account.records.order_by("id") %}
                                     <tr>
-                                        <td>{{ tracker.activity }}</td>
-                                        <td>{{ tracker.staff }}</td>
-                                        <td>{{ tracker.start_date }}</td>
-                                        <td>{{ tracker.end_date }}</td>
+                                        <td>{{ status.activity.activity }}</td>
+                                        <td>{{ status.other_activity }}</td>
+                                        <td>{{ status.staff }}</td>
+                                        <td>{{ status.comment }}</td>
+                                        <td>{{ status.start_date }}</td>
+                                        <td>{{ status.end_date }}</td>
+                                        <td>{{ status.weekdays }}</td>
                                     </tr>
                                     {% endfor %}
+                                    <tr>
+                                     <td><label class="label">ระยะเวลาทั้งหมด</label></td>
+                                     <td></td><td></td><td></td><td></td><td></td>
+                                     <td>{{ account.weekdays }}</td>
+                                  </tr>
                                     </tbody>
                                 </table>
                                 </td>

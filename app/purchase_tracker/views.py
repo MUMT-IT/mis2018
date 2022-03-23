@@ -2,9 +2,11 @@
 import requests, os
 from flask import render_template, request, flash, redirect, url_for, send_from_directory
 from flask_login import current_user, login_required
+from flask_user import roles_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pandas import DataFrame
 from pydrive.auth import GoogleAuth
+from sqlalchemy import cast, Date
 from werkzeug.utils import secure_filename
 from . import purchase_tracker_bp as purchase_tracker
 from .forms import *
@@ -14,6 +16,7 @@ from pydrive.drive import GoogleDrive
 from .models import PurchaseTrackerAccount
 from flask_mail import Message
 from ..main import mail
+from ..staff.models import Role
 
 # Upload images for Google Drive
 
@@ -28,13 +31,13 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
 @purchase_tracker.route('/official/')
+@login_required
 def landing_page():
     return render_template('purchase_tracker/first_page.html')
 
 
 @purchase_tracker.route('/personnel/personnel_index')
 def staff_index():
-
     return render_template('purchase_tracker/personnel/personnel_index.html')
 
 
@@ -43,7 +46,7 @@ def index():
     return render_template('purchase_tracker/index.html')
 
 
-@purchase_tracker.route('/create', methods=['GET', 'POST'])
+@purchase_tracker.route('/create/account', methods=['GET', 'POST'])
 @login_required
 def add_account():
     form = CreateAccountForm()
@@ -97,8 +100,8 @@ def initialize_gdrive():
 def track(account_id=None):
     if account_id is not None:
         from sqlalchemy import desc
-        tracker = PurchaseTrackerAccount.query.get(account_id)
-        trackers = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
+        account = PurchaseTrackerAccount.query.get(account_id)
+        accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
         activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
             .order_by(PurchaseTrackerStatus.start_date)]
         if not activities:
@@ -107,16 +110,16 @@ def track(account_id=None):
             default_date = activities[-1][3]
         return render_template('purchase_tracker/tracking.html',
                                account_id=account_id,
-                               tracker=tracker,
-                               trackers=trackers,
+                               account=account,
+                               accounts=accounts,
                                desc=desc,
                                PurchaseTrackerStatus=PurchaseTrackerStatus,
                                activities=activities,
                                default_date=default_date)
     else:
         from sqlalchemy import desc
-        tracker = PurchaseTrackerAccount.query.get(account_id)
-        trackers = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
+        account = PurchaseTrackerAccount.query.get(account_id)
+        accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
         activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
             .order_by(PurchaseTrackerStatus.start_date)]
         if not activities:
@@ -125,22 +128,30 @@ def track(account_id=None):
             default_date = activities[-1][3]
         return render_template('purchase_tracker/tracking.html',
                                account_id=account_id,
-                               tracker=tracker,
-                               trackers=trackers,
+                               account=account,
+                               accounts=accounts,
                                desc=desc,
                                PurchaseTrackerStatus=PurchaseTrackerStatus,
                                activities=activities,
                                default_date=default_date)
 
 
-@purchase_tracker.route('/supplies')
+@purchase_tracker.route('/supplies/')
+# @roles_required('PurchaseTracker')
 def supplies():
-    from sqlalchemy import desc
-    purchase_trackers = PurchaseTrackerAccount.query.all()
-    return render_template('purchase_tracker/procedure_supplies.html',
-                           purchase_trackers=purchase_trackers,
-                           desc=desc,
-                           PurchaseTrackerStatus=PurchaseTrackerStatus)
+    role = Role.query.filter_by(name='admin', app_name='PurchaseTracker').first()
+    if role in current_user.roles:
+        from sqlalchemy import desc
+        purchase_trackers = PurchaseTrackerAccount.query.all()
+        return render_template('purchase_tracker/procedure_supplies.html',
+                               purchase_trackers=purchase_trackers,
+                               desc=desc,
+                               PurchaseTrackerStatus=PurchaseTrackerStatus)
+    else:
+        flash('Permission not allow', 'danger')
+        return redirect(url_for('purchase_tracker.landing_page'))
+
+
 
 
 @purchase_tracker.route('/description')
@@ -162,7 +173,7 @@ def send_mail(recp, title, message):
 @login_required
 def update_status(account_id):
     form = StatusForm()
-    tracker = PurchaseTrackerAccount.query.get(account_id)
+    account = PurchaseTrackerAccount.query.get(account_id)
     if request.method == 'POST':
         if form.validate_on_submit():
             status = PurchaseTrackerStatus()
@@ -173,24 +184,26 @@ def update_status(account_id):
             status.cancel_datetime = bangkok.localize(datetime.now())
             status.update_datetime = bangkok.localize(datetime.now())
             status.staff = current_user
-            status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
+            # status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
             # TODO: calculate end date from time needed to finish the task
             db.session.add(status)
             db.session.commit()
             title = u'แจ้งเตือนการปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.format(status.account.number)
             message = u'เรียน {}\n\nสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {} คือ {}'\
-                .format(current_user.personal_info.fullname, status.account.number, status.activity)
+                .format(current_user.personal_info.fullname, status.account.number, status.other_activity or status.activity.activity)
             message += u'\n\n======================================================'
-            message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ '\
-                       u'หากมีปัญหาในการเข้าถึงลิงค์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
-            message += u'\nThis email was sent by an automated system. Please do not reply.'\
-                       u' If you have problem visiting the link, please contact the IT unit.'
-            send_mail([u'{}@mahidol.ac.th'.format(current_user.email)], title, message)
+            message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
+                       u'หากมีปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
+            message += u'\nThis email was sent by an automated system. Please do not reply.' \
+                       u' If you have any problem about website, please contact the IT unit.'
+            send_mail([u'{}@mahidol.ac.th'.format(account.staff.email)], title, message)
             flash(u'อัพเดตข้อมูลเรียบร้อย', 'success')
         # Check Error
         else:
-            for er in form.errors:
-                flash(er, 'danger')
+            flash(form.errors, 'danger')
+        # else:
+        #     for er in form.errors:
+        #         flash(er, 'danger')
     activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
         .order_by(PurchaseTrackerStatus.start_date)]
     if not activities:
@@ -198,7 +211,7 @@ def update_status(account_id):
     else:
         default_date = activities[-1][3]
     return render_template('purchase_tracker/update_record.html',
-                            account_id=account_id, form=form, activities=activities, tracker=tracker,
+                            account_id=account_id, form=form, activities=activities, account=account,
                            default_date=default_date)
 
 
@@ -216,18 +229,19 @@ def edit_update_status(account_id, status_id):
             status.cancel_datetime = bangkok.localize(datetime.now())
             status.update_datetime = bangkok.localize(datetime.now())
             status.staff = current_user
-            status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
+            status.other_activity = None
+            # status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
             db.session.add(status)
             db.session.commit()
             title = u'แจ้งเตือนการแก้ไขปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.format(status.account.number)
             message = u'เรียน {}\n\nสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {} คือ {}' \
-                .format(current_user.personal_info.fullname, status.account.number, status.activity)
+                .format(current_user.personal_info.fullname, status.account.number, status.other_activity or status.activity.activity)
             message += u'\n\n======================================================'
             message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
-                       u'หากมีปัญหาในการเข้าถึงลิงค์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
+                       u'หากมีปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
             message += u'\nThis email was sent by an automated system. Please do not reply.' \
-                       u' If you have problem visiting the link, please contact the IT unit.'
-            send_mail([u'{}@mahidol.ac.th'.format(current_user.email)], title, message)
+                       u' If you have any problem about website, please contact the IT unit.'
+            send_mail([u'{}@mahidol.ac.th'.format(status.account.staff.email)], title, message)
             flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
         return redirect(url_for('purchase_tracker.update_status', status_id=status.id, account_id=account_id))
     return render_template('purchase_tracker/edit_update_record.html',
@@ -239,7 +253,7 @@ def edit_update_status(account_id, status_id):
 def delete_update_status(account_id, status_id):
     if account_id:
         status = PurchaseTrackerStatus.query.get(status_id)
-        flash(u'Information has been removed from the update status.')
+        flash(u'The update status has been removed.')
         db.session.delete(status)
         db.session.commit()
         return redirect(url_for('purchase_tracker.update_status', account_id=account_id))
@@ -248,25 +262,83 @@ def delete_update_status(account_id, status_id):
 @purchase_tracker.route('/account/update_status/info/download')
 @login_required
 def update_status_info_download():
-    trackers = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
+    accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
     records = []
-    for account in trackers:
+    for account in accounts:
         for record in account.records:
-            delta = record.end_date-record.start_date
             records.append({
-                'account_id': u"{}".format(account.id),
-                'number': u"{}".format(account.number),
-                'booking_date': u"{}".format(account.booking_date),
-                'subject': u"{}".format(account.subject),
-                'amount': u"{}".format(account.amount),
-                'formats': u"{}".format(account.formats),
-                'activity': u"{}".format(record.activity),
-                'staff': u"{}".format(record.staff.personal_info.fullname),
-                'start_date': u"{}".format(record.start_date),
-                'end_date': u"{}".format(record.end_date),
-                'comment': u"{}".format(record.comment),
-                'days': u"{}".format(delta.days),
+                u'เลขที่หนังสือ': u"{}".format(account.number),
+                u'วันที่หนังสือ': u"{}".format(account.booking_date),
+                u'ชื่อ': u"{}".format(account.subject),
+                u'วงเงินหลักการ': u"{:,.2f}".format(account.amount),
+                u'รูปแบบหลักการ': u"{}".format(account.formats),
+                u'กิจกรรม': u"{}".format(record.other_activity or record.activity.activity),
+                u'ผู้รับผิดชอบ': u"{}".format(record.staff.personal_info.fullname),
+                u'วันเริ่มกิจกรรม': u"{}".format(record.start_date),
+                u'วันสิ้นสุดกิจกรรม': u"{}".format(record.end_date),
+                u'หมายเหตุเพิ่มเติม': u"{}".format(record.comment),
+                u'เวลาดำเนินกิจกรรม': u"{}".format(record.weekdays),
                     })
     df = DataFrame(records)
     df.to_excel('account_summary.xlsx')
     return send_from_directory(os.getcwd(), filename='account_summary.xlsx')
+
+
+@purchase_tracker.route('/create/<int:account_id>/activity', methods=['GET', 'POST'])
+@login_required
+def add_activity(account_id):
+    activity = db.session.query(PurchaseTrackerActivity)
+    form = CreateActivityForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            new_activity = PurchaseTrackerActivity()
+            form.populate_obj(new_activity)
+            db.session.add(new_activity)
+            db.session.commit()
+            flash(u'บันทึกการเพิ่มกิจกรรมใหม่สำเร็จ.', 'success')
+            return redirect(url_for('purchase_tracker.update_status', account_id=account_id))
+        # Check Error
+        else:
+            for er in form.errors:
+                flash(er, 'danger')
+    return render_template('purchase_tracker/create_activity.html', form=form, activity=activity, account_id=account_id)
+
+
+@purchase_tracker.route('/dashboard/', methods=['GET', 'POST'])
+def show_info_page():
+    account_query = PurchaseTrackerAccount.query.all()
+    form = ReportDateForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            start_date = datetime.strptime(form.start_date.data, '%d-%m-%Y')
+            end_date = datetime.strptime(form.end_date.data, '%d-%m-%Y')
+            account_query = PurchaseTrackerAccount.query.filter(cast(PurchaseTrackerAccount.booking_date, Date) >= start_date)\
+                .filter(cast(PurchaseTrackerAccount.booking_date, Date) <= end_date)
+        else:
+            flash(form.errors, 'danger')
+    return render_template('purchase_tracker/info_page.html', account_query=account_query, form=form)
+
+
+@purchase_tracker.route('/dashboard/info/download')
+def dashboard_info_download():
+    accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
+    records = []
+    for account in accounts:
+        for record in account.records:
+            records.append({
+                u'เลขที่หนังสือ': u"{}".format(account.number),
+                u'วันที่หนังสือ': u"{}".format(account.booking_date),
+                u'ชื่อ': u"{}".format(account.subject),
+                u'วงเงินหลักการ': u"{:,.2f}".format(account.amount),
+                u'รูปแบบหลักการ': u"{}".format(account.formats),
+                u'กิจกรรม': u"{}".format(record.other_activity or record.activity.activity),
+                u'ผู้รับผิดชอบ': u"{}".format(record.staff.personal_info.fullname),
+                u'วันเริ่มกิจกรรม': u"{}".format(record.start_date),
+                u'วันสิ้นสุดกิจกรรม': u"{}".format(record.end_date),
+                u'หมายเหตุเพิ่มเติม': u"{}".format(record.comment),
+                u'เวลาดำเนินกิจกรรม': u"{}".format(record.weekdays),
+            })
+    df = DataFrame(records)
+    df.to_excel('account_summary.xlsx')
+    return send_from_directory(os.getcwd(), filename='account_summary.xlsx')
+

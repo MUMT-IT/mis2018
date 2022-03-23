@@ -194,22 +194,16 @@ from app.purchase_tracker.models import *
 
 admin.add_views(ModelView(PurchaseTrackerAccount, db.session, category='PurchaseTracker'))
 admin.add_views(ModelView(PurchaseTrackerStatus, db.session, category='PurchaseTracker'))
+admin.add_views(ModelView(PurchaseTrackerActivity, db.session, category='PurchaseTracker'))
+
 
 from staff import staffbp as staff_blueprint
 
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
-from staff.models import (StaffAccount, StaffPersonalInfo,
-                          StaffAcademicPosition,
-                          StaffLeaveApprover, StaffLeaveQuota,
-                          StaffLeaveRequest, StaffLeaveType,
-                          StaffLeaveApproval, StaffEmployment,
-                          StaffWorkFromHomeRequest, StaffWorkFromHomeJobDetail,
-                          StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
-                          StaffWorkFromHomeCheckedJob, StaffLeaveRemainQuota,
-                          StaffSeminar, StaffSeminarAttend, StaffWorkLogin,
-                          StaffSpecialGroup)
+from staff.models import *
 
+admin.add_views(ModelView(Role, db.session, category='Permission'))
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPosition, db.session, category='Staff'))
