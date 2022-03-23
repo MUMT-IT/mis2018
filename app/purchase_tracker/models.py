@@ -65,7 +65,7 @@ class PurchaseTrackerStatus(db.Model):
         delta = self.end_date - self.start_date
         duration = delta.days
         return [str(self.id),
-                self.activity.activity,
+                self.other_activity or self.activity.activity,
                 self.start_date.isoformat(),
                 self.end_date.isoformat(),
                 duration,
