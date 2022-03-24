@@ -2,7 +2,6 @@
 import requests, os
 from flask import render_template, request, flash, redirect, url_for, send_from_directory
 from flask_login import current_user, login_required
-from flask_user import roles_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pandas import DataFrame
 from pydrive.auth import GoogleAuth
@@ -137,7 +136,6 @@ def track(account_id=None):
 
 
 @purchase_tracker.route('/supplies/')
-# @roles_required('PurchaseTracker')
 def supplies():
     role = Role.query.filter_by(name='admin', app_name='PurchaseTracker').first()
     if role in current_user.roles:
