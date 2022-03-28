@@ -52,7 +52,7 @@
                  <div class="card-header">
                      <h1 class="card-header-title">
                          <span>
-                             {{ account.creation_date }}
+                             {{ account.creation_date|localdatetime }}
                          </span>
                      </h1>
                  </div>
@@ -80,6 +80,10 @@
                         <tr>
                              <td><label class="label">Cost Amount ( Baht ): วงเงินหลักการ</label></td>
                              <td>{{ "{:,.2f}".format(account.amount) }}</td>
+                         </tr>
+                        <tr>
+                             <td><label class="label">Format: รูปแบบหลักการ</label></td>
+                             <td>{{ account.formats }}</td>
                          </tr>
                         <tr>
                              <td><label class="label">Coordinator: ผู้ประสานงาน</label></td>
@@ -318,5 +322,21 @@
                 $('#other_activity').show()
             }
         })
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('input[name="start_date"]').daterangepicker({
+                singleDatePicker: true,
+                locale: {
+                    format: 'DD-MM-YYYY'
+                }
+            })
+            $('input[name="end_date"]').daterangepicker({
+                singleDatePicker: true,
+                locale: {
+                    format: 'DD-MM-YYYY'
+                }
+            })
+        });
     </script>
 {% endblock %}

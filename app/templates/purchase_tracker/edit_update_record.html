@@ -73,18 +73,4 @@
             $('#filename').text(fileName);
         });
     </script>
-    <script>
-        $(document).ready(()=>{
-            $('#activity').change(e=>{
-                if ($('#activity').val() === null) {
-                $('#other_activity').show()
-            } else {
-                    $('#other_activity').hide()
-                }
-            })
-            if ($('#activity').val() === null) {
-                $('#other_activity').show()
-            }
-        })
-    </script>
 {% endblock %}

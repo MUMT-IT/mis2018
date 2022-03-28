@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 import requests, os
-from flask import render_template, request, flash, redirect, url_for, send_from_directory
+from flask import render_template, request, flash, redirect, url_for, send_from_directory, jsonify
 from flask_login import current_user, login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pandas import DataFrame
@@ -9,7 +9,7 @@ from sqlalchemy import cast, Date
 from werkzeug.utils import secure_filename
 from . import purchase_tracker_bp as purchase_tracker
 from .forms import *
-from datetime import datetime, timedelta
+from datetime import datetime
 from pytz import timezone
 from pydrive.drive import GoogleDrive
 from .models import PurchaseTrackerAccount
@@ -196,12 +196,13 @@ def update_status(account_id):
                        u' If you have any problem about website, please contact the IT unit.'
             send_mail([u'{}@mahidol.ac.th'.format(account.staff.email)], title, message)
             flash(u'อัพเดตข้อมูลเรียบร้อย', 'success')
+            form.activity.data = ""
+            form.other_activity.data = ""
+            form.comment.data = ""
         # Check Error
         else:
             flash(form.errors, 'danger')
-        # else:
-        #     for er in form.errors:
-        #         flash(er, 'danger')
+
     activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
         .order_by(PurchaseTrackerStatus.start_date)]
     if not activities:
@@ -227,8 +228,6 @@ def edit_update_status(account_id, status_id):
             status.cancel_datetime = bangkok.localize(datetime.now())
             status.update_datetime = bangkok.localize(datetime.now())
             status.staff = current_user
-            status.other_activity = None
-            # status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
             db.session.add(status)
             db.session.commit()
             title = u'แจ้งเตือนการแก้ไขปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.format(status.account.number)
@@ -304,6 +303,8 @@ def add_activity(account_id):
 
 @purchase_tracker.route('/dashboard/', methods=['GET', 'POST'])
 def show_info_page():
+    start_date = None
+    end_date = None
     account_query = PurchaseTrackerAccount.query.all()
     form = ReportDateForm()
     if request.method == 'POST':
@@ -314,13 +315,21 @@ def show_info_page():
                 .filter(cast(PurchaseTrackerAccount.booking_date, Date) <= end_date)
         else:
             flash(form.errors, 'danger')
-    return render_template('purchase_tracker/info_page.html', account_query=account_query, form=form)
+    return render_template('purchase_tracker/info_page.html', account_query=account_query, form=form,
+                           start_date=start_date, end_date=end_date)
 
 
-@purchase_tracker.route('/dashboard/info/download')
+@purchase_tracker.route('/dashboard/info/download', methods=['GET'])
 def dashboard_info_download():
-    accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
     records = []
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    if start_date and end_date:
+        accounts = PurchaseTrackerAccount.query.filter(cast(PurchaseTrackerAccount.booking_date, Date) >= start_date)\
+                .filter(cast(PurchaseTrackerAccount.booking_date, Date) <= end_date)
+    else:
+        accounts = PurchaseTrackerAccount.query.all()
+
     for account in accounts:
         for record in account.records:
             records.append({
@@ -339,4 +348,9 @@ def dashboard_info_download():
     df = DataFrame(records)
     df.to_excel('account_summary.xlsx')
     return send_from_directory(os.getcwd(), filename='account_summary.xlsx')
+
+
+
+
+
 

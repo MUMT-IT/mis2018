@@ -74,23 +74,29 @@
                                     <input class="button is-success" type="submit" value="ค้นหาข้อมูล">
                                 </div>
                             </div>
-                            </div><br>
-                            <div class="field is-grouped is-grouped-centered">
-                                <div class="control">
-                                    <a class="button is-warning"
-                                       href="{{ url_for('purchase_tracker.dashboard_info_download') }}">
-                                        <span class="icon"><i class="fas fa-download"></i></span>
-                                        <span>Download</span>
-                                    </a>
-                                </div>
-                                <div class="control">
-                                    <a class="button is-danger"
-                                        href="{{ url_for('purchase_tracker.show_info_page') }}">
-                                        <span class="icon"><i class="fas fa-redo-alt"></i></span>
-                                        <span>Refresh</span>
-                                    </a>
-                                </div>
+                        </div>
+                        <br>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a class="button is-warning"
+                                        {% if start_date and end_date %}
+                                   href="{{ url_for('purchase_tracker.dashboard_info_download', start_date=start_date.strftime('%Y-%m-%d'), end_date=end_date.strftime('%Y-%m-%d')) }}"
+                                        {% else %}
+                                   href="{{ url_for('purchase_tracker.dashboard_info_download') }}"
+                                        {% endif %}
+                                >
+                                    <span class="icon"><i class="fas fa-download"></i></span>
+                                    <span>Download</span>
+                                </a>
                             </div>
+                            <div class="control">
+                                <a class="button is-danger"
+                                   href="{{ url_for('purchase_tracker.show_info_page') }}">
+                                    <span class="icon"><i class="fas fa-redo-alt"></i></span>
+                                    <span>Refresh</span>
+                                </a>
+                            </div>
+                        </div>
                     </form>
                 </div>
             </div>
@@ -121,12 +127,20 @@
                                 <td>{{ account.subject }}</td>
                                 <td>{{ "{:,.2f}".format(account.amount) }}</td>
                                 <td>{{ account.formats }}</td>
-                                <td>{{ first_record.other_activity or first_record.activity.activity }}</td>
-                                <td>{{ first_record.staff.personal_info.fullname }}</td>
-                                <td>{{ first_record.start_date }}</td>
-                                <td>{{ first_record.end_date }}</td>
-                                <td>{{ first_record.comment }}</td>
-                                <td>{{ first_record.weekdays }}</td>
+                                {% if first_record %}
+                                    <td>{{ first_record.other_activity or first_record.activity.activity }}</td>
+                                    <td>{{ first_record.staff.personal_info.fullname }}</td>
+                                    <td>{{ first_record.start_date }}</td>
+                                    <td>{{ first_record.end_date }}</td>
+                                    <td>{{ first_record.comment }}</td>
+                                    <td>{{ first_record.weekdays }}</td>
+                                {% else %}
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                {% endif %}
 
                             </tr>
                             {% for record in account.records %}
