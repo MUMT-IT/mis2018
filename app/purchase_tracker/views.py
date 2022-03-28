@@ -322,6 +322,14 @@ def show_info_page():
 @purchase_tracker.route('/dashboard/info/download', methods=['GET'])
 def dashboard_info_download():
     records = []
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    if start_date and end_date:
+        accounts = PurchaseTrackerAccount.query.filter(cast(PurchaseTrackerAccount.booking_date, Date) >= start_date)\
+                .filter(cast(PurchaseTrackerAccount.booking_date, Date) <= end_date)
+    else:
+        accounts = PurchaseTrackerAccount.query.all()
+
     for account in accounts:
         for record in account.records:
             records.append({
@@ -340,4 +348,9 @@ def dashboard_info_download():
     df = DataFrame(records)
     df.to_excel('account_summary.xlsx')
     return send_from_directory(os.getcwd(), filename='account_summary.xlsx')
+
+
+
+
+
 
