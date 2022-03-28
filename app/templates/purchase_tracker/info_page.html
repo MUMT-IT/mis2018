@@ -127,12 +127,20 @@
                                 <td>{{ account.subject }}</td>
                                 <td>{{ "{:,.2f}".format(account.amount) }}</td>
                                 <td>{{ account.formats }}</td>
-                                <td>{{ first_record.other_activity or first_record.activity.activity }}</td>
-                                <td>{{ first_record.staff.personal_info.fullname }}</td>
-                                <td>{{ first_record.start_date }}</td>
-                                <td>{{ first_record.end_date }}</td>
-                                <td>{{ first_record.comment }}</td>
-                                <td>{{ first_record.weekdays }}</td>
+                                {% if first_record %}
+                                    <td>{{ first_record.other_activity or first_record.activity.activity }}</td>
+                                    <td>{{ first_record.staff.personal_info.fullname }}</td>
+                                    <td>{{ first_record.start_date }}</td>
+                                    <td>{{ first_record.end_date }}</td>
+                                    <td>{{ first_record.comment }}</td>
+                                    <td>{{ first_record.weekdays }}</td>
+                                {% else %}
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                    <td></td>
+                                {% endif %}
 
                             </tr>
                             {% for record in account.records %}
