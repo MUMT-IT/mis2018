@@ -3,12 +3,11 @@
 {% include "nav.html" %}
 {% block page_content %}
 {% include "messages.html" %}
-<!DOCTYPE html>
-<html lang="en">
-    <head>
+    {% block head %}
+        {{ super() }}
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    </head>
+    {% endblock %}
     <body>
     <section class="section-padding" id="hero">
         <div class="container">
@@ -16,12 +15,6 @@
                 <div class="navbar-brand">
                     <a class="navbar-item" >
                         <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}"/>
-                    </a>
-                    <a role="button" class="navbar-burger burger has-text-white" aria-label="menu" aria-expanded="false"
-                       data-target="navbarBasicExample">
-                        <span aria-hidden="true"></span>
-                        <span aria-hidden="true"></span>
-                        <span aria-hidden="true"></span>
                     </a>
                 </div>
                 <div id="navbarBasicExample" class="navbar-menu">
@@ -51,8 +44,6 @@
             </nav>
         </div>
     </section>
-
-    <section class="section">
         <div class="container">
             <div class="column has-text-centered">
                 <h1 class="title">การดำเนินงานจัดซื้อจัดจ้าง</h1>
@@ -66,6 +57,7 @@
                         <th>วันทีหนังสือ</th>
                         <th>สถานะ</th>
                         <th>Dashboard</th>
+                        <th>Edit</th>
                         </thead>
                         <tbody>
                         {% for record in accounts %}
@@ -81,6 +73,7 @@
                             </td>
                             <td>
                                 {% if record.records.count() == 0 %}
+                                    {{record.account_status}}
                                     รอดำเนินการ
                                 {% else %}
                                     {{ record.records.order_by(desc(PurchaseTrackerStatus.creation_date)).first().status }}
@@ -91,6 +84,16 @@
                                     <i class="fas fa-eye"></i>
                                     <span>View</span>
                                 </a>
+                            </td>
+                            <td>
+                                {% if record.records.count() == 0 %}
+                                <a href="{{ url_for('purchase_tracker.edit_account', account_id=record.id)}}">
+                                    <span class="icon">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </span>
+                                    <span>แก้ไข</span>
+                                </a>
+                                {% endif %}
                             </td>
                         {% endfor %}
                         </tbody>
@@ -104,7 +107,7 @@
                     <div class="card-header">
                         <h1 class="card-header-title">
                             <span>
-                                {{ account.creation_date }}
+                                {{ account.creation_date|localdatetime }}
                             </span>
                         </h1>
                     </div>
@@ -205,7 +208,6 @@
             </div>
         </div>
         </div>
-    </section>
     <section class="section">
         <div class="container">
             <div class="columns">
@@ -216,8 +218,6 @@
         </div>
     </section>
         {% endif %}
-</body>
-</html>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
