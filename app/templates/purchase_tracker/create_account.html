@@ -62,18 +62,18 @@
                                 <label class="file-label">
                                     {{ form.upload(class="file-input") }}
                                     <span class="file-cta">
-                              <span class="file-icon">
-                                <i class="fas fa-upload"></i>
-                              </span>
-                              <span class="file-label">
-                                {{ form.upload.label }}
-                              </span>
-                            </span>
+                                      <span class="file-icon">
+                                        <i class="fas fa-upload"></i>
+                                      </span>
+                                      <span class="file-label">
+                                        {{ form.upload.label }}
+                                      </span>
+                                    </span>
                                     <span class="file-name" id="filename"></span>
                                 </label>
                             </div>
                         </div>
-                        <div class="field">
+                        <div class="field is-grouped is-grouped-centered">
                             <div class="buttons">
                                 <button class="button is-success" type="submit" value="submit">Submit</button>
                                 <a href="{{ url_for('purchase_tracker.staff_index') }}" class="button is-danger">Cancel</a>
