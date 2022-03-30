@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 import requests, os
-from flask import render_template, request, flash, redirect, url_for, send_from_directory, jsonify
+from flask import render_template, request, flash, redirect, url_for, send_from_directory
 from flask_login import current_user, login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pandas import DataFrame
@@ -108,13 +108,10 @@ def track(account_id=None):
         else:
             default_date = activities[-1][3]
         return render_template('purchase_tracker/tracking.html',
-                               account_id=account_id,
-                               account=account,
-                               accounts=accounts,
-                               desc=desc,
+                               account_id=account_id, account=account,
+                               accounts=accounts, desc=desc,
                                PurchaseTrackerStatus=PurchaseTrackerStatus,
-                               activities=activities,
-                               default_date=default_date)
+                               activities=activities, default_date=default_date)
     else:
         from sqlalchemy import desc
         account = PurchaseTrackerAccount.query.get(account_id)
@@ -126,13 +123,52 @@ def track(account_id=None):
         else:
             default_date = activities[-1][3]
         return render_template('purchase_tracker/tracking.html',
-                               account_id=account_id,
-                               account=account,
-                               accounts=accounts,
-                               desc=desc,
+                               account_id=account_id, account=account,
+                               accounts=accounts, desc=desc,
                                PurchaseTrackerStatus=PurchaseTrackerStatus,
-                               activities=activities,
-                               default_date=default_date)
+                               activities=activities, default_date=default_date)
+
+
+@purchase_tracker.route('/edit/account/<int:account_id>', methods=['GET', 'POST'])
+@login_required
+def edit_account(account_id):
+    account = PurchaseTrackerAccount.query.get(account_id)
+    form = CreateAccountForm(obj=account)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            filename = ''
+            form.populate_obj(account)
+            account.creation_date = bangkok.localize(datetime.now())
+            account.staff = current_user
+            drive = initialize_gdrive()
+            if form.upload.data:
+                if not filename or (form.upload.data.filename != filename):
+                    upfile = form.upload.data
+                    filename = secure_filename(upfile.filename)
+                    upfile.save(filename)
+                    file_drive = drive.CreateFile({'title': filename,
+                                                   'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
+                    file_drive.SetContentFile(filename)
+                    try:
+                        file_drive.Upload()
+                        permission = file_drive.InsertPermission({'type': 'anyone',
+                                                                  'value': 'anyone',
+                                                                  'role': 'reader'})
+                    except:
+                        flash('Failed to upload the attached file to the Google drive.', 'danger')
+                    else:
+                        flash('The attached file has been uploaded to the Google drive', 'success')
+                        purchase_tracker.url = file_drive['id']
+
+            db.session.add(account)
+            db.session.commit()
+            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
+            return render_template('purchase_tracker/personnel/personnel_index.html')
+        # Check Error
+        else:
+            for er in form.errors:
+                flash(er, 'danger')
+    return render_template('purchase_tracker/edit_account.html', form=form, account_id=account_id)
 
 
 @purchase_tracker.route('/supplies/')
@@ -148,8 +184,6 @@ def supplies():
     else:
         flash('Permission not allow', 'danger')
         return redirect(url_for('purchase_tracker.landing_page'))
-
-
 
 
 @purchase_tracker.route('/description')
