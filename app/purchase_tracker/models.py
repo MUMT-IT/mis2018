@@ -23,12 +23,12 @@ class PurchaseTrackerAccount(db.Model):
     comment = db.Column('comment', db.Text(), info={'label': u'หมายเหตุ'})
     url = db.Column(db.String(255), nullable=True)
     account_status = db.Column(db.String(255),
-                               info={'label': u'สถานะ', 'choices': [(c, c) for c in [u'สิ้นสุด', u'ยกเลิก']]})
+                               info={'label': u'สถานะ', 'choices': [(c, c) for c in [u'สิ้นสุด', u'ยกเลิก', u'อื่นๆ']]})
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True), nullable=True,
                              info={'label': u'วันที่สิ้นสุด'})
 
     def __str__(self):
-        return u'{}: {}'.format(self.subject, self.number)
+        return u'{}: {}'.format(self.subject, self.number, self.account_status)
 
     @property
     def weekdays(self):
