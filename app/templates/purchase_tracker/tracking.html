@@ -3,12 +3,11 @@
 {% include "nav.html" %}
 {% block page_content %}
 {% include "messages.html" %}
-    {% block head %}
-        {{ super() }}
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    {% endblock %}
-    <body>
+{% block head %}
+    {{ super() }}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+{% endblock %}
     <section class="section-padding" id="hero">
         <div class="container">
             <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
@@ -73,8 +72,11 @@
                             </td>
                             <td>
                                 {% if record.records.count() == 0 %}
-                                    {{record.account_status}}
-                                    รอดำเนินการ
+                                    {% if record.account_status == "None"%}
+                                        รอดำเนินการ
+                                    {% else %}
+                                        {{ record.account_status }}
+                                    {% endif %}
                                 {% else %}
                                     {{ record.records.order_by(desc(PurchaseTrackerStatus.creation_date)).first().status }}
                                 {% endif %}
@@ -131,7 +133,7 @@
                              </tr>
                             <tr>
                                  <td><label class="label">Cost Amount ( Baht ): วงเงินหลักการ</label></td>
-                                 <td>{{ "{:,.2f}".format(account.amount) }}</td>
+                                 <td>{{ account.amount}}</td>
                              </tr>
                             <tr>
                                 <td><label class="label">Description: รายละเอียด</label></td>
@@ -171,17 +173,17 @@
                                     <th>ระยะเวลา(วัน)</th>
                                     </thead>
                                     <tbody>
-                                    {% for status in account.records.order_by("id") %}
-                                    <tr>
-                                        <td>{{ status.activity.activity }}</td>
-                                        <td>{{ status.other_activity }}</td>
-                                        <td>{{ status.staff }}</td>
-                                        <td>{{ status.comment }}</td>
-                                        <td>{{ status.start_date }}</td>
-                                        <td>{{ status.end_date }}</td>
-                                        <td>{{ status.weekdays }}</td>
-                                    </tr>
-                                    {% endfor %}
+{#                                    {% for status in account.records.order_by("id") %}#}
+{#                                        <tr>#}
+{#                                            <td>{{ status.activity.activity }}</td>#}
+{#                                            <td>{{ status.other_activity }}</td>#}
+{#                                            <td>{{ status.staff }}</td>#}
+{#                                            <td>{{ status.comment }}</td>#}
+{#                                            <td>{{ status.start_date }}</td>#}
+{#                                            <td>{{ status.end_date }}</td>#}
+{#                                            <td>{{ status.weekdays }}</td>#}
+{#                                        </tr>#}
+{#                                    {% endfor %}#}
                                     <tr>
                                      <td><label class="label">ระยะเวลาทั้งหมด</label></td>
                                      <td></td><td></td><td></td><td></td><td></td>
