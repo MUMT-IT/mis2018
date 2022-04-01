@@ -83,6 +83,8 @@
                                     {% else %}
                                         {{ record.account_status }}
                                     {% endif %}
+                                {% elif record.records.status %}
+                                    {{ record.records.status }}
                                 {% else %}
                                     {{ record.records.order_by(desc(PurchaseTrackerStatus.creation_date)).first().status }}
                                 {% endif %}
