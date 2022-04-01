@@ -77,6 +77,8 @@
                                     {% else %}
                                         {{ record.account_status }}
                                     {% endif %}
+                                {% elif record.records.status %}
+                                    {{ record.records.status }}
                                 {% else %}
                                     {{ record.records.order_by(desc(PurchaseTrackerStatus.creation_date)).first().status }}
                                 {% endif %}
@@ -132,8 +134,13 @@
                                  <td>{{ account.booking_date }}</td>
                              </tr>
                             <tr>
-                                 <td><label class="label">Cost Amount ( Baht ): วงเงินหลักการ</label></td>
-                                 <td>{{ account.amount}}</td>
+                                {% if not account_id %}
+                                    <td><label class="label">Cost Amount ( Baht ): วงเงินหลักการ</label></td>
+                                    <td>{{account.amount}}</td>
+                                {% else %}
+                                    <td><label class="label">Cost Amount ( Baht ): วงเงินหลักการ</label></td>
+                                    <td>{{ "{:,.2f}".format(account.amount) }}</td>
+                                {% endif %}
                              </tr>
                             <tr>
                                 <td><label class="label">Description: รายละเอียด</label></td>
@@ -173,17 +180,17 @@
                                     <th>ระยะเวลา(วัน)</th>
                                     </thead>
                                     <tbody>
-{#                                    {% for status in account.records.order_by("id") %}#}
-{#                                        <tr>#}
-{#                                            <td>{{ status.activity.activity }}</td>#}
-{#                                            <td>{{ status.other_activity }}</td>#}
-{#                                            <td>{{ status.staff }}</td>#}
-{#                                            <td>{{ status.comment }}</td>#}
-{#                                            <td>{{ status.start_date }}</td>#}
-{#                                            <td>{{ status.end_date }}</td>#}
-{#                                            <td>{{ status.weekdays }}</td>#}
-{#                                        </tr>#}
-{#                                    {% endfor %}#}
+                                    {% for status_record in account.records %}
+                                        <tr>
+                                            <td>{{ status_record.activity.activity }}</td>
+                                            <td>{{ status_record.other_activity }}</td>
+                                            <td>{{ status_record.staff }}</td>
+                                            <td>{{ status_record.comment }}</td>
+                                            <td>{{ status_record.start_date }}</td>
+                                            <td>{{ status_record.end_date }}</td>
+                                            <td>{{ status_record.weekdays }}</td>
+                                        </tr>
+                                    {% endfor %}
                                     <tr>
                                      <td><label class="label">ระยะเวลาทั้งหมด</label></td>
                                      <td></td><td></td><td></td><td></td><td></td>
