@@ -97,9 +97,9 @@ def initialize_gdrive():
 @purchase_tracker.route('/track/')
 @purchase_tracker.route('/track/<int:account_id>')
 def track(account_id=None):
-    if account_id is not None:
+    if not account_id:
+        account = PurchaseTrackerAccount.query.all()
         from sqlalchemy import desc
-        account = PurchaseTrackerAccount.query.get(account_id)
         accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
         activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
             .order_by(PurchaseTrackerStatus.start_date)]
