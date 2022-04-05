@@ -143,9 +143,8 @@
                                     </tr>
                                  {% endfor %}
                                   <tr>
-                                     <td><label class="label">จำนวนวันทั้งหมด</label></td>
-                                      <td></td><td></td><td></td><td></td><td></td>
-                                     <td>{{ account.weekdays }}</td>
+                                     <td colspan="4" align="center"><label class="label">ระยะเวลาทำการ</label></td>
+                                     <td colspan="3" align="center">{{ account.total_weekdays }} วัน</td>
                                   </tr>
                                  </tbody>
                                 </table>
@@ -161,6 +160,7 @@
                              </td>
                          </tr>
                         </table>
+                    {% if account.account_status != 'ยกเลิก' %}
                         <div class="columns" id="update">
                             <a name="#update"></a>
                             <div class="column is-one-third is-offset-4">
@@ -230,6 +230,7 @@
                                 </form>
                             </div>
                         </div>
+                 {% endif %}
                         {% if activities  %}
                             <div id="chart_div"></div>
                         {% endif %}
