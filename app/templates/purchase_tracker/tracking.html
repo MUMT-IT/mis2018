@@ -43,7 +43,8 @@
             </nav>
         </div>
     </section>
-        <div class="container">
+        <div class="container" id="lists">
+        <a name="#lists"></a>
             <div class="column has-text-centered">
                 <h1 class="title">การดำเนินงานจัดซื้อจัดจ้าง</h1>
             </div>
@@ -84,7 +85,7 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ url_for('purchase_tracker.track', account_id=record.id) }}">
+                                <a href="{{ url_for('purchase_tracker.track', account_id=record.id ) }}">
                                     <i class="fas fa-eye"></i>
                                     <span>View</span>
                                 </a>
@@ -110,7 +111,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h1 class="card-header-title">
-                            <span>
+                            <span>Creation Date:
                                 {{ account.creation_date|localdatetime }}
                             </span>
                         </h1>
@@ -177,7 +178,6 @@
                                     <th>หมายเหตุเพิ่มเติม</th>
                                     <th>วันเริ่มต้น</th>
                                     <th>วันสิ้นสุด</th>
-                                    <th>ระยะเวลา(วัน)</th>
                                     </thead>
                                     <tbody>
                                     {% for status_record in account.records %}
@@ -188,14 +188,12 @@
                                             <td>{{ status_record.comment }}</td>
                                             <td>{{ status_record.start_date }}</td>
                                             <td>{{ status_record.end_date }}</td>
-                                            <td>{{ status_record.weekdays }}</td>
                                         </tr>
                                     {% endfor %}
                                     <tr>
-                                     <td><label class="label">ระยะเวลาทั้งหมด</label></td>
-                                     <td></td><td></td><td></td><td></td><td></td>
-                                     <td>{{ account.weekdays }}</td>
-                                  </tr>
+                                     <td colspan="4" align="center"><label class="label">ระยะเวลาทำการ</label></td>
+                                     <td colspan="2" align="center">{{ account.total_weekdays }} วัน</td>
+                                    </tr>
                                     </tbody>
                                 </table>
                                 </td>
@@ -203,12 +201,12 @@
                         </table>
                         <div class="columns">
                             <div class="column">
-                                <a href="{{ url_for('purchase_tracker.staff_index') }}"
+                                <a href="#lists"
                                    class="button is-rounded is-info is-light">
                                     <span class="icon">
                                         <i class="fas fa-arrow-left"></i>
                                     </span>
-                                    <span>กลับ</span>
+                                    <span>กลับไปยังรายการ</span>
                                 </a>
                             </div>
                         </div>
