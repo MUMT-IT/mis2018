@@ -113,6 +113,7 @@ def track(account_id=None):
                                PurchaseTrackerStatus=PurchaseTrackerStatus,
                                activities=activities, default_date=default_date)
     else:
+        flash(u'ข้อมูลปรากฎด้านล่าง', 'success')
         from sqlalchemy import desc
         account = PurchaseTrackerAccount.query.get(account_id)
         accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
