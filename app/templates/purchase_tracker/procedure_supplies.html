@@ -113,7 +113,9 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#PurchaseTrackerTable').DataTable();
+            $('#PurchaseTrackerTable').DataTable( {
+            "iDisplayLength": 20
+            });
         });
     </script>
 {% endblock %}
