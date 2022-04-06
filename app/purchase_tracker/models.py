@@ -56,10 +56,11 @@ class PurchaseTrackerAccount(db.Model):
         for record in self.records.all():
             start_dates.append(record.start_date)
             end_dates.append(record.end_date)
-
-        first_start_date = sorted(start_dates)[0]
-        last_end_date = sorted(end_dates)[-1]
-
+        if start_dates:
+            first_start_date = sorted(start_dates)[0]
+            last_end_date = sorted(end_dates)[-1]
+        else:
+            return 0
         return PurchaseTrackerAccount.count_weekdays(first_start_date, last_end_date)
 
 
