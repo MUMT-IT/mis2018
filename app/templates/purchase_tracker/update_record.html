@@ -5,17 +5,11 @@
  <div class="container">
     <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
         <div class="navbar-brand">
-            <a class="navbar-item" href="https://bulma.io">
+            <a class="navbar-item" >
                 <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}"/>
             </a>
-            <a role="button" class="navbar-burger burger has-text-white" aria-label="menu" aria-expanded="false"
-               data-target="navbarBasicExample">
-                <span aria-hidden="true"></span>
-                <span aria-hidden="true"></span>
-                <span aria-hidden="true"></span>
-            </a>
         </div>
-        <div id="navbarBasicExample" class="navbar-menu">
+        <div class="navbar-menu">
             <div class="navbar-start">
                 <a href="{{ url_for('purchase_tracker.index') }}" class="navbar-item ">
                     Home
@@ -38,20 +32,17 @@
         </div>
     </nav>
  </div>
- <header class="section">
-     {% include "messages.html" %}
-    <div class="container">
-     <div class="columns">
-         <div class="column has-text-centered">
-             <h1 class="title"> Show Information</h1>
-         </div>
-     </div>
-     <div class="columns">
+{% include "messages.html" %}
+<div class="container">
+    <div class="column has-text-centered">
+        <h1 class="title"> Show Information</h1>
+    </div>
+    <div class="columns">
          <div class="column">
              <div class="card">
                  <div class="card-header">
                      <h1 class="card-header-title">
-                         <span>
+                         <span>Creation Date:
                              {{ account.creation_date|localdatetime }}
                          </span>
                      </h1>
@@ -62,9 +53,6 @@
                              <col span="1" style="width: 25%;">
                              <col span="1" style="width: 75%;">
                          </colgroup>
-                        {% if activities  %}
-                            <div id="chart_div"></div>
-                        {% endif %}
                          <tr>
                              <td><label class="label">Subject: เรื่อง</label></td>
                              <td>{{ account.subject }}</td>
@@ -155,9 +143,8 @@
                                     </tr>
                                  {% endfor %}
                                   <tr>
-                                     <td><label class="label">จำนวนวันทั้งหมด</label></td>
-                                      <td></td><td></td><td></td><td></td><td></td>
-                                     <td>{{ account.weekdays }}</td>
+                                     <td colspan="4" align="center"><label class="label">ระยะเวลาทำการ</label></td>
+                                     <td colspan="3" align="center">{{ account.total_weekdays }} วัน</td>
                                   </tr>
                                  </tbody>
                                 </table>
@@ -169,17 +156,11 @@
                                         </span>
                                         <span>อัพเดตกิจกรรม</span>
                                     </a>
-                                    <a class="button is-warning"
-                                       href="{{ url_for('purchase_tracker.update_status_info_download') }}">
-                                        <span class="icon">
-                                          <i class="fas fa-download"></i>
-                                        </span>
-                                        <span>Download</span>
-                                    </a>
                                 </div>
                              </td>
                          </tr>
                         </table>
+                    {% if account.account_status != 'ยกเลิก' %}
                         <div class="columns" id="update">
                             <a name="#update"></a>
                             <div class="column is-one-third is-offset-4">
@@ -249,12 +230,15 @@
                                 </form>
                             </div>
                         </div>
+                 {% endif %}
+                        {% if activities  %}
+                            <div id="chart_div"></div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
     </div>
-   </header>
 {% endblock page_content %}
 {% block scripts %}
     {{ super() }}

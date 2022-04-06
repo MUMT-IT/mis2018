@@ -23,16 +23,44 @@ class PurchaseTrackerAccount(db.Model):
     comment = db.Column('comment', db.Text(), info={'label': u'หมายเหตุ'})
     url = db.Column(db.String(255), nullable=True)
     account_status = db.Column(db.String(255),
-                               info={'label': u'สถานะ', 'choices': [(c, c) for c in [u'สิ้นสุด', u'ยกเลิก']]})
+                               info={'label': u'สถานะ', 'choices': [(c, c) for c in [u'สิ้นสุด', u'ยกเลิก', u'อื่นๆ']]})
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True), nullable=True,
                              info={'label': u'วันที่สิ้นสุด'})
 
     def __str__(self):
-        return u'{}: {}'.format(self.subject, self.number)
+        return u'{}: {}'.format(self.subject, self.number, self.account_status)
 
     @property
     def weekdays(self):
         return sum([status.weekdays for status in self.records.all()])
+
+    @staticmethod
+    def count_weekdays(start_date, end_date):
+        delta = end_date - start_date
+        n = 0
+        weekdays = 0
+        while n <= delta.days:
+            d = start_date + timedelta(n)
+            if d.weekday() < 5:
+                # if holidays and d not in holidays:
+                weekdays += 1
+            n += 1
+        holidays = Holidays.query.filter(and_(cast(Holidays.holiday_date, Date) >= start_date,
+                                              cast(Holidays.holiday_date, Date) <= end_date)).all()
+        return weekdays - len(holidays)
+
+    @property
+    def total_weekdays(self):
+        start_dates = []
+        end_dates = []
+        for record in self.records.all():
+            start_dates.append(record.start_date)
+            end_dates.append(record.end_date)
+
+        first_start_date = sorted(start_dates)[0]
+        last_end_date = sorted(end_dates)[-1]
+
+        return PurchaseTrackerAccount.count_weekdays(first_start_date, last_end_date)
 
 
 class PurchaseTrackerStatus(db.Model):
@@ -87,6 +115,11 @@ class PurchaseTrackerStatus(db.Model):
         holidays = Holidays.query.filter(and_(cast(Holidays.holiday_date, Date) >= self.start_date,
                                               cast(Holidays.holiday_date, Date) <= self.end_date)).all()
         return weekdays - len(holidays)
+
+    @property
+    def total_days(self):
+        delta = self.end_date - self.start_date
+        return delta.days
 
 
 class PurchaseTrackerActivity(db.Model):

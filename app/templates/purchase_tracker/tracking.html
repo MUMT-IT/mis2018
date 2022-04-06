@@ -3,25 +3,17 @@
 {% include "nav.html" %}
 {% block page_content %}
 {% include "messages.html" %}
-<!DOCTYPE html>
-<html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    </head>
-    <body>
+{% block head %}
+    {{ super() }}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+{% endblock %}
     <section class="section-padding" id="hero">
         <div class="container">
             <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
                 <div class="navbar-brand">
                     <a class="navbar-item" >
                         <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}"/>
-                    </a>
-                    <a role="button" class="navbar-burger burger has-text-white" aria-label="menu" aria-expanded="false"
-                       data-target="navbarBasicExample">
-                        <span aria-hidden="true"></span>
-                        <span aria-hidden="true"></span>
-                        <span aria-hidden="true"></span>
                     </a>
                 </div>
                 <div id="navbarBasicExample" class="navbar-menu">
@@ -51,9 +43,8 @@
             </nav>
         </div>
     </section>
-
-    <section class="section">
-        <div class="container">
+        <div class="container" id="lists">
+        <a name="#lists"></a>
             <div class="column has-text-centered">
                 <h1 class="title">การดำเนินงานจัดซื้อจัดจ้าง</h1>
             </div>
@@ -66,6 +57,7 @@
                         <th>วันทีหนังสือ</th>
                         <th>สถานะ</th>
                         <th>Dashboard</th>
+                        <th>Edit</th>
                         </thead>
                         <tbody>
                         {% for record in accounts %}
@@ -81,16 +73,32 @@
                             </td>
                             <td>
                                 {% if record.records.count() == 0 %}
-                                    รอดำเนินการ
+                                    {% if record.account_status == "None"%}
+                                        รอดำเนินการ
+                                    {% else %}
+                                        {{ record.account_status }}
+                                    {% endif %}
+                                {% elif record.records.status %}
+                                    {{ record.records.status }}
                                 {% else %}
                                     {{ record.records.order_by(desc(PurchaseTrackerStatus.creation_date)).first().status }}
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ url_for('purchase_tracker.track', account_id=record.id) }}">
+                                <a href="{{ url_for('purchase_tracker.track', account_id=record.id ) }}">
                                     <i class="fas fa-eye"></i>
                                     <span>View</span>
                                 </a>
+                            </td>
+                            <td>
+                                {% if record.records.count() == 0 %}
+                                <a href="{{ url_for('purchase_tracker.edit_account', account_id=record.id)}}">
+                                    <span class="icon">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </span>
+                                    <span>แก้ไข</span>
+                                </a>
+                                {% endif %}
                             </td>
                         {% endfor %}
                         </tbody>
@@ -103,8 +111,8 @@
                 <div class="card">
                     <div class="card-header">
                         <h1 class="card-header-title">
-                            <span>
-                                {{ account.creation_date }}
+                            <span>Creation Date:
+                                {{ account.creation_date|localdatetime }}
                             </span>
                         </h1>
                     </div>
@@ -127,8 +135,13 @@
                                  <td>{{ account.booking_date }}</td>
                              </tr>
                             <tr>
-                                 <td><label class="label">Cost Amount ( Baht ): วงเงินหลักการ</label></td>
-                                 <td>{{ "{:,.2f}".format(account.amount) }}</td>
+                                {% if not account_id %}
+                                    <td><label class="label">Cost Amount ( Baht ): วงเงินหลักการ</label></td>
+                                    <td>{{account.amount}}</td>
+                                {% else %}
+                                    <td><label class="label">Cost Amount ( Baht ): วงเงินหลักการ</label></td>
+                                    <td>{{ "{:,.2f}".format(account.amount) }}</td>
+                                {% endif %}
                              </tr>
                             <tr>
                                 <td><label class="label">Description: รายละเอียด</label></td>
@@ -165,25 +178,22 @@
                                     <th>หมายเหตุเพิ่มเติม</th>
                                     <th>วันเริ่มต้น</th>
                                     <th>วันสิ้นสุด</th>
-                                    <th>ระยะเวลา(วัน)</th>
                                     </thead>
                                     <tbody>
-                                    {% for status in account.records.order_by("id") %}
-                                    <tr>
-                                        <td>{{ status.activity.activity }}</td>
-                                        <td>{{ status.other_activity }}</td>
-                                        <td>{{ status.staff }}</td>
-                                        <td>{{ status.comment }}</td>
-                                        <td>{{ status.start_date }}</td>
-                                        <td>{{ status.end_date }}</td>
-                                        <td>{{ status.weekdays }}</td>
-                                    </tr>
+                                    {% for status_record in account.records %}
+                                        <tr>
+                                            <td>{{ status_record.activity.activity }}</td>
+                                            <td>{{ status_record.other_activity }}</td>
+                                            <td>{{ status_record.staff }}</td>
+                                            <td>{{ status_record.comment }}</td>
+                                            <td>{{ status_record.start_date }}</td>
+                                            <td>{{ status_record.end_date }}</td>
+                                        </tr>
                                     {% endfor %}
                                     <tr>
-                                     <td><label class="label">ระยะเวลาทั้งหมด</label></td>
-                                     <td></td><td></td><td></td><td></td><td></td>
-                                     <td>{{ account.weekdays }}</td>
-                                  </tr>
+                                     <td colspan="4" align="center"><label class="label">ระยะเวลาทำการ</label></td>
+                                     <td colspan="2" align="center">{{ account.total_weekdays }} วัน</td>
+                                    </tr>
                                     </tbody>
                                 </table>
                                 </td>
@@ -191,12 +201,12 @@
                         </table>
                         <div class="columns">
                             <div class="column">
-                                <a href="{{ url_for('purchase_tracker.staff_index') }}"
+                                <a href="#lists"
                                    class="button is-rounded is-info is-light">
                                     <span class="icon">
                                         <i class="fas fa-arrow-left"></i>
                                     </span>
-                                    <span>กลับ</span>
+                                    <span>กลับไปยังรายการ</span>
                                 </a>
                             </div>
                         </div>
@@ -205,7 +215,6 @@
             </div>
         </div>
         </div>
-    </section>
     <section class="section">
         <div class="container">
             <div class="columns">
@@ -216,8 +225,6 @@
         </div>
     </section>
         {% endif %}
-</body>
-</html>
 {% endblock %}
 {% block scripts %}
     {{ super() }}

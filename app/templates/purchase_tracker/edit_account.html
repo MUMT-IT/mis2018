@@ -73,10 +73,16 @@
                                 </label>
                             </div>
                         </div>
+                        <div class="field">
+                            <label class="label">{{ form.account_status.label }}</label>
+                            <div class="select is-fullwidth is-info">
+                                {{ form.account_status() }}
+                            </div>
+                        </div>
                         <div class="field is-grouped is-grouped-centered">
                             <div class="buttons">
                                 <button class="button is-success" type="submit" value="submit">Submit</button>
-                                <a href="{{ url_for('purchase_tracker.staff_index') }}" class="button is-danger">Cancel</a>
+                                <a href="{{ url_for('purchase_tracker.track') }}" class="button is-danger">Cancel</a>
                             </div>
                         </div>
                     </form>
