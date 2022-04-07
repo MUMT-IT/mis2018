@@ -26,6 +26,21 @@ class PurchaseTrackerAccount(db.Model):
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True), nullable=True,
                              info={'label': u'วันที่สิ้นสุด'})
 
+    @property
+    def account_status(self):
+        if self.end_datetime:
+            return u'ดำเนินการเสร็จสิ้น'
+        elif self.cancelled_datetime:
+            return u'ยุติการดำเนินการ'
+        elif self.records:
+            return u'กำลังดำเนินการ'
+        else:
+            return u'รอดำเนินการ'
+
+    @property
+    def is_closed(self):
+        return self.cancelled_datetime or self.end_datetime
+
     def __str__(self):
         return u'{}: {}'.format(self.subject, self.number, self.account_status)
 
