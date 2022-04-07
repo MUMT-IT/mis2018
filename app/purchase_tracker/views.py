@@ -54,6 +54,7 @@ def add_account():
             filename = ''
             purchase_tracker = PurchaseTrackerAccount()
             form.populate_obj(purchase_tracker)
+            purchase_tracker.account_status = u'รอดำเนินการ'
             purchase_tracker.creation_date = bangkok.localize(datetime.now())
             purchase_tracker.staff = current_user
             drive = initialize_gdrive()
@@ -130,7 +131,7 @@ def track(account_id=None):
                                activities=activities, default_date=default_date)
 
 
-@purchase_tracker.route('/edit/account/<int:account_id>', methods=['GET', 'POST'])
+@purchase_tracker.route('/account/<int:account_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_account(account_id):
     account = PurchaseTrackerAccount.query.get(account_id)
@@ -170,6 +171,37 @@ def edit_account(account_id):
             for er in form.errors:
                 flash(er, 'danger')
     return render_template('purchase_tracker/edit_account.html', form=form, account_id=account_id)
+
+
+@purchase_tracker.route('/accounts/<int:account_id>/cancel', methods=['GET'])
+@login_required
+def cancel_account(account_id):
+    account = PurchaseTrackerAccount.query.get(account_id)
+    if not account.cancelled_datetime:
+        account.cancelled_datetime = datetime.now(tz=bangkok)
+        db.session.add(account)
+        db.session.commit()
+        flash(u'ยกเลิกบัญชีเรียบร้อยแล้ว', 'success')
+    else:
+        flash(u'บัญชีนี้ถูกยุติการดำเนินการแล้ว', 'warning')
+    next = request.args.get('next')
+    if next:
+        return redirect(next)
+    return redirect(url_for('purchase_tracker.track', account_id=account_id))
+
+
+@purchase_tracker.route('/accounts/<int:account_id>/close', methods=['GET'])
+@login_required
+def close_account(account_id):
+    account = PurchaseTrackerAccount.query.get(account_id)
+    if not account.end_datetime:
+        account.end_datetime = datetime.now(tz=bangkok)
+        db.session.add(account)
+        db.session.commit()
+        flash(u'ปิดบัญชีเรียบร้อยแล้ว', 'success')
+    else:
+        flash(u'บัญชีนี้ถูกปิดการดำเนินการแล้ว', 'warning')
+    return redirect(url_for('purchase_tracker.update_status', account_id=account_id))
 
 
 @purchase_tracker.route('/supplies/')
