@@ -124,6 +124,7 @@
                                         <td>{{ status.start_date }}</td>
                                         <td>{{ status.end_date }}</td>
                                         <td>{{ status.weekdays }}</td>
+                                        {% if not account.is_closed %}
                                         <td>
                                             <a href="{{ url_for('purchase_tracker.edit_update_status', account_id=account_id, status_id=status.id) }}"
                                                 class="button is-small is-primary is-outlined">
@@ -140,6 +141,7 @@
                                                 <span>ลบ</span>
                                             </a>
                                         </td>
+                                        {% endif %}
                                     </tr>
                                  {% endfor %}
                                   <tr>
@@ -148,6 +150,7 @@
                                   </tr>
                                  </tbody>
                                 </table>
+                                {% if not account.is_closed %}
                                 <div class="buttons is-centered">
                                      <a class="button is-info"
                                        href="#update">
@@ -157,6 +160,7 @@
                                         <span>อัพเดตกิจกรรม</span>
                                     </a>
                                 </div>
+                                {% endif %}
                              </td>
                          </tr>
                         </table>
