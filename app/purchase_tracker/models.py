@@ -22,8 +22,7 @@ class PurchaseTrackerAccount(db.Model):
     desc = db.Column('desc', db.Text(), info={'label': u'รายละเอียด'})
     comment = db.Column('comment', db.Text(), info={'label': u'หมายเหตุ'})
     url = db.Column(db.String(255), nullable=True)
-    account_status = db.Column(db.String(255),
-                               info={'label': u'สถานะ', 'choices': [(c, c) for c in [u'สิ้นสุด', u'ยกเลิก', u'อื่นๆ']]})
+    cancelled_datetime = db.Column('cancelled_datetime', db.DateTime(timezone=True), nullable=True)
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True), nullable=True,
                              info={'label': u'วันที่สิ้นสุด'})
 
