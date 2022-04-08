@@ -73,19 +73,30 @@
                                 </label>
                             </div>
                         </div>
-                        <div class="field">
-                            <label class="label">{{ form.account_status.label }}</label>
-                            <div class="select is-fullwidth is-info">
-                                {{ form.account_status() }}
-                            </div>
-                        </div>
                         <div class="field is-grouped is-grouped-centered">
                             <div class="buttons">
                                 <button class="button is-success" type="submit" value="submit">Submit</button>
-                                <a href="{{ url_for('purchase_tracker.track') }}" class="button is-danger">Cancel</a>
+                                <a href="{{ url_for('purchase_tracker.track') }}" class="button is-warning">Back</a>
                             </div>
                         </div>
                     </form>
+                </div>
+            </div>
+        </div>
+        <div class="box">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <p class="notification is-danger is-light">
+                        <strong>คำเตือน</strong> เมื่อยุติการดำเนินการแล้วจะไม่สามารถย้อนกลับได้
+                    </p>
+                    <div class="buttons is-centered">
+                        <a class="button is-danger" href="{{ url_for('purchase_tracker.cancel_account', account_id=account_id)}}">
+                            <span class="icon">
+                                <i class="fas fa-ban"></i>
+                            </span>
+                            <span>ยุติการดำเนินงาน</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>

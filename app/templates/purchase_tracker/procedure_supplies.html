@@ -84,17 +84,7 @@
                                 {{ record.staff.personal_info.org.name }}
                             </td>
                             <td>
-                                {% if record.records.count() == 0 %}
-                                    {% if record.account_status == "None"%}
-                                        รอดำเนินการ
-                                    {% else %}
-                                        {{ record.account_status }}
-                                    {% endif %}
-                                {% elif record.records.status %}
-                                    {{ record.records.status }}
-                                {% else %}
-                                    {{ record.records.order_by(desc(PurchaseTrackerStatus.creation_date)).first().status }}
-                                {% endif %}
+                                {{ record.account_status }}
                             </td>
                             <td>
                                 <a href="{{ url_for('purchase_tracker.update_status', account_id=record.id) }}">

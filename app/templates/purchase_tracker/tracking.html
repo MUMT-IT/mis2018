@@ -72,17 +72,7 @@
                                 {{ record.booking_date }}
                             </td>
                             <td>
-                                {% if record.records.count() == 0 %}
-                                    {% if record.account_status == "None"%}
-                                        รอดำเนินการ
-                                    {% else %}
-                                        {{ record.account_status }}
-                                    {% endif %}
-                                {% elif record.records.status %}
-                                    {{ record.records.status }}
-                                {% else %}
-                                    {{ record.records.order_by(desc(PurchaseTrackerStatus.creation_date)).first().status }}
-                                {% endif %}
+                                {{ record.account_status }}
                             </td>
                             <td>
                                 <a href="{{ url_for('purchase_tracker.track', account_id=record.id ) }}">
@@ -142,6 +132,10 @@
                                     <td><label class="label">Cost Amount ( Baht ): วงเงินหลักการ</label></td>
                                     <td>{{ "{:,.2f}".format(account.amount) }}</td>
                                 {% endif %}
+                             </tr>
+                            <tr>
+                                 <td><label class="label">Format: รูปแบบหลักการ</label></td>
+                                 <td>{{ account.formats }}</td>
                              </tr>
                             <tr>
                                 <td><label class="label">Description: รายละเอียด</label></td>
