@@ -54,7 +54,6 @@ def add_account():
             filename = ''
             purchase_tracker = PurchaseTrackerAccount()
             form.populate_obj(purchase_tracker)
-            purchase_tracker.account_status = u'รอดำเนินการ'
             purchase_tracker.creation_date = bangkok.localize(datetime.now())
             purchase_tracker.staff = current_user
             drive = initialize_gdrive()
@@ -114,7 +113,7 @@ def track(account_id=None):
                                PurchaseTrackerStatus=PurchaseTrackerStatus,
                                activities=activities, default_date=default_date)
     else:
-        flash(u'ข้อมูลปรากฎด้านล่าง', 'success')
+        flash(u'ข้อมูลจะปรากฎด้านล่างเมื่อหน่วยงานคลังและพัสดุอัพเดตเรียบร้อย', 'warning')
         from sqlalchemy import desc
         account = PurchaseTrackerAccount.query.get(account_id)
         accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
