@@ -81,7 +81,7 @@
                                 </a>
                             </td>
                             <td>
-                                {% if record.records.count() == 0 %}
+                                {% if record.records.count() == 0 and not record.cancelled_datetime %}
                                 <a href="{{ url_for('purchase_tracker.edit_account', account_id=record.id)}}">
                                     <span class="icon">
                                         <i class="fas fa-pencil-alt"></i>
