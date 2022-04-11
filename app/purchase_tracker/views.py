@@ -45,17 +45,17 @@ def index():
     return render_template('purchase_tracker/index.html')
 
 
-@purchase_tracker.route('/create/account', methods=['GET', 'POST'])
+@purchase_tracker.route('/account/create', methods=['GET', 'POST'])
 @login_required
 def add_account():
     form = CreateAccountForm()
     if request.method == 'POST':
         if form.validate_on_submit():
             filename = ''
-            purchase_tracker = PurchaseTrackerAccount()
-            form.populate_obj(purchase_tracker)
-            purchase_tracker.creation_date = bangkok.localize(datetime.now())
-            purchase_tracker.staff = current_user
+            account = PurchaseTrackerAccount()
+            form.populate_obj(account)
+            account.creation_date = bangkok.localize(datetime.now())
+            account.staff = current_user
             drive = initialize_gdrive()
             if form.upload.data:
                 if not filename or (form.upload.data.filename != filename):
@@ -74,9 +74,9 @@ def add_account():
                         flash('Failed to upload the attached file to the Google drive.', 'danger')
                     else:
                         flash('The attached file has been uploaded to the Google drive', 'success')
-                        purchase_tracker.url = file_drive['id']
+                        account.url = file_drive['id']
 
-            db.session.add(purchase_tracker)
+            db.session.add(account)
             db.session.commit()
             flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
             return render_template('purchase_tracker/personnel/personnel_index.html')
@@ -164,7 +164,7 @@ def edit_account(account_id):
             db.session.add(account)
             db.session.commit()
             flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-            return render_template('purchase_tracker/personnel/personnel_index.html')
+            return redirect(url_for('purchase_tracker.track'))
         # Check Error
         else:
             for er in form.errors:
@@ -208,9 +208,9 @@ def supplies():
     role = Role.query.filter_by(name='admin', app_name='PurchaseTracker').first()
     if role in current_user.roles:
         from sqlalchemy import desc
-        purchase_trackers = PurchaseTrackerAccount.query.all()
+        accounts = PurchaseTrackerAccount.query.all()
         return render_template('purchase_tracker/procedure_supplies.html',
-                               purchase_trackers=purchase_trackers,
+                               accounts=accounts,
                                desc=desc,
                                PurchaseTrackerStatus=PurchaseTrackerStatus)
     else:

@@ -181,12 +181,6 @@
                                         </a>
                                     </h2>
                                     <div class="field">
-                                        <label class="label">{{ form.status.label }}</label>
-                                        <div class="select is-fullwidth is-info">
-                                            {{ form.status() }}
-                                        </div>
-                                    </div>
-                                    <div class="field">
                                         <label class="label">{{ form.activity.label }}
                                             <a class="control" href="{{ url_for('purchase_tracker.add_activity', account_id=account_id) }}">
                                                 <span class="icon">

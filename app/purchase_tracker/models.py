@@ -32,7 +32,7 @@ class PurchaseTrackerAccount(db.Model):
             return u'ดำเนินการเสร็จสิ้น'
         elif self.cancelled_datetime:
             return u'ยุติการดำเนินการ'
-        elif self.records:
+        elif len(self.records.all()) > 0:
             return u'กำลังดำเนินการ'
         else:
             return u'รอดำเนินการ'
@@ -85,9 +85,6 @@ class PurchaseTrackerStatus(db.Model):
     account = db.relationship('PurchaseTrackerAccount', backref=db.backref('records',
                                                                            lazy='dynamic',
                                                                            order_by='PurchaseTrackerStatus.start_date'))
-    status = db.Column('status', db.String(), info={'label': u'สถานะ',
-                                                    'choices': [(c, c) for c in
-                                                                [u'กำลังดำเนินการ', u'ดำเนินการเสร็จสิ้น', u'ยกเลิก']]})
     creation_date = db.Column('creation_date', db.DateTime(timezone=True), nullable=False,
                               info={'label': u'วันที่สร้าง'})
     status_date = db.Column('status_date', db.DateTime(timezone=True), nullable=False, info={'label': u'วันที่สถานะ'})
@@ -102,7 +99,7 @@ class PurchaseTrackerStatus(db.Model):
     other_activity = db.Column('other_activity', db.String(), info={'label': u'กิจกรรมอื่นๆ'})
 
     def __str__(self):
-        return u'{}:{}'.format(self.status, self.activity)
+        return u'{}'.format(self.activity)
 
     def to_list(self):
         delta = self.end_date - self.start_date
