@@ -23,14 +23,6 @@ ot_staff_assoc_table = db.Table('ot_staff_assoc',
                                 )
 
 
-# ot_approval_assoc_table = db.Table('ot_approval_assoc',
-#                                 db.Column('record_id', db.ForeignKey('record.id'),
-#                                           primary_key=True),
-#                                 db.Column('approval_id', db.ForeignKey('ot_record_approval.id'),
-#                                           primary_key=True),
-#                                 )
-
-
 class OtPaymentAnnounce(db.Model):
     __tablename__ = 'ot_payment_announce'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -141,6 +133,7 @@ class OtRecord(db.Model):
 class OtRoundRequest(db.Model):
     __tablename__ = 'ot_round_request'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    round_no = db.Column('round_no', db.String())
     created_at = db.Column('created_at', db.DateTime(timezone=True), default=datetime.now())
     created_by_account_id = db.Column('created_by_account_id', db.ForeignKey('staff_account.id'))
     created_by = db.relationship(StaffAccount, backref=db.backref('ot_round_created_by'), foreign_keys=[created_by_account_id])
