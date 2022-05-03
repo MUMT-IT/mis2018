@@ -70,30 +70,28 @@
                         </thead>
                         <tbody>
                         {% for record in accounts %}
-                            {% if record.account_status != "ยุติการดำเนินการ"  %}
-                                <tr>
-                                <td>
-                                    {{ record.subject }}
-                                </td>
-                                <td>
-                                    {{ record.number }}
-                                </td>
-                                 <td>
-                                    {{ record.booking_date }}
-                                </td>
-                                <td>
-                                    {{ record.staff.personal_info.org.name }}
-                                </td>
-                                <td>
-                                    {{ record.account_status }}
-                                </td>
-                                <td>
-                                    <a href="{{ url_for('purchase_tracker.update_status', account_id=record.id) }}">
-                                        <i class="fas fa-eye"></i>
-                                        <span>View</span>
-                                    </a>
-                                </td>
-                            {% endif %}
+                        <tr>
+                            <td>
+                                {{ record.subject }}
+                            </td>
+                            <td>
+                                {{ record.number }}
+                            </td>
+                            <td>
+                                {{ record.booking_date }}
+                            </td>
+                            <td>
+                                {{ record.staff.personal_info.org.name }}
+                            </td>
+                            <td>
+                                {{ record.account_status }}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('purchase_tracker.update_status', account_id=record.id) }}">
+                                    <i class="fas fa-eye"></i>
+                                    <span>View</span>
+                                </a>
+                            </td>
                         {% endfor %}
                         </tbody>
                     </table>
