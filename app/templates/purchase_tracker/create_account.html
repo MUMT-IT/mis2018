@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Create Accounts{% endblock %}
 {% include "nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
 {% block page_content %}
     <section class="section">
         <div class="box">
@@ -36,7 +40,7 @@
                             <div class="field">
                                 <label class="label">{{ form.booking_date.label }}</label>
                                 <div class="control">
-                                    {{ form.booking_date(class="input") }}
+                                    {{ form.booking_date(type="text", readonly=True, class="input") }}
                                 </div>
                             </div>
                         </div>
@@ -87,10 +91,19 @@
 {% endblock page_content %}
 {% block scripts %}
     {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
         $('#upload').change(function (e) {
             let fileName = e.target.files[0].name;
             $('#filename').text(fileName);
+        });
+
+        $('input[name="booking_date"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: false,
+            locale: {
+                format: 'YYYY-MM-DD'
+            }
         });
     </script>
 {% endblock %}
