@@ -104,7 +104,7 @@ python-dotenv==0.10.3
 python-editor==1.0.3
 pytz==2017.3
 pyzmq==17.0.0
-reportlab==3.5.32
+reportlab==3.5.55
 requests==2.18.4
 rsa==3.4.2
 scandir==1.7
