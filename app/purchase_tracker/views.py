@@ -95,39 +95,75 @@ def initialize_gdrive():
 
 
 @purchase_tracker.route('/track/')
-@purchase_tracker.route('/track/<int:account_id>')
+@purchase_tracker.route('/track/<int:account_id>', methods=['GET'])
 def track(account_id=None):
     if not account_id:
+        list_type = request.args.get('list_type')
         account = PurchaseTrackerAccount.query.all()
         from sqlalchemy import desc
-        accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
-        activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
-            .order_by(PurchaseTrackerStatus.start_date)]
-        if not activities:
-            default_date = datetime.now().isoformat()
-        else:
-            default_date = activities[-1][3]
-        return render_template('purchase_tracker/tracking.html',
-                               account_id=account_id, account=account,
-                               accounts=accounts, desc=desc,
-                               PurchaseTrackerStatus=PurchaseTrackerStatus,
-                               activities=activities, default_date=default_date)
+        if list_type == "myAccount" or list_type is None:
+            accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
+            activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
+                .order_by(PurchaseTrackerStatus.start_date)]
+            if not activities:
+                default_date = datetime.now().isoformat()
+            else:
+                default_date = activities[-1][3]
+            return render_template('purchase_tracker/tracking.html',
+                                   account_id=account_id, account=account,
+                                   accounts=accounts, desc=desc,
+                                   PurchaseTrackerStatus=PurchaseTrackerStatus,
+                                   activities=activities, default_date=default_date, list_type=list_type)
+        elif list_type == "ourAccount":
+            org = current_user.personal_info.org
+            accounts = [account for account in PurchaseTrackerAccount.query.all()
+                        if account.staff.personal_info.org == org]
+            activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
+                .order_by(PurchaseTrackerStatus.start_date)]
+            if not activities:
+                default_date = datetime.now().isoformat()
+            else:
+                default_date = activities[-1][3]
+            return render_template('purchase_tracker/tracking.html',
+                                   account_id=account_id, account=account,
+                                   accounts=accounts, desc=desc,
+                                   PurchaseTrackerStatus=PurchaseTrackerStatus,
+                                   activities=activities, default_date=default_date, list_type=list_type)
+        return redirect(url_for('purchase_tracker.track', list_type=list_type))
     else:
         flash(u'ข้อมูลจะปรากฎด้านล่างเมื่อหน่วยงานคลังและพัสดุอัพเดตเรียบร้อย', 'warning')
         from sqlalchemy import desc
         account = PurchaseTrackerAccount.query.get(account_id)
-        accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
-        activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
-            .order_by(PurchaseTrackerStatus.start_date)]
-        if not activities:
-            default_date = datetime.now().isoformat()
-        else:
-            default_date = activities[-1][3]
-        return render_template('purchase_tracker/tracking.html',
-                               account_id=account_id, account=account,
-                               accounts=accounts, desc=desc,
-                               PurchaseTrackerStatus=PurchaseTrackerStatus,
-                               activities=activities, default_date=default_date)
+        list_type = request.args.get('list_type')
+        if list_type == "myAccount" or list_type is None:
+            accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
+            activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
+                .order_by(PurchaseTrackerStatus.start_date)]
+            if not activities:
+                default_date = datetime.now().isoformat()
+            else:
+                default_date = activities[-1][3]
+            return render_template('purchase_tracker/tracking.html',
+                                   account_id=account_id, account=account,
+                                   accounts=accounts, desc=desc,
+                                   PurchaseTrackerStatus=PurchaseTrackerStatus,
+                                   activities=activities, default_date=default_date)
+        elif list_type == "ourAccount":
+            org = current_user.personal_info.org
+            accounts = [account for account in PurchaseTrackerAccount.query.all()
+                        if account.staff.personal_info.org == org]
+            activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
+                .order_by(PurchaseTrackerStatus.start_date)]
+            if not activities:
+                default_date = datetime.now().isoformat()
+            else:
+                default_date = activities[-1][3]
+            return render_template('purchase_tracker/tracking.html',
+                                   account_id=account_id, account=account,
+                                   accounts=accounts, desc=desc,
+                                   PurchaseTrackerStatus=PurchaseTrackerStatus,
+                                   activities=activities, default_date=default_date, list_type=list_type)
+        return redirect(url_for('purchase_tracker.track', list_type=list_type))
 
 
 @purchase_tracker.route('/account/<int:account_id>/edit', methods=['GET', 'POST'])
@@ -178,6 +214,7 @@ def cancel_account(account_id):
     account = PurchaseTrackerAccount.query.get(account_id)
     if not account.cancelled_datetime:
         account.cancelled_datetime = datetime.now(tz=bangkok)
+        account.cancelled_by = current_user
         db.session.add(account)
         db.session.commit()
         flash(u'ยกเลิกบัญชีเรียบร้อยแล้ว', 'success')
