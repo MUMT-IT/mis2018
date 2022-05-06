@@ -48,6 +48,22 @@
             <div class="column has-text-centered">
                 <h1 class="title">การดำเนินงานจัดซื้อจัดจ้าง</h1>
             </div>
+            <div class="tabs is-centered" id="type_tab">
+              <ul>
+                <li class="is-active">
+                  <a href="{{ url_for('purchase_tracker.track', list_type='myAccount') }}">
+                    <span class="icon is-small"><i class="fas fa-portrait" aria-hidden="true" ></i></span>
+                    <span>ติดตามของตนเอง</span>
+                  </a>
+                </li>
+                <li>
+                  <a href="{{ url_for('purchase_tracker.track', list_type='ourAccount') }}">
+                    <span class="icon is-small"><i class="fas fa-sitemap" aria-hidden="true" ></i></span>
+                    <span>ติดตามภายในหน่วยงาน</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
             <div class="columns">
                 <div class="column">
                     <table class="table is-striped" id="PurchaseTrackerTable">
@@ -55,6 +71,7 @@
                         <th>ชื่อเรื่อง</th>
                         <th>เลขที่หนังสือ</th>
                         <th>วันที่หนังสือ</th>
+                        <th>หน่วยงาน/ภาควิชา</th>
                         <th>สถานะ</th>
                         <th>Dashboard</th>
                         <th>Edit</th>
@@ -72,16 +89,19 @@
                                 {{ record.booking_date }}
                             </td>
                             <td>
+                                {{ record.staff.personal_info.org.name }}
+                            </td>
+                            <td>
                                 {{ record.account_status }}
                             </td>
                             <td>
-                                <a href="{{ url_for('purchase_tracker.track', account_id=record.id ) }}">
+                                <a href="{{ url_for('purchase_tracker.track', account_id=record.id)}}">
                                     <i class="fas fa-eye"></i>
                                     <span>View</span>
                                 </a>
                             </td>
                             <td>
-                                {% if record.records.count() == 0 and not record.cancelled_datetime %}
+                                {% if record.records.count() == 0 and not record.cancelled_datetime and list_type == 'myAccount' or list_type == None%}
                                 <a href="{{ url_for('purchase_tracker.edit_account', account_id=record.id)}}">
                                     <span class="icon">
                                         <i class="fas fa-pencil-alt"></i>
@@ -271,5 +291,16 @@
             chart.draw(data, options);
         }
         google.charts.setOnLoadCallback(drawChart);
-  </script>
+    </script>
+    <script>
+    //tabs
+    const  tabs = document.querySelectorAll('.tabs li');
+    tabs.forEach((tab) => {
+        tab.addEventListener('click', () =>{
+            tabs.forEach(item => item.classList.remove('is-active'))
+            tab.classList.add('is-active');
+        })
+        })
+
+    </script>
 {% endblock %}
