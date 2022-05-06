@@ -61,6 +61,7 @@ class OtCompensationRate(db.Model):
     double_payment = db.Column('double_payment', db.Boolean(), default=True, nullable=False,
                                info={'label': u'เบิกซ้ำกับอันอื่นได้'})
     is_role_required = db.Column('is_role_required', db.Boolean(), info={'label': u'จำเป็นต้องระบุรายละเอียดตำแหน่ง'})
+    is_count_in_mins = db.Column('is_count_in_mins', db.Boolean(), info={'label': u'คำนวณเป็นนาที'})
 
     def to_dict(self):
         return {
@@ -113,7 +114,7 @@ class OtRecord(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship(StaffAccount, backref=db.backref('ot_record_staff'), foreign_keys=[staff_account_id])
-    start_datetime = db.Column('start_datetime', db.DateTime())
+    start_datetime = db.Column('start_datetime', db.DateTime(), info={'label':u'วันที่'})
     end_datetime = db.Column('end_datetime', db.DateTime())
     compensation_id = db.Column('compensation_id', db.ForeignKey('ot_compensation_rate.id'))
     compensation = db.relationship(OtCompensationRate, backref=db.backref('ot_record_compensation'))
@@ -128,6 +129,27 @@ class OtRecord(db.Model):
     document = db.relationship(OtDocumentApproval, backref=db.backref('ot_record_document'))
     round_id = db.Column('round_id', db.ForeignKey('ot_round_request.id'))
     round = db.relationship('OtRoundRequest', backref=db.backref('ot_records'))
+    #TODO: create calcualte hour and ot rate functions, save data after head approved the request
+
+    def total_ot_hours(self):
+        hours = self.end_datetime - self.start_datetime
+        if self.compensation.max_hour:
+            if self.compensation.max_hour < hours:
+                total_hours = self.compensation.max_hour
+            else:
+                total_hours = hours
+        else:
+            total_hours = hours
+        return total_hours
+
+    def count_rate(self):
+        if self.compensation.per_hour:
+            rate = self.compensation.per_hour * self.total_ot_hours
+        elif self.compensation.per_period:
+            rate = self.compensation.per_period
+        else:
+            rate = self.compensation.per_day
+        return rate
 
 
 class OtRoundRequest(db.Model):
