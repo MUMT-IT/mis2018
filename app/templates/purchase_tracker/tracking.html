@@ -2,17 +2,17 @@
 {% block title %}Purchase Tracker Page{% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
-{% include "messages.html" %}
-{% block head %}
-    {{ super() }}
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-{% endblock %}
+    {% include "messages.html" %}
+    {% block head %}
+        {{ super() }}
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    {% endblock %}
     <section class="section-padding" id="hero">
         <div class="container">
             <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
                 <div class="navbar-brand">
-                    <a class="navbar-item" >
+                    <a class="navbar-item">
                         <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}"/>
                     </a>
                 </div>
@@ -43,202 +43,82 @@
             </nav>
         </div>
     </section>
-        <div class="container" id="lists">
-        <a name="#lists"></a>
-            <div class="column has-text-centered">
-                <h1 class="title">การดำเนินงานจัดซื้อจัดจ้าง</h1>
-            </div>
-            <div class="tabs is-centered" id="type_tab">
-              <ul>
+    <div class="container">
+        <div class="column has-text-centered">
+            <h1 class="title">การดำเนินงานจัดซื้อจัดจ้าง</h1>
+        </div>
+        <div class="tabs is-centered" id="type_tab">
+            <ul>
                 <li class="is-active">
-                  <a href="{{ url_for('purchase_tracker.track', list_type='myAccount') }}">
-                    <span class="icon is-small"><i class="fas fa-portrait" aria-hidden="true" ></i></span>
-                    <span>ติดตามของตนเอง</span>
-                  </a>
+                    <a href="{{ url_for('purchase_tracker.track', list_type='myAccount') }}">
+                        <span class="icon is-small"><i class="fas fa-portrait" aria-hidden="true"></i></span>
+                        <span>ติดตามของตนเอง</span>
+                    </a>
                 </li>
                 <li>
-                  <a href="{{ url_for('purchase_tracker.track', list_type='ourAccount') }}">
-                    <span class="icon is-small"><i class="fas fa-sitemap" aria-hidden="true" ></i></span>
-                    <span>ติดตามภายในหน่วยงาน</span>
-                  </a>
+                    <a href="{{ url_for('purchase_tracker.track', list_type='ourAccount') }}">
+                        <span class="icon is-small"><i class="fas fa-sitemap" aria-hidden="true"></i></span>
+                        <span>ติดตามภายในหน่วยงาน</span>
+                    </a>
                 </li>
-              </ul>
-            </div>
-            <div class="columns">
-                <div class="column">
-                    <table class="table is-striped" id="PurchaseTrackerTable">
-                        <thead>
-                        <th>ชื่อเรื่อง</th>
-                        <th>เลขที่หนังสือ</th>
-                        <th>วันที่หนังสือ</th>
-                        <th>หน่วยงาน/ภาควิชา</th>
-                        <th>สถานะ</th>
-                        <th>Dashboard</th>
-                        <th>Edit</th>
-                        </thead>
-                        <tbody>
-                        {% for record in accounts %}
-                            <tr>
-                            <td>
-                                {{ record.subject }}
-                            </td>
-                            <td>
-                                {{ record.number }}
-                            </td>
-                            <td>
-                                {{ record.booking_date }}
-                            </td>
-                            <td>
-                                {{ record.staff.personal_info.org.name }}
-                            </td>
-                            <td>
-                                {{ record.account_status }}
-                            </td>
-                            <td>
-                                <a href="{{ url_for('purchase_tracker.track', account_id=record.id)}}">
-                                    <i class="fas fa-eye"></i>
-                                    <span>View</span>
-                                </a>
-                            </td>
-                            <td>
-                                {% if record.records.count() == 0 and not record.cancelled_datetime and list_type == 'myAccount' or list_type == None%}
-                                <a href="{{ url_for('purchase_tracker.edit_account', account_id=record.id)}}">
+            </ul>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="PurchaseTrackerTable">
+                    <thead>
+                    <th>ชื่อเรื่อง</th>
+                    <th>เลขที่หนังสือ</th>
+                    <th>วันที่หนังสือ</th>
+                    <th>ผู้สร้าง account โดย</th>
+                    <th>หน่วยงาน/ภาควิชา</th>
+                    <th>สถานะ</th>
+                    <th>Dashboard</th>
+                    <th>Edit</th>
+                    </thead>
+                    <tbody>
+                    {% for record in accounts %}
+                        <tr>
+                        <td>
+                            {{ record.subject }}
+                        </td>
+                        <td>
+                            {{ record.number }}
+                        </td>
+                        <td>
+                            {{ record.booking_date }}
+                        </td>
+                        <td>
+                            {{ record.staff.personal_info.fullname }}
+                        </td>
+                        <td>
+                            {{ record.staff.personal_info.org.name }}
+                        </td>
+                        <td>
+                            {{ record.account_status }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('purchase_tracker.view_info_track', account_id=record.id) }}">
+                                <i class="fas fa-eye"></i>
+                                <span>View</span>
+                            </a>
+                        </td>
+                        <td>
+                            {% if record.records.count() == 0 and not record.cancelled_datetime and not record.end_datetime and not list_type=='ourAccount' %}
+                                <a href="{{ url_for('purchase_tracker.edit_account', account_id=record.id) }}">
                                     <span class="icon">
                                         <i class="fas fa-pencil-alt"></i>
                                     </span>
                                     <span>แก้ไข</span>
                                 </a>
-                                {% endif %}
-                            </td>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        {% if activities  %}
-        <div class="columns">
-            <div class="column">
-                <div class="card">
-                    <div class="card-header">
-                        <h1 class="card-header-title">
-                            <span>Creation Date:
-                                {{ account.creation_date|localdatetime }}
-                            </span>
-                        </h1>
-                    </div>
-                    <div class="card-content">
-                        <table class="table is-striped is-bordered is-fullwidth">
-                            <colgroup>
-                                <col span="1" style="width: 25%;">
-                                <col span="1" style="width: 75%;">
-                            </colgroup>
-                            <tr>
-                                <td><label class="label">Subject: ชื่อ</label></td>
-                                <td>{{ account.subject }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Ref. Number:<br>เลขที่หนังสือ</label></td>
-                                <td>{{ account.number }}</td>
-                            </tr>
-                            <tr>
-                                 <td><label class="label">Date: วันที่หนังสือ</label></td>
-                                 <td>{{ account.booking_date }}</td>
-                             </tr>
-                            <tr>
-                                {% if not account_id %}
-                                    <td><label class="label">Cost Amount ( Baht ): วงเงินหลักการ</label></td>
-                                    <td>{{account.amount}}</td>
-                                {% else %}
-                                    <td><label class="label">Cost Amount ( Baht ): วงเงินหลักการ</label></td>
-                                    <td>{{ "{:,.2f}".format(account.amount) }}</td>
-                                {% endif %}
-                             </tr>
-                            <tr>
-                                 <td><label class="label">Format: รูปแบบหลักการ</label></td>
-                                 <td>{{ account.formats }}</td>
-                             </tr>
-                            <tr>
-                                <td><label class="label">Description: รายละเอียด</label></td>
-                                <td>{{ account.desc }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Comment: หมายเหตุ</label></td>
-                                <td>{{ account.comment }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">File: ไฟล์</label></td>
-                                <td>
-                                    {% if account.url %}
-                                        <a href="{{ 'https://drive.google.com/uc?id=' + account.url }}"
-                                           target="_blank">
-                                            <span class="icon">
-                                                <i class="far fa-file-pdf"></i>
-                                            </span>
-                                            <span>ไฟล์เอกสาร</span>
-                                        </a>
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Last Updated:<br>อัพเดตล่าสุด</label>
-                                <td>
-                                <table class="table is-fullwidth is-striped">
-                                    <thead>
-                                    <th>กิจกรรม</th>
-                                    <th>กิจกรรมอื่นๆ</th>
-                                    <th>ผู้รับผิดชอบ</th>
-                                    <th>หมายเหตุเพิ่มเติม</th>
-                                    <th>วันเริ่มต้น</th>
-                                    <th>วันสิ้นสุด</th>
-                                    </thead>
-                                    <tbody>
-                                    {% for status_record in account.records %}
-                                        <tr>
-                                            <td>{{ status_record.activity.activity }}</td>
-                                            <td>{{ status_record.other_activity }}</td>
-                                            <td>{{ status_record.staff }}</td>
-                                            <td>{{ status_record.comment }}</td>
-                                            <td>{{ status_record.start_date }}</td>
-                                            <td>{{ status_record.end_date }}</td>
-                                        </tr>
-                                    {% endfor %}
-                                    <tr>
-                                     <td colspan="4" align="center"><label class="label">ระยะเวลาทำการ</label></td>
-                                     <td colspan="2" align="center">{{ account.total_weekdays }} วัน</td>
-                                    </tr>
-                                    </tbody>
-                                </table>
-                                </td>
-                            </tr>
-                        </table>
-                        <div class="columns">
-                            <div class="column">
-                                <a href="#lists"
-                                   class="button is-rounded is-info is-light">
-                                    <span class="icon">
-                                        <i class="fas fa-arrow-left"></i>
-                                    </span>
-                                    <span>กลับไปยังรายการ</span>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                            {% endif %}
+                        </td>
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
-        </div>
-    <section class="section">
-        <div class="container">
-            <div class="columns">
-                <div class="column">
-                     <div id="chart_div"></div>
-                </div>
-            </div>
-        </div>
-    </section>
-        {% endif %}
+    </div>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
@@ -247,59 +127,14 @@
             $('#PurchaseTrackerTable').DataTable();
         });
     </script>
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
-    <script type="text/javascript">
-        google.charts.load('current', {'packages': ['gantt']});
-        var _activities = {{ activities|tojson|safe }};
-        var activities = [];
-        _activities.forEach(a=>{
-            activities.push([
-                a[0],
-                a[1],
-                new Date(a[2]),
-                new Date(a[3]),
-                a[4],
-                a[5],
-                a[6]
-            ])
-        })
-        console.log(activities)
-
-        function daysToMilliseconds(days) {
-            return days * 24 * 60 * 60 * 1000;
-        }
-
-        function drawChart() {
-
-            var data = new google.visualization.DataTable();
-            data.addColumn('string', 'ID')
-            data.addColumn('string', 'Activity');
-            data.addColumn('date', 'Start Date');
-            data.addColumn('date', 'End Date');
-            data.addColumn('number', 'Duration');
-            data.addColumn('number', 'Percent Complete');
-            data.addColumn('string', 'Dependencies');
-
-            data.addRows(activities);
-
-            var options = {
-                height: 600
-            };
-
-            var chart = new google.visualization.Gantt(document.getElementById('chart_div'));
-
-            chart.draw(data, options);
-        }
-        google.charts.setOnLoadCallback(drawChart);
-    </script>
     <script>
-    //tabs
-    const  tabs = document.querySelectorAll('.tabs li');
-    tabs.forEach((tab) => {
-        tab.addEventListener('click', () =>{
-            tabs.forEach(item => item.classList.remove('is-active'))
-            tab.classList.add('is-active');
-        })
+        //tabs
+        const tabs = document.querySelectorAll('.tabs li');
+        tabs.forEach((tab) => {
+            tab.addEventListener('click', () => {
+                tabs.forEach(item => item.classList.remove('is-active'))
+                tab.classList.add('is-active');
+            })
         })
 
     </script>
