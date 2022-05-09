@@ -1,8 +1,8 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import FileField, IntegerField, RadioField, DateField, StringField
-from wtforms.validators import DataRequired, InputRequired, EqualTo, ValidationError
+from wtforms import FileField, IntegerField, RadioField, DateField, StringField, validators
+from wtforms.validators import DataRequired, InputRequired, ValidationError, Optional
 from wtforms_alchemy import model_form_factory, QuerySelectField
 
 from app.main import db
@@ -38,10 +38,6 @@ class StatusForm(ModelForm):
     activity = QuerySelectField(u'กิจกรรม',
                                 query_factory=lambda: PurchaseTrackerActivity.query.all(),
                                 get_label='activity', blank_text='Select activities..', allow_blank=True)
-
-    def validate_other_activity(form, field):
-        if not field.data and not form.activity.data:
-            raise ValidationError('You must specify an activity.')
 
 
 class CreateActivityForm(ModelForm):
