@@ -1,8 +1,8 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import FileField, IntegerField, RadioField, DateField, StringField
-from wtforms.validators import DataRequired
+from wtforms import FileField, IntegerField, RadioField, DateField, StringField, validators
+from wtforms.validators import DataRequired, InputRequired, ValidationError, Optional
 from wtforms_alchemy import model_form_factory, QuerySelectField
 
 from app.main import db

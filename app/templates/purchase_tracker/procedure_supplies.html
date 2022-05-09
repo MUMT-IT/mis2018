@@ -70,14 +70,14 @@
                         </thead>
                         <tbody>
                         {% for record in accounts %}
-                            <tr>
+                        <tr>
                             <td>
                                 {{ record.subject }}
                             </td>
                             <td>
                                 {{ record.number }}
                             </td>
-                             <td>
+                            <td>
                                 {{ record.booking_date }}
                             </td>
                             <td>
@@ -104,7 +104,7 @@
     <script>
         $(document).ready(function () {
             $('#PurchaseTrackerTable').DataTable( {
-            "iDisplayLength": 20
+            "iDisplayLength": 30
             });
         });
     </script>

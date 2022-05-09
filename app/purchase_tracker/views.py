@@ -95,39 +95,39 @@ def initialize_gdrive():
 
 
 @purchase_tracker.route('/track/')
-@purchase_tracker.route('/track/<int:account_id>')
+@purchase_tracker.route('/track/<int:account_id>', methods=['GET'])
 def track(account_id=None):
-    if not account_id:
-        account = PurchaseTrackerAccount.query.all()
-        from sqlalchemy import desc
+    list_type = request.args.get('list_type')
+    if list_type == "myAccount" or list_type is None:
         accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
-        activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
-            .order_by(PurchaseTrackerStatus.start_date)]
-        if not activities:
-            default_date = datetime.now().isoformat()
-        else:
-            default_date = activities[-1][3]
-        return render_template('purchase_tracker/tracking.html',
-                               account_id=account_id, account=account,
-                               accounts=accounts, desc=desc,
-                               PurchaseTrackerStatus=PurchaseTrackerStatus,
-                               activities=activities, default_date=default_date)
-    else:
-        flash(u'ข้อมูลจะปรากฎด้านล่างเมื่อหน่วยงานคลังและพัสดุอัพเดตเรียบร้อย', 'warning')
-        from sqlalchemy import desc
+    elif list_type == "ourAccount":
+        org = current_user.personal_info.org
+        accounts = [account for account in PurchaseTrackerAccount.query.all()
+                    if account.staff.personal_info.org == org]
+    return render_template('purchase_tracker/tracking.html',
+                           account_id=account_id, accounts=accounts, list_type=list_type)
+
+
+@purchase_tracker.route('/track/<int:account_id>/view')
+def view_info_track(account_id=None):
+    from sqlalchemy import desc
+    if account_id:
         account = PurchaseTrackerAccount.query.get(account_id)
-        accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
-        activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
-            .order_by(PurchaseTrackerStatus.start_date)]
-        if not activities:
-            default_date = datetime.now().isoformat()
-        else:
-            default_date = activities[-1][3]
-        return render_template('purchase_tracker/tracking.html',
-                               account_id=account_id, account=account,
-                               accounts=accounts, desc=desc,
-                               PurchaseTrackerStatus=PurchaseTrackerStatus,
-                               activities=activities, default_date=default_date)
+        # better make use of the relationship!
+        activities = [a.to_list() for a in account.records.all()]
+    else:
+        flash(u'ข้อมูลจะปรากฎเมื่อหน่วยงานคลังและพัสดุอัพเดตเรียบร้อย', 'warning')
+        activities = []
+    # activities = [a.to_list() for a in PurchaseTrackerStatus.query.filter_by(account_id=account_id)
+    #     .order_by(PurchaseTrackerStatus.start_date)]
+    if not activities:
+        default_date = datetime.now().isoformat()
+    else:
+        default_date = activities[-1][3]
+    return render_template('purchase_tracker/view_info_track.html',
+                           account_id=account_id, account=account, desc=desc,
+                           PurchaseTrackerStatus=PurchaseTrackerStatus,
+                           activities=activities, default_date=default_date)
 
 
 @purchase_tracker.route('/account/<int:account_id>/edit', methods=['GET', 'POST'])
@@ -178,6 +178,7 @@ def cancel_account(account_id):
     account = PurchaseTrackerAccount.query.get(account_id)
     if not account.cancelled_datetime:
         account.cancelled_datetime = datetime.now(tz=bangkok)
+        account.cancelled_by = current_user
         db.session.add(account)
         db.session.commit()
         flash(u'ยกเลิกบัญชีเรียบร้อยแล้ว', 'success')
@@ -248,8 +249,9 @@ def update_status(account_id):
             status.cancel_datetime = bangkok.localize(datetime.now())
             status.update_datetime = bangkok.localize(datetime.now())
             status.staff = current_user
-            # status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
-            # TODO: calculate end date from time needed to finish the task
+            if not form.other_activity.data and not form.activity.data:
+                flash(u'กรุณาเลือกหัวข้อกิจกรรมหรือใส่กิจกรรมอื่นๆ.', 'danger')
+                return redirect(url_for('purchase_tracker.update_status', account_id=account_id, form=form, account=account))
             db.session.add(status)
             db.session.commit()
             title = u'แจ้งเตือนการปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.format(status.account.number)
@@ -335,6 +337,8 @@ def update_status_info_download():
                 u'ชื่อ': u"{}".format(account.subject),
                 u'วงเงินหลักการ': u"{:,.2f}".format(account.amount),
                 u'รูปแบบหลักการ': u"{}".format(account.formats),
+                u'ผู้สร้าง account โดย': u"{}".format(account.staff.personal_info.fullname),
+                u'หน่วยงาน/ภาควิชา': u"{}".format(account.staff.personal_info.org.name),
                 u'กิจกรรม': u"{}".format(record.other_activity or record.activity.activity),
                 u'ผู้รับผิดชอบ': u"{}".format(record.staff.personal_info.fullname),
                 u'วันเริ่มกิจกรรม': u"{}".format(record.start_date),
@@ -404,6 +408,8 @@ def dashboard_info_download():
                 u'ชื่อ': u"{}".format(account.subject),
                 u'วงเงินหลักการ': u"{:,.2f}".format(account.amount),
                 u'รูปแบบหลักการ': u"{}".format(account.formats),
+                u'ผู้สร้าง account โดย': u"{}".format(account.staff.personal_info.fullname),
+                u'หน่วยงาน/ภาควิชา': u"{}".format(account.staff.personal_info.org.name),
                 u'กิจกรรม': u"{}".format(record.other_activity or record.activity.activity),
                 u'ผู้รับผิดชอบ': u"{}".format(record.staff.personal_info.fullname),
                 u'วันเริ่มกิจกรรม': u"{}".format(record.start_date),

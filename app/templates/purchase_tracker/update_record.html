@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Information{% endblock %}
 {% include "nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
 {% block page_content %}
  <div class="container">
     <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
@@ -202,13 +206,13 @@
                                     <div class="field">
                                         <label class="label">{{ form.start_date.label }}</label>
                                         <div class="control">
-                                            {{ form.start_date(class="input", value=default_date) }}
+                                            {{ form.start_date(class="input", value=default_date, readonly=True) }}
                                         </div>
                                     </div>
                                     <div class="field">
                                         <label class="label">{{ form.end_date.label }}</label>
                                         <div class="control">
-                                            {{ form.end_date(class="input") }}
+                                            {{ form.end_date(class="input", readonly=True) }}
                                         </div>
                                     </div>
                                     <div class="field">
@@ -330,20 +334,22 @@
             }
         })
     </script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script>
-        $(document).ready(function () {
-            $('input[name="start_date"]').daterangepicker({
-                singleDatePicker: true,
-                locale: {
-                    format: 'DD-MM-YYYY'
-                }
-            })
-            $('input[name="end_date"]').daterangepicker({
-                singleDatePicker: true,
-                locale: {
-                    format: 'DD-MM-YYYY'
-                }
-            })
+
+        $('input[name="start_date"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: false,
+            locale: {
+                format: 'YYYY-MM-DD'
+            }
+        });
+        $('input[name="end_date"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: false,
+            locale: {
+                format: 'YYYY-MM-DD'
+            }
         });
     </script>
 {% endblock %}
