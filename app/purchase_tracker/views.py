@@ -249,8 +249,9 @@ def update_status(account_id):
             status.cancel_datetime = bangkok.localize(datetime.now())
             status.update_datetime = bangkok.localize(datetime.now())
             status.staff = current_user
-            # status.end_date = form.start_date.data + timedelta(days=int(form.days.data))
-            # TODO: calculate end date from time needed to finish the task
+            if not form.other_activity.data and not form.activity.data:
+                flash(u'กรุณาเลือกหัวข้อกิจกรรมหรือใส่กิจกรรมอื่นๆ.', 'danger')
+                return redirect(url_for('purchase_tracker.update_status', account_id=account_id, form=form, account=account))
             db.session.add(status)
             db.session.commit()
             title = u'แจ้งเตือนการปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.format(status.account.number)
