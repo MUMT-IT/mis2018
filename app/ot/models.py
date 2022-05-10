@@ -129,6 +129,8 @@ class OtRecord(db.Model):
     document = db.relationship(OtDocumentApproval, backref=db.backref('ot_record_document'))
     round_id = db.Column('round_id', db.ForeignKey('ot_round_request.id'))
     round = db.relationship('OtRoundRequest', backref=db.backref('ot_records'))
+    canceled_at = db.Column('canceled_at', db.DateTime(timezone=True), default=datetime.now())
+    canceled_by_account_id = db.Column('canceled_by_account_id', db.ForeignKey('staff_account.id'))
     #TODO: create calcualte hour and ot rate functions, save data after head approved the request
 
     def total_ot_hours(self):
@@ -137,14 +139,21 @@ class OtRecord(db.Model):
             if self.compensation.max_hour < hours:
                 total_hours = self.compensation.max_hour
             else:
-                total_hours = hours
+                total_hours = hours.hour()
         else:
-            total_hours = hours
+            total_hours = hours.seconds
         return total_hours
 
     def count_rate(self):
         if self.compensation.per_hour:
-            rate = self.compensation.per_hour * self.total_ot_hours
+            if self.compensation.is_count_in_mins:
+                hours = self.total_ot_hours
+                #rate = (self.compensation.per_hour/60)*hours
+                rate = 200
+            else:
+                hours = self.total_ot_hours
+                rate = 100
+                #rate = self.compensation.per_hour*hour
         elif self.compensation.per_period:
             rate = self.compensation.per_period
         else:
