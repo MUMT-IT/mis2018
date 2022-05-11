@@ -113,7 +113,7 @@ PyYAML==5.3.1
 pyzmq==17.0.0
 qrcode==6.1
 reportlab==3.5.32
-requests==2.18.4
+requests==2.20.0
 rsa==3.4.2
 scandir==1.7
 Send2Trash==1.5.0
