@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
-import pytz
+
+import dateutil
 import requests
 from . import vehiclebp as vehicle
 from sqlalchemy.exc import SQLAlchemyError
@@ -38,75 +39,36 @@ def get_vehicles():
 
 @vehicle.route('/api/events')
 def get_events():
-    tz = pytz.timezone('Asia/Bangkok')
-    scoped_credentials = credentials.with_scopes([
-        'https://www.googleapis.com/auth/calendar',
-        'https://www.googleapis.com/auth/calendar.events'
-    ])
-    calendar_service = build('calendar', 'v3', credentials=scoped_credentials)
-    request = calendar_service.events().list(calendarId=CALENDAR_ID)
-    # Loop until all pages have been processed.
+    start = request.args.get('start')
+    end = request.args.get('end')
+    if start:
+        start = dateutil.parser.isoparse(start)
+    if end:
+        end = dateutil.parser.isoparse(end)
+    events = VehicleBooking.query.filter(VehicleBooking.start >= start)\
+        .filter(VehicleBooking.end <= end)
     all_events = []
-    while request != None:
-        # Get the next page.
-        response = request.execute()
-        # returns a list of item objects (events).
-        for event in response.get('items', []):
-            # The event object is a dict object with a 'summary' key.
-            start = event.get('start')
-            end = event.get('end')
-            extended_properties = event.get('extendedProperties', {}).get('private', {})
-            status = extended_properties.get('status')
-            license = extended_properties.get('license')
-            org_id = extended_properties.get('orgId')
-            if org_id:
-                org = Org.query.get(int(org_id))
-                org = org.name
-            else:
-                org = None
-            approved = extended_properties.get('approved', False)
-            closed = extended_properties.get('closed')
-            if closed == 'true':
-                closed = True
-            else:
-                closed = False
-
-            if status == 'cancelled':
-                text_color = '#ffffff'
-                bg_color = '#ff6666'
-                border_color = '#ffffff'
-            elif approved == 'true':
-                approved = True
-                text_color = '#ffffff'
-                bg_color = '#2b8c36'
-                border_color = '#ffffff'
-                if closed:
-                    bg_color = '#003366'
-                    border_color = '#000000'
-            else:
-                text_color = '#000000'
-                bg_color = '#f0f0f5'
-                border_color = '#ff4d4d'
-
-            evt = {
-                'id': extended_properties.get('event_id', None),
-                'license': license,
-                'org': org,
-                'title': u'{}: {}'.format(license, event.get('summary', 'NO SUMMARY')),
-                'description': event.get('description', ''),
-                'start': start['dateTime'],
-                'end': end['dateTime'],
-                'resourceId': license,
-                'approved': approved,
-                'borderColor': border_color,
-                'backgroundColor': bg_color,
-                'textColor': text_color,
-                'closed': closed,
-            }
-            all_events.append(evt)
-        # Get the next request object by passing the previous request object to
-        # the list_next method.
-        request = calendar_service.events().list_next(request, response)
+    for event in events:
+        if event.cancelled_at:
+            text_color = '#ffffff'
+            bg_color = '#ff6666'
+            border_color = '#ffffff'
+        elif event.approved:
+            text_color = '#ffffff'
+            bg_color = '#2b8c36'
+            border_color = '#ffffff'
+        elif event.closed:
+            bg_color = '#003366'
+            border_color = '#000000'
+        else:
+            text_color = '#000000'
+            bg_color = '#f0f0f5'
+            border_color = '#ff4d4d'
+        evt = event.to_dict()
+        evt['borderColor'] = border_color
+        evt['backgroundColor'] = bg_color
+        evt['textColor'] = text_color
+        all_events.append(evt)
     return jsonify(all_events)
 
 

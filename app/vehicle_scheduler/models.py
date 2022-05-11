@@ -1,5 +1,9 @@
+import pytz
+
 from app.main import db, ma
 from sqlalchemy.sql import func
+
+tz = pytz.timezone('Asia/Bangkok')
 
 
 class VehicleType(db.Model):
@@ -77,3 +81,19 @@ class VehicleBooking(db.Model):
     desc = db.Column('desc', db.Text())
     google_event_id = db.Column('google_event_id', db.String(64))
     google_calendar_id = db.Column('google_calendar_id', db.String(255))
+
+    def to_dict(self):
+        return {'id': self.id,
+                'license': self.vehicle.license,
+                'org': self.org.name,
+                'title': u'{}: {}'.format(self.vehicle.license, self.title),
+                'description': self.desc,
+                'start': self.start.astimezone(tz).isoformat(),
+                'end': self.end.astimezone(tz).isoformat(),
+                'resourceId': self.vehicle.id,
+                'approved': self.approved,
+                'borderColor': '',
+                'backgroundColor': '',
+                'textColor': '',
+                'closed': self.closed,
+                }
