@@ -136,24 +136,24 @@ class OtRecord(db.Model):
     def total_ot_hours(self):
         hours = self.end_datetime - self.start_datetime
         if self.compensation.max_hour:
-            if self.compensation.max_hour < hours:
+            if self.compensation.max_hour < (hours.seconds / 3600):
                 total_hours = self.compensation.max_hour
             else:
-                total_hours = hours.hour()
+                total_hours = hours.seconds / 3600
         else:
-            total_hours = hours.seconds
+            if self.compensation.is_count_in_mins:
+                total_hours = hours.seconds / 60
+            else:
+                total_hours = hours.seconds / 3600
         return total_hours
 
     def count_rate(self):
         if self.compensation.per_hour:
             if self.compensation.is_count_in_mins:
-                hours = self.total_ot_hours
-                #rate = (self.compensation.per_hour/60)*hours
-                rate = 200
+                per_min = self.compensation.per_hour/60
+                rate = self.total_ot_hours()*per_min
             else:
-                hours = self.total_ot_hours
-                rate = 100
-                #rate = self.compensation.per_hour*hour
+                rate = self.total_ot_hours()*self.compensation.per_hour
         elif self.compensation.per_period:
             rate = self.compensation.per_period
         else:
