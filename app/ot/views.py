@@ -768,11 +768,10 @@ def round_request_approval_requests_pending():
     return render_template('ot/approver_requests_pending_list.html', rounds=rounds)
 
 
-@ot.route('/approver/requests-pending-list/<int:round_id>')
+@ot.route('/round-request/<int:round_id>/info')
 @login_required
 def round_request_info(round_id):
     round = OtRoundRequest.query.filter_by(id=round_id).first()
-
     return render_template('ot/request_info_each_round.html', round=round)
 
 
@@ -788,18 +787,18 @@ def round_request_approve_request(round_id):
     return render_template('ot/approver_requests_pending_list.html', rounds=rounds)
 
 
-# @ot.route('/finance/org-head-approved/list')
-# @login_required
-# def approved_list_from_org_head():
-#     rounds = OtRoundRequest.query.filter_by(created_by=current_user).all()
-#     return render_template('ot/approved_list.html', rounds=rounds)
-#
-#
-# @ot.route('/finance/requests-pending-list/<int:round_id>')
-# @login_required
-# def round_request_info_for_finance(round_id):
-#     round = OtRoundRequest.query.filter_by(id=round_id).first()
-#     return render_template('ot/finance_approval_info.html', round=round)
+@ot.route('/finance/org-head-approved/list')
+@login_required
+def approved_list_from_org_head():
+    rounds = OtRoundRequest.query.filter_by(created_by=current_user).all()
+    return render_template('ot/approved_list.html', rounds=rounds)
+
+
+@ot.route('/finance/requests-pending-list/<int:round_id>')
+@login_required
+def round_request_info_for_finance(round_id):
+    round = OtRoundRequest.query.filter_by(id=round_id).first()
+    return render_template('ot/finance_approval_info.html', round=round)
 
 # @ot.route('/schedule/summary/each-person')
 # @login_required
