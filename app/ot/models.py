@@ -131,7 +131,9 @@ class OtRecord(db.Model):
     round = db.relationship('OtRoundRequest', backref=db.backref('ot_records'))
     canceled_at = db.Column('canceled_at', db.DateTime(timezone=True), default=datetime.now())
     canceled_by_account_id = db.Column('canceled_by_account_id', db.ForeignKey('staff_account.id'))
-    #TODO: create calcualte hour and ot rate functions, save data after head approved the request
+    total_hours = db.Column('total_hours', db.Integer())
+    total_minutes = db.Column('total_minutes', db.Integer())
+    amount_paid = db.Column('amount_paid', db.Float())
 
     def total_ot_hours(self):
         hours = self.end_datetime - self.start_datetime
