@@ -71,6 +71,7 @@ def get_events():
             bg_color = '#f0f0f5'
             border_color = '#ff4d4d'
         evt = event.to_dict()
+        evt['resourceId'] = event.vehicle.license
         evt['borderColor'] = border_color
         evt['backgroundColor'] = bg_color
         evt['textColor'] = text_color
@@ -81,7 +82,7 @@ def get_events():
 @vehicle.route('/')
 @login_required
 def index():
-    return render_template('scheduler/vehicle_main.html')
+    return render_template('scheduler/vehicle_main.html', list_type='default')
 
 
 @vehicle.route('/trip')

@@ -9,7 +9,7 @@
 {% block page_content %}
 <section class="section" id="app">
     <div class="columns">
-        <div class="column">
+        <div class="column is-two-thirds is-offset-2">
             {% include "messages.html" %}
             <div class="box">
                 <p class="has-text-centered">กรุณากรอกข้อมูลการจองให้สมบูรณ์</p>
@@ -22,19 +22,25 @@
                             <label class="label">หมายเลขทะเบียน</label>
                         </div>
                         <div class="field-body">
-                            <div class="select is-danger">
-                                {{ form.vehicle() }}
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.vehicle(style="width: 50%") }}
+                                </div>
+                                <p class="help has-text-danger">*จำเป็น</p>
                             </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">หน่วยงาน</label>
+                            <label class="label">{{ form.org.label }}</label>
                         </div>
                         <div class="field-body">
-                            <p>
-                                {{ event.org.name }}
-                            </p>
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.org(style="width: 50%") }}
+                                </div>
+                                <p class="help has-text-danger">*จำเป็น</p>
+                            </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
@@ -43,7 +49,10 @@
                         </div>
                         <div class="field-body">
                             <div class="field">
-                                {{ form.iocode() }}
+                                <div class="control">
+                                    {{ form.iocode(style="width: 100%") }}
+                                    <p class="help has-text-danger">*จำเป็น</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -56,6 +65,7 @@
                                 <div class="control">
                                     {{ form.title(class="input") }}
                                 </div>
+                                <p class="help has-text-danger">*จำเป็น</p>
                             </div>
                         </div>
                     </div>
@@ -65,8 +75,11 @@
                         </div>
                         <div class="field-body">
                             <div class="field">
-                                <div class="control">
+                                <div class="control has-icons-left">
                                     {{ form.destination(class="input") }}
+                                    <span class="icon is-small is-left">
+                                       <i class="fa-solid fa-location-dot"></i>
+                                    </span>
                                 </div>
                             </div>
                         </div>
@@ -77,9 +90,13 @@
                         </div>
                         <div class="field-body">
                             <div class="field">
-                                <div class="control">
+                                <div class="control has-icons-left">
                                     {{ form.start(class="input") }}
+                                    <span class="icon is-left is-small">
+                                        <i class="fa-solid fa-calendar-days"></i>
+                                    </span>
                                 </div>
+                                <p class="help has-text-danger">*จำเป็น</p>
                             </div>
                         </div>
                     </div>
@@ -89,7 +106,13 @@
                         </div>
                         <div class="field-body">
                             <div class="field">
-                                {{ form.end(class="input") }}
+                                <div class="control has-icons-left">
+                                    {{ form.end(class="input") }}
+                                    <span class="icon is-left is-small">
+                                        <i class="fa-solid fa-calendar-days"></i>
+                                    </span>
+                                    <p class="help has-text-danger">*จำเป็น</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -102,6 +125,7 @@
                                 <div class="control">
                                     {{ form.num_passengers(class="input") }}
                                 </div>
+                                <p class="help has-text-danger">*จำเป็น</p>
                             </div>
                         </div>
                     </div>
@@ -236,6 +260,8 @@
                templateResult: formatState,
                templateSelection: formatSelection
            });
+           $('#org').select2();
+           $('#vehicle').select2();
         })
     </script>
 {% endblock %}
