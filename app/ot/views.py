@@ -451,74 +451,74 @@ def add_schedule(document_id):
     return render_template('ot/schedule_add.html', form=form, document=document)
 
 
-# @ot.route('/schedule/cancel/<int:record_id>')
-# @login_required
-# def cancel_ot_record(record_id):
-#     record = OtRecord.query.get(record_id)
-#     record.canceled_at = tz.localize(datetime.today())
-#     record.canceled_by_account_id = current_user.id
-#     db.session.add(record)
-#     db.session.commit()
-#     flash(u'ยกเลิก OT ของ {} {} เรียบร้อยแล้ว'.format(record.staff.personal_info.fullname, record.start_datetime), 'danger')
-#     return redirect(url_for('ot.summary_ot_each_document', document_id=record.document_id,
-#                             month=record.start_datetime.month, year=record.start_datetime.year))
-#
-#
-# @ot.route('/schedule/edit/<int:record_id>', methods=['GET', 'POST'])
-# @login_required
-# def edit_ot_record(record_id):
-#     record = OtRecord.query.get(record_id)
-#     document = OtDocumentApproval.query.get(record.document_id)
-#     EditOtRecordForm = edit_ot_record_factory([a.id for a in document.announce])
-#     form = EditOtRecordForm(obj=record)
-#     if request.method == 'POST':
-#         if form.validate_on_submit():
-#             form.populate_obj(record)
-#             if form.compensation.data.start_time:
-#                 start_t = form.compensation.data.start_time
-#                 end_t = form.compensation.data.end_time
-#             else:
-#                 if form.start_time.data == "None" or form.end_time.data == "None":
-#                     flash(u'จำเป็นต้องใส่เวลาเริ่มต้น สิ้นสุด', 'danger')
-#                 else:
-#                     start_t = form.start_time.data + ':00'
-#                     end_t = form.end_time.data + ':00'
-#             start_d = form.start_date.data
-#             end_d = form.start_date.data
-#             start_dt = '{} {}'.format(start_d, start_t)
-#             end_dt = '{} {}'.format(end_d, end_t)
-#             start_datetime = datetime.strptime(start_dt, '%Y-%m-%d %H:%M:%S')
-#             end_datetime = datetime.strptime(end_dt, '%Y-%m-%d %H:%M:%S')
-#             record.start_datetime = start_datetime
-#             record.end_datetime = end_datetime
-#             ot_records_begin_overlaps = OtRecord.query.filter(and_(OtRecord.id != record.id,
-#                                                                     OtRecord.staff_account_id == record.staff_account_id,
-#                                                                     OtRecord.start_datetime <= start_datetime,
-#                                                                     OtRecord.end_datetime >= start_datetime)).all()
-#             ot_records_end_overlaps = OtRecord.query.filter(and_(OtRecord.id != record.id,
-#                                                                    OtRecord.staff_account_id == record.staff_account_id,
-#                                                                    OtRecord.start_datetime <= end_datetime,
-#                                                                    OtRecord.end_datetime >= end_datetime)).all()
-#             if ot_records_begin_overlaps or ot_records_end_overlaps:
-#                 flash(u'{} มีข้อมูลการทำOT ในช่วงเวลานี้แล้ว กรุณาตรวจสอบเวลาใหม่อีกครั้ง'.format(
-#                     record.staff.personal_info.fullname), 'danger')
-#             else:
-#                 record.created_staff = current_user
-#                 record.org = current_user.personal_info.org
-#                 if request.form.get('sub_role'):
-#                     record.sub_role = request.form.get('sub_role')
-#                 db.session.add(record)
-#                 db.session.commit()
-#                 flash(u'แก้ไขการทำงานของ {} เรียบร้อยแล้ว'.format(record.staff.personal_info.fullname), 'success')
-#                 year = form.start_date.data.year
-#                 month = form.start_date.data.month
-#                 return redirect(url_for('ot.summary_ot_each_document', document_id=record.document_id, month=month, year=year))
-#         else:
-#             flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
-#     form.start_date.data = record.start_datetime.date()
-#     form.start_time.data = record.start_datetime.strftime("%H:%M")
-#     form.end_time.data = record.end_datetime.strftime("%H:%M")
-#     return render_template('ot/schedule_edit_each_ot_record.html', form=form , record=record)
+@ot.route('/schedule/cancel/<int:record_id>')
+@login_required
+def cancel_ot_record(record_id):
+    record = OtRecord.query.get(record_id)
+    record.canceled_at = tz.localize(datetime.today())
+    record.canceled_by_account_id = current_user.id
+    db.session.add(record)
+    db.session.commit()
+    flash(u'ยกเลิก OT ของ {} {} เรียบร้อยแล้ว'.format(record.staff.personal_info.fullname, record.start_datetime), 'danger')
+    return redirect(url_for('ot.summary_ot_each_document', document_id=record.document_id,
+                            month=record.start_datetime.month, year=record.start_datetime.year))
+
+
+@ot.route('/schedule/edit/<int:record_id>', methods=['GET', 'POST'])
+@login_required
+def edit_ot_record(record_id):
+    record = OtRecord.query.get(record_id)
+    document = OtDocumentApproval.query.get(record.document_id)
+    EditOtRecordForm = edit_ot_record_factory([a.id for a in document.announce])
+    form = EditOtRecordForm(obj=record)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(record)
+            if form.compensation.data.start_time:
+                start_t = form.compensation.data.start_time
+                end_t = form.compensation.data.end_time
+            else:
+                if form.start_time.data == "None" or form.end_time.data == "None":
+                    flash(u'จำเป็นต้องใส่เวลาเริ่มต้น สิ้นสุด', 'danger')
+                else:
+                    start_t = form.start_time.data + ':00'
+                    end_t = form.end_time.data + ':00'
+            start_d = form.start_date.data
+            end_d = form.start_date.data
+            start_dt = '{} {}'.format(start_d, start_t)
+            end_dt = '{} {}'.format(end_d, end_t)
+            start_datetime = datetime.strptime(start_dt, '%Y-%m-%d %H:%M:%S')
+            end_datetime = datetime.strptime(end_dt, '%Y-%m-%d %H:%M:%S')
+            record.start_datetime = start_datetime
+            record.end_datetime = end_datetime
+            ot_records_begin_overlaps = OtRecord.query.filter(and_(OtRecord.id != record.id,
+                                                                    OtRecord.staff_account_id == record.staff_account_id,
+                                                                    OtRecord.start_datetime <= start_datetime,
+                                                                    OtRecord.end_datetime >= start_datetime)).all()
+            ot_records_end_overlaps = OtRecord.query.filter(and_(OtRecord.id != record.id,
+                                                                   OtRecord.staff_account_id == record.staff_account_id,
+                                                                   OtRecord.start_datetime <= end_datetime,
+                                                                   OtRecord.end_datetime >= end_datetime)).all()
+            if ot_records_begin_overlaps or ot_records_end_overlaps:
+                flash(u'{} มีข้อมูลการทำOT ในช่วงเวลานี้แล้ว กรุณาตรวจสอบเวลาใหม่อีกครั้ง'.format(
+                    record.staff.personal_info.fullname), 'danger')
+            else:
+                record.created_staff = current_user
+                record.org = current_user.personal_info.org
+                if request.form.get('sub_role'):
+                    record.sub_role = request.form.get('sub_role')
+                db.session.add(record)
+                db.session.commit()
+                flash(u'แก้ไขการทำงานของ {} เรียบร้อยแล้ว'.format(record.staff.personal_info.fullname), 'success')
+                year = form.start_date.data.year
+                month = form.start_date.data.month
+                return redirect(url_for('ot.summary_ot_each_document', document_id=record.document_id, month=month, year=year))
+        else:
+            flash(u'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบ', 'danger')
+    form.start_date.data = record.start_datetime.date()
+    form.start_time.data = record.start_datetime.strftime("%H:%M")
+    form.end_time.data = record.end_datetime.strftime("%H:%M")
+    return render_template('ot/schedule_edit_each_ot_record.html', form=form , record=record)
 
 
 @ot.route('/api/get-file-url/<int:announcement_id>')
