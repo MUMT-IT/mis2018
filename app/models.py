@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+import textwrap
 from main import db, ma
 from sqlalchemy.sql import func
 
@@ -217,6 +218,9 @@ class Mission(db.Model):
     def __repr__(self):
         return u'{}:{}'.format(self.id, self.name)
 
+    def __str__(self):
+        return u'{}'.format(self.name)
+
 
 class CostCenter(db.Model):
     __tablename__ = 'cost_centers'
@@ -239,7 +243,7 @@ class IOCode(db.Model):
     name = db.Column('name', db.String(255), nullable=False)
 
     def __repr__(self):
-        return u'{}:{}'.format(self.id, self.name)
+        return u'{}:{}:{}:{}'.format(self.id, self.name, self.org.name, self.mission)
 
     def to_dict(self):
         return {

@@ -52,8 +52,11 @@
                 header: {
                     left: 'title',
                 },
-                events: '/vehicle/api/events',
+                events: "{{ url_for('vehicle.get_events') }}",
+                lazyFetching: true,
                 eventLimit: true,
+                resources: "{{ url_for('vehicle.get_vehicles') }}",
+                resourceLabelText: 'Vehicle',
                 eventClick: function(calEvent, jsEvent, view) {
                     window.location = '/vehicle/events/' + calEvent.id;
                 }
