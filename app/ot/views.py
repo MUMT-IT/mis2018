@@ -759,35 +759,35 @@ def create_ot_approval_and_download(document_id, month, year):
 def round_request_status():
     rounds = OtRoundRequest.query.filter_by(created_by=current_user).all()
     return render_template('ot/request_status.html', rounds=rounds)
-#
-#
-# @ot.route('/approver/requests-pending-list')
-# @login_required
-# def round_request_approval_requests_pending():
-#     rounds = OtRoundRequest.query.filter_by(created_by=current_user).all()
-#     return render_template('ot/approver_requests_pending_list.html', rounds=rounds)
-#
-#
-# @ot.route('/approver/requests-pending-list/<int:round_id>')
-# @login_required
-# def round_request_info(round_id):
-#     round = OtRoundRequest.query.filter_by(id=round_id).first()
-#
-#     return render_template('ot/request_info_each_round.html', round=round)
-#
-#
-# @ot.route('/approver/requests-pending-list/<int:round_id>/approved')
-# @login_required
-# def round_request_approve_request(round_id):
-#     round = OtRoundRequest.query.get(round_id)
-#     round.approval_at = datetime.now(tz);
-#     db.session.add(round)
-#     db.session.commit()
-#     flash(u'อนุมัติรายการ{} เรียบร้อยแล้ว'.format(round.round_no), 'success')
-#     rounds = OtRoundRequest.query.filter_by(created_by=current_user).all()
-#     return render_template('ot/approver_requests_pending_list.html', rounds=rounds)
-#
-#
+
+
+@ot.route('/approver/requests-pending-list')
+@login_required
+def round_request_approval_requests_pending():
+    rounds = OtRoundRequest.query.filter_by(created_by=current_user).all()
+    return render_template('ot/approver_requests_pending_list.html', rounds=rounds)
+
+
+@ot.route('/approver/requests-pending-list/<int:round_id>')
+@login_required
+def round_request_info(round_id):
+    round = OtRoundRequest.query.filter_by(id=round_id).first()
+
+    return render_template('ot/request_info_each_round.html', round=round)
+
+
+@ot.route('/approver/requests-pending-list/<int:round_id>/approved')
+@login_required
+def round_request_approve_request(round_id):
+    round = OtRoundRequest.query.get(round_id)
+    round.approval_at = datetime.now(tz);
+    db.session.add(round)
+    db.session.commit()
+    flash(u'อนุมัติรายการ{} เรียบร้อยแล้ว'.format(round.round_no), 'success')
+    rounds = OtRoundRequest.query.filter_by(created_by=current_user).all()
+    return render_template('ot/approver_requests_pending_list.html', rounds=rounds)
+
+
 # @ot.route('/finance/org-head-approved/list')
 # @login_required
 # def approved_list_from_org_head():
