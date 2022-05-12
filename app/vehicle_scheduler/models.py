@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 
 import pytz
+from wtforms.validators import InputRequired, DataRequired
 
 from app.main import db, ma
 from sqlalchemy.sql import func
@@ -62,7 +63,7 @@ class VehicleBooking(db.Model):
     toll_fee = db.Column('toll_fee', db.Float(), default=0.0, info={'label': u'ค่าทางด่วน'})
     distance = db.Column('distance', db.Integer, nullable=True, info={'label': u'ระยะทาง'})
     init_location = db.Column('init_location', db.String(255), nullable=True, info={'label': u'สถานที่เริ่มต้น'})
-    destination = db.Column('destination', db.String(255), nullable=True, info={'label': u'สถานที่สิ้นสุด'})
+    destination = db.Column('destination', db.String(255), nullable=True, info={'label': u'ที่หมาย'})
     # use TextInput for compatibility with the daterangepicker plugin
     start = db.Column('start', db.DateTime(timezone=True), nullable=False, info={'label': u'วันและเวลาเริ่มต้น'})
     end = db.Column('end', db.DateTime(timezone=True), nullable=False, info={'label': u'วันและเวลาสิ้นสุด'})
@@ -70,7 +71,9 @@ class VehicleBooking(db.Model):
     iocode = db.relationship('IOCode', backref=db.backref('vehicle_bookings'))
     org_id = db.Column('org_id', db.ForeignKey('orgs.id'))
     org = db.relationship('Org', backref=db.backref('vehicle_bookings'))
-    num_passengers = db.Column('num_passengers', db.Integer(), info={'min': 1, 'label': u'จำนวนผู้โดยสาร'})
+    num_passengers = db.Column('num_passengers', db.Integer(), info={'min': 1,
+                                                                     'label': u'จำนวนผู้โดยสาร',
+                                                                     'validators': DataRequired()})
     approved = db.Column('approved', db.Boolean(), default=False)
     closed = db.Column('closed', db.Boolean(), default=False)
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())

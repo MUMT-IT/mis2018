@@ -141,78 +141,22 @@ def vehicle_list():
 @vehicle.route('/reserve/<license>', methods=['GET', 'POST'])
 @login_required
 def vehicle_reserve(license):
-    if request.method == 'POST':
-        license = request.form.get('license', None)
-        iocode_id = request.form.get('iocode', None)
-        if iocode_id:
-            iocode = IOCode.query.get(iocode_id)
-        else:
-            iocode = None
+    vehicle = VehicleResource.query.filter_by(license=license).first()
+    if not vehicle:
+        return abort(404, u'ไม่พบยานพาหนะที่มีหมายเลขทะเบียน {}'.format(license))
+    form = VehicleBookingForm()
+    form.vehicle.data = vehicle
+    if form.validate_on_submit():
+        reservation = VehicleBooking()
+        form.populate_obj(reservation)
+        db.session.add(reservation)
+        db.session.commit()
 
-        destination = request.form.get('destination', None)
-        desc = request.form.get('desc', None)
-        num_passengers = request.form.get('num_passengers', 0)
-        distance = request.form.get('distance', None)
-        startdate = request.form.get('startdate', None)
-        starttime = request.form.get('starttime', None)
-        enddate = request.form.get('enddate', None)
-        endtime = request.form.get('endtime', None)
-        title = request.form.get('title', None)
-        org_id = request.form.get('org', None)
-        if org_id:
-            org = Org.query.get(int(org_id))
-        else:
-            org = None
-        vehicle = VehicleResource.query.filter_by(license=license).first()
-        if not vehicle:
-            flash('Vehicle with license plate="{}" not found.'.format(license))
-            return redirect(url_for('vehicle.index'))
-        tz = pytz.timezone('Asia/Bangkok')
-        if startdate and starttime:
-            startdatetime = datetime.strptime(
-                '{} {}'.format(startdate, starttime), '%Y-%m-%d %H:%M')
-            startdatetime = tz.localize(startdatetime, is_dst=None)
-        else:
-            startdatetime = None
-        if enddate and endtime:
-            enddatetime = datetime.strptime(
-                '{} {}'.format(enddate, endtime), '%Y-%m-%d %H:%M')
-            enddatetime = tz.localize(enddatetime, is_dst=None)
-        else:
-            enddatetime = None
-
-        if startdatetime and enddatetime and license and org:
-            timedelta = enddatetime - startdatetime
-            if timedelta.days < 0 or timedelta.seconds == 0:
-                flash(u'ระบุวันและเวลาเริ่มต้นสิ้นสุดไม่ถูกต้อง', 'warning')
-            else:
-                reservation = VehicleBooking(
-                    vehicle=vehicle,
-                    title=title,
-                    start=startdatetime,
-                    end=enddatetime,
-                    destination=destination,
-                    distance=distance,
-                    iocode=iocode,
-                    org=org,
-                    num_passengers=num_passengers,
-                    approved=False,
-                    desc=desc,
-                )
-                db.session.add(reservation)
-                db.session.commit()
-
-                return redirect(url_for('vehicle.index'))
-    if license:
-        vehicle = VehicleResource.query.filter_by(license=license).first()
-        if vehicle:
-            timeslots = []
-            for i in range(1, 24):
-                for j in [0, 30]:
-                    timeslots.append('{:02}:{:02}'.format(i, j))
-            orgs = Org.query.all()
-            return render_template('scheduler/vehicle_reserve_form.html',
-                                   vehicle=vehicle, timeslots=timeslots, orgs=orgs)
+        return redirect(url_for('vehicle.index'))
+    else:
+        for err in form.errors.values():
+            flash(', '.join(err), 'danger')
+    return render_template('scheduler/vehicle_reserve_form.html', form=form, vehicle=vehicle)
 
 
 @vehicle.route('/events/approve/<int:event_id>')
@@ -244,12 +188,10 @@ def edit_detail(event_id=None):
         form.populate_obj(event)
         db.session.add(event)
         db.session.commit()
-
         return redirect(url_for('vehicle.show_event_detail', event_id=event.id))
     else:
-        flash(form.errors, 'danger')
-
-    print(form.start.data)
+        for err in form.errors.values():
+            flash(', '.join(err), 'danger')
     return render_template('scheduler/vehicle_event_edit.html', form=form, event=event)
 
 
