@@ -6,14 +6,13 @@ import requests
 from flask_login import login_required
 
 from . import vehiclebp as vehicle
-from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
-from googleapiclient.discovery import build
 from flask import jsonify, render_template, redirect, flash, url_for, request, abort
 from models import *
 from .forms import VehicleBookingForm
-from ..models import Org, IOCode
 from google.oauth2.service_account import Credentials
+
+tz = pytz.timezone('Asia/Bangkok')
 
 if os.environ.get('FLASK_ENV') == 'development':
     CALENDAR_ID = 'cl05me2rhh57a5n3i76nqao7ng@group.calendar.google.com'
@@ -200,26 +199,11 @@ def edit_detail(event_id=None):
 @login_required
 def cancel(event_id):
     event = VehicleBooking.query.get(event_id)
-    if event:
-        if not event.init_milage and not event.end_milage:
-            tz = pytz.timezone('Asia/Bangkok')
-            cancelled_datetime = tz.localize(datetime.utcnow())
-            event.cancelled_at = cancelled_datetime
-            db.session.add(event)
-            db.session.commit()
-            update_event = {'status': 'cancelled'}
-            scoped_credentials = credentials.with_scopes([
-                'https://www.googleapis.com/auth/calendar',
-                'https://www.googleapis.com/auth/calendar.events'
-            ])
-            calendar_service = build('calendar', 'v3',
-                                     credentials=scoped_credentials)
-            event_ = calendar_service.events().patch(
-                calendarId=event.google_calendar_id,
-                eventId=event.google_event_id, body=update_event).execute()
-            flash('The booking no.{} has been cancelled.'.format(event.id))
-        else:
-            flash('The booking no.{} cannot be cancelled.'.format(event.id))
-    else:
-        flash('The booking no.{} not found.'.format(event.id))
+    if not event:
+        return abort(404, u'ไม่พบรายการในระบบ')
+    cancelled_datetime = tz.localize(datetime.utcnow())
+    event.cancelled_at = cancelled_datetime
+    db.session.add(event)
+    db.session.commit()
+    flash('The booking no.{} has been cancelled.'.format(event.id))
     return redirect(url_for('vehicle.index'))
