@@ -103,3 +103,11 @@ class VehicleBooking(db.Model):
                 'textColor': '',
                 'closed': self.closed,
                 }
+
+    @property
+    def is_editable(self):
+        return self.cancelled_at is None and self.closed is False
+
+    @property
+    def is_closed(self):
+        return self.init_milage is not None and self.end_milage is not None

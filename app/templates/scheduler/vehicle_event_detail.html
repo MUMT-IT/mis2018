@@ -9,7 +9,7 @@
                     <div class="card">
                         <div class="card-image">
                             <figure class="image is-3by2">
-                                <img src="{{ url_for('static', filename='img/meeting.jpg') }}">
+                                <img src="{{ url_for('static', filename='img/vehicles.jpg') }}">
                             </figure>
                         </div>
                         <div class="card-content">
@@ -27,19 +27,19 @@
                                 </p>
                                 {% if event.init_milage and event.end_milage %}
                                 <p>
+                                    <span class="icon">
+                                        <i class="fas fa-tachometer-alt"></i>
+                                    </span>
                                     <span class="subtitle">
-                                        <span class="icon">
-                                            <i class="fas fa-tachometer-alt"></i>
-                                        </span>
                                         &nbsp;เลขไมล์ {{ event.init_milage }} - {{ event.end_milage }}
                                     </span>
                                 </p>
                                 {% endif %}
                                 <p>
+                                    <span class="icon">
+                                        <i class="fas fa-road"></i>
+                                    </span>
                                     <span class="subtitle">
-                                        <span class="icon">
-                                            <i class="fas fa-road"></i>
-                                        </span>
                                         {% if event.distance > 0 %}
                                         &nbsp;ระยะทางโดยประมาณ {{ event.distance }} ก.ม.
                                         {% else %}
@@ -49,19 +49,19 @@
                                 </p>
                                 </p>
                                 <p>
+                                    <span class="icon">
+                                        <i class="fas fa-car"></i>
+                                    </span>
                                     <span class="subtitle">
-                                        <span class="icon">
-                                            <i class="fas fa-car"></i>
-                                        </span>
                                         &nbsp;ทะเบียน {{ event.vehicle.license }}
                                     </span>
                                 </p>
                                 <p>
-                                    <span class="subtitle is-6">
-                                        <span class="icon">
-                                            <i class="far fa-clock"></i>
-                                        </span>
-                                            &nbsp;{{ event.start.strftime('%d/%m/%Y') }} {{ event.start.strftime('%H:%M') }}
+                                    <span class="icon">
+                                        <i class="far fa-clock"></i>
+                                    </span>
+                                    <span class="subtitle">
+                                        {{ event.start.strftime('%d/%m/%Y') }} {{ event.start.strftime('%H:%M') }}
                                         ถึง {{ event.end.strftime('%d/%m/%Y') }} {{ event.end.strftime('%H:%M') }}
                                     </span>
                                 </p>
@@ -69,47 +69,58 @@
                                     <span class="icon">
                                         <i class="fas fa-info-circle"></i>
                                     </span>
-                                    &nbsp;
-                                    {% if event.desc %}
-                                        {{ event.desc }}
-                                    {% else %}
-                                        ไม่ระบุรายละเอียด
-                                    {% endif %}
-                                </p>
-                                <p>
-                                <span class="subtitle is-6">
-                                        <span class="icon">
-                                            <i class="fas fa-users"></i>
-                                        </span>
-                                        &nbsp;{{ event.num_passengers }} คน
+                                    <span class="subtitle">
+                                        {% if event.desc %}
+                                            {{ event.desc }}
+                                        {% else %}
+                                            ไม่ระบุรายละเอียด
+                                        {% endif %}
                                     </span>
                                 </p>
                                 <p>
-                                    <span class="subtitle is-6">
+                                    <span class="icon">
+                                        <i class="fas fa-users"></i>
+                                    </span>
+                                    <span class="subtitle">
+                                        {{ event.num_passengers or 'ไม่ระบุจำนวน' }} คน
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="subtitle">
                                         {% if event.approved %}
                                             <span class="icon">
-                                            <i class="far fa-check-circle has-text-success"></i>
-                                        </span>
+                                                <i class="far fa-check-circle has-text-success"></i>
+                                            </span>
                                             <span class="has-text-success">
                                             &nbsp;ยืนยันแล้ว
                                             </span>
-                                        {% else %}
+                                        {% elif event.cancelled_at %}
                                             <span class="icon">
-                                                <i class="far fa-circle has-text-danger"></i>
+                                                <i class="fa-solid fa-circle-xmark has-text-danger"></i>
                                             </span>
                                             <span class="has-text-danger">
+                                            รายการนี้ยกเลิกแล้ว
+                                            </span>
+                                        {% else %}
+                                            <span class="icon">
+                                                <i class="far fa-circle has-text-warning"></i>
+                                            </span>
+                                            <span class="has-text-warning">
                                                 &nbsp;รอการยืนยัน
                                             </span>
                                         {% endif %}
+                                    {{ event.is_closed }}
                                     </span>
                                 </p>
                             </div>
                         </div>
                         <footer class="card-footer">
                             <a href="/vehicle/" class="card-footer-item">กลับ</a>
+                            {% if event.is_editable %}
                             <a href="{{ url_for('vehicle.edit_detail', event_id=event.id) }}"
                                     class="card-footer-item">แก้ไข</a>
-                            {% if event.vehicle.license != 'xxxxxx' %}
+                            {% endif %}
+                            {% if event.vehicle.license != 'xxxxxx' and event.is_editable and not event.approved %}
                             <a href="{{ url_for('vehicle.approve_event', event_id=event.id) }}"
                                     class="card-footer-item">ยืนยัน</a>
                             {% endif %}

@@ -54,21 +54,22 @@ def get_events():
         .filter(VehicleBooking.end <= end)
     all_events = []
     for event in events:
-        if event.cancelled_at:
+        if event.is_closed:
+            text_color = '#ffffff'
+            bg_color = '#066b02'
+            border_color = '#ffffff'
+        elif event.cancelled_at:
             text_color = '#ffffff'
             bg_color = '#ff6666'
             border_color = '#ffffff'
         elif event.approved:
-            text_color = '#ffffff'
-            bg_color = '#2b8c36'
+            text_color = '#000000'
+            bg_color = '#62c45e'
             border_color = '#ffffff'
-        elif event.closed:
-            bg_color = '#003366'
-            border_color = '#000000'
         else:
             text_color = '#000000'
             bg_color = '#f0f0f5'
-            border_color = '#ff4d4d'
+            border_color = '#ffffff'
         evt = event.to_dict()
         evt['resourceId'] = event.vehicle.license
         evt['borderColor'] = border_color
