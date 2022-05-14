@@ -1,72 +1,78 @@
 <!doctype html>
 <html>
-    <head>
-        {% block head %}
+<head>
+    {% block head %}
         <title>{% block title %}{% endblock %}</title>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/fontawesome-all.min.css') }}"> -->
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css" integrity="sha512-KfkfwYDsLkIlwQp6LFnl8zNdLGxu9YAA1QvwINks4PhcElQSvqcyVLLD9aMhXd13uQjoXtEKNosOWaZqXgel0g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.1.1/css/all.min.css"
+              integrity="sha512-KfkfwYDsLkIlwQp6LFnl8zNdLGxu9YAA1QvwINks4PhcElQSvqcyVLLD9aMhXd13uQjoXtEKNosOWaZqXgel0g=="
+              crossorigin="anonymous" referrerpolicy="no-referrer"/>
         <link rel="stylesheet" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css"/>
         <link rel="stylesheet" href="//cdn.materialdesignicons.com/2.5.94/css/materialdesignicons.min.css"/>
         <link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css"/>
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css" integrity="sha512-IgmDkwzs96t4SrChW29No3NXBIBv8baW490zk5aXvhCD8vuZM3yUSkbyTBcXohkySecyzIrUwiF/qV0cuPcL3Q==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-        <script src="https://unpkg.com/htmx.org@1.6.1" integrity="sha384-tvG/2mnCFmGQzYC1Oh3qxQ7CkQ9kMzYjWZSNtrRZygHPDDqottzEJsqS4oUVodhW" crossorigin="anonymous"></script>
-        {% endblock %}
-    </head>
-    <body>
-        {% block page_content %}
-        {% endblock %}
-        {% block footer %}
-        <div class="footer">
-            <div class="container">
-                <div class="content has-text-centered">
-                    MUMT Information Management System Powered by Bulma, Vue, Knockout, Flask and Python Technology
-                        <div>Icons made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> from
-                            <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by
-                            <a href="http://creativecommons.org/licenses/by/3.0/"
-                               title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
-                        {% if config['DEBUG'] %}
-                            <article class="message is-warning">
-                                <div class="message-header">
-                                    DEBUG MODE Only
-                                </div>
-                                <div class="message-body">
-                                    <strong>Template file:</strong> {{ self._TemplateReference__context.name }}
-                                </div>
-                            </article>
-                        {% endif %}
-                </div>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.3/css/bulma.min.css"
+              integrity="sha512-IgmDkwzs96t4SrChW29No3NXBIBv8baW490zk5aXvhCD8vuZM3yUSkbyTBcXohkySecyzIrUwiF/qV0cuPcL3Q=="
+              crossorigin="anonymous" referrerpolicy="no-referrer"/>
+        <script src="https://unpkg.com/htmx.org@1.6.1"
+                integrity="sha384-tvG/2mnCFmGQzYC1Oh3qxQ7CkQ9kMzYjWZSNtrRZygHPDDqottzEJsqS4oUVodhW"
+                crossorigin="anonymous"></script>
+    {% endblock %}
+</head>
+<body>
+{% block page_content %}
+{% endblock %}
+{% block footer %}
+    <div class="footer">
+        <div class="container">
+            <div class="content has-text-centered">
+                MUMT Information Management System Powered by Bulma, Vue, Knockout, Flask and Python Technology
+                <div>Icons made by <a href="https://www.flaticon.com/authors/smashicons"
+                                      title="Smashicons">Smashicons</a> from
+                    <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by
+                    <a href="http://creativecommons.org/licenses/by/3.0/"
+                       title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
+                {% if config['DEBUG'] %}
+                    <article class="message is-warning">
+                        <div class="message-header">
+                            DEBUG MODE Only
+                        </div>
+                        <div class="message-body">
+                            <strong>Template file:</strong> {{ self._TemplateReference__context.name }}
+                        </div>
+                    </article>
+                {% endif %}
             </div>
         </div>
-        {% endblock %}
-        {% block scripts %}
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.24.0/moment-with-locales.min.js" integrity="sha256-AdQN98MVZs44Eq2yTwtoKufhnU+uZ7v2kXnD5vqzZVo=" crossorigin="anonymous"></script>
-            <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
-            <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.12/vue.min.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
-            <script src="{{ url_for('static', filename='js/buefy.min.js') }}"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout.mapping/2.4.1/knockout.mapping.min.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/print-js@1.0.61/dist/print.min.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.5.8/cleave.min.js" integrity="sha256-F/xzCMjFU6UaVTw7IPk3dDxJ5mvvonjQxVfIPqbJDmA=" crossorigin="anonymous"></script>
-            <script src="https://cdn.jsdelivr.net/npm/bulma-extensions@6.2.7/dist/js/bulma-extensions.min.js"></script>
-            <script src="https://cdn.jsdelivr.net/npm/bulma-accordion@2.0.1/dist/js/bulma-accordion.min.js"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.26.0/moment.min.js" integrity="sha256-5oApc/wMda1ntIEK4qoWJ4YItnV4fBHMwywunj8gPqc=" crossorigin="anonymous"></script>
-            <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.27.0/locale/th.min.js"></script>
-            <script>
-                moment.locale('th');
-              $(document).ready(function() {
-                $(".navbar-burger").click(function() {
-                  $(".navbar-burger").toggleClass("is-active");
-                  $(".navbar-menu").toggleClass("is-active");
-                });
-                var accordions = bulmaAccordion.attach();
-              });
-            </script>
-        {% endblock %}
-    </body>
+    </div>
+{% endblock %}
+{% block scripts %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.3/locale/th.min.js" integrity="sha512-IiSJKJyOVydT9/jfVcnpg7PIUM41Be6YzR5bTiAEAEQxTVtnUhbhiSNtgGXmOTFoxYpYs+LdxWlELOK7iRVVBg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.3/moment-with-locales.min.js" integrity="sha512-vFABRuf5oGUaztndx4KoAEUVQnOvAIFs59y4tO0DILGWhQiFnFHiR+ZJfxLDyJlXgeut9Z07Svuvm+1Jv89w5g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+    <script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.6.12/vue.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
+    <script src="{{ url_for('static', filename='js/buefy.min.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout/3.4.2/knockout-min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/knockout.mapping/2.4.1/knockout.mapping.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.7.2/Chart.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/print-js@1.0.61/dist/print.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cleave.js/1.5.8/cleave.min.js"
+            integrity="sha256-F/xzCMjFU6UaVTw7IPk3dDxJ5mvvonjQxVfIPqbJDmA=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bulma-extensions@6.2.7/dist/js/bulma-extensions.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bulma-accordion@2.0.1/dist/js/bulma-accordion.min.js"></script>
+    <script>
+        moment.locale('th');
+        $(document).ready(function () {
+            $(".navbar-burger").click(function () {
+                $(".navbar-burger").toggleClass("is-active");
+                $(".navbar-menu").toggleClass("is-active");
+            });
+            var accordions = bulmaAccordion.attach();
+        });
+    </script>
+{% endblock %}
+</body>
 </html>
 
