@@ -17,6 +17,7 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
+from werkzeug.exceptions import NotFound
 from wtforms import DateTimeField
 from wtforms.validators import required
 from datetime import timedelta, datetime
@@ -89,6 +90,16 @@ def create_app():
 
 app = create_app()
 api = Api(app)
+
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('errors/404.html', error=e), 404
+
+
+@app.errorhandler(500)
+def page_not_found(e):
+    return render_template('errors/500.html', error=e), 500
 
 
 def get_weekdays(req):
