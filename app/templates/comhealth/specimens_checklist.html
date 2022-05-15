@@ -1,10 +1,9 @@
 {% extends "base.html" %}
 {% block head %}
 {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bm/dt-1.11.4/datatables.min.css"/>
     <style>
     div.dataTables_wrapper {
-        width: 1000px;
+        width: 1200px;
         margin: 0 auto;
     }
     </style>
@@ -49,13 +48,18 @@
             </div>
             <div class="columns">
                 <div class="column">
-                    <table id="specimensTable">
+                    <table id="specimensTable" class="table is-striped is-narrowed is-fullwidth">
                         <thead>
                             <th>Lab No.</th>
                             {% for ct in headers %}
                             <th>
-                                <a href="{{ url_for('comhealth.list_tests_in_container', service_id=service.id, container_id=ct.id) }}">
-                                    {{ ct.name }}
+                                {{ ct.name }}
+                                <a class="button is-small is-white is-rounded"
+                                   href="{{ url_for('comhealth.list_tests_in_container', service_id=service.id, container_id=ct.id) }}">
+                                    <span class="icon">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </span>
+                                    <span>view</span>
                                 </a>
                             </th>
                             {% endfor %}
@@ -69,7 +73,6 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript" src="https://cdn.datatables.net/v/bm/dt-1.11.4/datatables.min.js"></script>
     <script>
         $(document).ready(function() {
             $('#specimensTable').DataTable({

@@ -868,8 +868,8 @@ def summarize_specimens(service_id):
             containers.add(test_item.test.container)
     columns = [{'data': 'labno', 'searchable': True}]
     headers = []
-    for ct in containers:
-        columns.append({'data': ct.name})
+    for ct in sorted(containers, key=lambda x: x.name):
+        columns.append({'data': ct.id})
         headers.append(ct)
 
     return render_template('comhealth/specimens_checklist.html',
@@ -905,9 +905,9 @@ def get_specimens_summary_data(service_id):
             d = {'labno': rec.labno}
             for ct in containers:
                 if ct.name in rec.container_set:
-                    d[ct.name] = '''<td><span class="icon"><i class="fas fa-check has-text-success"></i></span></td>'''
+                    d[ct.id] = '''<td><span class="icon"><i class="fa-solid fa-circle-check has-text-success"></i></span></td>'''
                 else:
-                    d[ct.name] = '-'
+                    d[ct.id] = None
             data.append(d)
     return jsonify({'data': data,
                     'recordsFiltered': query.count(),
@@ -1004,14 +1004,16 @@ def uncheck_container(service_id, record_id, container_id):
                             service_id=service_id, container_id=container_id))
 
 
-@comhealth.route('/services/<int:service_id>/containers/<int:container_id>/scan',
-                 methods=['GET', 'POST'])
+@comhealth.route('/services/<int:service_id>/containers/<int:container_id>/scan', methods=['GET', 'POST'])
 @login_required
 def scan_container(service_id, container_id):
     container = ComHealthContainer.query.get(container_id)
     service = ComHealthService.query.get(service_id)
-    recents = list(ComHealthSpecimensCheckinRecord.query.filter(ComHealthSpecimensCheckinRecord.container.has(id=container_id))\
-                   .order_by(ComHealthSpecimensCheckinRecord.checkin_datetime.desc()).limit(5))
+    recents = ComHealthSpecimensCheckinRecord.query\
+        .filter(ComHealthSpecimensCheckinRecord.container.has(id=container_id))\
+        .filter(ComHealthSpecimensCheckinRecord.record.has(service_id=service_id))\
+        .order_by(ComHealthSpecimensCheckinRecord.checkin_datetime.desc())
+
     if request.method == 'POST':
         specimens_no = request.form.get('specimens_no')
         labno = u'{}{}'.format(str(datetime.today().year)[-1], specimens_no[3:])
