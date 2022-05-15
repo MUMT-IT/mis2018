@@ -1,10 +1,16 @@
 {% extends "base.html" %}
 {% block title %}Edit Vehicle Booking{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
 {% include "scheduler/nav.html" %}
 {% block page_content %}
 <section class="section" id="app">
     <div class="columns">
-        <div class="column is-8 is-offset-2">
+        <div class="column is-two-thirds is-offset-2">
+            {% include "messages.html" %}
             <div class="box">
                 <p class="has-text-centered">กรุณากรอกข้อมูลการจองให้สมบูรณ์</p>
                 {% if event.vehicle.required_permission %}
@@ -16,238 +22,181 @@
                             <label class="label">หมายเลขทะเบียน</label>
                         </div>
                         <div class="field-body">
-                            <div class="select is-danger">
-                                <select name="license">
-                                    {% for vh in vehicles %}
-                                    <option value="{{ vh.license }}"
-                                    {% if event.vehicle.license==vh.license %}
-                                    selected
-                                    {% endif %}
-                                    {% if event.init_milage and event.end_milage %}
-                                    disabled
-                                    {% endif %}
-                                    >{{ vh.license }}</option>
-                                    {% endfor %}
-                                </select>
-                                </select>
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.vehicle(style="width: 50%") }}
+                                </div>
+                                <p class="help has-text-danger">*จำเป็น</p>
                             </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">หน่วยงาน</label>
-                        </div>
-                        <div class="field-body">
-                            <p>
-                                {{ event.org.name }}
-                            </p>
-                        </div>
-                    </div>
-                    <b-field horizontal label="รหัส IO" message="สามารถค้นหาด้วยชื่อโครงการฯ หน่วยงาน รหัส cost center พันธกิจ หรือรหัส IO">
-                        <b-autocomplete v-model="ioquery" :data="data" name="iocode"
-                                        field="id" :loading="isFetching" icon="magnify"
-                                        @keyup.native="getAsyncData"
-                                        @select="option => iocode = option.id">
-                            <template slot-scope="props">
-                                <div class="media">
-                                    <div class="media-content">
-                                        <%props.option.name%>
-                                        <br>
-                                        <small>
-                                            IO code: <%props.option.id%>,
-                                            Department: <%props.option.org%>,
-                                            Cost Center : <%props.option.costCenter%>,
-                                            Mission: <%props.option.mission%>
-                                        </small>
-                                    </div>
-                                </div>
-                            </template>
-                        </b-autocomplete>
-                    </b-field>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">จุดประสงค์</label>
+                            <label class="label">{{ form.org.label }}</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input is-danger"
-                                           name="title" type="text"
-                                           value="{{ event.title }}"
-                                           placeholder="ประชุม, สอน ฯลฯ​">
+                                    {{ form.org(style="width: 50%") }}
                                 </div>
+                                <p class="help has-text-danger">*จำเป็น</p>
                             </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">สถานที่</label>
+                            <label class="label">{{ form.iocode.label }}</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input is-danger"
-                                           name="destination" type="text"
-                                           value="{{event.destination}}"
-                                           placeholder="สถานที่ปลายทาง">
+                                    {{ form.iocode(style="width: 100%") }}
+                                    <p class="help has-text-danger">*จำเป็น</p>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">ตั้งแต่วันที่</label>
+                            <label class="label">{{ form.title.label }}</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input is-danger"
-                                        type="date" name="startdate"
-                                        value="{{ event.end.date() }}"
-                                    >
+                                    {{ form.title(class="input") }}
+                                </div>
+                                <p class="help has-text-danger">*จำเป็น</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">{{ form.destination.label }}</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    {{ form.destination(class="input") }}
+                                    <span class="icon is-small is-left">
+                                       <i class="fa-solid fa-location-dot"></i>
+                                    </span>
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">เวลา</label>
+                            <label class="label">{{ form.start.label }}</label>
                         </div>
                         <div class="field-body">
-                            <div class="select is-danger">
-                                <select name="starttime">
-                                    {% for ts in timeslots %}
-                                    <option value="{{ ts }}"
-                                    {% if event.start.strftime('%H:%M')==ts %}
-                                    selected
-                                    {% endif %}
-                                    >{{ ts }}</option>
-                                    {% endfor %}
-                                </select>
-                                </select>
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    {{ form.start(class="input") }}
+                                    <span class="icon is-left is-small">
+                                        <i class="fa-solid fa-calendar-days"></i>
+                                    </span>
+                                </div>
+                                <p class="help has-text-danger">*จำเป็น</p>
                             </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">สิ้นสุดวันที่</label>
+                            <label class="label">{{ form.end.label }}</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    {{ form.end(class="input") }}
+                                    <span class="icon is-left is-small">
+                                        <i class="fa-solid fa-calendar-days"></i>
+                                    </span>
+                                    <p class="help has-text-danger">*จำเป็น</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">{{ form.num_passengers.label }}</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input is-danger"
-                                        type="date" name="enddate"
-                                        value="{{ event.end.date() }}"
-                                    >
+                                    {{ form.num_passengers(class="input") }}
                                 </div>
+                                <p class="help has-text-danger">*จำเป็น</p>
                             </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">เวลา</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="select is-danger">
-                                <select name="endtime">
-                                    {% for ts in timeslots %}
-                                    <option value="{{ ts }}"
-                                    {% if event.end.strftime('%H:%M')==ts %}
-                                    selected
-                                    {% endif %}
-                                    >{{ ts }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">จำนวนผู้โดยสาร</label>
+                            <label class="label">{{ form.init_milage.label }}</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input is-danger" type="number"
-                                           value="{{ event.num_passengers }}"
-                                           name="num_passengers">
+                                    {{ form.init_milage(class="input") }}
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">เลขไมล์ต้นทาง</label>
+                            <label class="label">{{ form.end_milage.label }}</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input" type="number"
-                                           value="{{ event.init_milage }}"
-                                           name="init_milage"
-                                           placeholder="ต้องใส่พร้อมกับเลขไมล์ปลายทาง"
-                                           >
+                                    {{ form.end_milage(class="input") }}
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">เลขไมล์ปลายทาง</label>
+                            <label class="label">{{ form.toll_fee.label }}</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input" type="number"
-                                           value="{{ event.end_milage }}"
-                                           name="end_milage"
-                                           placeholder="ต้องใส่พร้อมกับเลขไมล์ต้นทาง"
-                                           >
+                                    {{ form.toll_fee(class="input") }}
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">ค่าทางด่วน</label>
+                            <label class="label">{{ form.desc.label }}</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input" type="number"
-                                           value="{{ event.toll_fee }}"
-                                           step="0.1"
-                                           name="toll_fee">
+                                    {{ form.desc(class="textarea") }}
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">รายละเอียดเพิ่มเติม</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <textarea class="textarea"
-                                        type="text" name="desc" rows="5">{{ event.desc }}</textarea>
-                                </div>
-                            </div>
-                        </div>
+                    {{ form.hidden_tag() }}
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('vehicle.show_event_detail', event_id=event.id) }}"
+                           class="button is-light">
+                            <span>กลับ</span>
+                        </a>
+                        <button type="submit" class="button is-success">
+                            <span class="icon">
+                                <i class="fa-solid fa-floppy-disk"></i>
+                            </span>
+                            <span>บันทึกข้อมูล</span>
+                        </button>
+                        <a href="{{ url_for('vehicle.cancel', event_id=event.id) }}"
+                           class="button is-danger">
+                            <span class="icon">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </span>
+                            <span>ยกเลิก</span>
+                        </a>
                     </div>
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <input type="hidden" name="event_id" value="{{ event.id }}">
-                    <button type="submit" class="button is-rounded is-success">
-                        <strong>บันทึกข้อมูล</strong>
-                    </button>
-                    <a href="{{ url_for('vehicle.show_event_detail', event_id=event.id) }}"
-                        class="button is-rounded is-success">
-                        <strong>กลับ</strong>
-                    </a>
-                    <a href="{{ url_for('vehicle.cancel', event_id=event.id) }}"
-                        class="button is-rounded is-danger">
-                        <strong>ยกเลิก</strong>
-                    </a>
                 </form>
             </div>
         </div>
@@ -257,95 +206,66 @@
 
 {% block scripts %}
 {{super()}}
-<script type="text/javascript">
-    var vm = new Vue({
-        el: '#app',
-        delimiters: ['<%', '%>'],
-        data() {
-            return {
-                data: [],
-                ioquery: '',
-                iocode: '',
-                isFetching: false,
-                title: '',
-                startdate: undefined,
-                enddate: undefined,
-                num_passengers: 1,
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(function() {
+            $('#start').daterangepicker({
+                    singleDatePicker: true,
+                    timePicker: true,
+                    timePickerIncrement: 15,
+                    timePicker24Hour: true,
+                    locale: {
+                        format: 'YYYY-MM-DD HH:mm:ss'
+                    },
+                    applyButtonClasses: "button is-success",
+                    cancelButtonClasses: "button is-light"
+                }
+            );
+            $('#end').daterangepicker({
+                    singleDatePicker: true,
+                    timePicker: true,
+                    timePickerIncrement: 15,
+                    timePicker24Hour: true,
+                    locale: {
+                        format: 'YYYY-MM-DD HH:mm:ss'
+                    },
+                    applyButtonClasses: "button is-success",
+                    cancelButtonClasses: "button is-light"
+                }
+            );
+        });
+    </script>
+    <script>
+        function formatState (state) {
+              if (!state.id) {
+                return state.text;
+              }
+              let textArray = state.text.split(":");
+              var $state = $(
+                '<span><strong>Code</strong> ' + textArray[0] + '</span><br>' +
+                '<span><strong>Name</strong> ' + textArray[1] + '</span><br>' +
+                '<span><strong>Org</strong> ' + textArray[2] + '</span><br>' +
+                '<span><strong>Mission</strong> ' + textArray[3] + '</span>'
+              );
+              return $state;
+        };
+        function formatSelection (state) {
+            if (!state.id) {
+                return state.text;
             }
-        },
-        mounted: function() {
-            this.iocode = {{iocode|tojson|safe}};
-            this.ioquery = {{iocode|tojson|safe}};
-        },
-        computed: {
-            datedelta: function() {
-                var self = this
-                if (self.startdate !== undefined && self.enddate !== undefined) {
-                    return new Date(self.enddate) - new Date(self.startdate)
-                } else {
-                    return 0
-                }
-            },
-        },
-        methods: {
-            checkDate: function() {
-                var self = this
-                if (self.datedelta < 0) {
-                    self.$toast.open({
-                        duration: 2000,
-                        message: 'วันสิ้นสุดต้องมาหลังวันเริ่มต้น',
-                        position: 'is-bottom',
-                        type: 'is-danger'
-                    })
-                }
-            },
-            checkPassenger: function() {
-                var self = this
-                if (self.num_passengers < 1) {
-                    self.$toast.open({
-                        duration: 2000,
-                        message: 'ผู้ใช้งานห้องต้องมีจำนวนอย่างน้อยหนึ่งคน',
-                        position: 'is-bottom',
-                        type: 'is-danger'
-                    })
-                }
-            },
-            isNotReady: function() {
-                var self = this
-                if(self.datedelta >= 0 && self.iocode !== '' &&
-                    self.startdate !== undefined &&
-                    self.title !== '' && self.participant >= 1) {
-                    return false
-                } else {
-                    return true
-                }
-            },
-            getAsyncData: function() {
-                var self = this
-                self.isFetching = true
-                axios.get('/room/api/iocodes').then(function(resp) {
-                    self.data = []
-                    resp.data.forEach(function(item) {
-                        if (item.id.indexOf(self.ioquery) !== -1) {
-                            self.data.push(item)
-                        }
-                        else if (item.name.indexOf(self.ioquery) !== -1) {
-                            self.data.push(item)
-                        }
-                        else if (item.costCenter.indexOf(self.ioquery) !== -1) {
-                            self.data.push(item)
-                        }
-                        else if (item.org.indexOf(self.ioquery) !== -1) {
-                            self.data.push(item)
-                        }
-                        else if (item.mission.indexOf(self.ioquery) !== -1) {
-                            self.data.push(item)
-                        }
-                    })
-                    self.isFetching = false
-                })
-            },
-        }
-    })
-</script>
+            let textArray = state.text.split(":");
+            var $state = textArray[0];
+            return $state;
+        };
+        $(function() {
+           $('#iocode').select2({
+               templateResult: formatState,
+               templateSelection: formatSelection
+           });
+           $('#org').select2();
+           $('#vehicle').select2();
+        })
+    </script>
 {% endblock %}

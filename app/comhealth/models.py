@@ -296,7 +296,9 @@ class ComHealthRecord(db.Model):
                                backref=db.backref('records', cascade='all, delete-orphan'))
     service_id = db.Column('service_id', db.ForeignKey('comhealth_services.id'))
     service = db.relationship('ComHealthService',
-                              backref=db.backref('records', cascade='all, delete-orphan'))
+                              backref=db.backref('records',
+                                                 cascade='all, delete-orphan',
+                                                 lazy='dynamic'))
     checkin_datetime = db.Column('checkin_datetime', db.DateTime(timezone=True))
     ordered_tests = db.relationship('ComHealthTestItem', backref=db.backref('records'),
                                     secondary=test_item_record_table)

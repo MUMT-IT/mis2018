@@ -17,6 +17,7 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
+from werkzeug.exceptions import NotFound
 from wtforms import DateTimeField
 from wtforms.validators import required
 from datetime import timedelta, datetime
@@ -91,6 +92,16 @@ app = create_app()
 api = Api(app)
 
 
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('errors/404.html', error=e), 404
+
+
+@app.errorhandler(500)
+def page_not_found(e):
+    return render_template('errors/500.html', error=e), 500
+
+
 def get_weekdays(req):
     delta = req.end_datetime - req.start_datetime
     n = 0
@@ -129,6 +140,7 @@ def index():
 
 
 json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()
+
 
 from kpi import kpibp as kpi_blueprint
 
@@ -193,22 +205,16 @@ from app.purchase_tracker.models import *
 
 admin.add_views(ModelView(PurchaseTrackerAccount, db.session, category='PurchaseTracker'))
 admin.add_views(ModelView(PurchaseTrackerStatus, db.session, category='PurchaseTracker'))
+admin.add_views(ModelView(PurchaseTrackerActivity, db.session, category='PurchaseTracker'))
+
 
 from staff import staffbp as staff_blueprint
 
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
-from staff.models import (StaffAccount, StaffPersonalInfo,
-                          StaffAcademicPosition,
-                          StaffLeaveApprover, StaffLeaveQuota,
-                          StaffLeaveRequest, StaffLeaveType,
-                          StaffLeaveApproval, StaffEmployment,
-                          StaffWorkFromHomeRequest, StaffWorkFromHomeJobDetail,
-                          StaffWorkFromHomeApprover, StaffWorkFromHomeApproval,
-                          StaffWorkFromHomeCheckedJob, StaffLeaveRemainQuota,
-                          StaffSeminar, StaffSeminarAttend, StaffWorkLogin,
-                          StaffSpecialGroup)
+from staff.models import *
 
+admin.add_views(ModelView(Role, db.session, category='Permission'))
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPosition, db.session, category='Staff'))
@@ -485,6 +491,12 @@ admin.add_view(ModelView(DocDocument, db.session, category='Docs Circulation'))
 admin.add_view(ModelView(DocDocumentReach, db.session, category='Docs Circulation'))
 admin.add_view(ModelView(DocReceiveRecord, db.session, category='Docs Circulation'))
 
+
+from data_blueprint import data_bp as data_blueprint
+
+app.register_blueprint(data_blueprint, url_prefix='/data-blueprint')
+
+
 # Commands
 
 @app.cli.command()
@@ -744,7 +756,7 @@ def money_format(value):
 @app.template_filter("localtime")
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
-    datetime_format = '%-H:%M'
+    datetime_format = '%X'
     if dt:
         return dt.astimezone(bangkok).strftime(datetime_format)
     else:
@@ -754,7 +766,7 @@ def local_datetime(dt):
 @app.template_filter("localdatetime")
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
-    datetime_format = '%-d %b %Y %H:%M'
+    datetime_format = '%d/%m/%Y %X'
     if dt:
         return dt.astimezone(bangkok).strftime(datetime_format)
     else:
@@ -772,7 +784,7 @@ def humanize_datetime(dt):
 @app.template_filter("localdate")
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
-    datetime_format = '%-d %b %Y'
+    datetime_format = '%x'
     return dt.astimezone(bangkok).strftime(datetime_format)
 
 

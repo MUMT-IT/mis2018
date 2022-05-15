@@ -61,17 +61,6 @@
                     <ul class="menu-list">
                         <li><a href="{{ url_for('procurement.view_require_service') }}">IT & หน่วยซ่อมบำรุง</a></li>
                     </ul>
-                    <p class="menu-label is-size-6">
-                        รายงาน
-                    </p>
-                    <ul class="menu-list">
-                        <li><a>ครุภัณฑ์ภายในภาค</a></li>
-                        <li><a>สรุปค่าเสื่อมราคา</a></li>
-                        <li><a>Print ทะเบียนทรัพย์สิน</a></li>
-                        <li><a>ค่าเสื่อมแยกตามทรัพย์สิน</a></li>
-                        <li><a>ครุภัณฑ์ไม่ตรงกับทะเบียน</a></li>
-                        <li><a>ค้นหาครุภัณฑ์ไม่ตรงกับทะเบียน</a></li>
-                    </ul>
                 </aside>
             </div>
             <div class="columns">
@@ -97,7 +86,7 @@
                                         เพิ่มข้อมูล
                                     </p>
                                     <div class="content">
-                                        การเพิ่มรายละเอียดข้อมูลและอัพโหลดไฟล์ของครุภัณฑ์
+                                        เพิ่มรายละเอียดและอัพโหลดไฟล์ของครุภัณฑ์
                                     </div>
                                 </div>
                                 <footer class="card-footer">
@@ -182,7 +171,7 @@
 
     var calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: 'dayGridMonth',
-      initialDate: '2022-02-07',
+      initialDate: '2022-03-07',
       headerToolbar: {
         left: 'prev,next today',
         center: 'title',
@@ -190,8 +179,8 @@
       },
       events: [
         {
-          title: '-SMN-65/0437',
-          start: '2022-02-01'
+          title: '-SMN-65/0419',
+          start: '2022-03-03'
         }
       ]
     });

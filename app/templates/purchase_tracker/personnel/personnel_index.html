@@ -15,7 +15,7 @@
         <div class="container">
             <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
                 <div class="navbar-brand">
-                    <a class="navbar-item" href="https://bulma.io">
+                    <a class="navbar-item">
                         <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}"/>
                     </a>
                     <a role="button" class="navbar-burger burger has-text-white" aria-label="menu" aria-expanded="false"
@@ -48,13 +48,12 @@
                                 <a class="navbar-item">
                                     Report an issue
                                 </a>
-                                <a href="{{ url_for('purchase_tracker.first_page') }}" class="navbar-item">
+                                <a href="{{ url_for('purchase_tracker.landing_page') }}" class="navbar-item">
                                     Official
                                 </a>
                             </div>
                         </div>
                     </div>
-                    <p class="notification is-light is-danger">This application is still in a trial version. โปรแกรมนี้กำลังทดลองใช้งาน</p>
                 </div>
             </nav>
             <div class="columns pt-6">
@@ -64,7 +63,7 @@
                     </span>
                     <h1 class="is-size-1 has-text-weight-semibold">
                         Purchase Tracker<br/>
-                        ระบบติดตามการจัดซื้อ
+                        ระบบติดตามการจัดซื้อจัดจ้าง
                     </h1>
                     <p class="subtitle is-6 has-text-grey">
                         ทำไมต้องมีระบบติดตามการจัดซื้อ? ปัญหาที่พบ.. หน่วยงานที่เกี่ยวข้อง!
@@ -102,7 +101,7 @@
                                 Create Account
                             </p>
                             <div class="content">
-                                การเพิ่มรายละเอียดข้อมูลและอัพโหลดไฟล์สำหรับหน่วยงานและภาควิชา
+                                การสร้างรายการใหม่และเพิ่มรายละเอียดข้อมูลสำหรับหน่วยงานและภาควิชา
                             </div>
                         </div>
                         <footer class="card-footer">
@@ -124,7 +123,7 @@
                                 Track & Trace
                             </p>
                             <div class="content">
-                                การติดตามข้อมูลและไฟล์เอกสารสำหรับหน่วยงานและภาควิชา
+                                การติดตามความเคลื่อนไหวของข้อมูลสำหรับหน่วยงานและภาควิชา
                             </div>
                         </div>
                         <footer class="card-footer">
