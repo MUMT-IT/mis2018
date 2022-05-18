@@ -162,6 +162,16 @@ class OtRecord(db.Model):
             rate = self.compensation.per_day
         return rate
 
+    def list_records(self):
+        return [str(self.id),
+                self.staff.personal_info.fullname,
+                self.start_datetime,
+                self.end_datetime,
+                self.total_hours or self.total_minutes,
+                100,
+                "",
+                ]
+
 
 class OtRoundRequest(db.Model):
     __tablename__ = 'ot_round_request'
@@ -173,3 +183,6 @@ class OtRoundRequest(db.Model):
     approval_at = db.Column('approval_at', db.DateTime(timezone=True))
     approval_by_account_id = db.Column('approval_by_account_id', db.ForeignKey('staff_account.id'))
     approval_by = db.relationship(StaffAccount, backref=db.backref('ot_round_approval_by'), foreign_keys=[approval_by_account_id])
+    verified_at = db.Column('verified_at', db.DateTime(timezone=True))
+    verified_by_account_id = db.Column('verified_by_account_id', db.ForeignKey('staff_account.id'))
+    verified_by = db.relationship(StaffAccount, backref=db.backref('ot_round_verified_by'), foreign_keys=[verified_by_account_id])
