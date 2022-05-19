@@ -10,7 +10,7 @@ from flask import jsonify, render_template, request, redirect, url_for, flash, s
 from datetime import date, datetime
 from collections import defaultdict, namedtuple
 import pytz
-from sqlalchemy import and_, desc, func
+from sqlalchemy import and_, desc, func, cast, Date
 from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
 from linebot.models import TextSendMessage
@@ -1027,7 +1027,6 @@ def wfh_request_info():
 def leave_request_result_by_date():
     if request.method == 'POST':
         form = request.form
-
         start_dt, end_dt = form.get('dates').split(' - ')
         start_date = datetime.strptime(start_dt, '%d/%m/%Y')
         end_date = datetime.strptime(end_dt, '%d/%m/%Y')
@@ -1066,6 +1065,7 @@ def leave_request_result_by_person():
         record["fullname"] = account.personal_info.fullname
         record["total"] = 0
         record["pending"] = 0
+        record["remain"] = 0
         if account.personal_info.org:
             record["org"] = account.personal_info.org.name
         else:
@@ -1084,6 +1084,24 @@ def leave_request_result_by_person():
                     record["total"] += req.total_leave_days
                 if not req.get_approved and not req.get_unapproved:
                     record["pending"] += req.total_leave_days
+        # delta = account.personal_info.get_employ_period_of_current_fiscal_year()
+        # max_cum_quota = account.personal_info.get_max_cum_quota_per_year(req.quota.id)
+        # if delta.years > 0:
+        #     if max_cum_quota:
+        #         last_quota = StaffLeaveRemainQuota.query.filter(and_
+        #                                                         (StaffLeaveRemainQuota.leave_quota_id == req.quota.id,
+        #                                                         StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year - 1),
+        #                                                         StaffLeaveRemainQuota.staff_account_id == account.id)).first()
+        #         if last_quota:
+        #             last_year_quota = last_quota.last_year_quota
+        #         else:
+        #             last_year_quota = 0
+        #         before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
+        #         quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+        #     else:
+        #         quota_limit = req.quota.max_per_year
+        # else:
+        #     quota_limit = req.quota.first_year
         leaves_list.append(record)
     years = sorted(years)
     if len(years) > 0:
@@ -1709,14 +1727,20 @@ def shift_schedule():
     shift_record = []
     for emp in employees:
         for record in StaffShiftSchedule.query.filter_by(staff=emp.staff_account):
-            text_color = '#ffffff'
-            bg_color = '#9D8E00'
+            leave_request = StaffLeaveRequest.query.filter(cast(StaffLeaveRequest.start_datetime, Date)
+                                                              == record.start_datetime.date()).all()
+            if leave_request:
+                text_color = '#ffffff'
+                bg_color = '#D8D8D8'
+            else:
+                text_color = '#000000'
+                bg_color = '#FFC300'
             border_color = '#ffffff'
             shift_record.append({
                 'id': record.id,
                 'start': record.start_datetime.astimezone(tz).isoformat(),
                 'end': record.end_datetime.astimezone(tz).isoformat(),
-                'title': u'({}-{}) {}'.format(record.start_datetime.time(), record.end_datetime.time(), emp.th_firstname),
+                'title': emp.th_firstname,
                 'backgroundColor': bg_color,
                 'borderColor': border_color,
                 'textColor': text_color,
@@ -1740,6 +1764,7 @@ def create_shift_schedule():
         staff_list.append(record)
     if request.method == "POST":
         form = request.form
+        #TODO: auto generate end_datetime (8 hours from start datetime)
         start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
         timedelta = end_datetime - start_datetime
@@ -1758,6 +1783,28 @@ def create_shift_schedule():
             flash(u'เพิ่มเวลาปฏิบัติงานเรียบร้อยแล้ว', 'success')
             return redirect(url_for('staff.shift_schedule'))
     return render_template('staff/shift_schedule_create_schedule.html', staff_list=staff_list)
+
+
+@staff.route('/shift-schedule/edit/<int:schedule_id>', methods=['GET', 'POST'])
+@login_required
+def edit_shift_schedule(schedule_id):
+    schedule = StaffShiftSchedule.query.get(schedule_id)
+    if request.method == 'POST':
+        form = request.form
+        start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
+        end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
+        timedelta = end_datetime - start_datetime
+        if timedelta.days < 0 or timedelta.seconds == 0:
+            flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
+            return render_template('staff/shift_schedule_edit.html', schedule=schedule)
+        else:
+            schedule.start_datetime=tz.localize(start_datetime)
+            schedule.end_datetime=tz.localize(end_datetime)
+            db.session.add(schedule)
+            db.session.commit()
+            flash(u'การแก้ไขถูกบันทึกเรียบร้อย', 'success')
+            return redirect(url_for('staff.shift_schedule'))
+    return render_template('staff/shift_schedule_edit.html', schedule=schedule)
 
 
 @staff.route('/for-hr/seminar')
