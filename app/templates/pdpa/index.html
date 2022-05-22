@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block title %}MUMT PDPA Service{% endblock %}
+{% include "pdpa/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter has-text-centered">
+                    {% include 'messages.html' %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="notification">
+                        <p>
+                            ระบบบริหารจัดการข้อมูลส่วนบุคคล คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดลมีการเก็บรวบรวมข้อมูลส่วนบุคคลได้แก่
+                        </p>
+                        <div class="content">
+                            <ul>
+                                <li>ชื่อ นามสกุล</li>
+                                <li>ข้อมูลการติดต่อเช่น โทรศัพท์ อีเมล</li>
+                            </ul>
+                        </div>
+                        <p>
+                            เพื่อการติดต่อที่เกี่ยวข้องกับสิทธิของเจ้าของข้อมูลส่วนบุคคล คณะเทคนิคการแพทย์เปิดเผยข้อมูลดังกล่าวเฉพาะผู้ประสานงานด้านข้อมูลส่วนบุคคลของแต่ละส่วนงานและคณะกรรมการคุ้มครองข้อมูลส่วนบุคคลและผู้ที่เกี่ยวข้องเท่านั้น โดยข้อมูลการร้องขอใช้สิทธิเจ้าของข้อมูลส่วนบุคคลจะเก็บไว้ไม่เกิน 5 ปี
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <nav class="panel is-warning">
+                        <p class="panel-heading">ท่านต้องการติดต่อข้อมูลส่วนบุคคลเกี่ยวข้องกับงานบริการด้านใด</p>
+                        <a class="panel-block"
+                           href="{{ url_for('staff.index') }}">
+                        <span class="panel-icon">
+                            <i class="fa-solid fa-user-shield"></i>
+                        </span>
+                            <span class="is-size-5">
+                                งานบริการสุขภาพ
+                        </span>
+                        </a>
+                        <a class="panel-block"
+                           href="{{ url_for('km.index') }}">
+                        <span class="panel-icon">
+                            <i class="fa-solid fa-user-shield"></i>
+                        </span>
+                            <span class="is-size-5">
+                                อื่น ๆ
+                        </span>
+                        </a>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

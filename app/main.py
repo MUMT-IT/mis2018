@@ -428,6 +428,11 @@ admin.add_view(ComHealthTestModelView(ComHealthTest, db.session, category='Com H
 admin.add_view(ComHealthContainerModelView(ComHealthContainer, db.session, category='Com Health'))
 admin.add_view(ComHealthDepartmentModelView(ComHealthDepartment, db.session, category='Com Health'))
 
+
+from pdpa import pdpa_blueprint
+app.register_blueprint(pdpa_blueprint, url_prefix='/pdpa')
+
+
 from smartclass_scheduler import smartclass_scheduler_blueprint
 
 app.register_blueprint(smartclass_scheduler_blueprint, url_prefix='/smartclass')
