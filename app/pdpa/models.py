@@ -5,26 +5,11 @@ from wtforms.validators import Email
 from app.main import db
 from app.models import StaffAccount, Dataset, CoreService
 
-coordinators = db.Table('coordinators',
-    db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id'), primary_key=True),
-    db.Column('pdpa_service_id', db.Integer, db.ForeignKey('pdpa_services.id'), primary_key=True)
-)
-
 
 pdpa_request_datasets = db.Table('pdpa_request_datasets',
                         db.Column('dataset_id', db.Integer, db.ForeignKey('db_datasets.id'), primary_key=True),
                         db.Column('pdpa_request_id', db.Integer, db.ForeignKey('pdpa_requests.id'), primary_key=True)
                         )
-
-
-class PDPAService(db.Model):
-    __tablename__ = 'pdpa_services'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    name = db.Column('name', db.String(), nullable=False)
-    coordinators = db.relationship(StaffAccount,
-                                   secondary=coordinators,
-                                   lazy='subquery',
-                                   backref=db.backref('pdpa_services', lazy=True))
 
 
 class PDPARequestType(db.Model):
