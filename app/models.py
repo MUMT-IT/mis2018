@@ -318,6 +318,7 @@ pdpa_coordinators = db.Table('pdpa_coordinators',
 
 from app.staff.models import StaffAccount
 
+
 class CoreService(db.Model):
     __tablename__ = 'db_core_services'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)

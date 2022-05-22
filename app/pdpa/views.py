@@ -1,11 +1,18 @@
 # -*- coding:utf-8 -*-
 from flask import render_template, flash, redirect, url_for
+from flask_mail import Message
 from sqlalchemy import or_
 
 from . import pdpa_blueprint as pdpa
 from app.models import Dataset
+from app.main import mail
 from .models import *
 from .forms import *
+
+
+def send_mail(recp, title, message):
+    message = Message(subject=title, body=message, recipients=recp)
+    mail.send(message)
 
 
 @pdpa.route('/')
@@ -36,10 +43,19 @@ def request_form(service_id, request_type_id):
         req.request_type_id = request_type_id
         db.session.add(req)
         db.session.commit()
+        title = req_type.name
+        message = u'Request: {}\n'.format(req_type.name)
+        message += u'Service: {}\n'.format(service.service)
+        message += u'Name: {}\n'.format(req.requester_name)
+        message += u'E-mail: {}\n'.format(req.requester_email)
+        message += u'Phone: {}\n'.format(req.requester_phone)
+        message += u'Created at: {}'.format(req.created_at.strftime('%Y-%m-%d %H:%M'))
+        send_mail([u'{}@mahidol.ac.th'.format(s.email) for s in service.pdpa_coordinators], title, message)
         flash(u'บันทึกข้อมูลเรียบร้อย', 'success')
         return redirect(url_for('pdpa.confirm_submission', request_id=req.id))
     if form.errors:
-        flash(form.errors, 'is-danger')
+        for field, errs in form.errors.items():
+            flash(', '.join(errs), 'danger')
     return render_template('pdpa/request_form.html', form=form, req_type=req_type)
 
 
