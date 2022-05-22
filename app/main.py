@@ -432,6 +432,12 @@ admin.add_view(ComHealthDepartmentModelView(ComHealthDepartment, db.session, cat
 from pdpa import pdpa_blueprint
 app.register_blueprint(pdpa_blueprint, url_prefix='/pdpa')
 
+from app.pdpa.models import *
+
+admin.add_view(ModelView(PDPAService, db.session, category='PDPA'))
+admin.add_view(ModelView(PDPARequest, db.session, category='PDPA'))
+admin.add_view(ModelView(PDPARequestType, db.session, category='PDPA'))
+
 
 from smartclass_scheduler import smartclass_scheduler_blueprint
 

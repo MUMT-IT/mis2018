@@ -31,24 +31,17 @@
                 <div class="column is-half is-offset-one-quarter">
                     <nav class="panel is-warning">
                         <p class="panel-heading">ท่านต้องการติดต่อข้อมูลส่วนบุคคลเกี่ยวข้องกับงานบริการด้านใด</p>
+                        {% for service in services %}
                         <a class="panel-block"
-                           href="{{ url_for('staff.index') }}">
-                        <span class="panel-icon">
-                            <i class="fa-solid fa-user-shield"></i>
-                        </span>
+                           href="{{ url_for('pdpa.request_index', service_id=service.id) }}">
+                            <span class="panel-icon">
+                                <i class="fa-solid fa-user-shield"></i>
+                            </span>
                             <span class="is-size-5">
-                                งานบริการสุขภาพ
-                        </span>
+                                {{ service.service }}
+                            </span>
                         </a>
-                        <a class="panel-block"
-                           href="{{ url_for('km.index') }}">
-                        <span class="panel-icon">
-                            <i class="fa-solid fa-user-shield"></i>
-                        </span>
-                            <span class="is-size-5">
-                                อื่น ๆ
-                        </span>
-                        </a>
+                        {% endfor %}
                     </nav>
                 </div>
             </div>

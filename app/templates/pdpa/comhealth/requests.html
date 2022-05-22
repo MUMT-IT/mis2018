@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}MUMT PDPA Community Health Service{% endblock %}
+{% include "pdpa/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter has-text-centered">
+                    {% include 'messages.html' %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <nav class="panel is-warning">
+                        <p class="panel-heading">ท่านต้องการใช้สิทธิเจ้าของข้อมูลส่วนบุคคลในด้านใด</p>
+                        {% for rt in request_types %}
+                        <a class="panel-block" href="{{ url_for('pdpa.request_form', service_id=service_id, request_type_id=rt.id) }}">
+                            <span class="panel-icon">
+                                <i class="fa-solid fa-user-shield"></i>
+                            </span>
+                            <span class="is-size-5">
+                                {{ rt.name }}
+                            </span>
+                        </a>
+                        {% endfor %}
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
