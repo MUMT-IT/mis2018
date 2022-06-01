@@ -1,0 +1,330 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">เพิ่มข้อมูลวันลา {{ staff.fullname }}</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <form method="post" enctype="multipart/form-data" action="{{ url_for('staff.add_leave_request_by_hr', staff_id=staff.id) }}">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">ลาแบบ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="block">
+                                    <b-radio native-value="domestic" v-model="destination" name="destination">ในประเทศ</b-radio>
+                                    <b-radio native-value="international" v-model="destination" name="destination">นอกประเทศ</b-radio>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">ประเภทการลา</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="control">
+                                    <div class="field">
+                                        <div class="select">
+                                            <select name="type_id">
+                                                {% for type in leave_types %}
+                                                <option value="{{ type.id }}">
+                                                    {{ type.leave_type }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal" v-if="destination === 'international'">
+                            <div class="field-label is-normal">
+                                <label class="label">ช่วงเวลาที่เดินทางไป-กลับ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <b-datepicker
+                                                required
+                                                name="traveldates"
+                                                v-model="travelDates"
+                                                range
+                                                icon-pack="fa"
+                                                :date-formatter="formatrangeDate"
+                                                :mobile-native="false"
+                                                placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                                icon="calendar-alt">
+                                        </b-datepicker>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal" v-if="destination === 'international'">
+                            <div class="field-label is-normal">
+                                <label class="label">เวลาที่เดินทาง</label>
+                            </div>
+                            <div class="field-body">
+                                <label class="checkbox">
+                                    <input type="checkbox" name="after_hour">
+                                    เดินทางหลังเวลาราชการ
+                                </label>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">วันที่ต้องการขออนุมัติลา</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <b-datepicker
+                                                required
+                                                name="dates"
+                                                v-model="selectedDates"
+                                                range
+                                                icon-pack="fa"
+                                                :date-formatter="formatrangeDate"
+                                                :mobile-native="false"
+                                                placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                                icon="calendar-alt">
+                                        </b-datepicker>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">รวมเป็นลาทั้งหมด(วัน)</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <input class="input"
+                                               name="total_leave_days" type="number" required>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal" v-if="destination === 'international'">
+                            <div class="field-label is-normal">
+                                <label class="label">ประเทศ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <input class="input"
+                                               name="country" type="text">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">เหตุผลในการขอลา</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <input class="input"
+                                               name="reason" type="text" placeholder="เหตุผล">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">ผู้อนุมัติ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="control">
+                                    <div class="field">
+                                        <div class="select">
+                                            <select name="approver_id">
+                                                {% for approver in approvers %}
+                                                <option value="{{ approver.id }}">
+                                                    {{ approver.account.personal_info.fullname }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">วันที่อนุมัติ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <b-datepicker
+                                                required
+                                                name="approvedAt"
+                                                v-model="approvedAt"
+                                                icon-pack="fa"
+                                                :date-formatter="formatDate"
+                                                :mobile-native="false"
+                                                placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                                icon="calendar-alt">
+                                        </b-datepicker>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <b-field class="file">
+                            <b-upload v-model="file" name="document">
+                                <a class="button is-primary">
+                                    <b-icon icon="upload"></b-icon>
+                                    <span>อัพโหลดไฟล์</span>
+                                </a>
+                            </b-upload>
+                            <span class="file-name"
+                                  v-if="file">
+                                <% file.name %>
+                            </span>
+                        </b-field>
+                        <br>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">เพิ่มผู้อนุมัติ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="block">
+                                    <b-radio native-value="nomore" v-model="moreapprover" name="moreapprover">อนุมัติท่านเดียว</b-radio>
+                                    <b-radio native-value="addmore" v-model="moreapprover" name="moreapprover">เพิ่มผู้อนุมัติ</b-radio>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal" v-if="moreapprover === 'addmore'">
+                            <div class="field-label is-normal">
+                                <label class="label">ผู้อนุมัติ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="control">
+                                    <div class="field">
+                                        <div class="select">
+                                            <select name="moreapprover_id">
+                                                {% for approver in approvers %}
+                                                <option value="{{ approver.id }}">
+                                                    {{ approver.account.personal_info.fullname }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal" v-if="moreapprover === 'addmore'">
+                            <div class="field-label is-normal">
+                                <label class="label">วันที่อนุมัติ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <b-datepicker
+                                                required
+                                                name="moreapprovedAt"
+                                                v-model="moreapprovedAt"
+                                                icon-pack="fa"
+                                                :date-formatter="formatDate"
+                                                :mobile-native="false"
+                                                placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                                icon="calendar-alt">
+                                        </b-datepicker>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">เพิ่มอ.ฉัตรเฉลิมเป็นผู้อนุมัติ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="block">
+                                    <b-radio native-value="notadd" v-model="deanapprover" name="deanapprover">ไม่เพิ่ม</b-radio>
+                                    <b-radio native-value="adddean" v-model="deanapprover" name="deanapprover">เพิ่ม</b-radio>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal" v-if="deanapprover === 'adddean'">
+                            <div class="field-label is-normal">
+                                <label class="label">วันที่อนุมัติ</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        <b-datepicker
+                                                required
+                                                name="deanapprovedAt"
+                                                v-model="deanapprovedAt"
+                                                icon-pack="fa"
+                                                :date-formatter="formatDate"
+                                                :mobile-native="false"
+                                                placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                                icon="calendar-alt">
+                                        </b-datepicker>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <input type="submit" value="บันทึก" class="button is-info"/>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('staff.search_person_for_add_leave_request') }}" class="button is-danger">ยกเลิก</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                travelDates: [],
+                selectedDates: [],
+                approvedAt: [],
+                moreapprovedAt: [],
+                deanapprovedAt: [],
+                destination: "domestic",
+                moreapprover : "nomore",
+                deanapprover : "notadd",
+                file: null,
+            }
+        },
+        methods: {
+            formatrangeDate(dates){
+                    let start = new moment(dates[0]).format("DD/MM/YYYY")
+                    let end = new moment(dates[1]).format("DD/MM/YYYY")
+                    return start + ' - ' + end
+            },
+            formatDate(dates){
+                let date = new moment(dates).format("DD/MM/YYYY")
+                    return date
+            },
+        },
+    });
+</script>
+{% endblock %}
+
+
+
