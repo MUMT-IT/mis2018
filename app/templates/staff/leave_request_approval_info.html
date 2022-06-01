@@ -19,6 +19,7 @@
                     <tbody>
                     {% for approver in requesters %}
                     {% if approver.is_active %}
+                    {% if not approver.requester.personal_info.retired %}
                     {% if not
                     approver.requester.leave_requests|sort(attribute='start_datetime')|checkallapprovals(approver.id) %}
                     <tr style="border-bottom: 2.2pt solid darkgray">
@@ -76,6 +77,7 @@
                     {% endif %}
                     {% endif %}
                     {% endfor %}
+                    {% endif %}
                     {% endif %}
                     {% endif %}
                     {% endfor %}
