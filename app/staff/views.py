@@ -989,7 +989,6 @@ def record_each_request_leave_request(request_id):
         upload_file_url = upload_file.get('embedLink')
     else:
         upload_file_url = None
-    print (u"get last cancel {}".format(req.get_last_cancel_request_from_now))
     return render_template('staff/leave_record_info.html', req=req, approvers=approvers, upload_file_url=upload_file_url)
 
 
@@ -1054,6 +1053,7 @@ def leave_request_result_by_person():
     leaves_list = []
     departments = Org.query.all()
     leave_types = [t.type_ for t in StaffLeaveType.query.all()]
+    leave_types += [t.type_+u' คงเหลือ' for t in StaffLeaveType.query.all()]
     if org_id is None:
         account_query = StaffAccount.query.all()
     else:
@@ -1069,8 +1069,6 @@ def leave_request_result_by_person():
             record["org"] = account.personal_info.org.name
         else:
             record["org"] = ""
-        for leave_type in leave_types:
-            record[leave_type] = 0
         for req in account.leave_requests:
             if not req.cancelled_at:
                 if req.get_approved:
@@ -1079,7 +1077,7 @@ def leave_request_result_by_person():
                         if req.start_datetime.date() < start_date or req.start_datetime.date() > end_date:
                             continue
                     leave_type = req.quota.leave_type.type_
-                    record[leave_type] += req.total_leave_days
+                    record[leave_type] = record.get(leave_type,0)+ req.total_leave_days
                     record["total"] += req.total_leave_days
                 if not req.get_approved and not req.get_unapproved:
                     record["pending"] += req.total_leave_days
@@ -1818,7 +1816,7 @@ def create_seminar():
             db.session.add(seminar)
             db.session.commit()
             flash(u'เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
-            return redirect(url_for('staff.seminar_records'))
+            return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar.id))
     return render_template('staff/seminar_create_event.html')
 
 

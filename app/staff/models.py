@@ -20,6 +20,8 @@ else:
     START_FISCAL_DATE = datetime(today.year - 1, 10, 1)
     END_FISCAL_DATE = datetime(today.year, 9, 30, 23, 59, 59, 0)
 
+# TODO: remove hardcoded annual quota soon
+LEAVE_ANNUAL_QUOTA = 10
 
 tz = timezone('Asia/Bangkok')
 
