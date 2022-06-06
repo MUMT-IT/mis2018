@@ -1059,12 +1059,11 @@ def leave_request_result_by_person():
     else:
         account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id))
     for account in account_query:
-        record = {}
+        record = account.personal_info.get_remaining_leave_day()
         record["staffid"] = account.id
         record["fullname"] = account.personal_info.fullname
         record["total"] = 0
         record["pending"] = 0
-        record["remain"] = 0
         if account.personal_info.org:
             record["org"] = account.personal_info.org.name
         else:

@@ -185,6 +185,40 @@ class StaffPersonalInfo(db.Model):
 
         return sum(total_leaves)
 
+    def get_remaining_leave_day(self):
+        remaining_days = {}
+        total_remains = 0
+        if not self.employment:
+            for leave_type in StaffLeaveType.query.all():
+                remaining_days[leave_type.type_] = 0
+            return remaining_days
+        for leave_quota in self.employment.quota:
+            if self.staff_account.remain_quota:
+                last_year_quota = self.staff_account.remain_quota.last_year_quota
+            else:
+                last_year_quota = 0
+
+            delta = self.get_employ_period_of_current_fiscal_year()
+            max_cum_quota = self.get_max_cum_quota_per_year(leave_quota)
+            if delta.years > 0:
+                if max_cum_quota:
+                    before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
+                    quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                elif leave_quota.max_per_year:
+                    quota_limit = leave_quota.max_per_year
+                else:
+                    quota_limit = 365
+            else:
+                if leave_quota.first_year:
+                    quota_limit = leave_quota.first_year
+                else:
+                    quota_limit = 365
+            remain = quota_limit - self.get_total_leaves(leave_quota.id)
+            total_remains += remain
+            remaining_days[leave_quota.leave_type.type_ + u' คงเหลือ'] = remain
+        return remaining_days
+
+
 class StaffEduDegree(db.Model):
     __tablename__ = 'staff_edu_degree'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -347,7 +381,7 @@ class StaffLeaveRemainQuota(db.Model):
     year = db.Column('year', db.Integer())
     last_year_quota = db.Column('last_year_quota', db.Float())
     staff = db.relationship('StaffAccount',
-                            backref=db.backref('remain_quota'))
+                            backref=db.backref('remain_quota', uselist=False))
     quota = db.relationship('StaffLeaveQuota', backref=db.backref('leave_quota'))
 
 
