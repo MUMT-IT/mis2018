@@ -116,7 +116,7 @@ def set_password():
 @staff.route('/leave/info')
 @login_required
 def show_leave_info():
-    Quota = namedtuple('quota', ['id', 'limit'])
+    Quota = namedtuple('quota', ['id', 'limit', 'can_request'])
     cum_days = defaultdict(float)
     quota_days = defaultdict(float)
     pending_days = defaultdict(float)
@@ -149,7 +149,8 @@ def show_leave_info():
                 quota_limit = quota.first_year
             else:
                 quota_limit = quota.first_year if not quota.min_employed_months else 0
-        quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit)
+        can_request = quota.leave_type.requester_self_added
+        quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit, can_request)
     approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
     return render_template('staff/leave_info.html',
                            line_profile=session.get('line_profile'),
@@ -1095,7 +1096,8 @@ def leave_request_result_by_person():
 @login_required
 def leave_request_by_person_detail(requester_id):
     requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id)
-    return render_template('staff/leave_request_by_person_detail.html', requester=requester)
+    return render_template('staff/leave_request_by_person_detail.html', requester=requester,
+                                    START_FISCAL_DATE=START_FISCAL_DATE, END_FISCAL_DATE=END_FISCAL_DATE)
 
 
 @staff.route('/wfh')

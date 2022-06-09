@@ -58,6 +58,7 @@
                             <span class="subtitle has-text-dark is-size-6">วัน (days)</span>
                         </td>
                     </tr>
+                    {% if quota.can_request %}
                     <tr style="height: 40px">
                         <td class="has-text-centered">
                             <hr>
@@ -72,6 +73,7 @@
                             </div>
                         </td>
                     </tr>
+                    {% endif %}
                 </table>
             </div>
             {% endfor %}
