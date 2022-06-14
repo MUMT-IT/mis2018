@@ -84,8 +84,8 @@ def finance_index():
             'id': sv.id,
             'date': sv.date,
             'location': sv.location,
-            'registered': len(sv.records),
-            'checkedin': len([r for r in sv.records if r.checkin_datetime is not None])
+            'registered': sv.records.count(),
+            'checkedin': sv.records.filter(ComHealthRecord.checkin_datetime!=None).count()
         }
         services_data.append(d)
     return render_template('comhealth/finance_index.html', services=services_data)
@@ -1729,11 +1729,11 @@ def export_receipt_pdf(receipt_id):
     </font></para>
     '''
     address = '''<font size=11>
-    2 ถนนวังหลัง แขวงศิริราช<br/>
-    เขตบางกอกน้อย กทม. 10700<br/>
-    2 Wang Lang Road<br/>
-    Siriraj, Bangkok-Noi,<br/>
-    Bangkok 10700<br/><br/>
+    999 ถ.พุทธมณฑลสาย 4 ต.ศาลายา<br/>
+    อ.พุทธมณฑล จ.นครปฐม 73170<br/>
+    999 Phutthamonthon 4 Road<br/>
+    Salaya, Phutthamonthon<br/>
+    Nakhon Pathom 73170<br/><br/>
     เลขประจำตัวผู้เสียภาษี / Tax ID Number<br/>
     0994000158378
     </font>
