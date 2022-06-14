@@ -225,13 +225,38 @@ def update_record(service_id):
     return render_template('procurement/update_by_ITxRepair.html', form=form)
 
 
-@procurement.route('/qrcode_render/<int:procurement_no>/')
-def qrcode_render(procurement_no):
-    item = ProcurementDetail.query.filter_by(procurement_no=procurement_no)
+@procurement.route('/qr_scanner')
+def qrcode_scanner():
+    return render_template('procurement/qr_scanner.html')
+
+
+@procurement.route('/qrcode_render/<int:procurement_id>/')
+def qrcode_render(procurement_id):
+    item = ProcurementDetail.query.filter_by(procurement_id=procurement_id)
     return render_template('procurement/qrcode_render.html',
                            item=item)
 
 
-@procurement.route('/qr_scanner')
-def qrcode_scanner():
-    return render_template('procurement/qr_scanner.html')
+@procurement.route('/qrcode/list')
+def list_qrcode():
+    qrcode_list = []
+    procurement_query = ProcurementDetail.query.all()
+    for procurement in procurement_query:
+        record = {}
+        record["id"] = procurement.id
+        record["name"] = procurement.name
+        record["procurement_no"] = procurement.procurement_no
+        record["budget_year"] = procurement.budget_year
+        record["responsible_person"] = procurement.responsible_person
+        qrcode_list.append(record)
+    return render_template('procurement/list_qrcode.html', qrcode_list=qrcode_list)
+
+
+@procurement.route('/qrcode/list/<int:procurement_id>/view')
+def list_qrcode_one_by_one(procurement_id):
+    item = ProcurementDetail.query.get(procurement_id)
+    return render_template('procurement/list_qrcode_one_by_one.html',
+                           model=ProcurementRecord, item=item,
+                           procurement_no=item.procurement_no)
+
+
