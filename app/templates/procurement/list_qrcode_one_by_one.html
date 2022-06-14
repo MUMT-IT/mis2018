@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block page_content %}
+<div class="container">
+  <div class="columns">
+    <div class="column is-half is-offset-one-quarter">
+      <h1 class="title has-text-centered">QR Code</h1>
+        <div class="box">
+            <figure class="image is-128x128 ">
+               <td><img src="{{ qrcode(procurement_no) }}"></td>
+            </figure>
+            <tr>
+                <td><label class="label">ชื่อครุภัณฑ์: {{ item.name }}</label></td>
+{#                <td>{{ item.name }}</td>#}
+            </tr>
+            <tr>
+                <td><label class="label">รหัสครุภัณฑ์: {{ item.procurement_no }}</label></td>
+{#                <td>{{ item.procurement_no }}</td>#}
+            </tr>
+            <tr>
+                <td><label class="label">ปีงบประมาณที่ได้มา: {{ item.budget_year }}</label></td>
+{#                <td>{{ item.budget_year }}</td>#}
+            </tr>
+            <tr>
+                <td><label class="label">ผู้รับผิดชอบ: {{ item.responsible_person }}</label></td>
+{#                <td>{{ item.responsible_person }}</td>#}
+            </tr>
+
+{#            {% set record = item.records %}#}
+{#            <td>{{ record.location }}</td>#}
+        </div>
+        <div class="buttons is-centered">
+        <a href="" class="button is-link">Print</a>
+        </div>
+         <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('procurement.list_qrcode') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

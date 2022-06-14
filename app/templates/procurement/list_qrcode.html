@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.12.1/css/dataTables.bulma.min.css">
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">QR Code List</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table id="table" class="table is-striped is-fullwidth">
+                    <thead>
+                        <th>รหัสครุภัณฑ์</th>
+                        <th>ชื่อครุภัณฑ์</th>
+                        <th>ปีงบประมาณที่ได้มา</th>
+                        <th>ผู้รับผิดชอบ</th>
+{#                        <th>สถานที่ตั้ง</th>#}
+                        <th>QR Code</th>
+                        <th>Print</th>
+                        <th>แก้ไข</th>
+                    </thead>
+                    <tbody>
+                    {% for record in qrcode_list %}
+                    <tr>
+                        <td>
+                            {{ record["procurement_no"] }}
+                        </td>
+                        <td>
+                            {{ record["name"] }}
+                        </td>
+                        <td>
+                            {{ record["budget_year"] }}
+                        </td>
+                        <td>
+                            {{ record["responsible_person"] }}
+                        </td>
+{#                        {% for locate in ProcurementRecord %}#}
+{#                        <td>{{ locate.location }}</td>#}
+{#                        {% endfor %}#}
+                        <td>
+                            <img src="{{ qrcode(procurement_no) }}">
+                        </td>
+                        <td>
+                             <a href="{{ url_for('procurement.list_qrcode_one_by_one', procurement_id=record.id) }}">
+                                <i class="fas fa-print"></i></a>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('procurement.edit_procurement', procurement_id=record.id) }}">
+                                <i class="fas fa-edit"></i></a>
+                        </td>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('procurement.index') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block script %}
+    {{ super() }}
+{#    <script type="text/javascript" src="https://code.jquery.com/jquery-3.5.1.js"></script>#}
+    <script type="text/javascript" src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.12.1/js/dataTables.bulma.min.js"></script>
+    <script>
+        $(document).ready(function(){
+            $('#table').DataTable();
+        });
+    </script>
+{% endblock %}
