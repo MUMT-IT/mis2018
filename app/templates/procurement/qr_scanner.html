@@ -10,7 +10,7 @@
   <script>
 	liff.init({ liffId: '1656852987-V6vzzwPx' }).then(async ()=>{
 		const result = await liff.scanCodeV2();
-		window.location = 'https://mumtmis.herokuapp.com/procurement/qr_scanner';
+		window.location = 'https://mumtmis.herokuapp.com/procurement/qr_scanner/'+result;
 	})
   </script>
 </body>
