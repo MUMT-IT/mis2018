@@ -1,18 +1,39 @@
 # -*- coding:utf-8 -*-
 import os, requests
 
-from flask import render_template, request, flash, redirect, url_for, session, jsonify, Flask
+from flask import render_template, request, flash, redirect, url_for, session, jsonify, Flask, send_file
 from flask_login import current_user, login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.auth import GoogleAuth
+
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
 from datetime import datetime
 from pytz import timezone
 from pydrive.drive import GoogleDrive
+from flask import (request, send_file)
+from reportlab.platypus import (SimpleDocTemplate, Table, Image,
+                                Spacer, Paragraph, TableStyle, PageBreak, Frame)
+from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_RIGHT
+from reportlab.lib.pagesizes import letter
+import qrcode
+from reportlab.platypus import Image
+from reportlab.graphics.barcode import qr
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfgen import canvas
+from reportlab.lib import colors
+
+
+style_sheet = getSampleStyleSheet()
+style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
+style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
+style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 
 # Upload images for Google Drive
+
+
 FOLDER_ID = "1JYkU2kRvbvGnmpQ1Tb-TcQS-vWQKbXvy"
 
 json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -230,9 +251,9 @@ def qrcode_scanner():
     return render_template('procurement/qr_scanner.html')
 
 
-@procurement.route('/qrcode_render/<int:procurement_id>/')
-def qrcode_render(procurement_id):
-    item = ProcurementDetail.query.filter_by(procurement_id=procurement_id)
+@procurement.route('/qrcode_render/<string:procurement_no>')
+def qrcode_render(procurement_no):
+    item = ProcurementDetail.query.filter_by(procurement_no=procurement_no)
     return render_template('procurement/qrcode_render.html',
                            item=item)
 
@@ -260,3 +281,43 @@ def list_qrcode_one_by_one(procurement_id):
                            procurement_no=item.procurement_no)
 
 
+@procurement.route('/qrcode/list/pdf/<int:procurement_id>/<string:procurement_no>/')
+def export_qrcode_pdf(procurement_id, procurement_no):
+    procurement = ProcurementDetail.query.get(procurement_id)
+
+    def all_page_setup(canvas, doc):
+        canvas.saveState()
+        logo_image = ImageReader('app/static/img/mumt-logo.png')
+        canvas.drawImage(logo_image, 140, 300, width=250, height=100)
+        canvas.restoreState()
+
+    doc = SimpleDocTemplate("app/qrcode.pdf",
+                            rightMargin=20,
+                            leftMargin=20,
+                            topMargin=20,
+                            bottomMargin=10,
+                            pagesize=letter
+                            )
+    data = []
+    qr_img = qrcode.make(procurement_no)
+    qr_img.save('test.png')
+    data.append(Image('test.png'))
+
+    # pdf = canvas.Canvas("qrcode.pdf")
+    # frame = Frame(300, 150, 200, 300, showBoundary=1)
+    # frame.addFromList(data, pdf)
+    # pdf.save()
+    data.append(Paragraph('<para align=center><font size=18>ชื่อ / Name: {}<br/><br/></font></para>'
+                          .format(procurement.name.encode('utf-8')),
+                          style=style_sheet['ThaiStyle']))
+    data.append(Paragraph('<para align=center><font size=18>รหัสครุภัณฑ์ / Procurement No: {}<br/><br/></font></para>'
+                          .format(procurement.procurement_no.encode('utf-8')),
+                          style=style_sheet['ThaiStyle']))
+    data.append(Paragraph('<para align=center><font size=18>ปีงบประมาณที่ได้มา / Year: {}<br/><br/></font></para>'
+                          .format(procurement.budget_year.encode('utf-8')),
+                          style=style_sheet['ThaiStyle']))
+    data.append(Paragraph('<para align=center><font size=18>ผู้รับผิดชอบ {}<br/><br/></font></para>'
+                          .format(procurement.responsible_person.encode('utf-8')),
+                          style=style_sheet['ThaiStyle']))
+    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+    return send_file('qrcode.pdf')
