@@ -5,12 +5,12 @@
 {#<div class="container">#}
 <section class="section" id="app">
   <div class="columns">
-    <div class="column is-half is-offset-one-quarter">
+    <div class="column is-half is-offset-one-quarter has-text-centered">
       <h1 class="title has-text-centered">QR Code</h1>
         <div class="box">
-            <figure class="image is-128x128 ">
-               <td><img src="{{ qrcode(procurement_no) }}"></td>
-            </figure>
+            <div class="level-item has-text-centered">
+             <figure class="image is-128x128 "><td><img src="{{ qrcode(procurement_no) }}"></td></figure>
+            </div><br>
             <tr>
                 <td><label class="label">ชื่อครุภัณฑ์: {{ item.name }}</label></td>
             </tr>
