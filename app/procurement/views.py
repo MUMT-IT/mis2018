@@ -45,7 +45,7 @@ bangkok = timezone('Asia/Bangkok')
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
-@procurement.route('/add', methods=['GET', 'POST'])
+@procurement.route('/new/add', methods=['GET', 'POST'])
 @login_required
 def add_procurement():
     form = CreateProcurementForm()
@@ -94,12 +94,12 @@ def initialize_gdrive():
     return GoogleDrive(gauth)
 
 
-@procurement.route('/')
-def index():
-    return render_template('procurement/index.html')
+@procurement.route('/landing')
+def landing():
+    return render_template('procurement/landing.html')
 
 
-@procurement.route('/allData')
+@procurement.route('/information/all')
 @login_required
 def view_procurement():
     procurement_list = []
@@ -118,15 +118,10 @@ def view_procurement():
     return render_template('procurement/view_all_data.html', procurement_list=procurement_list)
 
 
-@procurement.route('/findData', methods=['POST', 'GET'])
+@procurement.route('/information/find', methods=['POST', 'GET'])
 @login_required
 def find_data():
     return render_template('procurement/find_data.html')
-
-
-@procurement.route('/explanation')
-def explanation():
-    return render_template('procurement/explanation.html')
 
 
 @procurement.route('/edit/<int:procurement_id>', methods=['GET', 'POST'])
@@ -143,7 +138,7 @@ def edit_procurement(procurement_id):
     return render_template('procurement/edit_procurement.html', form=form, procurement=procurement)
 
 
-@procurement.route('/viewqrcode/<int:procurement_id>')
+@procurement.route('/qrcode/view/<int:procurement_id>')
 @login_required
 def view_qrcode(procurement_id):
     item = ProcurementDetail.query.get(procurement_id)
@@ -186,7 +181,7 @@ def add_category_ref():
     return render_template('procurement/category_ref.html', form=form, category=category)
 
 
-@procurement.route('/service/require/', methods=['GET', 'POST'])
+@procurement.route('/service/require', methods=['GET', 'POST'])
 def require_service():
     form = ProcurementRequireForm()
     if request.method == 'POST':
@@ -201,7 +196,7 @@ def require_service():
     return render_template('procurement/contact_maintenance.html', form=form)
 
 
-@procurement.route('/allMaintenance')
+@procurement.route('/maintenance/all')
 @login_required
 def view_maintenance():
     maintenance_list = []
@@ -216,7 +211,7 @@ def view_maintenance():
     return render_template('procurement/view_all_maintenance.html', maintenance_list=maintenance_list)
 
 
-@procurement.route('/maintenance/user_require/')
+@procurement.route('/maintenance/user/require')
 @login_required
 def view_require_service():
     require_list = []
@@ -248,12 +243,12 @@ def update_record(service_id):
     return render_template('procurement/update_by_ITxRepair.html', form=form)
 
 
-@procurement.route('/qr_scanner')
+@procurement.route('/qrcode/scanner')
 def qrcode_scanner():
     return render_template('procurement/qr_scanner.html')
 
 
-@procurement.route('/qrcode_render/<string:procurement_no>')
+@procurement.route('/qrcode/render/<string:procurement_no>')
 def qrcode_render(procurement_no):
     item = ProcurementDetail.query.filter_by(procurement_no=procurement_no)
     return render_template('procurement/qrcode_render.html',
@@ -283,7 +278,7 @@ def list_qrcode_one_by_one(procurement_id):
                            procurement_no=item.procurement_no)
 
 
-@procurement.route('/qrcode/list/pdf/<int:procurement_id>/<string:procurement_no>/')
+@procurement.route('/qrcode/pdf/list/<int:procurement_id>/<string:procurement_no>')
 def export_qrcode_pdf(procurement_id, procurement_no):
     procurement = ProcurementDetail.query.get(procurement_id)
 
@@ -325,7 +320,7 @@ def export_qrcode_pdf(procurement_id, procurement_no):
     return send_file('qrcode.pdf')
 
 
-@procurement.route('/qrcode/list/all/pdf/')
+@procurement.route('/qrcode/list/pdf/all')
 def export_all_qrcode_pdf():
     procurement_query = ProcurementDetail.query.all()
 
