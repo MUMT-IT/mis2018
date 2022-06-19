@@ -13,13 +13,13 @@
                 <h1 class="title">QR Code List</h1>
             </div>
             <div class="buttons is-centered">
-            <button class="button is-info" @click="printReceipt()">
-                <span class="icon">
-                    <i class="fas fa-print"></i>
-                </span>
-                <span>พิมพ์ทั้งหมด</span>
-            </button>
-        </div>
+                <a href="{{ url_for('procurement.export_all_qrcode_pdf', procurement_no=procurement_no) }}" class="button is-info">
+                    <span class="icon">
+                        <i class="fas fa-print"></i>
+                    </span>
+                    <span>พิมพ์ทั้งหมด</span>
+                </a>
+            </div>
         </div>
         <div class="columns">
             <div class="column">
@@ -53,7 +53,7 @@
 {#                        <td>{{ locate.location }}</td>#}
 {#                        {% endfor %}#}
                         <td>
-                            <img src="{{ qrcode(procurement_no) }}">
+                            <img src="{{ qrcode(procurement_no, box_size=5) }}">
                         </td>
                         <td>
                              <a href="{{ url_for('procurement.list_qrcode_one_by_one', procurement_id=record.id) }}">
