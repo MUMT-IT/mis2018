@@ -5,6 +5,8 @@ from flask import render_template, request, flash, redirect, url_for, session, j
 from flask_login import current_user, login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.auth import GoogleAuth
+from reportlab.graphics import renderPDF
+from reportlab.graphics.shapes import Drawing
 
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
@@ -288,7 +290,7 @@ def export_qrcode_pdf(procurement_id, procurement_no):
     def all_page_setup(canvas, doc):
         canvas.saveState()
         logo_image = ImageReader('app/static/img/mumt-logo.png')
-        canvas.drawImage(logo_image, 140, 300, width=250, height=100)
+        canvas.drawImage(logo_image, 10, 700, width=250, height=100)
         canvas.restoreState()
 
     doc = SimpleDocTemplate("app/qrcode.pdf",
@@ -299,7 +301,7 @@ def export_qrcode_pdf(procurement_id, procurement_no):
                             pagesize=letter
                             )
     data = []
-    qr_img = qrcode.make(procurement_no)
+    qr_img = qrcode.make(procurement_no, box_size=4)
     qr_img.save('test.png')
     data.append(Image('test.png'))
 
@@ -316,8 +318,53 @@ def export_qrcode_pdf(procurement_id, procurement_no):
     data.append(Paragraph('<para align=center><font size=18>ปีงบประมาณที่ได้มา / Year: {}<br/><br/></font></para>'
                           .format(procurement.budget_year.encode('utf-8')),
                           style=style_sheet['ThaiStyle']))
-    data.append(Paragraph('<para align=center><font size=18>ผู้รับผิดชอบ {}<br/><br/></font></para>'
+    data.append(Paragraph('<para align=center><font size=18>ผู้รับผิดชอบ: {}<br/><br/></font></para>'
                           .format(procurement.responsible_person.encode('utf-8')),
                           style=style_sheet['ThaiStyle']))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     return send_file('qrcode.pdf')
+
+
+@procurement.route('/qrcode/list/all/pdf/')
+def export_all_qrcode_pdf():
+    procurement_query = ProcurementDetail.query.all()
+
+    def all_page_setup(canvas, doc):
+        canvas.saveState()
+        # logo_image = ImageReader('app/static/img/mumt-logo.png')
+        # canvas.drawImage(logo_image, 10, 700, width=250, height=100)
+        canvas.restoreState()
+
+    doc = SimpleDocTemplate("app/all_qrcode.pdf",
+                            rightMargin=20,
+                            leftMargin=20,
+                            topMargin=20,
+                            bottomMargin=10,
+                            pagesize=letter
+                            )
+    data = []
+
+
+    # pdf = canvas.Canvas("qrcode.pdf")
+    # frame = Frame(300, 150, 200, 300, showBoundary=1)
+    # frame.addFromList(data, pdf)
+    # pdf.save()
+    for procurement in procurement_query:
+        qr_img = qrcode.make(procurement.procurement_no, box_size=4)
+        qr_img.save('testing.png')
+        data.append(Image('testing.png'))
+
+        data.append(Paragraph('<para align=center><font size=18>ชื่อ / Name: {}<br/><br/></font></para>'
+                              .format(procurement.name.encode('utf-8')),
+                              style=style_sheet['ThaiStyle']))
+        data.append(Paragraph('<para align=center><font size=18>รหัสครุภัณฑ์ / Procurement No: {}<br/><br/></font></para>'
+                              .format(procurement.procurement_no.encode('utf-8')),
+                              style=style_sheet['ThaiStyle']))
+        data.append(Paragraph('<para align=center><font size=18>ปีงบประมาณที่ได้มา / Year: {}<br/><br/></font></para>'
+                              .format(procurement.budget_year.encode('utf-8')),
+                              style=style_sheet['ThaiStyle']))
+        data.append(Paragraph('<para align=center><font size=18>ผู้รับผิดชอบ: {}<br/><br/></font></para>'
+                              .format(procurement.responsible_person.encode('utf-8')),
+                              style=style_sheet['ThaiStyle']))
+    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+    return send_file('all_qrcode.pdf')
