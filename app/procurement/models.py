@@ -9,6 +9,7 @@ class ProcurementDetail(db.Model):
     __tablename__ = 'procurement_details'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column('name', db.String(255), info={'label': u'ชื่อครุภัณฑ์'})
+    image = db.Column(db.String())
     procurement_no = db.Column('procurement_no', db.String(), info={'label': u'เลขครุภัณฑ์'})
     registration_no = db.Column('registration_no', db.String(), info={'label': u'เลขคุมทะเบียน'})
     university_no = db.Column('university_no', db.String(), info={'label': u'หมายเลขมหาวิทยาลัย'})
@@ -44,7 +45,7 @@ class ProcurementDetail(db.Model):
                                                     cascade='all, delete-orphan'))
 
     def __str__(self):
-        return u'{}: {}'.format(self.name, self.procurement_no)
+        return u'{}: {}:{}'.format(self.name, self.procurement_no, self.image)
 
 
 class ProcurementCategory(db.Model):
