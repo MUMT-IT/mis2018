@@ -20,21 +20,21 @@
                     <div class="field-body">
                         <div class="field">
                             <label class="label">{{ form.category.label }}</label>
-                            <div class="select is-fullwidth is-info">
+                            <div class="select is-fullwidth is-danger">
                                 {{ form.category() }}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.procurement_no.label }}</label>
                             <div class="control">
-                                {{ form.procurement_no(class="input is-focused") }}
+                                {{ form.procurement_no(class="input is-danger") }}
                             </div>
                             <p class="help is-danger">Required</p>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.erp_code.label }}</label>
                             <div class="control">
-                                {{ form.erp_code(class="input is-info") }}
+                                {{ form.erp_code(class="input is-danger") }}
                             </div>
                             <p class="help is-danger">Required</p>
                         </div>
@@ -43,14 +43,14 @@
                         <div class="field">
                             <label class="label">{{ form.document_no.label }}</label>
                             <div class="control">
-                                {{ form.document_no(class="input is-info") }}
+                                {{ form.document_no(class="input") }}
                             </div>
                         </div>
                     </div>
                     <div class="field">
                         <label class="label">{{ form.name.label }}</label>
                         <div class="control">
-                            {{ form.name(class="input is-info") }}
+                            {{ form.name(class="input is-danger") }}
                         </div>
                         <p class="help is-danger">Required</p>
                     </div>
@@ -58,14 +58,14 @@
                         <div class="field">
                             <label class="label">{{ form.serial_no.label }}</label>
                             <div class="control">
-                                {{ form.serial_no(class="input is-info") }}
+                                {{ form.serial_no(class="input is-danger") }}
                             </div>
                             <p class="help is-danger">Required</p>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.available.label }}</label>
                             <div class="control">
-                                {{ form.available(class="input is-info") }}
+                                {{ form.available(class="input is-danger") }}
                             </div>
                             <p class="help is-danger">Required</p>
                         </div>
@@ -74,26 +74,26 @@
                         <div class="field">
                             <label class="label">{{ form.model.label }}</label>
                             <div class="control">
-                                {{ form.model(class="input is-info") }}
+                                {{ form.model(class="input") }}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.size.label }}</label>
                             <div class="control">
-                                {{ form.size(class="input is-info") }}
+                                {{ form.size(class="input") }}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.maker.label }}</label>
                             <div class="control">
-                                {{ form.maker(class="input is-info") }}
+                                {{ form.maker(class="input") }}
                             </div>
                         </div>
                     </div>
                     <div class="field">
                         <label class="label">{{ form.guarantee.label }}</label>
                         <div class="control">
-                            {{ form.guarantee(class="input is-info") }}
+                            {{ form.guarantee(class="input") }}
                         </div>
                     </div>
                     <div class="field-body">
@@ -119,20 +119,20 @@
                     <div class="field-body">
                         <div class="field">
                             <label class="label">{{ form.purchasing_type.label }}</label>
-                            <div class="select is-fullwidth is-info">
+                            <div class="select is-fullwidth">
                                 {{ form.purchasing_type() }}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.budget_year.label }}</label>
                             <div class="control">
-                                {{ form.budget_year(class="input is-info") }}
+                                {{ form.budget_year(class="input") }}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.price.label }}</label>
                             <div class="control">
-                                {{ form.price(class="input is-info") }}
+                                {{ form.price(class="input") }}
                             </div>
                         </div>
                     </div>
@@ -140,12 +140,12 @@
                         <div class="field">
                             <label class="label">{{ form.received_date.label }}</label>
                             <div class="control">
-                                {{ form.received_date(class="input is-info") }}
+                                {{ form.received_date(class="input", readonly=True) }}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.bought_by.label }}</label>
-                            <div class="select is-fullwidth is-info">
+                            <div class="select is-fullwidth">
                                 {{ form.bought_by() }}
                             </div>
                         </div>
@@ -169,7 +169,7 @@
                     <div class="field">
                         <label class="label">{{ form.comment.label }}</label>
                         <div class="control">
-                            {{ form.comment(class="textarea is-info") }}
+                            {{ form.comment(class="textarea") }}
                         </div>
                     </div><br>
                      <div class="columns">
@@ -180,20 +180,20 @@
                     <div class="field-body">
                         <div class="field">
                             <label class="label">{{ form.org.label }}</label>
-                            <div class="select is-fullwidth is-info">
+                            <div class="select is-fullwidth">
                                 {{ form.org() }}
                             </div>
                         </div>
                         <div class="field">
                                 <label class="label">{{ form.location.label }}</label>
-                                <div class="select is-fullwidth is-info">
+                                <div class="select is-fullwidth">
                                     {{ form.location() }}
                                 </div>
                         </div>
                         <div class="field">
                             <label class="label">{{ form.responsible_person.label }}</label>
                             <div class="control">
-                                {{ form.responsible_person(class="input is-info") }}
+                                {{ form.responsible_person(class="input") }}
                             </div>
                         </div>
                     </div>
@@ -224,6 +224,13 @@
             }
         });
         $('input[name="end_guarantee_date"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: false,
+            locale: {
+                format: 'YYYY-MM-DD'
+            }
+        });
+        $('input[name="received_date"]').daterangepicker({
             singleDatePicker: true,
             timePicker: false,
             locale: {
