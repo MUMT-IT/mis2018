@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% include "procurement/nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
 {% block page_content %}
 <section class="section">
     <div class="container">
@@ -21,14 +25,6 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.registration_no.label }}</label>
-                            <div class="control">
-                                {{ form.registration_no(class="input is-info") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field-body">
-                        <div class="field">
                             <label class="label">{{ form.procurement_no.label }}</label>
                             <div class="control">
                                 {{ form.procurement_no(class="input is-focused") }}
@@ -45,23 +41,24 @@
                     </div>
                     <div class="field-body">
                         <div class="field">
-                            <label class="label">{{ form.university_no.label }}</label>
-                            <div class="control">
-                                {{ form.university_no(class="input is-info") }}
-                            </div>
-                        </div>
-                        <div class="field">
                             <label class="label">{{ form.document_no.label }}</label>
                             <div class="control">
                                 {{ form.document_no(class="input is-info") }}
                             </div>
                         </div>
                     </div>
+                    <div class="field">
+                        <label class="label">{{ form.name.label }}</label>
+                        <div class="control">
+                            {{ form.name(class="input is-info") }}
+                        </div>
+                        <p class="help is-danger">Required</p>
+                    </div>
                     <div class="field-body">
                         <div class="field">
-                            <label class="label">{{ form.name.label }}</label>
+                            <label class="label">{{ form.serial_no.label }}</label>
                             <div class="control">
-                                {{ form.name(class="input is-info") }}
+                                {{ form.serial_no(class="input is-info") }}
                             </div>
                             <p class="help is-danger">Required</p>
                         </div>
@@ -70,6 +67,7 @@
                             <div class="control">
                                 {{ form.available(class="input is-info") }}
                             </div>
+                            <p class="help is-danger">Required</p>
                         </div>
                     </div>
                     <div class="field-body">
@@ -91,25 +89,32 @@
                                 {{ form.maker(class="input is-info") }}
                             </div>
                         </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.guarantee.label }}</label>
+                        <div class="control">
+                            {{ form.guarantee(class="input is-info") }}
+                        </div>
+                    </div>
+                    <div class="field-body">
                         <div class="field">
-                            <label class="label">{{ form.guarantee.label }}</label>
+                            <label class="label">{{ form.start_guarantee_date.label }}</label>
                             <div class="control">
-                                {{ form.guarantee(class="input is-info") }}
+                                {{ form.start_guarantee_date(class="input", value=default_date, readonly=True) }}
                             </div>
                         </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.desc.label }}</label>
-                        <div class="control">
-                            {{ form.desc(class="input is-info") }}
+                        <div class="field">
+                            <label class="label">{{ form.days.label }}</label>
+                            <div class="control">
+                                {{ form.days(class="input") }}
+                            </div>
                         </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.serial_no.label }}</label>
-                        <div class="control">
-                            {{ form.serial_no(class="input is-info") }}
+                        <div class="field">
+                            <label class="label">{{ form.end_guarantee_date.label }}</label>
+                            <div class="control">
+                                {{ form.end_guarantee_date(class="input", readonly=True) }}
+                            </div>
                         </div>
-                        <p class="help is-danger">Required</p>
                     </div>
                     <div class="field-body">
                         <div class="field">
@@ -133,12 +138,6 @@
                     </div>
                     <div class="field-body">
                         <div class="field">
-                            <label class="label">{{ form.quantity.label }}</label>
-                            <div class="control">
-                                {{ form.quantity(class="input is-info") }}
-                            </div>
-                        </div>
-                        <div class="field">
                             <label class="label">{{ form.received_date.label }}</label>
                             <div class="control">
                                 {{ form.received_date(class="input is-info") }}
@@ -154,13 +153,13 @@
                     <div class="field">
                             <div class="file">
                                 <label class="file-label">
-                                  {{ form.upload(class="file-input") }}
+                                  {{ form.image(class="file-input") }}
                                   <span class="file-cta">
                                   <span class="file-icon">
                                     <i class="fas fa-upload"></i>
                                   </span>
                                   <span class="file-label">
-                                    {{ form.upload.label }}
+                                    {{ form.image.label }}
                                   </span>
                                   </span>
                                   <span class="file-name" id="filename"></span>
@@ -211,4 +210,25 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+
+        $('input[name="start_guarantee_date"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: false,
+            locale: {
+                format: 'YYYY-MM-DD'
+            }
+        });
+        $('input[name="end_guarantee_date"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: false,
+            locale: {
+                format: 'YYYY-MM-DD'
+            }
+        });
+    </script>
 {% endblock %}
