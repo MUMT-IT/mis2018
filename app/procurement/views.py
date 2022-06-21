@@ -1,5 +1,8 @@
 # -*- coding:utf-8 -*-
+import cStringIO
 import os, requests
+import pdb
+from base64 import b64decode
 
 from flask import render_template, request, flash, redirect, url_for, session, jsonify, Flask, send_file
 from flask_login import current_user, login_required
@@ -7,11 +10,12 @@ from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.auth import GoogleAuth
 from reportlab.graphics import renderPDF
 from reportlab.graphics.shapes import Drawing
+from reportlab.lib.units import mm
 
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
-from datetime import datetime
+from datetime import datetime, timedelta
 from pytz import timezone
 from pydrive.drive import GoogleDrive
 from flask import (request, send_file)
@@ -51,30 +55,33 @@ def add_procurement():
     form = CreateProcurementForm()
     if request.method == 'POST':
         if form.validate_on_submit():
-            filename = ''
+            # filename = ''
             procurement = ProcurementDetail()
             form.populate_obj(procurement)
             procurement.creation_date = bangkok.localize(datetime.now())
             procurement.staff = current_user
-            drive = initialize_gdrive()
-            if form.upload.data:
-                if not filename or (form.upload.data.filename != filename):
-                    upfile = form.upload.data
-                    filename = secure_filename(upfile.filename)
-                    upfile.save(filename)
-                    file_drive = drive.CreateFile({'title': filename,
-                                                   'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
-                    file_drive.SetContentFile(filename)
-                    try:
-                        file_drive.Upload()
-                        permission = file_drive.InsertPermission({'type': 'anyone',
-                                                                  'value': 'anyone',
-                                                                  'role': 'reader'})
-                    except:
-                        flash('Failed to upload the attached file to the Google drive.', 'danger')
-                    else:
-                        flash('The attached file has been uploaded to the Google drive', 'success')
-                        procurement.url = file_drive['id']
+            procurement.end_guarantee_date = form.start_guarantee_date.data + timedelta(days=int(form.days.data))
+            # TODO: calculate end date from time needed to finish the task
+
+            # drive = initialize_gdrive()
+            # if form.image.data:
+            #     if not filename or (form.image.data.filename != filename):
+            #         upfile = form.image.data
+            #         filename = secure_filename(upfile.filename)
+            #         upfile.save(filename)
+            #         file_drive = drive.CreateFile({'title': filename,
+            #                                        'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
+            #         file_drive.SetContentFile(filename)
+            #         try:
+            #             file_drive.Upload()
+            #             permission = file_drive.InsertPermission({'type': 'anyone',
+            #                                                       'value': 'anyone',
+            #                                                       'role': 'reader'})
+            #         except:
+            #             flash('Failed to upload the attached file to the Google drive.', 'danger')
+            #         else:
+            #             flash('The attached file has been uploaded to the Google drive', 'success')
+            #             procurement.url = file_drive['id']
 
             db.session.add(procurement)
             db.session.commit()
@@ -270,22 +277,14 @@ def list_qrcode():
     return render_template('procurement/list_qrcode.html', qrcode_list=qrcode_list)
 
 
-@procurement.route('/qrcode/list/<int:procurement_id>/view')
-def list_qrcode_one_by_one(procurement_id):
-    item = ProcurementDetail.query.get(procurement_id)
-    return render_template('procurement/list_qrcode_one_by_one.html',
-                           model=ProcurementRecord, item=item,
-                           procurement_no=item.procurement_no)
-
-
-@procurement.route('/qrcode/pdf/list/<int:procurement_id>/<string:procurement_no>')
-def export_qrcode_pdf(procurement_id, procurement_no):
+@procurement.route('/qrcode/pdf/list/<int:procurement_id>')
+def export_qrcode_pdf(procurement_id):
     procurement = ProcurementDetail.query.get(procurement_id)
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
-        logo_image = ImageReader('app/static/img/mumt-logo.png')
-        canvas.drawImage(logo_image, 10, 700, width=250, height=100)
+        # logo_image = ImageReader('app/static/img/mumt-logo.png')
+        # canvas.drawImage(logo_image, 10, 700, width=250, height=100)
         canvas.restoreState()
 
     doc = SimpleDocTemplate("app/qrcode.pdf",
@@ -296,25 +295,23 @@ def export_qrcode_pdf(procurement_id, procurement_no):
                             pagesize=letter
                             )
     data = []
-    qr_img = qrcode.make(procurement_no, box_size=4)
-    qr_img.save('test.png')
-    data.append(Image('test.png'))
+    if not procurement.qrcode:
+        qr_img = qrcode.make(procurement.procurement_no, box_size=4)
+        qr_img.save('procurement_qrcode.png')
+        import base64
+        with open("procurement_qrcode.png", "rb") as img_file:
+            procurement.qrcode = base64.b64encode(img_file.read())
+            db.session.add(procurement)
+            db.session.commit()
+    else:
+        decoded_img = b64decode(procurement.qrcode)
+        img_string = cStringIO.StringIO(decoded_img)
+        img_string.seek(0)
+        im = Image(img_string, 50 * mm, 50 * mm, kind='bound')
+        data.append(im)
 
-    # pdf = canvas.Canvas("qrcode.pdf")
-    # frame = Frame(300, 150, 200, 300, showBoundary=1)
-    # frame.addFromList(data, pdf)
-    # pdf.save()
-    data.append(Paragraph('<para align=center><font size=18>ชื่อ / Name: {}<br/><br/></font></para>'
-                          .format(procurement.name.encode('utf-8')),
-                          style=style_sheet['ThaiStyle']))
     data.append(Paragraph('<para align=center><font size=18>รหัสครุภัณฑ์ / Procurement No: {}<br/><br/></font></para>'
                           .format(procurement.procurement_no.encode('utf-8')),
-                          style=style_sheet['ThaiStyle']))
-    data.append(Paragraph('<para align=center><font size=18>ปีงบประมาณที่ได้มา / Year: {}<br/><br/></font></para>'
-                          .format(procurement.budget_year.encode('utf-8')),
-                          style=style_sheet['ThaiStyle']))
-    data.append(Paragraph('<para align=center><font size=18>ผู้รับผิดชอบ: {}<br/><br/></font></para>'
-                          .format(procurement.responsible_person.encode('utf-8')),
                           style=style_sheet['ThaiStyle']))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     return send_file('qrcode.pdf')
@@ -338,28 +335,26 @@ def export_all_qrcode_pdf():
                             pagesize=letter
                             )
     data = []
-
-
-    # pdf = canvas.Canvas("qrcode.pdf")
-    # frame = Frame(300, 150, 200, 300, showBoundary=1)
-    # frame.addFromList(data, pdf)
-    # pdf.save()
     for procurement in procurement_query:
-        qr_img = qrcode.make(procurement.procurement_no, box_size=4)
-        qr_img.save('testing.png')
-        data.append(Image('testing.png'))
+        if not procurement.qrcode:
+            qr_img = qrcode.make(procurement.procurement_no, box_size=4)
+            qr_img.save('procurement{}.png'.format(id))
+            # convert image to base64(text) in database
+            import base64
+            with open("procurement_qrcode.png", "rb") as img_file:
+                procurement.qrcode = base64.b64encode(img_file.read())
+                db.session.add(procurement)
+                db.session.commit()
+        else:
+            # convert base64(text) to image in database
+            decoded_img = b64decode(procurement.qrcode)
+            img_string = cStringIO.StringIO(decoded_img)
+            img_string.seek(0)
+            im = Image(img_string, 50 * mm, 50 * mm, kind='bound')
+            data.append(im)
 
-        data.append(Paragraph('<para align=center><font size=18>ชื่อ / Name: {}<br/><br/></font></para>'
-                              .format(procurement.name.encode('utf-8')),
-                              style=style_sheet['ThaiStyle']))
         data.append(Paragraph('<para align=center><font size=18>รหัสครุภัณฑ์ / Procurement No: {}<br/><br/></font></para>'
                               .format(procurement.procurement_no.encode('utf-8')),
-                              style=style_sheet['ThaiStyle']))
-        data.append(Paragraph('<para align=center><font size=18>ปีงบประมาณที่ได้มา / Year: {}<br/><br/></font></para>'
-                              .format(procurement.budget_year.encode('utf-8')),
-                              style=style_sheet['ThaiStyle']))
-        data.append(Paragraph('<para align=center><font size=18>ผู้รับผิดชอบ: {}<br/><br/></font></para>'
-                              .format(procurement.responsible_person.encode('utf-8')),
                               style=style_sheet['ThaiStyle']))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     return send_file('all_qrcode.pdf')
