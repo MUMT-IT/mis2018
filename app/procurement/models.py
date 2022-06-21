@@ -9,10 +9,9 @@ class ProcurementDetail(db.Model):
     __tablename__ = 'procurement_details'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column('name', db.String(255), info={'label': u'ชื่อครุภัณฑ์'})
-    image = db.Column(db.String())
+    image = db.Column('image', db.Text(), info={'label': u'รูปภาพ'})
+    qrcode = db.Column('qrcode', db.Text(), info={'label': 'QR Code'})
     procurement_no = db.Column('procurement_no', db.String(), info={'label': u'เลขครุภัณฑ์'})
-    registration_no = db.Column('registration_no', db.String(), info={'label': u'เลขคุมทะเบียน'})
-    university_no = db.Column('university_no', db.String(), info={'label': u'หมายเลขมหาวิทยาลัย'})
     document_no = db.Column('document_no', db.String(), info={'label': u'เอกสารสั่งซื้อเลขที่'})
     erp_code = db.Column('erp_code', db.String(), info={'label': u'รหัส ERP'})
     serial_no = db.Column('serial_no', db.String(), info={'label': u'Serial Number'})
@@ -26,17 +25,17 @@ class ProcurementDetail(db.Model):
                                                                                    u'วิธีคัดเลือก', u'อื่นๆ']]})
     budget_year = db.Column('budget_year', db.String(), info={'label': u'ปีงบประมาณ'})
     price = db.Column('price', db.String(), info={'label': u'ราคา'})
-    quantity = db.Column('quantity', db.String(), info={'label': u'จำนวน'})
     received_date = db.Column('received_date', db.Date(), info={'label': u'วันที่ได้รับ'})
     available = db.Column('available', db.String(), nullable=False, info={'label': u'ความสามารถการใช้งาน'})
     category_id = db.Column('category_id', db.ForeignKey('procurement_categories.id'))
     category = db.relationship('ProcurementCategory',
                                backref=db.backref('items', lazy='dynamic'))
     guarantee = db.Column('guarantee', db.String(), info={'label': u'ประกัน'})
+    start_guarantee_date = db.Column('start_guarantee_date', db.Date(), info={'label': u'วันที่เริ่มประกัน'})
+    end_guarantee_date = db.Column('end_guarantee_date', db.Date(), info={'label': u'วันที่สิ้นสุดประกัน'})
     model = db.Column('model', db.String(), info={'label': u'รุ่น'})
     maker = db.Column('maker', db.String(), info={'label': u'ยี่ห้อ'})
     size = db.Column('size', db.String(), info={'label': u'ขนาด'})
-    desc = db.Column('desc', db.String(), info={'label': u'รายละเอียด'})
     comment = db.Column('comment', db.String(), info={'label': u'หมายเหตุ'})
     responsible_person = db.Column('responsible_person', db.String(), info={'label': u'ผู้ดูแลครุภัณฑ์'})
     org_id = db.Column('org_id', db.ForeignKey('orgs.id'))
@@ -45,7 +44,7 @@ class ProcurementDetail(db.Model):
                                                     cascade='all, delete-orphan'))
 
     def __str__(self):
-        return u'{}: {}:{}'.format(self.name, self.procurement_no, self.image)
+        return u'{}: {}'.format(self.name, self.procurement_no)
 
 
 class ProcurementCategory(db.Model):
