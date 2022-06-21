@@ -185,6 +185,38 @@ class StaffPersonalInfo(db.Model):
 
         return sum(total_leaves)
 
+    def get_remaining_leave_day(self, leave_quota_id):
+        if not self.employment:
+            remain_days = 0
+            return remain_days
+        year = START_FISCAL_DATE.year - 1
+        last_year = StaffLeaveRemainQuota.query.filter_by(leave_quota_id=leave_quota_id, year=year).first()
+        if last_year:
+            last_year_quota = last_year.last_year_quota
+        else:
+            last_year_quota = 0
+        delta = self.get_employ_period_of_current_fiscal_year()
+        leave_quota = StaffLeaveQuota.query.get(leave_quota_id)
+        max_cum_quota = self.get_max_cum_quota_per_year(leave_quota)
+        if delta.years > 0:
+            if max_cum_quota:
+                before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
+                quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+            elif leave_quota.max_per_year:
+                quota_limit = leave_quota.max_per_year
+            else:
+                quota_limit = 0
+        else:
+            if leave_quota.first_year:
+                quota_limit = leave_quota.first_year
+            else:
+                quota_limit = 0
+        remain = quota_limit - self.get_total_leaves(leave_quota_id)
+        if remain < 0:
+            remain = 0
+        return remain
+
+
 class StaffEduDegree(db.Model):
     __tablename__ = 'staff_edu_degree'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
