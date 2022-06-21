@@ -29,8 +29,6 @@
                         <th>ชื่อครุภัณฑ์</th>
                         <th>ปีงบประมาณที่ได้มา</th>
                         <th>ผู้รับผิดชอบ</th>
-{#                        <th>สถานที่ตั้ง</th>#}
-                        <th>QR Code</th>
                         <th>Print</th>
                         <th>แก้ไข</th>
                     </thead>
@@ -49,14 +47,8 @@
                         <td>
                             {{ record["responsible_person"] }}
                         </td>
-{#                        {% for locate in ProcurementRecord %}#}
-{#                        <td>{{ locate.location }}</td>#}
-{#                        {% endfor %}#}
                         <td>
-                            <img src="{{ qrcode(procurement_no, box_size=5) }}">
-                        </td>
-                        <td>
-                             <a href="{{ url_for('procurement.list_qrcode_one_by_one', procurement_id=record.id) }}">
+                             <a href="{{ url_for('procurement.export_qrcode_pdf', procurement_id=record.id) }}">
                                 <i class="fas fa-print"></i></a>
                         </td>
                         <td>
