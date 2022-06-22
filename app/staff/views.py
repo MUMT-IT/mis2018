@@ -129,7 +129,7 @@ def show_leave_info():
             (req.quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
         pending_days[leave_type] = pending_day
     for quota in current_user.personal_info.employment.quota:
-        delta = current_user.personal_info.get_employ_period_of_current_fiscal_year()
+        delta = current_user.personal_info.get_employ_period()
         max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
         last_quota = StaffLeaveRemainQuota.query.filter(and_(StaffLeaveRemainQuota.leave_quota_id == quota.id,
                                                              StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year - 1),
@@ -460,7 +460,7 @@ def request_for_leave_info(quota_id=None):
     used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                              tz.localize(END_FISCAL_DATE))
 
-    delta = current_user.personal_info.get_employ_period_of_current_fiscal_year()
+    delta = current_user.personal_info.get_employ_period()
     max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
     if delta.years > 0:
         if max_cum_quota:
@@ -1054,13 +1054,14 @@ def leave_request_result_by_person():
     leaves_list = []
     departments = Org.query.all()
     leave_types = [t.type_ for t in StaffLeaveType.query.all()]
-    leave_types += [t.type_+u' คงเหลือ' for t in StaffLeaveType.query.all()]
+    leave_types_r = [t.type_+u'คงเหลือ' for t in StaffLeaveType.query.all()]
     if org_id is None:
         account_query = StaffAccount.query.all()
     else:
         account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id))
     for account in account_query:
-        record = account.personal_info.get_remaining_leave_day()
+        #record = account.personal_info.get_remaining_leave_day
+        record = {}
         record["staffid"] = account.id
         record["fullname"] = account.personal_info.fullname
         record["total"] = 0
@@ -1069,6 +1070,10 @@ def leave_request_result_by_person():
             record["org"] = account.personal_info.org.name
         else:
             record["org"] = ""
+        for leave_type in leave_types:
+            record[leave_type] = 0
+        for leave_remain in leave_types_r:
+            record[leave_remain] = 0
         for req in account.leave_requests:
             if not req.cancelled_at:
                 if req.get_approved:
@@ -1081,12 +1086,16 @@ def leave_request_result_by_person():
                     record["total"] += req.total_leave_days
                 if not req.get_approved and not req.get_unapproved:
                     record["pending"] += req.total_leave_days
+        quota = StaffLeaveQuota.query.filter_by(employment_id=account.personal_info.employment_id).all()
+        for quota in quota:
+            leave_remain = quota.leave_type.type_
+            record[leave_remain] = account.personal_info.get_remaining_leave_day(quota.id)
         leaves_list.append(record)
     years = sorted(years)
     if len(years) > 0:
         years.append(years[-1] + 1)
         years.insert(0, years[0] - 1)
-    return render_template('staff/leave_request_by_person.html', leave_types=leave_types,
+    return render_template('staff/leave_request_by_person.html', leave_types=leave_types,leave_types_r=leave_types_r,
                            sel_dept=org_id, year=fiscal_year,
                            leaves_list=leaves_list, departments=[{'id': d.id, 'name': d.name}
                                                                  for d in departments], years=years)
@@ -1096,6 +1105,28 @@ def leave_request_result_by_person():
 @login_required
 def leave_request_by_person_detail(requester_id):
     requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id)
+    # quota = StaffLeaveQuota.query.get(quota_id)
+    # used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
+    #                                                          tz.localize(END_FISCAL_DATE))
+    #
+    # delta = current_user.personal_info.get_employ_period_of_current_fiscal_year()
+    # max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
+    # if delta.years > 0:
+    #     if max_cum_quota:
+    #         last_quota = StaffLeaveRemainQuota.query.filter(and_
+    #                                                         (StaffLeaveRemainQuota.leave_quota_id == quota.id,
+    #                                                          StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year - 1),
+    #                                                          StaffLeaveRemainQuota.staff_account_id == current_user.id)).first()
+    #         if last_quota:
+    #             last_year_quota = last_quota.last_year_quota
+    #         else:
+    #             last_year_quota = 0
+    #         before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
+    #         quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+    #     else:
+    #         quota_limit = quota.max_per_year
+    # else:
+    #     quota_limit = quota.first_year
     return render_template('staff/leave_request_by_person_detail.html', requester=requester,
                                     START_FISCAL_DATE=START_FISCAL_DATE, END_FISCAL_DATE=END_FISCAL_DATE)
 
@@ -1849,15 +1880,6 @@ def seminar_records():
 @login_required
 def seminar_add_attendee(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
-    staff_list = []
-    account_query = StaffAccount.query.all()
-    for account in account_query:
-        record = dict(staffid=account.id,
-                      fullname=account.personal_info.fullname,
-                      email=account.email)
-        organization = account.personal_info.org
-        record["org"] = organization.name if organization else ""
-        staff_list.append(record)
     if request.method == "POST":
         form = request.form
         start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
@@ -1865,27 +1887,27 @@ def seminar_add_attendee(seminar_id):
         timedelta = end_datetime - start_datetime
         if timedelta.days < 0 or timedelta.seconds == 0:
             flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
-            return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
-        else:
-            attend = StaffSeminarAttend(
-                staff=[StaffAccount.query.get(int(staff_id)) for staff_id in form.getlist("participants")],
-                seminar_id=seminar_id,
-                role=form.get('role'),
-                registration_fee=form.get('registration_fee'),
-                budget_type=form.get('budget_type'),
-                budget=form.get('budget'),
-                start_datetime=tz.localize(start_datetime),
-                end_datetime=tz.localize(end_datetime),
-                attend_online=True if form.get("attend_online") else False
-            )
-            db.session.add(attend)
-            db.session.commit()
-            seminar = StaffSeminar.query.get(seminar_id)
-            attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
+            return render_template('staff/seminar_add_attendee.html', seminar=seminar)
+        # else:
+        #     attend = StaffSeminarAttend(
+        #         staff=[StaffAccount.query.get(int(staff_id)) for staff_id in form.getlist("participants")],
+        #         seminar_id=seminar_id,
+        #         role=form.get('role'),
+        #         registration_fee=form.get('registration_fee'),
+        #         budget_type=form.get('budget_type'),
+        #         budget=form.get('budget'),
+        #         start_datetime=tz.localize(start_datetime),
+        #         end_datetime=tz.localize(end_datetime),
+        #         attend_online=True if form.get("attend_online") else False
+        #     )
+        #     db.session.add(attend)
+        #     db.session.commit()
+        #     seminar = StaffSeminar.query.get(seminar_id)
+        #     attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
             flash(u'เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
             return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
 
-    return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
+    return render_template('staff/seminar_add_attendee.html', seminar=seminar)
 
 
 @staff.route('/seminar/seminar-attend/<int:attend_id>/participants/<int:participant_id>')
@@ -1969,9 +1991,6 @@ def seminar_attends_each_person(staff_id):
     for attend in attends_query:
         years.add(attend.start_datetime.year)
         record = {}
-        if start_date and end_date:
-            if seminar.start_datetime.date() < start_date or seminar.start_datetime.date() > end_date:
-                continue
         record["start"] = attend.start_datetime
         record["end"] = attend.end_datetime
         record["role"] = attend.role
@@ -1984,8 +2003,19 @@ def seminar_attends_each_person(staff_id):
     if len(years) > 0:
         years.append(years[-1] + 1)
         years.insert(0, years[0] - 1)
+
+    seminar_records = []
+    seminar_query = StaffSeminar.query.filter(StaffSeminar.cancelled_at==None).all()
+    for seminars in seminar_query:
+        records = {}
+        records["id"] = seminars.id
+        records["type"] = seminars.topic_type
+        records["name"] = seminars.topic
+        records["startdate"] = seminars.start_datetime
+        records["enddate"] = seminars.end_datetime
+        seminar_records.append(records)
     return render_template('staff/seminar_records_each_person.html',year=fiscal_year,
-                           seminar_list=seminar_list, years=years, attend_name=attend_name)
+                           seminar_list=seminar_list, years=years, attend_name=attend_name, seminar_records=seminar_records)
 
 
 @staff.route('/time-report/report')
