@@ -11,3 +11,5 @@ analysis/
 .env
 .idea/
 app/.idea/
+.python-version
+*.dump*

@@ -2,6 +2,7 @@ from app.main import db, ma
 from sqlalchemy.sql import func
 from ..asset.models import AssetItem
 
+
 class RoomType(db.Model):
     __tablename__ = 'scheduler_room_types'
     id = db.Column('id', db.Integer(), primary_key=True,
@@ -27,9 +28,10 @@ class RoomAvailability(db.Model):
 class RoomResource(db.Model):
     __tablename__ = 'scheduler_room_resources'
     id = db.Column('id', db.Integer(), primary_key=True,
-                    autoincrement=True)
+                   autoincrement=True)
     location = db.Column('location', db.String(length=16))
     number = db.Column('number', db.String(16))
+    floor = db.Column('floor', db.String())
     occupancy = db.Column('occupancy', db.Integer(), nullable=False)
     desc = db.Column('desc', db.Text())
     business_hour_start = db.Column('business_hour_start', db.Time())
@@ -40,8 +42,12 @@ class RoomResource(db.Model):
     reservations = db.relationship('RoomEvent', backref='room')
     equipments = db.relationship(AssetItem, backref=db.backref('room'))
 
+    def __str__(self):
+        return u'Room: {} {}'.format(self.number, self.location)
+
     def __repr__(self):
         return u'Room: {}, ID: {}'.format(self.number, self.id)
+
 
 class EventCategory(db.Model):
     __tablename__ = 'scheduler_event_categories'
@@ -60,7 +66,7 @@ class RoomEvent(db.Model):
     room_id = db.Column('room_id', db.ForeignKey('scheduler_room_resources.id'),
                         nullable=False)
     category_id = db.Column('category_id',
-        db.ForeignKey('scheduler_event_categories.id'))
+                            db.ForeignKey('scheduler_event_categories.id'))
     category = db.relationship('EventCategory', backref=db.backref('events'))
     title = db.Column('title', db.String(255), nullable=False)
     start = db.Column('start', db.DateTime(timezone=True), nullable=False)
@@ -69,7 +75,7 @@ class RoomEvent(db.Model):
     occupancy = db.Column('occupancy', db.Integer())
     # number of sets of food/refreshment requested
     refreshment = db.Column('refreshment', db.Integer(), default=0)
-    request = db.Column('request', db.Text()) # comma separated list of things
+    request = db.Column('request', db.Text())  # comma separated list of things
     approved = db.Column('approved', db.Boolean(), default=True)
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     created_by = db.Column('created_by', db.ForeignKey('staff_account.id'))
@@ -81,5 +87,6 @@ class RoomEvent(db.Model):
     approved_at = db.Column('approved_at', db.DateTime(timezone=True), server_default=None)
     extra_items = db.Column('extra_items', db.JSON)
     note = db.Column('note', db.Text())
+    iocode = db.relationship('IOCode', backref=db.backref('events' , lazy='dynamic'))
     google_event_id = db.Column('google_event_id', db.String(64))
     google_calendar_id = db.Column('google_calendar_id', db.String(255))

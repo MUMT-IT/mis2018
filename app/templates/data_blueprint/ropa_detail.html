@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2 box">
+                {% include "messages.html" %}
+                <h1 class="title has-text-centered">ROPA Detail</h1>
+                <table class="table is-fullwidth">
+                    <tr>
+                        <td><strong>ชื่อชุดข้อมูล</strong></td>
+                        <td>{{ dataset.name }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>แก้ไขล่าสุดเมื่อ</strong></td>
+                        <td>{{ dataset.ropa.updated_at|localdatetime }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>จุดประสงค์หลักในการเก็บรวบรวมข้อมูล</strong></td>
+                        <td>{{ dataset.ropa.major_objective }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>จุดประสงค์รองในการเก็บรวบรวมข้อมูล</strong></td>
+                        <td>{{ dataset.ropa.minor_objective }}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>เจ้าของข้อมูล</strong></td>
+                        <td>
+                            <ol>
+                                {% for sbj in dataset.ropa.subjects %}
+                                <li>{{ sbj.subject }}</li>
+                                {% endfor %}
+                            </ol>
+                        </td>
+                    </tr>
+                </table>
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('data_bp.dataset_detail', dataset_id=dataset.id) }}"
+                       class="button is-light">
+                        <span>กลับ</span>
+                    </a>
+                    <a href="{{ url_for('data_bp.edit_ropa', dataset_id=dataset.id, ropa_id=dataset.ropa.id) }}"
+                        class="button is-warning">
+                        <span>แก้ไข</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

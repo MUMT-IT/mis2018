@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+
+{% block page_content %}
+{% include "procurement/nav.html" %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">อัพเดตข้อมูลครุภัณฑ์ใหม่</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                <form method="post" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.status.label }}</label>
+                        <div class="select is-fullwidth is-info">
+                            {{ form.status() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.location.label }}</label>
+                        <div class="select is-fullwidth is-info">
+                            {{ form.location() }}
+                        </div>
+                        <p class="help is-danger">Required</p>
+                    </div>
+                    <br>
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('procurement.view_procurement') }}" class="button is-light">Back</a>
+                    <input type="submit" class="button is-success" value="Submit"></input>
+                </div>
+                 </form>
+                </div>
+             </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

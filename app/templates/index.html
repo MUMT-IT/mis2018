@@ -83,14 +83,14 @@
                             ระบบจองยานพาหนะ
                         </span>
                     </a>
-                    <a href="{{ url_for('vehicle.trip') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-car"></i>
-                        </span>
-                        <span class="is-size-5">
-                            ป้อนข้อมูลการเดินทาง (สำหรับพขร.)
-                        </span>
-                    </a>
+<!--                    <a href="{{ url_for('vehicle.trip') }}" class="panel-block">-->
+<!--                        <span class="panel-icon">-->
+<!--                            <i class="fas fa-car"></i>-->
+<!--                        </span>-->
+<!--                        <span class="is-size-5">-->
+<!--                            ป้อนข้อมูลการเดินทาง (สำหรับพขร.)-->
+<!--                        </span>-->
+<!--                    </a>-->
                     <a href="http://10.4.101.32/Repair/StatusList.aspx" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-cogs"></i>
@@ -98,6 +98,33 @@
                         <span class="is-size-5">
                             ระบบซ่อมบำรุงและครุภัณฑ์ (Intranet only)
                         </span>
+                    </a>
+                </nav>
+                <nav class="panel is-danger">
+                    <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
+                    <a href="{{ url_for('procurement.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                        <span class="is-size-5">ระบบงานพัสดุและซ่อมบำรุง</span>
+                    </a>
+                    <a href="{{ url_for('purchase_tracker.landing_page') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                        <span class="is-size-5">ระบบติดตามการจัดซื้อจัดจ้าง</span>
+                    </a>
+                    <a href="{{ url_for('data_bp.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                        <span class="is-size-5">Enterprise Blueprint</span>
+                    </a>
+                    <a href="{{ url_for('pdpa.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                        <span class="is-size-5">ระบบจัดการข้อมูลส่วนบุคคล</span>
                     </a>
                 </nav>
                 <nav class="panel is-info">
@@ -116,6 +143,15 @@
                         </span>
                         <span class="is-size-5">
                             ระบบฐานข้อมูลตัวชี้วัดองค์กร
+                        </span>
+                    </a>
+                    <a href="{{ url_for('kpi_blueprint.dashboard_index') }}"
+                       class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </span>
+                        <span class="is-size-5">
+                            Dashboard รายงานข้อมูลเพื่อการตัดสินใจ
                         </span>
                     </a>
                     <a href="{{ url_for('chemdb.index') }}" class="panel-block">

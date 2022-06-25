@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body>
+  <h3 id="result">Choose the service and repair button that's best for you. Version 4.2</h3>
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script>
+	liff.init({ liffId: '1656852987-V6vzzwPx' }).then(async ()=>{
+		const result = await liff.scanCodeV2();
+		window.location = 'https://mumtmis.herokuapp.com/procurement/qr_scanner';
+	})
+  </script>
+</body>
+</html>

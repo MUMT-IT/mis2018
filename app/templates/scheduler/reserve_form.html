@@ -4,7 +4,12 @@
 {% block page_content %}
 <section class="section" id="app">
     <div class="columns">
-        <div class="column is-8 is-offset-2">
+        <div class="column">
+            {% include "messages.html" %}
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-two-thirds is-offset-2">
             <div class="box">
                 <p class="has-text-centered">กรุณากรอกข้อมูลการจองห้องให้สมบูรณ์</p>
                 {% if room.required_permission %}
@@ -62,33 +67,12 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input " v-model="title"
+                                    <input class="input is-danger" v-model="title"
                                         name="title" type="text" placeholder="จุดประสงค์การใช้ห้อง หัวข้อกิจกรรม">
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <b-field horizontal label="รหัส IO" message="สามารถค้นหาด้วยชื่อโครงการฯ หน่วยงาน รหัส cost center พันธกิจ หรือรหัส IO">
-                        <b-autocomplete v-model="ioquery" :data="data" name="iocode"
-                                        field="id" :loading="isFetching" icon="magnify"
-                                        @keyup.native="getAsyncData"
-                                        @select="option => iocode = option.id">
-                            <template slot-scope="props">
-                                <div class="media">
-                                    <div class="media-content">
-                                        <%props.option.name%>
-                                        <br>
-                                        <small>
-                                            IO code: <%props.option.id%>,
-                                            Department: <%props.option.org%>,
-                                            Cost Center : <%props.option.costCenter%>,
-                                            Mission: <%props.option.mission%>
-                                        </small>
-                                    </div>
-                                </div>
-                            </template>
-                        </b-autocomplete>
-                    </b-field>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
                             <label class="label">ตั้งแต่วันที่</label>
@@ -96,23 +80,11 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input" type="date" name="startdate" v-model="startdate" @change="checkDate()">
+                                    <v-date-picker mode="dateTime" @input="checkDate"
+                                                   v-model="startdate" is24hr :minute-increment="30">
+                                    </v-date-picker>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">เวลา</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="select">
-                                <select name="starttime">
-                                    {% for ts in timeslots %}
-                                        <option value="{{ ts }}">{{ ts }}</option>
-                                    {% endfor %}
-                                </select>
-                                </select>
+                                <input name="startdate" :value="startdate.toISOString()" type="hidden">
                             </div>
                         </div>
                     </div>
@@ -123,28 +95,17 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input" type="date" name="enddate" v-model="enddate" @change="checkDate()">
+                                    <v-date-picker mode="dateTime" @input="checkDate"
+                                                   v-model="enddate" is24hr :minute-increment="30">
+                                    </v-date-picker>
+                                    <input name="enddate" :value="enddate.toISOString()" type="hidden">
                                 </div>
                             </div>
                         </div>
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">เวลา</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="select">
-                                <select name="endtime">
-                                    {% for ts in timeslots %}
-                                    <option value="{{ ts }}">{{ ts }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">จำนวนผู้เข้าร่วม</label>
+                            <label class="label">จำนวนผู้ใช้งาน</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
@@ -156,21 +117,9 @@
                         </div>
                     </div>
                     <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">จำนวนอาหารว่าง</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input" type="number" v-model.number="food" @change="checkFood()" name="food">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
-                            <label class="label">อุปกรณ์ประจำ</label>
-                        </div>
+<!--                        <div class="field-label is-normal">-->
+<!--                            <label class="label">อุปกรณ์ประจำ</label>-->
+<!--                        </div>-->
                         <div class="field-body">
                             <div class="field is-grouped is-grouped-multiline">
                                 {% for item in room.equipments %}
@@ -184,25 +133,9 @@
                             </div>
                         </div>
                     </div>
-                    <b-field horizontal label="อุปกรณ์เสริม" message="กด Spacebar เพื่อดูรายการทั้งหมด">
-                        <b-taginput v-model="selected_equips" :data="filteredEquipments" autocomplete
-                                    field="th_name" icon="label" @typing="getFilteredEquipments"
-                                    type="is-warning">
-                            <template slot-scope="props">
-                                <p><%props.option.th_name%></p>
-                                <p>
-                                    <small><%props.option.en_name%></small>
-                                </p>
-                            </template>
-                            <template slot="empty">
-                                There are no items.
-                            </template>
-                        </b-taginput>
-                    </b-field>
-                    <input type="hidden" name="extra_items" v-model="extraItems">
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">รายละเอียดเพิ่มเติม</label>
+                            <label class="label">ความต้องการเพิ่มเติม</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
@@ -213,9 +146,11 @@
                         </div>
                     </div>
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" class="button is-rounded is-success" :disabled="isNotReady()">
-                        <strong>Submit</strong>
-                    </button>
+                    <div class="buttons is-centered">
+                        <button type="submit" class="button is-success" :disabled="isNotReady()">
+                            <strong>Submit</strong>
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -225,8 +160,9 @@
 
 {% block scripts %}
 {{super()}}
+<script src='https://unpkg.com/v-calendar'></script>
 <script type="text/javascript">
-    var vm = new Vue({
+    let vm = new Vue({
         el: '#app',
         delimiters: ['<%', '%>'],
         data() {
@@ -236,8 +172,8 @@
                 iocode: '',
                 isFetching: false,
                 title: '',
-                startdate: undefined,
-                enddate: undefined,
+                startdate: new Date(),
+                enddate: new Date(),
                 participant: 1,
                 food: 0,
                 equipments: [],
@@ -247,49 +183,27 @@
         },
         computed: {
             datedelta: function() {
-                var self = this
-                if (self.startdate !== undefined && self.enddate !== undefined) {
-                    return new Date(self.enddate) - new Date(self.startdate)
+                if (this.startdate !== undefined && this.enddate !== undefined) {
+                    return this.enddate - this.startdate
                 } else {
                     return 0
                 }
-            },
-            extraItems: function() {
-                var self = this
-                var tl = ''
-                for (var i=0; i<self.selected_equips.length; i++) {
-                   tl = tl + self.selected_equips[i].th_name +  '|'
-                }
-                return tl
             }
         },
         methods: {
             checkDate: function() {
-                var self = this
-                if (self.datedelta < 0) {
-                    self.$toast.open({
+                if (this.datedelta < 0) {
+                    this.$buefy.toast.open({
                         duration: 2000,
                         message: 'วันสิ้นสุดต้องมาหลังวันเริ่มต้น',
                         position: 'is-bottom',
                         type: 'is-danger'
                     })
-                }
-            },
-            checkFood: function() {
-                var self = this
-                if (self.food > self.participant) {
-                    self.$toast.open({
-                        duration: 2000,
-                        message: 'จำนวนอาหารว่างมากกว่าจำนวนผู้ใช้ห้อง',
-                        position: 'is-bottom',
-                        type: 'is-warning'
-                    })
-                }
+                } 
             },
             checkParticipant: function() {
-                var self = this
-                if (self.participant < 1) {
-                    self.$toast.open({
+                if (this.participant < 1) {
+                    this.$buefy.toast.open({
                         duration: 2000,
                         message: 'ผู้ใช้งานห้องต้องมีจำนวนอย่างน้อยหนึ่งคน',
                         position: 'is-bottom',
@@ -298,56 +212,12 @@
                 }
             },
             isNotReady: function() {
-                var self = this
-                if(self.datedelta >= 0 && self.iocode !== '' &&
-                    self.startdate !== undefined &&
-                    self.title !== '' && self.participant >= 1) {
+                if(this.datedelta > 0 && this.title !== '' && this.participant >= 1) {
                     return false
                 } else {
                     return true
                 }
             },
-            getAsyncData: function() {
-                var self = this
-                self.isFetching = true
-                axios.get('/room/api/iocodes').then(function(resp) {
-                    self.data = []
-                    resp.data.forEach(function(item) {
-                        if (item.id.indexOf(self.ioquery) !== -1) {
-                            self.data.push(item)
-                        }
-                        else if (item.name.indexOf(self.ioquery) !== -1) {
-                            self.data.push(item)
-                        }
-                        else if (item.costCenter.indexOf(self.ioquery) !== -1) {
-                            self.data.push(item)
-                        }
-                        else if (item.org.indexOf(self.ioquery) !== -1) {
-                            self.data.push(item)
-                        }
-                        else if (item.mission.indexOf(self.ioquery) !== -1) {
-                            self.data.push(item)
-                        }
-                    })
-                    self.isFetching = false
-                })
-            },
-            getFilteredEquipments: function(itemquery) {
-                var self = this
-                self.filteredEquipments = []
-                if (self.equipments.length === 0) {
-                    axios.get('/asset/api/room/extra-items').then(function(resp) {
-                        self.equipments = resp.data;
-                    });
-                }
-                self.equipments.forEach(function (item) {
-                    if (item.th_name.indexOf(itemquery) !== -1) {
-                        self.filteredEquipments.push(item)
-                    } else if (item.en_name.toLowerCase().indexOf(itemquery.toLowerCase()) !== -1) {
-                        self.filteredEquipments.push(item)
-                    }
-                });
-            }
         }
     })
 </script>

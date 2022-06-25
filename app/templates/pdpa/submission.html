@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}MUMT PDPA Request Submission{% endblock %}
+{% include "pdpa/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter has-text-centered">
+                    {% include 'messages.html' %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title is-size-5 has-text-info">
+                        ขอขอบคุณที่ติดต่อคณะเทคนิคการแพทย์เพื่อขอใช้สิทธิหรือแจ้งเหตุการละเมิดสิทธิข้อมูลส่วนบุคคล ทางผู้รับผิดชอบจะติดต่อท่านตามข้อมูลที่แจ้งไว้อย่างเร็วที่สุด
+                    </h1>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

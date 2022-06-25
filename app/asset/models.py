@@ -17,4 +17,4 @@ class AssetItem(db.Model):
     reservable = db.Column('reservable', db.Boolean, default=False)
 
     def __str__(self):
-        return u'{} {}-{}-{}'.format(th_name, group_id, class_id, type_id)
+        return u'{} {}-{}-{}'.format(self.th_name, self.group_id, self.class_id, self.type_id)

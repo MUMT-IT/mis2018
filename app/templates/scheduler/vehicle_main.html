@@ -9,36 +9,44 @@
 {% block page_content %}
 <section class="section">
     <h1 class="title"><a href="{{ url_for('vehicle.index') }}">Vehicle Manager</a></h1>
-    <h2 class="subtitle">ระบบบริหารจัดการยานพาหนะ รุ่น 0.1</h2>
-    <div class="box">
-        <div class="has-text-centered" id="app">
-            <div class="column is-half is-offset-one-quarter">
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    {% for msg in messages %}
-                        <b-notification auto-close type="is-warning">{{ msg }}</b-notification>
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+    <h2 class="subtitle">ระบบบริหารจัดการยานพาหนะ รุ่น 1.1</h2>
+    <div class="columns">
+        <div class="column has-text-centered">
+            {% include "messages.html" %}
+            <div class="buttons is-centered">
+                <a id="add_evt_btn" class="button is-info" href="{{ url_for('vehicle.new_event') }}">
+                    <span class="icon"><i class="far fa-calendar-plus"></i></span>
+                    <span>เพิ่มรายการจอง</span>
+                </a>
             </div>
-            <a id="add_evt_btn" class="button is-rounded is-info" href="{{ url_for('vehicle.new_event') }}">
-                <span class="icon"><i class="far fa-calendar-plus"></i></span>
-                <span>จอง</span>
-            </a>
-            <a class="button is-rounded is-primary" href="{{ url_for('vehicle.index') }}">
-                <span class="icon"><i class="far fa-calendar-alt"></i></span>
-                <span>ดูทั้งเดือน</span>
-            </a>
-            <a class="button is-rounded is-primary" href="{{ url_for('vehicle.event_list', list_type='timelineDay') }}">
-                <span class="icon"><i class="fas fa-list-ol"></i></span>
-                <span>ดูยานพาหนะ</span>
-            </a>
-            <a class="button is-rounded is-primary" href="{{ url_for('vehicle.event_list', list_type='agendaWeek') }}">
-                <span class="icon"><i class="far fa-eye"></i></span>
-                <span>ดูรายสัปดาห์</span>
-            </a>
+            <div class="tabs is-centered is-boxed">
+                <ul>
+                    <li {% if list_type == 'default' %} class="is-active" {% endif %}>
+                        <a href="{{ url_for('vehicle.index') }}">
+                            <span class="icon"><i class="far fa-calendar-alt"></i></span>
+                            <span>ดูทั้งเดือน</span>
+                        </a>
+                    </li>
+                    <li {% if list_type == 'timelineDay' %} class="is-active" {% endif %}>
+                        <a href="{{ url_for('vehicle.event_list', list_type='timelineDay') }}">
+                            <span class="icon"><i class="fas fa-list-ol"></i></span>
+                            <span>ดูยานพาหนะ</span>
+                        </a>
+                    </li>
+                    <li {% if list_type == 'agendaWeek' %} class="is-active" {% endif %}>
+                        <a href="{{ url_for('vehicle.event_list', list_type='agendaWeek') }}">
+                            <span class="icon"><i class="far fa-eye"></i></span>
+                            <span>ดูรายสัปดาห์</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
         </div>
-        <div id="room_calendar"></div>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <div id="room_calendar"></div>
+        </div>
     </div>
 </section>
 {% endblock page_content %}
@@ -52,17 +60,15 @@
                 header: {
                     left: 'title',
                 },
-                events: '/vehicle/api/events',
+                events: "{{ url_for('vehicle.get_events') }}",
+                lazyFetching: true,
                 eventLimit: true,
+                resources: "{{ url_for('vehicle.get_vehicles') }}",
+                resourceLabelText: 'Vehicle',
                 eventClick: function(calEvent, jsEvent, view) {
                     window.location = '/vehicle/events/' + calEvent.id;
                 }
             });
-        });
-    </script>
-    <script>
-        new Vue({
-            el: '#app',
         });
     </script>
 {% endblock %}

@@ -33,6 +33,7 @@ Flask-Login==0.4.1
 Flask-Mail==0.9.1
 flask-marshmallow==0.8.0
 Flask-Migrate==2.1.1
+Flask-QRcode==3.0.0
 Flask-RESTful==0.3.8
 Flask-Script==2.0.6
 Flask-SQLAlchemy==2.3.2
@@ -90,7 +91,7 @@ pickleshare==0.7.4
 Pillow==6.2.1
 ply==3.10
 prompt-toolkit==1.0.15
-psycopg2==2.7.3.2
+psycopg2-binary==2.8.6
 ptyprocess==0.5.2
 pyasn1==0.4.2
 pyasn1-modules==0.2.1
@@ -110,6 +111,7 @@ python-editor==1.0.3
 pytz==2017.3
 PyYAML==5.3.1
 pyzmq==17.0.0
+qrcode==6.1
 reportlab==3.5.32
 requests==2.18.4
 rsa==3.4.2

@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">ข้อมูลแจ้งซ่อม/การบริการทั้งหมด</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="maintenanceTable">
+                    <thead>
+                        <th>วันที่ขอบริการ</th>
+                        <th>ชื่อเครื่อง/การบริการ</th>
+                        <th>รายละเอียดขอบริการ</th>
+                        <th>สถานะ</th>
+                    </thead>
+                    <tbody>
+                    {% for record in maintenance_list %}
+                    <tr>
+                        <td>
+                            {{ record["notice_date"] }}
+                        </td>
+                        <td>
+                            {{ record["service"] }}
+                        </td>
+                        <td>
+                            {{ record["explan"] }}
+                        </td>
+                        <td>
+                                รอดำเนินการ
+                        </td>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('procurement.index') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#maintenanceTable').DataTable();
+    });
+</script>
+{% endblock %}
