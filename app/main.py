@@ -390,6 +390,9 @@ admin.add_view(ModelView(ComHealthInvoice, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthFinanceContactReason, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthCustomerGroup, db.session, category='Com Health'))
 admin.add_view(ModelView(ComHealthDivision, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthConsentDetail, db.session, category='Com Health'))
+admin.add_view(ModelView(ComHealthConsentRecord, db.session, category='Com Health'))
+
 
 class ComHealthTestModelView(ModelView):
     form_args = {
