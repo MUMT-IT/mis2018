@@ -2239,3 +2239,14 @@ def employee_kiosk_mode():
         else:
             flash(u'ไม่พบหมายเลขบริการ กรุณาตรวจสอบใหม่อีกครั้ง', 'danger')
     return render_template('comhealth/employee_kiosk_mode.html')
+
+@comhealth.route('/consent-details/services/<int:service_id>')
+@login_required
+def list_consent_details(service_id):
+    consent_details = ComHealthConsentDetail.query.all()
+    return  render_template('comhealth/consent_details.html', consent_details=consent_details, service_id=service_id)
+
+@comhealth.route('/consent-records/services/<int:service_id>/consent-details/<int:consent_detail_id>')
+@login_required
+def add_consent_records(service_id, consent_detail_id):
+    return  "Finish"
