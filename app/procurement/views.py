@@ -188,19 +188,26 @@ def add_category_ref():
     return render_template('procurement/category_ref.html', form=form, category=category)
 
 
-@procurement.route('/service/require', methods=['GET', 'POST'])
-def require_service():
-    form = ProcurementRequireForm()
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            new_contact = ProcurementRequire()
-            form.populate_obj(new_contact)
-            new_contact.staff = current_user
-            db.session.add(new_contact)
-            db.session.commit()
-            flash('New record has been added.', 'success')
-            return redirect(url_for('procurement.view_maintenance'))
-    return render_template('procurement/contact_maintenance.html', form=form)
+@procurement.route('/service/maintenance/require')
+def require_maintenance():
+    return render_template('procurement/require_maintenance.html')
+
+
+@procurement.route('/service/list', methods=['POST', 'GET'])
+def list_maintenance():
+    if request.method == 'GET':
+        maintenance_query = ProcurementDetail.query.all()
+    else:
+        procurement_number = request.form.get('procurement_number', None)
+        users = request.form.get('users', 0)
+        if procurement_number:
+            maintenance_query = ProcurementDetail.query.filter(ProcurementDetail.procurement_no.like('%{}%'.format(procurement_number)))
+        else:
+            maintenance_query = []
+        if request.headers.get('HX-Request') == 'true':
+            return render_template('procurement/partials/maintenance_list.html', maintenance_query=maintenance_query)
+
+    return render_template('procurement/maintenance_list.html', maintenance_query=maintenance_query)
 
 
 @procurement.route('/maintenance/all')
