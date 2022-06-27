@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% include "comhealth/nav.html" %}
+{% block page_content %}
+    <form method="post">
+    <div class="container has-text-centered">
+    <input type="text" name="csrf_token" value="{{ csrf_token() }}">
+        <table class="table">
+            {% for record in all_records %}
+        <tr>
+            <td>
+                <input type="radio" name="consent_{{ record.id }}" value="yes">ยินยอม
+                <input type="radio" name="consent_{{ record.id }}" value="no">ไม่ยินยอม
+            </td>
+            <td>
+                {{ record.labno }}
+            </td>
+            <td>
+                {{ record.customer.fullname }}
+            </td>
+            <td>
+                {{ record.service_id }}
+            </td>
+            <td>
+                {{ record.customer.age_years }}
+            </td>
+        </tr>
+            {% endfor %}
+        </table>
+        <div class="buttons is-centered">
+            <input type="submit" value="Submit" class="button is-success">
+        </div>
+    </div>
+    </form>
+{% endblock %}

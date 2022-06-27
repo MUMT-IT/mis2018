@@ -14,7 +14,7 @@ from flask import (render_template, flash, redirect,
                    url_for, session, request, send_file,
                    send_from_directory, jsonify)
 from flask_admin import BaseView, expose
-from flask_login import login_required
+from flask_login import login_required, current_user
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.utils import ImageReader
@@ -2246,7 +2246,25 @@ def list_consent_details(service_id):
     consent_details = ComHealthConsentDetail.query.all()
     return  render_template('comhealth/consent_details.html', consent_details=consent_details, service_id=service_id)
 
-@comhealth.route('/consent-records/services/<int:service_id>/consent-details/<int:consent_detail_id>')
+@comhealth.route('/consent-records/services/<int:service_id>/consent-details/<int:consent_detail_id>',methods=['GET','POST'])
 @login_required
 def add_consent_records(service_id, consent_detail_id):
-    return  "Finish"
+    all_records = ComHealthRecord.query.filter_by(service_id=service_id).all()
+    if request.method=='POST':
+        for record in all_records:
+            if record.consent_record:
+                continue
+            consent = request.form.get('consent_{}'.format(record.id))
+            if consent:
+                consent_given = True if consent == "yes" else False
+                consent_record = ComHealthConsentRecord(
+                    detail_id=consent_detail_id,
+                    is_consent_given=consent_given,
+                    creator=current_user.id,
+                    consent_date=datetime.today().date()
+                )
+                record.consent_record = consent_record
+                db.session.add(consent_record)
+        db.session.commit()
+        return redirect(url_for('comhealth.index'))
+    return  render_template('comhealth/add_consent_records.html', all_records=all_records)
