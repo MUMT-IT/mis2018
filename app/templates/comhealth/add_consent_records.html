@@ -1,15 +1,31 @@
 {% extends "base.html" %}
 {% include "comhealth/nav.html" %}
+{% block head %}
+{{ super() }}
+<link href="https://cdn.datatables.net/1.12.1/css/dataTables.bulma.min.css" rel="stylesheet">
+{% endblock %}
 {% block page_content %}
     <form method="post">
     <div class="container has-text-centered">
-    <input type="text" name="csrf_token" value="{{ csrf_token() }}">
-        <table class="table">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <table class="table" id="recordTable">
+        <thead>
+            <th>
+                ให้การยินยอม
+            </th>
+            <th>
+                Lab No.
+            </th>
+            <th>
+                ชื่อ-นามสกุล
+            </th>
+        </thead>
+        <tbody>
             {% for record in all_records %}
         <tr>
             <td>
-                <input type="radio" name="consent_{{ record.id }}" value="yes">ยินยอม
-                <input type="radio" name="consent_{{ record.id }}" value="no">ไม่ยินยอม
+                <input type="radio" name="consent_{{ record.id }}" value="yes" {% if record.consent_record.is_consent_given==True %}checked{% endif %}>ยินยอม
+                <input type="radio" name="consent_{{ record.id }}" value="no" {% if record.consent_record.is_consent_given==False %}checked{% endif %}>ไม่ยินยอม
             </td>
             <td>
                 {{ record.labno }}
@@ -17,18 +33,23 @@
             <td>
                 {{ record.customer.fullname }}
             </td>
-            <td>
-                {{ record.service_id }}
-            </td>
-            <td>
-                {{ record.customer.age_years }}
-            </td>
         </tr>
             {% endfor %}
+        </tbody>
         </table>
         <div class="buttons is-centered">
             <input type="submit" value="Submit" class="button is-success">
         </div>
     </div>
     </form>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.12.1/js/dataTables.bulma.min.js"></script>
+    <script>
+        $(document).ready(()=>{
+        $('#recordTable').DataTable();
+    })
+    </script>
 {% endblock %}
