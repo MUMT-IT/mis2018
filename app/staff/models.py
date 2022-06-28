@@ -596,6 +596,10 @@ class StaffWorkLogin(db.Model):
     checkin_mins = db.Column('checkin_mins', db.Integer())
     checkout_mins = db.Column('checkout_mins', db.Integer())
 
+    @staticmethod
+    def generate_date_id(date):
+        return date.strftime('%Y%m%d')
+
 
 class StaffShiftSchedule(db.Model):
     __tablename__ = 'staff_shift_schedule'
