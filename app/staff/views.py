@@ -1620,7 +1620,7 @@ def summary_index():
                 text_color = '#ffffff'
                 if (rec.checkin_mins < 0) and (rec.checkout_mins > 0):
                     bg_color = '#4da6ff'
-                    status = 'ปกติ'
+                    status = u'ปกติ'
                 elif rec.checkin_mins > 0 and rec.checkout_mins < 0:
                     status = u'สายและออกก่อน'
                     bg_color = '#ff5c33'
