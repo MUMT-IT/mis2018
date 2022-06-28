@@ -45,7 +45,11 @@
                                 <label class="label">กำหนดส่งงาน</label>
                             </td>
                             <td>
+                                {% if req.deadline_date %}
                                 {{ req.deadline_date|localdate }}
+                                {% else %}
+                                ไม่ระบุ
+                                {% endif %}
                             </td>
                         </tr>
                         <tr>
@@ -102,7 +106,7 @@
                             <span class="icon">
                                 <i class="fas fa-arrow-left"></i>
                             </span>
-                            <span>กลับหน้าสรุปWFH</span>
+                            <span>กลับหน้าสรุป WFH</span>
                         </a>
                     </div>
                     <div class="column has-text-right">

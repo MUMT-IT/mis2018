@@ -494,7 +494,7 @@ class StaffWorkFromHomeJobDetail(db.Model):
     __tablename__ = 'staff_work_from_home_job_detail'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     #want to change topic to activity and activity to comment(for Approver)
-    activity = db.Column('topic', db.String(), nullable=False, unique=True)
+    activity = db.Column('topic', db.String(), nullable=False, unique=False)
     status = db.Column('status', db.Boolean())
     wfh_id = db.Column('wfh_id', db.ForeignKey('staff_work_from_home_requests.id'))
 

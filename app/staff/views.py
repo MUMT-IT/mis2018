@@ -1158,15 +1158,18 @@ def request_work_from_home():
         end_dt = '{} {}'.format(end_d, end_t)
         start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
-        deadline_date = datetime.strptime(form.get('deadline_date'), '%d/%m/%Y')
+        deadline_date = form.get('deadline_date', None)
         req = StaffWorkFromHomeRequest(
             staff=current_user,
             start_datetime=tz.localize(start_datetime),
             end_datetime=tz.localize(end_datetime),
             detail=form.get('detail'),
             contact_phone=form.get('contact_phone'),
-            deadline_date=deadline_date
         )
+        if deadline_date:
+            deadline_date = datetime.strptime(deadline_date, '%d/%m/%Y')
+            req.deadline_date = deadline_date
+
         db.session.add(req)
         db.session.commit()
         return redirect(url_for('staff.show_work_from_home'))
