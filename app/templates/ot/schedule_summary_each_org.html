@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link ref="//cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="table-container">
+            <h4 class="subtitle">รายการที่ต้องการเบิกค่าล่วงเวลา ของ
+                {{ current_user.personal_info.org.name }}
+            </h4>
+        </div>
+        <table id="otSummaryTable" class="table is-striped is-fullwidth">
+            <thead>
+            <th>
+                สำหรับเบิกเดือนที่
+            </th>
+            <th>
+                ประกาศ
+            </th>
+            </thead>
+            <tbody>
+            {% for id,title,month in documents %}
+            <tr>
+                <td>
+                    {{ month }}
+                </td>
+                <td>
+                    <a href="{{ url_for('ot.summary_ot_each_document', document_id=id) }}">
+                        <span class="icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </span>
+                        <span>
+                           {{ title }}
+                        </span>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+
+            <!--{% for record in ot_list %}
+            <tr>
+                <td>
+                    {{ record["created_at"] | localdatetime }}
+                </td>
+                <td>
+                    {{ record["month"] }}
+                </td>
+                <td>
+                    <a href="{{ url_for('ot.summary_ot_each_document', document_id=record['id']) }}">
+                        <span class="icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </span>
+                        <span>
+                           {{ record["title"] }}
+                        </span>
+                    </a>
+                </td>
+                <td>
+                    {{ record["created_staff"] }}
+                </td>
+            </tr>
+            {% endfor %}-->
+            </tbody>
+        </table>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <a class="button is-info" href="">
+                    <span>ประวัติการเบิก</span>
+                </a>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a class="button is-info is-light" href="{{ url_for('ot.schedule') }}">
+                     <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready( function () {
+        $('#otSummaryTable').DataTable(
+            {
+                "pageLength": 5
+            }
+        );
+    });
+</script>
+{% endblock %}
+
+

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<link ref="//cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                <div class="has-text-centered">
+                    <h1 class="title">ประกาศ หลักเกณฑ์และอัตราการจ่ายเงินค่าตอบแทน</h1>
+                </div>
+                <table id="myTable" class="table is-striped is-fullwidth">
+                    <thead>
+                    <th>
+                        ตำแหน่ง
+                    </th>
+                    <th>
+                        ปฏิบัติงาน ณ
+                    </th>
+                    <th>
+                        ปฏิบัติงานให้แก่
+                    </th>
+                    <th>
+                        เริ่มเวลา
+                    </th>
+                    <th>
+                        สิ้นสุดเวลา
+                    </th>
+                    <th>
+                        ประเภท
+                    </th>
+                    <th>
+                        <span class="icon">
+                           <i class="far fa-eye"></i>
+                        </span>
+                        <span>ประกาศ</span>
+                    </th>
+                    </thead>
+                    <tbody>
+                    {% for compensation in compensations %}
+                    {% if not compensation.announcement.cancelled_at %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('ot.announcement_edit_compensation', com_id=compensation.id) }}">
+                                {{ compensation.role }}
+                            </a>
+                        </td>
+                        <td>
+                            {{ compensation.work_at_org.name }}
+                        </td>
+                        <td>
+                            {{ compensation.work_for_org.name }}
+                        </td>
+                        <td>
+                            {{ compensation.start_time }}
+                        </td>
+                        <td>
+                            {{ compensation.end_time }}
+                        </td>
+                        <td>
+                            {% if compensation.per_day %}
+                                {{ compensation.per_day }} บาท(ต่อวัน)
+                            {% endif %}
+                            {% if compensation.per_period %}
+                                {{ compensation.per_period }} บาท(ต่อคาบ)
+                            {% endif %}
+                            {% if compensation.per_hour %}
+                                {{ compensation.per_hour }} บาท(ต่อชั่วโมง)
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if compensation.announcement.upload_file_url %}
+                            <a href="{{ upload_file_url }}">{{ compensation.announcement.topic }}</a>
+                            {% else %}
+                            {{ compensation.announcement.topic }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="notification is-info is-light">
+                    <span>ประกาศจะยังไม่แสดงในหน้านี้ หากยังไม่ได้เพิ่มตำแหน่งในประกาศ</span>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="container has-text-centered">
+                    <div class="box">
+                        <a href="{{ url_for('ot.announcement_create_document') }}">
+                        <span class="icon is-large">
+                            <i class="fas fa-plus fa-2x"></i>
+                        </span>
+                            <span class="is-size-4">เพิ่มประกาศ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="container has-text-centered">
+                    <div class="box">
+                        <a href="{{ url_for('ot.announcement_add_compensation') }}">
+                        <span class="icon is-large">
+                            <i class="far fa-user-plus fa-2x"></i>
+                        </span>
+                            <span class="is-size-4">เพิ่มตำแหน่ง</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a class="button is-info is-light" href="{{ url_for('ot.index') }}">
+                     <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready( function () {
+        $('#myTable').DataTable(
+            {
+                "pageLength": 5
+            }
+        );
+    });
+</script>
+{% endblock %}

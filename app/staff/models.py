@@ -23,6 +23,8 @@ else:
     START_FISCAL_DATE = datetime(today.year - 1, 10, 1)
     END_FISCAL_DATE = datetime(today.year, 9, 30, 23, 59, 59, 0)
 
+# TODO: remove hardcoded annual quota soon
+LEAVE_ANNUAL_QUOTA = 10
 
 tz = timezone('Asia/Bangkok')
 
@@ -128,6 +130,7 @@ class StaffPersonalInfo(db.Model):
     academic_staff = db.Column('academic_staff', db.Boolean())
     retired = db.Column('retired', db.Boolean(), default=False)
 
+
     def __str__(self):
         return self.fullname
 
@@ -198,6 +201,38 @@ class StaffPersonalInfo(db.Model):
                         total_leaves.append(req.total_leave_days)
 
         return sum(total_leaves)
+
+    def get_remaining_leave_day(self, leave_quota_id):
+        if not self.employment:
+            remain_days = 0
+            return remain_days
+        year = START_FISCAL_DATE.year - 1
+        last_year = StaffLeaveRemainQuota.query.filter_by(leave_quota_id=leave_quota_id, year=year).first()
+        if last_year:
+            last_year_quota = last_year.last_year_quota
+        else:
+            last_year_quota = 0
+        delta = self.get_employ_period_of_current_fiscal_year()
+        leave_quota = StaffLeaveQuota.query.get(leave_quota_id)
+        max_cum_quota = self.get_max_cum_quota_per_year(leave_quota)
+        if delta.years > 0:
+            if max_cum_quota:
+                before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
+                quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+            elif leave_quota.max_per_year:
+                quota_limit = leave_quota.max_per_year
+            else:
+                quota_limit = 0
+        else:
+            if leave_quota.first_year:
+                quota_limit = leave_quota.first_year
+            else:
+                quota_limit = 0
+        remain = quota_limit - self.get_total_leaves(leave_quota_id)
+        if remain < 0:
+            remain = 0
+        return remain
+
 
 class StaffEduDegree(db.Model):
     __tablename__ = 'staff_edu_degree'
@@ -276,6 +311,7 @@ class StaffLeaveType(db.Model):
     request_in_advance = db.Column('request_in_advance', db.Boolean())
     document_required = db.Column('document_required', db.Boolean(), default=False)
     reason_required = db.Column('reason_required', db.Boolean())
+    requester_self_added = db.Column('requester_self_added', db.Boolean())
 
     def __str__(self):
         return self.type_
@@ -361,7 +397,7 @@ class StaffLeaveRemainQuota(db.Model):
     year = db.Column('year', db.Integer())
     last_year_quota = db.Column('last_year_quota', db.Float())
     staff = db.relationship('StaffAccount',
-                            backref=db.backref('remain_quota'))
+                            backref=db.backref('remain_quota', uselist=False))
     quota = db.relationship('StaffLeaveQuota', backref=db.backref('leave_quota'))
 
 
@@ -558,3 +594,34 @@ class StaffWorkLogin(db.Model):
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
     checkin_mins = db.Column('checkin_mins', db.Integer())
     checkout_mins = db.Column('checkout_mins', db.Integer())
+
+
+class StaffShiftSchedule(db.Model):
+    __tablename__ = 'staff_shift_schedule'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', backref=db.backref('shift_schedule'))
+    start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
+    end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
+
+
+class StaffShiftRole(db.Model):
+    __tablename__ = 'staff_shift_role'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    role = db.Column('role', db.String())
+    org_id = db.Column('orgs_id', db.ForeignKey('orgs.id'))
+    org = db.relationship(Org, backref=db.backref('shift_role'))
+
+    def __str__(self):
+        return self.role
+
+
+# class StaffSapNo(db.Model):
+#     __tablename__ = 'staff_sap_no'
+#     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+#     sap_no = db.Column('sap_no', db.Integer)
+#     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+#     created_at = db.Column('created_at',db.DateTime(timezone=True),
+#                            default=datetime.now())
+#     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+

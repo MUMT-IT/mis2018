@@ -212,6 +212,7 @@ from staff import staffbp as staff_blueprint
 
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
+
 from staff.models import *
 
 admin.add_views(ModelView(Role, db.session, category='Permission'))
@@ -232,6 +233,8 @@ admin.add_views(ModelView(StaffSeminar, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminarAttend, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkLogin, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSpecialGroup, db.session, category='Staff'))
+admin.add_views(ModelView(StaffShiftSchedule, db.session, category='Staff'))
+admin.add_views(ModelView(StaffShiftRole, db.session, category='Staff'))
 
 
 class StaffLeaveApprovalModelView(ModelView):
@@ -271,6 +274,20 @@ admin.add_view(LoginDataUploadView(
     endpoint='login_data',
     category='Human Resource')
 )
+
+
+from ot import otbp as ot_blueprint
+
+app.register_blueprint(ot_blueprint, url_prefix='/ot')
+from ot.models import *
+
+admin.add_views(ModelView(OtPaymentAnnounce, db.session, category='OT'))
+admin.add_views(ModelView(OtCompensationRate, db.session, category='OT'))
+admin.add_views(ModelView(OtDocumentApproval, db.session, category='OT'))
+admin.add_views(ModelView(OtRecord, db.session, category='OT'))
+admin.add_views(ModelView(OtRoundRequest, db.session, category='OT'))
+
+
 
 from room_scheduler import roombp as room_blueprint
 

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block head %}
+{{ super() }}
+<link ref="//cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                <div class="has-text-centered">
+                    <h1 class="title">อนุมัติในหลักการ</h1>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <div class="buttons is-centered">
+                            <a class="button is-info is-light"
+                               href="{{ url_for('ot.document_approval_create_document') }}">
+                                <span class="icon">
+                                    <i class="fas fa-plus"></i>
+                                </span>
+                                <span>
+                                    เพิ่มอนุมัติ
+                                </span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <table id="myTable" class="table is-striped is-fullwidth">
+                    <thead>
+                    <th>
+                        เรื่อง
+                    </th>
+                    <th>
+                        เพิ่มประกาศ
+                    </th>
+                    <th>
+                        หน่วยงาน
+                    </th>
+                    <th>
+                        ผู้ปฏิบัติงาน
+                    </th>
+                    <th>
+                        เริ่มต้น
+                    </th>
+                    <th>
+                        สิ้นสุด
+                    </th>
+                    <th>
+                        Cost center
+                    </th>
+                    <th>
+                        IO โครงการ
+                    </th>
+                    <th>
+                        <span class="icon">
+                           <i class="far fa-eye"></i>
+                        </span>
+                        <span>อนุมัติในหลักการ</span>
+                    </th>
+                    </thead>
+                    <tbody>
+                    {% for document in documents %}
+                    {% if not document.cancelled_at  %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('ot.document_approval_edit_document', document_id=document.id) }}">
+                                {{ document.title }}
+                                <span class="icon">
+                                        <i class="fas fa-pencil-alt"></i>
+                                </span>
+                            </a>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('ot.document_approval_show_announcement', document_id=document.id) }}">
+                                <span class="icon">
+                                        <i class="far fa-plus-square"></i>
+                                </span>
+                            </a>
+                        </td>
+                        <td>
+                            {{ document.org.name }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('ot.document_approval_show_approved_staff', document_id=document.id) }}">
+                                รายชื่อ
+                            </a>
+                        </td>
+                        <td>
+                            {{ document.start_datetime }}
+                        </td>
+                        <td>
+                            {{ document.end_datetime }}
+                        </td>
+                        <td>
+                            cost center
+                        </td>
+                        <td>
+                            รหัส IO โครงการ...
+                        </td>
+                        <td>
+                            {% if document.upload_file_url %}
+                                <a href="{{ upload_file_url }}">{{ document.file_name }}</a>
+                            {% else %}
+                                {{ document.title }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a class="button is-info is-light" href="{{ url_for('ot.index') }}">
+                     <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready( function () {
+        $('#myTable').DataTable(
+            {
+                "pageLength": 5
+            }
+        );
+    });
+</script>
+{% endblock %}
