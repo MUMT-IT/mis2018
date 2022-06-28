@@ -464,6 +464,27 @@ class ComHealthSpecimensCheckinRecord(db.Model):
         self.checkin_datetime = chkdatetime
 
 
+class ComHealthConsentDetail(db.Model):
+    __tablename__ = 'comhealth_consent_details'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    details = db.Column('details', db.Text(), nullable=False)
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    creator = db.Column('creator', db.ForeignKey('staff_account.id'))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
+
+
+class ComHealthConsentRecord(db.Model):
+    __tablename__ = 'comhealth_consent_records'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    consent_date = db.Column('consent_date', db.Date())
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    creator = db.Column('creator', db.ForeignKey('staff_account.id'))
+    record_id = db.Column('record_id', db.ForeignKey('comhealth_test_records.id'))
+    record = db.relationship(ComHealthRecord, backref=db.backref('consent_record', uselist=False))
+    is_consent_given = db.Column('is_consent_given', db.Boolean())
+    detail_id = db.Column('detail_id', db.ForeignKey('comhealth_consent_details.id'))
+
+
 class ComHealthCustomerInfoSchema(ma.ModelSchema):
     class Meta:
         model = ComHealthCustomerInfo
