@@ -102,6 +102,12 @@
                 </nav>
                 <nav class="panel is-danger">
                     <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
+                    <a href="{{ url_for('staff.login_scan') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                        <span class="is-size-5">ระบบบันทึกเวลาเข้างาน</span>
+                    </a>
                     <a href="{{ url_for('procurement.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fa fa-exclamation-triangle has-text-warning"></i>
