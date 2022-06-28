@@ -1482,7 +1482,7 @@ def login_scan():
                 record = StaffWorkLogin(
                     date_id=date_id,
                     staff=person.staff_account,
-                    start_datetime=tz.localize(now),
+                    start_datetime=now,
                     checkin_mins=morning,
                 )
                 activity = 'checked in'
@@ -1494,7 +1494,7 @@ def login_scan():
                 else:
                     evening = office_enddt - now
                     evening = (evening.seconds / 60.0) * -1
-                record.end_datetime = tz.localize(now)
+                record.end_datetime = now
                 record.checkout_mins = evening
                 activity = 'checked out'
             db.session.add(record)
