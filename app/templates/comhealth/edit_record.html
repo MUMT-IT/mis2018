@@ -17,11 +17,15 @@
                 <input type="hidden" name="record_id" value="{{ record.id }}">
                 <div class="columns">
                     <div class="column">
-                        <input type="text" class="input is-rounded is-large" name="service_code"
-                               placeholder="Enter a lab number or scan a barcode" autofocus
-                                {% if record.labno %} readonly value="{{ record.labno }}"{% endif %}
-                               required
-                        >
+                        <div class="field">
+                            <div class="control">
+                                <input type="text" class="input is-rounded is-large" name="service_code"
+                                       placeholder="Enter a lab number or scan a barcode" autofocus
+                                       :readonly="is_labno_readonly"
+                                       v-model="labno" required>
+                            </div>
+                            <p class="help is-danger" v-if="!is_labno_valid">กรุณาระบุหมายเลข Lab No. ให้ถูกต้อง</p>
+                        </div>
                     </div>
                 </div>
                 <div class="columns">
@@ -160,8 +164,8 @@
                 <div class="columns">
                     <div class="column">
                         <div class="has-text-centered">
-                            <button class="button is-light is-medium" type="submit">
-                                <span>Proceed</span>
+                            <button class="button is-light is-medium" type="submit" :disabled="!is_labno_valid">
+                                <span>ต่อไป</span>
                                 <span class="icon">
                                     <i class="fas fa-chevron-right"></i>
                                 </span>
@@ -226,10 +230,10 @@
                 <div class="columns">
                     <div class="column">
                         <div class="has-text-centered">
-                            <button class="button is-medium is-link" type="submit">
-                                <span>Proceed</span>
+                            <button class="button is-medium is-link" type="submit" :disabled="!is_labno_valid">
+                                <span>ต่อไป</span>
                                 <span class="icon">
-                                    <i class="fas fa-chevron-right"></i>
+                                    <i class="fa-solid fa-minus"></i>
                                 </span>
                             </button>
                         </div>
@@ -287,8 +291,8 @@
                 <div class="columns">
                     <div class="column">
                         <div class="has-text-centered">
-                            <button class="button is-medium is-link" type="submit">
-                                <span>Proceed</span>
+                            <button class="button is-medium is-link" type="submit" :disabled="!is_labno_valid">
+                                <span>ต่อไป</span>
                                 <span class="icon">
                                     <i class="fas fa-chevron-right"></i>
                                 </span>
@@ -313,6 +317,8 @@
                     lastname: {{ record.customer.lastname|tojson|safe }},
                     title: {{ record.customer.title|tojson|safe }},
                     nameEditing: false,
+                    labno: {{ record.labno|tojson|safe }},
+                    is_labno_readonly: {{ record.labno|tojson|safe }} != null,
                 }
             },
             methods: {
@@ -336,6 +342,9 @@
                 },
                 fullname: function() {
                     return this.title + this.firstname + " " + this.lastname;
+                },
+                is_labno_valid: function () {
+                    return this.labno == null ? false : this.labno.length == 10
                 }
             }
         });

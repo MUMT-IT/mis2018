@@ -99,6 +99,18 @@ class ComHealthDepartment(db.Model):
         return u'{}'.format(self.name)
 
 
+class ComHealthDivision(db.Model):
+    __tablename__ = 'comhealth_divisions'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    name = db.Column('name', db.String(255), index=True, nullable=False)
+    parent_id = db.Column('parent_id', db.ForeignKey('comhealth_department.id'))
+    parent = db.relationship('ComHealthDepartment',
+                             backref=db.backref('divisions', cascade='all, delete-orphan'))
+
+    def __str__(self):
+        return u'{}'.format(self.name)
+
+
 class ComHealthCustomer(db.Model):
     __tablename__ = 'comhealth_customers'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
@@ -123,6 +135,9 @@ class ComHealthCustomer(db.Model):
     groups = db.relationship('ComHealthCustomerGroup', backref=db.backref('customers'),
                                     secondary=group_customer_table)
     line_id = db.Column('line_id', db.String(), unique=True)
+    emp_id = db.Column('emp_id', db.String())
+    division_id = db.Column('division_id', db.ForeignKey('comhealth_divisions.id'), nullable=True)
+    division = db.relationship('ComHealthDivision', backref=db.backref('employees', lazy=True))
 
     def __str__(self):
         return u'{}{} {} {}'.format(self.title, self.firstname,
@@ -447,6 +462,27 @@ class ComHealthSpecimensCheckinRecord(db.Model):
         self.record_id = record_id
         self.container_id = container_id
         self.checkin_datetime = chkdatetime
+
+
+class ComHealthConsentDetail(db.Model):
+    __tablename__ = 'comhealth_consent_details'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    details = db.Column('details', db.Text(), nullable=False)
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    creator = db.Column('creator', db.ForeignKey('staff_account.id'))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
+
+
+class ComHealthConsentRecord(db.Model):
+    __tablename__ = 'comhealth_consent_records'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    consent_date = db.Column('consent_date', db.Date())
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    creator = db.Column('creator', db.ForeignKey('staff_account.id'))
+    record_id = db.Column('record_id', db.ForeignKey('comhealth_test_records.id'))
+    record = db.relationship(ComHealthRecord, backref=db.backref('consent_record', uselist=False))
+    is_consent_given = db.Column('is_consent_given', db.Boolean())
+    detail_id = db.Column('detail_id', db.ForeignKey('comhealth_consent_details.id'))
 
 
 class ComHealthCustomerInfoSchema(ma.ModelSchema):

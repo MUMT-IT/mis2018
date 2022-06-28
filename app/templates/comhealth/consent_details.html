@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% include "comhealth/nav.html" %}
+{% block page_content %}
+    <div class="container has-text-centered">
+        <table class="table">
+            {% for detail in consent_details %}
+        <tr>
+            <td>
+                {{ detail.details }}
+            </td>
+            <td>
+                <a class="button" href="{{ url_for('comhealth.add_consent_records', service_id=service_id, consent_detail_id=detail.id) }}">เลือก</a>
+            </td>
+        </tr>
+            {% endfor %}
+        </table>
+    </div>
+{% endblock %}
