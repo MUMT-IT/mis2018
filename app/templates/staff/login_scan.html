@@ -1,10 +1,159 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+{% extends "base.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container" id="app">
+            <h1 class="title has-text-centered has-text-info">ระบบบันทึกเวลาทำงานของบุคลากร</h1>
+            <h1 class="subtitle has-text-danger has-text-centered">Experimental Version</h1>
+            <div class="columns">
+                <div class="column is-two-thirds is-offset-1">
+                    <b-loading v-model="loading"></b-loading>
+                    <qrcode-stream :key="_uid"
+                                   :camera="camera"
+                                   @decode="onDecode"
+                                   :track="paintOutline" @init="onInit" />
+                </div>
+                <div class="column box">
+                    <h1 class="title is-size-4 has-text-centered has-text-link">
+                        ขั้นตอนการแสกน
+                    </h1>
+                    <div class="content">
+                        <ol>
+                            <li>เปิด QR Code จาก We Mahidol App</li>
+                            <li>หัน QR Code เข้าหากล้องจนมีกรอบสีแดงปรากฎรอบ QR Code</li>
+                            <li>รอข้อความแสดงการแสกนเสร็จเรียบร้อย</li>
+                        </ol>
+                    </div>
+                    <p>
+                        <strong>หมายเหตุ</strong> ระบบจะบันทึกการแสกนครั้งแรกของวันเป็นการเวลาเข้างานและการแสกนครั้งสุดท้ายของวันเป็นเวลาเลิกงาน หากแสกนซ้ำมากกว่าหนึ่งครั้ง ระบบจะบันทึกเฉพาะครั้งสุดท้าย
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.0.0-alpha.1/axios.min.js" integrity="sha512-xIPqqrfvUAc/Cspuj7Bq0UtHNo/5qkdyngx6Vwt+tmbvTLDszzXM0G6c91LXmGrRx8KEPulT+AfOOez+TeVylg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://unpkg.com/vue-qrcode-reader/dist/VueQrcodeReader.umd.min.js"></script>
+    <script>
+        window.axios.defaults.headers.common['X-CSRF-TOKEN'] = "{{ csrf_token() }}";
+        new Vue({
+            el: '#app',
+            data() {
+                return {
+                    fail: false,
+                    loading: false,
+                    result: null,
+                    camera: 'auto',
+                    isSaving: true,
+                    info: {
+                        id: null,
+                        thTitle: null,
+                        enTitle: null,
+                        thName: null,
+                        thAffil: null,
+                        enName: null,
+                        enAffil: null,
+                        checkedInAt: null,
+                    }
+                }
+            },
+            methods: {
+                reset() {
+                    this.info = {
+                        id: null,
+                        thTitle: null,
+                        enTitle: null,
+                        thName: null,
+                        thAffil: null,
+                        enName: null,
+                        enAffil: null,
+                        checkedInAt: null,
+                    }
+                },
+                paintOutline(detectedCodes, ctx) {
+                    for (const detectedCode of detectedCodes) {
+                        const [firstPoint, ...otherPoints] = detectedCode.cornerPoints
+                        ctx.strokeStyle = "red";
+                        ctx.beginPath();
+                        ctx.moveTo(firstPoint.x, firstPoint.y);
+                        for (const {x, y} of otherPoints) {
+                            ctx.lineTo(x, y);
+                        }
+                        ctx.lineTo(firstPoint.x, firstPoint.y);
+                        ctx.closePath();
+                        ctx.stroke();
+                    }
+                },
+                async onInit(promise) {
+                    this.loading = true
+                    try {
+                        await promise
+                    } catch (error) {
+                        console.error(error)
+                    } finally {
+                        this.loading = false
+                    }
+                },
+                async onDecode(content) {
+                    this.isSaving = true
+                    let result = content.split("|")
+                    console.log(result)
+                    this.info.id = result[0]
+                    this.info.thTitle = result[6]
+                    this.info.thName = result[7]
+                    this.info.enTitle = result[9]
+                    this.info.enName = result[10]
+                    this.info.thAffil = result[11]
+                    this.info.enAffil = result[12]
+                    this.turnCameraOff()
+                    axios.post("{{ url_for('staff.login_scan') }}", {
+                        data: this.info
+                    }).then(async (resp)=>{
+                        if (resp.data.activity === 'checked in') {
+                            message = 'ลงชื่อเข้างานเรียบร้อยแล้ว'
+                        } else {
+                            message = 'ลงชื่อเลิกงานเรียบร้อยแล้ว'
+                        }
+                        this.$buefy.toast.open({
+                            'message' : message,
+                            'type' : "is-success"
+                        })
+                        this.isSaving = false
+                        await this.timeout(1000)
+                        this.reset()
+                        this.fail = false
+                        this.turnCameraOn()
+                    }).catch(async (error)=>{
+                        this.$buefy.toast.open({
+                            message: error.toString(),
+                            type: "is-danger"
+                        })
+                        this.isSaving = false
+                        this.fail = true
+                        setTimeout(() => {
+                            this.fail = false
+                        }, 3000)
+                        this.reset()
+                        this.turnCameraOn()
+                    })
+                },
+                logErrors(promise) {
+                    promise.catch(console.error)
+                },
+                turnCameraOn() {
+                    this.camera = 'auto'
+                },
+                turnCameraOff() {
+                    this.camera = 'off'
+                },
+                timeout(ms) {
+                    return new Promise(resolve => {
+                        window.setTimeout(resolve, ms)
+                    })
+                }
+            }
+        })
+    </script>
+{% endblock %}
