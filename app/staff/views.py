@@ -1463,7 +1463,7 @@ def login_scan():
             return jsonify({'message': 'Staff has has no name.'}), 400
 
         if person:
-            now = datetime.now()
+            now = datetime.utcnow()
             date_id = StaffWorkLogin.generate_date_id(now)
             record = StaffWorkLogin.query\
                 .filter_by(date_id=date_id, staff=person.staff_account).first()
