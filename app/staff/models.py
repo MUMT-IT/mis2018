@@ -588,6 +588,7 @@ class StaffSeminarAttend(db.Model):
 class StaffWorkLogin(db.Model):
     __tablename__ = 'staff_work_logins'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    date_id = db.Column('date_id', db.String())
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship('StaffAccount', backref=db.backref('work_logins'))
     start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
@@ -624,4 +625,6 @@ class StaffShiftRole(db.Model):
 #     created_at = db.Column('created_at',db.DateTime(timezone=True),
 #                            default=datetime.now())
 #     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+
+
 
