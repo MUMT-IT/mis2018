@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}e-Form Page{% endblock %}
+{% include "nav.html" %}
+{% block head %}
+{{ super() }}
+    <meta charset="UTF-8">
+{% endblock %}
+{% block page_content %}
+<div class="container">
+    <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item">
+                <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}"/>
+            </a>
+            <a role="button" class="navbar-burger burger has-text-white" aria-label="menu" aria-expanded="false"
+               data-target="navbarBasicExample">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+        <div id="navbarBasicExample" class="navbar-menu">
+            <div class="navbar-start">
+                <a href="{{ url_for('purchase_tracker.index') }}" class="navbar-item ">Home</a>
+            </div>
+        </div>
+    </nav>
+</div>
+<section class="section">
+    <div class="container">
+             <div class="columns">
+                <div class="column">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="has-text-centered">
+                                <span class="icon is-large">
+                                  <i class="fab fa-wpforms fa-4x"></i>
+                                </span>
+                                <p class="title is-4"><br>
+                                แบบฟอร์มหน่วยพัสดุ
+                                </p>
+                            </div>
+                        </div>
+                        <footer class="card-footer">
+                            <a href="" class="card-footer-item">เลือก</a>
+                        </footer>
+                    </div>
+                </div>
+                <div class="column">
+                    <div class="card">
+                        <div class="card-content">
+                            <div class="has-text-centered">
+                                <span class="icon is-large">
+                                   <i class="fab fa-wpforms fa-4x"></i>
+                                </span>
+                                <p class="title is-4"><br>
+                                แบบฟอร์มหน่วยการเงิน
+                                </p>
+                            </div>
+                        </div>
+                        <footer class="card-footer">
+                            <a href="" class="card-footer-item">เลือก</a>
+                        </footer>
+                    </div>
+                </div>
+            </div>
+    </div>
+</section>
+{% endblock %}
+

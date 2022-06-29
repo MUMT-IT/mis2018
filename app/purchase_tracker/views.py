@@ -40,6 +40,11 @@ def staff_index():
     return render_template('purchase_tracker/personnel/personnel_index.html')
 
 
+@purchase_tracker.route('/personnel/personnel_index/e-form')
+def select_form():
+    return render_template('purchase_tracker/personnel/select_form.html')
+
+
 @purchase_tracker.route('/main')
 def index():
     return render_template('purchase_tracker/index.html')
