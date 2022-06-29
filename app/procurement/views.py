@@ -1,15 +1,12 @@
 # -*- coding:utf-8 -*-
 import cStringIO
 import os, requests
-import pdb
 from base64 import b64decode
 
+import pytz
 from flask import render_template, request, flash, redirect, url_for, session, jsonify, Flask, send_file
 from flask_login import current_user, login_required
-from oauth2client.service_account import ServiceAccountCredentials
-from pydrive.auth import GoogleAuth
-from reportlab.graphics import renderPDF
-from reportlab.graphics.shapes import Drawing
+from pandas import parser
 from reportlab.lib.units import mm
 
 from werkzeug.utils import secure_filename
@@ -18,7 +15,6 @@ from .forms import *
 from datetime import datetime, timedelta
 from pytz import timezone
 from pydrive.drive import GoogleDrive
-from flask import (request, send_file)
 from reportlab.platypus import (SimpleDocTemplate, Table, Image,
                                 Spacer, Paragraph, TableStyle, PageBreak, Frame)
 from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_RIGHT
@@ -55,33 +51,30 @@ def add_procurement():
     form = CreateProcurementForm()
     if request.method == 'POST':
         if form.validate_on_submit():
-            # filename = ''
+            filename = ''
             procurement = ProcurementDetail()
             form.populate_obj(procurement)
             procurement.creation_date = bangkok.localize(datetime.now())
             procurement.staff = current_user
             procurement.end_guarantee_date = form.start_guarantee_date.data + timedelta(days=int(form.days.data))
-            # TODO: calculate end date from time needed to finish the task
-
-            # drive = initialize_gdrive()
-            # if form.image.data:
-            #     if not filename or (form.image.data.filename != filename):
-            #         upfile = form.image.data
-            #         filename = secure_filename(upfile.filename)
-            #         upfile.save(filename)
-            #         file_drive = drive.CreateFile({'title': filename,
-            #                                        'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
-            #         file_drive.SetContentFile(filename)
-            #         try:
-            #             file_drive.Upload()
-            #             permission = file_drive.InsertPermission({'type': 'anyone',
-            #                                                       'value': 'anyone',
-            #                                                       'role': 'reader'})
-            #         except:
-            #             flash('Failed to upload the attached file to the Google drive.', 'danger')
-            #         else:
-            #             flash('The attached file has been uploaded to the Google drive', 'success')
-            #             procurement.url = file_drive['id']
+            # TODO: calculate end date from time needed to finish guarantee date
+            if form.image.data:
+                if not filename or (form.image.data.filename != filename):
+                    upload_img = form.image.data
+                    img_name = secure_filename(upload_img.filename)
+                    upload_img.save(img_name)
+                    # convert image to base64(text) in database
+                    import base64
+                    with open(img_name, "rb") as img_file:
+                        procurement.image = base64.b64encode(img_file.read())
+                        flash('Image has been uploaded', 'success')
+                        db.session.add(procurement)
+                        db.session.commit()
+                else:
+                    # convert base64(text) to image in database
+                    decoded_img = b64decode(procurement.image)
+                    img_string = cStringIO.StringIO(decoded_img)
+                    img_string.seek(0)
 
             db.session.add(procurement)
             db.session.commit()
@@ -92,13 +85,6 @@ def add_procurement():
             for er in form.errors:
                 flash(er, 'danger')
     return render_template('procurement/new_procurement.html', form=form)
-
-
-def initialize_gdrive():
-    gauth = GoogleAuth()
-    scopes = ['https://www.googleapis.com/auth/drive']
-    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
-    return GoogleDrive(gauth)
 
 
 @procurement.route('/landing')
@@ -208,6 +194,38 @@ def list_maintenance():
             return render_template('procurement/partials/maintenance_list.html', maintenance_query=maintenance_query)
 
     return render_template('procurement/maintenance_list.html', maintenance_query=maintenance_query)
+
+
+@procurement.route('/service/contact', methods=['GET', 'POST'])
+def contact_service():
+    # if request.method == 'POST':
+    #     service_id = request.form.get('service_id', None)
+    #     record_id = request.form.get('record_id', None)
+    #     service = request.form.get('service', ''),
+    #     desc = request.form.get('desc', ''),
+    #     notice_date = request.form.get('notice_date', '')
+    #     require = ProcurementRequire.query.get(require_id)
+    #     tz = pytz.timezone('Asia/Bangkok')
+    #     if notice_date:
+    #         noticedate = parser.isoparse(notice_date)
+    #         noticedate = noticedate.astimezone(tz)
+    #     else:
+    #         noticedate = None
+    #
+    #     if require_id and noticedate:
+    #         approval_needed = True if service.available == 2 else False
+    #
+            # new_maintenance = ProcurementRequire(service_id=service.id,
+            #                                      record_id=record.id,
+            #                                      staff_id=current_user.id,
+            #                                      desc=desc,
+            #                                      notice_date=notice_date)
+
+    #         db.session.add(new_maintenance)
+    #         db.session.commit()
+    #         flash(u'บันทึกการจองห้องเรียบร้อยแล้ว', 'success')
+    #         return redirect(url_for(''))
+    return render_template('procurement/maintenance_contact.html')
 
 
 @procurement.route('/maintenance/all')
