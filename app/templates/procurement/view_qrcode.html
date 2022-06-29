@@ -24,6 +24,7 @@
                     <div class="card-header">
                         <h1 class="card-header-title">
                             <td><img src="{{ qrcode(procurement_no) }}"></td>
+{#                            <td><img src="data:image/png;base64,"></td>#}
                             <table class="table">
                             {% set last_record = item.records.order_by(model.updated_at.desc()).first() %}
                              <tr>
