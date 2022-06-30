@@ -27,44 +27,129 @@
     </nav>
 </div>
 <section class="section">
-    <div class="container">
-             <div class="columns">
-                <div class="column">
-                    <div class="card">
-                        <div class="card-content">
-                            <div class="has-text-centered">
-                                <span class="icon is-large">
-                                  <i class="fab fa-wpforms fa-4x"></i>
-                                </span>
-                                <p class="title is-4"><br>
-                                แบบฟอร์มหน่วยพัสดุ
-                                </p>
-                            </div>
-                        </div>
-                        <footer class="card-footer">
-                            <a href="" class="card-footer-item">เลือก</a>
-                        </footer>
-                    </div>
+        <div class="container">
+          <div class="columns is-multiline">
+            <div class="column is-one-third">
+               <a href="{{ url_for('purchase_tracker.create_form', form_id="MTPC-001" ,account_id=123) }}" class="notification has-background-white media">
+                <figure class="media-left">
+                  <span class="icon has-text-info">
+                    <i class="fab fa-wpforms "></i>
+                  </span>
+                </figure>
+                <div class="media-content">
+                  <div class="content">
+                    <h1 class="title is-size-4">MTPC-001</h1>
+                    <p class="is-size-5 subtitle">
+                      รายงานขออนุมัติซื้อหรือจ้าง กรณีจำเป็นเร่งด่วนฯ
+                    </p>
+                  </div>
                 </div>
-                <div class="column">
-                    <div class="card">
-                        <div class="card-content">
-                            <div class="has-text-centered">
-                                <span class="icon is-large">
-                                   <i class="fab fa-wpforms fa-4x"></i>
-                                </span>
-                                <p class="title is-4"><br>
-                                แบบฟอร์มหน่วยการเงิน
-                                </p>
-                            </div>
-                        </div>
-                        <footer class="card-footer">
-                            <a href="" class="card-footer-item">เลือก</a>
-                        </footer>
-                    </div>
-                </div>
+              </a>
             </div>
-    </div>
-</section>
+            <div class="column is-one-third">
+              <a class="notification has-background-white media">
+                <figure class="media-left">
+                  <span class="icon has-text-info">
+                    <i class="fab fa-wpforms"></i>
+                  </span>
+                </figure>
+                <div class="media-content">
+                  <div class="content">
+                    <h1 class="title is-size-4">MTPC-002 </h1>
+                    <p class="is-size-5 subtitle">
+                      ขออนุมัติในหลักการ วงเงินไม่เกิน 30,000 บาท
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="column is-one-third">
+               <a class="notification has-background-white media">
+                <figure class="media-left">
+                  <span class="icon has-text-info">
+                    <i class="fab fa-wpforms"></i>
+                  </span>
+                </figure>
+                <div class="media-content">
+                  <div class="content">
+                    <h1 class="title is-size-4">MTPC-003</h1>
+                    <p class="is-size-5 subtitle">
+                      ขออนุมัติในหลักการ วงเงินเกิน 30,000 บาท ไม่เกิน 500,000 บาท
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="column is-one-third">
+               <a class="notification has-background-white media">
+                <figure class="media-left">
+                  <span class="icon has-text-info">
+                    <i class="fab fa-wpforms"></i>
+                  </span>
+                </figure>
+                <div class="media-content">
+                  <div class="content">
+                    <h1 class="title is-size-4">MTPC-005</h1>
+                    <p class="is-size-5 subtitle">
+                      ขออนุมัติในหลักการซื้อครุภัณฑ์ ไม่เกิน 500,000 บาท
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="column is-one-third">
+               <a class="notification has-background-white media">
+                <figure class="media-left">
+                  <span class="icon has-text-info">
+                    <i class="fab fa-wpforms"></i>
+                  </span>
+                </figure>
+                <div class="media-content">
+                  <div class="content">
+                    <h1 class="title is-size-4">MTPC-006</h1>
+                    <p class="is-size-5 subtitle">
+                      ขออนุมัติในหลักการซื้อครุภัณฑ์ วงเงินเกิน 500,000 บาท
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="column is-one-third">
+               <a class="notification has-background-white media">
+                <figure class="media-left">
+                  <span class="icon has-text-info">
+                    <i class="fab fa-wpforms"></i>
+                  </span>
+                </figure>
+                <div class="media-content">
+                  <div class="content">
+                    <h1 class="title is-size-4">MTPC-007</h1>
+                    <p class="is-size-5 subtitle">
+                      ขออนุมัติในหลักการซ่อม
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+              <div class="column is-one-third">
+               <a class="notification has-background-white media">
+                <figure class="media-left">
+                  <span class="icon has-text-info">
+                    <i class="fab fa-wpforms"></i>
+                  </span>
+                </figure>
+                <div class="media-content">
+                  <div class="content">
+                    <h1 class="title is-size-4">Form</h1>
+                    <p class="is-size-5 subtitle">
+                      แบบฟอร์มการยืม-คืนพัสดุ
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
 {% endblock %}
 

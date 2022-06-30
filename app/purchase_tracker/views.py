@@ -1,10 +1,16 @@
 # -*- coding:utf-8 -*-
 import requests, os
-from flask import render_template, request, flash, redirect, url_for, send_from_directory
+from flask import render_template, request, flash, redirect, url_for, send_from_directory, send_file
 from flask_login import current_user, login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pandas import DataFrame
 from pydrive.auth import GoogleAuth
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import Image, SimpleDocTemplate
 from sqlalchemy import cast, Date
 from werkzeug.utils import secure_filename
 from . import purchase_tracker_bp as purchase_tracker
@@ -12,7 +18,7 @@ from .forms import *
 from datetime import datetime
 from pytz import timezone
 from pydrive.drive import GoogleDrive
-from .models import PurchaseTrackerAccount
+from .models import PurchaseTrackerAccount, PurchaseTrackerForm
 from flask_mail import Message
 from ..main import mail
 from ..staff.models import Role
@@ -40,7 +46,7 @@ def staff_index():
     return render_template('purchase_tracker/personnel/personnel_index.html')
 
 
-@purchase_tracker.route('/personnel/personnel_index/e-form')
+@purchase_tracker.route('/personnel/personnel_index/e-form/method/select')
 def select_form():
     return render_template('purchase_tracker/personnel/select_form.html')
 
@@ -427,7 +433,52 @@ def dashboard_info_download():
     return send_from_directory(os.getcwd(), filename='account_summary.xlsx')
 
 
+@purchase_tracker.route('/personnel/personnel_index/e-form/method/create/<string:form_id>/<int:account_id>', methods=['GET', 'POST'])
+def create_form(account_id, form_id):
+    form = CreateMTPCForm()
+    account = PurchaseTrackerAccount.query.get(account_id)
+    if form.validate_on_submit():
+        new_form = PurchaseTrackerForm()
+        form.populate_obj(new_form)
+        new_form.staff = current_user
+        db.session.add(new_form)
+        db.session.commit()
+        flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
+        return render_template('purchase_tracker/personnel/select_form.html')
+    # Check Error
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
+    return render_template('purchase_tracker/personnel/create_form_{}.html'.format(form_id), form=form, account=account)
 
+
+sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
+pdfmetrics.registerFont(sarabun_font)
+style_sheet = getSampleStyleSheet()
+style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
+style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
+style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
+
+
+# @purchase_tracker.route('/e-forms/pdf/blank')
+# def export_blank_form_pdf():
+#
+#     def all_page_setup(canvas, doc):
+#         canvas.saveState()
+#         logo_image = ImageReader('app/static/img/logo-MU_black-white-2-1.png')
+#         canvas.drawImage(logo_image, 10, 700, width=250, height=100)
+#         canvas.restoreState()
+#
+#     doc = SimpleDocTemplate("app/e-form.pdf",
+#                             rightMargin=20,
+#                             leftMargin=20,
+#                             topMargin=20,
+#                             bottomMargin=10
+#                             )
+#     data = []
+#
+#     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+#     return send_file('e-form.pdf')
 
 
 

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Create Forms{% endblock %}
+{% include "nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="box">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">สร้างรายงานขออนุมัติซื้อหรือจ้าง กรณีจำเป็นเร่งด่วนฯใหม่</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-one-third is-offset-4">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                         {% include "purchase_tracker/personnel/form_head.html" %}
+                        <div class="field">
+                            <div class="radio">
+                                {{ form.method() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">รายการ</label>
+                            <div class="control">
+                                {{ account.subject}}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">วงเงินหลักการ</label>
+                            <div class="control">
+                                {{ account.amount }}
+                                 <p class="help is-danger">ใส่เฉพาะตัวเลข เช่น 1000 หรือ 1000.50 ไม่ต้องใส่เครื่องหมายจุลภาค( , )</p>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">รายละเอียด</label>
+                            <div class="control">
+                                {{ account.desc }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">หมายเหตุ</label>
+                            <div class="control">
+                                {{ account.comment }}
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="buttons">
+                                <a href="{{ url_for('purchase_tracker.select_form') }}" class="button is-success">Select</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock page_content %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $('#upload').change(function (e) {
+            let fileName = e.target.files[0].name;
+            $('#filename').text(fileName);
+        });
+
+        $('input[name="booking_date"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: false,
+            locale: {
+                format: 'YYYY-MM-DD'
+            }
+        });
+    </script>
+{% endblock %}
