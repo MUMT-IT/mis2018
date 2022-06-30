@@ -6,7 +6,8 @@ from wtforms.validators import DataRequired, InputRequired, ValidationError, Opt
 from wtforms_alchemy import model_form_factory, QuerySelectField
 
 from app.main import db
-from app.purchase_tracker.models import PurchaseTrackerAccount, PurchaseTrackerStatus, PurchaseTrackerActivity
+from app.purchase_tracker.models import PurchaseTrackerAccount, PurchaseTrackerStatus, PurchaseTrackerActivity, \
+    PurchaseTrackerForm
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -48,3 +49,12 @@ class CreateActivityForm(ModelForm):
 class ReportDateForm(FlaskForm):
    start_date = StringField(u'วันที่เริ่มต้น')
    end_date = StringField(u'วันที่สิ้นสุด')
+
+
+class CreateMTPCForm(ModelForm):
+    class Meta:
+        model = PurchaseTrackerForm
+
+    method = RadioField(choices=[(c, c) for c in [u'ซื้อ', u'จ้าง']],
+                        coerce=unicode,
+                        validators=[DataRequired()])
