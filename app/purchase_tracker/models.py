@@ -1,6 +1,9 @@
 # -*- coding:utf-8 -*-
 from datetime import timedelta
-from sqlalchemy import and_
+
+import wtforms
+from sqlalchemy import and_, func
+from wtforms import widgets
 from app.main import db
 from app.models import Holidays
 from app.staff.models import StaffAccount
@@ -143,3 +146,18 @@ class PurchaseTrackerActivity(db.Model):
 
     def __str__(self):
         return u'{}'.format(self.activity)
+
+
+class PurchaseTrackerForm(db.Model):
+    __tablename__ = 'tracker_forms'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    account_id = db.Column('account_id', db.ForeignKey('tracker_accounts.id'))
+    account = db.relationship('PurchaseTrackerAccount', backref=db.backref('forms',
+                                                                           lazy='dynamic'))
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'), nullable=False)
+    staff = db.relationship(StaffAccount)
+    name = db.Column('name', db.String(), info={'label': u'ชื่อ'})
+    method = db.Column('method', db.String(), info={'label': u'ประเภท'})
+    reason = db.Column('reason', db.Text())
+    created_at = db.Column('created_at', db.Date(), server_default=func.now())
+
