@@ -51,31 +51,30 @@ def add_procurement():
     form = CreateProcurementForm()
     if request.method == 'POST':
         if form.validate_on_submit():
-            filename = ''
             procurement = ProcurementDetail()
             form.populate_obj(procurement)
             procurement.creation_date = bangkok.localize(datetime.now())
             procurement.staff = current_user
             procurement.end_guarantee_date = form.start_guarantee_date.data + timedelta(days=int(form.days.data))
             # TODO: calculate end date from time needed to finish guarantee date
-            if form.image.data:
-                if not filename or (form.image.data.filename != filename):
-                    upload_img = form.image.data
-                    img_name = secure_filename(upload_img.filename)
-                    upload_img.save(img_name)
-                    # convert image to base64(text) in database
-                    import base64
-                    with open(img_name, "rb") as img_file:
-                        procurement.image = base64.b64encode(img_file.read())
-                        flash('Image has been uploaded', 'success')
-                        db.session.add(procurement)
-                        db.session.commit()
-                else:
-                    # convert base64(text) to image in database
-                    decoded_img = b64decode(procurement.image)
-                    img_string = cStringIO.StringIO(decoded_img)
-                    img_string.seek(0)
+            file = form.image.data
+            print(form.image.data)
+            if file:
+                img_name = secure_filename(file.filename)
+                file.save(img_name)
+                # convert image to base64(text) in database
+                import base64
+                with open(img_name, "rb") as img_file:
+                    procurement.image = base64.b64encode(img_file.read())
 
+            else:
+                # convert base64(text) to image in database
+                decoded_img = b64decode(procurement.image)
+                img_string = cStringIO.StringIO(decoded_img)
+                img_string.seek(0)
+            record = ProcurementRecord(location=form.location.data, staff=current_user,
+                                       status=form.status.data, updated_at= bangkok.localize(datetime.now()))
+            procurement.records.append(record)
             db.session.add(procurement)
             db.session.commit()
             flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
