@@ -3,7 +3,6 @@ from datetime import timedelta
 
 import wtforms
 from sqlalchemy import and_, func
-from wtforms import widgets
 from app.main import db
 from app.models import Holidays
 from app.staff.models import StaffAccount
@@ -157,7 +156,24 @@ class PurchaseTrackerForm(db.Model):
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'), nullable=False)
     staff = db.relationship(StaffAccount)
     name = db.Column('name', db.String(), info={'label': u'ชื่อ'})
-    method = db.Column('method', db.String(), info={'label': u'ประเภท'})
+    method = db.Column('method', db.String(), info={'label': u'วิธี'})
     reason = db.Column('reason', db.Text())
     created_at = db.Column('created_at', db.Date(), server_default=func.now())
+    book = db.Column('book', db.String(), info={'label': u'เล่มที่'})
+    number = db.Column('number', db.String(), info={'label': u'เลขที่'})
+    receipt_date = db.Column('receipt_date', db.Date(), info={'label': u'วันที่'})
+    disbursement_method = db.Column('disbursement_method', db.String(), info={'label': u'โดยขอเบิกจ่ายจากเงิน',
+                                                                        'choices': [(c, c) for c in
+                                                                [u'เงินงบประมาณแผ่นดิน', u'รายได้ส่วนงาน', u'อื่นๆ']]})
+    financial_year = db.Column('financial_year', db.String(), info={'label': u'ประจำปีงบประมาณ'})
+    cost_center = db.Column('cost_center', db.String(), info={'label': u'รหัสศูนย์ต้นทุน'})
+    internal_order = db.Column('internal_order', db.String(), info={'label': u'รหัสใบสั่งงานภายใน'})
+    parcel_inspector_name = db.Column('parcel_inspector_name', db.String(), info={'label': u'ชื่อผู้ตรวจรับพัสดุ'})
+    approve_disbursement = db.Column('approve_disbursement', db.String(), info={'label': u'อนุมัติเบิกจ่ายเงิน'})
+    total_money = db.Column('total_money', db.String(), info={'label': u'เป็นเงิน'})
+    advance_name = db.Column('advance_name', db.String(), info={'label': u'ชื่อเงินยืมทดรองจ่าย'})
+    org_id = db.Column('org_id', db.ForeignKey('orgs.id'))
+    org = db.relationship('Org')
+
+
 
