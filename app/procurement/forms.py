@@ -31,6 +31,8 @@ class CreateProcurementForm(ModelForm):
                                  label=u'ภาควิชา/หน่วยงาน')
     location = QuerySelectField(u'สถานที่', query_factory=lambda: RoomResource.query.all(),
                                 blank_text='Select location..', allow_blank=False)
+    status = QuerySelectField(u'สถานะ', query_factory=lambda: ProcurementStatus.query.all(),
+                              blank_text='Select status..', allow_blank=False)
 
 
 class ProcurementRecordForm(ModelForm):
