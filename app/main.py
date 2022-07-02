@@ -534,6 +534,10 @@ from data_blueprint import data_bp as data_blueprint
 app.register_blueprint(data_blueprint, url_prefix='/data-blueprint')
 
 
+from scb_payment_service import scb_payment as scb_payment_blueprint
+
+app.register_blueprint(scb_payment_blueprint)
+
 # Commands
 
 @app.cli.command()
