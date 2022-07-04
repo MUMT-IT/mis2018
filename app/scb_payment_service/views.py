@@ -4,6 +4,7 @@ import requests
 from flask import jsonify, request
 
 from . import scb_payment
+from ..main import csrf
 
 AUTH_URL = 'https://api-sandbox.partners.scb/partners/sandbox/v1/oauth/token'
 QRCODE_URL = 'https://api-sandbox.partners.scb/partners/sandbox/v1/payment/qrcode/create'
@@ -45,6 +46,7 @@ def generate_qrcode(amount, ref1, ref2, ref3):
 
 
 @scb_payment.route('/api/v1.0/qrcode/create', methods=['POST'])
+@csrf.exempt
 def create_qrcode():
     amount = request.get_json().get('amount')
     if amount is None:
@@ -54,3 +56,12 @@ def create_qrcode():
         return jsonify({'data': data})
     else:
         return jsonify({'message': 'Error happened.'}), 500
+
+
+@scb_payment.route('/api/v1.0/payment-confirm', methods=['POST'])
+@csrf.exempt
+def confirm_payment():
+    print(request.method)
+    data = request.get_json()
+    print(data)
+    return jsonify({'message': 'hello'})
