@@ -1463,14 +1463,14 @@ def login_scan():
             return jsonify({'message': 'Staff has has no name.'}), 400
 
         if person:
-            now = tz.localize(datetime.now())
+            now = datetime.now(pytz.utc)
             date_id = StaffWorkLogin.generate_date_id(now)
             record = StaffWorkLogin.query\
                 .filter_by(date_id=date_id, staff=person.staff_account).first()
             office_startdt = datetime.strptime(u'{} {}'.format(now.date(), office_starttime), DATETIME_FORMAT)
             office_enddt = datetime.strptime(u'{} {}'.format(now.date(), office_endtime), DATETIME_FORMAT)
-            office_startdt = tz.localize(office_startdt)
-            office_enddt = tz.localize(office_enddt)
+            office_startdt = pytz.utc.localize(office_startdt)
+            office_enddt = pytz.utc.localize(office_enddt)
 
             # use the first login of the day as the checkin time.
             # use the last login of the day as the checkout time.
