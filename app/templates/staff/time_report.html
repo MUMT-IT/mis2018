@@ -9,14 +9,12 @@
             <thead>
             <th>เวลาเข้างาน</th>
             <th>เวลาออกงาน</th>
-            <th>สถานะ</th>
             </thead>
             <tbody>
             {% for rec in logins %}
             <tr>
                 <td>{{ rec.start_datetime|localdatetime }}</td>
                 <td>{{ rec.end_datetime|localdatetime or '' }}</td>
-                <td>{{ rec.status }}</td>
             </tr>
             {% endfor %}
             </tbody>

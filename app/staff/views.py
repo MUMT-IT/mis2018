@@ -1467,40 +1467,26 @@ def login_scan():
             date_id = StaffWorkLogin.generate_date_id(now)
             record = StaffWorkLogin.query\
                 .filter_by(date_id=date_id, staff=person.staff_account).first()
-            office_startdt = datetime.strptime(u'{} {}'.format(now.date(), office_starttime), DATETIME_FORMAT)
-            office_enddt = datetime.strptime(u'{} {}'.format(now.date(), office_endtime), DATETIME_FORMAT)
-            office_startdt = pytz.utc.localize(office_startdt)
-            office_enddt = pytz.utc.localize(office_enddt)
+            # office_startdt = datetime.strptime(u'{} {}'.format(now.date(), office_starttime), DATETIME_FORMAT)
+            # office_startdt = office_startdt.replace(tzinfo=pytz.utc)
+            # office_enddt = datetime.strptime(u'{} {}'.format(now.date(), office_endtime), DATETIME_FORMAT)
+            # office_enddt = office_enddt.replace(tzinfo=pytz.utc)
 
             # use the first login of the day as the checkin time.
             # use the last login of the day as the checkout time.
             if not record:
                 num_scans = 1
-                if office_startdt > now:
-                    morning = office_startdt - now
-                    morning = (morning.seconds / 60.0) * -1
-                else:
-                    morning = now - office_startdt
-                    morning = morning.seconds / 60.0
                 record = StaffWorkLogin(
                     date_id=date_id,
                     staff=person.staff_account,
                     start_datetime=now,
-                    checkin_mins=morning,
                     num_scans=num_scans,
                 )
                 activity = 'checked in'
             else:
                 # status = "Late" if morning > 0 else "On time"
                 num_scans = record.num_scans + 1 if record.num_scans else 1
-                if office_enddt < now:
-                    evening = now - office_enddt
-                    evening = evening.seconds / 60.0
-                else:
-                    evening = office_enddt - now
-                    evening = (evening.seconds / 60.0) * -1
                 record.end_datetime = now
-                record.checkout_mins = evening
                 record.num_scans = num_scans
                 activity = 'checked out'
             db.session.add(record)
@@ -1624,6 +1610,9 @@ def summary_index():
             for rec in StaffWorkLogin.query.filter_by(staff=emp.staff_account) \
                     .filter(StaffWorkLogin.start_datetime.between(start_fiscal_date, end_fiscal_date)):
                 text_color = '#ffffff'
+                bg_color = '#4da6ff'
+                status = u''
+                '''
                 if (rec.checkin_mins < 0) and (rec.checkout_mins > 0):
                     bg_color = '#4da6ff'
                     status = u'ปกติ'
@@ -1638,11 +1627,13 @@ def summary_index():
                     status = u'ออกก่อน'
                     text_color = '#000000'
                     bg_color = '#ffff66'
+                '''
+                end = None if rec.end_datetime is None else rec.end_datetime.astimezone(tz)
                 logins.append({
                     'id': rec.id,
                     'start': rec.start_datetime.astimezone(tz).isoformat(),
-                    'end': None if rec.end_datetime is None else rec.end_datetime.astimezone(tz).isoformat(),
-                    'title': u'{} {}'.format(emp.th_firstname, status),
+                    'end': end.isoformat() if end else None,
+                    'title': u'{}'.format(emp.th_firstname),
                     'backgroundColor': bg_color,
                     'borderColor': border_color,
                     'textColor': text_color,

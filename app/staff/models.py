@@ -601,17 +601,6 @@ class StaffWorkLogin(db.Model):
     def generate_date_id(date):
         return date.strftime('%Y%m%d')
 
-    @property
-    def status(self):
-        if (self.checkin_mins < 0) and (self.checkout_mins > 0):
-            return u'ปกติ'
-        elif self.checkin_mins > 0 and self.checkout_mins < 0:
-            return u'สายและออกก่อน'
-        elif self.checkin_mins > 0:
-            return u'เข้าสาย'
-        elif self.checkout_mins < 0:
-            return u'ออกก่อน'
-
 
 class StaffShiftSchedule(db.Model):
     __tablename__ = 'staff_shift_schedule'
