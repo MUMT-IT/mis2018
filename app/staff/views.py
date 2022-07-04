@@ -1475,6 +1475,7 @@ def login_scan():
             # use the first login of the day as the checkin time.
             # use the last login of the day as the checkout time.
             if not record:
+                num_scans = 1
                 if office_startdt > now:
                     morning = office_startdt - now
                     morning = (morning.seconds / 60.0) * -1
@@ -1486,10 +1487,12 @@ def login_scan():
                     staff=person.staff_account,
                     start_datetime=now,
                     checkin_mins=morning,
+                    num_scans=num_scans,
                 )
                 activity = 'checked in'
             else:
                 # status = "Late" if morning > 0 else "On time"
+                num_scans = record.num_scans + 1 if record.num_scans else 1
                 if office_enddt < now:
                     evening = now - office_enddt
                     evening = evening.seconds / 60.0
@@ -1498,10 +1501,11 @@ def login_scan():
                     evening = (evening.seconds / 60.0) * -1
                 record.end_datetime = now
                 record.checkout_mins = evening
+                record.num_scans = num_scans
                 activity = 'checked out'
             db.session.add(record)
             db.session.commit()
-            return jsonify({'message': 'success', 'activity': activity, 'name': person.fullname, 'time': now.isoformat()})
+            return jsonify({'message': 'success', 'activity': activity, 'name': person.fullname, 'time': now.isoformat(), 'numScans': num_scans})
         else:
             return jsonify({'message': 'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
 
@@ -2097,8 +2101,8 @@ def seminar_attends_each_person(staff_id):
 @staff.route('/time-report/report')
 @login_required
 def show_time_report():
-    gj = StaffSpecialGroup.query.filter_by(group_code='gj').first()
-    return render_template('staff/time_report.html', gj=gj)
+    return render_template('staff/time_report.html',
+                           logins=current_user.work_logins.order_by(StaffWorkLogin.start_datetime.desc()))
 
 
 @staff.route('/for-hr/staff-info')

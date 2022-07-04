@@ -3,24 +3,37 @@
 {% block page_content %}
     <section class="section">
         <div class="container" id="app">
-            <h1 class="title has-text-centered has-text-info">ระบบบันทึกเวลาทำงานของบุคลากร</h1>
-            <h1 class="subtitle has-text-danger has-text-centered">ช่วงทดลองใช้งาน</h1>
+            <div class="notification is-light is-link">
+                <h1 class="title has-text-centered has-text-link">ระบบบันทึกเวลาทำงานของบุคลากร</h1>
+                <h1 class="subtitle has-text-danger has-text-centered">ช่วงทดลองใช้งาน</h1>
+                <h1 class="title has-text-centered" id="clock"></h1>
+            </div>
             <div class="columns">
-                <div class="column is-two-thirds is-offset-1">
+                <div class="column">
                     <b-loading v-model="loading"></b-loading>
                     <qrcode-stream :key="_uid"
                                    :camera="camera"
                                    @decode="onDecode"
                                    :track="paintOutline" @init="onInit" />
                 </div>
-                <div class="column box">
+                <div class="column is-one-third">
                     <b-message
-                        title="บันทึกข้อมูลเรียบร้อยแล้ว"
-                        :active="isActive"
-                        type="is-success"
-                        has-icon
-                        aria-close-label="Close message">
-                        <strong><% staff %></strong> เมื่อ <% time %>
+                            title="บันทึกข้อมูลเรียบร้อยแล้ว"
+                            :active="isActive"
+                            type="is-success"
+                            has-icon
+                            aria-close-label="Close message">
+                        <p>
+                        <h1 class="title is-size-4"><% time %></h1>
+                        </p>
+                        <p>
+                            <span class="is-size-4">
+                                สวัสดี <strong><% staff %></strong>
+                            </span>
+                        </p>
+                        <p>
+                            (แสกนครั้งที่ <% numScans %> ของวัน)
+                        </p>
                     </b-message>
                     <b-message
                             title="ขออภัยเกิดความผิดพลาด"
@@ -30,7 +43,6 @@
                             aria-close-label="Close message">
                         <strong><% staff %></strong> เวลา <% time %>
                     </b-message>
-
                     <h1 class="title is-size-4 has-text-centered has-text-link">
                         ขั้นตอนการแสกน
                     </h1>
@@ -53,12 +65,20 @@
     {{ super() }}
     <script src="https://unpkg.com/vue-qrcode-reader/dist/VueQrcodeReader.umd.min.js"></script>
     <script>
+    $(document).ready(()=>{
+        window.setInterval(function () {
+            $('#clock').html(moment().format('MM/DD/y H:mm:ss'))
+        }, 1000);
+    })
+    </script>
+    <script>
         window.axios.defaults.headers.common['X-CSRF-TOKEN'] = "{{ csrf_token() }}";
         new Vue({
             el: '#app',
             delimiters: ['<%', '%>'],
             data() {
                 return {
+                    numScans: 0,
                     fail: false,
                     isActive: false,
                     loading: false,
@@ -81,6 +101,7 @@
             },
             methods: {
                 reset() {
+                    this.numScans = 0,
                     this.isActive = false
                     this.info = {
                         id: null,
@@ -134,6 +155,7 @@
                     }).then(async (resp)=>{
                         this.time = moment(resp.data.time).format('DD/MM/YYYY h:mm:ss')
                         this.staff = resp.data.name
+                        this.numScans = resp.data.numScans
                         this.isActive = true
                         this.isSaving = false
                         await this.timeout(3000)
