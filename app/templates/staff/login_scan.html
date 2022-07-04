@@ -4,7 +4,7 @@
     <section class="section">
         <div class="container" id="app">
             <h1 class="title has-text-centered has-text-info">ระบบบันทึกเวลาทำงานของบุคลากร</h1>
-            <h1 class="subtitle has-text-danger has-text-centered">Experimental Version</h1>
+            <h1 class="subtitle has-text-danger has-text-centered">ช่วงทดลองใช้งาน</h1>
             <div class="columns">
                 <div class="column is-two-thirds is-offset-1">
                     <b-loading v-model="loading"></b-loading>
@@ -14,6 +14,23 @@
                                    :track="paintOutline" @init="onInit" />
                 </div>
                 <div class="column box">
+                    <b-message
+                        title="บันทึกข้อมูลเรียบร้อยแล้ว"
+                        :active="isActive"
+                        type="is-success"
+                        has-icon
+                        aria-close-label="Close message">
+                        <strong><% staff %></strong> เมื่อ <% time %>
+                    </b-message>
+                    <b-message
+                            title="ขออภัยเกิดความผิดพลาด"
+                            :active="fail"
+                            type="is-danger"
+                            has-icon
+                            aria-close-label="Close message">
+                        <strong><% staff %></strong> เวลา <% time %>
+                    </b-message>
+
                     <h1 class="title is-size-4 has-text-centered has-text-link">
                         ขั้นตอนการแสกน
                     </h1>
@@ -34,19 +51,22 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.0.0-alpha.1/axios.min.js" integrity="sha512-xIPqqrfvUAc/Cspuj7Bq0UtHNo/5qkdyngx6Vwt+tmbvTLDszzXM0G6c91LXmGrRx8KEPulT+AfOOez+TeVylg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://unpkg.com/vue-qrcode-reader/dist/VueQrcodeReader.umd.min.js"></script>
     <script>
         window.axios.defaults.headers.common['X-CSRF-TOKEN'] = "{{ csrf_token() }}";
         new Vue({
             el: '#app',
+            delimiters: ['<%', '%>'],
             data() {
                 return {
                     fail: false,
+                    isActive: false,
                     loading: false,
                     result: null,
                     camera: 'auto',
                     isSaving: true,
+                    staff: null,
+                    time: null,
                     info: {
                         id: null,
                         thTitle: null,
@@ -61,6 +81,7 @@
             },
             methods: {
                 reset() {
+                    this.isActive = false
                     this.info = {
                         id: null,
                         thTitle: null,
@@ -111,25 +132,16 @@
                     axios.post("{{ url_for('staff.login_scan') }}", {
                         data: this.info
                     }).then(async (resp)=>{
-                        if (resp.data.activity === 'checked in') {
-                            message = 'ลงชื่อเข้างานเรียบร้อยแล้ว'
-                        } else {
-                            message = 'ลงชื่อเลิกงานเรียบร้อยแล้ว'
-                        }
-                        this.$buefy.toast.open({
-                            'message' : message,
-                            'type' : "is-success"
-                        })
+                        this.time = moment(resp.data.time).format('DD/MM/YYYY h:mm:ss')
+                        this.staff = resp.data.name
+                        this.isActive = true
                         this.isSaving = false
-                        await this.timeout(1000)
+                        await this.timeout(3000)
                         this.reset()
                         this.fail = false
                         this.turnCameraOn()
                     }).catch(async (error)=>{
-                        this.$buefy.toast.open({
-                            message: error.toString(),
-                            type: "is-danger"
-                        })
+                        this.errorMessage = error.toString()
                         this.isSaving = false
                         this.fail = true
                         setTimeout(() => {
