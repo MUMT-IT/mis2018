@@ -21,8 +21,7 @@
                     <div class="card-header">
                         <h1 class="card-header-title">
                             <img style='display:block; width:450px;height:350px;' id='base64image'
-                                    src='data:image/jpeg;base64, LzlqLzRBQ... <!-- Base64 data -->' />
-{#                            <td><img src="data:image/png;base64,"></td>#}
+                                    src='data:image/png;base64, {{ item.image }}' />
                             <table class="table ">
                             {% set last_record = item.records.order_by(model.updated_at.desc()).first() %}
                              <tr>
