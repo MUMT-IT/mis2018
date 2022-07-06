@@ -1,11 +1,10 @@
 {% extends "base.html" %}
 
 {% block page_content %}
-    <section class="section">
         <div class="container" id="app">
             <div class="notification is-light is-link">
                 <h1 class="title has-text-centered has-text-link">ระบบบันทึกเวลาทำงานของบุคลากร</h1>
-                <h1 class="subtitle has-text-danger has-text-centered">ช่วงทดลองใช้งาน</h1>
+                <h1 class="subtitle has-text-centered">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
                 <h1 class="title has-text-centered" id="clock"></h1>
             </div>
             <div class="columns">
@@ -19,7 +18,7 @@
                 <div class="column is-one-third">
                     <b-message
                             title="บันทึกข้อมูลเรียบร้อยแล้ว"
-                            :active="isActive"
+                            :active="!fail && staff"
                             type="is-success"
                             has-icon
                             aria-close-label="Close message">
@@ -41,8 +40,13 @@
                             type="is-danger"
                             has-icon
                             aria-close-label="Close message">
-                        <strong><% staff %></strong> เวลา <% time %>
+                        <% errorMessage %>
                     </b-message>
+                    <div class="has-text-centered">
+                        <span class="icon is-large">
+                            <i class="fa-solid fa-qrcode fa-4x"></i>
+                        </span>
+                    </div>
                     <h1 class="title is-size-4 has-text-centered has-text-link">
                         ขั้นตอนการแสกน
                     </h1>
@@ -56,10 +60,15 @@
                     <p>
                         <strong>หมายเหตุ</strong> ระบบจะบันทึกการแสกนครั้งแรกของวันเป็นเวลาเข้างานและการแสกนครั้งสุดท้ายของวันเป็นเวลาเลิกงาน หากแสกนซ้ำมากกว่าหนึ่งครั้ง ระบบจะบันทึกเฉพาะครั้งสุดท้าย
                     </p>
+                    <br>
+                    <div class="notification is-danger is-light">
+                        <h1 class="title is-size-5">
+                            โปรแกรมนี้กำลังอยู่ในช่วงทดสอบการใช้งาน
+                        </h1>
+                    </div>
                 </div>
             </div>
         </div>
-    </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
@@ -72,7 +81,6 @@
     })
     </script>
     <script>
-        window.axios.defaults.headers.common['X-CSRF-TOKEN'] = "{{ csrf_token() }}";
         new Vue({
             el: '#app',
             delimiters: ['<%', '%>'],
@@ -80,11 +88,10 @@
                 return {
                     numScans: 0,
                     fail: false,
-                    isActive: false,
+                    errorMessage: 'Error occurred.',
                     loading: false,
                     result: null,
                     camera: 'auto',
-                    isSaving: true,
                     staff: null,
                     time: null,
                     info: {
@@ -102,7 +109,10 @@
             methods: {
                 reset() {
                     this.numScans = 0,
-                    this.isActive = false
+                    this.fail = false
+                    this.errorMessage = 'Error occurred.'
+                    this.staff = null
+                    this.time = null
                     this.info = {
                         id: null,
                         thTitle: null,
@@ -139,7 +149,6 @@
                     }
                 },
                 async onDecode(content) {
-                    this.isSaving = true
                     let result = content.split("|")
                     console.log(result)
                     this.info.id = result[0]
@@ -156,19 +165,14 @@
                         this.time = moment(resp.data.time).format('DD/MM/YYYY h:mm:ss')
                         this.staff = resp.data.name
                         this.numScans = resp.data.numScans
-                        this.isActive = true
-                        this.isSaving = false
-                        await this.timeout(3000)
+                        await this.timeout(2000)
                         this.reset()
-                        this.fail = false
                         this.turnCameraOn()
                     }).catch(async (error)=>{
-                        this.errorMessage = error.toString()
-                        this.isSaving = false
                         this.fail = true
-                        setTimeout(() => {
-                            this.fail = false
-                        }, 3000)
+                        this.errorMessage = error.toString()
+                        console.log(this.errorMessage)
+                        await this.timeout(2000)
                         this.reset()
                         this.turnCameraOn()
                     })
