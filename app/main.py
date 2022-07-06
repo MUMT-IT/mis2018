@@ -538,6 +538,8 @@ from scb_payment_service import scb_payment as scb_payment_blueprint
 
 app.register_blueprint(scb_payment_blueprint)
 
+from scb_payment_service.models import *
+
 # Commands
 
 @app.cli.command()
