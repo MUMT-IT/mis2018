@@ -11,13 +11,13 @@ QRCODE_URL = 'https://api-sandbox.partners.scb/partners/sandbox/v1/payment/qrcod
 APP_KEY = os.environ.get('SCB_APP_KEY')
 APP_SECRET = os.environ.get('SCB_APP_SECRET')
 BILLERID = os.environ.get('BILLERID')
-REQUEST_UID = os.environ.get('SCB_REQUEST_UID')
+REF3_PREFIX = os.environ.get('REF3_PREFIX')
 
 
-def generate_qrcode(amount, ref1, ref2, ref3):
+def generate_qrcode(amount, ref1, ref2, ref3, request_uid):
     headers = {
         'Content-Type': 'application/json',
-        'requestUId': REQUEST_UID,
+        'requestUId': request_uid,
         'resourceOwnerId': APP_KEY
     }
     response = requests.post(AUTH_URL, headers=headers, json={
@@ -51,7 +51,7 @@ def create_qrcode():
     amount = request.get_json().get('amount')
     if amount is None:
         return jsonify({'message': 'Amount is needed'}), 400
-    data = generate_qrcode(amount, ref1='12345678', ref2='987654321', ref3='MXU')
+    data = generate_qrcode(amount, ref1='12345678', ref2='987654321', ref3=REF3_PREFIX)
     if data:
         return jsonify({'data': data})
     else:
