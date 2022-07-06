@@ -16,7 +16,7 @@
                 <div class="column box">
                     <b-message
                         title="บันทึกข้อมูลเรียบร้อยแล้ว"
-                        :active="isActive"
+                        :active="!fail && staff"
                         type="is-success"
                         has-icon
                         aria-close-label="Close message">
@@ -28,7 +28,7 @@
                             type="is-danger"
                             has-icon
                             aria-close-label="Close message">
-                        <strong><% staff %></strong> เวลา <% time %>
+                        <% errorMessage %>
                     </b-message>
 
                     <h1 class="title is-size-4 has-text-centered has-text-link">
@@ -53,18 +53,16 @@
     {{ super() }}
     <script src="https://unpkg.com/vue-qrcode-reader/dist/VueQrcodeReader.umd.min.js"></script>
     <script>
-        window.axios.defaults.headers.common['X-CSRF-TOKEN'] = "{{ csrf_token() }}";
         new Vue({
             el: '#app',
             delimiters: ['<%', '%>'],
             data() {
                 return {
                     fail: false,
-                    isActive: false,
+                    errorMessage: 'Error occurred.',
                     loading: false,
                     result: null,
                     camera: 'auto',
-                    isSaving: true,
                     staff: null,
                     time: null,
                     info: {
@@ -81,7 +79,10 @@
             },
             methods: {
                 reset() {
-                    this.isActive = false
+                    this.fail = false
+                    this.errorMessage = 'Error occurred.'
+                    this.staff = null
+                    this.time = null
                     this.info = {
                         id: null,
                         thTitle: null,
@@ -118,7 +119,6 @@
                     }
                 },
                 async onDecode(content) {
-                    this.isSaving = true
                     let result = content.split("|")
                     console.log(result)
                     this.info.id = result[0]
@@ -134,19 +134,14 @@
                     }).then(async (resp)=>{
                         this.time = moment(resp.data.time).format('DD/MM/YYYY h:mm:ss')
                         this.staff = resp.data.name
-                        this.isActive = true
-                        this.isSaving = false
-                        await this.timeout(3000)
+                        await this.timeout(2000)
                         this.reset()
-                        this.fail = false
                         this.turnCameraOn()
                     }).catch(async (error)=>{
-                        this.errorMessage = error.toString()
-                        this.isSaving = false
                         this.fail = true
-                        setTimeout(() => {
-                            this.fail = false
-                        }, 3000)
+                        this.errorMessage = error.toString()
+                        console.log(this.errorMessage)
+                        await this.timeout(2000)
                         this.reset()
                         this.turnCameraOn()
                     })

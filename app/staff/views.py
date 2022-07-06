@@ -4,7 +4,7 @@ from pandas import read_excel, isna, DataFrame
 
 from models import *
 from . import staffbp as staff
-from app.main import db, get_weekdays, mail, app
+from app.main import db, get_weekdays, mail, app, csrf
 from app.models import Holidays, Org
 from flask import jsonify, render_template, request, redirect, url_for, flash, session, send_from_directory
 from datetime import date, datetime
@@ -1440,6 +1440,7 @@ def for_hr():
 
 
 @staff.route('/login-scan', methods=['GET', 'POST'])
+@csrf.exempt
 def login_scan():
     office_starttime = '09:00'
     office_endtime = '16:30'
@@ -1460,7 +1461,7 @@ def login_scan():
             person = StaffPersonalInfo.query \
                 .filter_by(en_firstname=fname, en_lastname=lname).first()
         else:
-            return jsonify({'message': 'Staff has has no name.'}), 400
+            return jsonify({'message': 'The QR Code is not valid.'}), 400
 
         if person:
             now = datetime.now(pytz.utc)
