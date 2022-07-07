@@ -1441,6 +1441,7 @@ def for_hr():
 
 @staff.route('/login-scan', methods=['GET', 'POST'])
 @csrf.exempt
+@login_required
 def login_scan():
     office_starttime = '09:00'
     office_endtime = '16:30'

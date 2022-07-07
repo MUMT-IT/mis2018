@@ -1,4 +1,8 @@
 {% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="@sweetalert2/theme-bulma/bulma.css">
+{% endblock %}
 
 {% block page_content %}
         <div class="container" id="app">
@@ -16,32 +20,6 @@
                                    :track="paintOutline" @init="onInit" />
                 </div>
                 <div class="column is-one-third">
-                    <b-message
-                            title="บันทึกข้อมูลเรียบร้อยแล้ว"
-                            :active="!fail && staff"
-                            type="is-success"
-                            has-icon
-                            aria-close-label="Close message">
-                        <p>
-                        <h1 class="title is-size-4"><% time %></h1>
-                        </p>
-                        <p>
-                            <span class="is-size-4">
-                                สวัสดี <strong><% staff %></strong>
-                            </span>
-                        </p>
-                        <p>
-                            (แสกนครั้งที่ <% numScans %> ของวัน)
-                        </p>
-                    </b-message>
-                    <b-message
-                            title="ขออภัยเกิดความผิดพลาด"
-                            :active="fail"
-                            type="is-danger"
-                            has-icon
-                            aria-close-label="Close message">
-                        <% errorMessage %>
-                    </b-message>
                     <div class="has-text-centered">
                         <span class="icon is-large">
                             <i class="fa-solid fa-qrcode fa-4x"></i>
@@ -73,6 +51,7 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://unpkg.com/vue-qrcode-reader/dist/VueQrcodeReader.umd.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
     $(document).ready(()=>{
         window.setInterval(function () {
@@ -87,8 +66,6 @@
             data() {
                 return {
                     numScans: 0,
-                    fail: false,
-                    errorMessage: 'Error occurred.',
                     loading: false,
                     result: null,
                     camera: 'auto',
@@ -109,8 +86,6 @@
             methods: {
                 reset() {
                     this.numScans = 0,
-                    this.fail = false
-                    this.errorMessage = 'Error occurred.'
                     this.staff = null
                     this.time = null
                     this.info = {
@@ -165,14 +140,24 @@
                         this.time = moment(resp.data.time).format('DD/MM/YYYY h:mm:ss')
                         this.staff = resp.data.name
                         this.numScans = resp.data.numScans
-                        await this.timeout(2000)
+                        Swal.fire({
+                            title: 'สวัสดีคุณ ' + this.staff,
+                            timer: 3000,
+                            timerProgressBar: true,
+                            icon: 'success',
+                            text: 'เวลาแสกน ' + this.time
+                        })
                         this.reset()
                         this.turnCameraOn()
                     }).catch(async (error)=>{
-                        this.fail = true
-                        this.errorMessage = error.toString()
-                        console.log(this.errorMessage)
-                        await this.timeout(2000)
+                        console.log(error.toString())
+                        Swal.fire({
+                            title: 'ระบบเกิดความผิดพลาด',
+                            timer: 3000,
+                            timerProgressBar: true,
+                            icon: 'error',
+                            text: 'ขออภัยในความไม่สะดวก กรุณาแจ้งหน่วยสารสนเทศ'
+                        })
                         this.reset()
                         this.turnCameraOn()
                     })
