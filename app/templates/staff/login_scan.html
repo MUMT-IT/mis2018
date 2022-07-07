@@ -1,19 +1,52 @@
 {% extends "base.html" %}
 
 {% block page_content %}
-    <section class="section">
         <div class="container" id="app">
-            <h1 class="title has-text-centered has-text-info">ระบบบันทึกเวลาทำงานของบุคลากร</h1>
-            <h1 class="subtitle has-text-danger has-text-centered">Experimental Version</h1>
+            <div class="notification is-light is-link">
+                <h1 class="title has-text-centered has-text-link">ระบบบันทึกเวลาทำงานของบุคลากร</h1>
+                <h1 class="subtitle has-text-centered">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
+                <h1 class="title has-text-centered" id="clock"></h1>
+            </div>
             <div class="columns">
-                <div class="column is-two-thirds is-offset-1">
+                <div class="column">
                     <b-loading v-model="loading"></b-loading>
                     <qrcode-stream :key="_uid"
                                    :camera="camera"
                                    @decode="onDecode"
                                    :track="paintOutline" @init="onInit" />
                 </div>
-                <div class="column box">
+                <div class="column is-one-third">
+                    <b-message
+                            title="บันทึกข้อมูลเรียบร้อยแล้ว"
+                            :active="!fail && staff"
+                            type="is-success"
+                            has-icon
+                            aria-close-label="Close message">
+                        <p>
+                        <h1 class="title is-size-4"><% time %></h1>
+                        </p>
+                        <p>
+                            <span class="is-size-4">
+                                สวัสดี <strong><% staff %></strong>
+                            </span>
+                        </p>
+                        <p>
+                            (แสกนครั้งที่ <% numScans %> ของวัน)
+                        </p>
+                    </b-message>
+                    <b-message
+                            title="ขออภัยเกิดความผิดพลาด"
+                            :active="fail"
+                            type="is-danger"
+                            has-icon
+                            aria-close-label="Close message">
+                        <% errorMessage %>
+                    </b-message>
+                    <div class="has-text-centered">
+                        <span class="icon is-large">
+                            <i class="fa-solid fa-qrcode fa-4x"></i>
+                        </span>
+                    </div>
                     <h1 class="title is-size-4 has-text-centered has-text-link">
                         ขั้นตอนการแสกน
                     </h1>
@@ -27,26 +60,40 @@
                     <p>
                         <strong>หมายเหตุ</strong> ระบบจะบันทึกการแสกนครั้งแรกของวันเป็นเวลาเข้างานและการแสกนครั้งสุดท้ายของวันเป็นเวลาเลิกงาน หากแสกนซ้ำมากกว่าหนึ่งครั้ง ระบบจะบันทึกเฉพาะครั้งสุดท้าย
                     </p>
+                    <br>
+                    <div class="notification is-danger is-light">
+                        <h1 class="title is-size-5">
+                            โปรแกรมนี้กำลังอยู่ในช่วงทดสอบการใช้งาน
+                        </h1>
+                    </div>
                 </div>
             </div>
         </div>
-    </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.0.0-alpha.1/axios.min.js" integrity="sha512-xIPqqrfvUAc/Cspuj7Bq0UtHNo/5qkdyngx6Vwt+tmbvTLDszzXM0G6c91LXmGrRx8KEPulT+AfOOez+TeVylg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://unpkg.com/vue-qrcode-reader/dist/VueQrcodeReader.umd.min.js"></script>
     <script>
-        window.axios.defaults.headers.common['X-CSRF-TOKEN'] = "{{ csrf_token() }}";
+    $(document).ready(()=>{
+        window.setInterval(function () {
+            $('#clock').html(moment().format('MM/DD/y H:mm:ss'))
+        }, 1000);
+    })
+    </script>
+    <script>
         new Vue({
             el: '#app',
+            delimiters: ['<%', '%>'],
             data() {
                 return {
+                    numScans: 0,
                     fail: false,
+                    errorMessage: 'Error occurred.',
                     loading: false,
                     result: null,
                     camera: 'auto',
-                    isSaving: true,
+                    staff: null,
+                    time: null,
                     info: {
                         id: null,
                         thTitle: null,
@@ -61,6 +108,11 @@
             },
             methods: {
                 reset() {
+                    this.numScans = 0,
+                    this.fail = false
+                    this.errorMessage = 'Error occurred.'
+                    this.staff = null
+                    this.time = null
                     this.info = {
                         id: null,
                         thTitle: null,
@@ -97,7 +149,6 @@
                     }
                 },
                 async onDecode(content) {
-                    this.isSaving = true
                     let result = content.split("|")
                     console.log(result)
                     this.info.id = result[0]
@@ -111,30 +162,17 @@
                     axios.post("{{ url_for('staff.login_scan') }}", {
                         data: this.info
                     }).then(async (resp)=>{
-                        if (resp.data.activity === 'checked in') {
-                            message = 'ลงชื่อเข้างานเรียบร้อยแล้ว'
-                        } else {
-                            message = 'ลงชื่อเลิกงานเรียบร้อยแล้ว'
-                        }
-                        this.$buefy.toast.open({
-                            'message' : message,
-                            'type' : "is-success"
-                        })
-                        this.isSaving = false
-                        await this.timeout(1000)
+                        this.time = moment(resp.data.time).format('DD/MM/YYYY h:mm:ss')
+                        this.staff = resp.data.name
+                        this.numScans = resp.data.numScans
+                        await this.timeout(2000)
                         this.reset()
-                        this.fail = false
                         this.turnCameraOn()
                     }).catch(async (error)=>{
-                        this.$buefy.toast.open({
-                            message: error.toString(),
-                            type: "is-danger"
-                        })
-                        this.isSaving = false
                         this.fail = true
-                        setTimeout(() => {
-                            this.fail = false
-                        }, 3000)
+                        this.errorMessage = error.toString()
+                        console.log(this.errorMessage)
+                        await this.timeout(2000)
                         this.reset()
                         this.turnCameraOn()
                     })

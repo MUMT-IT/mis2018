@@ -4,7 +4,7 @@ from pandas import read_excel, isna, DataFrame
 
 from models import *
 from . import staffbp as staff
-from app.main import db, get_weekdays, mail, app
+from app.main import db, get_weekdays, mail, app, csrf
 from app.models import Holidays, Org
 from flask import jsonify, render_template, request, redirect, url_for, flash, session, send_from_directory
 from datetime import date, datetime
@@ -1440,6 +1440,7 @@ def for_hr():
 
 
 @staff.route('/login-scan', methods=['GET', 'POST'])
+@csrf.exempt
 def login_scan():
     office_starttime = '09:00'
     office_endtime = '16:30'
@@ -1460,46 +1461,38 @@ def login_scan():
             person = StaffPersonalInfo.query \
                 .filter_by(en_firstname=fname, en_lastname=lname).first()
         else:
-            return jsonify({'message': 'Staff has has no name.'}), 400
+            return jsonify({'message': 'The QR Code is not valid.'}), 400
 
         if person:
-            now = datetime.utcnow()
+            now = datetime.now(pytz.utc)
             date_id = StaffWorkLogin.generate_date_id(now)
             record = StaffWorkLogin.query\
                 .filter_by(date_id=date_id, staff=person.staff_account).first()
-            office_startdt = datetime.strptime(u'{} {}'.format(now.date(), office_starttime), DATETIME_FORMAT)
-            office_enddt = datetime.strptime(u'{} {}'.format(now.date(), office_endtime), DATETIME_FORMAT)
+            # office_startdt = datetime.strptime(u'{} {}'.format(now.date(), office_starttime), DATETIME_FORMAT)
+            # office_startdt = office_startdt.replace(tzinfo=pytz.utc)
+            # office_enddt = datetime.strptime(u'{} {}'.format(now.date(), office_endtime), DATETIME_FORMAT)
+            # office_enddt = office_enddt.replace(tzinfo=pytz.utc)
 
             # use the first login of the day as the checkin time.
             # use the last login of the day as the checkout time.
             if not record:
-                if office_startdt > now:
-                    morning = office_startdt - now
-                    morning = (morning.seconds / 60.0) * -1
-                else:
-                    morning = now - office_startdt
-                    morning = morning.seconds / 60.0
+                num_scans = 1
                 record = StaffWorkLogin(
                     date_id=date_id,
                     staff=person.staff_account,
                     start_datetime=now,
-                    checkin_mins=morning,
+                    num_scans=num_scans,
                 )
                 activity = 'checked in'
             else:
                 # status = "Late" if morning > 0 else "On time"
-                if office_enddt < now:
-                    evening = now - office_enddt
-                    evening = evening.seconds / 60.0
-                else:
-                    evening = office_enddt - now
-                    evening = (evening.seconds / 60.0) * -1
+                num_scans = record.num_scans + 1 if record.num_scans else 1
                 record.end_datetime = now
-                record.checkout_mins = evening
+                record.num_scans = num_scans
                 activity = 'checked out'
             db.session.add(record)
             db.session.commit()
-            return jsonify({'message': 'success', 'activity': activity})
+            return jsonify({'message': 'success', 'activity': activity, 'name': person.fullname, 'time': now.isoformat(), 'numScans': num_scans})
         else:
             return jsonify({'message': 'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
 
@@ -1618,6 +1611,9 @@ def summary_index():
             for rec in StaffWorkLogin.query.filter_by(staff=emp.staff_account) \
                     .filter(StaffWorkLogin.start_datetime.between(start_fiscal_date, end_fiscal_date)):
                 text_color = '#ffffff'
+                bg_color = '#4da6ff'
+                status = u''
+                '''
                 if (rec.checkin_mins < 0) and (rec.checkout_mins > 0):
                     bg_color = '#4da6ff'
                     status = u'ปกติ'
@@ -1632,11 +1628,13 @@ def summary_index():
                     status = u'ออกก่อน'
                     text_color = '#000000'
                     bg_color = '#ffff66'
+                '''
+                end = None if rec.end_datetime is None else rec.end_datetime.astimezone(tz)
                 logins.append({
                     'id': rec.id,
                     'start': rec.start_datetime.astimezone(tz).isoformat(),
-                    'end': None if rec.end_datetime is None else rec.end_datetime.astimezone(tz).isoformat(),
-                    'title': u'{} {}'.format(emp.th_firstname, status),
+                    'end': end.isoformat() if end else None,
+                    'title': u'{}'.format(emp.th_firstname),
                     'backgroundColor': bg_color,
                     'borderColor': border_color,
                     'textColor': text_color,
@@ -2095,8 +2093,8 @@ def seminar_attends_each_person(staff_id):
 @staff.route('/time-report/report')
 @login_required
 def show_time_report():
-    gj = StaffSpecialGroup.query.filter_by(group_code='gj').first()
-    return render_template('staff/time_report.html', gj=gj)
+    return render_template('staff/time_report.html',
+                           logins=current_user.work_logins.order_by(StaffWorkLogin.start_datetime.desc()))
 
 
 @staff.route('/for-hr/staff-info')

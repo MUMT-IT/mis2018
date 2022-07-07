@@ -590,11 +590,12 @@ class StaffWorkLogin(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     date_id = db.Column('date_id', db.String())
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
-    staff = db.relationship('StaffAccount', backref=db.backref('work_logins'))
+    staff = db.relationship('StaffAccount', backref=db.backref('work_logins', lazy='dynamic'))
     start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
     checkin_mins = db.Column('checkin_mins', db.Integer())
     checkout_mins = db.Column('checkout_mins', db.Integer())
+    num_scans = db.Column('num_scans', db.Integer(), default=0)
 
     @staticmethod
     def generate_date_id(date):
