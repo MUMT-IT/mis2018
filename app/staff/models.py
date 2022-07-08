@@ -47,6 +47,12 @@ def local_datetime(dt):
     return dt.astimezone(bangkok).strftime(datetime_format)
 
 
+# class StaffPosition(db.Model):
+#     __tablename__ = 'staff_position'
+#     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+#     position = db.Column('position', db.String())
+
+
 class StaffAccount(db.Model):
     __tablename__ = 'staff_account'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -542,7 +548,6 @@ class StaffSeminar(db.Model):
     mission = db.Column('mission', db.String())
     location = db.Column('location', db.String())
     is_online = db.Column('is_online', db.Boolean(), default=False)
-    country = db.Column('country', db.String())
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
 
     def __str__(self):
