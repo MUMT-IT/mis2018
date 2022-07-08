@@ -565,6 +565,7 @@ class StaffSeminarAttend(db.Model):
     role = db.Column('role', db.String())
     registration_fee = db.Column('registration_fee', db.Float())
     budget_type = db.Column('budget_type', db.String())
+    transaction_fee = db.Column('transaction_fee', db.Float())
     budget = db.Column('budget', db.Float())
     attend_online = db.Column('attend_online', db.Boolean(), default=False)
     staff = db.relationship('StaffAccount',
