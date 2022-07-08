@@ -47,10 +47,10 @@ def local_datetime(dt):
     return dt.astimezone(bangkok).strftime(datetime_format)
 
 
-# class StaffPosition(db.Model):
-#     __tablename__ = 'staff_position'
-#     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-#     position = db.Column('position', db.String())
+class StaffPosition(db.Model):
+    __tablename__ = 'staff_positions'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    position = db.Column('position', db.String())
 
 
 class StaffAccount(db.Model):
@@ -564,6 +564,11 @@ class StaffSeminarAttend(db.Model):
                            default=datetime.now())
     role = db.Column('role', db.String())
     registration_fee = db.Column('registration_fee', db.Float())
+    # taxi_cost = db.Column('taxi_cost', db.Float())
+    # train_ticket_cost = db.Column('train_ticket_cost', db.Float())
+    # flight_ticket_cost = db.Column('flight_ticket_cost', db.Float())
+    # fuel_cost = db.Column('fuel_cost', db.Float())
+    # accommodation_cost = db.Column('accommodation_cost', db.Float())
     budget_type = db.Column('budget_type', db.String())
     transaction_fee = db.Column('transaction_fee', db.Float())
     budget = db.Column('budget', db.Float())
