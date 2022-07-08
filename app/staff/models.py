@@ -553,6 +553,7 @@ class StaffSeminar(db.Model):
     topic_type = db.Column('topic_type', db.String())
     topic = db.Column('topic', db.String())
     mission = db.Column('mission', db.String())
+    organize_by = db.Column('organize_by', db.String())
     location = db.Column('location', db.String())
     is_online = db.Column('is_online', db.Boolean(), default=False)
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
