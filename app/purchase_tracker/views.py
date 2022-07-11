@@ -51,6 +51,10 @@ def select_form():
     return render_template('purchase_tracker/personnel/select_form.html')
 
 
+@purchase_tracker.route('/personnel/personnel_index/alternative')
+def alternative_form():
+    return render_template('purchase_tracker/personnel/alternative_form.html')
+
 @purchase_tracker.route('/main')
 def index():
     return render_template('purchase_tracker/index.html')
