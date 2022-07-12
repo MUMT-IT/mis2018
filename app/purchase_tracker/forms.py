@@ -1,11 +1,12 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import FileField, IntegerField, RadioField, DateField, StringField, validators
-from wtforms.validators import DataRequired, InputRequired, ValidationError, Optional
+from wtforms import FileField, IntegerField, RadioField, StringField, FormField
+from wtforms.validators import DataRequired
 from wtforms_alchemy import model_form_factory, QuerySelectField
 
 from app.main import db
+from app.models import Org
 from app.purchase_tracker.models import PurchaseTrackerAccount, PurchaseTrackerStatus, PurchaseTrackerActivity, \
     PurchaseTrackerForm
 
@@ -58,3 +59,7 @@ class CreateMTPCForm(ModelForm):
     method = RadioField(choices=[(c, c) for c in [u'ซื้อ', u'จ้าง']],
                         coerce=unicode,
                         validators=[DataRequired()])
+    org = QuerySelectField(query_factory=lambda: Org.query.all(),
+                           get_label='name',
+                           label=u'ภาควิชา/หน่วยงาน')
+    account = FormField(CreateAccountForm)
