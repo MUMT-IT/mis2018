@@ -437,10 +437,28 @@ def dashboard_info_download():
     return send_from_directory(os.getcwd(), filename='account_summary.xlsx')
 
 
-@purchase_tracker.route('/personnel/personnel_index/e-form/method/create/<string:form_id>/<int:account_id>', methods=['GET', 'POST'])
-def create_form(account_id, form_id):
+# @purchase_tracker.route('/personnel/personnel_index/e-form/method/create/<string:form_id>/<int:account_id>', methods=['GET', 'POST'])
+# def create_form(account_id, form_id):
+#     form = CreateMTPCForm()
+#     account = PurchaseTrackerAccount.query.get(account_id)
+#     if form.validate_on_submit():
+#         new_form = PurchaseTrackerForm()
+#         form.populate_obj(new_form)
+#         new_form.staff = current_user
+#         db.session.add(new_form)
+#         db.session.commit()
+#         flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
+#         return render_template('purchase_tracker/personnel/select_form.html')
+#     # Check Error
+#     else:
+#         for er in form.errors:
+#             flash(er, 'danger')
+#     return render_template('purchase_tracker/personnel/create_form_{}.html'.format(form_id), form=form, account=account)
+
+
+@purchase_tracker.route('/personnel/personnel_index/e-form/create/<string:form_id>', methods=['GET', 'POST'])
+def create_form(form_id):
     form = CreateMTPCForm()
-    account = PurchaseTrackerAccount.query.get(account_id)
     if form.validate_on_submit():
         new_form = PurchaseTrackerForm()
         form.populate_obj(new_form)
@@ -448,12 +466,14 @@ def create_form(account_id, form_id):
         db.session.add(new_form)
         db.session.commit()
         flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        return render_template('purchase_tracker/personnel/select_form.html')
+        return render_template('purchase_tracker/personnel/create_form_MTPC-001.html')
     # Check Error
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return render_template('purchase_tracker/personnel/create_form_{}.html'.format(form_id), form=form, account=account)
+    return render_template('purchase_tracker/personnel/create_form_{}.html'.format(form_id), form=form)
+
+
 
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
