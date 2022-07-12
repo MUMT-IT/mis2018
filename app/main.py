@@ -4,8 +4,7 @@ import click
 import arrow
 import pandas
 import requests
-from flask_principal import Principal, PermissionDenied
-from pytz import timezone
+from flask_principal import Principal, PermissionDenied, Identity
 from flask.cli import AppGroup
 from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for
@@ -13,24 +12,19 @@ from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
-from flask_login import LoginManager
-from flask_admin import Admin
+from flask_login import LoginManager, current_user
+from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
-from werkzeug.exceptions import NotFound
-from wtforms import DateTimeField
 from wtforms.validators import required
-from datetime import timedelta, datetime
 from flask_mail import Mail
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from flask_restful import Api, Resource
 
 
-
-scope = ['https://spreadsheets.google.com/feeds',
-         'https://www.googleapis.com/auth/drive']
+scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 
 
 def get_credential(json_keyfile):
@@ -39,6 +33,12 @@ def get_credential(json_keyfile):
 
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
+
+
+class MyAdminIndexView(AdminIndexView):
+    def is_accessible(self):
+        return current_user.is_authenticated and admin_permission.can()
+
 
 load_dotenv()
 
@@ -49,12 +49,18 @@ login.login_view = 'auth.login'
 cors = CORS()
 ma = Marshmallow()
 csrf = CSRFProtect()
-admin = Admin()
+admin = Admin(index_view=MyAdminIndexView())
 mail = Mail()
 qrcode = QRcode()
 principal = Principal()
 
 dbutils = AppGroup('dbutils')
+
+
+@principal.identity_loader
+def load_identity_when_session_expires():
+    if hasattr(current_user, 'id'):
+        return Identity(current_user.id)
 
 
 def create_app():
@@ -320,13 +326,6 @@ from auth import authbp as auth_blueprint
 from app.auth.roles import admin_permission
 
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
-
-
-@app.route('/youshallnotpass')
-@admin_permission.require()
-def youshallnotpass():
-    return 'Only if your an admin.'
-
 
 from models import (Student, Class, ClassCheckIn,
                     Org, Mission, IOCode, CostCenter,

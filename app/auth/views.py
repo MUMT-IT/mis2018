@@ -8,8 +8,7 @@ from flask_mail import Message
 from flask import (render_template, redirect, request,
                    url_for, flash, abort, session, current_app)
 from flask_login import login_user, current_user, logout_user, login_required
-from flask_principal import (Permission, RoleNeed, Identity, identity_changed,
-                             AnonymousIdentity, identity_loaded, UserNeed)
+from flask_principal import Identity, identity_changed, AnonymousIdentity, identity_loaded, UserNeed
 from app.staff.models import StaffAccount, StaffLeaveApprover
 from .forms import LoginForm, ForgotPasswordForm, ResetPasswordForm
 from itsdangerous import TimedJSONWebSignatureSerializer
@@ -67,8 +66,7 @@ def login():
             pwd = form.password.data
             if user.verify_password(pwd):
                 status = login_user(user, form.remember_me.data)
-                identity_changed.send(current_app._get_current_object(),
-                                      identity=Identity(user.id))
+                identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
                 # session.pop('_flashes', None)  # this line clears all unconsumed flash messages.
                 next = request.args.get('next')
                 if not is_safe_url(next):

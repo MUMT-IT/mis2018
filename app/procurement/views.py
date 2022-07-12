@@ -13,6 +13,8 @@ from pytz import timezone
 from pydrive.drive import GoogleDrive
 
 # Upload images for Google Drive
+from ..auth.roles import finance_procurement_permission
+
 FOLDER_ID = "1JYkU2kRvbvGnmpQ1Tb-TcQS-vWQKbXvy"
 
 json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -72,6 +74,7 @@ def initialize_gdrive():
 
 
 @procurement.route('/')
+@login_required
 def index():
     return render_template('procurement/index.html')
 

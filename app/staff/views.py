@@ -22,6 +22,7 @@ from flask_mail import Message
 from flask_admin import BaseView, expose
 from itsdangerous import TimedJSONWebSignatureSerializer
 
+from ..auth.roles import admin_permission, hr_permission
 from ..comhealth.views import allowed_file
 
 gauth = GoogleAuth()
@@ -1415,8 +1416,7 @@ def record_each_request_wfh_request(request_id):
                            checkjob=check)
 
 
-@staff.route('/wfh/requests/list',
-             methods=['GET', 'POST'])
+@staff.route('/wfh/requests/list', methods=['GET', 'POST'])
 @login_required
 def wfh_requests_list():
     if request.method == 'POST':
@@ -1434,6 +1434,7 @@ def wfh_requests_list():
 
 
 @staff.route('/for-hr')
+@hr_permission.require()
 @login_required
 def for_hr():
     return render_template('staff/for_hr.html')
@@ -1441,6 +1442,7 @@ def for_hr():
 
 @staff.route('/login-scan', methods=['GET', 'POST'])
 @csrf.exempt
+@admin_permission.require()
 @login_required
 def login_scan():
     office_starttime = '09:00'
