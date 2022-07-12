@@ -4,6 +4,7 @@ import click
 import arrow
 import pandas
 import requests
+from flask_principal import Principal, PermissionDenied
 from pytz import timezone
 from flask.cli import AppGroup
 from dotenv import load_dotenv
@@ -51,6 +52,7 @@ csrf = CSRFProtect()
 admin = Admin()
 mail = Mail()
 qrcode = QRcode()
+principal = Principal()
 
 dbutils = AppGroup('dbutils')
 
@@ -84,6 +86,7 @@ def create_app():
     mail.init_app(app)
     cors.init_app(app)
     qrcode.init_app(app)
+    principal.init_app(app)
 
     return app
 
@@ -101,6 +104,10 @@ def page_not_found(e):
 def page_not_found(e):
     return render_template('errors/500.html', error=e), 500
 
+
+@app.errorhandler(PermissionDenied)
+def permission_denied(e):
+    return render_template('errors/403.html', error=e), 403
 
 def get_weekdays(req):
     delta = req.end_datetime - req.start_datetime
@@ -310,8 +317,16 @@ admin.add_view(ModelView(VehicleAvailability, db.session, category='Physicals'))
 admin.add_view(ModelView(VehicleType, db.session, category='Physicals'))
 
 from auth import authbp as auth_blueprint
+from app.auth.roles import admin_permission
 
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
+
+
+@app.route('/youshallnotpass')
+@admin_permission.require()
+def youshallnotpass():
+    return 'Only if your an admin.'
+
 
 from models import (Student, Class, ClassCheckIn,
                     Org, Mission, IOCode, CostCenter,
@@ -537,6 +552,8 @@ app.register_blueprint(data_blueprint, url_prefix='/data-blueprint')
 from scb_payment_service import scb_payment as scb_payment_blueprint
 
 app.register_blueprint(scb_payment_blueprint)
+
+
 
 # Commands
 
