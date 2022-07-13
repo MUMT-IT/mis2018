@@ -22,7 +22,8 @@ from flask_mail import Message
 from flask_admin import BaseView, expose
 from itsdangerous import TimedJSONWebSignatureSerializer
 
-from ..auth.roles import admin_permission, hr_permission
+from app.roles import admin_permission, hr_permission
+
 from ..comhealth.views import allowed_file
 
 gauth = GoogleAuth()

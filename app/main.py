@@ -323,7 +323,7 @@ admin.add_view(ModelView(VehicleAvailability, db.session, category='Physicals'))
 admin.add_view(ModelView(VehicleType, db.session, category='Physicals'))
 
 from auth import authbp as auth_blueprint
-from app.auth.roles import admin_permission
+from app.roles import admin_permission
 
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 

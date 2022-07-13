@@ -54,7 +54,7 @@ def local_datetime(dt):
 class Role(db.Model):
     __tablename__ = 'roles'
     id = db.Column(db.Integer(), primary_key=True)
-    role_need = db.Column('role_need', db.String(), nullable=False)
+    role_need = db.Column('role_need', db.String(), nullable=True)
     action_need = db.Column('action_need', db.String())
     resource_id = db.Column('resource_id', db.Integer())
 
