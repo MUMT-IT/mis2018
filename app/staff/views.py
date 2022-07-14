@@ -2243,12 +2243,14 @@ def staff_show_approvers():
     org_id = request.args.get('deptid')
     departments = Org.query.all()
     if org_id is None:
-        account_query = StaffAccount.query.all()
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False))
     else:
-        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id))
+        account_query = StaffAccount.query\
+            .filter(and_(StaffAccount.personal_info.has(org_id=org_id),
+                         StaffAccount.personal_info.has(retired=False)))
 
     return render_template('staff/show_leave_approver.html',
-                           sel_dept=org_id, account_list=list(account_query),
+                           sel_dept=org_id, account_list=account_query,
                            departments=[{'id': d.id, 'name': d.name} for d in departments])
 
 
