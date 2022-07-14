@@ -19,39 +19,29 @@
         </div>
         <div class="columns">
             <div class="column">
-                <table class="table is-bordered is-striped" id="approversTable">
+                <table class="table is-striped is-fullwidth" id="approversTable">
                     <thead>
                     <th>ชื่อ</th>
                     <th>ผู้อนุมัติ</th>
                     </thead>
                     <tbody>
                     {% for account in account_list %}
-                    {% if account.leave_requesters %}
                     <tr>
                         <td>
                             <a href="{{ url_for('staff.staff_add_requester', requester_id=account.id) }}">
                                 {{ account.personal_info.fullname }}
                             </a>
                         </td>
-                        {% for approver in account.leave_requesters %}
                         <td>
-                            <a href="{{ url_for('staff.staff_add_approver', approver_id=approver.account.id) }}">
+                            <div class="tags">
+                            {% for approver in account.leave_requesters %}
+                            <a class="tag is-medium is-success" href="{{ url_for('staff.staff_add_approver', approver_id=approver.account.id) }}">
                                 {{ approver.account.personal_info.fullname }}
                             </a>
-                        </td>
-                        {% endfor %}
-                    </tr>
-                    {% else %}
-                    <tr>
-                        <td>
-                            <a href="{{ url_for('staff.staff_add_requester', requester_id=account.id) }}">
-                            {{ account.personal_info.fullname }}
-                            </a>
-                        </td>
-                        <td>
+                            {% endfor %}
+                            </div>
                         </td>
                     </tr>
-                    {% endif %}
                     {% endfor %}
                     </tbody>
                 </table>

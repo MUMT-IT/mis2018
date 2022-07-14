@@ -22,6 +22,8 @@ from flask_mail import Message
 from flask_admin import BaseView, expose
 from itsdangerous import TimedJSONWebSignatureSerializer
 
+from app.roles import admin_permission, hr_permission
+
 from ..comhealth.views import allowed_file
 
 gauth = GoogleAuth()
@@ -1415,8 +1417,7 @@ def record_each_request_wfh_request(request_id):
                            checkjob=check)
 
 
-@staff.route('/wfh/requests/list',
-             methods=['GET', 'POST'])
+@staff.route('/wfh/requests/list', methods=['GET', 'POST'])
 @login_required
 def wfh_requests_list():
     if request.method == 'POST':
@@ -1434,6 +1435,7 @@ def wfh_requests_list():
 
 
 @staff.route('/for-hr')
+@hr_permission.require()
 @login_required
 def for_hr():
     return render_template('staff/for_hr.html')
@@ -1441,6 +1443,7 @@ def for_hr():
 
 @staff.route('/login-scan', methods=['GET', 'POST'])
 @csrf.exempt
+@admin_permission.require()
 @login_required
 def login_scan():
     office_starttime = '09:00'
@@ -2282,12 +2285,14 @@ def staff_show_approvers():
     org_id = request.args.get('deptid')
     departments = Org.query.all()
     if org_id is None:
-        account_query = StaffAccount.query.all()
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False))
     else:
-        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id))
+        account_query = StaffAccount.query\
+            .filter(and_(StaffAccount.personal_info.has(org_id=org_id),
+                         StaffAccount.personal_info.has(retired=False)))
 
     return render_template('staff/show_leave_approver.html',
-                           sel_dept=org_id, account_list=list(account_query),
+                           sel_dept=org_id, account_list=account_query,
                            departments=[{'id': d.id, 'name': d.name} for d in departments])
 
 

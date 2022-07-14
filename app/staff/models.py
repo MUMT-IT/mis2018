@@ -54,8 +54,15 @@ def local_datetime(dt):
 class Role(db.Model):
     __tablename__ = 'roles'
     id = db.Column(db.Integer(), primary_key=True)
-    name = db.Column(db.String(), unique=True)
-    app_name = db.Column(db.String())
+    role_need = db.Column('role_need', db.String(), nullable=True)
+    action_need = db.Column('action_need', db.String())
+    resource_id = db.Column('resource_id', db.Integer())
+
+    def to_tuple(self):
+        return self.role_need, self.action_need, self.resource_id
+
+    def __str__(self):
+        return u'Role {}: can {} -> resource ID {}'.format(self.role_need, self.action_need, self.resource_id)
 
 
 user_roles = db.Table('user_roles',
