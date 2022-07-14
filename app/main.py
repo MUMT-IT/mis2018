@@ -101,6 +101,11 @@ app = create_app()
 api = Api(app)
 
 
+@app.errorhandler(403)
+def page_not_found(e):
+    return render_template('errors/403.html', error=e), 404
+
+
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('errors/404.html', error=e), 404
