@@ -225,6 +225,10 @@ admin.add_views(ModelView(PurchaseTrackerAccount, db.session, category='Purchase
 admin.add_views(ModelView(PurchaseTrackerStatus, db.session, category='PurchaseTracker'))
 admin.add_views(ModelView(PurchaseTrackerActivity, db.session, category='PurchaseTracker'))
 
+from receipt_printing import receipt_printing_bp as receipt_printing_blueprint
+
+app.register_blueprint(receipt_printing_blueprint, url_prefix='/receipt_printing')
+from app.receipt_printing.models import *
 
 from staff import staffbp as staff_blueprint
 
