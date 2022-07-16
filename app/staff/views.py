@@ -310,7 +310,7 @@ def request_for_leave(quota_id=None):
                 last_quota = StaffLeaveRemainQuota.query.filter(and_
                                                                 (StaffLeaveRemainQuota.leave_quota_id == quota.id,
                                                                  StaffLeaveRemainQuota.year == (
-                                                                             START_FISCAL_DATE.year - 1),
+                                                                         START_FISCAL_DATE.year - 1),
                                                                  StaffLeaveRemainQuota.staff_account_id == current_user.id)).first()
                 if last_quota:
                     last_year_quota = last_quota.last_year_quota
@@ -430,7 +430,7 @@ def request_for_leave_period(quota_id=None):
                 last_quota = StaffLeaveRemainQuota.query.filter(and_
                                                                 (StaffLeaveRemainQuota.leave_quota_id == quota.id,
                                                                  StaffLeaveRemainQuota.year == (
-                                                                             START_FISCAL_DATE.year - 1),
+                                                                         START_FISCAL_DATE.year - 1),
                                                                  StaffLeaveRemainQuota.staff_account_id == current_user.id)).first()
                 if last_quota:
                     last_year_quota = last_quota.last_year_quota
@@ -1470,7 +1470,7 @@ def login_scan():
         if person:
             now = datetime.now(pytz.utc)
             date_id = StaffWorkLogin.generate_date_id(now)
-            record = StaffWorkLogin.query\
+            record = StaffWorkLogin.query \
                 .filter_by(date_id=date_id, staff=person.staff_account).first()
             # office_startdt = datetime.strptime(u'{} {}'.format(now.date(), office_starttime), DATETIME_FORMAT)
             # office_startdt = office_startdt.replace(tzinfo=pytz.utc)
@@ -1496,11 +1496,53 @@ def login_scan():
                 activity = 'checked out'
             db.session.add(record)
             db.session.commit()
-            return jsonify({'message': 'success', 'activity': activity, 'name': person.fullname, 'time': now.isoformat(), 'numScans': num_scans})
+            return jsonify(
+                {'message': 'success', 'activity': activity, 'name': person.fullname, 'time': now.isoformat(),
+                 'numScans': num_scans})
         else:
             return jsonify({'message': 'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
 
     return render_template('staff/login_scan.html')
+
+
+@staff.route('/login-activity-scan/<int:seminar_id>', methods=['GET', 'POST'])
+@csrf.exempt
+@login_required
+def checkin_activity(seminar_id):
+    if request.method == 'POST':
+        req_data = request.get_json()
+        th_name = req_data['data'].get('thName')
+        en_name = req_data['data'].get('enName')
+        if th_name:
+            fname, lname = th_name.split(' ')
+            lname = lname.lstrip()
+            person = StaffPersonalInfo.query \
+                .filter_by(th_firstname=fname, th_lastname=lname).first()
+        elif en_name:
+            fname, lname = en_name.split(' ')
+            lname = lname.lstrip()
+            person = StaffPersonalInfo.query \
+                .filter_by(en_firstname=fname, en_lastname=lname).first()
+        else:
+            return jsonify({'message': 'The QR Code is not valid.'}), 400
+
+        if person:
+            now = datetime.now(pytz.utc)
+            record = person.staff_account.seminar_attends.filter_by(seminar_id=seminar_id).first()
+            if not record:
+                record = StaffSeminarAttend(
+                    seminar_id=seminar_id,
+                    start_datetime=now
+                )
+                person.staff_account.seminar_attends.append(record)
+            else:
+                record.end_datetime = now
+            db.session.add(record)
+            db.session.commit()
+            return jsonify({'message': 'success', 'name': person.fullname, 'time': now.isoformat()})
+        else:
+            return jsonify({'message': 'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
+    return render_template('staff/checkin_activity.html', seminar_id=seminar_id)
 
 
 class LoginDataUploadView(BaseView):
