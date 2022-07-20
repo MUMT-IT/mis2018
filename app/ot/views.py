@@ -5,6 +5,7 @@ from pandas import DataFrame
 import pytz
 import requests
 import os
+from sqlalchemy import cast, Date, extract, and_
 
 from werkzeug.utils import secure_filename
 
@@ -27,11 +28,13 @@ else:
     START_FISCAL_DATE = datetime(today.year - 1, 10, 1)
     END_FISCAL_DATE = datetime(today.year, 9, 30, 23, 59, 59, 0)
 
+
 def convert_to_fiscal_year(date):
     if date.month in [10, 11, 12]:
         return date.year + 1
     else:
         return date.year
+
 
 def get_start_end_date_for_fiscal_year(fiscal_year):
     '''Find start and end date from a given fiscal year.
