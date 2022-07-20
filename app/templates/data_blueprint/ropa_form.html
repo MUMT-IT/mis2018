@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2 box">
+                {% include "messages.html" %}
+                <h1 class="title has-text-centered">ROPA Form</h1>
+                <form action="{{ url_for('data_bp.edit_ropa', dataset_id=dataset.id, ropa_id=dataset.ropa.id) }}"
+                      method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.major_objective.label }}</label>
+                        <div class="control">
+                            {{ form.major_objective(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.minor_objective.label }}</label>
+                        <div class="control">
+                            {{ form.minor_objective(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.personal_data.label }}</label>
+                        <div class="control">
+                            {{ form.personal_data(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.personal_data_desc.label }}</label>
+                        <div class="control">
+                            {{ form.personal_data_desc(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.sensitive_data.label }}</label>
+                        <div class="control">
+                            {{ form.sensitive_data(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label checkbox">
+                            {{ form.consent_required() }}
+                            {{ form.consent_required.label }}
+                        </label>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.amount.label }}</label>
+                        <div class="control">
+                            {{ form.amount(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.subjects.label }}</label>
+                        <div class="control">
+                            {{ form.subjects() }}
+                        </div>
+                    </div>
+                    <div class="buttons is-centered">
+                        <input type="submit" value="Submit" class="button is-success">
+                        <a href="{{ url_for('data_bp.add_subject', ropa_id=dataset.ropa.id) }}"
+                                class="button is-light is-info">
+                            <span>
+                                เพิ่มเจ้าของข้อมูล
+                            </span>
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

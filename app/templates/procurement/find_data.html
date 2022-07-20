@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Procurement Page{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
+{% endblock head %}
+{% include "procurement/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="columns">
+        <div class="column is-4 is-offset-4 has-text-centered">
+        <article class="panel is-grey-light">
+          <p class="panel-heading">
+            ค้นหาข้อมูลครุภัณฑ์
+          </p>
+          <p class="panel-tabs">
+            <a class="is-active" >All</a>
+            <a>Code</a>
+            <a>Location</a>
+          </p>
+          <div class="panel-block">
+              <form method="post" action="{{ url_for('procurement.view_procurement') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                   <div class="field-body">
+                    <div class="field">
+                        <p class="control has-icons-right">
+                            <input class="input" type="text" name="code" placeholder="ค้นหารหัสครุภัณฑ์">
+                            <span class="icon is-right">
+                                <i class="fas fa-search"></i>
+                            </span>
+                        </p>
+                    </div><br><br>
+                    <div class="field">
+                        <p class="control has-icons-right">
+                            <input class="input" type="text" name="location" placeholder="ค้นหาสถานที่เก็บครุภัณฑ์">
+                            <span class="icon is-right">
+                               <i class="fas fa-search"></i>
+                            </span>
+                        </p>
+                    </div>
+                    </div>
+                  <div class="field-body">
+                    <div class="field">
+                        <p class="control has-icons-right">
+                            <input class="input" type="text" name="budget_year" placeholder="ค้นหาปีงบประมาณ">
+                            <span class="icon is-right">
+                                <i class="fas fa-search"></i>
+                            </span>
+                        </p>
+                    </div>
+                    <div class="field">
+                        <p class="control has-icons-right">
+                            <input class="input" type="text" name="available" placeholder="ค้นหาความสามารถการใช้งาน">
+                            <span class="icon is-right">
+                               <i class="fas fa-search"></i>
+                            </span>
+                        </p>
+                    </div>
+                    </div><br>
+                <button type="submit" class="button is-rounded is-success">
+                    <strong>Find</strong></button>
+            </form>
+          </div>
+        </article>
+            <p>
+                <a href="{{ url_for('procurement.view_procurement') }}">ดูรายการครุภัณฑ์ทั้งหมด</a>
+            </p>
+        </div>
+    </div>
+</section>
+{% endblock %}

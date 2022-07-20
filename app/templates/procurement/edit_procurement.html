@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+{% include "procurement/nav.html" %}
+{% block page_content %}
+
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">แก้ไขข้อมูลครุภัณฑ์</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                <form method="post" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    <div class="field-body">
+                        <div class="field">
+                            <label class="label">{{ form.category.label }}</label>
+                            <div class="select is-fullwidth is-info">
+                                {{ form.category() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.registration_no.label }}</label>
+                            <div class="control">
+                                {{ form.registration_no(class="input is-info") }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <label class="label">{{ form.procurement_no.label }}</label>
+                            <div class="control">
+                                {{ form.procurement_no(class="input is-focused") }}
+                            </div>
+                            <p class="help is-danger">Required</p>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.erp_code.label }}</label>
+                            <div class="control">
+                                {{ form.erp_code(class="input is-info") }}
+                            </div>
+                            <p class="help is-danger">Required</p>
+                        </div>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <label class="label">{{ form.university_no.label }}</label>
+                            <div class="control">
+                                {{ form.university_no(class="input is-info") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.document_no.label }}</label>
+                            <div class="control">
+                                {{ form.document_no(class="input is-info") }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <label class="label">{{ form.name.label }}</label>
+                            <div class="control">
+                                {{ form.name(class="input is-info") }}
+                            </div>
+                            <p class="help is-danger">Required</p>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.available.label }}</label>
+                            <div class="control">
+                                {{ form.available(class="input is-info") }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <label class="label">{{ form.model.label }}</label>
+                            <div class="control">
+                                {{ form.model(class="input is-info") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.size.label }}</label>
+                            <div class="control">
+                                {{ form.size(class="input is-info") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.maker.label }}</label>
+                            <div class="control">
+                                {{ form.maker(class="input is-info") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.guarantee.label }}</label>
+                            <div class="control">
+                                {{ form.guarantee(class="input is-info") }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.desc.label }}</label>
+                        <div class="control">
+                            {{ form.desc(class="input is-info") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.serial_no.label }}</label>
+                        <div class="control">
+                            {{ form.serial_no(class="input is-info") }}
+                        </div>
+                        <p class="help is-danger">Required</p>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <label class="label">{{ form.purchasing_type.label }}</label>
+                            <div class="select is-fullwidth is-info">
+                                {{ form.purchasing_type() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.budget_year.label }}</label>
+                            <div class="control">
+                                {{ form.budget_year(class="input is-info") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.price.label }}</label>
+                            <div class="control">
+                                {{ form.price(class="input is-info") }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <label class="label">{{ form.quantity.label }}</label>
+                            <div class="control">
+                                {{ form.quantity(class="input is-info") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.received_date.label }}</label>
+                            <div class="control">
+                                {{ form.received_date(class="input is-info") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.bought_by.label }}</label>
+                            <div class="select is-fullwidth is-info">
+                                {{ form.bought_by() }}
+                            </div>
+                        </div>
+                    </div><br>
+                    <div class="field">
+                            <div class="file">
+                                <label class="file-label">
+                                  {{ form.upload(class="file-input") }}
+                                  <span class="file-cta">
+                                  <span class="file-icon">
+                                    <i class="fas fa-upload"></i>
+                                  </span>
+                                  <span class="file-label">
+                                    {{ form.upload.label }}
+                                  </span>
+                                  </span>
+                                  <span class="file-name" id="filename"></span>
+                                </label>
+                            </div>
+                        </div>
+                    <div class="field">
+                        <label class="label">{{ form.comment.label }}</label>
+                        <div class="control">
+                            {{ form.comment(class="textarea is-info") }}
+                        </div>
+                    </div><br>
+                     <div class="columns">
+                        <div class="column has-text-centered">
+                            <h2 class="title is-3">ภาควิชาที่ซื้อและสถานที่ตั้ง</h2>
+                        </div>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <label class="label">{{ form.org.label }}</label>
+                            <div class="select is-fullwidth is-info">
+                                {{ form.org() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                                <label class="label">{{ form.location.label }}</label>
+                                <div class="select is-fullwidth is-info">
+                                    {{ form.location() }}
+                                </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.responsible_person.label }}</label>
+                            <div class="control">
+                                {{ form.responsible_person(class="input is-info") }}
+                            </div>
+                        </div>
+                    </div>
+                    <br>
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="buttons">
+                            <button class="button is-success" type="submit" value="submit">บันทึก</button>
+                            <a href="{{ url_for('procurement.view_procurement') }}" class="button is-danger">ยกเลิก</a>
+                        </div>
+                    </div>
+                    <hr>
+                    </form>
+                </div>
+             </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

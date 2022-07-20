@@ -176,8 +176,8 @@ def index():
             'id': sv.id,
             'date': sv.date,
             'location': sv.location,
-            'registered': len(sv.records),
-            'checkedin': len([r for r in sv.records if r.checkin_datetime is not None])
+            'registered': sv.records.count(),
+            'checkedin': sv.records.filter(ComHealthRecord.checkin_datetime != None).count()
         }
         services_data.append(d)
     services_data = sorted(services_data, key=lambda x: x['date'], reverse=True)
@@ -859,19 +859,61 @@ def delete_service_group(service_id=None, group_id=None):
 @login_required
 def summarize_specimens(service_id):
     containers = set()
-    if service_id:
-        service = ComHealthService.query.get(service_id)
-        for profile in service.profiles:
-            for test_item in profile.test_items:
-                containers.add(test_item.test.container)
-        for group in service.groups:
-            for test_item in group.test_items:
-                containers.add(test_item.test.container)
+    service = ComHealthService.query.get(service_id)
+    for profile in service.profiles:
+        for test_item in profile.test_items:
+            containers.add(test_item.test.container)
+    for group in service.groups:
+        for test_item in group.test_items:
+            containers.add(test_item.test.container)
+    columns = [{'data': 'labno', 'searchable': True}]
+    headers = []
+    for ct in containers:
+        columns.append({'data': ct.name})
+        headers.append(ct)
 
-        return render_template('comhealth/specimens_checklist.html',
-                               summary_date=datetime.now(tz=bangkok),
-                               service=service,
-                               containers=sorted(containers, key=lambda x: x.name))
+    return render_template('comhealth/specimens_checklist.html',
+                           summary_date=datetime.now(tz=bangkok),
+                           columns=columns,
+                           headers=headers,
+                           service=service)
+
+
+@comhealth.route('/api/services/<int:service_id>/specimens-summary')
+@login_required
+def get_specimens_summary_data(service_id):
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    service = ComHealthService.query.get(service_id)
+    query = service.records.filter(ComHealthRecord.labno != '')
+    total_count = query.count()
+    search = request.args.get('search[value]')
+    if search:
+        query = query.filter(ComHealthRecord.labno.like('%{}%'.format(search)))
+
+    containers = set()
+    for profile in service.profiles:
+        for test_item in profile.test_items:
+            containers.add(test_item.test.container)
+    for group in service.groups:
+        for test_item in group.test_items:
+            containers.add(test_item.test.container)
+
+    data = []
+    for rec in query.order_by('labno').offset(start).limit(length):
+        if rec.labno:
+            d = {'labno': rec.labno}
+            for ct in containers:
+                if ct.name in rec.container_set:
+                    d[ct.name] = '''<td><span class="icon"><i class="fas fa-check has-text-success"></i></span></td>'''
+                else:
+                    d[ct.name] = '-'
+            data.append(d)
+    return jsonify({'data': data,
+                    'recordsFiltered': query.count(),
+                    'recordsTotal': total_count,
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 
 @comhealth.route('/services/<int:service_id>/containers/<int:container_id>',

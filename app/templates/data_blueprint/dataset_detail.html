@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% include "data_blueprint/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                {% include "messages.html" %}
+                <table class="table is-bordered is-fullwidth">
+                    <tr>
+                        <td>รหัสข้อมูล</td>
+                        <td><strong>{{ dataset.reference }}</strong></td>
+                    </tr>
+                    <tr>
+                        <td>ชื่อชุดข้อมูล</td>
+                        <td>{{ dataset.name }}</td>
+                    </tr>
+                    <tr>
+                        <td>รายละเอียด</td>
+                        <td>{{ dataset.desc }}</td>
+                    </tr>
+                    <tr>
+                        <td>ข้อมูลส่วนบุคคล</td>
+                        <td>
+                            {% if dataset.personal %}
+                            <a class="button is-small is-light is-info"
+                                href="{{ url_for('data_bp.get_ropa_detail', dataset_id=dataset.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-user-secret has-text-info"></i>
+                                </span>
+                                <span>ROPA</span>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>ข้อมูลอ่อนไหว</td>
+                        <td>
+                            {% if dataset.sensitive %}
+                            <a class="button is-small is-light is-danger"
+                                href="{{ url_for('data_bp.get_ropa_detail', dataset_id=dataset.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-heartbeat has-text-danger"></i>
+                                </span>
+                                <span>
+                                    ROPA
+                                </span>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>บริการที่ใช้ข้อมูลนี้</td>
+                        <td>
+                            <ul>
+                            {% for sv in dataset.core_services %}
+                                <li>{{ sv.service }} <span class="icon"><i class="far fa-trash-alt has-text-danger"></i></span></li>
+                            {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>กระบวนการที่ใช้ข้อมูลนี้</td>
+                        <td>
+                            <ul>
+                            {% for proc in dataset.processes %}
+                            <li>{{ proc.name }} <span class="icon"><i class="far fa-trash-alt has-text-danger"></i></span></li>
+                            {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>ตัวชี้วัดที่ใช้ข้อมูลนี้</td>
+                        <td>
+                            <ul>
+                            {% for kpi in dataset.kpis %}
+                            <li>{{ kpi.refno }} {{ kpi.name }}
+                                <a href="{{ url_for('data_bp.remove_kpi_from_dataset', dataset_id=dataset.id, kpi_id=kpi.id) }}">
+                                    <span class="icon"><i class="far fa-trash-alt has-text-danger"></i></span>
+                                </a>
+                            </li>
+                            {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>
+                            <form action="{{url_for('data_bp.add_kpi_to_dataset', dataset_id=dataset.id)}}" method="post">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <div class="field">
+                                    <label class="label">เพิ่มตัวชี้วัด</label>
+                                    <div class="control">
+                                        <input type="text" name="refno" placeholder="รหัสอ้างอิงตัวชี้วัด" class="input">
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <div class="control">
+                                        <input type="submit" value="Add" class="button is-success">
+                                    </div>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                </table>
+                <div class="buttons is-centered">
+                    <a class="button is-light" href="{{ url_for('data_bp.data_detail', data_id=dataset.data.id) }}">Back</a>
+                    <a class="button is-info" href="{{ url_for('data_bp.dataset_form', data_id=dataset.data.id, dataset_id=dataset.id) }}">แก้ไข</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

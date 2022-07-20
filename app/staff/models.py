@@ -12,7 +12,10 @@ from app.models import Org, OrgSchema
 from datetime import datetime, timedelta
 from app.main import get_weekdays
 import numpy as np
+
+
 today = datetime.today()
+
 if today.month >= 10:
     START_FISCAL_DATE = datetime(today.year, 10, 1)
     END_FISCAL_DATE = datetime(today.year + 1, 9, 30, 23, 59, 59, 0)
@@ -56,6 +59,19 @@ class StaffPosition(db.Model):
         return self.position
 
 
+# Define the Roles data model
+class Role(db.Model):
+    __tablename__ = 'roles'
+    id = db.Column(db.Integer(), primary_key=True)
+    name = db.Column(db.String(), unique=True)
+    app_name = db.Column(db.String())
+
+
+user_roles = db.Table('user_roles',
+                      db.Column('staff_account_id', db.Integer(), db.ForeignKey('staff_account.id')),
+                      db.Column('role_id', db.Integer(), db.ForeignKey('roles.id')))
+
+
 class StaffAccount(db.Model):
     __tablename__ = 'staff_account'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -64,6 +80,7 @@ class StaffAccount(db.Model):
     personal_info = db.relationship("StaffPersonalInfo", backref=db.backref("staff_account", uselist=False))
     line_id = db.Column('line_id', db.String(), index=True, unique=True)
     __password_hash = db.Column('password', db.String(255), nullable=True)
+    roles = db.relationship('Role', secondary=user_roles, backref=db.backref('staff_account', lazy='dynamic'))
 
     @property
     def has_password(self):
@@ -628,3 +645,4 @@ class StaffShiftRole(db.Model):
 #     created_at = db.Column('created_at',db.DateTime(timezone=True),
 #                            default=datetime.now())
 #     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+

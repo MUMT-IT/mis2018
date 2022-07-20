@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="has-text-centered">
+                <h1 class="title has-text-danger">Oops! This is embarassing.</h1>
+                <h1 class="subtitle has-text-danger">
+                    ขออภัย ระบบไม่พบรายการที่ท่านต้องการ กรุณาติดต่อเจ้าหน้าที่หน่วยสารสนเทศ
+                </h1>
+            </div>
+            <br>
+            <div class="has-text-centered">
+                <figure class="image is-inline-block">
+                    <img class="is-rounded" src="{{ url_for('static', filename='img/rabbit.jpg') }}">
+                </figure>
+            </div>
+            <br>
+            <div class="has-text-centered">
+                <h1 class="title is-5 has-text-info">Here is one cute little bunny for you.</h1>
+            </div>
+        </div>
+    </section>
+{% endblock %}

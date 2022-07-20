@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                {% include "messages.html" %}
+                <h1 class="title has-text-centered">Data Subject Form</h1>
+                <form action="{{ url_for('data_bp.add_subject', ropa_id=ropa_id) }}"
+                      method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.subject.label }}</label>
+                        <div class="control">
+                            {{ form.subject(class="input") }}
+                        </div>
+                    </div>
+                    <div class="buttons is-centered">
+                        <input type="submit" value="Add" class="button is-success">
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

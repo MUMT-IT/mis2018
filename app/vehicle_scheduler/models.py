@@ -1,5 +1,12 @@
+# -*- coding:utf-8 -*-
+
+import pytz
+from wtforms.validators import InputRequired, DataRequired
+
 from app.main import db, ma
 from sqlalchemy.sql import func
+
+tz = pytz.timezone('Asia/Bangkok')
 
 
 class VehicleType(db.Model):
@@ -50,30 +57,57 @@ class VehicleBooking(db.Model):
                         db.ForeignKey('scheduler_vehicle_resources.id'),
                         nullable=False)
     vehicle = db.relationship('VehicleResource', backref=db.backref('bookings'))
-    title = db.Column('title', db.String(255), nullable=False)
-    init_milage = db.Column('init_milage', db.Integer, nullable=True)
-    end_milage = db.Column('end_milage', db.Integer, nullable=True)
-    toll_fee = db.Column('toll_fee', db.Float(), default=0.0)
-    distance = db.Column('distance', db.Integer, nullable=True)
-    init_location = db.Column('init_location', db.String(255), nullable=True)
-    destination = db.Column('destination', db.String(255), nullable=True)
-    start = db.Column('start', db.DateTime(timezone=True), nullable=False)
-    end = db.Column('end', db.DateTime(timezone=True), nullable=False)
+    title = db.Column('title', db.String(255), nullable=False, info={'label': u'กิจกรรม'})
+    init_milage = db.Column('init_milage', db.Integer, nullable=True, info={'label': u'เลขไมล์เริ่มต้น'})
+    end_milage = db.Column('end_milage', db.Integer, nullable=True, info={'label': u'เลขไมล์สิ้นสุด'})
+    toll_fee = db.Column('toll_fee', db.Float(), default=0.0, info={'label': u'ค่าทางด่วน'})
+    distance = db.Column('distance', db.Integer, nullable=True, info={'label': u'ระยะทาง'})
+    init_location = db.Column('init_location', db.String(255), nullable=True, info={'label': u'สถานที่เริ่มต้น'})
+    destination = db.Column('destination', db.String(255), nullable=True, info={'label': u'ที่หมาย'})
+    # use TextInput for compatibility with the daterangepicker plugin
+    start = db.Column('start', db.DateTime(timezone=True), nullable=False, info={'label': u'วันและเวลาเริ่มต้น'})
+    end = db.Column('end', db.DateTime(timezone=True), nullable=False, info={'label': u'วันและเวลาสิ้นสุด'})
     iocode_id = db.Column('iocode_id', db.ForeignKey('iocodes.id'))
     iocode = db.relationship('IOCode', backref=db.backref('vehicle_bookings'))
     org_id = db.Column('org_id', db.ForeignKey('orgs.id'))
     org = db.relationship('Org', backref=db.backref('vehicle_bookings'))
-    num_passengers = db.Column('num_passengers', db.Integer())
+    num_passengers = db.Column('num_passengers', db.Integer(), info={'min': 1,
+                                                                     'label': u'จำนวนผู้โดยสาร',
+                                                                     'validators': DataRequired()})
     approved = db.Column('approved', db.Boolean(), default=False)
     closed = db.Column('closed', db.Boolean(), default=False)
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     created_by = db.Column('created_by', db.ForeignKey('staff_account.id'))
-    updated_at = db.Column('updated_at', db.DateTime(timezone=True), server_default=None)
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True), server_onupdate=func.now())
     updated_by = db.Column('updated_by', db.ForeignKey('staff_account.id'))
-    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True), server_default=None)
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     cancelled_by = db.Column('cancelled_by', db.ForeignKey('staff_account.id'))
     approved_by = db.Column('approved_by', db.ForeignKey('staff_account.id'))
     approved_at = db.Column('approved_at', db.DateTime(timezone=True), server_default=None)
-    desc = db.Column('desc', db.Text())
+    desc = db.Column('desc', db.Text(), info={'label': u'รายละเอียด'})
     google_event_id = db.Column('google_event_id', db.String(64))
     google_calendar_id = db.Column('google_calendar_id', db.String(255))
+
+    def to_dict(self):
+        return {'id': self.id,
+                'license': self.vehicle.license,
+                'org': self.org.name,
+                'title': u'{}: {}'.format(self.vehicle.license, self.title),
+                'description': self.desc,
+                'start': self.start.astimezone(tz).isoformat(),
+                'end': self.end.astimezone(tz).isoformat(),
+                'resourceId': self.vehicle.id,
+                'approved': self.approved,
+                'borderColor': '',
+                'backgroundColor': '',
+                'textColor': '',
+                'closed': self.closed,
+                }
+
+    @property
+    def is_editable(self):
+        return self.cancelled_at is None and self.closed is False
+
+    @property
+    def is_closed(self):
+        return self.init_milage is not None and self.end_milage is not None

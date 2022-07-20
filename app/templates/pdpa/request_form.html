@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}MUMT PDPA Request Form{% endblock %}
+{% include "pdpa/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">
+                        {{ req_type.name }}
+                    </h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter has-text-centered">
+                    {% include 'messages.html' %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-one-third is-offset-4 box">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">{{ form.requester_name.label }}</label>
+                            <div class="control">
+                                {{ form.requester_name(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.requester_email.label }}</label>
+                            <div class="control">
+                                {{ form.requester_email(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.requester_phone.label }}</label>
+                            <div class="control">
+                                {{ form.requester_phone(class="input") }}
+                            </div>
+                        </div>
+                        <p>มีความประสงค์ใช้สิทธิในชุดข้อมูลต่อไปนี้</p>
+                        <div class="field">
+                            <label class="label">{{ form.datasets.label }}</label>
+                            <div class="control">
+                                {{ form.datasets() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.detail.label }}</label>
+                            <div class="control">
+                                {{ form.detail(class="textarea") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="buttons is-centered">
+                                <a class="button is-light" href="{{ url_for('pdpa.index') }}">Back</a>
+                                <div class="control">
+                                    <input type="submit" class="button is-success" />
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

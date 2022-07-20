@@ -465,14 +465,12 @@ def delete_session(session_id):
 
 
 @edu.route('/qa/hours/<int:instructor_id>')
-@login_required
 def show_hours_summary(instructor_id):
     instructor = EduQAInstructor.query.get(instructor_id)
     return render_template('eduqa/QA/hours_summary.html', instructor=instructor)
 
 
 @edu.route('/qa/revisions/<int:revision_id>/summary/hours')
-@login_required
 def show_hours_summary_all(revision_id):
     revision = EduQACurriculumnRevision.query.get(revision_id)
     data = []
