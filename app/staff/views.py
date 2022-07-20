@@ -1842,14 +1842,23 @@ def create_seminar():
             seminar.topic_type = form.get('topic_type')
             seminar.topic = form.get('topic')
             seminar.mission = form.get('mission')
+            seminar.organize_by = form.get('organize_by')
             seminar.location = form.get('location')
-            seminar.country = form.get('country')
             seminar.is_online = True if form.getlist("online") else False
             db.session.add(seminar)
             db.session.commit()
             flash(u'เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
             return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar.id))
-    return render_template('staff/seminar_create_event.html')
+    current_user_id = current_user.id
+    return render_template('staff/seminar_create_event.html', current_user_id=current_user_id)
+
+
+@staff.route('/seminar/add-attend/for-hr/<int:seminar_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_attend_info_for_hr(seminar_id):
+    seminar = StaffSeminar.query.get(seminar_id)
+    attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
+    return render_template('staff/seminar_attend_info_for_hr.html', seminar=seminar, attends=attends)
 
 
 @staff.route('/seminar/add-attend/<int:seminar_id>', methods=['GET', 'POST'])
@@ -1857,7 +1866,8 @@ def create_seminar():
 def seminar_attend_info(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
     attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
-    return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
+    current_user_id = current_user.id
+    return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends,current_user_id=current_user_id)
 
 
 @staff.route('/seminar/all-seminars', methods=['GET', 'POST'])
@@ -1872,13 +1882,14 @@ def seminar_records():
         record["name"] = seminar.topic
         record["start"] = seminar.start_datetime
         record["end"] = seminar.end_datetime
+        record["organize_by"] = seminar.organize_by
         seminar_list.append(record)
     return render_template('staff/seminar_records.html', seminar_list=seminar_list)
 
 
-@staff.route('/seminar/add-attend/add-attendee/<int:seminar_id>', methods=['GET', 'POST'])
+@staff.route('/seminar/create-record/<int:seminar_id>', methods=['GET', 'POST'])
 @login_required
-def seminar_add_attendee(seminar_id):
+def seminar_create_record(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
     if request.method == "POST":
         form = request.form
@@ -1887,27 +1898,69 @@ def seminar_add_attendee(seminar_id):
         timedelta = end_datetime - start_datetime
         if timedelta.days < 0 or timedelta.seconds == 0:
             flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
-            return render_template('staff/seminar_add_attendee.html', seminar=seminar)
-        # else:
-        #     attend = StaffSeminarAttend(
-        #         staff=[StaffAccount.query.get(int(staff_id)) for staff_id in form.getlist("participants")],
-        #         seminar_id=seminar_id,
-        #         role=form.get('role'),
-        #         registration_fee=form.get('registration_fee'),
-        #         budget_type=form.get('budget_type'),
-        #         budget=form.get('budget'),
-        #         start_datetime=tz.localize(start_datetime),
-        #         end_datetime=tz.localize(end_datetime),
-        #         attend_online=True if form.get("attend_online") else False
-        #     )
-        #     db.session.add(attend)
-        #     db.session.commit()
-        #     seminar = StaffSeminar.query.get(seminar_id)
-        #     attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
+            return render_template('staff/seminar_create_record.html', seminar=seminar)
+        else:
+            attend = StaffSeminarAttend(
+                seminar_id=seminar_id,
+                start_datetime=tz.localize(start_datetime),
+                end_datetime=tz.localize(end_datetime),
+                role=form.get('role'),
+                registration_fee=form.get('registration_fee'),
+                budget_type=form.get('budget_type'),
+                budget=form.get('budget'),
+                attend_online=True if form.get("attend_online") else False,
+                staff=[StaffAccount.query.get(current_user.id)]
+            )
+            db.session.add(attend)
+            db.session.commit()
+            seminar = StaffSeminar.query.get(seminar_id)
+            attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
+            flash(u'เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
+            return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
+    return render_template('staff/seminar_create_record.html', seminar=seminar)
+
+
+@staff.route('/seminar/add-attend/add-attendee/<int:seminar_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_add_attendee(seminar_id):
+    seminar = StaffSeminar.query.get(seminar_id)
+    staff_list = []
+    account_query = StaffAccount.query.all()
+    for account in account_query:
+        record = dict(staffid=account.id,
+                      fullname=account.personal_info.fullname,
+                      email=account.email)
+        organization = account.personal_info.org
+        record["org"] = organization.name if organization else ""
+        staff_list.append(record)
+    if request.method == "POST":
+        form = request.form
+        start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
+        end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
+        timedelta = end_datetime - start_datetime
+        if timedelta.days < 0 or timedelta.seconds == 0:
+            flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
+            return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
+        else:
+            attend = StaffSeminarAttend(
+                staff=[StaffAccount.query.get(int(staff_id)) for staff_id in form.getlist("participants")],
+                seminar_id=seminar_id,
+                role=form.get('role'),
+                registration_fee=form.get('registration_fee'),
+                budget_type=form.get('budget_type'),
+                budget=form.get('budget'),
+                start_datetime=tz.localize(start_datetime),
+                end_datetime=tz.localize(end_datetime),
+                attend_online=True if form.get("attend_online") else False
+            )
+            db.session.add(attend)
+            db.session.commit()
+            seminar = StaffSeminar.query.get(seminar_id)
+            attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
             flash(u'เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
             return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
 
-    return render_template('staff/seminar_add_attendee.html', seminar=seminar)
+    return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
 
 
 @staff.route('/seminar/seminar-attend/<int:attend_id>/participants/<int:participant_id>')
@@ -2013,6 +2066,7 @@ def seminar_attends_each_person(staff_id):
         records["name"] = seminars.topic
         records["startdate"] = seminars.start_datetime
         records["enddate"] = seminars.end_datetime
+        records["organize_by"] = seminars.organize_by
         seminar_records.append(records)
     return render_template('staff/seminar_records_each_person.html',year=fiscal_year,
                            seminar_list=seminar_list, years=years, attend_name=attend_name, seminar_records=seminar_records)
