@@ -19,7 +19,7 @@ class MultiCheckboxField(SelectMultipleField):
 class ModelForm(BaseModelForm):
     @classmethod
     def get_session(self):
-        return db.sessio
+        return db.session
 
 
 class OtPaymentAnnounceForm(ModelForm):
@@ -63,7 +63,7 @@ for hour in range(0,24):
 class OtRecordForm(ModelForm):
     class Meta:
         model = OtRecord
-    start_datetime = DateField(u'วันที่')
+    start_date = DateField(u'วันที่')
     start_time = SelectField(u'เวลาเริ่มต้น', choices=[("None","")]+[(t,t) for t in time_slots])
     end_time = SelectField(u'เวลาสิ้นสุด', choices=[("None","")]+[(t,t) for t in time_slots])
     compensation = QuerySelectField(get_label='role',

@@ -12,27 +12,32 @@
         {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">
-                <h1 class="title">เพิ่มข้อมูลการปฏิบัติงานนอกเวลา</h1>
+                <h1 class="title">แก้ไขข้อมูลการปฏิบัติงานนอกเวลา</h1>
             </div>
         </div>
         <div class="columns">
             <div class="column is-two-thirds is-offset-2">
                 <div class="box">
+                    <h1 class="subtitle has-text-centered">{{ record.staff.personal_info }}</h1>
+                    <h1 class="subtitle has-text-centered">{{ record.start_datetime.date() }} เวลา {{ record.start_datetime.time() }} - {{ record.end_datetime.time() }} น.</h1>
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
+                        <div class="box">
                         <div class="field is-horizontal">
                             <div class="field-label is-normal">
-                                <label class="label">เลือกตำแหน่ง</label>
+                                <label class="label">ตำแหน่ง</label>
                             </div>
                             <div class="field-body">
                                 <div class="field">
                                     <div class="select">
+<!--                                        <option value="{{ compId }}"-->
+<!--                                        {% if record.compensation_id==compId %}selected {% endif %}>-->
                                         {{ form.compensation(**{'v-model': 'compId'}) }}
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <table class="table is-fullwidth" v-if="compId !== null">
+                        <table class="table is-fullwidth">
                             <tr>
                                 <td>ตำแหน่ง: <% info.role %></td>
                                 <td><% info.announcement %></td>
@@ -45,77 +50,53 @@
                                 <td>ในวันราชการ: <% info.is_workday %></td>
                             </tr>
                         </table>
-                        <div class="notification is-warning" v-else>
-                            กรุณาเลือกตำแหน่ง
-                        </div>
-                        <div class="box" v-if="info.is_role_required">
+                            <div class="field" v-if="info.is_role_required">
                                 <div class="control">
-                                    <div>
-                                        <label class="subtitle">กรอกชื่อตำแหน่ง</label>
-                                        <input name="sub_role" class="input" placeholder="เช่น พนักงานขับรถ" required>
+                                    <label class="label">กรุณากรอกตำแหน่ง</label>
+                                    <input name="sub_role" value="{{ record.sub_role }}" class="input" placeholder="เช่น พนักงานขับรถ" required>
 
-                                    </div>
                                 </div>
+                            </div>
                         </div>
                         <div class="box">
                             <div class="field is-horizontal">
                                 <div class="field-label is-normal">
-                                    <label class="label">ระบุวันที่ทำ</label>
+                                    <label class="label">วันที่ทำ OT</label>
                                 </div>
-                                <div class="field-body has-text-centered">
+                                <div class="field-body">
                                     <div class="field">
                                             {{ form.start_date(class="input", readonly=True) }}
                                     </div>
                                 </div>
                             </div>
-                            <div class="field" v-if="info.start_time === ''">
-                                <div class="field-label is-normal has-text-centered">
+                            <div v-if="info.start_time === ''">
+                                <div class="field is-horizontal">
+                                    <div class="field-label is-normal">
                                     <label class="label">เวลาเริ่มต้น</label>
-                                </div>
-                                <div class="control has-text-centered">
-                                    <div class="field">
-                                        <div class="select">
-                                            {{ form.start_time() }}
-                                        </div>
                                     </div>
-                                    <div class="field-label is-normal has-text-centered">
-                                        <label class="label">เวลาสิ้นสุด</label>
-                                    </div>
-                                    <div class="field">
-                                        <div class="select">
-                                            {{ form.end_time() }}
+                                    <div class="field-body">
+                                        <div class="field">
+                                            <div class="control">
+                                                <div class="select">
+                                                    {{ form.start_time() }}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="box">
-                            <div class="control">
-                                <div class="columns">
-                                    <div class="column is-two-thirds is-offset-2">
-                                        <table class="table is-striped" id="staffTable">
-                                            <thead>
-                                            <th>ชื่อ-นามสกุล</th>
-                                            <th>สังกัด</th>
-                                            </thead>
-                                            <tbody>
-                                            {% for staff in document.staff %}
-                                            <tr>
-                                                <td>
-                                                    <b-field>
-                                                        <b-checkbox native-value="{{ staff.id }}" name="otworker">
-                                                            {{ staff.personal_info.fullname }}
-                                                        </b-checkbox>
-                                                    </b-field>
-                                                </td>
-                                                <td>
-                                                    {{ staff.personal_info.org.name }}
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                <div class="field is-horizontal">
+                                        <div class="field-label is-normal">
+                                            <label class="label">เวลาสิ้นสุด</label>
+                                        </div>
+                                    <div class="field-body">
+                                        <div class="field">
+                                            <div class="control">
+                                                <div class="select">
+                                                    {{ form.end_time() }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        </div>
                                 </div>
                             </div>
                         </div>
@@ -124,7 +105,7 @@
                                 <input type="submit" value="submit" class="button is-primary"/>
                             </div>
                             <div class="control">
-                                <a href="{{ url_for('ot.document_approvals_list_for_create_ot') }}" class="button is-danger">Cancel</a>
+                                <a href="{{ url_for('ot.summary_ot_each_document', document_id=record.document_id, month=record.start_datetime.date().month, year=record.start_datetime.date().year) }}" class="button is-danger">Cancel</a>
                             </div>
                         </div>
                     </form>
@@ -144,8 +125,7 @@
         data () {
             return {
                 info: {},
-                compId: null,
-                otworker: [],
+                compId: null
             }
         },
         watch: {
@@ -154,17 +134,19 @@
                     this.info = response.data.info
                 })
             }
+        },
+        mounted (){
+            this.compId = {{ record.compensation_id }}
         }
-
     })
 </script>
 <script>
-    $(document).ready(function(){
-        $('#staffTable').DataTable();
-    });
     $('input[name="start_date"]').daterangepicker({
         singleDatePicker: true,
         timePicker: false,
+        timepicker: {
+            incrementMinutes: 30
+        },
         autoUpdateInput: false,
         locale: {
             cancelLabel: 'Clear',

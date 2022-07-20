@@ -163,13 +163,12 @@ class OtRecord(db.Model):
         return rate
 
     def list_records(self):
-        return [str(self.id),
+        return [self.compensation.role,
                 self.staff.personal_info.fullname,
                 self.start_datetime,
                 self.end_datetime,
                 self.total_hours or self.total_minutes,
                 100,
-                "",
                 ]
 
 
