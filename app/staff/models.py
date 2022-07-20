@@ -151,7 +151,7 @@ class StaffPersonalInfo(db.Model):
 
     @property
     def is_eligible_for_leave(self, minmonth=6.0):
-        period = self.get_employ_period_of_current_fiscal_year()
+        period = self.get_employ_period()
         if period.years > 0:
             return True
         elif period.years == 0 and period.months > minmonth:
@@ -160,7 +160,7 @@ class StaffPersonalInfo(db.Model):
             return False
 
     def get_max_cum_quota_per_year(self, leave_quota):
-        period = self.get_employ_period_of_current_fiscal_year()
+        period = self.get_employ_period()
         if self.is_eligible_for_leave:
             if period.years < 10:
                 return leave_quota.cum_max_per_year1
@@ -208,7 +208,7 @@ class StaffPersonalInfo(db.Model):
             last_year_quota = last_year.last_year_quota
         else:
             last_year_quota = 0
-        delta = self.get_employ_period_of_current_fiscal_year()
+        delta = self.get_employ_period()
         leave_quota = StaffLeaveQuota.query.get(leave_quota_id)
         max_cum_quota = self.get_max_cum_quota_per_year(leave_quota)
         if delta.years > 0:
