@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% include "staff/nav.html" %}
+{% include "nav.html" %}
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
@@ -27,56 +27,26 @@
         </div>
         <div class="columns">
             <div class="column">
-                <table class="table is-bordered is-striped" id="leaveTable">
+                <table class="table is-bordered is-striped" id="seminarTable">
                     <thead>
                     <th>ชื่อ</th>
-                    {% for leave_type in leave_types %}
-                    <th>{{ leave_type }}</th>
-                    {% endfor %}
-                    <th>รวม (วัน)</th>
-                    <th>รออนุมัติ (วัน)</th>
-                    {% for leave_remain in leave_types_r %}
-                    <th>{{ leave_remain }}</th>
-                    {% endfor %}
+                    <th>จำนวนวัน</th>
                     </thead>
                     <tbody>
-                    {% for record in leaves_list %}
+                    {% for record in attendee_list %}
                     <tr>
                         <td>
-                            <a href="{{ url_for('staff.leave_request_by_person_detail',
-                                    requester_id=record['staffid']) }}">
+                            <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=record['staffid']) }}">
                                 {{ record["fullname"] }}
                             </a>
                         </td>
-                        {% for leave_type in leave_types %}
-                        <td>{{ record[leave_type] }}</td>
-                        {% endfor %}
                         <td>
                             {{ record["total"] }}
                         </td>
-                        <td>
-                            {{ record["pending"] }}
-                        </td>
-                        {% for leave_remain in leave_types_r %}
-                        <td>{{ record[leave_remain] }}</td>
-                        {% endfor %}
                     </tr>
                     {% endfor %}
                     </tbody>
                 </table>
-            </div>
-        </div>
-        <div class="has-text-right">
-            <span>หมายเหตุ: จำนวนรวมจะนับการขอลาที่รับการอนุมัติจากหัวหน้าแล้ว</span>
-        </div>
-        <div class="columns">
-            <div class="column">
-                <a href="{{ url_for('staff.for_hr') }}" class="button is-rounded is-info is-light">
-                    <span class="icon">
-                        <i class="fas fa-arrow-left"></i>
-                    </span>
-                    <span>กลับหน้าหลัก</span>
-                </a>
             </div>
         </div>
     </div>
@@ -85,8 +55,8 @@
 {% block scripts %}
 {{ super() }}
 <script>
-    $(document).ready(function () {
-        $('#leaveTable').DataTable();
+    $(document).ready(function(){
+        $('#seminarTable').DataTable();
     });
 </script>
 <script>
@@ -96,7 +66,7 @@
         data(){
             return {
                 departments : {{ departments|tojson|safe }},
-            department : {{ sel_dept|tojson|safe }},
+            department : {{ org_id|tojson|safe }},
             years : {{ years|tojson|safe }},
             year : {{ year|tojson|safe }}
         }
@@ -104,13 +74,13 @@
         methods: {
             proceed: function() {
                 if (this.year === null && this.department !== null){
-                    window.location.href = "/staff/leave/requests/result-by-person?deptid="+this.department;
+                    window.location.href = "/staff/seminar/attendees?deptid="+this.department;
                 }
                 if (this.year !== null && this.department !== null){
-                    window.location.href = "/staff/leave/requests/result-by-person?deptid="+this.department+"&fiscal_year="+this.year;
+                    window.location.href = "/staff/seminar/attendees?deptid="+this.department+"&fiscal_year="+this.year;
                 }
                 if (this.year != null && this.department == null){
-                    window.location.href = "/staff/leave/requests/result-by-person?"+"&fiscal_year="+this.year;
+                    window.location.href = "/staff/seminar/attendees?"+"&fiscal_year="+this.year;
                 }
             }
         }

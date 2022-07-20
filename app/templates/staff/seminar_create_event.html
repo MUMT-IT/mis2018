@@ -22,12 +22,12 @@
                         <div class="field">
                             <b-field label="ประเภทกิจกรรม">
                                 <b-select placeholder="เลือกประเภท" name="topic_type" required>
-                                    <option value="ประชุม">ประชุม</option>
                                     <option value="อบรม">อบรม</option>
                                     <option value="อบรมเชิงปฏิบัติการ">อบรมเชิงปฏิบัติการ</option>
+                                    <option value="ประชุม">ประชุม</option>
+                                    <option value="ประชุมวิชาการ">ประชุมวิชาการ</option>
                                     <option value="สัมมนา">สัมมนา</option>
                                     <option value="ราชการ">ราชการ</option>
-                                    <option value="อื่นๆ">อื่นๆ</option>
                                 </b-select>
                             </b-field>
                             <b-field label="หัวข้อ"
@@ -65,18 +65,29 @@
                                 </b-datetimepicker>
                             </b-field>
                             <input type="hidden" name="end_datetime" v-model="formattedEndDateTime">
+                            <b-field label="หน่วยงานที่จัด"
+                                     type="is-danger">
+                                <b-input type="text"
+                                         name="organize_by"
+                                         icon-pack="fas"
+                                         icon="tag"
+                                         placeholder="ชื่อหน่วยงาน" required>
+                                </b-input>
+                            </b-field>
                             <b-field label="ด้าน">
                                 <b-select placeholder="เลือกด้าน" name="mission" required>
                                     <option value="การศึกษา">การศึกษา</option>
-                                    <option value="วิจัย">วิจัย</option>
-                                    <option value="บริการวิชาการ/บริการสุขภาพ">บริการวิชาการ/บริการสุขภาพ</option>
-                                    <option value="บริหารจัดการ">บริหารจัดการ</option>
-                                    <option value="ทำนุบำรุงศิลปวัฒนธรรม">ทำนุบำรุงศิลปวัฒนธรรม</option>
+                                    <option value="การวิจัย">การวิจัย</option>
+                                    <option value="การบริการวิชาการ">การบริการวิชาการ</option>
+                                    <option value="การบริการสุขภาพ">การบริการสุขภาพ</option>
+                                    <option value="การบริหารจัดการ">การบริหารจัดการ</option>
+                                    <option value="การประกันสุขภาพ">การประกันสุขภาพ</option>
+                                    <option value="แลกเปลี่ยนเรียนรู้">แลกเปลี่ยนเรียนรู้</option>
+                                    <option value="ความรู้ทางวิชาการ">ความรู้ทางวิชาการ</option>
                                     <option value="พัฒนาคุณภาพ">พัฒนาคุณภาพ</option>
-                                    <option value="วิชาการ">วิชาการ</option>
                                     <option value="วิชาชีพเทคนิคการแพทย์">วิชาชีพเทคนิคการแพทย์</option>
                                     <option value="วิชาชีพรังสีเทคนิค">วิชาชีพรังสีเทคนิค</option>
-                                    <option value="อื่นๆ">อื่นๆ</option>
+                                    <option value="ทำนุบำรุงศิลปวัฒนธรรม">ทำนุบำรุงศิลปวัฒนธรรม</option>
                                 </b-select>
                             </b-field>
                             <b-field label="สถานที่">
@@ -85,13 +96,6 @@
                                          icon-pack="far"
                                          icon="map"
                                          required>
-                                </b-input>
-                            </b-field>
-                            <b-field label="ประเทศ (ใส่ข้อมูลหากสถานที่ตั้งอยู่ต่างประเทศ)">
-                                <b-input type="text"
-                                         name="country"
-                                         icon-pack="far"
-                                         icon="flag">
                                 </b-input>
                             </b-field>
                             <div class="field">
@@ -106,7 +110,7 @@
                                 <input type="submit" value="submit" class="button is-primary"/>
                             </div>
                             <div class="control">
-                                <a href="{{ url_for('staff.seminar') }}" class="button is-danger">Cancel</a>
+                                <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user_id) }}" class="button is-danger">Cancel</a>
                             </div>
                         </div>
                     </form>

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">แก้ไขตารางเข้าปฏิบัติงาน {{ schedule.staff.personal_info }}</h1>
+                <h1 class="subtitle">จากวันที่ {{ schedule.start_datetime|localdatetime }}-{{ schedule.end_datetime|localdatetime }}</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <form method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                            <b-field label="เวลาเริ่มต้น">
+                                <b-datetimepicker
+                                        required
+                                        v-model="start_dt"
+                                        icon-pack="fa"
+                                        :timepicker="timepicker"
+                                        :mobile-native="false"
+                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                        icon="calendar-alt">
+                                </b-datetimepicker>
+                            </b-field>
+                            <input type="hidden" name="start_dt" :value="formattedStartDateTime">
+                            <b-field label="เวลาสิ้นสุด">
+                                <b-datetimepicker
+                                        required
+                                        v-model="end_dt"
+                                        icon-pack="fa"
+                                        :timepicker="timepicker"
+                                        :mobile-native="false"
+                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                        icon="calendar-alt">
+                                </b-datetimepicker>
+                            </b-field>
+                            <input type="hidden" name="end_dt" :value="formattedEndDateTime">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <input type="submit" value="submit" class="button is-primary"/>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('staff.shift_schedule') }}" class="button is-danger">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    var vm = new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                start_dt: null,
+                end_dt: null,
+                data: [],
+                worker: [],
+                timepicker: {
+                    incrementMinutes: 30
+                }
+            }
+        },
+        mounted() {
+            var self = this;
+            let start_dt = {{ start_dt|tojsdatetime }};
+            start_dt.forEach((d) => {
+                self.start_dt.push(new Date(d));
+            });
+            let end_dt = {{ end_dt|tojsdatetime }};
+            end_dt.forEach((d) => {
+                self.end_dt.push(new Date(d));
+            });
+        },
+        computed: {
+            formattedStartDateTime: function(){
+                return new moment(this.start_dt).format('DD/MM/YYYY hh:mm')
+            },
+            formattedEndDateTime: function(){
+                return new moment(this.end_dt).format('DD/MM/YYYY hh:mm')
+            }
+        }
+    });
+</script>
+{% endblock %}
+
+

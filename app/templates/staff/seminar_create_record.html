@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
+
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">เพิ่มเป็นผู้เข้าร่วมประชุม อบรม สัมมนา</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-3 has-text-centered">
+                <p class="title is-size-3"><strong>{{ seminar.topic }}</strong></p>
+                <p class="subtitle is-size-4">วันที่ {{ seminar.start_datetime|localdatetime }} -
+                    {{ seminar.end_datetime|localdatetime }}</p>
+            </div>
+        </div>
+        <hr>
+        {% include "messages.html" %}
+        <form method="post">
+                <div class="columns">
+                    <div class="column is-half is-offset-3">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        <div class="field">
+                            <div class="field">
+                                <label class="label">สถานะการถูกเชิญ</label>
+                            </div>
+                            <div class="block">
+                                <b-radio native-value="wanttogo" v-model="status" name="status">ไม่มีหนังสือเชิญ</b-radio>
+                                <b-radio native-value="invited" v-model="status" name="status">มีหนังสือเชิญ</b-radio>
+                            </div>
+                        </div>
+                        <b-field label="เลขที่หนังสือ" v-if="status === 'invited'">
+                            <b-input type="text"
+                                     name="budget_type"
+                                     icon-pack="far"
+                                     icon="comment">
+                            </b-input>
+                        </b-field>
+                        <div class="field">
+                            <b-field label="บทบาทในการประชุม/อบรม">
+                                <b-select placeholder="เลือกประเภท" name="role" required>
+                                    <option value="อาจารย์พิเศษ">อาจารย์พิเศษ</option>
+                                    <option value="ผู้เข้าร่วม">ผู้เข้าร่วม</option>
+                                    <option value="ที่ปรึกษา">ที่ปรึกษา</option>
+                                    <option value="วิทยากร">วิทยากร</option>
+                                    <option value="กรรมการ">กรรมการ</option>
+                                    <option value="นิเทศน์งาน">นิเทศน์งาน</option>
+                                </b-select>
+                            </b-field>
+                            <b-field label="รายละเอียดการเข้าร่วม ดำเนินการภายใต้">
+                                <b-select placeholder="เลือกประเภท" name="objective" required>
+                                    <option value="แผนพัฒนาบุคลากรรายบุคคล(IDP)">แผนพัฒนาบุคลากรรายบุคคล(IDP)</option>
+                                    <option value="โครงการ MU-Talents">โครงการ MU-Talents</option>
+                                    <option value="ยุทธศาสตร์ภาควิชา/คณะฯ">ยุทธศาสตร์ภาควิชา/คณะฯ</option>
+                                    <option value="พัฒนาศักยภาพตามความสนใจ">พัฒนาศักยภาพตามความสนใจ</option>
+                                </b-select>
+                            </b-field>
+                            <div class="field">
+                                <b-field>
+                                    <b-checkbox value="yes" name="attend_online">
+                                        เข้าร่วมผ่านช่องทาง online
+                                    </b-checkbox>
+                                </b-field>
+                            </div>
+                            <b-field label="เวลาเริ่มต้น">
+                                <b-datetimepicker
+                                        required
+                                        v-model="startDateTime"
+                                        range
+                                        icon-pack="fa"
+                                        :timepicker="timepicker"
+                                        :mobile-native="false"
+                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                        icon="calendar-alt">
+                                </b-datetimepicker>
+                            </b-field>
+                            <input type="hidden" name="start_dt" v-model="formattedStartDateTime">
+                            <b-field label="เวลาสิ้นสุด">
+                                <b-datetimepicker
+                                        required
+                                        v-model="endDateTime"
+                                        range
+                                        icon-pack="fa"
+                                        :timepicker="timepicker"
+                                        :mobile-native="false"
+                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                        icon="calendar-alt">
+                                </b-datetimepicker>
+                            </b-field>
+                            <input type="hidden" name="end_dt" v-model="formattedEndDateTime">
+                            <div class="field">
+                                <div class="field">
+                                    <label class="label">ค่าใช้จ่าย</label>
+                                </div>
+                                <div class="block">
+                                    <b-radio native-value="unpaid" v-model="payment" name="payment">ไม่มีค่าใช้จ่าย</b-radio>
+                                    <b-radio native-value="paid" v-model="payment" name="payment">มีค่าใช้จ่าย</b-radio>
+                                </div>
+                            </div>
+                            <b-field label="ชื่องบประมาณ/ทุน" v-if="payment === 'paid'">
+                                <b-input type="text"
+                                         name="budget_type"
+                                         icon-pack="far"
+                                         icon="comment">
+                                </b-input>
+                            </b-field>
+                            <b-field label="ค่าลงทะเบียน (บาท)" v-if="payment === 'paid'">
+                                <b-input type="text"
+                                         name="registration_fee"
+                                         icon-pack="far"
+                                         icon="registered"
+                                         required>
+                                </b-input>
+                            </b-field>
+                            <b-field label="ค่าที่พัก (บาท)" v-if="payment === 'paid'">
+                                <b-input type="text"
+                                         name="accommodation_cost"
+                                         icon-pack="far"
+                                         icon="travel">
+                                </b-input>
+                            </b-field>
+                            <b-field label="ค่าธรรมเนียมการโอนเงิน (บาท)" v-if="payment === 'paid'">
+                                <b-input type="text"
+                                         name="transaction_fee"
+                                         icon-pack="far"
+                                         icon="retweet">
+                                </b-input>
+                            </b-field>
+                            <b-field label="รวมทั้งสิ้น (บาท)" v-if="payment === 'paid'">
+                                <b-input type="text"
+                                         name="budget"
+                                         required>
+                                </b-input>
+                            </b-field>
+                        </div>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column is-half is-offset-one-quarter">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('staff.seminar_attend_info', seminar_id=seminar.id) }}"
+                                   class="button is-light">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="Submit" class="button is-primary"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    let start_datetime = new Date({{ seminar.start_datetime|tojsdatetime(single=True) }});
+    let end_datetime = new Date({{ seminar.end_datetime|tojsdatetime(single=True) }});
+    let vm = new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                startDateTime: new Date({{ seminar.start_datetime.isoformat()|tojson|safe }}),
+                endDateTime: new Date({{ seminar.end_datetime.isoformat()|tojson|safe }}),
+                status: "wanttogo",
+                payment: "unpaid",
+                objective: "others",
+                data: [],
+                participants: [],
+                timepicker: {
+                incrementMinutes: 30
+            }
+        }
+        },
+        computed: {
+            formattedStartDateTime: function(){
+                if (this.startDateTime){
+                    return new moment(this.startDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
+                }
+                return null
+            },
+            formattedEndDateTime: function(){
+                if (this.endDateTime){
+                    return new moment(this.endDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
+                }
+                return null
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -8,16 +8,105 @@
 <section class="section">
     <div class="container">
         {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">รายการประชุม อบรม สัมมนาทั้งหมด</h1>
+            </div>
+            <div class="column has-text-right">
+                <span>หากไม่พบชื่อกิจกรรมกรุณา</span>
+                <a href="{{ url_for('staff.create_seminar') }}" class="button is-rounded is-info">
+                    <span class="icon">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span>สร้างอบรมใหม่</span>
+                </a>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="seminarTable">
+                    <thead>
+                    <th>ประเภทกิจกรรม</th>
+                    <th>ชื่อกิจกรรม</th>
+                    <th>วันที่เริ่มต้น</th>
+                    <th>วันที่สิ้นสุด</th>
+                    <th>หน่วยงานที่จัด</th>
+                    </thead>
+                    <tbody>
+                    {% for records in seminar_records %}
+                    <tr>
+                        <td>
+                           {{ records["type"] }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('staff.seminar_attend_info', seminar_id=records['id']) }}">
+                                {{ records["name"] }}
+                                <span class="icon">
+                                    <i class="fas fa-user-plus"></i>
+                                </span>
+                            </a>
+                        </td>
+                        <td>
+                            {{ records["startdate"]|localdatetime }}
+                        </td>
+                        <td>
+                            {{ records["enddate"]|localdatetime }}
+                        </td>
+                        <td>
+                            {{ records["organize_by"] }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="notification is-info is-light">
+                    <span>
+                        ขั้นตอนการขอไปอบรม<br>
+                    </span>
+                    <span>
+                        1. ค้นหารายชื่ออบรมที่ต้องการ(หากไม่พบให้คลิ๊ก
+                        <a href="" class="button is-rounded is-info">
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>สร้างอบรมใหม่</span>
+                        </a>)
+                        <br>
+                    </span>
+                    <span>
+                        2.คลิ๊กที่ชื่อกิจกรรมที่ต้องการ <span class="icon"><i class="fas fa-user-plus"></i></span><br><br>
+                    </span>
+                    <span>
+                        3.คลิ๊ก
+                    <a href=""
+                       class="button is-light is-success">
+                                <span class="icon">
+                                    <i class="fas fa-user-plus"></i>
+                                </span>
+                        <span>เข้าร่วมกิจกรรมนี้</span>
+                    </a>
+                    </span>
+                    <br><br>
+                    <span>
+                        4.พิมพ์แบบฟอร์มเพื่อดำเนินการขออนุญาตต่อไป<br>
+                    </span>
+                </div>
+            </div>
+        </div>
         {% if attend_name.staff %}
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">ข้อมูลประชุม อบรม สัมมนาของ {{ attend_name.staff[0].personal_info }}</h1>
+                <h1 class="title">ข้อมูลประชุม อบรม สัมมนาของ {{ attend_name.staff[0].personal_info }} ที่ผ่านมา</h1>
             </div>
         </div>
         {% endif %}
         <div class="columns">
             <div class="column">
-                <table class="table is-striped" id="seminarTable">
+                <table class="table is-striped" id="seminarAttendTable">
                     <thead>
                     <th>ประเภทกิจกรรม</th>
                     <th>ชื่อกิจกรรม</th>
@@ -77,6 +166,7 @@
 <script>
     $(document).ready(function(){
         $('#seminarTable').DataTable();
+        $('#seminarAttendTable').DataTable();
     });
 </script>
 {% endblock %}
