@@ -8,9 +8,9 @@
   <h3 id="result">Choose the service and repair button that's best for you. Version 4.2</h3>
   <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
   <script>
-	liff.init({ liffId: '1656852987-V6vzzwPx' }).then(async ()=>{
+	liff.init({ liffId: '1657287176-EydPqwNm' }).then(async ()=>{
 		const result = await liff.scanCodeV2();
-		window.location = 'https://mumtmis.herokuapp.com/procurement/qr_scanner';
+		window.location = 'https://mumtmis.herokuapp.com/procurement/qr_scanner/'+result;
 	})
   </script>
 </body>

@@ -5,17 +5,14 @@
     <div class="container">
         <nav class="breadcrumb" aria-label="breadcrumbs">
             <ul>
-                <li><a href="{{ url_for('procurement.index') }}">Main</a></li>
+                <li><a href="{{ url_for('procurement.landing') }}">Main</a></li>
                 <li class="is-active"><a href="#" aria-current="page">Information</a></li>
             </ul>
         </nav>
         {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">
-                <h1 class="title">Procurement Info
-                <a class="button is-primary" href="{{ url_for('procurement.add_record', item_id=item.id) }}">
-                Update Info
-                </a></h1>
+                <h1 class="title">รายละเอียดครุภัณฑ์</h1>
             </div>
         </div>
         <div class="columns">
@@ -23,8 +20,9 @@
                 <div class="card">
                     <div class="card-header">
                         <h1 class="card-header-title">
-                            <td><img src="{{ qrcode(procurement_no) }}"></td>
-                            <table class="table">
+                            <img style='display:block; width:450px;height:350px;' id='base64image'
+                                    src='data:image/png;base64, {{ item.image }}' />
+                            <table class="table ">
                             {% set last_record = item.records.order_by(model.updated_at.desc()).first() %}
                              <tr>
                                 <td><label class="label">Update ล่าสุด:</label></td>
@@ -37,6 +35,15 @@
                                     <td><label class="label">Status ล่าสุด:</label></td>
                                     <td>{{ last_record.status }}</td>
                                 </tr>
+                                <tr>
+                                    <td><img src="{{ qrcode(procurement_no, box_size=4) }}"></td>
+                                </tr>
+                                <tr>
+                                     <td>
+                                         <a class="button is-primary" href="{{ url_for('procurement.add_record',
+                                                                            item_id=item.id) }}">อัพเดตข้อมูล</a>
+                                     </td>
+                                </tr>
                             </tr>
                             </table>
                         </h1>
@@ -48,99 +55,92 @@
                                 <col span="1" style="width: 75%;">
                             </colgroup>
                             <tr>
-                                <td><label class="label">Category</label></td>
+                                <td><label class="label">หมวดหมู่ / ประเภท </label></td>
                                 <td>{{ item.category }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Name</label></td>
+                                <td><label class="label">ชื่อครุภัณฑ์</label></td>
                                 <td>{{ item.name }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Procurement No.</label></td>
+                                <td><label class="label">เลขครุภัณฑ์</label></td>
                                 <td>{{ item.procurement_no }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Registration No.</label></td>
-                                <td>{{ item.registration_no }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">University No.</label></td>
-                                <td>{{ item.university_no }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Document No.</label></td>
+                                <td><label class="label">เอกสารสั่งซื้อเลขที่</label></td>
                                 <td>{{ item.document_no}}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">ERP Code</label></td>
+                                <td><label class="label">รหัส ERP</label></td>
                                 <td>{{ item.erp_code }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Serial No.</label></td>
+                                <td><label class="label">Serial Number</label></td>
                                 <td>{{ item.serial_no }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Purchasing Type</label></td>
+                                <td><label class="label">จัดซื้อด้วยเงิน</label></td>
                                 <td>{{ item.purchasing_type }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Bought by</label></td>
+                                <td><label class="label">วิธีการจัดซื้อ</label></td>
                                 <td>{{ item.bought_by }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Budget Year</label></td>
+                                <td><label class="label">ปีงบประมาณ</label></td>
                                 <td>{{ item.budget_year }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Price</label></td>
+                                <td><label class="label">ราคา</label></td>
                                 <td>{{ item.price }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Quantity</label></td>
-                                <td>{{ item.quantity }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Received Date</label></td>
+                                <td><label class="label">วันที่ได้รับ</label></td>
                                 <td>{{ item.received_date }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Available</label></td>
+                                <td><label class="label">ความสามารถการใช้งาน</label></td>
                                 <td>{{ item.available }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Guarantee</label></td>
+                                <td><label class="label">ประกัน</label></td>
                                 <td>{{ item.guarantee }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Model</label></td>
+                                <td><label class="label">วันที่เริ่มประกัน</label></td>
+                                <td>{{ item.start_guarantee_date }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">วันที่สิ้นสุดประกัน</label></td>
+                                <td>{{ item.end_guarantee_date }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">รุ่น</label></td>
                                 <td>{{ item.model }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Maker</label></td>
+                                <td><label class="label">ยี่ห้อ</label></td>
                                 <td>{{ item.maker }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Size</label></td>
+                                <td><label class="label">ขนาด</label></td>
                                 <td>{{ item.size }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Desc</label></td>
-                                <td>{{ item.desc }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">comment</label></td>
+                                <td><label class="label">หมายเหตุ</label></td>
                                 <td>{{ item.comment }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Responsible Person</label></td>
+                                <td><label class="label">ผู้ดูแลครุภัณฑ์</label></td>
                                 <td>{{ item.responsible_person }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">Organiser</label></td>
-                                <td>{{ item.organiser }}</td>
+                                <td><label class="label">ภาควิชา/หน่วยงาน</label></td>
+                                <td>{{ item.org }}</td>
                             </tr>
                         </table>
-                        <a href="{{ url_for('procurement.view_procurement') }}" class="button is-light">Back</a>
+                        <a href="{{ url_for('procurement.view_procurement') }}" class="button is-light">กลับ</a>
+                        <a href="{{ url_for('procurement.edit_procurement', procurement_id=item.id) }}" class="button is-danger">แก้ไข</a>
                     </div>
                 </div>
             </div>
