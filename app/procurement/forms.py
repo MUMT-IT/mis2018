@@ -51,6 +51,11 @@ class ProcurementCategoryForm(ModelForm):
         model = ProcurementCategory
 
 
+class ProcurementStatusForm(ModelForm):
+    class Meta:
+        model = ProcurementStatus
+
+
 class ProcurementRequireForm(ModelForm):
     class Meta:
         model = ProcurementRequire
