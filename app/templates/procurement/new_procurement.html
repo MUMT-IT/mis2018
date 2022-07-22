@@ -20,7 +20,11 @@
                     {{ form.hidden_tag() }}
                     <div class="field-body">
                         <div class="field">
-                            <label class="label">{{ form.category.label }}</label>
+                            <label class="label">{{ form.category.label }}
+                                 <a href="{{ url_for('procurement.add_category_ref') }}">
+                                     <i class="far fa-plus-square"></i>
+                                 </a>
+                            </label>
                             <div class="select is-fullwidth is-danger">
                                 {{ form.category() }}
                             </div>
@@ -182,7 +186,11 @@
                                 </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.status.label }}</label>
+                            <label class="label">{{ form.status.label }}
+                                <a href="{{ url_for('procurement.add_status_ref') }}">
+                                     <i class="far fa-plus-square"></i>
+                                 </a>
+                            </label>
                             <div class="select is-fullwidth">
                                     {{ form.status() }}
                                 </div>
