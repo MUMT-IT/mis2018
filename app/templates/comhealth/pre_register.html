@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block page_content %}
+{% include "comhealth/nav.html" %}
+    <section class="hero is-light is-small">
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="60">
+                <h3 class="subtitle">วันที่ {{ service.date }} สถานที่ {{ service.location }}</h3>
+            </div>
+        </div>
+    </section>
+    <section class="section" id="app">
+        <div class="container box">
+            <div class="columns">
+                <div class="column">
+                    <nav class="breadcrumb has-bullet-separator is-centered" aria-label="breadcrumbs">
+                        <ul>
+                            <li><a href="{{ url_for('comhealth.index') }}">Services</a></li>
+                            <li class="is-active"><a aria-current="page">รายชื่อผู้รับบริการ</a></li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-two-thirds is-offset-2">
+                    <input type="text" v-model="query" class="input is-large is-rounded"
+                           placeholder="ค้นหาชื่อผู้รับบริการ">
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <b-table :data="fltRecords"
+                             :paginated="true"
+                             :per-page="10"
+                             :narrowed="true"
+                             :striped="true"
+                             :loading="isLoading"
+                             default-sort="customer.firstname">
+                        <template slot-scope="props">
+                            <b-table-column field="customer.firstname" label="First Name" sortable>
+                                <span class="is-size-4">
+                                <% props.row.customer.firstname %>
+                                </span>
+                            </b-table-column>
+                            <b-table-column field="customer.lastname" label="Last Name" sortable>
+                                <span class="is-size-4">
+                                <% props.row.customer.lastname %>
+                                </span>
+                            </b-table-column>
+                            <b-table-column field="" label="Check In" sortable>
+                                <a class="button is-light is-link"
+                                   v-bind:href="'/comhealth/services/' + {{ service.id|tojson|safe }} + '/pre-register/'+ props.row.id +'/login'">
+                                    <span>ลงทะเบียน</span>
+                                </a>
+                            </b-table-column>
+                        </template>
+                        <template slot="empty">
+                            <section class="section">
+                                <div class="content has-text-grey has-text-centered">
+                                    <p>
+                                        <b-icon
+                                            pack="fas"
+                                            icon="sync-alt"
+                                            custom-class="fa-spin"
+                                            size="is-large">
+                                        </b-icon>
+                                    </p>
+                                    <p>Nothing here.</p>
+                                </div>
+                            </section>
+                        </template>
+                    </b-table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#app",
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    records: [],
+                    fltRecords: [],
+                    query: '',
+                    isLoading: false,
+                    requestUrl: {{ request.url|tojson|safe }},
+                }
+            },
+            methods: {
+                loadAsyncData: function() {
+                    var self = this;
+                    self.isLoading = true;
+                    axios.get('{{ url_for('comhealth.search_service_customer', service_id=service.id) }}')
+                        .then(function(response) {
+                        response.data.forEach((record) => {
+                            self.records.push(record);
+                            self.fltRecords.push(record);
+                        });
+                        self.isLoading = false;
+                    });
+                }
+            },
+            mounted() {
+                this.loadAsyncData();
+            },
+            watch: {
+                query: function () {
+                    var self = this;
+                    if (self.query !=="") {
+                        self.fltRecords = this.records.filter(function(item) {
+                            var match = false;
+                            if (item.customer.firsname!==null) {
+                                match = item.customer.firstname
+                                    .toString()
+                                    .toLowerCase()
+                                    .indexOf(self.query.toLowerCase()) >= 0;
+                            }
+                            if (!match) {
+                                if(item.customer.lastname!==null) {
+                                    match = item.customer.lastname
+                                        .toString()
+                                        .toLowerCase()
+                                        .indexOf(self.query.toLowerCase()) >= 0;
+                                }
+                                if (!match) {
+                                    if (item.labno !== null) {
+                                        match = item.labno
+                                            .toString()
+                                            .toLowerCase()
+                                            .indexOf(self.query.toLowerCase()) >= 0;
+                                        return match;
+                                    }
+                                    return match;
+                                }
+                                return match;
+                            }
+                            return match;
+                        });
+                    } else {
+                        self.fltRecords = self.records;
+                    }
+                }
+            }
+        });
+    </script>
+{% endblock %}
