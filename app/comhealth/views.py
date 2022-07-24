@@ -242,11 +242,21 @@ def pre_register_login(service_id, record_id):
     if request.method == 'POST':
         dob = request.form.get('dob')
         if record.customer.check_login_dob(dob):
-            return 'You are authorized.'
+            return redirect(url_for('comhealth.pre_register_tests',
+                                    record_id=record_id, service_id=service_id))
         else:
             flash(u'วันเดือนปีเกิดไม่ถูกต้องหรือไม่มีข้อมูล', 'danger')
     return render_template('comhealth/pre_register_login.html',
                            service=service, record=record)
+
+
+
+@comhealth.route('/services/<int:service_id>/pre-register/<int:record_id>/tests',
+                 methods=['GET', 'POST'])
+def pre_register_tests(service_id, record_id):
+    service = ComHealthService.query.get(service_id)
+    record = ComHealthRecord.query.get(record_id)
+    return render_template('comhealth/pre_register_edit_record.html', service=service, record=record)
 
 
 @comhealth.route('/checkin/<int:record_id>', methods=['GET', 'POST'])

@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+{% block page_content %}
+    {% include "comhealth/nav.html" %}
+    <section class="section" id="app">
+        <div class="container">
+            <nav class="breadcrumb is-light is-centered" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="/comhealth">Home</a></li>
+                    <li><a href="{{ url_for('comhealth.display_service_customers', service_id=record.service.id) }}">Customers</a></li>
+                    <li><a href="#">Check In</a></li>
+                </ul>
+            </nav>
+            {% include "messages.html" %}
+            <h1 class="title has-text-centered">Customer Pre Registration</h1>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="record_id" value="{{ record.id }}">
+                <div class="columns">
+                    <div class="column">
+                        <div class="card">
+                            <header class="card-header">
+                                <p class="card-header-title">Personal Information</p>
+                            </header>
+                            <div class="card-content">
+                                <div class="columns">
+                                    <div class="column">
+                                        <div>
+                                            <p class="label"><strong>ชื่อ นามสกุล / Name</strong></p>
+                                            <p class="is-size-4">
+                                                <% fullname %>
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!--
+                {% for profile in record.service.profiles %}
+                    <div class="columns">
+                        <div class="column">
+                            <div class="card">
+                                <div class="card-header">
+                                    <p class="card-header-title">
+                                        <span>Profile</span>&nbsp;<span>{{ profile.name }}</span></p>
+                                </div>
+                                <div class="card-content">
+                                    <p class="subtitle is-size-6">{{ profile.desc }}</p>
+                                    <div class="buttons has-addons">
+                                        <a class="button is-link is-small is-outlined check_{{profile.id}}"><strong>Check All</strong></a>
+                                        <a class="button is-link is-small is-outlined uncheck_{{profile.id}}"><strong>Uncheck All</strong></a>
+                                    </div>
+                                    <table>
+                                        <tbody>
+                                        {% for item in profile.test_items|sorttest %}
+                                        <tr>
+                                            <td>
+                                                <label class="checkbox">
+                                                    <input class="profile_{{profile.id}}_select"
+                                                           id="profile_{{ item.id }}_select"
+                                                           type="checkbox" name="profile_{{ item.id }}_select">
+                                                    <strong>{{ item.test.name }}</strong> {{ item.test.desc }}
+                                                </label>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+                -->
+                <div class="columns">
+                    <div class="column">
+                        <h1 class="title is-size-4">รายการตรวจพิเศษ (Special Tests)</h1>
+                {% for group in record.service.groups %}
+                <b-collapse class="card" animation="slide" :open="true" aria-id="contentIdForA11y3">
+                    <div
+                            slot="trigger"
+                            slot-scope="props"
+                            class="card-header"
+                            role="button"
+                            aria-controls="contentIdForA11y3">
+                        <p class="card-header-title">
+                            {{ group.name }}
+                        </p>
+                        <a class="card-header-icon">
+                            <b-icon
+                                    :icon="props.open ? 'menu-down' : 'menu-up'">
+                            </b-icon>
+                        </a>
+                    </div>
+                    <div class="card-content">
+                        <div class="content">
+                            <p class="subtitle is-size-6">{{ group.desc }}</p>
+                            <table>
+                                {% for item in group.test_items|sorttest %}
+                                <tr>
+                                    <td class="field">
+                                        <input type="checkbox" name="test_{{ item.id }}"
+                                               id="test_{{ item.id }}_chk"
+                                               class="is-checkradio is-large is-info is-block"
+                                        >
+                                        <label for="test_{{ item.id }}_chk">
+                                            <strong>{{ item.test.name }}</strong> {{ item.test.desc }}
+                                        </label>
+                                    </td>
+                                    <td class="is-size-4">
+                                        {{ item.price }}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                    </div>
+                </b-collapse>
+                {% endfor %}
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <div class="has-text-centered">
+                            <button class="button is-medium is-link" type="submit">
+                                <span>ต่อไป</span>
+                                <span class="icon">
+                                    <i class="fas fa-chevron-right"></i>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript">
+        let vm = new Vue({
+            el: "#app",
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    firstname: {{ record.customer.firstname|tojson|safe }},
+                    lastname: {{ record.customer.lastname|tojson|safe }},
+                    title: {{ record.customer.title|tojson|safe }},
+                }
+            },
+            computed: {
+                fullname () {
+                    return this.title + " " + this.firstname + " " + this.lastname
+                },
+            }
+        });
+    </script>
+  <script type="text/javascript">
+    $(document).ready(function() {
+      {% for profile in record.service.profiles %}
+      $(".check_{{profile.id}}").on('click', function() {
+          $(".check_{{profile.id}}").addClass('is-selected');
+          $(".uncheck_{{profile.id}}").removeClass('is-selected');
+        $(".profile_{{profile.id}}_select").each(function(){
+            this.checked = true;
+        });
+      });
+      $(".uncheck_{{profile.id}}").on('click', function() {
+          $(".uncheck_{{profile.id}}").addClass('is-selected');
+          $(".check_{{profile.id}}").removeClass('is-selected');
+        $(".profile_{{profile.id}}_select").each(function(){
+            this.checked = false;
+        });
+      });
+      {% endfor %}
+    });
+  </script>
+{% endblock %}
