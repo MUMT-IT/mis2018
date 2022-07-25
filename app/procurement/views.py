@@ -165,9 +165,24 @@ def add_category_ref():
             form.populate_obj(new_category)
             db.session.add(new_category)
             db.session.commit()
-            flash('New record has been added.', 'success')
-            return redirect(url_for('procurement.index'))
+            flash('New category has been added.', 'success')
+            return redirect(url_for('procurement.add_procurement'))
     return render_template('procurement/category_ref.html', form=form, category=category)
+
+
+@procurement.route('/status/add', methods=['GET', 'POST'])
+def add_status_ref():
+    status = db.session.query(ProcurementStatus)
+    form = ProcurementStatusForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            new_status = ProcurementStatus()
+            form.populate_obj(new_status)
+            db.session.add(new_status)
+            db.session.commit()
+            flash('New status has been added.', 'success')
+            return redirect(url_for('procurement.add_procurement'))
+    return render_template('procurement/status_ref.html', form=form, status=status)
 
 
 @procurement.route('/service/maintenance/require')
