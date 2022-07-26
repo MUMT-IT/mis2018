@@ -74,6 +74,7 @@
                     <th>หน่วยงาน/ภาควิชา</th>
                     <th>สถานะ</th>
                     <th>Dashboard</th>
+                    <th>Forms</th>
                     <th>Edit</th>
                     </thead>
                     <tbody>
@@ -101,6 +102,12 @@
                             <a href="{{ url_for('purchase_tracker.view_info_track', account_id=record.id) }}">
                                 <i class="fas fa-eye"></i>
                                 <span>View</span>
+                            </a>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('purchase_tracker.select_form', account_id=record.id) }}">
+                                <i class="fab fa-wpforms"></i>
+                                <span>สร้างฟอร์ม</span>
                             </a>
                         </td>
                         <td>

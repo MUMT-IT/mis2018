@@ -1,10 +1,16 @@
 # -*- coding:utf-8 -*-
 import requests, os
-from flask import render_template, request, flash, redirect, url_for, send_from_directory
+from flask import render_template, request, flash, redirect, url_for, send_from_directory, send_file
 from flask_login import current_user, login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pandas import DataFrame
 from pydrive.auth import GoogleAuth
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import Image, SimpleDocTemplate, Paragraph
 from sqlalchemy import cast, Date
 from werkzeug.utils import secure_filename
 from . import purchase_tracker_bp as purchase_tracker
@@ -12,7 +18,7 @@ from .forms import *
 from datetime import datetime
 from pytz import timezone
 from pydrive.drive import GoogleDrive
-from .models import PurchaseTrackerAccount
+from .models import PurchaseTrackerAccount, PurchaseTrackerForm
 from flask_mail import Message
 from ..main import mail
 from ..roles import finance_permission, procurement_permission
@@ -38,6 +44,12 @@ def landing_page():
 @purchase_tracker.route('/personnel/personnel_index')
 def staff_index():
     return render_template('purchase_tracker/personnel/personnel_index.html')
+
+
+@purchase_tracker.route('/personnel/personnel_index/e-form/method/select/<int:account_id>')
+def select_form(account_id):
+    account = PurchaseTrackerAccount.query.get(account_id)
+    return render_template('purchase_tracker/personnel/alternative_form.html', account=account)
 
 
 @purchase_tracker.route('/main')
@@ -401,3 +413,58 @@ def dashboard_info_download():
     df = DataFrame(records)
     df.to_excel('account_summary.xlsx')
     return send_from_directory(os.getcwd(), filename='account_summary.xlsx')
+<<<<<<< HEAD
+=======
+
+
+@purchase_tracker.route('/personnel/personnel_index/e-form/create/<string:form_code>/<int:account_id>', methods=['GET', 'POST'])
+@login_required
+def create_form(account_id, form_code):
+    account = PurchaseTrackerAccount.query.get(account_id)
+    MTPCform = create_MTPCForm(acnt=account)
+    form = MTPCform()
+    if form.validate_on_submit():
+        new_form = PurchaseTrackerForm()
+        form.populate_obj(new_form)
+        new_form.staff = current_user
+        db.session.add(new_form)
+        db.session.commit()
+        flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
+        export_blank_form_pdf(new_form)
+    # Check Error
+    else:
+        for er in form.errors:
+            flash("{}:{}".format(er,form.errors[er]), 'danger')
+    return render_template('purchase_tracker/personnel/create_form_{}.html'.format(form_code), form=form, account=account)
+
+
+sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
+pdfmetrics.registerFont(sarabun_font)
+style_sheet = getSampleStyleSheet()
+style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
+style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
+style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
+
+
+def export_blank_form_pdf(form):
+
+    def all_page_setup(canvas, doc):
+        canvas.saveState()
+        logo_image = ImageReader('app/static/img/logo-MU_black-white-2-1.png')
+        canvas.drawImage(logo_image, 10, 700, width=250, height=100)
+        canvas.restoreState()
+
+    doc = SimpleDocTemplate("app/e-form.pdf",
+                            rightMargin=20,
+                            leftMargin=20,
+                            topMargin=20,
+                            bottomMargin=10
+                            )
+    data = [ Paragraph('<font size=12>{}</font>'.format(form.account.number), style=style_sheet['ThaiStyle']),]
+
+    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+    return send_file('e-form.pdf')
+
+
+
+>>>>>>> purchase_tracker

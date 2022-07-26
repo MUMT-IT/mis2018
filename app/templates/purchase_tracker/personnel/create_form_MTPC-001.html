@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Create Forms{% endblock %}
+{% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+{% endblock %}
+{% block page_content %}
+    <section class="hero is-small is-white">
+        <div class="hero-body">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}" width="100"/>
+                </div>
+            </div>
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column is-one-third is-offset-4">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        {% include "purchase_tracker/personnel/form_head.html" %}
+                         <div class="field">
+                            <label class="label">ชื่อ</label>
+                            <div class="control">
+                                {{ form.name(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">เล่มที่</label>
+                                <div class="control">
+                                    {{ form.book(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">เล่มที่</label>
+                                <div class="control">
+                                    {{ form.number(class="input") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">วันที่</label>
+                            <div class="control">
+                                {{ form.receipt_date(type="text", readonly=True, class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">ชื่อผู้ตรวจรับพัสดุ</label>
+                            <div class="control">
+                                {{ form.parcel_inspector_name(class="input") }}
+                            </div>
+                        </div>
+                         <div class="field">
+                            <label class="label">เงินยืมทดรองจ่ายในนาม</label>
+                            <div class="control">
+                                {{ form.advance_name(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">หมายเหตุ</label>
+                            <div class="control">
+                                {{ form.account.comment(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="buttons">
+                                <button class="button is-success" type="submit" value="submit">สร้างฟอร์ม</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock page_content %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $('#upload').change(function (e) {
+            let fileName = e.target.files[0].name;
+            $('#filename').text(fileName);
+        });
+
+        $('input[name="receipt_date"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: false,
+            locale: {
+                format: 'YYYY-MM-DD'
+            }
+        });
+    </script>
+{% endblock %}

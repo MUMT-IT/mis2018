@@ -49,7 +49,7 @@
         </div>
     </div>
     <div class="container">
-     {% if activities %}
+        {% if activities %}
             <div class="columns">
                 <div class="column">
                     <div class="card">
@@ -145,45 +145,56 @@
                             </table>
                             <div class="columns">
                                 <div class="column">
-                                    <a href="{{ url_for('purchase_tracker.track') }}"
-                                       class="button is-rounded is-info is-light">
-                                    <span class="icon">
-                                        <i class="fas fa-arrow-left"></i>
-                                    </span>
-                                        <span>กลับไปยังรายการ</span>
-                                    </a>
+                                    <div class="buttons is-centered">
+                                        <a href="{{ url_for('purchase_tracker.create_form',form_id="MTPC-001", account_id=123) }}"
+                                           class="button is-rounded is-warning">
+                                            <span class="icon">
+                                                <i class="fab fa-wpforms"></i>
+                                            </span>
+                                            <span>Create Form</span>
+                                        </a>
+                                    </div>
+                                    <div class="buttons">
+                                        <a href="{{ url_for('purchase_tracker.track') }}"
+                                           class="button is-rounded is-info is-light">
+                                            <span class="icon">
+                                                <i class="fas fa-arrow-left"></i>
+                                            </span>
+                                            <span>กลับไปยังรายการ</span>
+                                        </a>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
-    </div>
-    <section class="section">
-        <div class="container">
-            <div class="columns">
-                <div class="column">
-                    <div id="chart_div"></div>
-                </div>
             </div>
-        </div>
-    </section>
-    {% else %}
-         <div class="card">
-             <div class="card-content has-text-centered"><i class="fas fa-user-clock fa-4x"></i><br><br>
-                 <p class="title">“ยังไม่ได้ถูกอัพเดตข้อมูลลงในระบบจากหน่วยงานคลังและพัสดุ”</p>
-             </div>
-             <div class="column">
-                 <a href="{{ url_for('purchase_tracker.track') }}"
-                    class="button is-rounded is-info is-light">
+            <section class="section">
+                <div class="container">
+                    <div class="columns">
+                        <div class="column">
+                            <div id="chart_div"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        {% else %}
+            <div class="card">
+                <div class="card-content has-text-centered"><i class="fas fa-user-clock fa-4x"></i><br><br>
+                    <p class="title">“ยังไม่ได้ถูกอัพเดตข้อมูลลงในระบบจากหน่วยงานคลังและพัสดุ”</p>
+                </div>
+                <div class="column">
+                    <a href="{{ url_for('purchase_tracker.track') }}"
+                       class="button is-rounded is-info is-light">
                      <span class="icon">
                          <i class="fas fa-arrow-left"></i>
                      </span>
-                     <span>กลับไปยังรายการ</span>
-                 </a>
-             </div>
-         </div>
-    {% endif %}
+                        <span>กลับไปยังรายการ</span>
+                    </a>
+                </div>
+            </div>
+        {% endif %}
 {% endblock %}
 {% block scripts %}
     {{ super() }}
