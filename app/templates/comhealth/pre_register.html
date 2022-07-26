@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block page_content %}
-{% include "comhealth/nav.html" %}
     <section class="hero is-light is-small">
         <div class="hero-body">
             <div class="container has-text-centered">
@@ -10,17 +9,7 @@
         </div>
     </section>
     <section class="section" id="app">
-        <div class="container box">
-            <div class="columns">
-                <div class="column">
-                    <nav class="breadcrumb has-bullet-separator is-centered" aria-label="breadcrumbs">
-                        <ul>
-                            <li><a href="{{ url_for('comhealth.index') }}">Services</a></li>
-                            <li class="is-active"><a aria-current="page">รายชื่อผู้รับบริการ</a></li>
-                        </ul>
-                    </nav>
-                </div>
-            </div>
+        <div class="container">
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
                     <input type="text" v-model="query" class="input is-large is-rounded"
@@ -38,14 +27,10 @@
                              default-sort="customer.firstname">
                         <template slot-scope="props">
                             <b-table-column field="customer.firstname" label="First Name" sortable>
-                                <span class="is-size-4">
                                 <% props.row.customer.firstname %>
-                                </span>
                             </b-table-column>
                             <b-table-column field="customer.lastname" label="Last Name" sortable>
-                                <span class="is-size-4">
                                 <% props.row.customer.lastname %>
-                                </span>
                             </b-table-column>
                             <b-table-column field="" label="Check In" sortable>
                                 <a class="button is-light is-link"
