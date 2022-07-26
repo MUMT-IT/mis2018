@@ -2,56 +2,71 @@
 {% block title %}Create Forms{% endblock %}
 {% include "nav.html" %}
 {% block head %}
-{{ super() }}
-<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
 {% endblock %}
 {% block page_content %}
-    <section class="section">
-        <div class="box">
-            {% include "messages.html" %}
+    <section class="hero is-small is-white">
+        <div class="hero-body">
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="title">สร้างรายงานขออนุมัติซื้อหรือจ้าง กรณีจำเป็นเร่งด่วนฯใหม่</h1>
+                    <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}" width="100"/>
                 </div>
             </div>
+            {% include "messages.html" %}
             <div class="columns">
                 <div class="column is-one-third is-offset-4">
                     <form method="post">
                         {{ form.hidden_tag() }}
-                         {% include "purchase_tracker/personnel/form_head.html" %}
-                        <div class="field">
-                            <div class="radio">
-                                {{ form.method() }}
+                        {% include "purchase_tracker/personnel/form_head.html" %}
+                         <div class="field">
+                            <label class="label">ชื่อ</label>
+                            <div class="control">
+                                {{ form.name(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">เล่มที่</label>
+                                <div class="control">
+                                    {{ form.book(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">เล่มที่</label>
+                                <div class="control">
+                                    {{ form.number(class="input") }}
+                                </div>
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">รายการ</label>
+                            <label class="label">วันที่</label>
                             <div class="control">
-                                {{ account.subject}}
+                                {{ form.receipt_date(type="text", readonly=True, class="input") }}
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">วงเงินหลักการ</label>
+                            <label class="label">ชื่อผู้ตรวจรับพัสดุ</label>
                             <div class="control">
-                                {{ account.amount }}
-                                 <p class="help is-danger">ใส่เฉพาะตัวเลข เช่น 1000 หรือ 1000.50 ไม่ต้องใส่เครื่องหมายจุลภาค( , )</p>
+                                {{ form.parcel_inspector_name(class="input") }}
                             </div>
                         </div>
-                        <div class="field">
-                            <label class="label">รายละเอียด</label>
+                         <div class="field">
+                            <label class="label">เงินยืมทดรองจ่ายในนาม</label>
                             <div class="control">
-                                {{ account.desc }}
+                                {{ form.advance_name(class="input") }}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">หมายเหตุ</label>
                             <div class="control">
-                                {{ account.comment }}
+                                {{ form.account.comment(class="input") }}
                             </div>
                         </div>
                         <div class="field is-grouped is-grouped-centered">
                             <div class="buttons">
-                                <a href="{{ url_for('purchase_tracker.select_form') }}" class="button is-success">Select</a>
+                                <button class="button is-success" type="submit" value="submit">บันทึกข้อมูล</button>
+                                <a href="{{ url_for('purchase_tracker.staff_index') }}" class="button is-info">สร้างฟอร์ม</a>
                             </div>
                         </div>
                     </form>
@@ -69,7 +84,7 @@
             $('#filename').text(fileName);
         });
 
-        $('input[name="booking_date"]').daterangepicker({
+        $('input[name="receipt_date"]').daterangepicker({
             singleDatePicker: true,
             timePicker: false,
             locale: {
