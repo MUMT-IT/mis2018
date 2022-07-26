@@ -56,10 +56,8 @@ class CreateMTPCForm(ModelForm):
     class Meta:
         model = PurchaseTrackerForm
 
-    method = RadioField(choices=[(c, c) for c in [u'ซื้อ', u'จ้าง']],
-                        coerce=unicode,
-                        validators=[DataRequired()])
-    org = QuerySelectField(query_factory=lambda: Org.query.all(),
-                           get_label='name',
-                           label=u'ภาควิชา/หน่วยงาน')
-    account = FormField(CreateAccountForm)
+        org = QuerySelectField(query_factory=lambda: Org.query.all(),
+                               get_label='name',
+                               label=u'ภาควิชา/หน่วยงาน')
+        account = FormField(CreateAccountForm, default=acnt)
+    return CreateMTPCForm
