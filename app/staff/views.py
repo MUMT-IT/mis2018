@@ -162,8 +162,7 @@ def show_leave_info():
                            approver=approver)
 
 
-@staff.route('/leave/request/quota/<int:quota_id>',
-             methods=['GET', 'POST'])
+@staff.route('/leave/request/quota/<int:quota_id>', methods=['GET', 'POST'])
 @login_required
 def request_for_leave(quota_id=None):
     if request.method == 'POST':
