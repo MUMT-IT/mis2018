@@ -21,7 +21,7 @@ from pydrive.drive import GoogleDrive
 from .models import PurchaseTrackerAccount, PurchaseTrackerForm
 from flask_mail import Message
 from ..main import mail
-from ..roles import finance_permission, procurement_permission
+from ..roles import finance_permission, procurement_permission, finance_procurement_permission
 
 # Upload images for Google Drive
 
@@ -215,8 +215,7 @@ def close_account(account_id):
 
 
 @purchase_tracker.route('/supplies/')
-@finance_permission.require()
-@procurement_permission.require()
+@finance_procurement_permission.require()
 def supplies():
     from sqlalchemy import desc
     accounts = PurchaseTrackerAccount.query.all()
@@ -242,8 +241,7 @@ def send_mail(recp, title, message):
 
 
 @purchase_tracker.route('/account/<int:account_id>/update', methods=['GET', 'POST'])
-@finance_permission.require()
-@procurement_permission.require()
+@finance_procurement_permission.require()
 @login_required
 def update_status(account_id):
     form = StatusForm()
@@ -294,8 +292,7 @@ def update_status(account_id):
 
 
 @purchase_tracker.route('/account/<int:account_id>/status/<int:status_id>/edit', methods=['GET', 'POST'])
-@finance_permission.require()
-@procurement_permission.require()
+@finance_procurement_permission.require()
 @login_required
 def edit_update_status(account_id, status_id):
     status = PurchaseTrackerStatus.query.get(status_id)
@@ -329,8 +326,7 @@ def edit_update_status(account_id, status_id):
 
 
 @purchase_tracker.route('/account/<int:account_id>/status/<int:status_id>/delete')
-@finance_permission.require()
-@procurement_permission.require()
+@finance_procurement_permission.require()
 @login_required
 def delete_update_status(account_id, status_id):
     if account_id:
@@ -342,8 +338,7 @@ def delete_update_status(account_id, status_id):
 
 
 @purchase_tracker.route('/create/<int:account_id>/activity', methods=['GET', 'POST'])
-@finance_permission.require()
-@procurement_permission.require()
+@finance_procurement_permission.require()
 @login_required
 def add_activity(account_id):
     activity = db.session.query(PurchaseTrackerActivity)
@@ -363,7 +358,7 @@ def add_activity(account_id):
     return render_template('purchase_tracker/create_activity.html', form=form, activity=activity, account_id=account_id)
 
 
-@purchase_tracker.route('/dashboard/', methods=['GET', 'POST'])
+@purchase_tracker.route('/dashboard', methods=['GET', 'POST'])
 def show_info_page():
     start_date = None
     end_date = None
@@ -413,8 +408,6 @@ def dashboard_info_download():
     df = DataFrame(records)
     df.to_excel('account_summary.xlsx')
     return send_from_directory(os.getcwd(), filename='account_summary.xlsx')
-<<<<<<< HEAD
-=======
 
 
 @purchase_tracker.route('/personnel/personnel_index/e-form/create/<string:form_code>/<int:account_id>', methods=['GET', 'POST'])
@@ -431,6 +424,7 @@ def create_form(account_id, form_code):
         db.session.commit()
         flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
         export_blank_form_pdf(new_form)
+        return send_file('e-form.pdf')
     # Check Error
     else:
         for er in form.errors:
@@ -460,11 +454,7 @@ def export_blank_form_pdf(form):
                             topMargin=20,
                             bottomMargin=10
                             )
-    data = [ Paragraph('<font size=12>{}</font>'.format(form.account.number), style=style_sheet['ThaiStyle']),]
+    data = [ Paragraph(u'<font size=12>{}</font>'.format(form.account.number), style=style_sheet['ThaiStyle']),]
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
-    return send_file('e-form.pdf')
 
-
-
->>>>>>> purchase_tracker
