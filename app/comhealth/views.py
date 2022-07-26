@@ -250,12 +250,27 @@ def pre_register_login(service_id, record_id):
                            service=service, record=record)
 
 
-
-@comhealth.route('/services/<int:service_id>/pre-register/<int:record_id>/tests',
-                 methods=['GET', 'POST'])
+@comhealth.route('/services/<int:service_id>/pre-register/<int:record_id>/tests', methods=['GET', 'POST'])
 def pre_register_tests(service_id, record_id):
     service = ComHealthService.query.get(service_id)
     record = ComHealthRecord.query.get(record_id)
+
+    if request.method == 'POST':
+        print(request.form)
+        for field in request.form:
+            if field.startswith('test_'):
+                _, test_id = field.split('_')  # name=test_34
+                test_item = ComHealthTestItem.query.get(int(test_id))
+                record.ordered_tests.append(test_item)
+
+        record.updated_at = datetime.now(tz=bangkok)
+        db.session.add(record)
+        db.session.commit()
+
+        special_item_cost = sum([item.price for item in set(record.ordered_tests)])
+        return render_template('comhealth/pre_register_summary.html',
+                               special_item_cost=special_item_cost, record=record)
+
     return render_template('comhealth/pre_register_edit_record.html', service=service, record=record)
 
 
