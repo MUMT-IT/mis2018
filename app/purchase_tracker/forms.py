@@ -52,9 +52,10 @@ class ReportDateForm(FlaskForm):
    end_date = StringField(u'วันที่สิ้นสุด')
 
 
-class CreateMTPCForm(ModelForm):
-    class Meta:
-        model = PurchaseTrackerForm
+def create_MTPCForm(acnt):
+    class CreateMTPCForm(ModelForm):
+        class Meta:
+            model = PurchaseTrackerForm
 
         org = QuerySelectField(query_factory=lambda: Org.query.all(),
                                get_label='name',
