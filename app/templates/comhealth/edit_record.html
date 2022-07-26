@@ -1,4 +1,8 @@
 {% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
+{% endblock %}
 {% block page_content %}
     {% include "comhealth/nav.html" %}
     <section class="section" id="app">
@@ -209,11 +213,11 @@
                                         <tbody>
                                         {% for item in profile.test_items|sorttest %}
                                         <tr>
-                                            <td>
-                                                <label class="checkbox">
-                                                    <input class="profile_{{profile.id}}_select"
-                                                           id="profile_{{ item.id }}_select"
-                                                           type="checkbox" name="profile_{{ item.id }}_select">
+                                            <td class="field">
+                                                <input class="is-checkradio is-circle is-medium is-info profile_{{ profile.id }}_select }}"
+                                                       id="profile_{{ item.id }}_select"
+                                                       type="checkbox" name="profile_{{ item.id }}_select">
+                                                <label for="profile_{{ item.id }}_select">
                                                     <strong>{{ item.test.name }}</strong> {{ item.test.desc }}
                                                 </label>
                                             </td>
@@ -270,7 +274,10 @@
                                     <td class="field">
                                         <input type="checkbox" name="test_{{ item.id }}"
                                                id="test_{{ item.id }}_chk"
-                                               class="is-checkradio is-large is-info is-block"
+                                               class="is-checkradio is-circle is-large is-success"
+                                               {% if item in record.ordered_tests %}
+                                                checked
+                                               {% endif %}
                                         >
                                         <label for="test_{{ item.id }}_chk">
                                             <strong>{{ item.test.name }}</strong> {{ item.test.desc }}

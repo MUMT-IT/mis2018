@@ -155,6 +155,11 @@ class ComHealthCustomer(db.Model):
         else:
             return None
 
+    def check_login_dob(self, dob):
+        return dob == u'{:02}{:02}{}'.format(self.dob.day,
+                                             self.dob.month,
+                                             self.dob.year + 543)
+
     @property
     def age(self):
         if self.dob:
