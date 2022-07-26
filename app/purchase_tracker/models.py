@@ -81,6 +81,10 @@ class PurchaseTrackerAccount(db.Model):
             return 0
         return PurchaseTrackerAccount.count_weekdays(first_start_date, last_end_date)
 
+    def to_dict(self):
+        return {"number": self.number, "booking_date": self.booking_date, "subject": self.subject,
+                "amount": self.amount, "desc": self.desc, "formats": self.formats}
+
 
 class PurchaseTrackerStatus(db.Model):
     __tablename__ = 'tracker_statuses'
@@ -156,7 +160,8 @@ class PurchaseTrackerForm(db.Model):
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'), nullable=False)
     staff = db.relationship(StaffAccount)
     name = db.Column('name', db.String(), info={'label': u'ชื่อ'})
-    method = db.Column('method', db.String(), info={'label': u'วิธี'})
+    method = db.Column('method', db.String(), info={'label': u'วิธี', 'choices': [(c, c) for c in
+                                                                [u'ซื้อ', u'จ้าง']]})
     reason = db.Column('reason', db.Text())
     created_at = db.Column('created_at', db.Date(), server_default=func.now())
     book = db.Column('book', db.String(), info={'label': u'เล่มที่'})
