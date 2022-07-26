@@ -103,8 +103,6 @@
             displayEventEnd: true,
             timeFormat: 'H(:mm)',
             eventClick: function(calEvent, jsEvent, view) {
-                if(calEvent.type === 'login') {
-                    window.location = '/staff/time-report/report';
                 if(calEvent.type === 'leave') {
                     window.location = '/staff/leave/requests/approval/pending/' + calEvent.id;
                 }
