@@ -1,7 +1,7 @@
 <div class="field">
     <label class="label">ภาควิชา / ศูนย์</label>
-    <div class="select is-fullwidth">
-        {{ form.org() }}
+    <div class="control">
+        {{ account.staff.personal_info.org.name }}
     </div>
 </div>
 <div class="field-body">
@@ -26,7 +26,7 @@
 </div>
 <div class="field">
     <label class="label">รายการขออนุมัติ</label>
-    <div class="radio">
+    <div class="select">
         {{ form.method() }}
     </div>
 </div>
