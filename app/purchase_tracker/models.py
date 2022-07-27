@@ -177,8 +177,7 @@ class PurchaseTrackerForm(db.Model):
     approve_disbursement = db.Column('approve_disbursement', db.String(), info={'label': u'อนุมัติเบิกจ่ายเงิน'})
     total_money = db.Column('total_money', db.String(), info={'label': u'เป็นเงิน'})
     advance_name = db.Column('advance_name', db.String(), info={'label': u'ชื่อเงินยืมทดรองจ่าย'})
-    org_id = db.Column('org_id', db.ForeignKey('orgs.id'))
-    org = db.relationship('Org')
+
 
 
 
