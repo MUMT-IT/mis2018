@@ -57,8 +57,5 @@ def create_MTPCForm(acnt):
         class Meta:
             model = PurchaseTrackerForm
 
-        org = QuerySelectField(query_factory=lambda: Org.query.all(),
-                               get_label='name',
-                               label=u'ภาควิชา/หน่วยงาน')
         account = FormField(CreateAccountForm, default=acnt)
     return CreateMTPCForm
