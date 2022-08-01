@@ -2127,13 +2127,12 @@ def send_time_report_data():
     if cal_end:
         cal_end = parser.isoparse(cal_end)
     records = []
-    for rec in StaffWorkLogin.query.filter(StaffWorkLogin.start_datetime >= cal_start)\
-            .filter(StaffWorkLogin.end_datetime <= cal_end).filter_by(staff=current_user):
+    for rec in StaffWorkLogin.query.filter(StaffWorkLogin.start_datetime.between(cal_start, cal_end))\
+            .filter_by(staff=current_user):
         # The event object is a dict object with a 'summary' key.
         text_color = '#ffffff'
         bg_color = '#4da6ff'
         border_color = '#ffffff'
-        status = u''
         end = None if rec.end_datetime is None else rec.end_datetime.astimezone(tz)
         records.append({
             'id': rec.id,
