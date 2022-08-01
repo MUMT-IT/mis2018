@@ -532,8 +532,6 @@ class StaffWorkFromHomeApproval(db.Model):
     approver_id = db.Column('approver_id', db.ForeignKey('staff_work_from_home_approvers.id'))
     is_approved = db.Column('is_approved', db.Boolean(), default=False)
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
-    approval_comment = db.Column('approval_comment', db.String())
-    checked_at = db.Column('check_at', db.DateTime(timezone=True))
     request = db.relationship('StaffWorkFromHomeRequest', backref=db.backref('wfh_approvals'))
     approver = db.relationship('StaffWorkFromHomeApprover',
                                backref=db.backref('wfh_approved_requests'))
