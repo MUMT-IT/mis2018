@@ -408,14 +408,19 @@ class ComHealthReceiptID(db.Model):
     count = db.Column('count', db.Integer, default=0)
     updated_datetime = db.Column('updated_datetime', db.DateTime(timezone=True))
 
-    # TODO: replace next with next_id
+    # TODO: replace next with next_number
     @property  # decorator
     def next(self):
-        return u'{}{}{:06}'.format(self.code, str(self.buddhist_year)[-2:], self.count + 1)
+        return u'{:08}'.format(self.count + 1)
 
     @property
     def book_number(self):
-        return (self.count / RECEIPT_PER_BOOK) + 1
+        count = self.count
+        number = 1
+        while count > RECEIPT_PER_BOOK:
+            count -= RECEIPT_PER_BOOK
+            number += 1
+        return u'{}{}{:03}'.format(self.code, str(self.buddhist_year)[-2:], number)
 
 
 class ComHealthReceipt(db.Model):
