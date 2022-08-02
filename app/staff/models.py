@@ -375,7 +375,7 @@ class StaffLeaveRequest(db.Model):
     cancelled_account_id = db.Column('cancelled_account_id', db.ForeignKey('staff_account.id'))
     country = db.Column('country', db.String())
     total_leave_days = db.Column('total_leave_days', db.Float())
-    upload_file_url =  db.Column('upload_file_url', db.String())
+    upload_file_url = db.Column('upload_file_url', db.String())
     after_hour = db.Column("after_hour", db.Boolean())
     notify_to_line = db.Column('notify_to_line', db.Boolean(), default=False)
     cancelled_by = db.relationship('StaffAccount', foreign_keys=[cancelled_account_id])
@@ -488,6 +488,7 @@ class StaffWorkFromHomeRequest(db.Model):
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     staff = db.relationship('StaffAccount',
                             backref=db.backref('wfh_requests'))
+    notify_to_line = db.Column('notify_to_line', db.Boolean(), default=False)
 
     @property
     def duration(self):
