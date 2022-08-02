@@ -600,6 +600,8 @@ class StaffWorkLogin(db.Model):
     checkin_mins = db.Column('checkin_mins', db.Integer())
     checkout_mins = db.Column('checkout_mins', db.Integer())
     num_scans = db.Column('num_scans', db.Integer(), default=0)
+    qrcode_in_exp_datetime = db.Column('qrcode_in_exp_datetime', db.DateTime(timezone=True))
+    qrcode_out_exp_datetime = db.Column('qrcode_out_exp_datetime', db.DateTime(timezone=True))
 
     @staticmethod
     def generate_date_id(date):
