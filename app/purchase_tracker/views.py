@@ -5,12 +5,14 @@ from flask_login import current_user, login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pandas import DataFrame
 from pydrive.auth import GoogleAuth
+from reportlab.lib import styles
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Image, SimpleDocTemplate, Paragraph
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Image, TableStyle, Table, Spacer
 from sqlalchemy import cast, Date
 from werkzeug.utils import secure_filename
 from . import purchase_tracker_bp as purchase_tracker
@@ -21,7 +23,7 @@ from pydrive.drive import GoogleDrive
 from .models import PurchaseTrackerAccount, PurchaseTrackerForm
 from flask_mail import Message
 from ..main import mail
-from ..roles import finance_permission, procurement_permission, finance_procurement_permission
+from ..roles import finance_procurement_permission
 
 # Upload images for Google Drive
 
@@ -423,7 +425,7 @@ def create_form(account_id, form_code):
         db.session.add(new_form)
         db.session.commit()
         flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        export_blank_form_pdf(new_form)
+        form_letter(new_form, account)
         return send_file('e-form.pdf')
     # Check Error
     else:
@@ -440,21 +442,54 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', align
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 
 
-def export_blank_form_pdf(form):
+def form_letter(form, account):
+    logo = Image('app/static/img/logo-MU.jpg', 60, 60)
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
-        logo_image = ImageReader('app/static/img/logo-MU_black-white-2-1.png')
-        canvas.drawImage(logo_image, 10, 700, width=250, height=100)
+        logo_image = ImageReader('app/static/img/logo-MU.jpg')
+        canvas.drawImage(logo_image, 10, 700, width=70, height=70)
         canvas.restoreState()
 
     doc = SimpleDocTemplate("app/e-form.pdf",
-                            rightMargin=20,
-                            leftMargin=20,
-                            topMargin=20,
-                            bottomMargin=10
-                            )
-    data = [ Paragraph(u'<font size=12>{}</font>'.format(form.account.number), style=style_sheet['ThaiStyle']),]
+                            pagesize=letter,
+                            rightMargin=72,
+                            leftMargin=72,
+                            topMargin=72,
+                            bottomMargin=18)
+
+
+    data = [ Paragraph(u'<font size=16>ภาควิชา / ศูนย์ {}</font>'.format(account.staff.personal_info.org.name), style=style_sheet['ThaiStyle']),
+             Paragraph(u'<font size=16>ที่ {}</font>'.format(form.account.number), style=style_sheet['ThaiStyle']),
+             Paragraph(u'<font size=16>วันที่ {}</font>'.format(form.account.creation_date), style=style_sheet['ThaiStyle']),
+             Paragraph(u'<font size=16>เรื่อง {}</font>'.format(form.account.subject), style=style_sheet['ThaiStyle']),
+             Paragraph(u'<font size=16>ข้าพเจ้า {}</font>'.format(form.name), style=style_sheet['ThaiStyle']),
+             Paragraph(u'<font size=16>เหตุผลและความจำเป็นเร่งด่วนที่ต้องซื้อหรือจ้าง {}</font>'.format(form.reason),
+                       style=style_sheet['ThaiStyle']),
+             Paragraph(u'<font size=16>รายละเอียดของพัสดุที่ซื้อหรือจ้าง {}</font>'.format(form.account.desc),
+                       style=style_sheet['ThaiStyle']),
+             Paragraph(u'<font size=16>วงเงินที่ซื้อหรือจ้างในครั้งนี้เป็นเงินเท่าไหร่ {}</font>'.format(form.account.amount),
+                       style=style_sheet['ThaiStyle']),
+             Paragraph(u'<font size=16>จาก {}</font>'.format(form.account.amount),
+                       style=style_sheet['ThaiStyle']),
+             Paragraph(u'<font size=16>ตามใบส่งของ/ใบเสร็จรับเงินเล่มที่ {}</font>'.format(form.book),
+                       style=style_sheet['ThaiStyle']),
+             Paragraph(u'<font size=16>เลขที่ {}</font>'.format(form.number),
+                       style=style_sheet['ThaiStyle']),
+             Paragraph(u'<font size=16>วันที่ {}</font>'.format(form.receipt_date),
+                       style=style_sheet['ThaiStyle']),
+             Paragraph(u'<font size=16>โดยขอเบิกจ่ายจากเงิน {}</font>'.format(form.disbursement_method),
+                       style=style_sheet['ThaiStyle']),
+             Paragraph(u'<font size=16>ประจำปีงบประมาณ {}</font>'.format(form.financial_year),
+                       style=style_sheet['ThaiStyle']),
+             Paragraph(u'<font size=16>วันที่ {}</font>'.format(form.receipt_date),
+                       style=style_sheet['ThaiStyle']),
+             Paragraph(u'<font size=16>รหัสศูนย์ต้นทุน {}</font>'.format(form.cost_center),
+                       style=style_sheet['ThaiStyle']),
+             Paragraph(u'<font size=16>รหัสใบสั่งงานภายใน {}</font>'.format(form.internal_order),
+                       style=style_sheet['ThaiStyle']),
+             ]
+    data.append(Spacer(1, 12))
 
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
 
