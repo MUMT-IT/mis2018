@@ -1448,12 +1448,14 @@ def for_hr():
 def login_scan():
     office_starttime = '09:00'
     office_endtime = '16:30'
-    DATETIME_FORMAT = '%Y-%m-%d %H:%M'
+    DATETIME_FORMAT = '%d/%m/%Y %H:%M:%S'
 
     if request.method == 'POST':
         req_data = request.get_json()
         th_name = req_data['data'].get('thName')
         en_name = req_data['data'].get('enName')
+        qrcode_exp_datetime = datetime.strptime(req_data['data'].get('qrCodeExpDateTime'), DATETIME_FORMAT)
+        qrcode_exp_datetime = qrcode_exp_datetime.replace(tzinfo=tz)
         if th_name:
             fname, lname = th_name.split(' ')
             lname = lname.lstrip()
@@ -1469,7 +1471,7 @@ def login_scan():
 
         if person:
             now = datetime.now(pytz.utc)
-            date_id = StaffWorkLogin.generate_date_id(now)
+            date_id = StaffWorkLogin.generate_date_id(now.astimezone(tz))
             record = StaffWorkLogin.query \
                 .filter_by(date_id=date_id, staff=person.staff_account).first()
             # office_startdt = datetime.strptime(u'{} {}'.format(now.date(), office_starttime), DATETIME_FORMAT)
@@ -1486,11 +1488,13 @@ def login_scan():
                     staff=person.staff_account,
                     start_datetime=now,
                     num_scans=num_scans,
+                    qrcode_in_exp_datetime=qrcode_exp_datetime.astimezone(pytz.utc)
                 )
                 activity = 'checked in'
             else:
                 # status = "Late" if morning > 0 else "On time"
                 num_scans = record.num_scans + 1 if record.num_scans else 1
+                record.qrcode_out_exp_datetime = qrcode_exp_datetime.astimezone(pytz.utc)
                 record.end_datetime = now
                 record.num_scans = num_scans
                 activity = 'checked out'
@@ -1500,7 +1504,7 @@ def login_scan():
                 {'message': 'success', 'activity': activity, 'name': person.fullname, 'time': now.isoformat(),
                  'numScans': num_scans})
         else:
-            return jsonify({'message': 'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
+            return jsonify({'message': u'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
 
     return render_template('staff/login_scan.html')
 
@@ -1646,7 +1650,6 @@ def send_summary_data():
                 border_color = '#ffffff' if end else '#f56956'
                 text_color = '#ffffff'
                 bg_color = '#7d9df0'
-                status = u''
                 '''
                 if (rec.checkin_mins < 0) and (rec.checkout_mins > 0):
                     bg_color = '#4da6ff'
