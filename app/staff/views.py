@@ -18,6 +18,7 @@ from linebot.models import TextSendMessage
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 import requests
+import gviz_api
 import os
 from flask_mail import Message
 from flask_admin import BaseView, expose
@@ -1441,6 +1442,56 @@ def for_hr():
     return render_template('staff/for_hr.html')
 
 
+@staff.route('/api/for-hr/login-report')
+@hr_permission.require()
+@login_required
+def get_hr_login_summary_report_data():
+    description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
+    data = defaultdict(int)
+    for rec in StaffWorkLogin.query.all():
+        data[rec.start_datetime.date()] += 1
+
+    count_data = []
+    for date, heads in data.iteritems():
+        count_data.append({
+            'date': date,
+            'heads': heads
+        })
+
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=('date', 'heads'))
+
+
+@staff.route('/api/for-hr/login-time')
+@hr_permission.require()
+@login_required
+def get_hr_login_time_data():
+    description = {'timeofday': ("timeofday", "Time"), 'heads': ("number", "heads")}
+    data = defaultdict(int)
+    for rec in StaffWorkLogin.query.all():
+        start_datetime = rec.start_datetime.astimezone(tz)
+        data[(start_datetime.hour, start_datetime.minute, 0)] += 1
+
+    count_data = []
+    for tod, heads in data.iteritems():
+        count_data.append({
+            'timeofday': list(tod),
+            'heads': heads
+        })
+
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon()
+
+
+@staff.route('/for-hr/login-report')
+@hr_permission.require()
+@login_required
+def hr_login_summary_report():
+    return render_template('staff/hr_login_summary_report.html')
+
+
 @staff.route('/login-scan', methods=['GET', 'POST'])
 @csrf.exempt
 @admin_permission.require()
@@ -2370,8 +2421,7 @@ def staff_add_requester(requester_id):
                            requester_name=requester_name, name=name)
 
 
-@staff.route('/for-hr/search',
-             methods=['GET', 'POST'])
+@staff.route('/for-hr/search', methods=['GET', 'POST'])
 @login_required
 def search_person_for_add_leave_request():
     if request.method == 'POST':
