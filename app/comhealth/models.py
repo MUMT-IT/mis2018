@@ -9,6 +9,7 @@ from datetime import date, datetime
 import pytz
 
 bangkok = pytz.timezone('Asia/Bangkok')
+RECEIPT_PER_BOOK = 500
 
 
 class SmartNested(fields.Nested):
@@ -38,10 +39,10 @@ test_item_record_table = db.Table('comhealth_test_item_records',
                                   )
 
 group_customer_table = db.Table('comhealth_group_customers',
-                                  db.Column('customer_id', db.Integer,
-                                            db.ForeignKey('comhealth_customer_groups.id'), primary_key=True),
-                                  db.Column('group_id', db.Integer,
-                                            db.ForeignKey('comhealth_customers.id'), primary_key=True))
+                                db.Column('customer_id', db.Integer,
+                                          db.ForeignKey('comhealth_customer_groups.id'), primary_key=True),
+                                db.Column('group_id', db.Integer,
+                                          db.ForeignKey('comhealth_customers.id'), primary_key=True))
 
 
 class ComHealthInvoice(db.Model):
@@ -133,7 +134,7 @@ class ComHealthCustomer(db.Model):
     emptype = db.relationship('ComHealthCustomerEmploymentType',
                               backref=db.backref('customers'))
     groups = db.relationship('ComHealthCustomerGroup', backref=db.backref('customers'),
-                                    secondary=group_customer_table)
+                             secondary=group_customer_table)
     line_id = db.Column('line_id', db.String(), unique=True)
     emp_id = db.Column('emp_id', db.String())
     division_id = db.Column('division_id', db.ForeignKey('comhealth_divisions.id'), nullable=True)
@@ -407,9 +408,19 @@ class ComHealthReceiptID(db.Model):
     count = db.Column('count', db.Integer, default=0)
     updated_datetime = db.Column('updated_datetime', db.DateTime(timezone=True))
 
-    @property
+    # TODO: replace next with next_number
+    @property  # decorator
     def next(self):
-        return u'{}{}{:06}'.format(self.code, str(self.buddhist_year)[-2:], self.count + 1)
+        return u'{:08}'.format(self.count + 1)
+
+    @property
+    def book_number(self):
+        count = self.count
+        number = 1
+        while count > RECEIPT_PER_BOOK:
+            count -= RECEIPT_PER_BOOK
+            number += 1
+        return u'{}{}{:03}'.format(self.code, str(self.buddhist_year)[-2:], number)
 
 
 class ComHealthReceipt(db.Model):
@@ -576,4 +587,3 @@ class ComHealthTestSchema(ma.ModelSchema):
 class ComHealthOrgSchema(ma.ModelSchema):
     class Meta:
         model = ComHealthOrg
-

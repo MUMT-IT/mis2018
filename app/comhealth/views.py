@@ -60,7 +60,7 @@ def landing():
 @login_required
 def finance_landing():
     cur_year = datetime.today().date().year + 543
-    receipt_ids = ComHealthReceiptID.query.filter_by(buddhist_year=cur_year)
+    receipt_ids = ComHealthReceiptID.query.filter_by(buddhist_year=cur_year).filter_by(code='MTH')
     if request.method == 'POST':
         code_id = request.form.get('code_id')
         venue = request.form.get('venue')
@@ -1635,13 +1635,13 @@ def create_receipt(record_id):
         issued_for = request.form.get('issued_for', None)
         # TODO: new receipt only includes unpaid tests
         receipt = ComHealthReceipt(
-            code=receipt_code.next,
+            code=receipt_code.next,  # next receipt number
             created_datetime=datetime.now(tz=bangkok),
             record=record,
             issuer_id=int(issuer_id) if issuer_id is not None else None,
             cashier_id=int(cashier_id) if cashier_id is not None else None,
             print_profile_note=(True if print_profile == 'consolidated' else False),
-            book_number=receipt_code.next,
+            book_number=receipt_code.book_number,
             issued_at=session.get('receipt_venue', ''),
         )
         if address:
@@ -1787,8 +1787,8 @@ def export_receipt_pdf(receipt_id):
                             topMargin=20,
                             bottomMargin=10,
                             )
-    book_id = receipt.book_number[:3]
-    receipt_number = receipt.book_number[3:]
+    book_id = receipt.book_number
+    receipt_number = receipt.code
     data = []
     affiliation = '''<para align=center><font size=10>
     คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>

@@ -30,8 +30,8 @@
                 <div class="column">
                     <div class="has-text-right">
                     <p>พิมพ์ไปแล้ว {{ receipt.copy_number - 1 }} ครั้ง</p>
-                    <p>เล่มที่ {{ receipt.book_number[:3] }}</p>
-                    <p>เลขที่ {{ receipt.book_number[3:] }}</p>
+                    <p>เล่มที่ {{ receipt.book_number }}</p>
+                    <p>เลขที่ {{ receipt.code }}</p>
                     <p>วันที่ {{ receipt.created_datetime|localdate }}</p>
                     <p>ออกที่ {{ receipt.issued_at }}</p>
                     </div>
