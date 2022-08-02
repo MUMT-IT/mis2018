@@ -1702,7 +1702,6 @@ def summary_index():
                     'start': smr.start_datetime.astimezone(tz).isoformat(),
                     'end': smr.end_datetime.astimezone(tz).isoformat(),
                     'title': emp.th_firstname + " " + smr.seminar.topic,
-                    'staff_id' : emp.staff_account.id,
                     'backgroundColor': bg_color,
                     'borderColor': border_color,
                     'textColor': text_color,
@@ -1910,8 +1909,7 @@ def create_seminar():
             db.session.commit()
             flash(u'เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
             return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar.id))
-    current_user_id = current_user.id
-    return render_template('staff/seminar_create_event.html', current_user_id=current_user_id)
+    return render_template('staff/seminar_create_event.html')
 
 
 @staff.route('/seminar/add-attend/for-hr/<int:seminar_id>', methods=['GET', 'POST'])

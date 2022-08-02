@@ -121,7 +121,7 @@
         </div>
         <div class="columns">
             <div class="column">
-                <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user_id) }}" class="button is-rounded is-info is-light">
+                <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}" class="button is-rounded is-info is-light">
                     <span class="icon">
                         <i class="fas fa-arrow-left"></i>
                     </span>

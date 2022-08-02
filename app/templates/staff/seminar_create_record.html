@@ -11,19 +11,20 @@
     <div class="container">
         <div class="columns">
             <div class="column has-text-centered">
-                <h1 class="title">เพิ่มเป็นผู้เข้าร่วมประชุม อบรม สัมมนา</h1>
+                <h1 class="title">เพิ่มเป็นผู้เข้าร่วม</h1>
             </div>
         </div>
         <div class="columns">
             <div class="column is-half is-offset-3 has-text-centered">
                 <p class="title is-size-3"><strong>{{ seminar.topic }}</strong></p>
-                <p class="subtitle is-size-4">วันที่ {{ seminar.start_datetime|localdatetime }} -
+                <p class="subtitle is-size-4">ซึ่งจัดขึ้นวันที่ {{ seminar.start_datetime|localdatetime }} -
                     {{ seminar.end_datetime|localdatetime }}</p>
             </div>
         </div>
         <hr>
         {% include "messages.html" %}
         <form method="post">
+            <div class="box">
                 <div class="columns">
                     <div class="column is-half is-offset-3">
                         <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
@@ -155,6 +156,7 @@
                         </div>
                     </div>
                 </div>
+            </div>
             </div>
         </form>
     </div>

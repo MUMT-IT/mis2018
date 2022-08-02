@@ -33,7 +33,7 @@
                     <th>หน่วยงานที่จัด</th>
                     </thead>
                     <tbody>
-                    {% for records in seminar_records %}
+                    {% for records in seminar_records|sort(attribute='startdate') %}
                     <tr>
                         <td>
                            {{ records["type"] }}
