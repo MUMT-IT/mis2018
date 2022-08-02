@@ -21,10 +21,10 @@
     {% if not requester.cancelled_at and requester.get_approved or requester.get_unapproved %}
         <tr>
             <td>
-                {{ requester.start_datetime|localdate }}
+                {{ requester.start_datetime|localdatetime }}
             </td>
             <td>
-                {{ requester.end_datetime|localdate }}
+                {{ requester.end_datetime|localdatetime }}
             </td>
             <td>
                 {{ requester.duration }}

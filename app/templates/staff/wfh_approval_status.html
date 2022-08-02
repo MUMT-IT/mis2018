@@ -2,35 +2,86 @@
 {% include "staff/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <div class="container">
-        <h4 class="subtitle">สถานะการอนุมัติขอทำงานที่บ้าน</h4>
-        <table class="table is-fullwidth">
-            <thead>
-            <th>ผู้อนุมัติ</th>
-            <th>วันที่</th>
-            <th>สถานะ</th>
-            </thead>
-            <tbody>
-            {% for approver in approvers %}
-            <tr>
-                <td>{{ approver.account.personal_info }}</td>
-                {% if request.wfh_approvals %}
-                {% for status in request.wfh_approvals %}
-                {% if status.approver_id==approver.id %}
-                <td>{{ status.updated_at|localdate }}</td>
-                <td>{{ status.is_approved }}</td>
-                {% endif %}
-                {% endfor %}
-                {% else %}
-                <td></td>
-                <td></td>
-                <td></td>
-                {% endif %}
-            </tr>
-            {% endfor %}
-            </tbody>
-        </table>
-         <a href="{{ url_for('staff.show_work_from_home') }}" class="button is-info">กลับหน้าสรุปการขอทำงานที่บ้านของท่าน</a>
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <table class="table is-fullwidth">
+                        <tr>
+                            <td>
+                                <label class="label">เรื่อง</label>
+                            </td>
+                            <td>
+                                {{ req.detail }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">ชื่อ</label>
+                            </td>
+                            <td>
+                                {{ req.staff.personal_info }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">สังกัด</label>
+                            </td>
+                            <td>
+                                {{ req.staff.personal_info.org }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="title is-size-6">
+                                วันที่ปฏิบัติงานที่บ้าน
+                            </td>
+                            <td>
+                                {{ req.start_datetime|localdatetime }} - {{ req.end_datetime|localdatetime }}
+                                <p>({{ req.duration }} วัน)</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">ความคิดเห็นหัวหน้างาน</label>
+                            </td>
+                            <td>
+                                {% for approval in req.wfh_approvals %}
+                                <strong>{{ approval.approver.account.personal_info }}:</strong>
+                                {% if approval.is_approved == True %}
+                                (อนุมัติ)
+                                {% else %}
+                                (ไม่อนุมัติ)
+                                {% endif %}
+                                {% if approval.approval_comment %}
+                                {{ approval.approval_comment }}
+                                {% endif %}
+                                {{ approval.updated_at|localdatetime }}<br>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <a href="{{ url_for('staff.show_work_from_home') }}" class="button is-rounded is-info is-light">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+    });
+</script>
 {% endblock %}

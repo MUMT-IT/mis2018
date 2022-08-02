@@ -17,6 +17,7 @@
                                         v-model="selectedDates"
                                         range
                                         icon-pack="fa"
+                                        :date-formatter="formatDate"
                                         :mobile-native="false"
                                         placeholder="คลิกเพื่อเปิดปฏิทิน..."
                                         icon="calendar-alt">
@@ -31,17 +32,6 @@
                                  value="{{ req.detail }}"
                                  required>
                         </b-input>
-                    </b-field>
-                    <b-field label="กำหนดส่งงาน">
-                        <b-datepicker
-                                name="deadline_date"
-                                icon="calendar-check"
-                                :mobile-native="false"
-                                placeholder="คลิกเพื่อเปิดปฏิทิน..."
-                                icon="calendar-alt"
-                                v-model="selectedDeadlineDate"
-                                required>
-                        </b-datepicker>
                     </b-field>
                     <b-field label="สามารถติดต่อท่านได้ที่" type="is-danger">
                         <b-input type="text"
@@ -85,8 +75,20 @@
             return {
                 selectedDates: [],
                 notifiedByLine: "yes",
-                givenDates: [],
-                selectedDeadlineDate: new Date({{ deadline|tojsdatetime(single=True) }})
+                givenDates: []
+            }
+        },
+        methods: {
+            formatDate(dates){
+                if (dates.length===2){
+                    let start = new moment(dates[0]).format("DD/MM/YYYY")
+                    let end = new moment(dates[1]).format("DD/MM/YYYY")
+                    return start + ' - ' + end
+                }
+                else{
+                    let date = new moment(dates).format("DD/MM/YYYY")
+                    return date + ' - ' + date
+                }
             }
         },
         mounted() {
