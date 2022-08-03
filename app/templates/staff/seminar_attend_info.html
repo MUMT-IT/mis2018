@@ -69,6 +69,7 @@
                     </table>
                 </div>
                 <div class="box">
+                    {% if not current_user_attended %}
                     <div class="columns">
                         <div class="column has-text-centered">
                             <a href="{{ url_for('staff.seminar_create_record', seminar_id=seminar.id) }}"
@@ -80,6 +81,7 @@
                             </a>
                         </div>
                     </div>
+                    {% endif %}
                     <table class="table is-fullwidth">
                         <thead>
                             <th>ชื่อ</th>

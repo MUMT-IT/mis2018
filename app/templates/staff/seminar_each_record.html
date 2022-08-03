@@ -90,19 +90,11 @@
                 </div>
                 <div class="columns">
                     <div class="column">
-                        <a href="" class="button is-rounded is-info is-light">
+                        <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}" class="button is-rounded is-info is-light">
                             <span class="icon">
                                 <i class="fas fa-arrow-left"></i>
                             </span>
                             <span>กลับหน้าสรุปรายการอบรม</span>
-                        </a>
-                    </div>
-                    <div class="column has-text-right">
-                        <a href="{{ url_for('staff.summary_index') }}" class="button is-rounded is-info is-light">
-                            <span>กลับหน้าตารางสรุป</span>
-                            <span class="icon">
-                                <i class="fas fa-arrow-right"></i>
-                            </span>
                         </a>
                     </div>
                 </div>

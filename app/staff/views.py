@@ -1933,8 +1933,8 @@ def seminar_attend_info_for_hr(seminar_id):
 def seminar_attend_info(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
     attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
-    current_user_id = current_user.id
-    return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends,current_user_id=current_user_id)
+    current_user_attended = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).filter(StaffSeminarAttend.staff.any(id=current_user.id)).first()
+    return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends, current_user_attended=current_user_attended)
 
 
 @staff.route('/seminar/all-seminars', methods=['GET', 'POST'])
@@ -2111,6 +2111,7 @@ def seminar_attends_each_person(staff_id):
     for attend in attends_query:
         years.add(attend.start_datetime.year)
         record = {}
+        record["id"] = attend.id
         record["start"] = attend.start_datetime
         record["end"] = attend.end_datetime
         record["role"] = attend.role

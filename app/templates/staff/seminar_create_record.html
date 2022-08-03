@@ -127,6 +127,53 @@
                                          icon="travel">
                                 </b-input>
                             </b-field>
+                            <div class="field" v-if="payment === 'paid'">
+                                <div class="field">
+                                    <label class="label">ค่าเดินทาง</label>
+                                </div>
+                                <div class="block">
+                                    <b-radio native-value="no_cost" v-model="transportation"
+                                             name="transportation">ไม่มีค่าเดินทาง</b-radio>
+                                    <b-radio native-value="fuel_cost" v-model="transportation"
+                                             name="transportation">ค่าน้ำมัน</b-radio>
+                                    <b-radio native-value="train_ticket_cost" v-model="transportation"
+                                             name="transportation">ค่ารถไฟ</b-radio>
+                                    <b-radio native-value="taxi_cost" v-model="transportation"
+                                             name="transportation">ค่า Taxi</b-radio>
+                                    <b-radio native-value="flight_ticket_cost" v-model="transportation"
+                                             name="transportation">ค่าตั๋วเครื่องบิน</b-radio>
+                                </div>
+                            </div>
+                            <b-field label="ค่าน้ำมัน (บาท)" v-if="transportation === 'fuel_cost'">
+                                <b-input type="text"
+                                         name="fuel_cost"
+                                         icon-pack="far"
+                                         icon="travel">
+                                </b-input>
+                            </b-field>
+                            <b-field label="ค่า Taxi (บาท)" v-if="transportation === 'taxi_cost'">
+                                <b-input type="text"
+                                         name="taxi_cost"
+                                         icon-pack="far"
+                                         icon="travel">
+                                </b-input>
+                            </b-field>
+                            <b-field label="ค่ารถไฟ (บาท)"
+                                     v-if="transportation === 'train_ticket_cost' || transportation === 'taxi_cost'">
+                                <b-input type="text"
+                                         name="train_ticket_cost"
+                                         icon-pack="far"
+                                         icon="travel">
+                                </b-input>
+                            </b-field>
+                            <b-field label="ค่าตั๋วเครื่องบิน (บาท)"
+                                     v-if="transportation === 'flight_ticket_cost' || transportation === 'taxi_cost'">
+                                <b-input type="text"
+                                         name="flight_ticket_cost"
+                                         icon-pack="far"
+                                         icon="travel">
+                                </b-input>
+                            </b-field>
                             <b-field label="ค่าธรรมเนียมการโอนเงิน (บาท)" v-if="payment === 'paid'">
                                 <b-input type="text"
                                          name="transaction_fee"
@@ -177,6 +224,7 @@
                 status: "wanttogo",
                 payment: "unpaid",
                 objective: "others",
+                transportation: "no_cost",
                 data: [],
                 participants: [],
                 timepicker: {

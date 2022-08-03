@@ -27,7 +27,6 @@
                                     <option value="ประชุม">ประชุม</option>
                                     <option value="ประชุมวิชาการ">ประชุมวิชาการ</option>
                                     <option value="สัมมนา">สัมมนา</option>
-                                    <option value="ราชการ">ราชการ</option>
                                 </b-select>
                             </b-field>
                             <b-field label="หัวข้อ"
@@ -110,7 +109,7 @@
                                 <input type="submit" value="submit" class="button is-primary"/>
                             </div>
                             <div class="control">
-                                <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user_id) }}" class="button is-danger">Cancel</a>
+                                <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}" class="button is-danger">Cancel</a>
                             </div>
                         </div>
                     </form>

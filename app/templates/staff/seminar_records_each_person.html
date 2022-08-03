@@ -13,7 +13,6 @@
                 <h1 class="title">รายการประชุม อบรม สัมมนาทั้งหมด</h1>
             </div>
             <div class="column has-text-right">
-                <span>หากไม่พบชื่อกิจกรรมกรุณา</span>
                 <a href="{{ url_for('staff.create_seminar') }}" class="button is-rounded is-info">
                     <span class="icon">
                         <i class="fas fa-plus"></i>
@@ -123,7 +122,10 @@
                             {{ record["topic_type"] }}
                         </td>
                         <td>
-                            {{ record["topic"] }}
+                            <a href="{{ url_for('staff.show_seminar_info_each_person', record_id=record['id']
+                                                    , staff_id=current_user.id) }}">
+                                {{ record["topic"] }}
+                            </a>
                         </td>
                         <td>
                             {{ record["start"]|localdatetime }}
