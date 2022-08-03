@@ -1135,35 +1135,43 @@ def leave_request_by_person_detail(requester_id):
 @login_required
 def show_work_from_home():
     wfh_list = []
-    req = StaffWorkFromHomeRequest.query.filter_by(staff_account_id=current_user.id).all()
-    for wfh in req:
-        record = {}
-        record["id"] = wfh.id
-        record["start"] = wfh.start_datetime
-        record["end"] = wfh.end_datetime
-        record["detail"] = wfh.detail
-        record["get_approved"] = wfh.get_approved
-        record["get_unapproved"] = wfh.get_unapproved
-        record["cancelled_at"] = wfh.cancelled_at
-        wfh_list.append(record)
-    wfh_approved_list = []
+    for wfh in current_user.wfh_requests:
+        if wfh.start_datetime >= tz.localize(START_FISCAL_DATE) and wfh.end_datetime <= tz.localize(END_FISCAL_DATE) \
+                and not wfh.cancelled_at:
+            if not wfh.get_approved:
+                if not wfh.get_unapproved:
+                    wfh_list.append(wfh)
 
-    app = StaffWorkFromHomeRequest.query.filter_by(staff_account_id=current_user.id)\
-                                        .filter(and_(StaffWorkFromHomeApproval.request_id==StaffWorkFromHomeRequest.id,
-                                                     StaffWorkFromHomeApproval.is_approved==True)).all()
-    for wfh in app:
-        record = {}
-        record["id"] = wfh.id
-        record["start"] = wfh.start_datetime
-        record["end"] = wfh.end_datetime
-        record["detail"] = wfh.detail
-        record["get_approved"] = wfh.get_approved
-        record["get_unapproved"] = wfh.get_unapproved
-        record["cancelled_at"] = wfh.cancelled_at
-        wfh_approved_list.append(record)
+    wfh_approved_list = []
+    for wfh in current_user.wfh_requests:
+        if wfh.get_approved:
+            if not wfh.cancelled_at:
+                wfh_approved_list.append(wfh)
+
+    wfh_unapproved_list = []
+    for wfh in current_user.wfh_requests:
+        if wfh.get_unapproved:
+            if not wfh.cancelled_at:
+                wfh_unapproved_list.append(wfh)
     approver = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=current_user.id).first()
-    return render_template('staff/wfh_info.html', wfh_list=wfh_list,
-                           wfh_approved_list=wfh_approved_list, approver=approver)
+    return render_template('staff/wfh_info.html', wfh_list=wfh_list, wfh_approved_list=wfh_approved_list,
+                           wfh_unapproved_list=wfh_unapproved_list, approver=approver)
+
+
+@staff.route('/wfh/others-records')
+@login_required
+def show_work_from_home_others_records():
+    wfh_history = []
+    for wfh in current_user.wfh_requests:
+        if wfh.start_datetime <= tz.localize(START_FISCAL_DATE) and wfh.end_datetime < tz.localize(END_FISCAL_DATE) and wfh.cancelled_at is None:
+            wfh_history.append(wfh)
+
+    wfh_cancelled_list = []
+    for wfh in current_user.wfh_requests:
+        if wfh.cancelled_at:
+            wfh_cancelled_list.append(wfh)
+    return render_template('staff/wfh_info_others_records.html', wfh_history=wfh_history,
+                           wfh_cancelled_list=wfh_cancelled_list)
 
 
 @staff.route('/wfh/request',

@@ -27,38 +27,42 @@
                     <th>ยกเลิก</th>
                     </thead>
                     <tbody>
-                    {% for records in wfh_list|sort(attribute='start') %}
+                    {% for records in wfh_list|sort(attribute='start_datetime') %}
                     <tr>
                         <td>
-                            {{ records["start"]|localdatetime }}
+                            {{ records.start_datetime|localdatetime }}
                         </td>
                         <td>
-                            {{ records["end"]|localdatetime }}
+                            {{ records.end_datetime|localdatetime }}
                         </td>
                         <td>
-                            {{ records["detail"] }}
+                            {{ records.detail }}
                         </td>
                         <td>
                             <b-tooltip
                                     label="" type="is-light">
                                 <a class="button is-text" href="{{ url_for('staff.show_wfh_approval',
-                                                                                request_id=records['id']) }}">
+                                                                                request_id=records.id) }}">
                                     <span class="tag is-dark">อนุมัติ</span>
-                                    <span class="tag is-info">{{ records["get_approved"]|length }}</span>
+                                    <span class="tag is-info">{{ records.get_approved|length }}</span>
                                 </a>
                             </b-tooltip>
                         </td>
                         <td>
                             <a class="button is-text" href="{{ url_for('staff.show_wfh_approval',
-                                                                                request_id=records['id']) }}">
+                                                                                request_id=records.id) }}">
                                 <span class="tag is-dark">ไม่อนุมัติ</span>
-                                <span class="tag is-danger">{{ records["get_unapproved"]|length }}</span>
+                                <span class="tag is-danger">{{ records.get_unapproved|length }}</span>
                             </a>
                         </td>
                         <td>
                             <b-tooltip label="แก้ไข" type="is-light">
                                 <a class="button"
+                                {% if records.get_approved %}
+                                disabled
+                                {% else %}
                                 href="{{ url_for('staff.edit_request_work_from_home', request_id=records['id']) }}"
+                                {% endif %}
                                 >
                                 <span class="icon">
                                     <i class="fas fa-pencil-alt has-text-dark"></i>
@@ -69,11 +73,7 @@
                         <td>
                             <b-tooltip label="ยกเลิกการลา" type="is-danger">
                                 <a class="button"
-                                   {% if records["cancelled_at"] %}
-                                   disabled
-                                   {% else %}
                                    @click="confirmWfhDelete({{ records['id'] }})"
-                                   {% endif %}
                                 >
                                 <span class="icon">
                                     <i class="fas fa-trash has-text-danger"></i>
@@ -104,40 +104,40 @@
                     {% for app in wfh_approved_list %}
                     <tr>
                         <td>
-                            {{ app["start"]|localdatetime }}
+                            {{ app.start_datetime|localdatetime }}
                         </td>
                         <td>
-                            {{ app["end"]|localdatetime }}
+                            {{ app.end_datetime|localdatetime }}
                         </td>
                         <td>
-                            {{ app["detail"] }}
+                            {{ app.detail }}
                         </td>
                         <td>
                             <b-tooltip
                                     label="" type="is-light">
                                 <a class="button is-text" href="{{ url_for('staff.show_wfh_approval',
-                                                                                request_id=app['id']) }}">
+                                                                                request_id=app.id) }}">
                                     <span class="tag is-dark">อนุมัติ</span>
-                                    <span class="tag is-info">{{ app["get_approved"]|length }}</span>
+                                    <span class="tag is-info">{{ app.get_approved|length }}</span>
                                 </a>
                             </b-tooltip>
                         </td>
                         <td>
                             <a class="button is-text" href="{{ url_for('staff.show_wfh_approval',
-                                                                                request_id=app['id']) }}">
+                                                                                request_id=app.id) }}">
                                 <span class="tag is-dark">ไม่อนุมัติ</span>
-                                <span class="tag is-danger">{{ app["get_unapproved"]|length }}</span>
+                                <span class="tag is-danger">{{ app.get_unapproved|length }}</span>
                             </a>
                         </td>
                         <td>
                             <b-tooltip label="แก้ไข" type="is-light">
                                 <a class="button"
-                                   {% if app["cancelled_at"] %}
+                                   {% if app.cancelled_at %}
                                 disabled
-                                {% elif app["get_approved"] %}
+                                {% elif app.get_approved %}
                                 disabled
                                 {% else %}
-                                href="{{ url_for('staff.edit_request_work_from_home', request_id=app['id']) }}"
+                                href="{{ url_for('staff.edit_request_work_from_home', request_id=app.id) }}"
                                 {% endif %}
                                 >
                                 <span class="icon">
@@ -149,10 +149,10 @@
                         <td>
                             <b-tooltip label="ยกเลิกการลา" type="is-danger">
                                 <a class="button"
-                                   {% if app["cancelled_at"] %}
+                                   {% if app.cancelled_at %}
                                 disabled
                                 {% else %}
-                                @click="confirmWfhDelete({{ app['id'] }})"
+                                @click="confirmWfhDelete({{ app.id }})"
                                 {% endif %}
                                 >
                                 <span class="icon">
@@ -165,6 +165,95 @@
                     {% endfor %}
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <h4 class="title">รายการที่ไม่ได้รับการอนุมัติ</h4>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="wfhUnApprovedTable">
+                    <thead>
+                    <th>วันเริ่มต้นwfh</th>
+                    <th>วันสิ้นสุดwfh</th>
+                    <th>เรื่อง</th>
+                    <th>การอนุมัติ</th>
+                    <th>การอนุมัติ</th>
+                    <th>ลบ</th>
+                    <th>ยกเลิก</th>
+                    </thead>
+                    <tbody>
+                    {% for records in wfh_unapproved_list %}
+                    <tr>
+                        <td>
+                            {{ records.start_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            {{ records.end_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            {{ records.detail }}
+                        </td>
+                        <td>
+                            <b-tooltip
+                                    label="" type="is-light">
+                                <a class="button is-text" href="{{ url_for('staff.show_wfh_approval',
+                                                                                request_id=records.id) }}">
+                                    <span class="tag is-dark">อนุมัติ</span>
+                                    <span class="tag is-info">{{ records.get_approved|length }}</span>
+                                </a>
+                            </b-tooltip>
+                        </td>
+                        <td>
+                            <a class="button is-text" href="{{ url_for('staff.show_wfh_approval',
+                                                                                request_id=records.id) }}">
+                                <span class="tag is-dark">ไม่อนุมัติ</span>
+                                <span class="tag is-danger">{{ records.get_unapproved|length }}</span>
+                            </a>
+                        </td>
+                        <td>
+                            <b-tooltip label="แก้ไข" type="is-light">
+                                <a class="button"
+                                   {% if records.get_approved %}
+                                   disabled
+                                   {% elif records.get_unapproved %}
+                                   disabled
+                                   {% else %}
+                                   href="{{ url_for('staff.edit_request_work_from_home', request_id=records['id']) }}"
+                                   {% endif %}
+                                >
+                                <span class="icon">
+                                    <i class="fas fa-pencil-alt has-text-dark"></i>
+                                </span>
+                                </a>
+                            </b-tooltip>
+                        </td>
+                        <td>
+                            <b-tooltip label="ยกเลิกการลา" type="is-danger">
+                                <a class="button"
+                                   @click="confirmWfhDelete({{ records['id'] }})"
+                                >
+                                <span class="icon">
+                                    <i class="fas fa-trash has-text-danger"></i>
+                                </span>
+                                </a>
+                            </b-tooltip>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <div class="columns">
+            <div class="column">
+                <div class="has-text-centered">
+                    <a href="{{ url_for('staff.show_work_from_home_others_records') }}"
+                       class="button is-info is-light">
+                        <span>ประวัติ WFH และข้อมูลการยกเลิก</span>
+                    </a>
+                </div>
             </div>
         </div>
         {% if approver %}
@@ -207,6 +296,7 @@
     $(document).ready(function () {
         $('#wfhTable').DataTable();
         $('#wfhApprovedTable').DataTable();
+        $('#wfhUnApprovedTable').DataTable();
     });
 </script>
 {% endblock %}
