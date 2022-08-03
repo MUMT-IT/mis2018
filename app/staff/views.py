@@ -1976,6 +1976,14 @@ def seminar_create_record(seminar_id):
                 budget_type=form.get('budget_type'),
                 budget=form.get('budget'),
                 attend_online=True if form.get("attend_online") else False,
+                document_id=form.get('document_id'),
+                objective=form.get('objective'),
+                accommodation_cost=form.get('accommodation_cost'),
+                fuel_cost=form.get('fuel_cost'),
+                taxi_cost=form.get('taxi_cost'),
+                train_ticket_cost=form.get('train_ticket_cost'),
+                flight_ticket_cost=form.get('flight_ticket_cost'),
+                transaction_fee=form.get('transaction_fee'),
                 staff=[StaffAccount.query.get(current_user.id)]
             )
             db.session.add(attend)
