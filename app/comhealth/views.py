@@ -60,7 +60,7 @@ def landing():
 @login_required
 def finance_landing():
     cur_year = datetime.today().date().year + 543
-    receipt_ids = ComHealthReceiptID.query.filter_by(buddhist_year=cur_year)
+    receipt_ids = ComHealthReceiptID.query.filter_by(buddhist_year=cur_year).filter_by(code='MTH')
     if request.method == 'POST':
         code_id = request.form.get('code_id')
         venue = request.form.get('venue')
@@ -187,6 +187,7 @@ def index():
 @comhealth.route('/api/services/<int:service_id>/search')
 @login_required
 def search_service_customer(service_id):
+    #TODO: search should be done at the backend
     service = ComHealthService.query.get(service_id)
     record_schema = ComHealthRecordCustomerSchema(many=True,
                                           only=("id", "labno", "checkin_datetime", "customer"))
@@ -226,6 +227,51 @@ def register_customer_to_service_org(service_id, org_id):
 def display_service_customers(service_id):
     service = ComHealthService.query.get(service_id)
     return render_template('comhealth/service_customers.html', service=service)
+
+
+@comhealth.route('/services/<int:service_id>/pre-register')
+def pre_register(service_id):
+    service = ComHealthService.query.get(service_id)
+    return render_template('comhealth/pre_register.html', service=service)
+
+
+@comhealth.route('/services/<int:service_id>/pre-register/<int:record_id>/login', methods=['GET', 'POST'])
+def pre_register_login(service_id, record_id):
+    service = ComHealthService.query.get(service_id)
+    record = ComHealthRecord.query.get(record_id)
+    if request.method == 'POST':
+        dob = request.form.get('dob')
+        if record.customer.check_login_dob(dob):
+            return redirect(url_for('comhealth.pre_register_tests',
+                                    record_id=record_id, service_id=service_id))
+        else:
+            flash(u'วันเดือนปีเกิดไม่ถูกต้องหรือไม่มีข้อมูล', 'danger')
+    return render_template('comhealth/pre_register_login.html',
+                           service=service, record=record)
+
+
+@comhealth.route('/services/<int:service_id>/pre-register/<int:record_id>/tests', methods=['GET', 'POST'])
+def pre_register_tests(service_id, record_id):
+    service = ComHealthService.query.get(service_id)
+    record = ComHealthRecord.query.get(record_id)
+
+    if request.method == 'POST':
+        print(request.form)
+        for field in request.form:
+            if field.startswith('test_'):
+                _, test_id = field.split('_')  # name=test_34
+                test_item = ComHealthTestItem.query.get(int(test_id))
+                record.ordered_tests.append(test_item)
+
+        record.updated_at = datetime.now(tz=bangkok)
+        db.session.add(record)
+        db.session.commit()
+
+        special_item_cost = sum([item.price for item in set(record.ordered_tests)])
+        return render_template('comhealth/pre_register_summary.html',
+                               special_item_cost=special_item_cost, record=record)
+
+    return render_template('comhealth/pre_register_edit_record.html', service=service, record=record)
 
 
 @comhealth.route('/checkin/<int:record_id>', methods=['GET', 'POST'])
@@ -1589,13 +1635,13 @@ def create_receipt(record_id):
         issued_for = request.form.get('issued_for', None)
         # TODO: new receipt only includes unpaid tests
         receipt = ComHealthReceipt(
-            code=receipt_code.next,
+            code=receipt_code.next,  # next receipt number
             created_datetime=datetime.now(tz=bangkok),
             record=record,
             issuer_id=int(issuer_id) if issuer_id is not None else None,
             cashier_id=int(cashier_id) if cashier_id is not None else None,
             print_profile_note=(True if print_profile == 'consolidated' else False),
-            book_number=receipt_code.next,
+            book_number=receipt_code.book_number,
             issued_at=session.get('receipt_venue', ''),
         )
         if address:
@@ -1741,8 +1787,8 @@ def export_receipt_pdf(receipt_id):
                             topMargin=20,
                             bottomMargin=10,
                             )
-    book_id = receipt.book_number[:3]
-    receipt_number = receipt.book_number[3:]
+    book_id = receipt.book_number
+    receipt_number = receipt.code
     data = []
     affiliation = '''<para align=center><font size=10>
     คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>

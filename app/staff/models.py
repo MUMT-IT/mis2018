@@ -141,7 +141,6 @@ class StaffPersonalInfo(db.Model):
     def __str__(self):
         return self.fullname
 
-
     @property
     def fullname(self):
         if self.th_firstname or self.th_lastname:
@@ -149,12 +148,10 @@ class StaffPersonalInfo(db.Model):
         else:
             return u'{}{} {}'.format(self.en_title or '', self.en_firstname, self.en_lastname)
 
-
     def get_employ_period(self):
         today = datetime.now().date()
         period = relativedelta(today, self.employed_date)
         return period
-
 
     def get_employ_period_of_current_fiscal_year(self):
         period = relativedelta(START_FISCAL_DATE, self.employed_date)
@@ -603,6 +600,8 @@ class StaffWorkLogin(db.Model):
     checkin_mins = db.Column('checkin_mins', db.Integer())
     checkout_mins = db.Column('checkout_mins', db.Integer())
     num_scans = db.Column('num_scans', db.Integer(), default=0)
+    qrcode_in_exp_datetime = db.Column('qrcode_in_exp_datetime', db.DateTime(timezone=True))
+    qrcode_out_exp_datetime = db.Column('qrcode_out_exp_datetime', db.DateTime(timezone=True))
 
     @staticmethod
     def generate_date_id(date):

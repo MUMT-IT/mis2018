@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block page_content %}
+    {% include "comhealth/nav.html" %}
+    <section class="hero is-light is-small">
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <img src="{{ url_for('static', filename='img/interviews.png') }}" width="60">
+                <h3 class="subtitle">วันที่ {{ service.date }} สถานที่ {{ service.location }}</h3>
+            </div>
+        </div>
+    </section>
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                    <nav class="breadcrumb has-bullet-separator is-centered" aria-label="breadcrumbs">
+                        <ul>
+                            <li><a href="{{ url_for('comhealth.index') }}">Services</a></li>
+                            <li class="is-active"><a aria-current="page">รายชื่อผู้รับบริการ</a></li>
+                        </ul>
+                    </nav>
+                    {% include "messages.html" %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-one-third is-offset-4">
+                    <form method="post">
+                        <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                        <div class="field">
+                            <div class="control">
+                                <input type="password" name="dob"
+                                       class="input is-large is-rounded"
+                                       placeholder="กรุณากรอกวันเดือนปีเกิด">
+                                <p class="help is-danger">รูปแบบ ววดดปปปป โดยใช้ปีพุทธศักราช เช่น 05062525</p>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="control">
+                                <div class="buttons is-centered">
+                                    <input type="submit" value="Submit" class="button is-large is-success">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

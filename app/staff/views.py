@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+from dateutil import parser
 from flask_login import login_required, current_user
 from pandas import read_excel, isna, DataFrame
 
@@ -17,6 +18,7 @@ from linebot.models import TextSendMessage
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 import requests
+import gviz_api
 import os
 from flask_mail import Message
 from flask_admin import BaseView, expose
@@ -162,8 +164,7 @@ def show_leave_info():
                            approver=approver)
 
 
-@staff.route('/leave/request/quota/<int:quota_id>',
-             methods=['GET', 'POST'])
+@staff.route('/leave/request/quota/<int:quota_id>', methods=['GET', 'POST'])
 @login_required
 def request_for_leave(quota_id=None):
     if request.method == 'POST':
@@ -1441,6 +1442,56 @@ def for_hr():
     return render_template('staff/for_hr.html')
 
 
+@staff.route('/api/for-hr/login-report')
+@hr_permission.require()
+@login_required
+def get_hr_login_summary_report_data():
+    description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
+    data = defaultdict(int)
+    for rec in StaffWorkLogin.query.all():
+        data[rec.start_datetime.date()] += 1
+
+    count_data = []
+    for date, heads in data.iteritems():
+        count_data.append({
+            'date': date,
+            'heads': heads
+        })
+
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=('date', 'heads'))
+
+
+@staff.route('/api/for-hr/login-time')
+@hr_permission.require()
+@login_required
+def get_hr_login_time_data():
+    description = {'timeofday': ("timeofday", "Time"), 'heads': ("number", "heads")}
+    data = defaultdict(int)
+    for rec in StaffWorkLogin.query.all():
+        start_datetime = rec.start_datetime.astimezone(tz)
+        data[(start_datetime.hour, start_datetime.minute, 0)] += 1
+
+    count_data = []
+    for tod, heads in data.iteritems():
+        count_data.append({
+            'timeofday': list(tod),
+            'heads': heads
+        })
+
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon()
+
+
+@staff.route('/for-hr/login-report')
+@hr_permission.require()
+@login_required
+def hr_login_summary_report():
+    return render_template('staff/hr_login_summary_report.html')
+
+
 @staff.route('/login-scan', methods=['GET', 'POST'])
 @csrf.exempt
 @admin_permission.require()
@@ -1448,12 +1499,14 @@ def for_hr():
 def login_scan():
     office_starttime = '09:00'
     office_endtime = '16:30'
-    DATETIME_FORMAT = '%Y-%m-%d %H:%M'
+    DATETIME_FORMAT = '%d/%m/%Y %H:%M:%S'
 
     if request.method == 'POST':
         req_data = request.get_json()
         th_name = req_data['data'].get('thName')
         en_name = req_data['data'].get('enName')
+        qrcode_exp_datetime = datetime.strptime(req_data['data'].get('qrCodeExpDateTime'), DATETIME_FORMAT)
+        qrcode_exp_datetime = qrcode_exp_datetime.replace(tzinfo=tz)
         if th_name:
             fname, lname = th_name.split(' ')
             lname = lname.lstrip()
@@ -1469,7 +1522,7 @@ def login_scan():
 
         if person:
             now = datetime.now(pytz.utc)
-            date_id = StaffWorkLogin.generate_date_id(now)
+            date_id = StaffWorkLogin.generate_date_id(now.astimezone(tz))
             record = StaffWorkLogin.query \
                 .filter_by(date_id=date_id, staff=person.staff_account).first()
             # office_startdt = datetime.strptime(u'{} {}'.format(now.date(), office_starttime), DATETIME_FORMAT)
@@ -1486,11 +1539,13 @@ def login_scan():
                     staff=person.staff_account,
                     start_datetime=now,
                     num_scans=num_scans,
+                    qrcode_in_exp_datetime=qrcode_exp_datetime.astimezone(pytz.utc)
                 )
                 activity = 'checked in'
             else:
                 # status = "Late" if morning > 0 else "On time"
                 num_scans = record.num_scans + 1 if record.num_scans else 1
+                record.qrcode_out_exp_datetime = qrcode_exp_datetime.astimezone(pytz.utc)
                 record.end_datetime = now
                 record.num_scans = num_scans
                 activity = 'checked out'
@@ -1500,7 +1555,7 @@ def login_scan():
                 {'message': 'success', 'activity': activity, 'name': person.fullname, 'time': now.isoformat(),
                  'numScans': num_scans})
         else:
-            return jsonify({'message': 'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
+            return jsonify({'message': u'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
 
     return render_template('staff/login_scan.html')
 
@@ -1620,45 +1675,32 @@ class LoginDataUploadView(BaseView):
         return 'Done'
 
 
-@staff.route('/summary')
+@staff.route('/api/summary')
 @login_required
-def summary_index():
-    depts = Org.query.filter_by(head=current_user.email).all()
-    fiscal_year = request.args.get('fiscal_year')
-    if fiscal_year is None:
-        if today.month in [10, 11, 12]:
-            fiscal_year = today.year + 1
-        else:
-            fiscal_year = today.year
-        init_date = today
-    else:
-        fiscal_year = int(fiscal_year)
-        init_date = date(fiscal_year - 1, 10, 1)
-
-    if len(depts) == 0:
-        # return redirect(request.referrer)
-        return redirect(url_for("staff.summary_org"))
-    curr_dept_id = request.args.get('curr_dept_id')
-    tab = request.args.get('tab', 'all')
-    if curr_dept_id is None:
-        curr_dept_id = depts[0].id
-    employees = StaffPersonalInfo.query.filter_by(org_id=int(curr_dept_id))
+def send_summary_data():
+    cal_start = request.args.get('start')
+    cal_end = request.args.get('end')
+    curr_dept_id = request.args.get('curr_dept_id', type=int)
+    tab = request.args.get('tab')
+    print(tab)
+    if cal_start:
+        cal_start = parser.isoparse(cal_start)
+    if cal_end:
+        cal_end = parser.isoparse(cal_end)
+    employees = StaffPersonalInfo.query.filter_by(org_id=curr_dept_id)
     leaves = []
     wfhs = []
     seminars = []
     logins = []
     for emp in employees:
-        if tab == 'login' or tab == 'all':
-            fiscal_years = StaffWorkLogin.query.distinct(func.date_part('YEAR', StaffWorkLogin.start_datetime))
-            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
-            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
-            border_color = '#ffffff'
+        if tab in ['login', 'all']:
             # TODO: recheck staff login model
             for rec in StaffWorkLogin.query.filter_by(staff=emp.staff_account) \
-                    .filter(StaffWorkLogin.start_datetime.between(start_fiscal_date, end_fiscal_date)):
+                    .filter(StaffWorkLogin.start_datetime.between(cal_start, cal_end)):
+                end = None if rec.end_datetime is None else rec.end_datetime.astimezone(tz)
+                border_color = '#ffffff' if end else '#f56956'
                 text_color = '#ffffff'
-                bg_color = '#4da6ff'
-                status = u''
+                bg_color = '#7d9df0'
                 '''
                 if (rec.checkin_mins < 0) and (rec.checkout_mins > 0):
                     bg_color = '#4da6ff'
@@ -1675,7 +1717,6 @@ def summary_index():
                     text_color = '#000000'
                     bg_color = '#ffff66'
                 '''
-                end = None if rec.end_datetime is None else rec.end_datetime.astimezone(tz)
                 logins.append({
                     'id': rec.id,
                     'start': rec.start_datetime.astimezone(tz).isoformat(),
@@ -1686,14 +1727,10 @@ def summary_index():
                     'textColor': text_color,
                     'type': 'login'
                 })
-            all = logins
 
-        if tab == 'leave' or tab == 'all':
-            fiscal_years = StaffLeaveRequest.query.distinct(func.date_part('YEAR', StaffLeaveRequest.start_datetime))
-            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
-            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
+        if tab in ['leave', 'all']:
             for leave_req in StaffLeaveRequest.query.filter_by(staff=emp.staff_account) \
-                    .filter(StaffLeaveRequest.start_datetime.between(start_fiscal_date, end_fiscal_date)):
+                    .filter(StaffLeaveRequest.start_datetime.between(cal_start, cal_end)):
                 if not leave_req.cancelled_at:
                     if leave_req.get_approved:
                         text_color = '#ffffff'
@@ -1713,15 +1750,10 @@ def summary_index():
                         'textColor': text_color,
                         'type': 'leave'
                     })
-            all = leaves
 
-        if tab == 'wfh' or tab == 'all':
-            fiscal_years = StaffWorkFromHomeRequest.query.distinct(
-                func.date_part('YEAR', StaffWorkFromHomeRequest.start_datetime))
-            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
-            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
+        if tab in ['wfh', 'all']:
             for wfh_req in StaffWorkFromHomeRequest.query.filter_by(staff=emp.staff_account).filter(
-                    StaffWorkFromHomeRequest.start_datetime.between(start_fiscal_date, end_fiscal_date)):
+                    StaffWorkFromHomeRequest.start_datetime.between(cal_start, cal_end)):
                 if not wfh_req.cancelled_at:
                     if wfh_req.get_approved:
                         text_color = '#ffffff'
@@ -1741,14 +1773,9 @@ def summary_index():
                         'textColor': text_color,
                         'type': 'wfh'
                     })
-            all = wfhs
-        if tab == 'smr' or tab == 'all':
-            fiscal_years = StaffSeminarAttend.query.distinct(
-                func.date_part('YEAR', StaffSeminarAttend.start_datetime))
-            fiscal_years = [convert_to_fiscal_year(req.start_datetime) for req in fiscal_years]
-            start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
+        if tab in ['smr', 'all']:
             for smr in emp.staff_account.seminar_attends.filter(
-                    StaffSeminarAttend.start_datetime.between(start_fiscal_date, end_fiscal_date)):
+                    StaffSeminarAttend.start_datetime.between(cal_start, cal_end)):
                 text_color = '#ffffff'
                 bg_color = '#FF33A5'
                 border_color = '#ffffff'
@@ -1763,15 +1790,23 @@ def summary_index():
                     'textColor': text_color,
                     'type': 'smr'
                 })
-            all = seminars
 
-    if tab == 'all':
-        all = wfhs + leaves + logins + seminars
+    all = wfhs + leaves + logins + seminars
 
-    return render_template('staff/summary_index.html',
-                           init_date=init_date,
-                           depts=depts, curr_dept_id=int(curr_dept_id),
-                           all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
+    return jsonify(all)
+
+
+@staff.route('/summary')
+@login_required
+def summary_index():
+    depts = Org.query.filter_by(head=current_user.email).all()
+    if len(depts) == 0:
+        # return redirect(request.referrer)
+        return redirect(url_for("staff.summary_org"))
+
+    tab = request.args.get('tab', 'all')
+    curr_dept_id = request.args.get('curr_dept_id', default=depts[0].id, type=int)
+    return render_template('staff/summary_index.html', depts=depts, curr_dept_id=curr_dept_id, tab=tab)
 
 
 @staff.route('/api/staffids')
@@ -2136,6 +2171,36 @@ def seminar_attends_each_person(staff_id):
                            seminar_records=seminar_records)
 
 
+@staff.route('/api/time-report')
+@login_required
+def send_time_report_data():
+    cal_start = request.args.get('start')
+    cal_end = request.args.get('end')
+    if cal_start:
+        cal_start = parser.isoparse(cal_start)
+    if cal_end:
+        cal_end = parser.isoparse(cal_end)
+    records = []
+    for rec in StaffWorkLogin.query.filter(StaffWorkLogin.start_datetime.between(cal_start, cal_end))\
+            .filter_by(staff=current_user):
+        # The event object is a dict object with a 'summary' key.
+        text_color = '#ffffff'
+        bg_color = '#4da6ff'
+        border_color = '#ffffff'
+        end = None if rec.end_datetime is None else rec.end_datetime.astimezone(tz)
+        records.append({
+            'id': rec.id,
+            'start': rec.start_datetime.astimezone(tz).isoformat(),
+            'end': end.isoformat() if end else None,
+            'title': u'{}'.format(rec.staff.personal_info.th_firstname),
+            'backgroundColor': bg_color,
+            'borderColor': border_color,
+            'textColor': text_color,
+            'type': 'login'
+        })
+    return jsonify(records)
+
+
 @staff.route('/time-report/report')
 @login_required
 def show_time_report():
@@ -2356,8 +2421,7 @@ def staff_add_requester(requester_id):
                            requester_name=requester_name, name=name)
 
 
-@staff.route('/for-hr/search',
-             methods=['GET', 'POST'])
+@staff.route('/for-hr/search', methods=['GET', 'POST'])
 @login_required
 def search_person_for_add_leave_request():
     if request.method == 'POST':
