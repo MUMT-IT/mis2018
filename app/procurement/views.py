@@ -324,29 +324,32 @@ def export_qrcode_pdf(procurement_id):
         canvas.restoreState()
 
     doc = SimpleDocTemplate("app/qrcode.pdf",
-                            rightMargin=20,
-                            leftMargin=20,
-                            topMargin=20,
+                            rightMargin=10,
+                            leftMargin=10,
+                            topMargin=10,
                             bottomMargin=10,
-                            pagesize=letter
+                            pagesize=(480, 480)
                             )
     data = []
     if not procurement.qrcode:
-        qr_img = qrcode.make(procurement.procurement_no, box_size=4)
+        qr = qrcode.QRCode(version=1, box_size=20)
+        qr.add_data(procurement.procurement_no)
+        qr.make(fit=True)
+        qr_img = qr.make_image()
         qr_img.save('procurement_qrcode.png')
         import base64
         with open("procurement_qrcode.png", "rb") as img_file:
             procurement.qrcode = base64.b64encode(img_file.read())
             db.session.add(procurement)
             db.session.commit()
-    else:
-        decoded_img = b64decode(procurement.qrcode)
-        img_string = cStringIO.StringIO(decoded_img)
-        img_string.seek(0)
-        im = Image(img_string, 50 * mm, 50 * mm, kind='bound')
-        data.append(im)
 
-    data.append(Paragraph('<para align=center><font size=18>รหัสครุภัณฑ์ / Procurement No: {}<br/><br/></font></para>'
+    decoded_img = b64decode(procurement.qrcode)
+    img_string = cStringIO.StringIO(decoded_img)
+    img_string.seek(0)
+    im = Image(img_string, 100 * mm, 100 * mm, kind='bound')
+    data.append(im)
+
+    data.append(Paragraph('<para align=center><font size=18>{}<br/><br/></font></para>'
                           .format(procurement.procurement_no.encode('utf-8')),
                           style=style_sheet['ThaiStyle']))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
