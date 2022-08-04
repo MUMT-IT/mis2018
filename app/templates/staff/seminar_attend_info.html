@@ -118,24 +118,6 @@
                             {% endfor %}
                         </tbody>
                     </table>
-                    <div class="columns">
-                        <div class="column has-text-centered">
-                            <a href="{{ url_for('staff.seminar_add_attendee', seminar_id=seminar.id) }}"
-                               class="button is-light is-success">
-                                <span class="icon">
-                                    <i class="fas fa-user-plus"></i>
-                                </span>
-                                <span>เพิ่มผู้เข้าร่วม</span>
-                            </a>
-                             <a href="{{ url_for('staff.checkin_activity', seminar_id=seminar.id) }}"
-                               class="button is-light is-info">
-                                <span class="icon">
-                                   <i class="fas fa-qrcode"></i>
-                                </span>
-                                <span>สแกนเข้าร่วม</span>
-                            </a>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
