@@ -589,7 +589,6 @@ class StaffSeminarAttend(db.Model):
                            default=datetime.now())
     role = db.Column('role', db.String())
     registration_fee = db.Column('registration_fee', db.Float())
-    is_invited = db.Column('is_invited', db.Float())
     objective = db.Column('objective', db.String())
     document_id = db.Column('document_id', db.Integer())
     taxi_cost = db.Column('taxi_cost', db.Float())
