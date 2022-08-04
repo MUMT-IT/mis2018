@@ -10,7 +10,7 @@
                     <table class="table is-fullwidth">
                         <tr>
                             <td>
-                               <label class="label">วันที่</label>
+                               <label class="label">ระยะเวลาเข้าร่วม</label>
                             </td>
                             <td>
                                 {{ attend.start_datetime|localdatetime }} - {{ attend.end_datetime|localdatetime }}
@@ -82,7 +82,64 @@
                             <td>{% if attend.budget_type %}
                                 {{ attend.budget_type }} :
                                 {% endif %}
+                                รวมทั้งสิ้น
                                 {{ attend.budget }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.registration_fee %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                ค่าลงทะเบียน: {{ attend.registration_fee }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.accommodation_cost %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                ค่าที่พัก: {{ attend.accommodation_cost }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.fuel_cost %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                ค่าน้ำมัน: {{ attend.fuel_cost }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.train_ticket_cost %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                ค่ารถไฟ: {{ attend.train_ticket_cost }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.taxi_cost %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                ค่าTaxi: {{ attend.taxi_cost }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.flight_ticket_cost %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                ค่าตั๋วเครื่องบิน: {{ attend.flight_ticket_cost }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.transaction_fee %}
+                        <tr>
+                            <td></td>
+                            <td>
+                                ค่าธรรมเนียมการโอน: {{ attend.transaction_fee }}
                             </td>
                         </tr>
                         {% endif %}
