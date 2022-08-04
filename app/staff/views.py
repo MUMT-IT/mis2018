@@ -2252,6 +2252,8 @@ def staff_edit_info(staff_id):
         staff.org_id = form.get('org_id')
         academic_staff = True if form.getlist("academic_staff") else False
         staff.academic_staff = academic_staff
+        retired = True if form.getlist("retired") else False
+        staff.retired = retired
         db.session.add(staff)
         db.session.commit()
         flash(u'แก้ไขข้อมูลบุคลากรเรียบร้อย')
