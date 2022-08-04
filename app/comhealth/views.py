@@ -14,7 +14,7 @@ from flask import (render_template, flash, redirect,
                    url_for, session, request, send_file,
                    send_from_directory, jsonify)
 from flask_admin import BaseView, expose
-from flask_login import login_required
+from flask_login import login_required, current_user
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.utils import ImageReader
@@ -60,7 +60,7 @@ def landing():
 @login_required
 def finance_landing():
     cur_year = datetime.today().date().year + 543
-    receipt_ids = ComHealthReceiptID.query.filter_by(buddhist_year=cur_year)
+    receipt_ids = ComHealthReceiptID.query.filter_by(buddhist_year=cur_year).filter_by(code='MTH')
     if request.method == 'POST':
         code_id = request.form.get('code_id')
         venue = request.form.get('venue')
@@ -84,8 +84,8 @@ def finance_index():
             'id': sv.id,
             'date': sv.date,
             'location': sv.location,
-            'registered': len(sv.records),
-            'checkedin': len([r for r in sv.records if r.checkin_datetime is not None])
+            'registered': sv.records.count(),
+            'checkedin': sv.records.filter(ComHealthRecord.checkin_datetime!=None).count()
         }
         services_data.append(d)
     return render_template('comhealth/finance_index.html', services=services_data)
@@ -187,6 +187,7 @@ def index():
 @comhealth.route('/api/services/<int:service_id>/search')
 @login_required
 def search_service_customer(service_id):
+    #TODO: search should be done at the backend
     service = ComHealthService.query.get(service_id)
     record_schema = ComHealthRecordCustomerSchema(many=True,
                                           only=("id", "labno", "checkin_datetime", "customer"))
@@ -228,6 +229,51 @@ def display_service_customers(service_id):
     return render_template('comhealth/service_customers.html', service=service)
 
 
+@comhealth.route('/services/<int:service_id>/pre-register')
+def pre_register(service_id):
+    service = ComHealthService.query.get(service_id)
+    return render_template('comhealth/pre_register.html', service=service)
+
+
+@comhealth.route('/services/<int:service_id>/pre-register/<int:record_id>/login', methods=['GET', 'POST'])
+def pre_register_login(service_id, record_id):
+    service = ComHealthService.query.get(service_id)
+    record = ComHealthRecord.query.get(record_id)
+    if request.method == 'POST':
+        dob = request.form.get('dob')
+        if record.customer.check_login_dob(dob):
+            return redirect(url_for('comhealth.pre_register_tests',
+                                    record_id=record_id, service_id=service_id))
+        else:
+            flash(u'วันเดือนปีเกิดไม่ถูกต้องหรือไม่มีข้อมูล', 'danger')
+    return render_template('comhealth/pre_register_login.html',
+                           service=service, record=record)
+
+
+@comhealth.route('/services/<int:service_id>/pre-register/<int:record_id>/tests', methods=['GET', 'POST'])
+def pre_register_tests(service_id, record_id):
+    service = ComHealthService.query.get(service_id)
+    record = ComHealthRecord.query.get(record_id)
+
+    if request.method == 'POST':
+        print(request.form)
+        for field in request.form:
+            if field.startswith('test_'):
+                _, test_id = field.split('_')  # name=test_34
+                test_item = ComHealthTestItem.query.get(int(test_id))
+                record.ordered_tests.append(test_item)
+
+        record.updated_at = datetime.now(tz=bangkok)
+        db.session.add(record)
+        db.session.commit()
+
+        special_item_cost = sum([item.price for item in set(record.ordered_tests)])
+        return render_template('comhealth/pre_register_summary.html',
+                               special_item_cost=special_item_cost, record=record)
+
+    return render_template('comhealth/pre_register_edit_record.html', service=service, record=record)
+
+
 @comhealth.route('/checkin/<int:record_id>', methods=['GET', 'POST'])
 @login_required
 def edit_record(record_id):
@@ -250,7 +296,7 @@ def edit_record(record_id):
         if not record.labno:
             labno = request.form.get('service_code', '')
             if len(labno) != 10 or not labno.isdigit():
-                flash(u'กรุณาระบุหมายเลข lab number ด้วยการแสกนบาร์โค้ด', 'warning')
+                flash(u'กรุณาระบุหมายเลข lab number ให้ถูกต้องหรือแสกนบาร์โค้ด', 'warning')
                 return redirect(request.referrer)
             else:
                 existing_rec = ComHealthRecord.query.filter_by(labno=labno).first()
@@ -868,8 +914,8 @@ def summarize_specimens(service_id):
             containers.add(test_item.test.container)
     columns = [{'data': 'labno', 'searchable': True}]
     headers = []
-    for ct in containers:
-        columns.append({'data': ct.name})
+    for ct in sorted(containers, key=lambda x: x.name):
+        columns.append({'data': ct.id})
         headers.append(ct)
 
     return render_template('comhealth/specimens_checklist.html',
@@ -905,9 +951,9 @@ def get_specimens_summary_data(service_id):
             d = {'labno': rec.labno}
             for ct in containers:
                 if ct.name in rec.container_set:
-                    d[ct.name] = '''<td><span class="icon"><i class="fas fa-check has-text-success"></i></span></td>'''
+                    d[ct.id] = '''<td><span class="icon"><i class="fa-solid fa-circle-check has-text-success"></i></span></td>'''
                 else:
-                    d[ct.name] = '-'
+                    d[ct.id] = None
             data.append(d)
     return jsonify({'data': data,
                     'recordsFiltered': query.count(),
@@ -1004,14 +1050,16 @@ def uncheck_container(service_id, record_id, container_id):
                             service_id=service_id, container_id=container_id))
 
 
-@comhealth.route('/services/<int:service_id>/containers/<int:container_id>/scan',
-                 methods=['GET', 'POST'])
+@comhealth.route('/services/<int:service_id>/containers/<int:container_id>/scan', methods=['GET', 'POST'])
 @login_required
 def scan_container(service_id, container_id):
     container = ComHealthContainer.query.get(container_id)
     service = ComHealthService.query.get(service_id)
-    recents = list(ComHealthSpecimensCheckinRecord.query.filter(ComHealthSpecimensCheckinRecord.container.has(id=container_id))\
-                   .order_by(ComHealthSpecimensCheckinRecord.checkin_datetime.desc()).limit(5))
+    recents = ComHealthSpecimensCheckinRecord.query\
+        .filter(ComHealthSpecimensCheckinRecord.container.has(id=container_id))\
+        .filter(ComHealthSpecimensCheckinRecord.record.has(service_id=service_id))\
+        .order_by(ComHealthSpecimensCheckinRecord.checkin_datetime.desc())
+
     if request.method == 'POST':
         specimens_no = request.form.get('specimens_no')
         labno = u'{}{}'.format(str(datetime.today().year)[-1], specimens_no[3:])
@@ -1452,13 +1500,28 @@ def add_many_employees(orgid):
         if file and allowed_file(file.filename):
             df = read_excel(file)
             for idx, rec in df.iterrows():
-                title, firstname, lastname, dob, gender = rec
+                title, firstname, lastname, dob, gender, emp_id, department_name, division_name, unit, emptype_name, phone = rec
                 if isna(firstname):
                     firstname = None
                 if isna(lastname):
                     lastname = None
                 if isna(firstname) and isna(lastname):
                     continue
+                department= ComHealthDepartment.query.filter_by(parent_id=orgid,name=department_name).first()
+                if not department:
+                    department = ComHealthDepartment(parent_id=orgid,name=department_name)
+                    division = ComHealthDivision(parent=department, name=division_name)
+                    db.session.add(department)
+                    db.session.add(division)
+                else:
+                    division = ComHealthDepartment.query.filter_by(parent=department, name=division_name).first()
+                    if not division:
+                        division = ComHealthDivision(parent_id=department.id,name=division_name)
+                        db.session.add(division)
+                emptype = ComHealthCustomerEmploymentType.query.filter_by(name=emptype_name).first()
+                if not emptype:
+                    emptype = ComHealthCustomerEmploymentType(name=emptype_name)
+                    db.session.add(emptype)
                 try:
                     day, month, year = map(int, dob.split('/'))
                 except Exception as e:
@@ -1479,7 +1542,13 @@ def add_many_employees(orgid):
                         lastname=lastname,
                         dob=dob,
                         org=org,
-                        gender=gender
+                        gender=gender,
+                        emp_id=emp_id,
+                        dept=department,
+                        division=division,
+                        unit=unit,
+                        emptype=emptype,
+                        phone=phone
                     )
                     db.session.add(new_customer)
                     db.session.commit()
@@ -1566,13 +1635,13 @@ def create_receipt(record_id):
         issued_for = request.form.get('issued_for', None)
         # TODO: new receipt only includes unpaid tests
         receipt = ComHealthReceipt(
-            code=receipt_code.next,
+            code=receipt_code.next,  # next receipt number
             created_datetime=datetime.now(tz=bangkok),
             record=record,
             issuer_id=int(issuer_id) if issuer_id is not None else None,
             cashier_id=int(cashier_id) if cashier_id is not None else None,
             print_profile_note=(True if print_profile == 'consolidated' else False),
-            book_number=receipt_code.next,
+            book_number=receipt_code.book_number,
             issued_at=session.get('receipt_venue', ''),
         )
         if address:
@@ -1718,8 +1787,8 @@ def export_receipt_pdf(receipt_id):
                             topMargin=20,
                             bottomMargin=10,
                             )
-    book_id = receipt.book_number[:3]
-    receipt_number = receipt.book_number[3:]
+    book_id = receipt.book_number
+    receipt_number = receipt.code
     data = []
     affiliation = '''<para align=center><font size=10>
     คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
@@ -1727,11 +1796,11 @@ def export_receipt_pdf(receipt_id):
     </font></para>
     '''
     address = '''<font size=11>
-    2 ถนนวังหลัง แขวงศิริราช<br/>
-    เขตบางกอกน้อย กทม. 10700<br/>
-    2 Wang Lang Road<br/>
-    Siriraj, Bangkok-Noi,<br/>
-    Bangkok 10700<br/><br/>
+    999 ถ.พุทธมณฑลสาย 4 ต.ศาลายา<br/>
+    อ.พุทธมณฑล จ.นครปฐม 73170<br/>
+    999 Phutthamonthon 4 Road<br/>
+    Salaya, Phutthamonthon<br/>
+    Nakhon Pathom 73170<br/><br/>
     เลขประจำตัวผู้เสียภาษี / Tax ID Number<br/>
     0994000158378
     </font>
@@ -2216,3 +2285,32 @@ def employee_kiosk_mode():
         else:
             flash(u'ไม่พบหมายเลขบริการ กรุณาตรวจสอบใหม่อีกครั้ง', 'danger')
     return render_template('comhealth/employee_kiosk_mode.html')
+
+@comhealth.route('/consent-details/services/<int:service_id>')
+@login_required
+def list_consent_details(service_id):
+    consent_details = ComHealthConsentDetail.query.all()
+    return  render_template('comhealth/consent_details.html', consent_details=consent_details, service_id=service_id)
+
+@comhealth.route('/consent-records/services/<int:service_id>/consent-details/<int:consent_detail_id>',methods=['GET','POST'])
+@login_required
+def add_consent_records(service_id, consent_detail_id):
+    all_records = ComHealthRecord.query.filter_by(service_id=service_id).all()
+    if request.method=='POST':
+        for record in all_records:
+            if record.consent_record:
+                continue
+            consent = request.form.get('consent_{}'.format(record.id))
+            if consent:
+                consent_given = True if consent == "yes" else False
+                consent_record = ComHealthConsentRecord(
+                    detail_id=consent_detail_id,
+                    is_consent_given=consent_given,
+                    creator=current_user.id,
+                    consent_date=datetime.today().date()
+                )
+                record.consent_record = consent_record
+                db.session.add(consent_record)
+        db.session.commit()
+        return redirect(url_for('comhealth.index'))
+    return  render_template('comhealth/add_consent_records.html', all_records=all_records)

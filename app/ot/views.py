@@ -20,6 +20,7 @@ from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from datetime import date, datetime
 
+
 today = datetime.today()
 if today.month >= 10:
     START_FISCAL_DATE = datetime(today.year, 10, 1)
@@ -93,7 +94,7 @@ def index():
     else:
         flash(u'ไม่พบสิทธิในการเข้าถึงหน้าดังกล่าว', 'danger')
         return redirect(request.referrer)
-    return render_template('ot/index.html', role=role)
+    return render_template('ot/index.html', role=role, ot_secretary_permission=ot_secretary_permission)
 
 
 @ot.route('/announce')

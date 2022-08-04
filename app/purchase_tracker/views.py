@@ -15,7 +15,7 @@ from pydrive.drive import GoogleDrive
 from .models import PurchaseTrackerAccount
 from flask_mail import Message
 from ..main import mail
-from ..staff.models import Role
+from ..roles import finance_permission, procurement_permission
 
 # Upload images for Google Drive
 
@@ -50,40 +50,39 @@ def index():
 def add_account():
     form = CreateAccountForm()
     if request.method == 'POST':
-        if form.validate_on_submit():
-            filename = ''
-            account = PurchaseTrackerAccount()
-            form.populate_obj(account)
-            account.creation_date = bangkok.localize(datetime.now())
-            account.staff = current_user
-            drive = initialize_gdrive()
-            if form.upload.data:
-                if not filename or (form.upload.data.filename != filename):
-                    upfile = form.upload.data
-                    filename = secure_filename(upfile.filename)
-                    upfile.save(filename)
-                    file_drive = drive.CreateFile({'title': filename,
-                                                   'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
-                    file_drive.SetContentFile(filename)
-                    try:
-                        file_drive.Upload()
-                        permission = file_drive.InsertPermission({'type': 'anyone',
-                                                                  'value': 'anyone',
-                                                                  'role': 'reader'})
-                    except:
-                        flash('Failed to upload the attached file to the Google drive.', 'danger')
-                    else:
-                        flash('The attached file has been uploaded to the Google drive', 'success')
-                        account.url = file_drive['id']
+        filename = ''
+        account = PurchaseTrackerAccount()
+        form.populate_obj(account)
+        account.creation_date = bangkok.localize(datetime.now())
+        account.staff = current_user
+        drive = initialize_gdrive()
+        if form.upload.data:
+            if not filename or (form.upload.data.filename != filename):
+                upfile = form.upload.data
+                filename = secure_filename(upfile.filename)
+                upfile.save(filename)
+                file_drive = drive.CreateFile({'title': filename,
+                                               'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
+                file_drive.SetContentFile(filename)
+                try:
+                    file_drive.Upload()
+                    permission = file_drive.InsertPermission({'type': 'anyone',
+                                                              'value': 'anyone',
+                                                              'role': 'reader'})
+                except:
+                    flash('Failed to upload the attached file to the Google drive.', 'danger')
+                else:
+                    flash('The attached file has been uploaded to the Google drive', 'success')
+                    account.url = file_drive['id']
 
-            db.session.add(account)
-            db.session.commit()
-            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-            return render_template('purchase_tracker/personnel/personnel_index.html')
+        db.session.add(account)
+        db.session.commit()
+        flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
+        return render_template('purchase_tracker/personnel/personnel_index.html')
         # Check Error
-        else:
-            for er in form.errors:
-                flash(er, 'danger')
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
     return render_template('purchase_tracker/create_account.html', form=form)
 
 
@@ -136,39 +135,38 @@ def edit_account(account_id):
     account = PurchaseTrackerAccount.query.get(account_id)
     form = CreateAccountForm(obj=account)
     if request.method == 'POST':
-        if form.validate_on_submit():
-            filename = ''
-            form.populate_obj(account)
-            account.creation_date = bangkok.localize(datetime.now())
-            account.staff = current_user
-            drive = initialize_gdrive()
-            if form.upload.data:
-                if not filename or (form.upload.data.filename != filename):
-                    upfile = form.upload.data
-                    filename = secure_filename(upfile.filename)
-                    upfile.save(filename)
-                    file_drive = drive.CreateFile({'title': filename,
-                                                   'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
-                    file_drive.SetContentFile(filename)
-                    try:
-                        file_drive.Upload()
-                        permission = file_drive.InsertPermission({'type': 'anyone',
-                                                                  'value': 'anyone',
-                                                                  'role': 'reader'})
-                    except:
-                        flash('Failed to upload the attached file to the Google drive.', 'danger')
-                    else:
-                        flash('The attached file has been uploaded to the Google drive', 'success')
-                        purchase_tracker.url = file_drive['id']
+        filename = ''
+        form.populate_obj(account)
+        account.creation_date = bangkok.localize(datetime.now())
+        account.staff = current_user
+        drive = initialize_gdrive()
+        if form.upload.data:
+            if not filename or (form.upload.data.filename != filename):
+                upfile = form.upload.data
+                filename = secure_filename(upfile.filename)
+                upfile.save(filename)
+                file_drive = drive.CreateFile({'title': filename,
+                                               'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
+                file_drive.SetContentFile(filename)
+                try:
+                    file_drive.Upload()
+                    permission = file_drive.InsertPermission({'type': 'anyone',
+                                                              'value': 'anyone',
+                                                              'role': 'reader'})
+                except:
+                    flash('Failed to upload the attached file to the Google drive.', 'danger')
+                else:
+                    flash('The attached file has been uploaded to the Google drive', 'success')
+                    purchase_tracker.url = file_drive['id']
 
-            db.session.add(account)
-            db.session.commit()
-            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-            return redirect(url_for('purchase_tracker.track'))
+        db.session.add(account)
+        db.session.commit()
+        flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
+        return redirect(url_for('purchase_tracker.track'))
         # Check Error
-        else:
-            for er in form.errors:
-                flash(er, 'danger')
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
     return render_template('purchase_tracker/edit_account.html', form=form, account_id=account_id)
 
 
@@ -205,18 +203,15 @@ def close_account(account_id):
 
 
 @purchase_tracker.route('/supplies/')
+@finance_permission.require()
+@procurement_permission.require()
 def supplies():
-    role = Role.query.filter_by(name='admin', app_name='PurchaseTracker').first()
-    if role in current_user.roles:
-        from sqlalchemy import desc
-        accounts = PurchaseTrackerAccount.query.all()
-        return render_template('purchase_tracker/procedure_supplies.html',
-                               accounts=accounts,
-                               desc=desc,
-                               PurchaseTrackerStatus=PurchaseTrackerStatus)
-    else:
-        flash('Permission not allow', 'danger')
-        return redirect(url_for('purchase_tracker.landing_page'))
+    from sqlalchemy import desc
+    accounts = PurchaseTrackerAccount.query.all()
+    return render_template('purchase_tracker/procedure_supplies.html',
+                           accounts=accounts,
+                           desc=desc,
+                           PurchaseTrackerStatus=PurchaseTrackerStatus)
 
 
 @purchase_tracker.route('/description')
@@ -235,6 +230,8 @@ def send_mail(recp, title, message):
 
 
 @purchase_tracker.route('/account/<int:account_id>/update', methods=['GET', 'POST'])
+@finance_permission.require()
+@procurement_permission.require()
 @login_required
 def update_status(account_id):
     form = StatusForm()
@@ -251,12 +248,14 @@ def update_status(account_id):
             status.staff = current_user
             if not form.other_activity.data and not form.activity.data:
                 flash(u'กรุณาเลือกหัวข้อกิจกรรมหรือใส่กิจกรรมอื่นๆ.', 'danger')
-                return redirect(url_for('purchase_tracker.update_status', account_id=account_id, form=form, account=account))
+                return redirect(
+                    url_for('purchase_tracker.update_status', account_id=account_id, form=form, account=account))
             db.session.add(status)
             db.session.commit()
             title = u'แจ้งเตือนการปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.format(status.account.number)
-            message = u'เรียน {}\n\nสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {} คือ {}'\
-                .format(current_user.personal_info.fullname, status.account.number, status.other_activity or status.activity.activity)
+            message = u'เรียน {}\n\nสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {} คือ {}' \
+                .format(current_user.personal_info.fullname, status.account.number,
+                        status.other_activity or status.activity.activity)
             message += u'\n\n======================================================'
             message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
                        u'หากมีปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
@@ -278,11 +277,13 @@ def update_status(account_id):
     else:
         default_date = activities[-1][3]
     return render_template('purchase_tracker/update_record.html',
-                            account_id=account_id, form=form, activities=activities, account=account,
+                           account_id=account_id, form=form, activities=activities, account=account,
                            default_date=default_date)
 
 
 @purchase_tracker.route('/account/<int:account_id>/status/<int:status_id>/edit', methods=['GET', 'POST'])
+@finance_permission.require()
+@procurement_permission.require()
 @login_required
 def edit_update_status(account_id, status_id):
     status = PurchaseTrackerStatus.query.get(status_id)
@@ -298,9 +299,11 @@ def edit_update_status(account_id, status_id):
             status.staff = current_user
             db.session.add(status)
             db.session.commit()
-            title = u'แจ้งเตือนการแก้ไขปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.format(status.account.number)
+            title = u'แจ้งเตือนการแก้ไขปรับเปลี่ยนสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {}'.format(
+                status.account.number)
             message = u'เรียน {}\n\nสถานะการจัดซื้อพัสดุและครุภัณฑ์หมายเลข {} คือ {}' \
-                .format(current_user.personal_info.fullname, status.account.number, status.other_activity or status.activity.activity)
+                .format(current_user.personal_info.fullname, status.account.number,
+                        status.other_activity or status.activity.activity)
             message += u'\n\n======================================================'
             message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
                        u'หากมีปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
@@ -310,10 +313,12 @@ def edit_update_status(account_id, status_id):
             flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
         return redirect(url_for('purchase_tracker.update_status', status_id=status.id, account_id=account_id))
     return render_template('purchase_tracker/edit_update_record.html',
-                                account_id=account_id, form=form)
+                           account_id=account_id, form=form)
 
 
 @purchase_tracker.route('/account/<int:account_id>/status/<int:status_id>/delete')
+@finance_permission.require()
+@procurement_permission.require()
 @login_required
 def delete_update_status(account_id, status_id):
     if account_id:
@@ -324,34 +329,9 @@ def delete_update_status(account_id, status_id):
         return redirect(url_for('purchase_tracker.update_status', account_id=account_id))
 
 
-@purchase_tracker.route('/account/update_status/info/download')
-@login_required
-def update_status_info_download():
-    accounts = PurchaseTrackerAccount.query.filter_by(staff_id=current_user.id).all()
-    records = []
-    for account in accounts:
-        for record in account.records:
-            records.append({
-                u'เลขที่หนังสือ': u"{}".format(account.number),
-                u'วันที่หนังสือ': u"{}".format(account.booking_date),
-                u'ชื่อ': u"{}".format(account.subject),
-                u'วงเงินหลักการ': u"{:,.2f}".format(account.amount),
-                u'รูปแบบหลักการ': u"{}".format(account.formats),
-                u'ผู้สร้าง account โดย': u"{}".format(account.staff.personal_info.fullname),
-                u'หน่วยงาน/ภาควิชา': u"{}".format(account.staff.personal_info.org.name),
-                u'กิจกรรม': u"{}".format(record.other_activity or record.activity.activity),
-                u'ผู้รับผิดชอบ': u"{}".format(record.staff.personal_info.fullname),
-                u'วันเริ่มกิจกรรม': u"{}".format(record.start_date),
-                u'วันสิ้นสุดกิจกรรม': u"{}".format(record.end_date),
-                u'หมายเหตุเพิ่มเติม': u"{}".format(record.comment),
-                u'เวลาดำเนินกิจกรรม': u"{}".format(record.weekdays),
-                    })
-    df = DataFrame(records)
-    df.to_excel('account_summary.xlsx')
-    return send_from_directory(os.getcwd(), filename='account_summary.xlsx')
-
-
 @purchase_tracker.route('/create/<int:account_id>/activity', methods=['GET', 'POST'])
+@finance_permission.require()
+@procurement_permission.require()
 @login_required
 def add_activity(account_id):
     activity = db.session.query(PurchaseTrackerActivity)
@@ -381,7 +361,8 @@ def show_info_page():
         if form.validate_on_submit():
             start_date = datetime.strptime(form.start_date.data, '%d-%m-%Y')
             end_date = datetime.strptime(form.end_date.data, '%d-%m-%Y')
-            account_query = PurchaseTrackerAccount.query.filter(cast(PurchaseTrackerAccount.booking_date, Date) >= start_date)\
+            account_query = PurchaseTrackerAccount.query.filter(
+                cast(PurchaseTrackerAccount.booking_date, Date) >= start_date) \
                 .filter(cast(PurchaseTrackerAccount.booking_date, Date) <= end_date)
         else:
             flash(form.errors, 'danger')
@@ -395,8 +376,8 @@ def dashboard_info_download():
     start_date = request.args.get('start_date')
     end_date = request.args.get('end_date')
     if start_date and end_date:
-        accounts = PurchaseTrackerAccount.query.filter(cast(PurchaseTrackerAccount.booking_date, Date) >= start_date)\
-                .filter(cast(PurchaseTrackerAccount.booking_date, Date) <= end_date)
+        accounts = PurchaseTrackerAccount.query.filter(cast(PurchaseTrackerAccount.booking_date, Date) >= start_date) \
+            .filter(cast(PurchaseTrackerAccount.booking_date, Date) <= end_date)
     else:
         accounts = PurchaseTrackerAccount.query.all()
 
@@ -420,9 +401,3 @@ def dashboard_info_download():
     df = DataFrame(records)
     df.to_excel('account_summary.xlsx')
     return send_from_directory(os.getcwd(), filename='account_summary.xlsx')
-
-
-
-
-
-

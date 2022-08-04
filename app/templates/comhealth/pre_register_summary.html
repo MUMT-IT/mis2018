@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">Record Summary</h1>
+                <h1 class="subtitle">แก้ไขล่าสุดเมื่อ/last updated {{ record.updated_at|localdatetime }} น.</h1>
+            </div>
+        </div>
+            <div class="column is-9">
+                <div class="columns">
+                    <div class="column is-two-thirds is-offset-4 box">
+                        <h1 class="title">ข้อมูลส่วนตัว / Personal Info</h1>
+                        <table class="table is-fullwidth">
+                            <tbody>
+                            <tr>
+                                <td><h1 class="subtitle">ชื่อ นามสกุล / Name</h1></td>
+                                <td>
+                                    <h1 class="subtitle">{{ record.customer.title or '' }} {{ record.customer.firstname }} {{ record.customer.lastname }}</h1>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <br>
+                <br>
+                <div class="columns">
+                    <div class="column is-two-thirds is-offset-4 box">
+                        <table class="table is-fullwidth is-hoverable">
+                            <thead>
+                            <th class="has-text-centered">ชุดตรวจ</th>
+                            <th class="has-text-right">ราคา (บาท)</th>
+                            </thead>
+                            <tbody>
+                            {% for group in record.service.groups %}
+                                <tr>
+                                    <td colspan="1" class="is-light"><strong>{{ group.name }}</strong></td>
+                                    <td colspan="1" class="is-light"></td>
+                                </tr>
+                                {% for test_item in group.test_items|sorttest %}
+                                    <tr>
+                                        {% if test_item in record.ordered_tests %}
+                                            <td>{{ test_item.test.name }} ({{ test_item.test.desc }})</td>
+                                            <td class="has-text-right">
+                                                <span class="has-text-link title is-size-5">
+                                                    {{ test_item.price or test_item.test.default_price }}
+                                                </span>
+                                            </td>
+                                        {% endif %}
+                                    </tr>
+                                {% endfor %}
+                            {% endfor %}
+                            <tr>
+                                <td>
+                                    <h1 class="title is-size-5"><span class="icon">
+                                        <i class="fab fa-bitcoin"></i></span>&nbsp;<span>รวมค่าใช้จ่ายโดยประมาณ</span>
+                                    </h1>
+                                </td>
+                                <td class="has-text-right">
+                                    <h1 class="title is-size-4">{{ special_item_cost }}</h1>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <br>
+                <div class="columns">
+                    <div class="column is-two-thirds is-offset-4">
+                        <div class="buttons is-centered">
+                            <a class="button is-medium is-link"
+                               href="{{ url_for('comhealth.pre_register_tests', record_id=record.id, service_id=record.service.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-chevron-left"></i>
+                                </span>
+                                <span>Back</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

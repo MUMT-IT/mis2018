@@ -8,7 +8,11 @@
             <h4 class="subtitle">เรื่อง : {{ wfhreq.detail }}</h4>
         </div>
         <div >
+            {% if wfhreq.deadline_dae %}
             <h4 class="subtitle">กำหนดส่ง : {{ wfhreq.deadline_date|localdate }}</h4>
+            {% else %}
+            <h4 class="subtitle">กำหนดส่ง : ไม่ระบุ</h4>
+            {% endif %}
         </div>
         <div class="has-text-right">
             <h4 class="subtitle">วันที่ {{ wfhreq.start_datetime|localdate }} - {{ wfhreq.end_datetime|localdate }}</h4>

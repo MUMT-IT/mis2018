@@ -70,6 +70,7 @@
                 </div>
             </div>
         </div>
+        {% if current_user.personal_info.org.head == current_user.email %}
         <div class="column">
             <div class="container has-text-centered">
                 <div class="box">
@@ -83,6 +84,7 @@
                 </div>
             </div>
         </div>
+        {% endif %}
     </div>
     <div class="columns">
         <div class="column">

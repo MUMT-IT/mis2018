@@ -63,8 +63,15 @@ class StaffPosition(db.Model):
 class Role(db.Model):
     __tablename__ = 'roles'
     id = db.Column(db.Integer(), primary_key=True)
-    name = db.Column(db.String(), unique=True)
-    app_name = db.Column(db.String())
+    role_need = db.Column('role_need', db.String(), nullable=True)
+    action_need = db.Column('action_need', db.String())
+    resource_id = db.Column('resource_id', db.Integer())
+
+    def to_tuple(self):
+        return self.role_need, self.action_need, self.resource_id
+
+    def __str__(self):
+        return u'Role {}: can {} -> resource ID {}'.format(self.role_need, self.action_need, self.resource_id)
 
 
 user_roles = db.Table('user_roles',
@@ -147,7 +154,6 @@ class StaffPersonalInfo(db.Model):
     def __str__(self):
         return self.fullname
 
-
     @property
     def fullname(self):
         if self.th_firstname or self.th_lastname:
@@ -155,12 +161,10 @@ class StaffPersonalInfo(db.Model):
         else:
             return u'{}{} {}'.format(self.en_title or '', self.en_firstname, self.en_lastname)
 
-
     def get_employ_period(self):
         today = datetime.now().date()
         period = relativedelta(today, self.employed_date)
         return period
-
 
     def get_employ_period_of_current_fiscal_year(self):
         period = relativedelta(START_FISCAL_DATE, self.employed_date)
@@ -508,7 +512,7 @@ class StaffWorkFromHomeJobDetail(db.Model):
     __tablename__ = 'staff_work_from_home_job_detail'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     #want to change topic to activity and activity to comment(for Approver)
-    activity = db.Column('topic', db.String(), nullable=False, unique=True)
+    activity = db.Column('topic', db.String(), nullable=False, unique=False)
     status = db.Column('status', db.Boolean())
     wfh_id = db.Column('wfh_id', db.ForeignKey('staff_work_from_home_requests.id'))
 
@@ -609,12 +613,20 @@ class StaffSeminarAttend(db.Model):
 class StaffWorkLogin(db.Model):
     __tablename__ = 'staff_work_logins'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    date_id = db.Column('date_id', db.String())
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
-    staff = db.relationship('StaffAccount', backref=db.backref('work_logins'))
+    staff = db.relationship('StaffAccount', backref=db.backref('work_logins', lazy='dynamic'))
     start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
     end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
     checkin_mins = db.Column('checkin_mins', db.Integer())
     checkout_mins = db.Column('checkout_mins', db.Integer())
+    num_scans = db.Column('num_scans', db.Integer(), default=0)
+    qrcode_in_exp_datetime = db.Column('qrcode_in_exp_datetime', db.DateTime(timezone=True))
+    qrcode_out_exp_datetime = db.Column('qrcode_out_exp_datetime', db.DateTime(timezone=True))
+
+    @staticmethod
+    def generate_date_id(date):
+        return date.strftime('%Y%m%d')
 
 
 class StaffShiftSchedule(db.Model):
@@ -645,4 +657,6 @@ class StaffShiftRole(db.Model):
 #     created_at = db.Column('created_at',db.DateTime(timezone=True),
 #                            default=datetime.now())
 #     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+
+
 

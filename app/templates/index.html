@@ -22,6 +22,7 @@
                             บุคลากร
                         </span>
                     </a>
+                    <!--
                     <a class="panel-block"
                         href="{{ url_for('km.index') }}">
                         <span class="panel-icon">
@@ -31,6 +32,7 @@
                             คลังความรู้
                         </span>
                     </a>
+                    -->
                 </nav>
                 <nav class="panel is-info">
                     <p class="panel-heading">Education</p>
@@ -169,6 +171,27 @@
                         <span class="is-size-5">
                             ฐานข้อมูลโครงการเกษตรและอาหารปลอดภัย
                         </span>
+                    </a>
+                </nav>
+                <nav class="panel is-light">
+                    <p class="panel-heading">Administrator</p>
+                    <a href="{{ url_for('staff.login_scan') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-clock"></i>
+                        </span>
+                        <span class="is-size-5">ระบบบันทึกเวลาเข้างาน</span>
+                    </a>
+                    <a href="{{ url_for('staff.for_hr') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-alt"></i>
+                        </span>
+                        <span class="is-size-5">ระบบงานทรัพยากรบุคคล</span>
+                    </a>
+                    <a href="/admin" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-alt"></i>
+                        </span>
+                        <span class="is-size-5">Admin Index</span>
                     </a>
                 </nav>
             </div>

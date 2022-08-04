@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% block page_content %}
-{% include "comhealth/nav.html" %}
     <section class="hero is-light is-small">
         <div class="hero-body">
             <div class="container has-text-centered">
@@ -10,52 +9,11 @@
         </div>
     </section>
     <section class="section" id="app">
-        <div class="container box">
-            <div class="columns">
-                <div class="column">
-                    <nav class="breadcrumb has-bullet-separator is-centered" aria-label="breadcrumbs">
-                        <ul>
-                            <li><a href="{{ url_for('comhealth.index') }}">Services</a></li>
-                            <li class="is-active"><a aria-current="page">รายชื่อผู้รับบริการ</a></li>
-                        </ul>
-                    </nav>
-                </div>
-            </div>
+        <div class="container">
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
                     <input type="text" v-model="query" class="input is-large is-rounded"
-                           placeholder="ค้นหาชื่อผู้รับบริการหรือหมายเลข">
-                </div>
-            </div>
-            <div class="columns">
-                <div class="column">
-                    <div class="has-text-left">
-                        <strong>Total Checked Ins</strong>&nbsp;<span class="tag is-success">
-                        <% records.filter(function(record) { return record.checkin_datetime!==null; }).length %>
-                    </span>
-                    </div>
-                </div>
-                <div class="column">
-                    <div class="has-text-right">
-                      {% if service.records.count() > 0 %}
-                        <a class="button is-link"
-                            href="{{ url_for('comhealth.add_customer_to_service_org',
-                                    service_id=service.id, org_id=service.records[0].customer.org_id) }}">
-                            <span class="icon">
-                                <i class="fas fa-user-plus"></i>
-                            </span>
-                            <span>เพิ่มผู้รับบริการ walk in</span>
-                        </a>
-                      {% else %}
-                        <a class="button is-link"
-                           href="{{ url_for('comhealth.list_orgs') }}">
-                            <span class="icon">
-                                <i class="fas fa-user-plus"></i>
-                            </span>
-                            <span>เพิ่มผู้รับบริการ walk in</span>
-                        </a>
-                      {% endif %}
-                    </div>
+                           placeholder="ค้นหาชื่อผู้รับบริการ">
                 </div>
             </div>
             <div class="columns">
@@ -69,48 +27,15 @@
                              default-sort="customer.firstname">
                         <template slot-scope="props">
                             <b-table-column field="customer.firstname" label="First Name" sortable>
-                                <span class="is-size-4">
                                 <% props.row.customer.firstname %>
-                                </span>
                             </b-table-column>
                             <b-table-column field="customer.lastname" label="Last Name" sortable>
-                                <span class="is-size-4">
                                 <% props.row.customer.lastname %>
-                                </span>
-                            </b-table-column>
-                            <b-table-column field="labno" label="Lab Number" sortable numeric centered>
-                                <span class="is-size-4">
-                                <% props.row.labno %>
-                                </span>
-                            </b-table-column>
-                            <b-table-column field="checkin_datetime" label="Check-In Time" sortable centered>
-                                <span class="is-size-4">
-                                <% props.row.checkin_datetime ? moment(props.row.checkin_datetime).fromNow() : '' %>
-                                </span>
                             </b-table-column>
                             <b-table-column field="" label="Check In" sortable>
-                                <a class="button is-rounded is-light"
-                                   v-bind:href="'/comhealth/checkin/'+props.row.id">
-                                    <div v-if="props.row.checkin_datetime !== null">
-                                        <span class="icon">
-                                            <i class="fas fa-user-check has-text-success"></i>
-                                        </span>
-                                        <span>Check in</span>
-                                    </div>
-                                    <div v-else>
-                                        <span class="icon">
-                                            <i class="fas fa-user-alt"></i>
-                                        </span>
-                                        <span>Check in</span>
-                                    </div>
-                                </a>
-                            </b-table-column>
-                            <b-table-column field="" label="Customer Info">
-                                <a class="button is-rounded is-light"
-                                   v-bind:href="'/comhealth/customers/' + props.row.customer.id + '/edit?next=' + requestUrl">
-                                <span class="icon">
-                                    <i class="fas fa-pencil-alt"></i>
-                                </span>
+                                <a class="button is-light is-link"
+                                   v-bind:href="'/comhealth/services/' + {{ service.id|tojson|safe }} + '/pre-register/'+ props.row.id +'/login'">
+                                    <span>ลงทะเบียน</span>
                                 </a>
                             </b-table-column>
                         </template>

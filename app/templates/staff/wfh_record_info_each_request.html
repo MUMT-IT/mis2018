@@ -40,9 +40,59 @@
                                 <p>({{ req.duration }} วัน)</p>
                             </td>
                         </tr>
+                        <!--
                         <tr>
                             <td>
-                                <label class="label">ความคิดเห็นหัวหน้างาน</label>
+                                <label class="label">กำหนดส่งงาน</label>
+                            </td>
+                            <td>
+                                {% if req.deadline_date %}
+                                {{ req.deadline_date|localdate }}
+                                {% else %}
+                                ไม่ระบุ
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">วันที่ส่งงาน</label>
+                            </td>
+                            <td>
+                                {% for checkjob in checkjob %}
+                                {{ checkjob.finished_at|localdate }}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                 <label class="label">รายละเอียดงาน</label>
+                            </td>
+                            <td>
+                                {% for detail in job_detail %}
+                                {% if detail.status==True or detail.status == False %}
+                                    <p>{{ detail.activity }} :
+                                {% endif %}
+                                {% if detail.status == True %}เสร็จ
+                                {% elif detail.status == False %}ไม่เสร็จ
+                                {% else %}
+                                {% endif %}</p>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                 <label class="label">สรุปผลการดำเนินงาน</label>
+                            </td>
+                            <td>
+                                {% for checkjob in checkjob %}
+                                <p>{{ checkjob.overall_result }}</p>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        -->    
+                        <tr>
+                            <td>
+                                 <label class="label">ความคิดเห็นหัวหน้างาน</label>
                             </td>
                             <td>
                                 {% for approval in req.wfh_approvals %}
@@ -67,7 +117,7 @@
                             <span class="icon">
                                 <i class="fas fa-arrow-left"></i>
                             </span>
-                            <span>กลับหน้าสรุปWFH</span>
+                            <span>กลับหน้าสรุป WFH</span>
                         </a>
                     </div>
                     <div class="column has-text-right">
