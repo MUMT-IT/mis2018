@@ -36,10 +36,11 @@
                                 วันที่ปฏิบัติงานที่บ้าน
                             </td>
                             <td>
-                                {{ req.start_datetime|localdate }} - {{ req.end_datetime|localdate }}
+                                {{ req.start_datetime|localdatetime }} - {{ req.end_datetime|localdatetime }}
                                 <p>({{ req.duration }} วัน)</p>
                             </td>
                         </tr>
+                        <!--
                         <tr>
                             <td>
                                 <label class="label">กำหนดส่งงาน</label>
@@ -88,13 +89,23 @@
                                 {% endfor %}
                             </td>
                         </tr>
+                        -->    
                         <tr>
                             <td>
                                  <label class="label">ความคิดเห็นหัวหน้างาน</label>
                             </td>
                             <td>
                                 {% for approval in req.wfh_approvals %}
-                                <strong>{{ approval.approver.account.personal_info }}:</strong> {{ approval.approval_comment }}<br>
+                                    <strong>{{ approval.approver.account.personal_info }}:</strong>
+                                    {% if approval.is_approved == True %}
+                                        (อนุมัติ)
+                                    {% else %}
+                                        (ไม่อนุมัติ)
+                                    {% endif %}
+                                    {% if approval.approval_comment %}
+                                        {{ approval.approval_comment }}
+                                    {% endif %}
+                                    {{ approval.updated_at|localdatetime }}<br>
                                 {% endfor %}
                             </td>
                         </tr>

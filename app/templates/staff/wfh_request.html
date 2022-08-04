@@ -33,17 +33,6 @@
                                  required>
                         </b-input>
                     </b-field>
-                    <b-field label="กำหนดส่งงาน">
-                        <b-datepicker
-                                required
-                                name="deadline_date"
-                                icon="calendar-check"
-                                :mobile-native="false"
-                                :date-formatter="formatDate"
-                                placeholder="คลิกเพื่อเปิดปฏิทิน..."
-                                icon="calendar-alt" required>
-                        </b-datepicker>
-                    </b-field>
                     <b-field label="สามารถติดต่อท่านได้ที่" type="is-danger">
                         <b-input type="text"
                                name="contact_phone"
@@ -88,15 +77,9 @@
         },
         methods: {
             formatDate(dates){
-                if (dates.length===2){
                     let start = new moment(dates[0]).format("DD/MM/YYYY")
                     let end = new moment(dates[1]).format("DD/MM/YYYY")
                     return start + ' - ' + end
-                }
-                else{
-                    let date = new moment(dates).format("DD/MM/YYYY")
-                    return date
-                }
             }
         }
     });

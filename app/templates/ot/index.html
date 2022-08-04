@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <h1 class="title">OT Page</h1>
+    {% if role=='finance'%}
+
+    {% elif role=='secretary'%}
+
+    {% elif role=='approver'%}
+    <div class="columns">
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('ot.round_request_approval_requests_pending') }}">
+                        <span class="icon is-large"><i class="far fa-calendar-check fa-4x"></i></span><br><br>
+                        <span class="is-size-4">รับรอง OT</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% elif role=='it' %}
+    <div class="columns">
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('ot.announcement') }}">
+                        <span class="icon is-large"><i class="far fa-file-word fa-4x"></i></span><br><br>
+                        <span class="is-size-4">ประกาศ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('ot.approved_list_from_org_head') }}">
+                        <span class="icon is-large"><i class="far fa-calendar-check fa-4x"></i></span><br><br>
+                        <span class="is-size-4">รายการขอ OT</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('ot.summary_chart') }}">
+                        <span class="icon is-large"><i class="far fa-user-circle fa-4x"></i></span><br><br>
+                        <span class="is-size-4">รายการขอแบบรายคน</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('ot.document_approval_records') }}">
+                        <span class="icon is-large"><i class="fas fa-user-check fa-4x"></i></span><br><br>
+                        <span class="is-size-4">อนุมัติในหลักการ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('staff.shift_schedule') }}">
+                        <span class="icon is-large"><i class="fas fa-calendar fa-4x"></i></span><br><br>
+                        <span class="is-size-4">ตารางปฏิบัติงาน</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('ot.document_approvals_list_for_create_ot') }}">
+                        <span class="icon is-large"><i class="far fa-calendar-plus fa-4x"></i></span><br><br>
+                        <span class="is-size-4">เพิ่มรายการ OT</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('ot.summary_ot_each_org') }}">
+                        <span class="icon is-large"><i class="far fa-spinner fa-4x"></i></span><br><br>
+                        <span class="is-size-4">รายการรอการส่งเบิก OT</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('ot.summary_index') }}">
+                        <span class="icon is-large"><i class="far fa-medkit fa-4x"></i></span><br><br>
+                        <span class="is-size-4">ตารางสรุป OT</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('ot.round_request_status') }}">
+                        <span class="icon is-large"><i class="far fa-history fa-4x"></i></span><br><br>
+                        <span class="is-size-4">ประวัติการส่งเบิก OT</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('ot.round_request_approval_requests_pending') }}">
+                        <span class="icon is-large"><i class="far fa-calendar-check fa-4x"></i></span><br><br>
+                        <span class="is-size-4">รับรอง OT</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('ot.summary_each_person') }}">
+                        <span class="icon is-large"><i class="far fa-calendar-check fa-4x"></i></span><br><br>
+                        <span class="is-size-4">OT รายคน</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</section>
+{% endblock %}

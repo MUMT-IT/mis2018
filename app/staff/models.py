@@ -50,6 +50,15 @@ def local_datetime(dt):
     return dt.astimezone(bangkok).strftime(datetime_format)
 
 
+class StaffPosition(db.Model):
+    __tablename__ = 'staff_positions'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    position = db.Column('position', db.String())
+
+    def __str__(self):
+        return self.position
+
+
 # Define the Roles data model
 class Role(db.Model):
     __tablename__ = 'roles'
@@ -133,6 +142,10 @@ class StaffPersonalInfo(db.Model):
                               db.ForeignKey('staff_employments.id'))
     employment = db.relationship('StaffEmployment',
                                  backref=db.backref('staff'))
+    position_id = db.Column('position_id',
+                              db.ForeignKey('staff_positions.id'))
+    position = db.relationship('StaffPosition',
+                                 backref=db.backref('staff'))
     finger_scan_id = db.Column('finger_scan_id', db.Integer)
     academic_staff = db.Column('academic_staff', db.Boolean())
     retired = db.Column('retired', db.Boolean(), default=False)
@@ -159,7 +172,7 @@ class StaffPersonalInfo(db.Model):
 
     @property
     def is_eligible_for_leave(self, minmonth=6.0):
-        period = self.get_employ_period_of_current_fiscal_year()
+        period = self.get_employ_period()
         if period.years > 0:
             return True
         elif period.years == 0 and period.months > minmonth:
@@ -168,7 +181,7 @@ class StaffPersonalInfo(db.Model):
             return False
 
     def get_max_cum_quota_per_year(self, leave_quota):
-        period = self.get_employ_period_of_current_fiscal_year()
+        period = self.get_employ_period()
         if self.is_eligible_for_leave:
             if period.years < 10:
                 return leave_quota.cum_max_per_year1
@@ -216,7 +229,7 @@ class StaffPersonalInfo(db.Model):
             last_year_quota = last_year.last_year_quota
         else:
             last_year_quota = 0
-        delta = self.get_employ_period_of_current_fiscal_year()
+        delta = self.get_employ_period()
         leave_quota = StaffLeaveQuota.query.get(leave_quota_id)
         max_cum_quota = self.get_max_cum_quota_per_year(leave_quota)
         if delta.years > 0:
@@ -366,7 +379,7 @@ class StaffLeaveRequest(db.Model):
     cancelled_account_id = db.Column('cancelled_account_id', db.ForeignKey('staff_account.id'))
     country = db.Column('country', db.String())
     total_leave_days = db.Column('total_leave_days', db.Float())
-    upload_file_url =  db.Column('upload_file_url', db.String())
+    upload_file_url = db.Column('upload_file_url', db.String())
     after_hour = db.Column("after_hour", db.Boolean())
     notify_to_line = db.Column('notify_to_line', db.Boolean(), default=False)
     cancelled_by = db.relationship('StaffAccount', foreign_keys=[cancelled_account_id])
@@ -479,6 +492,7 @@ class StaffWorkFromHomeRequest(db.Model):
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     staff = db.relationship('StaffAccount',
                             backref=db.backref('wfh_requests'))
+    notify_to_line = db.Column('notify_to_line', db.Boolean(), default=False)
 
     @property
     def duration(self):
@@ -524,7 +538,6 @@ class StaffWorkFromHomeApproval(db.Model):
     is_approved = db.Column('is_approved', db.Boolean(), default=False)
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     approval_comment = db.Column('approval_comment', db.String())
-    checked_at = db.Column('check_at', db.DateTime(timezone=True))
     request = db.relationship('StaffWorkFromHomeRequest', backref=db.backref('wfh_approvals'))
     approver = db.relationship('StaffWorkFromHomeApprover',
                                backref=db.backref('wfh_approved_requests'))
@@ -561,9 +574,9 @@ class StaffSeminar(db.Model):
     topic_type = db.Column('topic_type', db.String())
     topic = db.Column('topic', db.String())
     mission = db.Column('mission', db.String())
+    organize_by = db.Column('organize_by', db.String())
     location = db.Column('location', db.String())
     is_online = db.Column('is_online', db.Boolean(), default=False)
-    country = db.Column('country', db.String())
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
 
     def __str__(self):
@@ -580,7 +593,15 @@ class StaffSeminarAttend(db.Model):
                            default=datetime.now())
     role = db.Column('role', db.String())
     registration_fee = db.Column('registration_fee', db.Float())
+    objective = db.Column('objective', db.String())
+    invited_document_id = db.Column('document_id', db.String())
+    taxi_cost = db.Column('taxi_cost', db.Float())
+    train_ticket_cost = db.Column('train_ticket_cost', db.Float())
+    flight_ticket_cost = db.Column('flight_ticket_cost', db.Float())
+    fuel_cost = db.Column('fuel_cost', db.Float())
+    accommodation_cost = db.Column('accommodation_cost', db.Float())
     budget_type = db.Column('budget_type', db.String())
+    transaction_fee = db.Column('transaction_fee', db.Float())
     budget = db.Column('budget', db.Float())
     attend_online = db.Column('attend_online', db.Boolean(), default=False)
     staff = db.relationship('StaffAccount',

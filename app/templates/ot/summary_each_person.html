@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block page_content %}
+<section class="section" id="app">
+    <div class="columns">
+        <div class="column">
+            <h1 class="title">สรุปข้อมูลการทำงานล่วงเวลา</h1>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <div id="chart_div"></div>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <a class="button is-info is-light" href="{{ url_for('ot.index') }}">
+                     <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                <span>กลับ</span>
+            </a>
+        </div>
+    </div>
+    <p class="title has-text-centered"></p>
+
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+<script>
+    google.charts.load('current', {'packages':['timeline']});
+    google.charts.setOnLoadCallback(drawChart);
+    var _records = {{ records|tojson|safe }};
+    var records = [];
+    _records.forEach(a => {
+        records.push([
+            a[1],
+            a[0],
+            new Date(a[2]),
+            new Date(a[3]),
+        ])
+    })
+    console.log(records)
+    function drawChart() {
+        var data = google.visualization.arrayToDataTable(
+            records);
+
+        var options = {
+            height: 450,
+        };
+
+        var chart = new google.visualization.Timeline(document.getElementById('chart_div'));
+
+        chart.draw(data, options);
+    }
+
+</script>
+{% endblock %}

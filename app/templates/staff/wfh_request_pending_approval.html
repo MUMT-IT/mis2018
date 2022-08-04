@@ -23,7 +23,7 @@
                                 วันที่ต้องการขออนุมัติ
                             </td>
                             <td>
-                                {{ req.start_datetime|localdate }} - {{ req.end_datetime|localdate }}
+                                {{ req.start_datetime|localdatetime }} - {{ req.end_datetime|localdatetime }}
                                 <p>({{ req.duration }} วัน)</p>
                             </td>
                         </tr>
@@ -35,6 +35,7 @@
                                 {{ req.detail }}
                             </td>
                         </tr>
+                        <!--
                         <tr>
                             <td>
                                 <label class="label">กำหนดส่งงาน</label>
@@ -47,6 +48,7 @@
                                 {% endif %}
                             </td>
                         </tr>
+                        -->
                         <tr>
                             <td>
                                  <label class="label">ระหว่างลาสามารถติดต่อได้ที่</label>
@@ -57,15 +59,16 @@
                         </tr>
                     </table>
                     <div class="control has-text-centered">
-                        <a href="{{ url_for('staff.wfh_approve', req_id=req.id, approver_id=approver.id) }}"
+                        <a href="{{ url_for('staff.wfh_approve', req_id=req.id, approver_id=approver.id , approved='yes') }}"
                                                                                 class="button is-success">อนุมัติ</a>
-                        <a href="{{ url_for('staff.wfh_reject', req_id=req.id, approver_id=approver.id) }}"
+                        <a href="{{ url_for('staff.wfh_approve', req_id=req.id, approver_id=approver.id , approved='no') }}"
                                                                                 class="button is-danger">ไม่อนุมัติ</a>
                     </div>
                 </div>
                 <div class="columns">
                     <div class="column">
-                        <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}" class="button is-rounded is-info is-light">
+                        <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}"
+                           class="button is-rounded is-info is-light">
                             <span class="icon">
                                 <i class="fas fa-arrow-left"></i>
                             </span>

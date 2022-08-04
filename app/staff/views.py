@@ -1143,9 +1143,44 @@ def leave_request_by_person_detail(requester_id):
 @staff.route('/wfh')
 @login_required
 def show_work_from_home():
-    req = StaffWorkFromHomeRequest.query.filter_by(staff_account_id=current_user.id).all()
-    checkjob = StaffWorkFromHomeCheckedJob.query.all()
-    return render_template('staff/wfh_info.html', req=req, checkjob=checkjob)
+    wfh_list = []
+    for wfh in current_user.wfh_requests:
+        if wfh.start_datetime >= tz.localize(START_FISCAL_DATE) and wfh.end_datetime <= tz.localize(END_FISCAL_DATE) \
+                and not wfh.cancelled_at:
+            if not wfh.get_approved:
+                if not wfh.get_unapproved:
+                    wfh_list.append(wfh)
+
+    wfh_approved_list = []
+    for wfh in current_user.wfh_requests:
+        if wfh.get_approved:
+            if not wfh.cancelled_at:
+                wfh_approved_list.append(wfh)
+
+    wfh_unapproved_list = []
+    for wfh in current_user.wfh_requests:
+        if wfh.get_unapproved:
+            if not wfh.cancelled_at:
+                wfh_unapproved_list.append(wfh)
+    approver = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=current_user.id).first()
+    return render_template('staff/wfh_info.html', wfh_list=wfh_list, wfh_approved_list=wfh_approved_list,
+                           wfh_unapproved_list=wfh_unapproved_list, approver=approver)
+
+
+@staff.route('/wfh/others-records')
+@login_required
+def show_work_from_home_others_records():
+    wfh_history = []
+    for wfh in current_user.wfh_requests:
+        if wfh.start_datetime <= tz.localize(START_FISCAL_DATE) and wfh.end_datetime < tz.localize(END_FISCAL_DATE) and wfh.cancelled_at is None:
+            wfh_history.append(wfh)
+
+    wfh_cancelled_list = []
+    for wfh in current_user.wfh_requests:
+        if wfh.cancelled_at:
+            wfh_cancelled_list.append(wfh)
+    return render_template('staff/wfh_info_others_records.html', wfh_history=wfh_history,
+                           wfh_cancelled_list=wfh_cancelled_list)
 
 
 @staff.route('/wfh/request',
@@ -1161,22 +1196,44 @@ def request_work_from_home():
         end_dt = '{} {}'.format(end_d, end_t)
         start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
-        deadline_date = form.get('deadline_date', None)
         req = StaffWorkFromHomeRequest(
             staff=current_user,
             start_datetime=tz.localize(start_datetime),
             end_datetime=tz.localize(end_datetime),
             detail=form.get('detail'),
-            contact_phone=form.get('contact_phone'),
+            contact_phone=form.get('contact_phone')
         )
-        if deadline_date:
-            deadline_date = datetime.strptime(deadline_date, '%d/%m/%Y')
-            req.deadline_date = deadline_date
-
+        if form.getlist('notified_by_line'):
+            req.notify_to_line = True
         db.session.add(req)
         db.session.commit()
-        return redirect(url_for('staff.show_work_from_home'))
 
+        mails = []
+        req_title = u'ทดสอบแจ้งการขออนุมัติ' + req.detail
+        req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
+                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+            format(current_user.personal_info.fullname, req.detail,
+                   start_datetime, end_datetime,
+                   url_for("staff.pending_wfh_request_for_approval", req_id=req.id, _external=True))
+        for approver in StaffWorkFromHomeApprover.query.filter_by(staff_account_id=current_user.id):
+            notify_by_line_of_leave_approver = StaffLeaveApprover.query\
+                                                    .filter_by(staff_account_id=current_user.id,is_active=True).first()
+            if notify_by_line_of_leave_approver:
+                notified_by_line = True
+            else:
+                notified_by_line = False
+            if approver.is_active:
+                if notified_by_line and approver.account.line_id:
+                    if os.environ["FLASK_ENV"] == "production":
+                        line_bot_api.push_message(to=approver.account.line_id,
+                                                  messages=TextSendMessage(text=req_msg))
+                    else:
+                        print(req_msg ,approver.account.id)
+                mails.append(approver.account.email + "@mahidol.ac.th")
+        if os.environ["FLASK_ENV"] == "production":
+            send_mail(mails, req_title, req_msg)
+        flash(u'ส่งคำขอของท่านเรียบร้อยแล้ว (The request has been sent.)', 'success')
+        return redirect(url_for('staff.show_work_from_home'))
     else:
         return render_template('staff/wfh_request.html')
 
@@ -1187,21 +1244,23 @@ def request_work_from_home():
 def edit_request_work_from_home(request_id):
     req = StaffWorkFromHomeRequest.query.get(request_id)
     if request.method == 'POST':
-        start_dt, end_dt = request.form.get('dates').split(' - ')
-        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y')
-        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y')
+        start_t = "08:30"
+        end_t = "16:30"
+        start_d, end_d = request.form.get('dates').split(' - ')
+        start_dt = '{} {}'.format(start_d, start_t)
+        end_dt = '{} {}'.format(end_d, end_t)
+        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
+        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
         req.start_datetime = tz.localize(start_datetime),
         req.end_datetime = tz.localize(end_datetime),
         req.detail = request.form.get('detail'),
-        req.contact_phone = request.form.get('contact_phone'),
-        req.deadline_date = request.form.get('deadline_date')
+        req.contact_phone = request.form.get('contact_phone')
         db.session.add(req)
         db.session.commit()
         return redirect(url_for('staff.show_work_from_home'))
 
     selected_dates = [req.start_datetime, req.end_datetime]
-    deadline = req.deadline_date
-    return render_template('staff/edit_wfh_request.html', req=req, selected_dates=selected_dates, deadline=deadline)
+    return render_template('staff/edit_wfh_request.html', req=req, selected_dates=selected_dates)
 
 
 @staff.route('/wfh/request/<int:request_id>/cancel')
@@ -1258,38 +1317,47 @@ def pending_wfh_request_for_approval(req_id):
     return render_template('staff/wfh_request_pending_approval.html', req=req, approver=approver)
 
 
-@staff.route('/wfh/requests/approve/<int:req_id>/<int:approver_id>')
+@staff.route('/wfh/requests/approve/<int:req_id>/<int:approver_id>', methods=['GET', 'POST'])
 @login_required
 def wfh_approve(req_id, approver_id):
-    approval = StaffWorkFromHomeApproval(
-        request_id=req_id,
-        approver_id=approver_id,
-        is_approved=True,
-        updated_at=tz.localize(datetime.today())
-    )
-    db.session.add(approval)
-    db.session.commit()
-    # approve_msg = u'การขออนุมัติWFH {} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว'.format(approval, current_user.personal_info.fullname)
-    # line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
-    flash(u'อนุมัติขอทำงานที่บ้านให้บุคลากรในสังกัดเรียบร้อยแล้ว')
-    return redirect(url_for('staff.show_wfh_requests_for_approval'))
+    approved = request.args.get("approved")
+    if request.method == 'POST':
+        comment = request.form.get('approval_comment')
+        approval = StaffWorkFromHomeApproval(
+            request_id=req_id,
+            approver_id=approver_id,
+            updated_at=tz.localize(datetime.today()),
+            is_approved=True if approved == 'yes' else False,
+            approval_comment=comment if comment != "" else None
+        )
+        db.session.add(approval)
+        db.session.commit()
+        flash(u'อนุมัติ WFH ให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที')
 
-
-@staff.route('/wfh/requests/reject/<int:req_id>/<int:approver_id>')
-@login_required
-def wfh_reject(req_id, approver_id):
-    approval = StaffWorkFromHomeApproval(
-        request_id=req_id,
-        approver_id=approver_id,
-        is_approved=False,
-        updated_at=tz.localize(datetime.today())
-    )
-    db.session.add(approval)
-    db.session.commit()
-    # approve_msg = u'การขออนุมัติWFH {} ไม่ได้รับการอนุมัติ กรุณาติดต่อ {}'.format(approval, current_user.personal_info.fullname)
-    # line_bot_api.push_message(to=req.staff.line_id,messages=TextSendMessage(text=approve_msg))
-    flash(u'ไม่อนุมัติขอทำงานที่บ้านให้บุคลากรในสังกัดเรียบร้อยแล้ว')
-    return redirect(url_for('staff.show_wfh_requests_for_approval'))
+        req = StaffWorkFromHomeRequest.query.get(req_id)
+        if approval.is_approved is True:
+            approve_msg = u'การขออนุมัติWFHเรื่อง {} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
+                            .format(req.detail, current_user.personal_info.fullname
+                                    ,url_for( "staff.show_wfh_approval",request_id=req_id,_external=True))
+        else:
+            approve_msg = u'การขออนุมัติWFHเรื่อง {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
+                            .format(req.detail, current_user.personal_info.fullname
+                                    ,url_for( "staff.show_wfh_approval",request_id=req_id,_external=True))
+        if req.notify_to_line and req.staff.line_id:
+            if os.environ["FLASK_ENV"] == "production":
+                line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=approve_msg))
+            else:
+                print(approve_msg, req.staff.id)
+        approve_title = u'แจ้งสถานะการอนุมัติ WFH เรื่อง' + req.detail
+        if os.environ["FLASK_ENV"] == "production":
+            send_mail([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
+        else:
+            print(approve_title ,approve_msg, req.staff.id)
+        return redirect(url_for('staff.show_wfh_requests_for_approval'))
+    if approved is not None:
+        return render_template('staff/wfh_request_pending_approval_comment.html')
+    else:
+        return redirect(url_for('staff.pending_wfh_request_for_approval', req_id=req_id))
 
 
 @staff.route('/wfh/requests/approved/list/<int:requester_id>')
@@ -1303,108 +1371,106 @@ def show_wfh_approved_list_each_person(requester_id):
 @staff.route('/wfh/requests/<int:request_id>/approvals')
 @login_required
 def show_wfh_approval(request_id):
-    request = StaffWorkFromHomeRequest.query.get(request_id)
+    req = StaffWorkFromHomeRequest.query.get(request_id)
     approvers = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=current_user.id)
-    return render_template('staff/wfh_approval_status.html', request=request, approvers=approvers)
+    return render_template('staff/wfh_approval_status.html', req=req, approvers=approvers)
+
+#Deleted
+# @staff.route('/wfh/<int:request_id>/info/edit-detail/<detail_id>',methods=['GET', 'POST'])
+# @login_required
+# def edit_wfh_job_detail(request_id, detail_id):
+#     detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
+#     if request.method == 'POST':
+#         detail.activity = request.form.get('activity')
+#         db.session.add(detail)
+#         db.session.commit()
+#         return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
+#     detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
+#     return render_template('staff/edit_wfh_job_detail.html', detail=detail, request_id=request_id)
+#
+#
+# @staff.route('/wfh/<int:request_id>/info/finish-job-detail/<detail_id>')
+# @login_required
+# def finish_wfh_job_detail(request_id, detail_id):
+#     detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
+#     if detail:
+#         detail.status = True
+#         db.session.add(detail)
+#         db.session.commit()
+#         return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
+#
+#
+# @staff.route('/wfh/info/cancel-job-detail/<detail_id>')
+# @login_required
+# def cancel_wfh_job_detail(detail_id):
+#     detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
+#     if detail:
+#         db.session.delete(detail)
+#         db.session.commit()
+#         return redirect(url_for('staff.wfh_show_request_info', request_id=detail.wfh_id))
+#
+#
+# @staff.route('/wfh/<int:request_id>/info/unfinish-job-detail/<detail_id>')
+# @login_required
+# def unfinish_wfh_job_detail(request_id, detail_id):
+#     detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
+#     if detail:
+#         detail.status = False
+#         db.session.add(detail)
+#         db.session.commit()
+#         return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
 
 
-@staff.route('/wfh/<int:request_id>/info/edit-detail/<detail_id>',
-             methods=['GET', 'POST'])
-@login_required
-def edit_wfh_job_detail(request_id, detail_id):
-    detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
-    if request.method == 'POST':
-        detail.activity = request.form.get('activity')
-        db.session.add(detail)
-        db.session.commit()
-        return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
-
-    detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
-    return render_template('staff/edit_wfh_job_detail.html', detail=detail, request_id=request_id)
-
-
-@staff.route('/wfh/<int:request_id>/info/finish-job-detail/<detail_id>')
-@login_required
-def finish_wfh_job_detail(request_id, detail_id):
-    detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
-    if detail:
-        detail.status = True
-        db.session.add(detail)
-        db.session.commit()
-        return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
-
-
-@staff.route('/wfh/info/cancel-job-detail/<detail_id>')
-@login_required
-def cancel_wfh_job_detail(detail_id):
-    detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
-    if detail:
-        db.session.delete(detail)
-        db.session.commit()
-        return redirect(url_for('staff.wfh_show_request_info', request_id=detail.wfh_id))
+# @staff.route('/wfh/<int:request_id>/info/add-overall-result',
+#              methods=['GET', 'POST'])
+# @login_required
+# def add_overall_result_work_from_home(request_id):
+#     if request.method == 'POST':
+#         form = request.form
+#         result = StaffWorkFromHomeCheckedJob(
+#             overall_result=form.get('overall_result'),
+#             finished_at=tz.localize(datetime.today()),
+#             request_id=request_id
+#         )
+#         db.session.add(result)
+#         db.session.commit()
+#         wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
+#         detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
+#         check = StaffWorkFromHomeCheckedJob.query.filter_by(request_id=request_id)
+#         return render_template('staff/wfh_record_info_each_request_subordinate.html',
+#                                req=wfhreq, job_detail=detail, checkjob=check)
+#
+#     else:
+#         wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
+#         detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
+#         return render_template('staff/wfh_add_overall_result.html', wfhreq=wfhreq, detail=detail)
 
 
-@staff.route('/wfh/<int:request_id>/info/unfinish-job-detail/<detail_id>')
-@login_required
-def unfinish_wfh_job_detail(request_id, detail_id):
-    detail = StaffWorkFromHomeJobDetail.query.get(detail_id)
-    if detail:
-        detail.status = False
-        db.session.add(detail)
-        db.session.commit()
-        return redirect(url_for('staff.wfh_show_request_info', request_id=request_id))
-
-
-@staff.route('/wfh/<int:request_id>/info/add-overall-result',
-             methods=['GET', 'POST'])
-@login_required
-def add_overall_result_work_from_home(request_id):
-    if request.method == 'POST':
-        form = request.form
-        result = StaffWorkFromHomeCheckedJob(
-            overall_result=form.get('overall_result'),
-            finished_at=tz.localize(datetime.today()),
-            request_id=request_id
-        )
-        db.session.add(result)
-        db.session.commit()
-        wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
-        detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
-        check = StaffWorkFromHomeCheckedJob.query.filter_by(request_id=request_id)
-        return render_template('staff/wfh_record_info_each_request_subordinate.html',
-                               req=wfhreq, job_detail=detail, checkjob=check)
-
-    else:
-        wfhreq = StaffWorkFromHomeRequest.query.get(request_id)
-        detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
-        return render_template('staff/wfh_add_overall_result.html', wfhreq=wfhreq, detail=detail)
-
-
-@staff.route('wfh/<int:request_id>/check/<int:check_id>',
-             methods=['GET', 'POST'])
-@login_required
-def comment_wfh_request(request_id, check_id):
-    checkjob = StaffWorkFromHomeCheckedJob.query.get(check_id)
-    approval = StaffWorkFromHomeApproval.query.filter(and_(StaffWorkFromHomeApproval.request_id == request_id,
-                                                           StaffWorkFromHomeApproval.approver.has(
-                                                               account=current_user))).first()
-    if request.method == 'POST':
-        checkjob.id = check_id,
-        if not approval.approval_comment:
-            approval.approval_comment = request.form.get('approval_comment')
-        else:
-            approval.approval_comment += "," + request.form.get('approval_comment')
-        approval.checked_at = tz.localize(datetime.today())
-        db.session.add(checkjob)
-        db.session.commit()
-        return redirect(url_for('staff.show_wfh_requests_for_approval'))
-
-    else:
-        req = StaffWorkFromHomeRequest.query.get(request_id)
-        job_detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
-        check = StaffWorkFromHomeCheckedJob.query.filter_by(id=check_id)
-        return render_template('staff/wfh_approval_comment.html', req=req, job_detail=job_detail,
-                               checkjob=check)
+# @staff.route('wfh/<int:request_id>/check/<int:check_id>',
+#              methods=['GET', 'POST'])
+# @login_required
+# def comment_wfh_request(request_id, check_id):
+#     checkjob = StaffWorkFromHomeCheckedJob.query.get(check_id)
+#     approval = StaffWorkFromHomeApproval.query.filter(and_(StaffWorkFromHomeApproval.request_id == request_id,
+#                                                            StaffWorkFromHomeApproval.approver.has(
+#                                                                account=current_user))).first()
+#     if request.method == 'POST':
+#         checkjob.id = check_id,
+#         if not approval.approval_comment:
+#             approval.approval_comment = request.form.get('approval_comment')
+#         else:
+#             approval.approval_comment += "," + request.form.get('approval_comment')
+#         approval.checked_at = tz.localize(datetime.today())
+#         db.session.add(checkjob)
+#         db.session.commit()
+#         return redirect(url_for('staff.show_wfh_requests_for_approval'))
+#
+#     else:
+#         req = StaffWorkFromHomeRequest.query.get(request_id)
+#         job_detail = StaffWorkFromHomeJobDetail.query.filter_by(wfh_id=request_id)
+#         check = StaffWorkFromHomeCheckedJob.query.filter_by(id=check_id)
+#         return render_template('staff/wfh_approval_comment.html', req=req, job_detail=job_detail,
+#                                checkjob=check)
 
 
 @staff.route('wfh/<int:request_id>/record/info',
@@ -1993,8 +2059,8 @@ def create_seminar():
             seminar.topic_type = form.get('topic_type')
             seminar.topic = form.get('topic')
             seminar.mission = form.get('mission')
+            seminar.organize_by = form.get('organize_by')
             seminar.location = form.get('location')
-            seminar.country = form.get('country')
             seminar.is_online = True if form.getlist("online") else False
             db.session.add(seminar)
             db.session.commit()
@@ -2003,12 +2069,21 @@ def create_seminar():
     return render_template('staff/seminar_create_event.html')
 
 
+@staff.route('/seminar/add-attend/for-hr/<int:seminar_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_attend_info_for_hr(seminar_id):
+    seminar = StaffSeminar.query.get(seminar_id)
+    attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
+    return render_template('staff/seminar_attend_info_for_hr.html', seminar=seminar, attends=attends)
+
+
 @staff.route('/seminar/add-attend/<int:seminar_id>', methods=['GET', 'POST'])
 @login_required
 def seminar_attend_info(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
     attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
-    return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
+    current_user_attended = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).filter(StaffSeminarAttend.staff.any(id=current_user.id)).first()
+    return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends, current_user_attended=current_user_attended)
 
 
 @staff.route('/seminar/all-seminars', methods=['GET', 'POST'])
@@ -2023,13 +2098,14 @@ def seminar_records():
         record["name"] = seminar.topic
         record["start"] = seminar.start_datetime
         record["end"] = seminar.end_datetime
+        record["organize_by"] = seminar.organize_by
         seminar_list.append(record)
     return render_template('staff/seminar_records.html', seminar_list=seminar_list)
 
 
-@staff.route('/seminar/add-attend/add-attendee/<int:seminar_id>', methods=['GET', 'POST'])
+@staff.route('/seminar/create-record/<int:seminar_id>', methods=['GET', 'POST'])
 @login_required
-def seminar_add_attendee(seminar_id):
+def seminar_create_record(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
     if request.method == "POST":
         form = request.form
@@ -2038,27 +2114,78 @@ def seminar_add_attendee(seminar_id):
         timedelta = end_datetime - start_datetime
         if timedelta.days < 0 or timedelta.seconds == 0:
             flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
-            return render_template('staff/seminar_add_attendee.html', seminar=seminar)
-            # else:
-            #     attend = StaffSeminarAttend(
-            #         staff=[StaffAccount.query.get(int(staff_id)) for staff_id in form.getlist("participants")],
-            #         seminar_id=seminar_id,
-            #         role=form.get('role'),
-            #         registration_fee=form.get('registration_fee'),
-            #         budget_type=form.get('budget_type'),
-            #         budget=form.get('budget'),
-            #         start_datetime=tz.localize(start_datetime),
-            #         end_datetime=tz.localize(end_datetime),
-            #         attend_online=True if form.get("attend_online") else False
-            #     )
-            #     db.session.add(attend)
-            #     db.session.commit()
-            #     seminar = StaffSeminar.query.get(seminar_id)
-            #     attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
+            return render_template('staff/seminar_create_record.html', seminar=seminar)
+        else:
+            attend = StaffSeminarAttend(
+                seminar_id=seminar_id,
+                start_datetime=tz.localize(start_datetime),
+                end_datetime=tz.localize(end_datetime),
+                role=form.get('role'),
+                registration_fee=form.get('registration_fee'),
+                budget_type=form.get('budget_type'),
+                budget=form.get('budget'),
+                attend_online=True if form.get("attend_online") else False,
+                invited_document_id=form.get('invited_document_id'),
+                objective=form.get('objective'),
+                accommodation_cost=form.get('accommodation_cost'),
+                fuel_cost=form.get('fuel_cost'),
+                taxi_cost=form.get('taxi_cost'),
+                train_ticket_cost=form.get('train_ticket_cost'),
+                flight_ticket_cost=form.get('flight_ticket_cost'),
+                transaction_fee=form.get('transaction_fee'),
+                staff=[StaffAccount.query.get(current_user.id)]
+            )
+            db.session.add(attend)
+            db.session.commit()
+            seminar = StaffSeminar.query.get(seminar_id)
+            attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
+            flash(u'เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
+            return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
+    return render_template('staff/seminar_create_record.html', seminar=seminar)
+
+
+@staff.route('/seminar/add-attend/add-attendee/<int:seminar_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_add_attendee(seminar_id):
+    seminar = StaffSeminar.query.get(seminar_id)
+    staff_list = []
+    account_query = StaffAccount.query.all()
+    for account in account_query:
+        record = dict(staffid=account.id,
+                      fullname=account.personal_info.fullname,
+                      email=account.email)
+        organization = account.personal_info.org
+        record["org"] = organization.name if organization else ""
+        staff_list.append(record)
+    if request.method == "POST":
+        form = request.form
+        start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
+        end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
+        timedelta = end_datetime - start_datetime
+        if timedelta.days < 0 or timedelta.seconds == 0:
+            flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
+            return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
+        else:
+            attend = StaffSeminarAttend(
+                staff=[StaffAccount.query.get(int(staff_id)) for staff_id in form.getlist("participants")],
+                seminar_id=seminar_id,
+                role=form.get('role'),
+                registration_fee=form.get('registration_fee'),
+                budget_type=form.get('budget_type'),
+                budget=form.get('budget'),
+                start_datetime=tz.localize(start_datetime),
+                end_datetime=tz.localize(end_datetime),
+                attend_online=True if form.get("attend_online") else False
+            )
+            db.session.add(attend)
+            db.session.commit()
+            seminar = StaffSeminar.query.get(seminar_id)
+            attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
+
             flash(u'เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
             return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
 
-    return render_template('staff/seminar_add_attendee.html', seminar=seminar)
+    return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
 
 
 @staff.route('/seminar/seminar-attend/<int:attend_id>/participants/<int:participant_id>')
@@ -2143,6 +2270,7 @@ def seminar_attends_each_person(staff_id):
     for attend in attends_query:
         years.add(attend.start_datetime.year)
         record = {}
+        record["id"] = attend.id
         record["start"] = attend.start_datetime
         record["end"] = attend.end_datetime
         record["role"] = attend.role
@@ -2165,6 +2293,7 @@ def seminar_attends_each_person(staff_id):
         records["name"] = seminars.topic
         records["startdate"] = seminars.start_datetime
         records["enddate"] = seminars.end_datetime
+        records["organize_by"] = seminars.organize_by
         seminar_records.append(records)
     return render_template('staff/seminar_records_each_person.html', year=fiscal_year,
                            seminar_list=seminar_list, years=years, attend_name=attend_name,
@@ -2305,6 +2434,8 @@ def staff_edit_info(staff_id):
         staff.org_id = form.get('org_id')
         academic_staff = True if form.getlist("academic_staff") else False
         staff.academic_staff = academic_staff
+        retired = True if form.getlist("retired") else False
+        staff.retired = retired
         db.session.add(staff)
         db.session.commit()
         flash(u'แก้ไขข้อมูลบุคลากรเรียบร้อย')

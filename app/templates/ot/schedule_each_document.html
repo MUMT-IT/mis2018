@@ -7,26 +7,42 @@
 {% endblock %}
 
 {% block page_content %}
-<section class="section">
+<section class="section" id="app">
     <div class="container">
+        {% include "messages.html" %}
         <div class="table-container">
-            <h4 class="subtitle">รายการที่ต้องการเบิก OT ของ
+            <h4 class="subtitle has-text-centered">รายการที่ต้องการเบิก OT ของ
                 {{ current_user.personal_info.org.name }} สำหรับอนุมัติ {{ document.title }}
             </h4>
         </div>
         <table id="otTable" class="table is-striped is-fullwidth">
             <thead>
                 <th>
-                    ช่วงเวลาที่ปฏิบัติงาน
+                    วันที่ที่ปฏิบัติงาน
                 </th>
                 <th>
-                    ผู้ปฏิบัติงาน
+                    เวลาเริ่มต้น
+                </th>
+                <th>
+                    เวลาสิ้นสุด
+                </th>
+                <th>
+                    รวม(ชั่วโมง)
                 </th>
                 <th>
                     ตำแหน่ง
                 </th>
                 <th>
                    ตำแหน่งย่อย(ถ้ามี)
+                </th>
+                <th>
+                    ได้ต่อหน่วย
+                </th>
+                <th>
+                    บาท
+                </th>
+                <th>
+                    ผู้ปฏิบัติงาน
                 </th>
                 <th>
                     ปฏิบัติงาน ณ
@@ -37,15 +53,28 @@
                 <th>
                     หมายเหตุ
                 </th>
+                <th>
+                    แก้ไข
+                </th>
+                <th>
+                    ลบ
+                </th>
             </thead>
             <tbody>
             {% for record in ot_records %}
+            {% if not record.canceled_at %}
             <tr>
                 <td>
-                    {{ record["start_datetime"] }} - {{ record["end_datetime"] }}
+                    {{ record["start_date"] }}
                 </td>
                 <td>
-                    {{ record["staff"] }}
+                    {{ record["start_time"] }}
+                </td>
+                <td>
+                    {{ record["end_time"] }}
+                </td>
+                <td>
+                    {{ record["hour"] }}
                 </td>
                 <td>
                     {{ record["compensation"] }}
@@ -54,24 +83,74 @@
                     {{ record["sub_role"] }}
                 </td>
                 <td>
+                    {{ record["rate"] }}
                 </td>
                 <td>
-
+                    {{ record["total_rate"] }}
                 </td>
-                <td {% if record["condition"] %} bgcolor="red" {% endif %}>
-                    {{ record ["condition"] or "" }}
+                <td>
+                    {{ record["staff"] }}
                 </td>
+                <td>
+                    {{ record["work_at"] }}
+                </td>
+                <td>
+                    {{ record["work_for"] }}
+                </td>
+                <td {% if record["condition"] %} bgcolor="#FA5757" {% endif %}>
+                    <font color="#FFFFFF">{{ record ["condition"] or "" }}</font>
+                </td>
+                <td>
+                    <a href="{{ url_for('ot.edit_ot_record', record_id=record['id']) }}">
+                     <span class="icon">
+                        <i class="far fa-pencil-alt"></i>
+                    </span>
+                    </a>
+                </td>
+                {% if record["condition"] %}
+                <td>
+                    <a class="level-item"
+                       @click="confirmDelete({{ record['id'] }})">
+                        <span class="icon">
+                            <i class="far has-text-danger fa-times-circle"></i>
+                        </span>
+                    </a>
+                </td>
+                {% endif %}
             </tr>
+            {% endif %}
             {% endfor %}
             </tbody>
         </table>
         <div class="columns">
-            <div class="column has-text-centered">
-                <a class="button is-info" href="{{ url_for('ot.summary_ot_each_document_download', document_id=document.id) }}">
-                    <span>ส่งเบิก</span>
-                </a>
+            <div class="column">
+                <div class="container has-text-right">
+                        <a class="button is-info" href="{{ url_for('ot.add_schedule', document_id=document.id) }}">
+                        <span class="is-size-4">เพิ่มข้อมูล OT</span>
+                        </a>
+                </div>
             </div>
         </div>
+
+<!--        {% if not ot_records["condition"]  %}-->
+<!--        <div class="columns">-->
+<!--            <div class="column has-text-centered">-->
+<!--                <div class="box">-->
+<!--                    <a @click="confirmRequest({{ document.id|tojson|safe }}, {{ month|tojson|safe }}, {{ year|tojson|safe }})">-->
+<!--                        <span class="icon is-large">-->
+<!--                            <i class="fas fa-paper-plane fa-2x"></i>-->
+<!--                        </span>-->
+<!--                        <span class="is-size-4">ส่งเบิก</span>-->
+<!--                    </a>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
+<!--        {% else %}-->
+<!--        <span>กรุณาตรวจสอบการรายการที่ไม่สามารถเบิกค่าล่วงเวลาได้</span>-->
+<!--        {% endif %}-->
+
+
+
         <div class="columns">
             <div class="column">
                 <a class="button is-info is-light" href="{{ url_for('ot.summary_ot_each_org') }}">
@@ -95,6 +174,34 @@
                 "pageLength": 5
             }
         );
+    });
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        methods: {
+            confirmRequest: function(document_id, month, year) {
+                console.log(document_id);
+                this.$buefy.dialog.confirm({
+                    title: 'Confirm the request',
+                    message: 'แน่ใจหรือไม่ที่จะ<b>ยื่นเบิก</b>ในครั้งนี้ หากยื่นแล้วจะไม่สามารถแก้ไขได้',
+                    confirmText: 'Confirm',
+                    type: 'is-warning',
+                    hasIcon: true,
+                    onConfirm: () => window.location.href = "/ot/schedule/summary/each-org/" + document_id + "/" + month + "/"+ year + "/create-approval-create-download"
+                })
+            },
+            confirmDelete: function(record_id) {
+                console.log(record_id);
+                this.$buefy.dialog.confirm({
+                    title: 'Confirm to delete',
+                    message: 'แน่ใจหรือไม่ที่จะ<b>ยกเลิก</b>ในครั้งนี้ หากยกเลิกแล้วจะไม่สามารถแก้ไขได้',
+                    confirmText: 'Confirm',
+                    type: 'is-danger',
+                    hasIcon: true,
+                    onConfirm: () => window.location.href = "/ot/schedule/cancel/" + record_id
+                })
+            },
+        }
     });
 </script>
 {% endblock %}

@@ -23,6 +23,14 @@
                         </tr>
                         <tr>
                             <td>
+                                <label class="label">หน่วยงานที่จัด</label>
+                            </td>
+                            <td>
+                                {{ seminar.organize_by }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
                                 <label class="label">วันที่</label>
                             </td>
                             <td>
@@ -61,6 +69,19 @@
                     </table>
                 </div>
                 <div class="box">
+                    {% if not current_user_attended %}
+                    <div class="columns">
+                        <div class="column has-text-centered">
+                            <a href="{{ url_for('staff.seminar_create_record', seminar_id=seminar.id) }}"
+                               class="button is-light is-success">
+                                <span class="icon">
+                                    <i class="fas fa-user-plus"></i>
+                                </span>
+                                <span>เข้าร่วมกิจกรรมนี้</span>
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
                     <table class="table is-fullwidth">
                         <thead>
                             <th>ชื่อ</th>
@@ -120,7 +141,7 @@
         </div>
         <div class="columns">
             <div class="column">
-                <a href="{{ url_for('staff.seminar_records') }}" class="button is-rounded is-info is-light">
+                <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}" class="button is-rounded is-info is-light">
                     <span class="icon">
                         <i class="fas fa-arrow-left"></i>
                     </span>

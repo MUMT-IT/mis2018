@@ -42,6 +42,14 @@
                         </tr>
                         <tr>
                             <td>
+                                <label class="label">ดำเนินการภายใต้</label>
+                            </td>
+                            <td>
+                                {{ attend.objective }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
                                <label class="label">บทบาท</label>
                             </td>
                             <td>
@@ -66,23 +74,15 @@
                             </td>
                         </tr>
                         {% endif %}
-                        {% if attend.seminar.country %}
-                        <tr>
-                            <td>
-                               <label class="label">ประเทศ</label>
-                            </td>
-                            <td>
-                                {{ attend.seminar.country }}
-                            </td>
-                        </tr>
-                        {% endif %}
                         {% if attend.budget_type %}
                         <tr>
                             <td>
                                <label class="label">ค่าใช้จ่าย</label>
                             </td>
-                            <td>
-                                {{ attend.budget_type }}: {{ attend.budget }}
+                            <td>{% if attend.budget_type %}
+                                {{ attend.budget_type }} :
+                                {% endif %}
+                                {{ attend.budget }}
                             </td>
                         </tr>
                         {% endif %}
@@ -90,19 +90,11 @@
                 </div>
                 <div class="columns">
                     <div class="column">
-                        <a href="" class="button is-rounded is-info is-light">
+                        <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}" class="button is-rounded is-info is-light">
                             <span class="icon">
                                 <i class="fas fa-arrow-left"></i>
                             </span>
                             <span>กลับหน้าสรุปรายการอบรม</span>
-                        </a>
-                    </div>
-                    <div class="column has-text-right">
-                        <a href="{{ url_for('staff.summary_index') }}" class="button is-rounded is-info is-light">
-                            <span>กลับหน้าตารางสรุป</span>
-                            <span class="icon">
-                                <i class="fas fa-arrow-right"></i>
-                            </span>
                         </a>
                     </div>
                 </div>
