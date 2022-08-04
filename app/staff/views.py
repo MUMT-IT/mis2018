@@ -1976,7 +1976,7 @@ def seminar_create_record(seminar_id):
                 budget_type=form.get('budget_type'),
                 budget=form.get('budget'),
                 attend_online=True if form.get("attend_online") else False,
-                document_id=form.get('document_id'),
+                invited_document_id=form.get('invited_document_id'),
                 objective=form.get('objective'),
                 accommodation_cost=form.get('accommodation_cost'),
                 fuel_cost=form.get('fuel_cost'),
