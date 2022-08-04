@@ -425,8 +425,12 @@ class StaffLeaveApprover(db.Model):
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     approver_account_id = db.Column('approver_account_id', db.ForeignKey('staff_account.id'))
     is_active = db.Column('is_active', db.Boolean(), default=True)
-    requester = db.relationship('StaffAccount', backref=db.backref('leave_requesters'), foreign_keys=[staff_account_id])
-    account = db.relationship('StaffAccount', backref=db.backref('leave_approvers'), foreign_keys=[approver_account_id])
+    requester = db.relationship('StaffAccount',
+                                backref=db.backref('leave_requesters'),
+                                foreign_keys=[staff_account_id])
+    account = db.relationship('StaffAccount',
+                              backref=db.backref('leave_approvers'),
+                              foreign_keys=[approver_account_id])
     notified_by_line = db.Column('notified_by_line', db.Boolean(), default=True)
 
     def __str__(self):
@@ -525,9 +529,11 @@ class StaffWorkFromHomeApprover(db.Model):
     approver_account_id = db.Column('approver_account_id', db.ForeignKey('staff_account.id'))
     is_active = db.Column('is_active', db.Boolean(), default=True)
     requester = db.relationship('StaffAccount',
-                            foreign_keys=[staff_account_id])
+                                backref=db.backref('wfh_requesters'),
+                                foreign_keys=[staff_account_id])
     account = db.relationship('StaffAccount',
-                               foreign_keys=[approver_account_id])
+                              backref=db.backref('wfh_approvers'),
+                              foreign_keys=[approver_account_id])
 
 
 class StaffWorkFromHomeApproval(db.Model):

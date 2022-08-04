@@ -5,6 +5,8 @@
     <div class="container" id="app">
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
+                <h1 class="title has-text-centered">รายละเอียดการอนุมัติ WFH</h1>
+                <h1 class="subtitle has-text-centered">สำหรับหัวหน้างาน</h1>
                 <div class="box">
                     <table class="table is-fullwidth">
                         <tr>
@@ -105,7 +107,9 @@
                                     {% if approval.approval_comment %}
                                         {{ approval.approval_comment }}
                                     {% endif %}
-                                    {{ approval.updated_at|localdatetime }}<br>
+                                    <span class="tag is-light">
+                                        {{ approval.updated_at|localdatetime }}<br>
+                                    </span>
                                 {% endfor %}
                             </td>
                         </tr>
@@ -113,18 +117,18 @@
                     </div>
                 <div class="columns">
                     <div class="column">
-                        <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}" class="button is-rounded is-info is-light">
+                        <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}" class="button is-light">
                             <span class="icon">
-                                <i class="fas fa-arrow-left"></i>
+                                <i class="fas fa-chevron-left"></i>
                             </span>
                             <span>กลับหน้าสรุป WFH</span>
                         </a>
                     </div>
                     <div class="column has-text-right">
-                        <a href="{{ url_for('staff.summary_index') }}" class="button is-rounded is-info is-light">
+                        <a href="{{ url_for('staff.summary_index') }}" class="button is-light">
                             <span>กลับหน้าตารางสรุป</span>
                             <span class="icon">
-                                <i class="fas fa-arrow-right"></i>
+                                <i class="fas fa-chevron-right"></i>
                             </span>
                         </a>
                     </div>

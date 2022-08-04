@@ -1143,28 +1143,27 @@ def leave_request_by_person_detail(requester_id):
 @staff.route('/wfh')
 @login_required
 def show_work_from_home():
+    category = request.args.get('category', 'pending')
     wfh_list = []
-    for wfh in current_user.wfh_requests:
-        if wfh.start_datetime >= tz.localize(START_FISCAL_DATE) and wfh.end_datetime <= tz.localize(END_FISCAL_DATE) \
-                and not wfh.cancelled_at:
-            if not wfh.get_approved:
-                if not wfh.get_unapproved:
+    if category == 'pending':
+        for wfh in current_user.wfh_requests:
+            if wfh.start_datetime >= tz.localize(START_FISCAL_DATE) and wfh.end_datetime <= tz.localize(END_FISCAL_DATE) \
+                    and not wfh.cancelled_at:
+                if not wfh.get_approved:
+                    if not wfh.get_unapproved:
+                        wfh_list.append(wfh)
+    elif category == 'approved':
+        for wfh in current_user.wfh_requests:
+            if wfh.get_approved:
+                if not wfh.cancelled_at:
                     wfh_list.append(wfh)
-
-    wfh_approved_list = []
-    for wfh in current_user.wfh_requests:
-        if wfh.get_approved:
-            if not wfh.cancelled_at:
-                wfh_approved_list.append(wfh)
-
-    wfh_unapproved_list = []
-    for wfh in current_user.wfh_requests:
-        if wfh.get_unapproved:
-            if not wfh.cancelled_at:
-                wfh_unapproved_list.append(wfh)
+    elif category == 'rejected':
+        for wfh in current_user.wfh_requests:
+            if wfh.get_unapproved:
+                if not wfh.cancelled_at:
+                    wfh_list.append(wfh)
     approver = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=current_user.id).first()
-    return render_template('staff/wfh_info.html', wfh_list=wfh_list, wfh_approved_list=wfh_approved_list,
-                           wfh_unapproved_list=wfh_unapproved_list, approver=approver)
+    return render_template('staff/wfh_info.html', category=category, wfh_list=wfh_list, approver=approver)
 
 
 @staff.route('/wfh/others-records')
@@ -1172,15 +1171,14 @@ def show_work_from_home():
 def show_work_from_home_others_records():
     wfh_history = []
     for wfh in current_user.wfh_requests:
-        if wfh.start_datetime <= tz.localize(START_FISCAL_DATE) and wfh.end_datetime < tz.localize(END_FISCAL_DATE) and wfh.cancelled_at is None:
+        if wfh.start_datetime >= tz.localize(START_FISCAL_DATE) and wfh.end_datetime < tz.localize(END_FISCAL_DATE) and wfh.cancelled_at is None:
             wfh_history.append(wfh)
 
     wfh_cancelled_list = []
     for wfh in current_user.wfh_requests:
         if wfh.cancelled_at:
             wfh_cancelled_list.append(wfh)
-    return render_template('staff/wfh_info_others_records.html', wfh_history=wfh_history,
-                           wfh_cancelled_list=wfh_cancelled_list)
+    return render_template('staff/wfh_info_others_records.html', wfh_history=wfh_history, wfh_cancelled_list=wfh_cancelled_list)
 
 
 @staff.route('/wfh/request',
@@ -1820,11 +1818,11 @@ def send_summary_data():
         if tab in ['wfh', 'all']:
             for wfh_req in StaffWorkFromHomeRequest.query.filter_by(staff=emp.staff_account).filter(
                     StaffWorkFromHomeRequest.start_datetime.between(cal_start, cal_end)):
-                if not wfh_req.cancelled_at:
+                if not wfh_req.cancelled_at and not wfh_req.get_unapproved:
                     if wfh_req.get_approved:
-                        text_color = '#ffffff'
-                        bg_color = '#109AD3'
-                        border_color = '#ffffff'
+                        text_color = '#989898'
+                        bg_color = '#C5ECFB'
+                        border_color = '#109AD3'
                     else:
                         text_color = '#989898'
                         bg_color = '#C5ECFB'

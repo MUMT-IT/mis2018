@@ -5,6 +5,7 @@
     <div class="container" id="app">
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
+            <h1 class="title has-text-centered">รายละเอียดอนุมัติ Work From Home</h1>
                 <div class="box">
                     <table class="table is-fullwidth">
                         <tr>
@@ -63,12 +64,14 @@
                 </div>
                 <div class="columns">
                     <div class="column">
-                        <a href="{{ url_for('staff.show_work_from_home') }}" class="button is-rounded is-info is-light">
-                            <span class="icon">
-                                <i class="fas fa-arrow-left"></i>
-                            </span>
-                            <span>กลับ</span>
-                        </a>
+                        <div class="buttons is-centered">
+                            <a href="{{ url_for('staff.show_work_from_home') }}" class="button is-light">
+                                <span class="icon">
+                                    <i class="fas fa-chevron-left"></i>
+                                </span>
+                                <span>กลับ</span>
+                            </a>
+                        </div>
                     </div>
                 </div>
             </div>
