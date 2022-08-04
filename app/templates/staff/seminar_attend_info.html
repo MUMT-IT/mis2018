@@ -87,7 +87,6 @@
                             <th>ชื่อ</th>
                             <th>ประเภทการเข้าร่วม</th>
                             <th>วันและเวลา</th>
-                            <th>Actions</th>
                         </thead>
                         <tbody>
                             {% for attend in attends %}
@@ -104,14 +103,6 @@
                                 </td>
                                 <td>
                                     {{ attend.start_datetime|localdatetime }} - {{ attend.end_datetime|localdatetime }}
-                                </td>
-                                <td>
-                                    <a class="button is-danger is-light"href="{{ url_for('staff.delete_participant',
-                                    attend_id=attend.id, participant_id=participant.id) }}">
-                                        <span class="icon">
-                                            <i class="fas fa-user-minus"></i>
-                                        </span>
-                                    </a>
                                 </td>
                             </tr>
                             {% endfor %}
