@@ -39,6 +39,23 @@
                                 <option value="อื่นๆ">อื่นๆ</option>
                             </b-select>
                         </b-field>
+                        <b-field label="รายละเอียดการเข้าร่วม ดำเนินการภายใต้">
+                            <b-select placeholder="เลือกประเภท" name="objective" id="objective" required>
+                                <option value="แผนพัฒนาบุคลากรรายบุคคล(IDP)">แผนพัฒนาบุคลากรรายบุคคล(IDP)</option>
+                                <option value="โครงการ MU-Talents">โครงการ MU-Talents</option>
+                                <option value="ยุทธศาสตร์ภาควิชา/คณะฯ">ยุทธศาสตร์ภาควิชา/คณะฯ</option>
+                                <option value="พัฒนาศักยภาพตามความสนใจ">พัฒนาศักยภาพตามความสนใจ</option>
+                                <option value="">อื่นๆ</option>
+                            </b-select>
+                        </b-field>
+                        <b-field>
+                            <b-input id="other_objective"
+                                     type="text"
+                                     name="other_objective"
+                                     placeholder="โปรดระบุ"
+                            >
+                            </b-input>
+                        </b-field>
                         <div class="field">
                             <b-field>
                                 <b-checkbox value="yes" name="attend_online">
@@ -96,6 +113,60 @@
                                      required>
                             </b-input>
                         </b-field>
+                        <b-field label="ค่าที่พัก (บาท)" v-if="payment === 'paid'">
+                            <b-input type="text"
+                                     name="accommodation_cost"
+                                     icon-pack="far"
+                                     icon="house">
+                            </b-input>
+                        </b-field>
+                        <div class="field" v-if="payment === 'paid'">
+                            <div class="field">
+                                <label class="label">ค่าเดินทาง</label>
+                            </div>
+                            <div class="block">
+                                <b-radio native-value="no_cost" v-model="transportation"
+                                         name="transportation">ไม่มีค่าเดินทาง</b-radio>
+                                <b-radio native-value="fuel_cost" v-model="transportation"
+                                         name="transportation">ค่าน้ำมัน</b-radio>
+                                <b-radio native-value="train_ticket_cost" v-model="transportation"
+                                         name="transportation">ค่ารถไฟ</b-radio>
+                                <b-radio native-value="taxi_cost" v-model="transportation"
+                                         name="transportation">ค่า Taxi</b-radio>
+                                <b-radio native-value="flight_ticket_cost" v-model="transportation"
+                                         name="transportation">ค่าตั๋วเครื่องบิน</b-radio>
+                            </div>
+                        </div>
+                        <b-field label="ค่าน้ำมัน (บาท)" v-if="transportation === 'fuel_cost'">
+                            <b-input type="text"
+                                     name="fuel_cost"
+                                     icon-pack="far"
+                                     icon="gas-pump">
+                            </b-input>
+                        </b-field>
+                        <b-field label="ค่า Taxi (บาท)" v-if="transportation === 'taxi_cost'">
+                            <b-input type="text"
+                                     name="taxi_cost"
+                                     icon-pack="far"
+                                     icon="taxi">
+                            </b-input>
+                        </b-field>
+                        <b-field label="ค่ารถไฟ (บาท)"
+                                 v-if="transportation === 'train_ticket_cost' || transportation === 'taxi_cost'">
+                            <b-input type="text"
+                                     name="train_ticket_cost"
+                                     icon-pack="far"
+                                     icon="train">
+                            </b-input>
+                        </b-field>
+                        <b-field label="ค่าตั๋วเครื่องบิน (บาท)"
+                                 v-if="transportation === 'flight_ticket_cost' || transportation === 'taxi_cost'">
+                            <b-input type="text"
+                                     name="flight_ticket_cost"
+                                     icon-pack="far"
+                                     icon="plane">
+                            </b-input>
+                        </b-field>
                         <b-field label="ค่าใช้จ่ายรวมต่อคน" v-if="payment === 'paid'">
                             <b-input type="text"
                                      name="budget"
@@ -142,7 +213,7 @@
                 <div class="column is-half is-offset-one-quarter">
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
-                            <a href="{{ url_for('staff.seminar_attend_info', seminar_id=seminar.id) }}"
+                            <a href="{{ url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id) }}"
                                class="button is-light">Cancel</a>
                         </div>
                         <div class="control">
@@ -175,6 +246,8 @@
             payment: "unpaid",
                 data: [],
                 participants: [],
+                objective: "others",
+                transportation: "no_cost",
                 timepicker: {
                 incrementMinutes: 30
             }
@@ -195,5 +268,15 @@
             }
         }
     });
+    $(document).ready(()=>{
+        $('#other_objective').hide()
+        $('#objective').change(e=>{
+            if ($('#objective').val() === "") {
+                $('#other_objective').show()
+            } else {
+                $('#other_objective').hide()
+            }
+        })
+    })
 </script>
 {% endblock %}

@@ -2111,9 +2111,8 @@ def seminar_create_record(seminar_id):
         form = request.form
         start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
-        timedelta = end_datetime - start_datetime
-        if timedelta.days < 0 or timedelta.seconds == 0:
-            flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
+        if form.get('objective') == '' and form.get('other_objective') == '':
+            flash(u'โปรดระบุรายละเอียดการเข้าร่วม ดำเนินการภายใต้', 'danger')
             return render_template('staff/seminar_create_record.html', seminar=seminar)
         else:
             attend = StaffSeminarAttend(
@@ -2121,18 +2120,18 @@ def seminar_create_record(seminar_id):
                 start_datetime=tz.localize(start_datetime),
                 end_datetime=tz.localize(end_datetime),
                 role=form.get('role'),
-                registration_fee=form.get('registration_fee'),
+                registration_fee=form.get('registration_fee') if form.get("registration_fee") else None,
                 budget_type=form.get('budget_type'),
                 budget=form.get('budget'),
                 attend_online=True if form.get("attend_online") else False,
                 invited_document_id=form.get('invited_document_id'),
-                objective=form.get('objective'),
-                accommodation_cost=form.get('accommodation_cost'),
-                fuel_cost=form.get('fuel_cost'),
-                taxi_cost=form.get('taxi_cost'),
-                train_ticket_cost=form.get('train_ticket_cost'),
-                flight_ticket_cost=form.get('flight_ticket_cost'),
-                transaction_fee=form.get('transaction_fee'),
+                objective=form.get('objective') if form.get('objective') != '' else form.get('other_objective'),
+                accommodation_cost=form.get('accommodation_cost') if form.get("accommodation_cost") else None,
+                fuel_cost=form.get('fuel_cost') if form.get("fuel_cost") else None,
+                taxi_cost=form.get('taxi_cost') if form.get("taxi_cost") else None,
+                train_ticket_cost=form.get('train_ticket_cost') if form.get("train_ticket_cost") else None,
+                flight_ticket_cost=form.get('flight_ticket_cost') if form.get("flight_ticket_cost") else None,
+                transaction_fee=form.get('transaction_fee') if form.get("transaction_fee") else None,
                 staff=[StaffAccount.query.get(current_user.id)]
             )
             db.session.add(attend)
@@ -2161,30 +2160,28 @@ def seminar_add_attendee(seminar_id):
         form = request.form
         start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
-        timedelta = end_datetime - start_datetime
-        if timedelta.days < 0 or timedelta.seconds == 0:
-            flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
-            return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
-        else:
-            attend = StaffSeminarAttend(
-                staff=[StaffAccount.query.get(int(staff_id)) for staff_id in form.getlist("participants")],
-                seminar_id=seminar_id,
-                role=form.get('role'),
-                registration_fee=form.get('registration_fee'),
-                budget_type=form.get('budget_type'),
-                budget=form.get('budget'),
-                start_datetime=tz.localize(start_datetime),
-                end_datetime=tz.localize(end_datetime),
-                attend_online=True if form.get("attend_online") else False
-            )
-            db.session.add(attend)
-            db.session.commit()
-            seminar = StaffSeminar.query.get(seminar_id)
-            attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
-
-            flash(u'เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
-            return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
-
+        attend = StaffSeminarAttend(
+            staff=[StaffAccount.query.get(int(staff_id)) for staff_id in form.getlist("participants")],
+            seminar_id=seminar_id,
+            role=form.get('role'),
+            registration_fee=form.get('registration_fee') if form.get("registration_fee") else None,
+            budget_type=form.get('budget_type'),
+            budget=form.get('budget'),
+            start_datetime=tz.localize(start_datetime),
+            end_datetime=tz.localize(end_datetime),
+            attend_online=True if form.get("attend_online") else False,
+            accommodation_cost=form.get('accommodation_cost') if form.get("accommodation_cost") else None,
+            fuel_cost=form.get('fuel_cost') if form.get("fuel_cost") else None,
+            taxi_cost=form.get('taxi_cost') if form.get("taxi_cost") else None,
+            train_ticket_cost=form.get('train_ticket_cost') if form.get("train_ticket_cost") else None,
+            flight_ticket_cost=form.get('flight_ticket_cost') if form.get("flight_ticket_cost") else None,
+            objective=form.get('objective') if form.get('objective') != '' else form.get('other_objective')
+        )
+        db.session.add(attend)
+        db.session.commit()
+        attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
+        flash(u'เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
+        return render_template('staff/seminar_attend_info_for_hr.html', seminar=seminar, attends=attends)
     return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
 
 

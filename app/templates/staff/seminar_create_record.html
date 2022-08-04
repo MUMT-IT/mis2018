@@ -41,7 +41,8 @@
                             <b-input type="text"
                                      name="invited_document_id"
                                      icon-pack="far"
-                                     icon="comment">
+                                     placeholder="เช่น อว.78"
+                                     required>
                             </b-input>
                         </b-field>
                         <div class="field">
@@ -55,13 +56,22 @@
                                     <option value="นิเทศน์งาน">นิเทศน์งาน</option>
                                 </b-select>
                             </b-field>
-                            <b-field label="รายละเอียดการเข้าร่วม ดำเนินการภายใต้">
-                                <b-select placeholder="เลือกประเภท" name="objective" required>
+                            <b-field label="รายละเอียดการเข้าร่วม ดำเนินการภายใต้" v-if="status === 'wanttogo'">
+                                <b-select placeholder="เลือกประเภท" name="objective" id="objective" required>
                                     <option value="แผนพัฒนาบุคลากรรายบุคคล(IDP)">แผนพัฒนาบุคลากรรายบุคคล(IDP)</option>
                                     <option value="โครงการ MU-Talents">โครงการ MU-Talents</option>
                                     <option value="ยุทธศาสตร์ภาควิชา/คณะฯ">ยุทธศาสตร์ภาควิชา/คณะฯ</option>
                                     <option value="พัฒนาศักยภาพตามความสนใจ">พัฒนาศักยภาพตามความสนใจ</option>
+                                    <option value="">อื่นๆ</option>
                                 </b-select>
+                            </b-field>
+                            <b-field v-if="status === 'wanttogo'">
+                                <b-input id="other_objective"
+                                         type="text"
+                                         name="other_objective"
+                                         placeholder="โปรดระบุ"
+                                         >
+                                </b-input>
                             </b-field>
                             <div class="field">
                                 <b-field>
@@ -96,7 +106,7 @@
                                 </b-datetimepicker>
                             </b-field>
                             <input type="hidden" name="end_dt" v-model="formattedEndDateTime">
-                            <div class="field">
+                            <div class="field" v-if="status === 'wanttogo'">
                                 <div class="field">
                                     <label class="label">ค่าใช้จ่าย</label>
                                 </div>
@@ -116,15 +126,14 @@
                                 <b-input type="text"
                                          name="registration_fee"
                                          icon-pack="far"
-                                         icon="registered"
-                                         required>
+                                         icon="registered">
                                 </b-input>
                             </b-field>
                             <b-field label="ค่าที่พัก (บาท)" v-if="payment === 'paid'">
                                 <b-input type="text"
                                          name="accommodation_cost"
                                          icon-pack="far"
-                                         icon="travel">
+                                         icon="house">
                                 </b-input>
                             </b-field>
                             <div class="field" v-if="payment === 'paid'">
@@ -148,14 +157,14 @@
                                 <b-input type="text"
                                          name="fuel_cost"
                                          icon-pack="far"
-                                         icon="travel">
+                                         icon="gas-pump">
                                 </b-input>
                             </b-field>
                             <b-field label="ค่า Taxi (บาท)" v-if="transportation === 'taxi_cost'">
                                 <b-input type="text"
                                          name="taxi_cost"
                                          icon-pack="far"
-                                         icon="travel">
+                                         icon="taxi">
                                 </b-input>
                             </b-field>
                             <b-field label="ค่ารถไฟ (บาท)"
@@ -163,7 +172,7 @@
                                 <b-input type="text"
                                          name="train_ticket_cost"
                                          icon-pack="far"
-                                         icon="travel">
+                                         icon="train">
                                 </b-input>
                             </b-field>
                             <b-field label="ค่าตั๋วเครื่องบิน (บาท)"
@@ -171,7 +180,7 @@
                                 <b-input type="text"
                                          name="flight_ticket_cost"
                                          icon-pack="far"
-                                         icon="travel">
+                                         icon="plane">
                                 </b-input>
                             </b-field>
                             <b-field label="ค่าธรรมเนียมการโอนเงิน (บาท)" v-if="payment === 'paid'">
@@ -187,6 +196,7 @@
                                          required>
                                 </b-input>
                             </b-field>
+
                         </div>
                     </div>
                 </div>
@@ -203,7 +213,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
             </div>
         </form>
     </div>
@@ -247,5 +256,15 @@
             }
         }
     });
+    $(document).ready(()=>{
+        $('#other_objective').hide()
+        $('#objective').change(e=>{
+            if ($('#objective').val() === "") {
+                $('#other_objective').show()
+            } else {
+                $('#other_objective').hide()
+            }
+        })
+    })
 </script>
 {% endblock %}

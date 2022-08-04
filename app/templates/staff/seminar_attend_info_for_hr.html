@@ -106,6 +106,13 @@
                                 </span>
                                 <span>เพิ่มผู้เข้าร่วม</span>
                             </a>
+                            <a href="{{ url_for('staff.checkin_activity', seminar_id=seminar.id) }}"
+                               class="button is-light is-info">
+                                <span class="icon">
+                                   <i class="fas fa-qrcode"></i>
+                                </span>
+                                <span>สแกนเข้าร่วม</span>
+                            </a>
                         </div>
                     </div>
                 </div>
