@@ -50,15 +50,6 @@ def local_datetime(dt):
     return dt.astimezone(bangkok).strftime(datetime_format)
 
 
-class StaffPosition(db.Model):
-    __tablename__ = 'staff_positions'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    position = db.Column('position', db.String())
-
-    def __str__(self):
-        return self.position
-
-
 # Define the Roles data model
 class Role(db.Model):
     __tablename__ = 'roles'
@@ -141,10 +132,6 @@ class StaffPersonalInfo(db.Model):
     employment_id = db.Column('employment_id',
                               db.ForeignKey('staff_employments.id'))
     employment = db.relationship('StaffEmployment',
-                                 backref=db.backref('staff'))
-    position_id = db.Column('position_id',
-                              db.ForeignKey('staff_positions.id'))
-    position = db.relationship('StaffPosition',
                                  backref=db.backref('staff'))
     finger_scan_id = db.Column('finger_scan_id', db.Integer)
     academic_staff = db.Column('academic_staff', db.Boolean())
