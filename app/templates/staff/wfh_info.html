@@ -4,6 +4,15 @@
 <section class="section" id="app">
     {% include "messages.html" %}
     <div class="container">
+        <div class="notification is-light is-info">
+            การขออนุมัติทำงานที่บ้านของท่านจะได้พิจารณาและอนุมัติโดย
+            <strong>
+                {% for approver in current_user.wfh_requesters %}
+                    {{ loop.index }}. {{ approver.account.personal_info.fullname }}
+                {% endfor %}
+            </strong>
+            หากข้อมูลผู้บังคับบัญชาไม่ถูกต้องเหมาะสม กรุณาแจ้งหน่วยสารสนเทศเพื่อทำการแก้ไข
+        </div>
         <div class="columns">
             <div class="column">
                 <h4 class="title has-text-centered">รายการขออนุมัติ Work From Home</h4>
@@ -28,6 +37,7 @@
                         <li><a {% if category=="pending" %} class="is-active" {% endif %} href="{{ url_for('staff.show_work_from_home', category='pending') }}">รายการที่รออนุมัติ</a></li>
                         <li><a {% if category=="approved" %} class="is-active" {% endif %} href="{{ url_for('staff.show_work_from_home', category='approved') }}">รายการที่อนุมัติแล้ว</a></li>
                         <li><a {% if category=="rejected" %} class="is-active" {% endif %} href="{{ url_for('staff.show_work_from_home', category='rejected') }}">รายการที่ไม่ได้รับการอนุมัติ</a></li>
+                        <li><a href="{{ url_for('staff.show_work_from_home_others_records') }}">ประวัติและรายการยกเลิก</a></li>
                     </ul>
                 </aside>
             </div>
@@ -98,17 +108,9 @@
                 </table>
             </div>
         </div>
-        <div class="columns">
-            <div class="column">
-                <div class="has-text-centered">
-                    <a href="{{ url_for('staff.show_work_from_home_others_records') }}"
-                       class="button is-info is-light">
-                        <span>ประวัติ WFH และข้อมูลการยกเลิก</span>
-                    </a>
-                </div>
-            </div>
-        </div>
         {% if approver %}
+        <hr>
+            <h1 class="title has-text-danger has-text-centered is-size-4">สำหรับหัวหน้าส่วนงาน/ผู้บริหาร</h1>
         <div class="columns">
             <div class="column">
                 <div class="has-text-centered">
@@ -117,7 +119,7 @@
                         <span class="icon">
                            <i class="fas fa-users"></i>
                         </span>
-                        <span>สำหรับหัวหน้างาน</span>
+                        <span>ข้อมูลการขออนุมัติทำงานที่บ้านของบุคลากรในสังกัด</span>
                     </a>
                 </div>
             </div>
