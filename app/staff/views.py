@@ -1512,8 +1512,54 @@ def for_hr():
 def get_hr_login_summary_report_data():
     description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
     data = defaultdict(int)
-    for rec in StaffWorkLogin.query.all():
+    for rec in StaffWorkLogin.query.filter(StaffWorkLogin.start_datetime.between(START_FISCAL_DATE, END_FISCAL_DATE)):
         data[rec.start_datetime.date()] += 1
+
+    count_data = []
+    for date, heads in data.iteritems():
+        count_data.append({
+            'date': date,
+            'heads': heads
+        })
+
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=('date', 'heads'))
+
+
+@staff.route('/api/for-hr/wfh-report')
+@hr_permission.require()
+@login_required
+def get_hr_wfh_summary_report_data():
+    description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
+    data = defaultdict(int)
+    for rec in StaffWorkFromHomeRequest.query\
+            .filter(StaffWorkFromHomeRequest.start_datetime.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+        if not rec.cancelled_at and rec.get_unapproved:
+            data[rec.start_datetime.date()] += 1
+
+    count_data = []
+    for date, heads in data.iteritems():
+        count_data.append({
+            'date': date,
+            'heads': heads
+        })
+
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=('date', 'heads'))
+
+
+@staff.route('/api/for-hr/leave-report')
+@hr_permission.require()
+@login_required
+def get_hr_leave_summary_report_data():
+    description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
+    data = defaultdict(int)
+    for rec in StaffLeaveRequest.query\
+            .filter(StaffLeaveRequest.start_datetime.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+        if not rec.cancelled_at and not rec.get_unapproved:
+            data[rec.start_datetime.date()] += 1
 
     count_data = []
     for date, heads in data.iteritems():
