@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+{% endblock %}
+{% block page_content %}
+    <!-- Menu -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" width="200"/>
+            </div>
+            <div id="navbarMenu" class="navbar-menu">
+                <div class="navbar-end">
+                <span class="navbar-item is-hoverable">
+                    <a class="button is-dark is-outlined"
+                       href="https://github.com/BulmaTemplates/bulma-templates/blob/master/templates/landing.html">
+                        <span class="icon">
+                            <i class="fas fa-file-invoice"></i>
+                        </span>
+                        <span>Data</span>
+                    </a>
+                     <div class="navbar-dropdown">
+                      <a class="navbar-item">
+                        บันทึกข้อมูลและพิมพ์ใบเสร็จ
+                      </a>
+                      <a class="navbar-item">
+                        ปิดสมุดรายการ
+                      </a>
+                      <a class="navbar-item">
+                        Import Excel แฟ้มชื่อในใบเสร็จ
+                      </a>
+                      <hr class="navbar-divider">
+                      <a class="navbar-item">
+                        Report an issue
+                      </a>
+                    </div>
+                </span>
+                    <span class="navbar-item is-hoverable">
+                    <a class="button is-dark is-outlined" href="#">
+                        <span class="icon">
+                            <i class="fas fa-book"></i>
+                        </span>
+                        <span>Report</span>
+                    </a>
+                        <div class="navbar-dropdown">
+                      <a class="navbar-item">
+                        รายการรับ-ส่งเงิน และใบนำส่ง
+                      </a>
+                    </div>
+                 </span>
+                    <span class="navbar-item">
+                    <a class="button is-dark is-outlined" href="#">
+                        <span class="icon">
+                           <i class="fas fa-receipt"></i>
+                        </span>
+                        <span>System</span>
+                    </a>
+                 </span>
+                    <span class="navbar-item">
+                    <a class="button is-dark is-outlined" href="{{ url_for('receipt_printing.index') }}">
+                        <span class="icon">
+                           <i class="fas fa-sign-out-alt"></i>
+                        </span>
+                        <span>Logout</span>
+                    </a>
+                 </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- Cover -->
+    <section class="hero is-light is-fullheight-with-navbar">
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <div class="column is-6 is-offset-3">
+                    <h1 class="title">
+                        ระบบออกใบเสร็จรับเงินรูปแบบ Electronic
+                    </h1>
+
+                        <div class="card">
+                            <div class="card-content">
+                                <div class="content">
+                                    ใบเสร็จรับเงินสำหรับการรับชำระเงินการให้บริการอื่นๆ
+                                </div>
+                                <footer class="card-footer">
+                                     <a class="button is-warning "
+                                       href="">
+                                         <span class="icon">
+                                            <i class="fas fa-print"></i>
+                                         </span>
+                                        <span>เพิ่มข้อมูลและพิมพ์ใบเสร็จ</span> <i class="fas fa-receipt"></i>
+                                    </a>
+                                </footer>
+                            </div>
+                        </div>
+
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Main -->
+    <!-- Footer -->
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script async type="text/javascript" src="../js/bulma.js"></script>
+{% endblock %}
