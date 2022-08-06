@@ -66,7 +66,7 @@ class ComHealthCashier(db.Model):
     __tablename__ = 'comhealth_cashier'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
-    staff = db.relationship('StaffAccount', backref=db.backref('cashier',
+    staff = db.relationship('StaffAccount', backref=db.backref('comhealth_cashier',
                                                                cascade='all, delete-orphan',
                                                                uselist=False))
     position = db.Column('position', db.String(255))
