@@ -226,6 +226,15 @@ admin.add_views(ModelView(PurchaseTrackerStatus, db.session, category='PurchaseT
 admin.add_views(ModelView(PurchaseTrackerActivity, db.session, category='PurchaseTracker'))
 admin.add_views(ModelView(PurchaseTrackerForm, db.session, category='PurchaseTracker'))
 
+from receipt_printing import receipt_printing_bp as receipt_printing_blueprint
+
+app.register_blueprint(receipt_printing_blueprint, url_prefix='/receipt_printing')
+from app.receipt_printing.models import *
+
+admin.add_views(ModelView(ElectronicReceiptCashier, db.session, category='ReceiptPrinting'))
+admin.add_views(ModelView(ElectronicReceiptDetail, db.session, category='ReceiptPrinting'))
+admin.add_views(ModelView(ElectronicReceiptList, db.session, category='ReceiptPrinting'))
+
 from staff import staffbp as staff_blueprint
 
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
