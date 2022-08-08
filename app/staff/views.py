@@ -2775,8 +2775,9 @@ def list_org_staff(org_id):
 def get_all_employees():
     search_term = request.args.get('term', '')
     results = []
-    for staff in StaffPersonalInfo.query.filter_by(retired=False):
-        if search_term in staff.fullname or search_term in staff.staff_account.email:
+    for staff in StaffPersonalInfo.query.all():
+        if (search_term in staff.fullname or search_term in staff.staff_account.email) \
+                and staff.retired is not True:
             results.append({
                 "id": staff.id,
                 "text": staff.fullname
