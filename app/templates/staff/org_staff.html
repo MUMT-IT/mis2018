@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block head %}
+{{ super() }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block page_content %}
+    <section class="section">
+        <h1 class="title">รายชื่อบุคลากรในสังกัด</h1>
+        <div class="columns">
+            <div class="column">
+                <form method="post">
+                    <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">
+                                เพิ่มบุคลากรเข้าสังกัด
+                            </label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field is-grouped">
+                                <div class="control">
+                                    <select class="js-example-basic-multiple" name="employees" multiple="multiple">
+                                    </select>
+                                </div>
+                                <div class="control">
+                                    <input type="submit" value="Add" class="button is-success">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-fullwidth is-striped" id="employeeTable">
+                    <thead>
+                    <th>ชื่อ นามสกุล</th>
+                    <th>บัญชี/อีเมล</th>
+                    <th>ประเภทการจ้างงาน</th>
+                    <th>วันที่บรรจุ</th>
+                    <th>ตำแหน่ง</th>
+                    <th>สายงาน</th>
+                    </thead>
+                    <tbody>
+                    {% for staff in org.staff %}
+                        <tr>
+                        <td>{{ staff.fullname }}</td>
+                        <td>{{ staff.staff_account.email }}</td>
+                        <td>{{ staff.employment }}</td>
+                        <td>{{ staff.employed_date }} {{ staff.get_employ_period() }}</td>
+                        <td>{{ staff.position }}</td>
+                        <td>
+                            {% if staff.academic_staff == True %}
+                            วิชาการ
+                            {% else %}
+                            สนับสนุน
+                            {% endif %}
+                        </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+    $(document).ready(()=> {
+        $('#employeeTable').DataTable();
+        $('.js-example-basic-multiple').select2({
+            width: '400px',
+            ajax: {
+                url: "{{ url_for('staff.get_all_employees') }}",
+                dataType: "json"
+            }
+        });
+    });
+    </script>
+{% endblock %}

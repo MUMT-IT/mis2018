@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <h1 class="title">แก้ไขข้อมูลหน่วยงาน</h1>
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                <nav class="panel is-warning">
+                    <p class="panel-heading">Menu</p>
+                    {% for org in orgs %}
+                    <a class="panel-block"
+                       href="{{ url_for('staff.list_org_staff', org_id=org.id) }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-chevron-right"></i>
+                        </span>
+                        <span class="is-size-5">
+                            {{ org.name }} <span class="tag is-light is-link">{{ org.staff|length }}</span>
+                        </span>
+                    </a>
+                    {% endfor %}
+                </nav>
+            </div>
+        </div>
+    </section>
+{% endblock %}

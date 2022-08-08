@@ -1618,7 +1618,9 @@ def login_scan():
         qrcode_exp_datetime = datetime.strptime(req_data['data'].get('qrCodeExpDateTime'), DATETIME_FORMAT)
         qrcode_exp_datetime = qrcode_exp_datetime.replace(tzinfo=tz)
         if th_name:
-            fname, lname = th_name.split(' ')
+            name = th_name.split(' ')
+            # some lastnames contain spaces
+            fname, lname = name[0], ' '.join(name[1:])
             lname = lname.lstrip()
             person = StaffPersonalInfo.query \
                 .filter_by(th_firstname=fname, th_lastname=lname).first()
@@ -2735,3 +2737,40 @@ def add_leave_request_by_hr(staff_id):
         return redirect(url_for('staff.record_each_request_leave_request', request_id=createleave.id))
     return render_template('staff/leave_request_add_by_hr.html', staff=staff, approvers=approvers,
                            leave_types=leave_types)
+
+
+@staff.route('/for-hr/organizations')
+@hr_permission.require()
+@login_required
+def edit_organizations():
+    orgs = Org.query.all()
+    return render_template('staff/organizations.html', orgs=orgs)
+
+
+@staff.route('/for-hr/organizations/<int:org_id>/staff', methods=['GET', 'POST'])
+@hr_permission.require()
+@login_required
+def list_org_staff(org_id):
+    org = Org.query.get(org_id)
+    if request.method == 'POST':
+        for emp_id in request.form.getlist('employees'):
+            staff = StaffPersonalInfo.query.get(int(emp_id))
+            staff.org = org
+            db.session.add(staff)
+        db.session.commit()
+        flash(u'เพิ่มบุคลากรเข้าสังกัดเรียบร้อยแล้ว', 'success')
+    return render_template('staff/org_staff.html', org=org)
+
+
+@staff.route('/api/staff', methods=['GET'])
+@login_required
+def get_all_employees():
+    search_term = request.args.get('term', '')
+    results = []
+    for staff in StaffPersonalInfo.query.filter_by(retired=False):
+        if search_term in staff.fullname or search_term in staff.staff_account.email:
+            results.append({
+                "id": staff.id,
+                "text": staff.fullname
+            })
+    return jsonify({'results': results})
