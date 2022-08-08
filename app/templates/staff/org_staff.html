@@ -7,7 +7,9 @@
 
 {% block page_content %}
     <section class="section">
-        <h1 class="title">รายชื่อบุคลากรในสังกัด</h1>
+        <h1 class="title has-text-centered">รายชื่อบุคลากรในสังกัด</h1>
+        <h1 class="subtitle has-text-centered">{{ org.name }}</h1>
+        <h1 class="title is-size-6 has-text-info has-text-centered">หัวหน้าส่วนงาน {{ org_head.personal_info.fullname }}</h1>
         <div class="columns">
             <div class="column">
                 <form method="post">
@@ -37,21 +39,31 @@
             <div class="column">
                 <table class="table is-fullwidth is-striped" id="employeeTable">
                     <thead>
+                    <th></th>
                     <th>ชื่อ นามสกุล</th>
                     <th>บัญชี/อีเมล</th>
                     <th>ประเภทการจ้างงาน</th>
                     <th>วันที่บรรจุ</th>
-                    <th>ตำแหน่ง</th>
                     <th>สายงาน</th>
                     </thead>
                     <tbody>
                     {% for staff in org.staff %}
                         <tr>
+                            <td>
+                                <a href="{{ url_for('staff.make_org_head', org_id=org.id, email=staff.staff_account.email) }}">
+                                    <span class="icon">
+                                    {% if staff.staff_account.email == org.head %}
+                                        <i class="fas fa-crown has-text-warning"></i>
+                                    {% else %}
+                                        <i class="fas fa-crown has-text-light"></i>
+                                    {% endif %}
+                                    </span>
+                                </a>
+                            </td>
                         <td>{{ staff.fullname }}</td>
                         <td>{{ staff.staff_account.email }}</td>
                         <td>{{ staff.employment }}</td>
                         <td>{{ staff.employed_date }} {{ staff.get_employ_period() }}</td>
-                        <td>{{ staff.position }}</td>
                         <td>
                             {% if staff.academic_staff == True %}
                             วิชาการ

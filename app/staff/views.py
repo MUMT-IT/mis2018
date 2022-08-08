@@ -2759,6 +2759,7 @@ def edit_organizations():
 @login_required
 def list_org_staff(org_id):
     org = Org.query.get(org_id)
+    org_head = StaffAccount.query.filter_by(email=org.head).first()
     if request.method == 'POST':
         for emp_id in request.form.getlist('employees'):
             staff = StaffPersonalInfo.query.get(int(emp_id))
@@ -2766,7 +2767,7 @@ def list_org_staff(org_id):
             db.session.add(staff)
         db.session.commit()
         flash(u'เพิ่มบุคลากรเข้าสังกัดเรียบร้อยแล้ว', 'success')
-    return render_template('staff/org_staff.html', org=org)
+    return render_template('staff/org_staff.html', org=org, org_head=org_head)
 
 
 @staff.route('/api/staff', methods=['GET'])
@@ -2781,3 +2782,14 @@ def get_all_employees():
                 "text": staff.fullname
             })
     return jsonify({'results': results})
+
+
+@staff.route('/for-hr/organizations/<int:org_id>/staff/<string:email>/make-head')
+@hr_permission.require()
+@login_required
+def make_org_head(org_id, email):
+    org = Org.query.get(org_id)
+    org.head = email
+    db.session.add(org)
+    db.session.commit()
+    return redirect(url_for('staff.list_org_staff', org_id=org_id))
