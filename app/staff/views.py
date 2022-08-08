@@ -1181,8 +1181,7 @@ def show_work_from_home_others_records():
     return render_template('staff/wfh_info_others_records.html', wfh_history=wfh_history, wfh_cancelled_list=wfh_cancelled_list)
 
 
-@staff.route('/wfh/request',
-             methods=['GET', 'POST'])
+@staff.route('/wfh/request', methods=['GET', 'POST'])
 @login_required
 def request_work_from_home():
     if request.method == 'POST':
@@ -1213,9 +1212,18 @@ def request_work_from_home():
             format(current_user.personal_info.fullname, req.detail,
                    start_datetime, end_datetime,
                    url_for("staff.pending_wfh_request_for_approval", req_id=req.id, _external=True))
-        for approver in StaffWorkFromHomeApprover.query.filter_by(staff_account_id=current_user.id):
-            notify_by_line_of_leave_approver = StaffLeaveApprover.query\
-                                                    .filter_by(staff_account_id=current_user.id,is_active=True).first()
+
+        # if no approvers assigned, assign the head of the unit as a designated approver
+        if len(current_user.wfh_approvers) == 0:
+            print('no approver found, assign head of the organization')
+            org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
+            approver = StaffWorkFromHomeApprover(requester=current_user, account=org_head)
+            db.session.add(approver)
+            db.session.commit()
+
+        for approver in current_user.wfh_approvers:
+            notify_by_line_of_leave_approver = StaffLeaveApprover\
+                .query.filter_by(staff_account_id=current_user.id, is_active=True).first()
             if notify_by_line_of_leave_approver:
                 notified_by_line = True
             else:
@@ -1226,7 +1234,7 @@ def request_work_from_home():
                         line_bot_api.push_message(to=approver.account.line_id,
                                                   messages=TextSendMessage(text=req_msg))
                     else:
-                        print(req_msg ,approver.account.id)
+                        print(req_msg, approver.account.id)
                 mails.append(approver.account.email + "@mahidol.ac.th")
         if os.environ["FLASK_ENV"] == "production":
             send_mail(mails, req_title, req_msg)
@@ -1236,8 +1244,7 @@ def request_work_from_home():
         return render_template('staff/wfh_request.html')
 
 
-@staff.route('/wfh/request/<int:request_id>/edit',
-             methods=['GET', 'POST'])
+@staff.route('/wfh/request/<int:request_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_request_work_from_home(request_id):
     req = StaffWorkFromHomeRequest.query.get(request_id)
