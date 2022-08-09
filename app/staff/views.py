@@ -2475,12 +2475,12 @@ def staff_edit_info(staff_id):
             )
             db.session.add(createstaff)
         start_d = form.get('employed_date')
-        start_date = datetime.strptime(start_d, '%d/%m/%Y')
+        start_date = datetime.strptime(start_d, '%d/%m/%Y') if start_d else None
         staff.en_firstname = form.get('en_firstname')
         staff.en_lastname = form.get('en_lastname')
         staff.th_firstname = form.get('th_firstname')
         staff.th_lastname = form.get('th_lastname')
-        staff.employed_date = tz.localize(start_date)
+        staff.employed_date = tz.localize(start_date) if start_date else None
         if form.get('finger_scan_id'):
             staff.finger_scan_id = form.get('finger_scan_id')
         staff.employment_id = form.get('employment_id')
@@ -2760,6 +2760,10 @@ def edit_organizations():
 def list_org_staff(org_id):
     org = Org.query.get(org_id)
     org_head = StaffAccount.query.filter_by(email=org.head).first()
+    if org_head:
+        org_head_name = org_head.personal_info.fullname
+    else:
+        org_head_name = 'N/A'
     if request.method == 'POST':
         for emp_id in request.form.getlist('employees'):
             staff = StaffPersonalInfo.query.get(int(emp_id))
@@ -2767,7 +2771,7 @@ def list_org_staff(org_id):
             db.session.add(staff)
         db.session.commit()
         flash(u'เพิ่มบุคลากรเข้าสังกัดเรียบร้อยแล้ว', 'success')
-    return render_template('staff/org_staff.html', org=org, org_head=org_head)
+    return render_template('staff/org_staff.html', org=org, org_head_name=org_head_name)
 
 
 @staff.route('/api/staff', methods=['GET'])
@@ -2794,3 +2798,21 @@ def make_org_head(org_id, email):
     db.session.add(org)
     db.session.commit()
     return redirect(url_for('staff.list_org_staff', org_id=org_id))
+
+
+@staff.route('/for-hr/organizations/<int:org_id>/edit-head-email', methods=['GET', 'POST'])
+@hr_permission.require()
+@login_required
+def edit_org_head_email(org_id):
+    org = Org.query.get(org_id)
+    if request.method == 'POST':
+        email = request.form.get('org_head_email')
+        if StaffAccount.get_account_by_email(email):
+            org.head = email
+            db.session.add(org)
+            db.session.commit()
+            flash(u'แก้ไขชื่อหัวหน้าหน่วยงานเรียบร้อย', 'success')
+            return redirect(url_for('staff.list_org_staff', org_id=org_id))
+        else:
+            flash(u'ไม่พบบัญชีที่ใช้อีเมล {} กรุณาตรวจสอบอีกครั้ง'.format(email), 'danger')
+    return render_template('staff/org_head_email_form.html', org_id=org_id)

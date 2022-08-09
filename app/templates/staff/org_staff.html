@@ -13,9 +13,17 @@
                 <li class="is-active"><a href="#" aria-current="page">รายชื่อ</a></li>
             </ul>
         </nav>
+        {% include "messages.html" %}
         <h1 class="title has-text-centered">รายชื่อบุคลากรในสังกัด</h1>
         <h1 class="subtitle has-text-centered">{{ org.name }}</h1>
-        <h1 class="title is-size-6 has-text-info has-text-centered">หัวหน้าส่วนงาน {{ org_head.personal_info.fullname }}</h1>
+        <h1 class="title is-size-6 has-text-info has-text-centered">
+            หัวหน้าส่วนงาน {{ org_head_name or '-' }}
+            <a href="{{ url_for('staff.edit_org_head_email', org_id=org.id) }}">
+                <span class="icon" id="pencil">
+                    <i class="fas fa-pencil-alt"></i>
+                </span>
+            </a>
+        </h1>
         <div class="columns">
             <div class="column">
                 <form method="post">
@@ -43,6 +51,10 @@
         </div>
         <div class="columns">
             <div class="column">
+                <span class="icon">
+                    <i class="fas fa-crown has-text-warning"></i>
+                </span>
+                <span>คลิกที่ไอคอนหน้าชื่อบุคลากรเพื่อเปลี่ยนหัวหน้าหน่วย/ส่วนงาน หรือคลิกที่ไอคอนปากกาด้านบน</span>
                 <table class="table is-fullwidth is-striped" id="employeeTable">
                     <thead>
                     <th></th>
@@ -53,7 +65,7 @@
                     <th>สายงาน</th>
                     </thead>
                     <tbody>
-                    {% for staff in org.staff %}
+                    {% for staff in org.active_staff %}
                         <tr>
                             <td>
                                 <a href="{{ url_for('staff.make_org_head', org_id=org.id, email=staff.staff_account.email) }}">
@@ -66,7 +78,7 @@
                                     </span>
                                 </a>
                             </td>
-                        <td>{{ staff.fullname }}</td>
+                        <td>{{ staff.fullname }} {{ staff.retired }}</td>
                         <td>{{ staff.staff_account.email }}</td>
                         <td>{{ staff.employment }}</td>
                         <td>{{ staff.employed_date }} {{ staff.get_employ_period() }}</td>

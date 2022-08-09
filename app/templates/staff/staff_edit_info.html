@@ -221,7 +221,7 @@
         data() {
             return {
                 empDate: [],
-                selectedEmpDate: new Date({{ emp_date|tojsdatetime(single=True) }}),
+                selectedEmpDate: {% if emp_date %} new Date({{ emp_date|tojsdatetime(single=True) }}) {% else %} null {% endif %},
                 employed: "active",
             }
         },
