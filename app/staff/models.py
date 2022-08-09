@@ -598,6 +598,25 @@ class StaffSeminarAttend(db.Model):
                             backref=db.backref('seminar_attends', lazy='dynamic'))
     approver_account_id = db.Column('approver_account_id', db.ForeignKey('staff_account.id'))
     seminar = db.relationship('StaffSeminar', backref=db.backref('attends'), foreign_keys=[seminar_id])
+
+
+class StaffSeminarApproval(db.Model):
+    __tablename__ = 'staff_seminar_approvals'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    seminar_attend_id = db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id'))
+    seminar_attend = db.relationship('StaffSeminarAttend', backref=db.backref('seminar_approval')
+                                     ,foreign_keys=[seminar_attend_id])
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    is_approved = db.Column('is_approved', db.Boolean(), default=True)
+    approval_comment = db.Column('approval_comment', db.String())
+    final_approver_account_id = db.Column('final_approver_account_id', db.ForeignKey('staff_account.id'))
+    recorded_account_id = db.Column('recorded_account_id', db.ForeignKey('staff_account.id'))
+    created_at = db.Column('created_at',db.DateTime(timezone=True),
+                           default=datetime.now())
+    approver = db.relationship('StaffAccount', backref=db.backref('approval_approver'),
+                                foreign_keys=[final_approver_account_id])
+    recorded_by = db.relationship('StaffAccount', backref=db.backref('approval_recorded_by'),
+                              foreign_keys=[recorded_account_id])
     
     
 class StaffWorkLogin(db.Model):
