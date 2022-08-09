@@ -89,6 +89,10 @@ class StaffAccount(db.Model):
     __password_hash = db.Column('password', db.String(255), nullable=True)
     roles = db.relationship('Role', secondary=user_roles, backref=db.backref('staff_account', lazy='dynamic'))
 
+    @classmethod
+    def get_account_by_email(cls, email):
+        return cls.query.filter_by(email=email).first()
+
     @property
     def has_password(self):
         return self.__password_hash != None
@@ -149,7 +153,6 @@ class StaffPersonalInfo(db.Model):
     finger_scan_id = db.Column('finger_scan_id', db.Integer)
     academic_staff = db.Column('academic_staff', db.Boolean())
     retired = db.Column('retired', db.Boolean(), default=False)
-
 
     def __str__(self):
         return self.fullname
