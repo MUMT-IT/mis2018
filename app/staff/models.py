@@ -595,6 +595,7 @@ class StaffSeminarAttend(db.Model):
     budget = db.Column('budget', db.Float())
     attend_online = db.Column('attend_online', db.Boolean(), default=False)
     contact_no = db.Column('contact_no', db.Integer())
+    head_account_id = db.Column('head_account_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship('StaffAccount',
                             secondary=staff_attend_assoc_table,
                             backref=db.backref('seminar_attends', lazy='dynamic'))
