@@ -598,7 +598,6 @@ class StaffSeminarAttend(db.Model):
     staff = db.relationship('StaffAccount',
                             secondary=staff_attend_assoc_table,
                             backref=db.backref('seminar_attends', lazy='dynamic'))
-    approver_account_id = db.Column('approver_account_id', db.ForeignKey('staff_account.id'))
     seminar = db.relationship('StaffSeminar', backref=db.backref('attends'), foreign_keys=[seminar_id])
 
 
