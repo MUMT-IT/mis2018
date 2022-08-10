@@ -584,6 +584,7 @@ class StaffSeminarAttend(db.Model):
     invited_document_id = db.Column('document_id', db.String())
     invited_organization = db.Column('invited_organization', db.String())
     invited_document_date = db.Column('invited_document_date', db.DateTime(timezone=True))
+    document_title = db.Column('document_title', db.String())
     taxi_cost = db.Column('taxi_cost', db.Float())
     train_ticket_cost = db.Column('train_ticket_cost', db.Float())
     flight_ticket_cost = db.Column('flight_ticket_cost', db.Float())
@@ -593,6 +594,7 @@ class StaffSeminarAttend(db.Model):
     transaction_fee = db.Column('transaction_fee', db.Float())
     budget = db.Column('budget', db.Float())
     attend_online = db.Column('attend_online', db.Boolean(), default=False)
+    contact_no = db.Column('contact_no', db.Integer())
     staff = db.relationship('StaffAccount',
                             secondary=staff_attend_assoc_table,
                             backref=db.backref('seminar_attends', lazy='dynamic'))
