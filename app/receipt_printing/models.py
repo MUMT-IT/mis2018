@@ -34,7 +34,9 @@ class ElectronicReceiptDetail(db.Model):
     issuer = db.relationship('ElectronicReceiptCashier',
                              foreign_keys=[issuer_id],
                              backref=db.backref('issued_receipts'))
-    issued_at = db.Column('issued_at', db.String())
+    issued_at = db.Column('issued_at', db.String(), info={'label': u'สถานที่ออกใบเสร็จ',
+                                'choices': [(c, c) for c in
+                                [u'ศาลายา', u'ศิริราช']]})
     cashier_id = db.Column('cashier_id', db.ForeignKey('electronic_receipt_cashier.id'))
     cashier = db.relationship('ElectronicReceiptCashier', foreign_keys=[cashier_id])
     payment_method = db.Column('payment_method', db.String(), info={'label': u'ช่องทางการชำระเงิน',
@@ -44,6 +46,7 @@ class ElectronicReceiptDetail(db.Model):
     card_number = db.Column('card_number', db.String(16))
     issued_for = db.Column('issued_for', db.String())
     address = db.Column('address', db.Text())
+    received_from = db.Column('received_from', db.String())
 
 
 class ElectronicReceiptList(db.Model):
@@ -51,8 +54,11 @@ class ElectronicReceiptList(db.Model):
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     item = db.Column('item', db.String())
     receipt_id = db.Column('receipt_id', db.ForeignKey('electronic_receipt_details.id'))
-    receipt = db.relationship('ElectronicReceiptDetail',
+    receipt_detail = db.relationship('ElectronicReceiptDetail',
                            backref=db.backref('items', cascade='all, delete-orphan'))
     price = db.Column('price', db.Numeric(), default=0.0)
     quantity = db.Column('quantity', db.Numeric(), default=1.0)
     comment = db.Column('comment', db.Text())
+
+    def __str__(self):
+        return u'{}'.format(self.receipt_detail)
