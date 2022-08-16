@@ -36,14 +36,6 @@ staff_group_assoc_table = db.Table('staff_group_assoc',
                                            )
 
 
-staff_attend_assoc_table = db.Table('staff_attend_assoc',
-                                    db.Column('staff_id', db.ForeignKey('staff_account.id'),
-                                              primary_key=True),
-                                    db.Column('attend_id', db.ForeignKey('staff_seminar_attends.id'),
-                                              primary_key=True),
-                                    )
-
-
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
     datetime_format = u'%d/%m/%Y %H:%M'
@@ -596,9 +588,9 @@ class StaffSeminarAttend(db.Model):
     attend_online = db.Column('attend_online', db.Boolean(), default=False)
     contact_no = db.Column('contact_no', db.Integer())
     head_account_id = db.Column('head_account_id', db.ForeignKey('staff_account.id'))
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship('StaffAccount',
-                            secondary=staff_attend_assoc_table,
-                            backref=db.backref('seminar_attends', lazy='dynamic'))
+                                foreign_keys=[staff_account_id])
     seminar = db.relationship('StaffSeminar', backref=db.backref('attends'), foreign_keys=[seminar_id])
 
 
