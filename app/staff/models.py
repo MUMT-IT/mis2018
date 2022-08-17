@@ -36,6 +36,15 @@ staff_group_assoc_table = db.Table('staff_group_assoc',
                                            )
 
 
+seminar_approval_attend_assoc_table = db.Table('seminar_approval_attend_assoc',
+                                    db.Column('attend_id', db.ForeignKey('staff_seminar_attends.id'),
+                                              primary_key=True),
+                                    db.Column('approval_id', db.ForeignKey('staff_seminar_approvals.id'),
+                                              primary_key=True),
+                                    )
+
+
+
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
     datetime_format = u'%d/%m/%Y %H:%M'
@@ -611,6 +620,9 @@ class StaffSeminarApproval(db.Model):
                                 foreign_keys=[final_approver_account_id])
     recorded_by = db.relationship('StaffAccount', backref=db.backref('approval_recorded_by'),
                               foreign_keys=[recorded_account_id])
+    attend = db.relationship('StaffSeminarAttend',
+                             secondary=seminar_approval_attend_assoc_table,
+                             backref=db.backref('seminar_approval_attendee', lazy='dynamic'))
     
     
 class StaffWorkLogin(db.Model):
