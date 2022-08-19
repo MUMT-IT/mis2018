@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-fullwidth is-striped">
+                        <thead>
+                            <th>หมายเลขเล่ม</th>
+                            <th>ออกวันที่</th>
+                            <th>จำนวนรายการ</th>
+                            <th>จำนวนครั้งที่พิมพ์</th>
+                            <th>การจ่ายเงิน</th>
+                            <th>พิมพ์ใบเสร็จ</th>
+                            <th>รายละเอียด</th>
+                            <th>หมายเหตุ</th>
+                            <th>สถานะ</th>
+                            <th>สาเหตุของการยกเลิก</th>
+                        </thead>
+                        <tbody>
+                            {% for r in record %}
+                            <tr>
+                                <td>{{ r.book_number }}</td>
+                                <td>{{ r.created_datetime|localdatetime }}</td>
+                                <td></td>
+                                <td>{{ r.copy_number - 1 }}</td>
+                                <td>
+                                    <span class="icon">
+                                    {% if r.paid %}
+                                        <i class="far fa-check-circle has-text-success"></i>
+                                    {% else %}
+                                        <i class="far fa-times-circle has-text-danger"></i>
+                                    {% endif %}
+                                    </span>
+                                </td>
+                                <td><a href="{{ url_for('receipt_printing.export_blank_receipt_pdf') }}">
+                                        <span class="icon">
+                                            <i class="fas fa-print"></i>
+                                        </span>
+                                    </a>
+                                </td>
+                                <td><a href="">
+                                        <span class="icon">
+                                            <i class="far fa-eye"></i>
+                                        </span>
+                                        <span>View</span>
+                                    </a>
+                                </td>
+                                <td>{{ r.comment or '' }}</td>
+                                <td>
+                                    <span class="icon">
+                                    {% if r.cancelled %}
+                                        <i class="fas fa-times has-text-danger"></i>
+                                    {% else %}
+                                        <i class="far fa-check-circle has-text-success"></i>
+                                    {% endif %}
+                                    </span>
+                                </td>
+                                <td>{{ r.cancel_comment or '' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-left">
+                        <a class="button is-light"
+                           href="{{ url_for('receipt_printing.landing') }}">
+                            <span class="icon">
+                                <i class="fas fa-chevron-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#app",
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                }
+            },
+            computed: {}
+        });
+    </script>
+{% endblock %}
