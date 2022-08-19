@@ -99,10 +99,9 @@
                         </thead>
                         <tbody>
                             {% for attend in attends %}
-                            {% for participant in attend.staff  %}
                             <tr>
                                 <td>
-                                    {{ participant.personal_info.fullname }}
+                                    {{ attend.staff.personal_info }}
                                 </td>
                                 <td>
                                     {{ attend.role }}
@@ -114,7 +113,6 @@
                                     {{ attend.start_datetime|localdatetime }} - {{ attend.end_datetime|localdatetime }}
                                 </td>
                             </tr>
-                            {% endfor %}
                             {% endfor %}
                         </tbody>
                     </table>

@@ -18,6 +18,7 @@
                 <table class="table is-striped" id="seminarTable">
                     <thead>
                     <th>ประเภทกิจกรรม</th>
+                    <th>ชื่อบุคลากร</th>
                     <th>ชื่อกิจกรรม</th>
                     <th>วันที่เริ่มต้น</th>
                     <th>วันที่สิ้นสุด</th>
@@ -30,10 +31,13 @@
                             {{ records.seminar.topic_type }}
                         </td>
                         <td>
-                            <a href="{{ url_for('staff.seminar_add_approval') }}">
-                                {{ records.seminar.topic }}
+                            {{ records.staff.personal_info }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('staff.seminar_add_approval', attend_id=records.id) }}">
+                                {{ records.document_title }}
                                 <span class="icon">
-                                    <i class="fas fa-user-plus"></i>
+                                    <i class="fas fa-plus"></i>
                                 </span>
                             </a>
                         </td>
@@ -62,7 +66,8 @@
                 <table class="table is-striped" id="seminarApprovedTable">
                     <thead>
                     <th>ประเภทกิจกรรม</th>
-                    <th>ชื่อกิจกรรม</th>
+                    <th>ชื่อบุคลากร</th>
+                    <th>ชื่อหนังสือ</th>
                     <th>วันที่เริ่มต้น</th>
                     <th>วันที่สิ้นสุด</th>
                     <th>ชื่อหนังสือ</th>
@@ -74,10 +79,13 @@
                             {{ records.seminar.topic_type }}
                         </td>
                         <td>
+                            {{ records.staff.personal_info }}
+                        </td>
+                        <td>
                             <a href="">
-                                {{ records.seminar.topic }}
+                                {{ records.document_title }}
                                 <span class="icon">
-                                    <i class="fas fa-user-plus"></i>
+                                    <i class="fas fa-plus"></i>
                                 </span>
                             </a>
                         </td>

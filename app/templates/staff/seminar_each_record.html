@@ -10,7 +10,15 @@
                     <table class="table is-fullwidth">
                         <tr>
                             <td>
-                               <label class="label">ระยะเวลาเข้าร่วม</label>
+                               <label class="label">ระยะเวลางานสัมมนา</label>
+                            </td>
+                            <td>
+                                {{ attend.seminar.start_datetime|localdatetime }} - {{ attend.seminar.end_datetime|localdatetime }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">ระยะเวลาเข้าร่วม</label>
                             </td>
                             <td>
                                 {{ attend.start_datetime|localdatetime }} - {{ attend.end_datetime|localdatetime }}
@@ -21,7 +29,7 @@
                                <label class="label">ผู้ไปอบรม</label>
                             </td>
                             <td>
-                                <p class="is-size-5"><strong>{{ attend.staff[0].personal_info }}</strong></p>
+                                <p class="is-size-5"><strong>{{ attend.staff.personal_info }}</strong></p>
                             </td>
                         </tr>
                         <tr>

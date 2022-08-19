@@ -2042,27 +2042,107 @@ def seminar():
 def seminar_approval_records():
     seminar_records = []
     for seminars in StaffSeminarAttend.query.filter(StaffSeminar.cancelled_at == None).all():
-        seminar_records.append(seminars)
+        if seminars.document_title:
+            seminar_records.append(seminars)
 
     seminar_approval_records = []
     for seminar_approval in StaffSeminarAttend.query.filter(StaffSeminar.cancelled_at == None).all():
-        seminar_approval_records.append(seminar_approval)
+        if seminar_approval.seminar_approval:
+            seminar_approval_records.append(seminar_approval)
     return render_template('staff/seminar_approval_info.html', seminar_records=seminar_records
                            , seminar_approval_records=seminar_approval_records)
 
 
-@staff.route('/for-hr/seminar/approval/add-approval', methods=['GET', 'POST'])
+@staff.route('/for-hr/seminar/approval/add-approval/<int:attend_id>', methods=['GET', 'POST'])
 @login_required
-def seminar_add_approval():
-    seminar = StaffSeminarAttend.query.filter_by().all()
+def seminar_add_approval(attend_id):
+    attend = StaffSeminarAttend.query.filter_by(id=attend_id).all()
+    staff_attend_list = []
+    attend_first = StaffSeminarAttend.query.filter_by(id=attend_id).first()
+    attend_query = StaffSeminarAttend.query.filter_by(seminar_id=attend_first.seminar_id).all()
+    management = StaffSpecialGroup.query.filter_by(group_code='management').first()
+    approvers = management.staffs
+    for attend in attend_query:
+        if not attend.staff_account_id==current_user.id:
+            staff_attend_list.append(attend)
+        #if not attend.seminar_approval_attendee:
+
     if request.method == 'POST':
         form = request.form
-        start_datetime = datetime.strptime(form.get('start_datetime'), '%d/%m/%Y %H:%M')
-        end_datetime = datetime.strptime(form.get('end_datetime'), '%d/%m/%Y %H:%M')
+        update_d = form.get('update_at')
+        update_t = "13:00"
+        update_dt = '{} {}'.format(update_d, update_t)
+        updated_at = datetime.strptime(update_dt, '%d/%m/%Y %H:%M')
+        approval = StaffSeminarApproval(
+            attend=[StaffSeminarAttend.query.get(int(attend_id)) for attend_id in form.getlist("attends")],
+            seminar_attend_id=attend.seminar_id,
+            updated_at=tz.localize(updated_at),
+            approval_comment=form.get('other_approval'),
+            recorded_account_id=current_user.id,
+            final_approver_account_id=form.get('approver_id')
+        )
+        if form.get('approval') is False:
+            approval.is_approved = False
+        db.session.add(approval)
+        db.session.commit()
+        attends = StaffSeminarAttend.query.get(attend_id)
+        attends.registration_fee=form.get('registration_fee'),
+        attends.budget_type=form.get('budget_type'),
+        attends.budget=form.get('budget'),
+        attends.accommodation_cost=form.get('accommodation_cost'),
+        attends.fuel_cost=form.get('fuel_cost'),
+        attends.taxi_cost=form.get('taxi_cost'),
+        attends.train_ticket_cost=form.get('train_ticket_cost'),
+        attends.flight_ticket_cost=form.get('flight_ticket_cost'),
+        attends.transaction_fee=form.get('transaction_fee'),
+        db.session.add(attend)
+        db.session.commit()
+        # for attend_id in form.getlist("attends"):
+        #     update_d = form.get('update_at')
+        #     update_t = "13:00"
+        #     update_dt = '{} {}'.format(update_d, update_t)
+        #     updated_at = datetime.strptime(update_dt, '%d/%m/%Y %H:%M')
+        #     approval = StaffSeminarApproval(
+        #         attend=[StaffSeminarAttend.query.get(int(attend_id)) for attend_id in form.getlist("attends")],
+        #         seminar_attend_id=attend.seminar_id,
+        #         updated_at=tz.localize(updated_at),
+        #         approval_comment=form.get('other_approval'),
+        #         recorded_account_id=current_user.id,
+        #         final_approver_account_id=form.get('approver_id')
+        #     )
+        #     if form.get('approval') is False:
+        #         approval.is_approved = False
+        #     db.session.add(approval)
+        #     db.session.commit()
+        #
+        #     attends = StaffSeminarAttend.query.get(attend_id)
+        #     attends.registration_fee=form.get('registration_fee'),
+        #     attends.budget_type=form.get('budget_type'),
+        #     attends.budget=form.get('budget'),
+        #     attends.accommodation_cost=form.get('accommodation_cost'),
+        #     attends.fuel_cost=form.get('fuel_cost'),
+        #     attends.taxi_cost=form.get('taxi_cost'),
+        #     attends.train_ticket_cost=form.get('train_ticket_cost'),
+        #     attends.flight_ticket_cost=form.get('flight_ticket_cost'),
+        #     attends.transaction_fee=form.get('transaction_fee'),
+        #     db.session.add(attend)
+        #     db.session.commit()
+
+        flash(u'UPDATE การอนุมัติเรียบร้อยแล้ว', 'success')
+        #sent line noti
+        seminar_records = []
+        for seminars in StaffSeminarAttend.query.filter(StaffSeminar.cancelled_at == None).all():
+            if seminars.document_title:
+                seminar_records.append(seminars)
+        seminar_approval_records = []
+        for seminar_approval in StaffSeminarAttend.query.filter(StaffSeminar.cancelled_at == None).all():
+            if seminar_approval.seminar_approval:
+                seminar_approval_records.append(seminar_approval)
         return render_template('staff/seminar_approval_info.html', seminar_records=seminar_records
                            , seminar_approval_records=seminar_approval_records)
-    return render_template('staff/seminar_add_approval.html', seminar_records=seminar_records
-                           , seminar_approval_records=seminar_approval_records)
+    return render_template('staff/seminar_add_approval.html', attend=attend, staff_attend_list=staff_attend_list,
+                           approvers=approvers)
+
 
 @staff.route('/seminar/create', methods=['GET', 'POST'])
 @login_required
@@ -2105,7 +2185,7 @@ def seminar_attend_info_for_hr(seminar_id):
 def seminar_attend_info(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
     attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
-    current_user_attended = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).filter(StaffSeminarAttend.staff.any(id=current_user.id)).first()
+    current_user_attended = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id, staff_account_id=current_user.id).first()
     return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends, current_user_attended=current_user_attended)
 
 
@@ -2157,7 +2237,7 @@ def seminar_create_record(seminar_id):
                 train_ticket_cost=form.get('train_ticket_cost') if form.get('train_ticket_cost') else None,
                 flight_ticket_cost=form.get('flight_ticket_cost') if form.get('flight_ticket_cost') else None,
                 transaction_fee=form.get('transaction_fee') if form.get('transaction_fee') else None,
-                staff=[StaffAccount.query.get(current_user.id)]
+                staff_account_id=current_user.id
             )
             if form.get('document_dt'):
                 invited_document_date = datetime.strptime(form.get('document_dt'), '%d/%m/%Y')
@@ -2195,37 +2275,36 @@ def seminar_add_attendee(seminar_id):
         form = request.form
         start_datetime = datetime.strptime(form.get('start_dt'), '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
-        attend = StaffSeminarAttend(
-            staff=[StaffAccount.query.get(int(staff_id)) for staff_id in form.getlist("participants")],
-            seminar_id=seminar_id,
-            role=form.get('role'),
-            registration_fee=form.get('registration_fee') if form.get("registration_fee") else None,
-            budget_type=form.get('budget_type'),
-            budget=form.get('budget'),
-            start_datetime=tz.localize(start_datetime),
-            end_datetime=tz.localize(end_datetime),
-            attend_online=True if form.get("attend_online") else False,
-            accommodation_cost=form.get('accommodation_cost') if form.get("accommodation_cost") else None,
-            fuel_cost=form.get('fuel_cost') if form.get("fuel_cost") else None,
-            taxi_cost=form.get('taxi_cost') if form.get("taxi_cost") else None,
-            train_ticket_cost=form.get('train_ticket_cost') if form.get("train_ticket_cost") else None,
-            flight_ticket_cost=form.get('flight_ticket_cost') if form.get("flight_ticket_cost") else None,
-            objective=form.get('objective') if form.get('objective') != '' else form.get('other_objective')
-        )
-        db.session.add(attend)
-        db.session.commit()
+        for staff_id in form.getlist("participants"):
+            attend = StaffSeminarAttend(
+                staff_account_id=staff_id,
+                seminar_id=seminar_id,
+                role=form.get('role'),
+                registration_fee=form.get('registration_fee') if form.get("registration_fee") else None,
+                budget_type=form.get('budget_type'),
+                budget=form.get('budget'),
+                start_datetime=tz.localize(start_datetime),
+                end_datetime=tz.localize(end_datetime),
+                attend_online=True if form.get("attend_online") else False,
+                accommodation_cost=form.get('accommodation_cost') if form.get("accommodation_cost") else None,
+                fuel_cost=form.get('fuel_cost') if form.get("fuel_cost") else None,
+                taxi_cost=form.get('taxi_cost') if form.get("taxi_cost") else None,
+                train_ticket_cost=form.get('train_ticket_cost') if form.get("train_ticket_cost") else None,
+                flight_ticket_cost=form.get('flight_ticket_cost') if form.get("flight_ticket_cost") else None,
+                objective=form.get('objective') if form.get('objective') != '' else form.get('other_objective')
+            )
+            db.session.add(attend)
+            db.session.commit()
         attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
         flash(u'เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
         return render_template('staff/seminar_attend_info_for_hr.html', seminar=seminar, attends=attends)
     return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
 
 
-@staff.route('/seminar/seminar-attend/<int:attend_id>/participants/<int:participant_id>')
+@staff.route('/seminar/seminar-attend/<int:attend_id>')
 @login_required
-def delete_participant(attend_id, participant_id):
-    participant = StaffAccount.query.get(participant_id)
+def delete_participant(attend_id):
     attend = StaffSeminarAttend.query.get(attend_id)
-    attend.staff.remove(participant)
     db.session.delete(attend)
     db.session.commit()
     seminar = StaffSeminar.query.get(attend.seminar_id)
@@ -2236,8 +2315,7 @@ def delete_participant(attend_id, participant_id):
 @staff.route('/seminar/info/<int:record_id>/staff/<int:staff_id>')
 @login_required
 def show_seminar_info_each_person(record_id, staff_id):
-    attend = StaffSeminarAttend.query.filter(StaffSeminarAttend.id == record_id) \
-        .filter(StaffSeminarAttend.staff.any(id=staff_id)).first()
+    attend = StaffSeminarAttend.query.filter_by(id=record_id, staff_account_id=staff_id).first()
     return render_template('staff/seminar_each_record.html', attend=attend)
 
 
@@ -2290,33 +2368,17 @@ def cancel_seminar(seminar_id):
 @login_required
 def seminar_attends_each_person(staff_id):
     seminar_list = []
-    attend_name = StaffSeminarAttend.query.filter(StaffSeminarAttend.staff.any(id=staff_id)).first()
-    attends_query = StaffSeminarAttend.query.filter(StaffSeminarAttend.staff.any(id=staff_id)).all()
+    attend_name = StaffSeminarAttend.query.filter_by(staff_account_id=staff_id).first()
+    attends_query = StaffSeminarAttend.query.filter_by(staff_account_id=staff_id).all()
     for attend in attends_query:
-        record = {}
-        record["id"] = attend.id
-        record["start"] = attend.start_datetime
-        record["end"] = attend.end_datetime
-        record["role"] = attend.role
-        record["online"] = attend.attend_online
-        record["fee"] = attend.registration_fee
-        record["topic_type"] = attend.seminar.topic_type
-        record["topic"] = attend.seminar.topic
-        seminar_list.append(record)
+        seminar_list.append(attend)
 
     seminar_records = []
     seminar_query = StaffSeminar.query.filter(StaffSeminar.cancelled_at == None).all()
     for seminars in seminar_query:
-        records = {}
-        records["id"] = seminars.id
-        records["type"] = seminars.topic_type
-        records["name"] = seminars.topic
-        records["startdate"] = seminars.start_datetime
-        records["enddate"] = seminars.end_datetime
-        records["organize_by"] = seminars.organize_by
-        seminar_records.append(records)
+        seminar_records.append(seminars)
     return render_template('staff/seminar_records_each_person.html', seminar_list=seminar_list,
-                           attend_name=attend_name, seminar_records=seminar_records)
+                           attend_name=attend_name ,seminar_records=seminar_records)
 
 
 @staff.route('/api/time-report')

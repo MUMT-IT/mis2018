@@ -1,103 +1,308 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
+
 {% block page_content %}
-<section class="section">
-    <div class="container" id="app">
+<section class="section" id="app">
+    <div class="container">
         <div class="columns">
-            <div class="column is-half is-offset-one-quarter">
-                <div class="box">
-                    <form method="post">
-                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
-                        <div class="field">
-                            <div class="control">
-                                <b-field label="เลือกวันที่ต้องการขอทำงานที่บ้าน">
-                                    <b-datepicker
-                                            required
-                                            name="dates"
-                                            v-model="selectedDates"
-                                            range
-                                            icon-pack="fa"
-                                            :date-formatter="formatDate"
-                                            :mobile-native="false"
-                                            placeholder="คลิกเพื่อเปิดปฏิทิน..."
-                                            icon="calendar-alt">
-                                    </b-datepicker>
-                                </b-field>
-                            </div>
-                        </div>
-                        <b-field label="ภาระงานที่ปฏิบัติ"
-                                 type="is-danger">
-                            <b-input type="textarea"
-                                     name="detail"
-                                     value="{{ req.detail }}"
-                                     required>
-                            </b-input>
-                        </b-field>
-                        <b-field label="สามารถติดต่อท่านได้ที่" type="is-danger">
-                            <b-input type="text"
-                                     name="contact_phone"
-                                     icon-pack="fas"
-                                     icon="phone"
-                                     placeholder="เบอร์โทรศัพท์"
-                                     value="{{ req.contact_phone }}"
-                                     required>
-                            </b-input>
-                        </b-field>
-                        <div class="field">
-                            <b-checkbox true-value="yes"
-                                        false-value="no"
-                                        v-model="notifiedByLine"
-                                        name="notified_by_line">ส่งข้อความเตือนในไลน์เมื่อได้รับการพิจารณาจากหัวหน้า
-                            </b-checkbox>
-                        </div>
-                        <div class="field is-grouped">
-                            <div class="control">
-                                <input type="submit" value="submit" class="button is-primary"/>
-                            </div>
-                            <div class="control">
-                                <a href="{{ url_for('staff.show_work_from_home') }}"  class="button is-danger">Cancel</a>
-                            </div>
-                        </div>
-                    </form>
-                </div>
+            <div class="column is-half is-offset-3 has-text-centered">
+                <p class="subtitle is-size-4">เพิ่มข้อมูลการอนุมัติ</p>
+                <p class="title is-size-3"><strong>{{ attend.seminar.topic }}</strong></p>
+                <p class="subtitle is-size-4">วันที่ {{ attend.start_datetime|localdatetime }} -
+                    {{ attend.end_datetime|localdatetime }}</p>
+                <p class="subtitle is-size-4">ผู้เข้าร่วม {{ attend.staff.personal_info }}</p>
             </div>
         </div>
+        <hr>
+        {% include "messages.html" %}
+        <form method="post">
+            <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+            <div class="columns">
+                <div class="column">
+                    <div class="field">
+                        <div class="field">
+                            <label class="label">ผู้อนุมัติคนสุดท้าย</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="control">
+                                <div class="field">
+                                    <div class="select">
+                                        <select name="approver_id">
+                                            {% for approver in approvers %}
+                                            <option value="{{ approver.id }}">
+                                                {{ approver.personal_info }}
+                                            </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <b-field label="รายละเอียดการเข้าร่วม ดำเนินการภายใต้">
+                        <b-select placeholder="เลือกประเภท" name="approval" id="approval" required>
+                            <option value="True">อนุมัติตามที่เสนอ</option>
+                            <option value="False">ไม่อนุมัติ</option>
+                            <option value="">อื่นๆ</option>
+                        </b-select>
+                    </b-field>
+                    <b-field>
+                        <b-input id="other_approval"
+                                 type="text"
+                                 name="other_approval"
+                                 placeholder="โปรดระบุ"
+                        >
+                        </b-input>
+                    </b-field>
+                    <b-field label="วันที่อนุมัติ">
+                        <b-datepicker
+                                required
+                                v-model="startDateTime"
+                                icon-pack="fa"
+                                :mobile-native="false"
+                                placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                icon="calendar-alt">
+                        </b-datepicker>
+                    </b-field>
+                    <input type="hidden" name="update_at" v-model="formattedStartDateTime">
+                </div>
+                <div class="column box">
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ค่าลงทะเบียน</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                           name="topic" type="text"
+                                           value="{{ attend.registration_fee }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ค่าที่พัก</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                           name="topic" type="text"
+                                           value="{{ attend.accommodation_cost }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ค่าน้ำมัน</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                           name="topic" type="text"
+                                           value="{{ attend.fuel_cost }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ค่ารถไฟ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                           name="topic" type="text"
+                                           value="{{ attend.train_ticket_cost }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ค่า Taxi</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                           name="topic" type="text"
+                                           value="{{ attend.taxi_cost }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ค่าตั๋วเครื่องบิน</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                           name="topic" type="text"
+                                           value="{{ attend.flight_ticket_cost }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ค่าธรรมเนียมการโอนเงิน</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                           name="topic" type="text"
+                                           value="{{ attend.transaction_fee }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">รวมทั้งสิ้น</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                           name="topic" type="text"
+                                           value="{{ attend.budget }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <label class="label">รายชื่อผู้ที่เข้าร่วมกิจกรรมนี้</label>
+                    <table class="table is-striped" id="attendTable">
+                        <thead>
+                        <th>เลือก</th>
+                        <th>ชื่อหนังสือ</th>
+                        <th>ค่าลงทะเบียน</th>
+                        <th>ค่าที่พัก</th>
+                        <th>ค่าน้ำมัน</th>
+                        <th>ค่ารถไฟ</th>
+                        <th>ค่า Taxi</th>
+                        <th>ค่าตั๋วเครื่องบิน</th>
+                        <th>ค่าธรรมเนียม</th>
+                        <th>ค่าใช้จ่ายทั้งหมด</th>
+                        </thead>
+                        <tbody>
+                        {% for attend in staff_attend_list %}
+                        <tr>
+                            <td>
+                                <b-field>
+                                    <b-checkbox v-model="attend" native-value="{{ attend.id }}" name="attend">
+                                        {{ attend.staff.personal_info }}
+                                    </b-checkbox>
+                                </b-field>
+                            </td>
+                            <td>
+                                {{ attend.document_title }}
+                            </td>
+                            <td>
+                                {{ attend.registration_fee }}
+                            </td>
+                            <td>
+                                {{ attend.accommodation_cost }}
+                            </td>
+                            <td>
+                                {{ attend.fuel_cost }}
+                            </td>
+                            <td>
+                                {{ attend.train_ticket_cost }}
+                            </td>
+                            <td>
+                                {{ attend.taxi_cost }}
+                            </td>
+                            <td>
+                                {{ attend.flight_ticket_cost }}
+                            </td>
+                            <td>
+                                {{ attend.transaction_fee }}
+                            </td>
+                            <td>
+                                {{ attend.budget }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a href="{{ url_for('staff.seminar_approval_records') }}"
+                               class="button is-light">Cancel</a>
+                        </div>
+                        <div class="control">
+                            <input type="submit" value="Submit" class="button is-primary"/>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
     </div>
 </section>
 {% endblock %}
 {% block scripts %}
 {{ super() }}
 <script>
-    new Vue({
+    $(document).ready(function(){
+        $('#attendTable').DataTable();
+    });
+</script>
+<script>
+    let start_datetime = new Date({{ attend.start_datetime|tojsdatetime(single=True) }});
+    let vm = new Vue({
         el: '#app',
         delimiters: ['<%', '%>'],
         data() {
             return {
-                selectedDates: [],
-                notifiedByLine: "yes",
-                givenDates: []
-            }
+                startDateTime: new Date({{ attend.start_datetime.isoformat()|tojson|safe }}),
+                payment: "unpaid",
+                    data: [],
+                    attend: [],
+                    approval: "others",
+                    transportation: "no_cost",
+
+        }
         },
-        methods: {
-            formatDate(dates){
-                if (dates.length===2){
-                    let start = new moment(dates[0]).format("DD/MM/YYYY")
-                    let end = new moment(dates[1]).format("DD/MM/YYYY")
-                    return start + ' - ' + end
+        computed: {
+            formattedStartDateTime: function(){
+                if (this.startDateTime){
+                    return new moment(this.startDateTime.toISOString()).format('DD/MM/YYYY')
                 }
-                else{
-                    let date = new moment(dates).format("DD/MM/YYYY")
-                    return date + ' - ' + date
-                }
-            }
-        },
-        mounted() {
-            var self = this;
-            self.givenDates = {{ selected_dates|tojsdatetime }};
-            self.givenDates.forEach((d) => {
-                self.selectedDates.push(new Date(d));
-            });
+                return null
+            },
         }
     });
+    $(document).ready(()=>{
+        $('#other_approval').hide()
+        $('#approval').change(e=>{
+            if ($('#approval').val() === "") {
+                $('#other_approval').show()
+            } else {
+                $('#other_approval').hide()
+            }
+        })
+    })
 </script>
 {% endblock %}

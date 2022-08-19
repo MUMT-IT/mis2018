@@ -70,10 +70,9 @@
                         </thead>
                         <tbody>
                         {% for attend in attends %}
-                        {% for participant in attend.staff  %}
                         <tr>
                             <td>
-                                {{ participant.personal_info.fullname }}
+                                {{ attend.staff.personal_info.fullname }}
                             </td>
                             <td>
                                 {{ attend.role }}
@@ -86,14 +85,13 @@
                             </td>
                             <td>
                                 <a class="button is-danger is-light"href="{{ url_for('staff.delete_participant',
-                                    attend_id=attend.id, participant_id=participant.id) }}">
+                                    attend_id=attend.id) }}">
                                         <span class="icon">
                                             <i class="fas fa-user-minus"></i>
                                         </span>
                                 </a>
                             </td>
                         </tr>
-                        {% endfor %}
                         {% endfor %}
                         </tbody>
                     </table>
