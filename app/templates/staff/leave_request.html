@@ -23,6 +23,15 @@
                         ท่านมีวันลาสะสม {{ quota_limit }} วันทำการ<br>
                         โดยลามาแล้ว {{ used_quota }} วันทำการ
                     </b-message>
+                    {% if quota.leave_type.type_ == "ลาป่วย" %}
+                    <b-message title="เนื่องด้วยมหาวิทยาลัย ดำเนินการปรับปรุงแบบฟอร์มการขอรับสวัสดิการและสิทธิประโยชน์ซึ่งปรับตามพระราชบัญญัติ
+                       คุ้มครองข้อมูลส่วนบุคคล พ.ศ.2562 ซึ่งจะใช้เวลาดำเนินการในการปรับปรุงระบบเพื่อเชื่อมโยงกับระบบของมหาวิทยาลัย"
+                       type="is-warning" has-icon>
+                            หากท่านต้องการยื่นลาป่วยเกิน 3 วันทำการซึ่งต้องใช้ใบรับรองแพทย์<br>
+                            ขอความกรุณาส่งใบลาและแนบใบรับรองแพทย์ไปยังหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่ แทนการส่งผ่านระบบ<br><br>
+                            สามารถดาวน์โหลดแบบฟอร์มได้โดย<a class="button is-text" href="https://mt.mahidol.ac.th/wp-content/uploads/PDF/Forms/2022/20220819/1.pdf">คลิกที่นี่</a>
+                    </b-message>
+                    {% endif %}
                 <form method="post" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <div class="field">
@@ -106,20 +115,20 @@
                                placeholder="เบอร์โทรศัพท์/e-mail" required>
                         </b-input>
                     </b-field>
-                    {% if quota.leave_type.document_required %}
-                    <b-field class="file">
-                        <b-upload v-model="file" name="document">
-                            <a class="button is-primary">
-                                <b-icon icon="upload"></b-icon>
-                                <span>อัพโหลดใบรับรองแพทย์</span>
-                            </a>
-                        </b-upload>
-                            <span class="file-name"
-                            v-if="file">
-                                <% file.name %>
-                            </span>
-                    </b-field>
-                    {% endif %}
+<!--                    {% if quota.leave_type.document_required %}-->
+<!--                    <b-field class="file">-->
+<!--                        <b-upload v-model="file" name="document">-->
+<!--                            <a class="button is-primary">-->
+<!--                                <b-icon icon="upload"></b-icon>-->
+<!--                                <span>อัพโหลดใบรับรองแพทย์</span>-->
+<!--                            </a>-->
+<!--                        </b-upload>-->
+<!--                            <span class="file-name"-->
+<!--                            v-if="file">-->
+<!--                                <% file.name %>-->
+<!--                            </span>-->
+<!--                    </b-field>-->
+<!--                    {% endif %}-->
                     <div class="field">
                         <label class="checkbox">
                             <input type="checkbox" value="yes" name="notified_by_line" checked>
