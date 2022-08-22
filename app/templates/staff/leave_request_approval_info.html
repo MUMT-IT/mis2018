@@ -36,7 +36,7 @@
                             {{ leave_req.created_at|localdatetime}}
                         </td>
                         <td>
-                            [{{ leave_req.quota.leave_type}}] ตั้งแต่ {{ leave_req.start_datetime|localdatetime }} ({{
+                            [{{ leave_req.quota.leave_type}}] ตั้งแต่ {{ leave_req.start_datetime|localdatetime }} ถึง {{ leave_req.end_datetime|localdatetime }} ({{
                             leave_req.total_leave_days }} วัน)
                         </td>
                         {% if leave_req.approvals|length  %}

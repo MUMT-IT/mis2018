@@ -1,11 +1,6 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 
-{% block head %}
-{{ super() }}
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
-{% endblock %}
-
 {% block page_content %}
 <section class="section" id="app">
     <div class="container">
@@ -37,12 +32,31 @@
                                 <b-radio native-value="invited" v-model="status" name="status">มีหนังสือเชิญ</b-radio>
                             </div>
                         </div>
+                        <b-field label="หน่วยงานที่เชิญ" v-if="status === 'invited'">
+                            <b-input type="text"
+                                     name="invited_organization"
+                                     icon-pack="far"
+                                     required>
+                            </b-input>
+                        </b-field>
                         <b-field label="เลขที่หนังสือ" v-if="status === 'invited'">
                             <b-input type="text"
                                      name="invited_document_id"
                                      icon-pack="far"
-                                     icon="comment">
+                                     placeholder="เช่น อว.78"
+                                     required>
                             </b-input>
+                        </b-field>
+                        <input type="hidden" name="document_dt" v-model="formattedDocumentDateTime">
+                        <b-field label="ลงวันที่หนังสือ" v-if="status === 'invited'">
+                            <b-datepicker
+                                    required
+                                    v-model="documentDateTime"
+                                    icon-pack="fa"
+                                    :mobile-native="false"
+                                    placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                    icon="calendar-alt">
+                            </b-datepicker>
                         </b-field>
                         <div class="field">
                             <b-field label="บทบาทในการประชุม/อบรม">
@@ -55,13 +69,22 @@
                                     <option value="นิเทศน์งาน">นิเทศน์งาน</option>
                                 </b-select>
                             </b-field>
-                            <b-field label="รายละเอียดการเข้าร่วม ดำเนินการภายใต้">
-                                <b-select placeholder="เลือกประเภท" name="objective" required>
+                            <b-field label="รายละเอียดการเข้าร่วม ดำเนินการภายใต้" v-if="status === 'wanttogo'">
+                                <b-select placeholder="เลือกประเภท" name="objective" id="objective" required>
                                     <option value="แผนพัฒนาบุคลากรรายบุคคล(IDP)">แผนพัฒนาบุคลากรรายบุคคล(IDP)</option>
                                     <option value="โครงการ MU-Talents">โครงการ MU-Talents</option>
                                     <option value="ยุทธศาสตร์ภาควิชา/คณะฯ">ยุทธศาสตร์ภาควิชา/คณะฯ</option>
                                     <option value="พัฒนาศักยภาพตามความสนใจ">พัฒนาศักยภาพตามความสนใจ</option>
+                                    <option value="">อื่นๆ</option>
                                 </b-select>
+                            </b-field>
+                            <b-field v-if="status === 'wanttogo'">
+                                <b-input id="other_objective"
+                                         type="text"
+                                         name="other_objective"
+                                         placeholder="โปรดระบุ"
+                                         >
+                                </b-input>
                             </b-field>
                             <div class="field">
                                 <b-field>
@@ -96,7 +119,7 @@
                                 </b-datetimepicker>
                             </b-field>
                             <input type="hidden" name="end_dt" v-model="formattedEndDateTime">
-                            <div class="field">
+                            <div class="field" v-if="status === 'wanttogo'">
                                 <div class="field">
                                     <label class="label">ค่าใช้จ่าย</label>
                                 </div>
@@ -116,15 +139,14 @@
                                 <b-input type="text"
                                          name="registration_fee"
                                          icon-pack="far"
-                                         icon="registered"
-                                         required>
+                                         icon="registered">
                                 </b-input>
                             </b-field>
                             <b-field label="ค่าที่พัก (บาท)" v-if="payment === 'paid'">
                                 <b-input type="text"
                                          name="accommodation_cost"
                                          icon-pack="far"
-                                         icon="travel">
+                                         icon="house">
                                 </b-input>
                             </b-field>
                             <div class="field" v-if="payment === 'paid'">
@@ -148,14 +170,14 @@
                                 <b-input type="text"
                                          name="fuel_cost"
                                          icon-pack="far"
-                                         icon="travel">
+                                         icon="gas-pump">
                                 </b-input>
                             </b-field>
                             <b-field label="ค่า Taxi (บาท)" v-if="transportation === 'taxi_cost'">
                                 <b-input type="text"
                                          name="taxi_cost"
                                          icon-pack="far"
-                                         icon="travel">
+                                         icon="taxi">
                                 </b-input>
                             </b-field>
                             <b-field label="ค่ารถไฟ (บาท)"
@@ -163,7 +185,7 @@
                                 <b-input type="text"
                                          name="train_ticket_cost"
                                          icon-pack="far"
-                                         icon="travel">
+                                         icon="train">
                                 </b-input>
                             </b-field>
                             <b-field label="ค่าตั๋วเครื่องบิน (บาท)"
@@ -171,7 +193,7 @@
                                 <b-input type="text"
                                          name="flight_ticket_cost"
                                          icon-pack="far"
-                                         icon="travel">
+                                         icon="plane">
                                 </b-input>
                             </b-field>
                             <b-field label="ค่าธรรมเนียมการโอนเงิน (บาท)" v-if="payment === 'paid'">
@@ -187,6 +209,51 @@
                                          required>
                                 </b-input>
                             </b-field>
+                            <div class="field">
+                                <div class="field">
+                                    <label class="label">ต้องการดาวน์โหลดแบบฟอร์มขออนุมัติอบรม</label>
+                                </div>
+                                <div class="block">
+                                    <b-radio native-value="want" v-model="wantdocument" name="wantdocument">ต้องการ</b-radio>
+                                    <b-radio native-value="dontwant" v-model="wantdocument" name="wantdocument">ไม่ต้องการ</b-radio>
+                                </div>
+                            </div>
+                            <b-field label="เบอร์โทรฯ ภายใน" v-if="wantdocument === 'want'">
+                                <b-input type="text"
+                                         name="contact_no"
+                                         icon-pack="far"
+                                         placeholder="เช่น 2845"
+                                         required>
+                                </b-input>
+                            </b-field>
+                            <b-field label="ชื่อเรื่องในหนังสือ" v-if="wantdocument === 'want'">
+                                <b-input type="text"
+                                         name="document_title"
+                                         icon-pack="far"
+                                         placeholder="เช่น ขออนุมัติเข้าร่วมอบรม"
+                                         required>
+                                </b-input>
+                            </b-field>
+                            <div class="field is-horizontal" v-if="wantdocument === 'want'">
+                                <div class="field-label is-normal">
+                                    <label class="label">ผู้บังคับบัญชา</label>
+                                </div>
+                                <div class="field-body">
+                                    <div class="control">
+                                        <div class="field">
+                                            <div class="select">
+                                                <select name="approver_id">
+                                                    {% for approver in approvers %}
+                                                    <option value="{{ approver.id }}">
+                                                        {{ approver.account.personal_info.fullname }}
+                                                    </option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -204,7 +271,6 @@
                     </div>
                 </div>
             </div>
-            </div>
         </form>
     </div>
 </section>
@@ -221,7 +287,9 @@
             return {
                 startDateTime: new Date({{ seminar.start_datetime.isoformat()|tojson|safe }}),
                 endDateTime: new Date({{ seminar.end_datetime.isoformat()|tojson|safe }}),
+                documentDateTime: new Date({{ seminar.start_datetime.isoformat()|tojson|safe }}),
                 status: "wanttogo",
+                wantdocument: "want",
                 payment: "unpaid",
                 objective: "others",
                 transportation: "no_cost",
@@ -244,8 +312,24 @@
                     return new moment(this.endDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
                 }
                 return null
+            },
+            formattedDocumentDateTime: function(){
+                if (this.documentDateTime){
+                    return new moment(this.documentDateTime.toISOString()).format('DD/MM/YYYY')
+                }
+                return null
             }
         }
     });
+    $(document).ready(()=>{
+        $('#other_objective').hide()
+        $('#objective').change(e=>{
+            if ($('#objective').val() === "") {
+                $('#other_objective').show()
+            } else {
+                $('#other_objective').hide()
+            }
+        })
+    })
 </script>
 {% endblock %}

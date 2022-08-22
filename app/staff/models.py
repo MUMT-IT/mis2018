@@ -36,27 +36,19 @@ staff_group_assoc_table = db.Table('staff_group_assoc',
                                            )
 
 
-staff_attend_assoc_table = db.Table('staff_attend_assoc',
-                                    db.Column('staff_id', db.ForeignKey('staff_account.id'),
-                                              primary_key=True),
+seminar_approval_attend_assoc_table = db.Table('seminar_approval_attend_assoc',
                                     db.Column('attend_id', db.ForeignKey('staff_seminar_attends.id'),
                                               primary_key=True),
+                                    db.Column('approval_id', db.ForeignKey('staff_seminar_approvals.id'),
+                                              primary_key=True),
                                     )
+
 
 
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
     datetime_format = u'%d/%m/%Y %H:%M'
     return dt.astimezone(bangkok).strftime(datetime_format)
-
-
-class StaffPosition(db.Model):
-    __tablename__ = 'staff_positions'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    position = db.Column('position', db.String())
-
-    def __str__(self):
-        return self.position
 
 
 # Define the Roles data model
@@ -145,10 +137,6 @@ class StaffPersonalInfo(db.Model):
     employment_id = db.Column('employment_id',
                               db.ForeignKey('staff_employments.id'))
     employment = db.relationship('StaffEmployment',
-                                 backref=db.backref('staff'))
-    position_id = db.Column('position_id',
-                              db.ForeignKey('staff_positions.id'))
-    position = db.relationship('StaffPosition',
                                  backref=db.backref('staff'))
     finger_scan_id = db.Column('finger_scan_id', db.Integer)
     academic_staff = db.Column('academic_staff', db.Boolean())
@@ -358,6 +346,15 @@ class StaffLeaveQuota(db.Model):
         return u'{}:{}:{}'.format(self.employment.title,
                                   self.leave_type.type_,
                                   self.cum_max_per_year2)
+
+
+class StaffLeaveUsedQuota(db.Model):
+    __tablename__ = 'staff_leave_used_quota'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    leave_type_id = db.Column('leave_type_id', db.ForeignKey('staff_leave_types.id'))
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    used_days = db.Column('used_days', db.Float())
+    quota_days = db.Column('quota_days', db.Float())
 
 
 class StaffLeaveRequest(db.Model):
@@ -604,6 +601,9 @@ class StaffSeminarAttend(db.Model):
     registration_fee = db.Column('registration_fee', db.Float())
     objective = db.Column('objective', db.String())
     invited_document_id = db.Column('document_id', db.String())
+    invited_organization = db.Column('invited_organization', db.String())
+    invited_document_date = db.Column('invited_document_date', db.DateTime(timezone=True))
+    document_title = db.Column('document_title', db.String())
     taxi_cost = db.Column('taxi_cost', db.Float())
     train_ticket_cost = db.Column('train_ticket_cost', db.Float())
     flight_ticket_cost = db.Column('flight_ticket_cost', db.Float())
@@ -613,10 +613,34 @@ class StaffSeminarAttend(db.Model):
     transaction_fee = db.Column('transaction_fee', db.Float())
     budget = db.Column('budget', db.Float())
     attend_online = db.Column('attend_online', db.Boolean(), default=False)
+    contact_no = db.Column('contact_no', db.Integer())
+    head_account_id = db.Column('head_account_id', db.ForeignKey('staff_account.id'))
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship('StaffAccount',
-                            secondary=staff_attend_assoc_table,
-                            backref=db.backref('seminar_attends', lazy='dynamic'))
+                                foreign_keys=[staff_account_id])
     seminar = db.relationship('StaffSeminar', backref=db.backref('attends'), foreign_keys=[seminar_id])
+
+
+class StaffSeminarApproval(db.Model):
+    __tablename__ = 'staff_seminar_approvals'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    seminar_attend_id = db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id'))
+    seminar_attend = db.relationship('StaffSeminarAttend', backref=db.backref('seminar_approval')
+                                     ,foreign_keys=[seminar_attend_id])
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    is_approved = db.Column('is_approved', db.Boolean(), default=True)
+    approval_comment = db.Column('approval_comment', db.String())
+    final_approver_account_id = db.Column('final_approver_account_id', db.ForeignKey('staff_account.id'))
+    recorded_account_id = db.Column('recorded_account_id', db.ForeignKey('staff_account.id'))
+    created_at = db.Column('created_at',db.DateTime(timezone=True),
+                           default=datetime.now())
+    approver = db.relationship('StaffAccount', backref=db.backref('approval_approver'),
+                                foreign_keys=[final_approver_account_id])
+    recorded_by = db.relationship('StaffAccount', backref=db.backref('approval_recorded_by'),
+                              foreign_keys=[recorded_account_id])
+    attend = db.relationship('StaffSeminarAttend',
+                             secondary=seminar_approval_attend_assoc_table,
+                             backref=db.backref('seminar_approval_attendee', lazy='dynamic'))
     
     
 class StaffWorkLogin(db.Model):
