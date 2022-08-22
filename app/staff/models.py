@@ -345,6 +345,15 @@ class StaffLeaveQuota(db.Model):
                                   self.cum_max_per_year2)
 
 
+class StaffLeaveUsedQuota(db.Model):
+    __tablename__ = 'staff_leave_used_quota'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    leave_type_id = db.Column('leave_type_id', db.ForeignKey('staff_leave_types.id'))
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    used_days = db.Column('used_days', db.Float())
+    quota_days = db.Column('quota_days', db.Float())
+
+
 class StaffLeaveRequest(db.Model):
     __tablename__ = 'staff_leave_requests'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
