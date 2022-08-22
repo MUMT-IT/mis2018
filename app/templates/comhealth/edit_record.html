@@ -85,6 +85,22 @@
                                         <p class="is-size-4">
                                             {% if record.customer.gender == 1 %}ชาย (Male) {% else %} หญิง (Female){% endif %}
                                         </p>
+                                        <br>
+                                        <p class="label"><strong>รหัสพนักงาน</strong></p>
+                                        <p>
+                                            {{ record.customer.emp_id }}
+                                        </p>
+                                        <br>
+                                        <p class="label"><strong>Department</strong></p>
+                                        <p>
+                                            {{ record.customer.dept }}
+                                        </p>
+                                        <p>
+                                            {{ record.customer.division }}
+                                        </p>
+                                        <p>
+                                            {{ record.customer.unit }}
+                                        </p>
                                     </div>
                                     <div class="column">
                                         <p class="label"><strong>สังกัด / Affiliation</strong></p>
