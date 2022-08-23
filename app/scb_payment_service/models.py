@@ -22,16 +22,14 @@ class ApiClientAccount(db.Model):
     def account_id(self):
         return self._account_id
 
-    @account_id.setter
     def set_account_id(self):
-        self._account_id = ''.join(secrets.choice(string.digits) for i in range(8))
+        self._account_id = ''.join(secrets.choice(string.digits) for i in range(16))
 
     @property
     def secret(self):
         raise ValueError('Client secret is not accessible.')
 
-    @secret.setter
     def set_secret(self):
-        secret = ''.join(secrets.choice(alphabet) for i in range(16))
+        secret = ''.join(secrets.choice(alphabet) for i in range(32))
         self._secret_hash = generate_password_hash(secret)
         print('The client secret is {}. Please keep it safe.'.format(secret))
