@@ -22,7 +22,7 @@ def upgrade():
     sa.Column('account_id', sa.String(), nullable=False),
     sa.Column('secret_hash', sa.String(), nullable=False),
     sa.Column('is_active', sa.Boolean(), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text(u'utcnow()'), nullable=True),
+    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text(u'now()'), nullable=True),
     sa.Column('updated_at', sa.DateTime(timezone=True), nullable=True),
     sa.PrimaryKeyConstraint('account_id')
     )
