@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" href="@sweetalert2/theme-bulma/bulma.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
 {% endblock %}
 
 {% block page_content %}
@@ -22,7 +22,7 @@
                 <div class="column is-one-third">
                     <div class="has-text-centered">
                         <span class="icon is-large">
-                            <i class="fa-solid fa-qrcode fa-4x"></i>
+                            <i class="fas fa-qrcode fa-4x"></i>
                         </span>
                     </div>
                     <h1 class="title is-size-4 has-text-centered has-text-link">
@@ -127,6 +127,7 @@
                     let result = content.split("|")
                     console.log(result)
                     this.info.id = result[0]
+                    this.info.qrCodeExpDateTime = result[4] + ' ' + result[3]
                     this.info.thTitle = result[6]
                     this.info.thName = result[7]
                     this.info.enTitle = result[9]
@@ -137,12 +138,13 @@
                     axios.post("{{ url_for('staff.login_scan') }}", {
                         data: this.info
                     }).then(async (resp)=>{
-                        this.time = moment(resp.data.time).format('DD/MM/YYYY h:mm:ss')
+                        this.time = moment(resp.data.time).format('DD/MM/YYYY H:mm:ss')
                         this.staff = resp.data.name
                         this.numScans = resp.data.numScans
                         Swal.fire({
                             title: 'สวัสดีคุณ ' + this.staff,
                             timer: 3000,
+                            showConfirmButton: false,
                             timerProgressBar: true,
                             icon: 'success',
                             text: 'เวลาแสกน ' + this.time

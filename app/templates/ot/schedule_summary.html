@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
+{% endblock %}
+
+{% block page_content %}
+<section class="section" id="app">
+    <div class="columns">
+        <div class="column">
+            <h1 class="title">สรุปข้อมูลการทำงานล่วงเวลาจาก {{ current_user.personal_info.org.name }} <br>ประจำปีงบประมาณ {{ fiscal_year+543 }}</h1>
+        </div>
+        <div class="column is-narrow">
+            <b-dropdown hoverable aria-role="list">
+                <button class="button is-link" slot="trigger">
+                    <span>ปีงบประมาณอื่น</span>
+                    <b-icon icon="menu-down"></b-icon>
+                </button>
+                {% for fy in fiscal_years %}
+                <b-dropdown-item aria-role="listitem" href="">
+                    ปีงบประมาณ {{ fy+543 }}
+                </b-dropdown-item>
+                {% endfor %}
+            </b-dropdown>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <div class="container has-text-centered">
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+    <p class="subtitle has-text-centered">หมายเหตุ: <span class="tag is-link is-medium">ข้อมูลปกติ</span>
+        <span class="tag is-danger is-medium">ข้อมูลการเข้างานไม่ครบถ้วน</span>
+    </p>
+    <div class="columns">
+        <div class="column">
+            <a class="button is-info is-light" href="{{ url_for('ot.document_approvals_list_for_create_ot') }}">
+                     <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                <span>กลับ</span>
+            </a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
+<script>
+    $(function() {
+        $('#calendar').fullCalendar({
+            schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
+            defaultDate: new Date({{ init_date|tojsdatetime(single=True)}}),
+        header: {
+            left: 'title',
+        },
+        events: {{ all|tojson|safe }}
+    })
+        $('#prev_btn').on('click', function() {
+            $('#calendar').fullCalendar('prev');
+        });
+        $('#next_btn').on('click', function() {
+            $('#calendar').fullCalendar('next');
+        });
+    });
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+    });
+</script>
+{% endblock %}

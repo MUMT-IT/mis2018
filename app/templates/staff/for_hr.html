@@ -28,13 +28,15 @@
         <div class="column">
             <div class="container has-text-centered">
                 <div class="box">
-                <a href="">
+                <a href="{{ url_for('staff.hr_login_summary_report') }}">
                     <span class="icon is-large"><i class="far fa-clock fa-4x"></i></span><br><br>
                     <span class="is-size-4">ข้อมูลเวลาเข้า-ออกงาน</span>
                 </a>
                 </div>
             </div>
         </div>
+    </div>
+    <div class="columns">
         <div class="column">
             <div class="container has-text-centered">
                 <div class="box">
@@ -52,6 +54,17 @@
                     <span class="icon is-large"><i class="fas fa-home fa-4x"></i></span><br><br>
                     <span class="is-size-4">ข้อมูลการทำงานที่บ้าน</span>
                 </a>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('staff.edit_organizations') }}">
+                        <span class="icon is-large"><i class="fas fa-sitemap fa-4x"></i></span><br><br>
+                        <span class="is-size-4">หน่วยงาน</span>
+                        <p class="has-text-danger">***Experimental***</p>
+                    </a>
                 </div>
             </div>
         </div>

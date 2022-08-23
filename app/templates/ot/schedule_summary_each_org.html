@@ -17,20 +17,20 @@
         <table id="otSummaryTable" class="table is-striped is-fullwidth">
             <thead>
             <th>
-                สำหรับเบิกเดือนที่
+                สำหรับเบิกเดือนที่/ปี
             </th>
             <th>
                 ประกาศ
             </th>
             </thead>
             <tbody>
-            {% for id,title,month in documents %}
+            {% for id,title,month,year in documents %}
             <tr>
                 <td>
-                    {{ month }}
+                    {{ month }}/{{ year }}
                 </td>
                 <td>
-                    <a href="{{ url_for('ot.summary_ot_each_document', document_id=id) }}">
+                    <a href="{{ url_for('ot.summary_ot_each_document', document_id=id, month=month, year=year) }}">
                         <span class="icon">
                             <i class="fas fa-calendar-alt"></i>
                         </span>
@@ -41,42 +41,25 @@
                 </td>
             </tr>
             {% endfor %}
-
-            <!--{% for record in ot_list %}
-            <tr>
-                <td>
-                    {{ record["created_at"] | localdatetime }}
-                </td>
-                <td>
-                    {{ record["month"] }}
-                </td>
-                <td>
-                    <a href="{{ url_for('ot.summary_ot_each_document', document_id=record['id']) }}">
-                        <span class="icon">
-                            <i class="fas fa-calendar-alt"></i>
-                        </span>
-                        <span>
-                           {{ record["title"] }}
-                        </span>
-                    </a>
-                </td>
-                <td>
-                    {{ record["created_staff"] }}
-                </td>
-            </tr>
-            {% endfor %}-->
             </tbody>
         </table>
         <div class="columns">
-            <div class="column has-text-centered">
-                <a class="button is-info" href="">
-                    <span>ประวัติการเบิก</span>
-                </a>
+            <div class="column">
+                <div class="container has-text-centered">
+                    <div class="box">
+                        <a href="{{ url_for('ot.round_request_status') }}">
+                        <span class="icon is-large">
+                            <i class="far fa-clock fa-2x"></i>
+                        </span>
+                            <span class="is-size-4">ประวัติการเบิก</span>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
         <div class="columns">
             <div class="column">
-                <a class="button is-info is-light" href="{{ url_for('ot.schedule') }}">
+                <a class="button is-info is-light" href="{{ url_for('ot.document_approvals_list_for_create_ot') }}">
                      <span class="icon">
                         <i class="fas fa-arrow-left"></i>
                     </span>

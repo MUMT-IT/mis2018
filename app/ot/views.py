@@ -5,6 +5,7 @@ from pandas import DataFrame
 import pytz
 import requests
 import os
+from sqlalchemy import cast, Date, extract, and_
 
 from werkzeug.utils import secure_filename
 
@@ -19,6 +20,7 @@ from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from datetime import date, datetime
 
+
 today = datetime.today()
 if today.month >= 10:
     START_FISCAL_DATE = datetime(today.year, 10, 1)
@@ -27,11 +29,13 @@ else:
     START_FISCAL_DATE = datetime(today.year - 1, 10, 1)
     END_FISCAL_DATE = datetime(today.year, 9, 30, 23, 59, 59, 0)
 
+
 def convert_to_fiscal_year(date):
     if date.month in [10, 11, 12]:
         return date.year + 1
     else:
         return date.year
+
 
 def get_start_end_date_for_fiscal_year(fiscal_year):
     '''Find start and end date from a given fiscal year.
@@ -90,7 +94,7 @@ def index():
     else:
         flash(u'ไม่พบสิทธิในการเข้าถึงหน้าดังกล่าว', 'danger')
         return redirect(request.referrer)
-    return render_template('ot/index.html', role=role)
+    return render_template('ot/index.html', role=role, ot_secretary_permission=ot_secretary_permission)
 
 
 @ot.route('/announce')
@@ -518,7 +522,7 @@ def edit_ot_record(record_id):
     form.start_date.data = record.start_datetime.date()
     form.start_time.data = record.start_datetime.strftime("%H:%M")
     form.end_time.data = record.end_datetime.strftime("%H:%M")
-    return render_template('ot/schedule_edit_each_ot_record.html', form=form , record=record)
+    return render_template('ot/schedule_edit_each_record.html', form=form , record=record)
 
 
 @ot.route('/api/get-file-url/<int:announcement_id>')
@@ -764,18 +768,18 @@ def round_request_status():
 @ot.route('/approver/requests-pending-list')
 @login_required
 def round_request_approval_requests_pending():
-    rounds = OtRoundRequest.query.filter_by(created_by=current_user).all()
-    return render_template('ot/approver_requests_pending_list.html', rounds=rounds)
+    rounds = OtRoundRequest.query.filter_by(approval_by=current_user).all()
+    return render_template('ot/approver_pending_list.html', rounds=rounds)
 
 
-@ot.route('/round-request/<int:round_id>/info')
+@ot.route('/round-request/<int:round_id>/approval-info')
 @login_required
 def round_request_info(round_id):
     round = OtRoundRequest.query.filter_by(id=round_id).first()
     return render_template('ot/request_info_each_round.html', round=round)
 
 
-@ot.route('/approver/requests-pending-list/<int:round_id>/approved')
+@ot.route('/approver/round-request/<int:round_id>/approved')
 @login_required
 def round_request_approve_request(round_id):
     round = OtRoundRequest.query.get(round_id)
@@ -783,57 +787,158 @@ def round_request_approve_request(round_id):
     db.session.add(round)
     db.session.commit()
     flash(u'อนุมัติรายการ{} เรียบร้อยแล้ว'.format(round.round_no), 'success')
-    rounds = OtRoundRequest.query.filter_by(created_by=current_user).all()
-    return render_template('ot/approver_requests_pending_list.html', rounds=rounds)
+    rounds = OtRoundRequest.query.filter_by(approval_by=current_user).all()
+    return render_template('ot/approver_pending_list.html', rounds=rounds)
 
 
-@ot.route('/finance/org-head-approved/list')
+@ot.route('/finance/approved-list')
 @login_required
 def approved_list_from_org_head():
-    rounds = OtRoundRequest.query.filter_by(created_by=current_user).all()
+    rounds = OtRoundRequest.query.all()
     return render_template('ot/approved_list.html', rounds=rounds)
 
 
 @ot.route('/finance/requests-pending-list/<int:round_id>')
 @login_required
 def round_request_info_for_finance(round_id):
-    round = OtRoundRequest.query.filter_by(id=round_id).first()
-    return render_template('ot/finance_approval_info.html', round=round)
+    it = StaffSpecialGroup.query.filter_by(group_code='it').first()
+    finance = StaffSpecialGroup.query.filter_by(group_code='finance').first()
+    if current_user in it.staffs or current_user in finance.staffs:
+        round = OtRoundRequest.query.filter_by(id=round_id).first()
+        return render_template('ot/finance_approval_info.html', round=round)
+    else:
+        flash(u'ไม่พบสิทธิในการเข้าถึงหน้าดังกล่าว', 'danger')
+        return redirect(request.referrer)
 
-# @ot.route('/schedule/summary/each-person')
-# @login_required
-# def summary_ot_each_person():
-#     fiscal_year = request.args.get('fiscal_year')
-#     if fiscal_year is None:
-#         if today.month in [10, 11, 12]:
-#             fiscal_year = today.year + 1
-#         else:
-#             fiscal_year = today.year
-#         init_date = today
+
+@ot.route('/finance/requests-pending-list/<int:round_id>/verify')
+@login_required
+def round_request_verify(round_id):
+    for record in OtRecord.query.filter_by(round_id=round_id).all():
+        if record.compensation.is_count_in_mins:
+            record.total_hours = record.total_ot_hours()
+        else:
+            record.total_minutes = record.total_ot_hours()
+        record.amount_paid = record.count_rate()
+        db.session.add(record)
+    round = OtRoundRequest.query.get(round_id)
+    round.verified_by_account_id = current_user.id
+    round.verified_at = datetime.now(tz)
+    db.session.add(round)
+    db.session.commit()
+    flash(u'รับรองรายการ{} เรียบร้อยแล้ว'.format(round.round_no), 'success')
+    rounds = OtRoundRequest.query.all()
+    return render_template('ot/approved_list.html', rounds=rounds)
+
+
+@ot.route('/<list_type>')
+def event_list(list_type='timelineDay'):
+    return render_template('ot/summary_chart.html', list_type=list_type)
+
+
+@ot.route('/api/staff')
+@login_required
+def get_records(org_id):
+    # org_id = request.args.get('deptid')
+    # if org_id is None:
+    #     ot_query = OtRecord.query.all()
+    # else:
+    #     ot_query = OtRecord.query.filter_by(org_id=org_id)
+    record = OtRecord.query.all()
+    otrecord = []
+    for ot in record:
+        otrecord.append({
+            'id': ot.id,
+            'location': ot.location,
+            'title': ot.compensation.role,
+            'stafforg': ot.staff.personal_info.org.name,
+            'businessHours': {
+                'start': ot.start_datetime.strftime('%H:%M'),
+                'end': ot.end_datetime.strftime('%H:%M'),
+            }
+        })
+    return jsonify(otrecord)
+
+
+@ot.route('/api/otrecords')
+def get_events():
+    all_events = []
+    text_color = '#ffffff'
+    bg_color = '#2b8c36'
+    border_color = '#ffffff'
+    otrecords = OtRecord.query.all()
+    for record in otrecords:
+        event = {
+            'location': event.get('location', None),
+            'title': record.staff.personal_info.fullname,
+            'description': event.get('description', ''),
+            'start': record.start_datetime.strftime('%H:%M'),
+            'end': record.end_datetime.strftime('%H:%M'),
+            'resourceId': otrecords.id,
+            'status': otrecords.round,
+            'borderColor': border_color,
+            'backgroundColor': bg_color,
+            'textColor': text_color,
+            'id': record.id,
+        }
+        all_events.append(event)
+    return jsonify(all_events)
+
+
+@ot.route('/records/<int:event_id>', methods=['POST', 'GET'])
+def show_event_detail(event_id=None):
+    tz = pytz.timezone('Asia/Bangkok')
+    if event_id:
+        event = OtRecord.query.get(event_id)
+        if event:
+            event.start = event.start_date.astimezone(tz)
+            event.end = event.end_date.astimezone(tz)
+            return render_template(
+                'ot/summary_chart.html', event=event)
+    else:
+        return 'No event ID specified.'
+
+# @room.route('/events/<int:event_id>', methods=['POST', 'GET'])
+# def show_event_detail(event_id=None):
+#     tz = pytz.timezone('Asia/Bangkok')
+#     if event_id:
+#         event = RoomEvent.query.get(event_id)
+#         if event:
+#             event.start = event.start.astimezone(tz)
+#             event.end = event.end.astimezone(tz)
+#             return render_template(
+#                 'scheduler/event_detail.html', event=event)
 #     else:
-#         fiscal_year = int(fiscal_year)
-#         init_date = date(fiscal_year - 1, 10, 1)
-#     tab = request.args.get('tab', 'all')
-#     ot_r = []
-#     fiscal_years = OtRecord.query.distinct(func.date_part('YEAR', OtRecord.start_datetime))
-#     fiscal_years = [convert_to_fiscal_year(ot.start_datetime) for ot in fiscal_years]
-#     start_fiscal_date, end_fiscal_date = get_start_end_date_for_fiscal_year(fiscal_year)
-#     for ot_record in OtRecord.query.filter_by(staff_account_id=current_user.id).filter(OtRecord.start_datetime
-#                                               .between(start_fiscal_date, end_fiscal_date)):
-#         text_color = '#ffffff'
-#         bg_color = '#2b8c36'
-#         border_color = '#ffffff'
-#         ot_r.append({
-#                     'id': ot_record.id,
-#                     'start': ot_record.start_datetime,
-#                     'end': ot_record.end_datetime,
-#                     'title': u'{} {}'.format(current_user.personal_info.th_firstname, ot_record.compensation.role),
-#                     'backgroundColor': bg_color,
-#                     'borderColor': border_color,
-#                     'textColor': text_color,
-#                     'type': 'ot'
-#                 })
-#         all = ot_r
-#     return render_template('ot/summary_each_person.html',
-#                            init_date=init_date,
-#                            all=all, tab=tab, fiscal_years=fiscal_years, fiscal_year=fiscal_year)
+#         return 'No event ID specified.'
+
+
+@ot.route('/summary')
+@login_required
+def summary_chart():
+    # ot_records = OtRecord.query.filter(OtRecord.canceled_at==None)\
+    #                             .filter(OtRoundRequest.approval_at!=None).all()
+    # records = [record.list_records() for record in ot_records]
+    # records = []
+    # for record in ot_records:
+    #     ot = dict(
+    #         record.compensation.role,
+    #         record.staff.personal_info.fullname,
+    #         record.start_datetime,
+    #         record.end_datetime,
+    #         record.total_hours or record.total_minutes
+    #     )
+    #     records.append(ot)
+    # departments = Org.query.all()
+    return render_template('ot/summary_chart.html')
+
+
+@ot.route('/summary/each-person')
+@login_required
+def summary_each_person():
+    ot_records = OtRecord.query.filter_by(staff=current_user)\
+                                .filter(OtRecord.canceled_at==None)\
+                                .filter(OtRecord.round_id!=None)\
+                                .filter(OtRoundRequest.approval_at!=None)\
+                                .filter(OtRoundRequest.verified_at!=None).all()
+    records = [record.list_records() for record in ot_records]
+    return render_template('ot/summary_each_person.html', records=records)

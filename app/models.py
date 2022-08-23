@@ -19,6 +19,10 @@ class Org(db.Model):
     def __repr__(self):
         return self.name
 
+    @property
+    def active_staff(self):
+        return [s for s in self.staff if s.retired is not True]
+
 
 class Strategy(db.Model):
     __tablename__ = 'strategies'

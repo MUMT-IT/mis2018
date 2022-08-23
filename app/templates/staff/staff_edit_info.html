@@ -18,17 +18,6 @@
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">สถานะ</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="block">
-                            <b-radio native-value="active" v-model="employed" name="employed">ปฏิบัติงาน</b-radio>
-                            <b-radio native-value="retired" v-model="employed" name="employed">เกษียณอายุ/ลาออก</b-radio>
-                        </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
                             <label class="label">email</label>
                         </div>
                         <div class="field-body">
@@ -194,6 +183,20 @@
                             </div>
                         </div>
                     </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">เปลี่ยนสถานะ</label>
+                        </div>
+                        <div class="field-body">
+                            <label class="checkbox">
+                                <input type="checkbox" name="retired"
+                                       {% if staff.retired %}
+                                       checked
+                                       {% endif %}>
+                                เกษียณอายุ/ลาออก
+                            </label>
+                        </div>
+                    </div>
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
                                 <input type="submit" value="บันทึก" class="button is-info"/>
@@ -218,7 +221,7 @@
         data() {
             return {
                 empDate: [],
-                selectedEmpDate: new Date({{ emp_date|tojsdatetime(single=True) }}),
+                selectedEmpDate: {% if emp_date %} new Date({{ emp_date|tojsdatetime(single=True) }}) {% else %} null {% endif %},
                 employed: "active",
             }
         },

@@ -33,17 +33,6 @@
                                  required>
                         </b-input>
                     </b-field>
-                    <b-field label="กำหนดส่งงาน">
-                        <b-datepicker
-                                required
-                                name="deadline_date"
-                                icon="calendar-check"
-                                :mobile-native="false"
-                                :date-formatter="formatDate"
-                                placeholder="คลิกเพื่อเปิดปฏิทิน..."
-                                icon="calendar-alt" required>
-                        </b-datepicker>
-                    </b-field>
                     <b-field label="สามารถติดต่อท่านได้ที่" type="is-danger">
                         <b-input type="text"
                                name="contact_phone"
@@ -59,12 +48,12 @@
                                     name="notified_by_line">ส่งข้อความเตือนในไลน์เมื่อได้รับการพิจารณาจากหัวหน้า
                         </b-checkbox>
                     </div>
-                    <div class="field is-grouped">
-                        <div class="control">
-                            <input type="submit" value="submit" class="button is-primary"/>
-                        </div>
+                    <div class="field is-grouped is-grouped-centered">
                         <div class="control">
                             <a href="{{ request.referrer }}"  class="button is-danger">Cancel</a>
+                        </div>
+                        <div class="control">
+                            <input type="submit" value="Submit" class="button is-primary"/>
                         </div>
                     </div>
                 </form>
@@ -88,15 +77,9 @@
         },
         methods: {
             formatDate(dates){
-                if (dates.length===2){
                     let start = new moment(dates[0]).format("DD/MM/YYYY")
                     let end = new moment(dates[1]).format("DD/MM/YYYY")
                     return start + ' - ' + end
-                }
-                else{
-                    let date = new moment(dates).format("DD/MM/YYYY")
-                    return date
-                }
             }
         }
     });
