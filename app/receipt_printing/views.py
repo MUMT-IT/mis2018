@@ -15,6 +15,7 @@ from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, 
 from . import receipt_printing_bp as receipt_printing
 from .forms import *
 from .models import *
+from ..comhealth.models import ComHealthReceiptID
 from ..main import db
 
 bangkok = pytz.timezone('Asia/Bangkok')
@@ -37,6 +38,8 @@ def create_receipt():
     receipt_detail = ElectronicReceiptDetail.query.first()
     form = ReceiptDetailForm(obj=receipt_detail)
     cashiers = ElectronicReceiptCashier.query.all()
+    cur_year = datetime.today().date().year + 543
+    receipt_ids = ComHealthReceiptID.query.filter_by(buddhist_year=cur_year).filter_by(code='MTG')
 
     if form.validate_on_submit():
         receipt_detail.created_datetime = datetime.now(tz=bangkok)
@@ -49,7 +52,7 @@ def create_receipt():
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return render_template('receipt_printing/new_receipt.html', form=form, cashiers=cashiers)
+    return render_template('receipt_printing/new_receipt.html', form=form, cashiers=cashiers, receipt_ids=receipt_ids)
 
 
 @receipt_printing.route('/list/all', methods=['GET'])

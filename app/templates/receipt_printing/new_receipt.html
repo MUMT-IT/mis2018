@@ -13,18 +13,22 @@
                 <form method="post">
                     {{ form.hidden_tag() }}
                     <div class="field-body">
+                        {% for rid in receipt_ids %}
                         <div class="field">
                             <label class="label">หมายเลขใบเสร็จเริ่มต้น</label>
-                            <div class="control">
-                                {{ form.number(class="input") }}
-                            </div>
+                            <option value="{{rid.id}}"
+                                {% if rid.id == session.get('receipt_code_id') %}
+                                    selected
+                                {% endif %}>{{ rid.next }}
+                            </option>
                         </div>
                         <div class="field">
                             <label class="label">เล่มที่</label>
                             <div class="control">
-                                {{ form.book_number(class="input") }}
+                                {{ rid.book_number }}
                             </div>
                         </div>
+                    {% endfor %}
                     </div>
                     {% for i in form.items %}
                     <div class="field">
