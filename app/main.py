@@ -104,6 +104,12 @@ app = create_app()
 api = Api(app)
 
 
+# user_loader_callback_loader has renamed to user_lookup_loader in >=4.0
+@jwt.user_loader_callback_loader
+def user_lookup_callback(identity):
+    return ScbPaymentServiceApiClientAccount.get_account_by_id(identity)
+
+
 @app.errorhandler(403)
 def page_not_found(e):
     return render_template('errors/403.html', error=e), 404
