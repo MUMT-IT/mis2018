@@ -1146,6 +1146,17 @@ def add_customer_to_service_org(service_id, org_id):
             dob = date(int(y) - 543, int(m), int(d))  # convert to Thai Buddhist year
         else:
             dob = None
+        department = ComHealthDepartment.query.filter_by(parent_id=org_id, name=form.dept.data).first()
+        if not department:
+            department = ComHealthDepartment(parent_id=org_id, name=form.dept.data)
+            division = ComHealthDivision(parent=department, name=form.division.data)
+            db.session.add(department)
+            db.session.add(division)
+        else:
+            division = ComHealthDepartment.query.filter_by(parent=department, name=form.division.data).first()
+            if not division:
+                division = ComHealthDivision(parent_id=department.id, name=form.division.data)
+                db.session.add(division)
         customer = ComHealthCustomer(title=form.title.data,
                                      firstname=form.firstname.data,
                                      lastname=form.lastname.data,
@@ -1153,6 +1164,10 @@ def add_customer_to_service_org(service_id, org_id):
                                      emptype_id=form.emptype.data,
                                      phone=form.phone.data,
                                      dob=dob,
+                                     emp_id=form.emp_id.data,
+                                     dept=department,
+                                     division=division,
+                                     unit=form.unit.data,
                                      org_id=org_id)
         new_record = ComHealthRecord(service_id=service_id, customer=customer)
         db.session.add(customer)
