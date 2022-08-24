@@ -9,7 +9,7 @@ alphabet = string.digits + string.ascii_letters
 
 
 class ScbPaymentServiceApiClientAccount(db.Model):
-    __tablename__ = 'scb_payment_service_api_client_accounts'
+    __tablename__ = 'scb_payment_service_client_accounts'
     _account_id = db.Column('account_id', db.String(), nullable=False, primary_key=True)
     _secret_hash = db.Column('secret_hash', db.String(), nullable=False)
     is_active = db.Column('is_active', db.Boolean(), default=True)
