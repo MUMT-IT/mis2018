@@ -64,6 +64,7 @@ def login():
 
 
 @scb_payment.route('/api/v1.0/qrcode/create', methods=['POST'])
+@jwt_required
 @csrf.exempt
 def create_qrcode():
     amount = request.get_json().get('amount')
