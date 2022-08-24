@@ -2,7 +2,7 @@ import os
 
 import requests
 from flask import jsonify, request
-from flask_jwt_extended import (create_access_token, get_jwt_identity, jwt_required)
+from flask_jwt_extended import (create_access_token, get_jwt_identity, jwt_required, get_current_user)
 from werkzeug.security import check_password_hash
 
 from . import scb_payment
@@ -56,7 +56,7 @@ def login():
     client = ScbPaymentServiceApiClientAccount.query.get(client_id)
     if client:
         if check_password_hash(client._secret_hash, client_secret):
-            return jsonify(access_token=create_access_token())
+            return jsonify(access_token=create_access_token(identity=client_id))
         else:
             return jsonify({'message': 'Invalid client secret.'}), 403
     else:
@@ -85,3 +85,10 @@ def confirm_payment():
     data = request.get_json()
     print(data)
     return jsonify({'message': 'hello'})
+
+
+@scb_payment.route('/api/v1.0/test-login')
+@jwt_required  # jwt_required has changed to jwt_required() in >=4.0
+def test_login():
+    current_user = get_current_user()  # return an account object from the user_loader_callback_loader
+    return jsonify(logged_in_as=current_user.account_id), 200
