@@ -18,12 +18,16 @@ class ScbPaymentServiceApiClientAccount(db.Model):
     updated_at = db.Column('updated_at', db.DateTime(timezone=True),
                            onupdate=func.now())
 
+    @classmethod
+    def get_account_by_id(cls, client_id):
+        return cls.query.filter_by(_account_id=client_id).first()
+
     @property
     def account_id(self):
         return self._account_id
 
     def set_account_id(self):
-        self._account_id = ''.join(secrets.choice(string.digits) for i in range(16))
+        self._account_id = ''.join(secrets.choice(string.digits) for i in range(10))
 
     @property
     def secret(self):
