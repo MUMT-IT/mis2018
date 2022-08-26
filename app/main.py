@@ -233,7 +233,7 @@ from app.receipt_printing.models import *
 
 admin.add_views(ModelView(ElectronicReceiptCashier, db.session, category='ReceiptPrinting'))
 admin.add_views(ModelView(ElectronicReceiptDetail, db.session, category='ReceiptPrinting'))
-admin.add_views(ModelView(ElectronicReceiptList, db.session, category='ReceiptPrinting'))
+admin.add_views(ModelView(ElectronicReceiptItem, db.session, category='ReceiptPrinting'))
 
 from staff import staffbp as staff_blueprint
 
