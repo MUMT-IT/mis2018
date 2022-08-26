@@ -445,8 +445,7 @@ class StaffLeaveApproval(db.Model):
     is_approved = db.Column('is_approved', db.Boolean(), default=False)
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     request = db.relationship('StaffLeaveRequest',
-                              backref=db.backref('approvals',
-                                                 cascade='all, delete-orphan'))
+                              backref=db.backref('approvals', cascade='all, delete-orphan'))
     approval_comment = db.Column('approval_comment', db.String())
     approver = db.relationship('StaffLeaveApprover',
                                backref=db.backref('approved_requests'))
@@ -494,8 +493,7 @@ class StaffWorkFromHomeRequest(db.Model):
     detail = db.Column('detail', db.String())
     deadline_date = db.Column('deadline_date', db.DateTime(timezone=True))
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
-    staff = db.relationship('StaffAccount',
-                            backref=db.backref('wfh_requests'))
+    staff = db.relationship('StaffAccount', backref=db.backref('wfh_requests'))
     notify_to_line = db.Column('notify_to_line', db.Boolean(), default=False)
 
     @property
@@ -534,6 +532,7 @@ class StaffWorkFromHomeApprover(db.Model):
     account = db.relationship('StaffAccount',
                               backref=db.backref('wfh_approvers'),
                               foreign_keys=[approver_account_id])
+    notified_by_line = db.Column('notified_by_line', db.Boolean(), default=True)
 
 
 class StaffWorkFromHomeApproval(db.Model):
@@ -544,7 +543,8 @@ class StaffWorkFromHomeApproval(db.Model):
     is_approved = db.Column('is_approved', db.Boolean(), default=False)
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     approval_comment = db.Column('approval_comment', db.String())
-    request = db.relationship('StaffWorkFromHomeRequest', backref=db.backref('wfh_approvals'))
+    request = db.relationship('StaffWorkFromHomeRequest',
+                              backref=db.backref('wfh_approvals', cascade='all, delete-orphan'))
     approver = db.relationship('StaffWorkFromHomeApprover',
                                backref=db.backref('wfh_approved_requests'))
 
@@ -555,7 +555,8 @@ class StaffWorkFromHomeCheckedJob(db.Model):
     overall_result = db.Column('overall_result', db.String())
     request_id = db.Column('request_id', db.ForeignKey('staff_work_from_home_requests.id'))
     finished_at = db.Column('finish_at', db.DateTime(timezone=True))
-    request = db.relationship('StaffWorkFromHomeRequest', backref=db.backref('checked_jobs'))
+    request = db.relationship('StaffWorkFromHomeRequest',
+                              backref=db.backref('checked_jobs', cascade='all, delete-orphan'))
 
     def check_comment(self, account_id):
         for approval in self.request.wfh_approvals:
