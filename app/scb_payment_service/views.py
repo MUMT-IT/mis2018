@@ -80,6 +80,7 @@ def refresh():
 @jwt_required
 @csrf.exempt
 def create_qrcode():
+    # TODO: set expiration time to 60 minutes.
     amount = request.get_json().get('amount')
     ref1 = request.get_json().get('ref1')
     ref2 = request.get_json().get('ref2')
