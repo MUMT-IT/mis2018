@@ -2913,14 +2913,14 @@ def create_qrcode(account_id):
     longitude = request.args.get('long', '')
     account = StaffAccount.query.get(account_id)
     qr = qrcode.QRCode(version=1, box_size=20)
-    current_time = datetime.now()
+    current_time = datetime.now(pytz.utc)
     expired_time = current_time + timedelta(minutes=10)
     qr_data = '|'.join([
         str(account.id),
         latitude,
         longitude,
-        expired_time.strftime('%H:%M:%S'),
-        expired_time.strftime('%d/%m/%Y'),
+        expired_time.astimezone(tz).strftime('%H:%M:%S'),
+        expired_time.astimezone(tz).strftime('%d/%m/%Y'),
         "",
         account.personal_info.th_title or u'คุณ',
         account.personal_info.th_firstname + ' ' + account.personal_info.th_lastname,
@@ -2937,7 +2937,7 @@ def create_qrcode(account_id):
     import base64
     with open("personal_qrcode.png", "rb") as img_file:
         qrcode_base64 = base64.b64encode(img_file.read())
-    return jsonify(qrcode=qrcode_base64)
+    return jsonify(qrcode=qrcode_base64, expDateTime=expired_time.astimezone(tz).isoformat())
 
 
 @staff.route('/users/qrcode')
