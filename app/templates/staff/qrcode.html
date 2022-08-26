@@ -16,6 +16,9 @@
             <figure class="image is-1by1" v-else>
                 <img :src="qrcodeUrl"/>
             </figure>
+            <div>
+                <% message %>
+            </div>
         </div>
     </div>
 </section>
@@ -31,7 +34,8 @@
                 qrcode_base64: '',
                 lat: '',
                 long: '',
-                loading: true
+                loading: true,
+                message: ''
             }
         },
         computed: {
@@ -55,7 +59,13 @@
                     this.long = position.coords.longitude
                     console.log(this.lat, this.long)
                     this.get_qrcode_data()
-                });
+                },
+                (error)=>{
+                    alert('GPS failed')
+                    this.message = 'ไม่สามารถค้นหาตำแหน่งของคุณได้แต่คุณยังสามารถใช้ QR Code ในการแสกนได้'
+                    this.get_qrcode_data()
+                },
+                {timeout: 6000, enableHighAccuracy: true});
             } else {
                 alert('Geolocation not supported.')
                 this.get_qrcode_data()
