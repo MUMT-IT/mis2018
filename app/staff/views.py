@@ -1210,22 +1210,16 @@ def request_work_from_home():
                    url_for("staff.pending_wfh_request_for_approval", req_id=req.id, _external=True))
 
         # if no approvers assigned, assign the head of the unit as a designated approver
-        if len(current_user.wfh_approvers) == 0:
+        if len(current_user.wfh_requesters) == 0:
             print('no approver found, assign head of the organization')
             org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
             approver = StaffWorkFromHomeApprover(requester=current_user, account=org_head)
             db.session.add(approver)
             db.session.commit()
 
-        for approver in current_user.wfh_approvers:
-            notify_by_line_of_leave_approver = StaffLeaveApprover\
-                .query.filter_by(staff_account_id=current_user.id, is_active=True).first()
-            if notify_by_line_of_leave_approver:
-                notified_by_line = True
-            else:
-                notified_by_line = False
+        for approver in current_user.wfh_requesters:
             if approver.is_active:
-                if notified_by_line and approver.account.line_id:
+                if approver.notified_by_line and approver.account.line_id:
                     if os.environ["FLASK_ENV"] == "production":
                         line_bot_api.push_message(to=approver.account.line_id,
                                                   messages=TextSendMessage(text=req_msg))
@@ -1234,6 +1228,9 @@ def request_work_from_home():
                 mails.append(approver.account.email + "@mahidol.ac.th")
         if os.environ["FLASK_ENV"] == "production":
             send_mail(mails, req_title, req_msg)
+        else:
+            print([approver.account.email + 'mahidol.ac.th'], req_title, req_msg)
+
         flash(u'ส่งคำขอของท่านเรียบร้อยแล้ว (The request has been sent.)', 'success')
         return redirect(url_for('staff.show_work_from_home'))
     else:
@@ -1333,7 +1330,7 @@ def wfh_approve(req_id, approver_id):
         )
         db.session.add(approval)
         db.session.commit()
-        flash(u'อนุมัติ WFH ให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที')
+        flash(u'อนุมัติ WFH ให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที', 'success')
 
         req = StaffWorkFromHomeRequest.query.get(req_id)
         if approval.is_approved is True:
@@ -1341,7 +1338,7 @@ def wfh_approve(req_id, approver_id):
                             .format(req.detail, current_user.personal_info.fullname
                                     ,url_for( "staff.show_wfh_approval",request_id=req_id,_external=True))
         else:
-            approve_msg = u'การขออนุมัติWFHเรื่อง {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
+            approve_msg = u'การขออนุมัติ WFH เรื่อง {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
                             .format(req.detail, current_user.personal_info.fullname
                                     ,url_for( "staff.show_wfh_approval",request_id=req_id,_external=True))
         if req.notify_to_line and req.staff.line_id:
@@ -1353,7 +1350,7 @@ def wfh_approve(req_id, approver_id):
         if os.environ["FLASK_ENV"] == "production":
             send_mail([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
         else:
-            print(approve_title ,approve_msg, req.staff.id)
+            print([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
         return redirect(url_for('staff.show_wfh_requests_for_approval'))
     if approved is not None:
         return render_template('staff/wfh_request_pending_approval_comment.html')
