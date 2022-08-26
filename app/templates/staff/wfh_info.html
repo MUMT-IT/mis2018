@@ -1,13 +1,8 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
-{% block head %}
-{{ super() }}
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
-{% endblock %}
 {% block page_content %}
 <section class="section" id="app">
     {% include "messages.html" %}
-    <div class="container">
         <div class="notification is-light is-info">
             การขออนุมัติทำงานที่บ้านของท่านจะได้พิจารณาและอนุมัติโดย
             <strong>
@@ -129,7 +124,6 @@
             </div>
         </div>
         {% endif %}
-    </div>
 </section>
 {% endblock %}
 {% block scripts %}
