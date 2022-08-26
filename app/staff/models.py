@@ -617,8 +617,8 @@ class StaffSeminarAttend(db.Model):
     contact_no = db.Column('contact_no', db.Integer())
     head_account_id = db.Column('head_account_id', db.ForeignKey('staff_account.id'))
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
-    staff = db.relationship('StaffAccount',
-                                foreign_keys=[staff_account_id])
+    staff = db.relationship('StaffAccount', foreign_keys=[staff_account_id],
+                            backref=db.backref('seminar_attends', lazy='dynamic'))
     seminar = db.relationship('StaffSeminar', backref=db.backref('attends'), foreign_keys=[seminar_id])
 
 
