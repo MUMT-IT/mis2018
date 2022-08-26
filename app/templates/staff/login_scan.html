@@ -73,6 +73,8 @@
                     time: null,
                     info: {
                         id: null,
+                        lat: null,
+                        long: null,
                         thTitle: null,
                         enTitle: null,
                         thName: null,
@@ -90,6 +92,8 @@
                     this.time = null
                     this.info = {
                         id: null,
+                        lat: null,
+                        long: null,
                         thTitle: null,
                         enTitle: null,
                         thName: null,
@@ -127,6 +131,8 @@
                     let result = content.split("|")
                     console.log(result)
                     this.info.id = result[0]
+                    this.info.lat = result[1]
+                    this.info.long = result[2]
                     this.info.qrCodeExpDateTime = result[4] + ' ' + result[3]
                     this.info.thTitle = result[6]
                     this.info.thName = result[7]

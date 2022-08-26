@@ -1614,6 +1614,8 @@ def login_scan():
 
     if request.method == 'POST':
         req_data = request.get_json()
+        lat = req_data['data'].get('lat', '0.0')
+        long = req_data['data'].get('long', '0.0')
         th_name = req_data['data'].get('thName')
         en_name = req_data['data'].get('enName')
         qrcode_exp_datetime = datetime.strptime(req_data['data'].get('qrCodeExpDateTime'), DATETIME_FORMAT)
@@ -1650,6 +1652,8 @@ def login_scan():
                 record = StaffWorkLogin(
                     date_id=date_id,
                     staff=person.staff_account,
+                    lat=float(lat),
+                    long=float(long),
                     start_datetime=now,
                     num_scans=num_scans,
                     qrcode_in_exp_datetime=qrcode_exp_datetime.astimezone(pytz.utc)
