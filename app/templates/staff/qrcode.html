@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block page_content %}
+<section class="section" id="app">
+    {% include "messages.html" %}
+    <h1 class="title has-text-centered">QR Code</h1>
+    <div class="columns">
+        <div class="column">
+            <div v-if="loading">
+                <span class="icon is-large" v-if="loading">
+                    <i class="fas fa-pulse fa-4x fa-spinner"></i>
+                </span>
+                <span>กำลังค้นหาตำแหน่งของคุณ...</span>
+            </div>
+            <figure class="image is-1by1" v-else>
+                <img :src="qrcodeUrl"/>
+            </figure>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data () {
+            return {
+                qrcode_base64: '',
+                lat: '',
+                long: '',
+                loading: true
+            }
+        },
+        computed: {
+            qrcodeUrl () {
+                return "data:image/png;base64, " + this.qrcode_base64
+            }
+        },
+        methods: {
+            get_qrcode_data () {
+                axios.get("{{ url_for('staff.create_qrcode', account_id=current_user.id) }}",
+                    { params: {'lat': this.lat, 'long': this.long}}).then((resp)=>{
+                    this.qrcode_base64 = resp.data.qrcode
+                    this.loading = false
+                })
+            }
+        },
+        mounted () {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position)=>{
+                    this.lat = position.coords.latitude
+                    this.long = position.coords.longitude
+                    console.log(this.lat, this.long)
+                    this.get_qrcode_data()
+                });
+            } else {
+                console.log('Geolocation not supported.')
+                this.get_qrcode_data()
+            }
+        }
+    })
+</script>
+{% endblock %}

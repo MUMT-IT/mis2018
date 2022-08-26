@@ -23,6 +23,7 @@ import os
 from flask_mail import Message
 from flask_admin import BaseView, expose
 from itsdangerous import TimedJSONWebSignatureSerializer
+import qrcode
 
 from app.roles import admin_permission, hr_permission
 
@@ -2903,3 +2904,43 @@ def edit_org_head_email(org_id):
         else:
             flash(u'ไม่พบบัญชีที่ใช้อีเมล {} กรุณาตรวจสอบอีกครั้ง'.format(email), 'danger')
     return render_template('staff/org_head_email_form.html', org_id=org_id)
+
+
+@staff.route('/api/users/<int:account_id>/qrcode')
+@login_required
+def create_qrcode(account_id):
+    latitude = request.args.get('lat', '')
+    longitude = request.args.get('long', '')
+    account = StaffAccount.query.get(account_id)
+    qr = qrcode.QRCode(version=1, box_size=20)
+    current_time = datetime.now()
+    expired_time = current_time + timedelta(minutes=10)
+    qr_data = '|'.join([
+        str(account.id),
+        latitude,
+        longitude,
+        expired_time.strftime('%H:%M:%S'),
+        expired_time.strftime('%d/%m/%Y'),
+        "",
+        account.personal_info.th_title,
+        account.personal_info.th_firstname + ' ' + account.personal_info.th_lastname,
+        "",
+        account.personal_info.en_title,
+        account.personal_info.en_firstname + ' ' + account.personal_info.en_lastname,
+        u"คณะเทคนิคการแพทย์",
+        "FACULTY OF MEDICAL TECHNOLOGY",
+    ])
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    qr_img = qr.make_image()
+    qr_img.save('personal_qrcode.png')
+    import base64
+    with open("personal_qrcode.png", "rb") as img_file:
+        qrcode_base64 = base64.b64encode(img_file.read())
+    return jsonify(qrcode=qrcode_base64)
+
+
+@staff.route('/users/qrcode')
+@login_required
+def show_qrcode():
+    return render_template('staff/qrcode.html')
