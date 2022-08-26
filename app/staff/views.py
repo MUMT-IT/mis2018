@@ -1833,6 +1833,7 @@ def send_summary_data():
                     'id': rec.id,
                     'start': rec.start_datetime.astimezone(tz).isoformat(),
                     'end': end.isoformat() if end else None,
+                    'status': 'Done' if end else 'Not done',
                     'title': u'{}'.format(emp.th_firstname),
                     'backgroundColor': bg_color,
                     'borderColor': border_color,
@@ -1848,10 +1849,12 @@ def send_summary_data():
                         text_color = '#ffffff'
                         bg_color = '#2b8c36'
                         border_color = '#ffffff'
+                        leave_status = 'Approved'
                     else:
                         text_color = '#989898'
                         bg_color = '#d1e0e0'
                         border_color = '#ffffff'
+                        leave_status = 'Pending'
                     leaves.append({
                         'id': leave_req.id,
                         'start': leave_req.start_datetime.astimezone(tz).isoformat(),
@@ -1860,6 +1863,7 @@ def send_summary_data():
                         'backgroundColor': bg_color,
                         'borderColor': border_color,
                         'textColor': text_color,
+                        'status': leave_status,
                         'type': 'leave'
                     })
 
@@ -1871,10 +1875,12 @@ def send_summary_data():
                         text_color = '#989898'
                         bg_color = '#C5ECFB'
                         border_color = '#109AD3'
+                        wfh_status = 'Approved'
                     else:
                         text_color = '#989898'
                         bg_color = '#C5ECFB'
                         border_color = '#ffffff'
+                        wfh_status = 'Pending'
                     wfhs.append({
                         'id': wfh_req.id,
                         'start': wfh_req.start_datetime.astimezone(tz).isoformat(),
@@ -1883,6 +1889,7 @@ def send_summary_data():
                         'backgroundColor': bg_color,
                         'borderColor': border_color,
                         'textColor': text_color,
+                        'status': wfh_status,
                         'type': 'wfh'
                     })
         if tab in ['smr', 'all']:
