@@ -657,6 +657,8 @@ class StaffWorkLogin(db.Model):
     num_scans = db.Column('num_scans', db.Integer(), default=0)
     qrcode_in_exp_datetime = db.Column('qrcode_in_exp_datetime', db.DateTime(timezone=True))
     qrcode_out_exp_datetime = db.Column('qrcode_out_exp_datetime', db.DateTime(timezone=True))
+    lat = db.Column('lat', db.Numeric())
+    long = db.Column('long', db.Numeric())
 
     @staticmethod
     def generate_date_id(date):
