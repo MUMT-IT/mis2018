@@ -2554,6 +2554,8 @@ def staff_edit_info(staff_id):
             db.session.add(createstaff)
         start_d = form.get('employed_date')
         start_date = datetime.strptime(start_d, '%d/%m/%Y') if start_d else None
+        staff.th_title = form.get('th_title')
+        staff.en_title = form.get('en_title')
         staff.en_firstname = form.get('en_firstname')
         staff.en_lastname = form.get('en_lastname')
         staff.th_firstname = form.get('th_firstname')
