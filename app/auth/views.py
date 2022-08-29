@@ -265,6 +265,7 @@ def unlink_line_account():
         current_user.line_id = ''
         db.session.add(current_user)
         db.session.commit()
+        del session['line_profile']
         flash(u'ระบบได้ทำการยกเลิกการเชื่อมบัญชีไลน์ของคุณแล้ว', 'success')
         return redirect(url_for('auth.account'))
     else:
