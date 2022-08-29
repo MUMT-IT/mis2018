@@ -1679,6 +1679,7 @@ def login_scan():
 
 @staff.route('/login-activity-scan/<int:seminar_id>', methods=['GET', 'POST'])
 @csrf.exempt
+@hr_permission.require()
 @login_required
 def checkin_activity(seminar_id):
     if request.method == 'POST':
@@ -2207,6 +2208,7 @@ def seminar_add_approval(attend_id):
 
 
 @staff.route('/seminar/create', methods=['GET', 'POST'])
+@hr_permission.require()
 @login_required
 def create_seminar():
     if request.method == 'POST':
@@ -2230,12 +2232,16 @@ def create_seminar():
             db.session.add(seminar)
             db.session.commit()
             flash(u'เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
-            return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar.id))
+            if hr_permission.can():
+                return redirect(url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id))
+            else:
+                return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar.id))
     return render_template('staff/seminar_create_event.html')
 
 
-@staff.route('/seminar/add-attend/for-hr/<int:seminar_id>', methods=['GET', 'POST'])
+@staff.route('/seminar/add-attend/for-hr/<int:seminar_id>')
 @login_required
+@hr_permission.require()
 def seminar_attend_info_for_hr(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
     attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
