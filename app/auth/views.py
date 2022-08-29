@@ -258,3 +258,15 @@ def link_line_account():
         return redirect(url_for('auth.login', linking_line='yes', next=request.url))
 
 
+@auth.route('/line/account/unlink')
+@login_required
+def unlink_line_account():
+    if current_user.line_id:
+        current_user.line_id = ''
+        db.session.add(current_user)
+        db.session.commit()
+        flash(u'ระบบได้ทำการยกเลิกการเชื่อมบัญชีไลน์ของคุณแล้ว', 'success')
+        return redirect(url_for('auth.account'))
+    else:
+        flash(u'บัญชีของท่านไม่ได้เชื่อมต่อกับไลน์', 'warning')
+        return redirect(url_for('auth.account'))

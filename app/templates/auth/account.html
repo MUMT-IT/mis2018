@@ -8,7 +8,7 @@
             <div class="has-text-centered">
                 {% include "messages.html" %}
                 <h2 class="title">ข้อมูลบัญชีของคุณ</h2>
-                {% if line_profile %}
+                {% if current_user.line_id %}
                 <figure class="image is-128x128 is-inline-block">
                     <img class="is-rounded" src="{{ line_profile['pictureUrl'] }}">
                 </figure>
@@ -27,6 +27,15 @@
                         <i class="fas fa-quote-right"></i>
                     </span>
                 </p>
+                <a class="button is-success"
+                   href="{{ url_for('auth.unlink_line_account') }}">
+                <span class="icon">
+                    <i class="fab fa-line fa-2x"></i>
+                </span>
+                    <span>
+                    ยกเลิกการเชื่อมต่อบัญชี Line App
+                </span>
+                </a>
                 {% else %}
                 <a class="button is-success"
                    href="{{ url_for('auth.link_line_account') }}">
@@ -34,7 +43,7 @@
                         <i class="fab fa-line fa-2x"></i>
                     </span>
                     <span>
-                        เชื่อมต่อบัญชี Line
+                        เชื่อมต่อบัญชี Line App
                     </span>
                 </a>
                 {% endif %}
