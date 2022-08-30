@@ -1522,21 +1522,31 @@ def add_many_employees(orgid):
                     lastname = None
                 if isna(firstname) and isna(lastname):
                     continue
-                department= ComHealthDepartment.query.filter_by(parent_id=orgid,name=department_name).first()
-                if not department:
-                    department = ComHealthDepartment(parent_id=orgid,name=department_name)
-                    division = ComHealthDivision(parent=department, name=division_name)
-                    db.session.add(department)
-                    db.session.add(division)
-                else:
-                    division = ComHealthDepartment.query.filter_by(parent=department, name=division_name).first()
-                    if not division:
-                        division = ComHealthDivision(parent_id=department.id,name=division_name)
+                if not isna(department_name):
+                    department= ComHealthDepartment.query.filter_by(parent_id=orgid,name=department_name).first()
+                    if not department:
+                        department = ComHealthDepartment(parent_id=orgid,name=department_name)
+                        division = ComHealthDivision(parent=department, name=division_name)
+                        db.session.add(department)
                         db.session.add(division)
-                emptype = ComHealthCustomerEmploymentType.query.filter_by(name=emptype_name).first()
-                if not emptype:
-                    emptype = ComHealthCustomerEmploymentType(name=emptype_name)
-                    db.session.add(emptype)
+                    else:
+                        if not isna(division_name):
+                            division = ComHealthDepartment.query.filter_by(parent=department, name=division_name).first()
+                            if not division:
+                                division = ComHealthDivision(parent_id=department.id,name=division_name)
+                                db.session.add(division)
+                        else:
+                            division = None
+                else:
+                    department = None
+                    division = None
+                if not isna(emptype_name):
+                    emptype = ComHealthCustomerEmploymentType.query.filter_by(name=emptype_name).first()
+                    if not emptype:
+                        emptype = ComHealthCustomerEmploymentType(name=emptype_name)
+                        db.session.add(emptype)
+                else:
+                    emptype = None
                 try:
                     day, month, year = map(int, dob.split('/'))
                 except Exception as e:
