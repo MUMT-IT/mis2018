@@ -35,15 +35,18 @@ def landing():
 
 @receipt_printing.route('/receipt/create', methods=['POST', 'GET'])
 def create_receipt():
-    receipt_detail = ElectronicReceiptDetail.query.first()
-    form = ReceiptDetailForm(obj=receipt_detail)
+    form = ReceiptDetailForm()
     cashiers = ElectronicReceiptCashier.query.all()
     cur_year = datetime.today().date().year + 543
-    receipt_ids = ComHealthReceiptID.query.filter_by(buddhist_year=cur_year).filter_by(code='MTG')
+    receipt_book = ComHealthReceiptID.query.filter_by(buddhist_year=cur_year, code='MTG').first()
 
     if form.validate_on_submit():
-        receipt_detail.created_datetime = datetime.now(tz=bangkok)
-        form.populate_obj(receipt_detail)
+        receipt_detail = ElectronicReceiptDetail()
+        # receipt_detail.created_datetime = datetime.now(tz=bangkok)
+        form.populate_obj(receipt_detail)  #insert data from Form to Model
+        receipt_detail.number = receipt_book.next
+        receipt_book.count += 1
+        receipt_detail.book_number = receipt_book.book_number
         db.session.add(receipt_detail)
         db.session.commit()
         flash(u'บันทึกการสร้างใบเสร็จรับเงินสำเร็จ.', 'success')
@@ -51,8 +54,8 @@ def create_receipt():
     # Check Error
     else:
         for er in form.errors:
-            flash(er, 'danger')
-    return render_template('receipt_printing/new_receipt.html', form=form, cashiers=cashiers, receipt_ids=receipt_ids)
+            flash("{}:{}".format(er, form.errors[er]), 'danger')
+    return render_template('receipt_printing/new_receipt.html', form=form, cashiers=cashiers)
 
 
 @receipt_printing.route('/list/all', methods=['GET'])
