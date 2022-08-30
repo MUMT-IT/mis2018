@@ -1,179 +1,175 @@
 {% extends "base.html" %}
 {% block page_content %}
-<section class="section">
-    <div class="container">
-        <div class="columns">
-            <div class="column box is-half is-offset-one-quarter">
-                {% include "messages.html" %}
-                <div class="has-text-centered">
-                    <h2 class="title is-size-2">ใบเสร็จรับเงิน</h2>
-                    <h3 class="title is-size-3"></h3>
-                    <h1 class="help-inline">กรุณาตรวจสอบรายละเอียดเพื่อการออกใบเสร็จรับเงิน</h1>
-                </div>
-                <form method="post">
-                    {{ form.hidden_tag() }}
-                    <div class="field-body">
-                        {% for rid in receipt_ids %}
-                        <div class="field">
-                            <label class="label">หมายเลขใบเสร็จเริ่มต้น</label>
-                            <option value="{{rid.id}}"
-                                {% if rid.id == session.get('receipt_code_id') %}
-                                    selected
-                                {% endif %}>{{ rid.next }}
-                            </option>
-                        </div>
-                        <div class="field">
-                            <label class="label">เล่มที่</label>
-                            <div class="control">
-                                {{ rid.book_number }}
-                            </div>
-                        </div>
-                    {% endfor %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column box is-half is-offset-one-quarter">
+                    {% include "messages.html" %}
+                    <div class="has-text-centered">
+                        <h2 class="title is-size-2">ใบเสร็จรับเงิน</h2>
+                        <h3 class="title is-size-3"></h3>
+                        <h1 class="help-inline">กรุณาตรวจสอบรายละเอียดเพื่อการออกใบเสร็จรับเงิน</h1>
                     </div>
-                    {% for i in form.items %}
-                    <div class="field">
-                        <label class="label">รายการ</label>
-                        <div class="control">
-                            {{ i.item(class="input") }}
-                        </div>
-                    </div>
-                    <div class="field-body">
-                        <div class="field">
-                            <label class="label">ราคา</label>
-                            <div class="control">
-                                {{ i.price(class="input") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">จำนวน</label>
-                            <div class="control">
-                                {{ i.quantity(class="input") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">หมายเหตุรายการ</label>
-                        <div class="control">
-                            {{ i.comment(class="input") }}
-                        </div>
-                    </div>
-                {% endfor %}
-                    <div class="field">
-                        <label class="label">หมายเหตุรายละเอียด</label>
-                        <div class="control">
-                            {{ form.comment(class="input") }}
-                        </div>
-                    </div>
-                    <div class="field-body">
-                        <div class="field">
-                            <label class="label">จ่ายเงินเรียบร้อย
-                                <div class="radio">
-                                    {{ form.paid(class="radio") }}
-                                </div>
-                            </label>
-                        </div>
-                        <div class="field">
-                            <label class="label">ยกเลิก
-                                <div class="radio">
-                                    {{ form.cancelled(class="radio") }}
-                                </div>
-                            </label>
-                        </div>
-                        <div class="field">
-                            <label class="label">หมายเหตุการยกเลิก</label>
-                            <div class="control">
-                                {{ form.cancel_comment(class="input") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">ช่องทางการชำระเงิน</label>
-                        <div class="select is-fullwidth">
-                            {{ form.payment_method(class="input") }}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">จำนวนเงิน</label>
-                        <div class="control">
-                            {{ form.paid_amount(class="input") }}
-                        </div>
-                    </div>
-{#                    <div class="field">#}
-{#                        <label class="label">card number</label>#}
-{#                        <div class="control">#}
-{#                            {{ form.receipt.card_number(class="input") }}#}
-{#                        </div>#}
-{#                    </div>#}
-                    <div class="field">
-                        <label class="label">สถานที่ออกใบเสร็จ</label>
-                        <div class="select is-fullwidth">
-                            {{ form.issued_at(class="input") }}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">ออกใบเสร็จในนาม</label>
-                        <div class="control">
-                            {{ form.issued_for(class="input") }}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">ได้รับเงินจาก</label>
-                        <div class="control">
-                            {{ form.received_from(class="input") }}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">ที่อยู่ในใบเสร็จรับเงิน</label>
-                        <div class="control">
-                            {{ form.address(class="textarea") }}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">ผู้ออกใบเสร็จ</label>
-                            <div class="control">
-                                <div class="select">
-                                    <select name="issuer_id">
-                                        <option>โปรดระบุ</option>
-                                        {% for issuer in cashiers %}
-                                            <option value="{{ issuer.id }}"
-                                                    {% if session.get('issuer_id') == issuer.id %}
-                                                    selected
-                                                    {% endif %}
-                                            >{{ issuer.staff.personal_info }}</option>
-                                        {% endfor %}
-                                    </select>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        {% for i in form.items %}
+                            <div class="field">
+                                <label class="label">รายการ</label>
+                                <div class="control">
+                                    {{ i.item(class="input") }}
                                 </div>
                             </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">ผู้รับเงิน</label>
-                        <div class="control">
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">ราคา</label>
+                                    <div class="control">
+                                        {{ i.price(class="input", placeholder="฿") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">หมายเหตุรายการ</label>
+                                <div class="control">
+                                    {{ i.comment(class="input") }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <div class="field">
+                            <label class="label">รายการ</label>
+                            <div class="control">
+                                <input class="input" id="items-3-item" name="items-3-item" type="text" value="">
+                            </div>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">ราคา</label>
+                                <div class="control">
+                                    <input class="input" id="items-3-price" name="items-3-price" placeholder="฿"
+                                           step="any" type="number" value="">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">หมายเหตุรายการ</label>
+                            <div class="control">
+                                <textarea class="input" id="items-3-comment" name="items-3-comment"></textarea>
+                            </div>
+                        </div>
+
+                        <a href="javascript:void(0)" ; id="add-item" ; title="Add item field">
+                            <button class="button is-info add-item">เพิ่มรายการ</button>
+                        </a>
+
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">ช่องทางการชำระเงิน</label>
+                                <div class="select is-fullwidth">
+                                    {{ form.payment_method(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">จำนวนเงิน</label>
+                                <div class="control">
+                                    {{ form.paid_amount(class="input") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">เลขบัตรเครดิต</label>
+                            <div class="control">
+                                {{ form.card_number(class="input", id="card_no") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">เช็คเลขที่</label>
+                            <div class="control">
+                                {{ form.cheque_number(class="input", id="cheque_no") }}
+                            </div>
+                        </div>
+                        {#                    <div class="field">#}
+                        {#                        <label class="label">ช่องทางการชำระเงินอื่นๆ</label>#}
+                        {#                        <div class="control">#}
+                        {#                            {{ form.other_payment_method(class="input") }}#}
+                        {#                        </div>#}
+                        {#                    </div>#}
+                        <div class="field">
+                            <label class="label">ได้รับเงินจาก</label>
+                            <div class="control">
+                                {{ form.received_from(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">หมายเหตุรายละเอียด</label>
+                            <div class="control">
+                                {{ form.comment(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">ที่อยู่ในใบเสร็จรับเงิน</label>
+                            <div class="control">
+                                {{ form.address(class="textarea") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">ผู้ออกใบเสร็จ</label>
                             <div class="select">
-                                <select name="cashier_id">
-                                    <option>โปรดระบุ</option>
-                                    {% for cashier in cashiers %}
-                                        <option value="{{ cashier.id }}"
-                                                {% if session.get('cashier_id') == cashier.id %}
-                                                selected
-                                                {% endif %}
-                                        >{{ cashier.staff.personal_info }}</option>
-                                    {% endfor %}
-                                </select>
+                                {{ form.issuer() }}
                             </div>
                         </div>
-                    </div>
-                    <div class="field is-grouped is-grouped-centered"><br><br>
-                        <div class="buttons">
-                            <button class="button is-success" type="submit" value="submit">Submit</button>
-                            <a href="{{ url_for('receipt_printing.landing') }}" class="button is-danger">Cancel</a>
+                        <div class="field">
+                            <label class="label">ผู้รับเงิน</label>
+                            <div class="select">
+                                {{ form.cashier() }}
+                            </div>
                         </div>
-                    </div>
-                </form>
+
+                        <div class="field is-grouped is-grouped-centered"><br><br>
+                            <div class="buttons">
+                                <button class="button is-success" type="submit" value="submit">Submit</button>
+                                <a href="{{ url_for('receipt_printing.landing') }}" class="button is-danger">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    {#    <script>#}
+    {#        $(document).ready(function () {#}
+    {#            var max_input_fields = 10;#}
+    {#            var add_input = $('.add-item');#}
+    {#            var input_ = $('.input');#}
+    {#            var new_input = '<div><input type="text" name="field[]" value=""/><a href="javascript:void(0);" ' +#}
+    {#                'class="remove-input" title="Remove input"></a></div>';#}
+    {#            var add_input_count = 1;#}
+    {#            $(add_input).click(function () {#}
+    {#                if (add_input_count < max_input_fields) {#}
+    {#                    add_input_count++;#}
+    {#                    $(input_).append(new_input);#}
+    {#                }#}
+    {#            });#}
+    {#            $(input_).on('click', '.remove-input', function (e) {#}
+    {#                e.preventDefault();#}
+    {#                $(this).parent('div').remove();#}
+    {#                add_input_count--;#}
+    {#            });#}
+    {#        });#}
+    {#    </script>#}
+    {#    <script>#}
+    {#        $(document).ready(()=>{#}
+    {#            $('#payment_method').change(e=>{#}
+    {#                if ($('#payment_method').val() === null) {#}
+    {#                $('#card_no').hide()#}
+    {#            } else {#}
+    {#                    $('#card_no').show()#}
+    {#                }#}
+    {#            })#}
+    {#            if ($('#payment_method').val() === null) {#}
+    {#                $('#card_no').show()#}
+    {#            }#}
+    {#        })#}
+    {#    </script>#}
 {% endblock %}
