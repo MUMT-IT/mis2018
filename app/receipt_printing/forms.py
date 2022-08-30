@@ -2,7 +2,7 @@
 
 from flask_wtf import FlaskForm
 from wtforms import FormField, FieldList
-from wtforms_alchemy import model_form_factory
+from wtforms_alchemy import model_form_factory, QuerySelectField
 
 from app.main import db
 from app.receipt_printing.models import *
@@ -18,16 +18,20 @@ class ModelForm(BaseModelForm):
 
 class ReceiptListForm(ModelForm):
     class Meta:
-        model = ElectronicReceiptList
+        model = ElectronicReceiptItem
 
 
 class ReceiptDetailForm(ModelForm):
     class Meta:
         model = ElectronicReceiptDetail
-        exclude = ['created_datetime']
+        only = ['number', 'copy_number', 'book_number', 'comment', 'paid', 'cancelled', 'cancel_comment',
+                'payment_method', 'paid_amount', 'card_number', 'cheque_number', 'address', 'received_from']
 
-    items = FieldList(FormField(ReceiptListForm, default=ElectronicReceiptList), min_entries=5)
-
+    items = FieldList(FormField(ReceiptListForm, default=ElectronicReceiptItem), min_entries=3)
+    issuer = QuerySelectField( query_factory=lambda: ElectronicReceiptCashier.query.all(),
+                                get_label='fullname', blank_text='Select..', allow_blank=True)
+    cashier = QuerySelectField(query_factory=lambda: ElectronicReceiptCashier.query.all(),
+                              get_label='fullname', blank_text='Select..', allow_blank=True)
 
 
 
