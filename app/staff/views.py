@@ -2263,8 +2263,6 @@ def seminar_add_approval(attend_id):
     for attend in attend_query:
         if not attend.staff_account_id==current_user.id:
             staff_attend_list.append(attend)
-        #if not attend.seminar_approval_attendee:
-
     if request.method == 'POST':
         form = request.form
         update_d = form.get('update_at')
@@ -2272,27 +2270,35 @@ def seminar_add_approval(attend_id):
         update_dt = '{} {}'.format(update_d, update_t)
         updated_at = datetime.strptime(update_dt, '%d/%m/%Y %H:%M')
         approval = StaffSeminarApproval(
-            attend=[StaffSeminarAttend.query.get(int(attend_id)) for attend_id in form.getlist("attends")],
-            seminar_attend_id=attend.seminar_id,
+            seminar_attend=attend,
             updated_at=tz.localize(updated_at),
-            approval_comment=form.get('other_approval'),
             recorded_account_id=current_user.id,
             final_approver_account_id=form.get('approver_id')
         )
         if form.get('approval') is False:
             approval.is_approved = False
+        if form.get('other_approval'):
+            approval.approval_comment=form.get('other_approval')
         db.session.add(approval)
         db.session.commit()
         attends = StaffSeminarAttend.query.get(attend_id)
-        attends.registration_fee=form.get('registration_fee'),
-        attends.budget_type=form.get('budget_type'),
-        attends.budget=form.get('budget'),
-        attends.accommodation_cost=form.get('accommodation_cost'),
-        attends.fuel_cost=form.get('fuel_cost'),
-        attends.taxi_cost=form.get('taxi_cost'),
-        attends.train_ticket_cost=form.get('train_ticket_cost'),
-        attends.flight_ticket_cost=form.get('flight_ticket_cost'),
-        attends.transaction_fee=form.get('transaction_fee'),
+        if form.get('document_id'):
+            document_id = form.get('document_id')
+            document_no = form.get('document_no')
+        else:
+            document_id = "-"
+            document_no = "-"
+        document = u'อว.{}/{}'.format(document_id, document_no)
+        attends.document_no=document
+        attends.registration_fee=form.get('registration_fee')
+        attends.budget_type=form.get('budget_type')
+        attends.budget=form.get('budget')
+        attends.accommodation_cost=form.get('accommodation_cost')
+        attends.fuel_cost=form.get('fuel_cost')
+        attends.taxi_cost=form.get('taxi_cost')
+        attends.train_ticket_cost=form.get('train_ticket_cost')
+        attends.flight_ticket_cost=form.get('flight_ticket_cost')
+        attends.transaction_fee=form.get('transaction_fee')
         db.session.add(attend)
         db.session.commit()
         # for attend_id in form.getlist("attends"):
