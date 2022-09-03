@@ -1687,7 +1687,9 @@ def checkin_activity(seminar_id):
         th_name = req_data['data'].get('thName')
         en_name = req_data['data'].get('enName')
         if th_name:
-            fname, lname = th_name.split(' ')
+            name = th_name.split(' ')
+            # some lastnames contain spaces
+            fname, lname = name[0], ' '.join(name[1:])
             lname = lname.lstrip()
             person = StaffPersonalInfo.query \
                 .filter_by(th_firstname=fname, th_lastname=lname).first()
@@ -1714,7 +1716,7 @@ def checkin_activity(seminar_id):
             db.session.commit()
             return jsonify({'message': 'success', 'name': person.fullname, 'time': now.isoformat()})
         else:
-            return jsonify({'message': 'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
+            return jsonify({'message': u'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
     return render_template('staff/checkin_activity.html', seminar_id=seminar_id)
 
 
