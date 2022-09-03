@@ -1682,6 +1682,7 @@ def login_scan():
 @hr_permission.require()
 @login_required
 def checkin_activity(seminar_id):
+    seminar = StaffSeminar.query.get(seminar_id)
     if request.method == 'POST':
         req_data = request.get_json()
         th_name = req_data['data'].get('thName')
@@ -1717,7 +1718,7 @@ def checkin_activity(seminar_id):
             return jsonify({'message': 'success', 'name': person.fullname, 'time': now.isoformat()})
         else:
             return jsonify({'message': u'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
-    return render_template('staff/checkin_activity.html', seminar_id=seminar_id)
+    return render_template('staff/checkin_activity.html', seminar=seminar)
 
 
 class LoginDataUploadView(BaseView):
