@@ -25,7 +25,7 @@ class ReceiptDetailForm(ModelForm):
     class Meta:
         model = ElectronicReceiptDetail
         only = ['number', 'copy_number', 'book_number', 'comment', 'paid', 'cancelled', 'cancel_comment',
-                'payment_method', 'paid_amount', 'card_number', 'cheque_number', 'address', 'received_from']
+                'payment_method', 'paid_amount', 'card_number', 'cheque_number', 'other_payment_method', 'address', 'received_from']
 
     items = FieldList(FormField(ReceiptListForm, default=ElectronicReceiptItem), min_entries=3)
     issuer = QuerySelectField( query_factory=lambda: ElectronicReceiptCashier.query.all(),
