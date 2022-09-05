@@ -75,23 +75,23 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">เลขบัตรเครดิต</label>
+                            <label class="label">{{ form.card_number.label }}</label>
                             <div class="control">
-                                {{ form.card_number(class="input", id="card_no") }}
+                                {{ form.card_number(class="input", id="card-no") }}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">เช็คเลขที่</label>
                             <div class="control">
-                                {{ form.cheque_number(class="input", id="cheque_no") }}
+                                {{ form.cheque_number(class="input", id="cheque-no") }}
                             </div>
                         </div>
-                        {#                    <div class="field">#}
-                        {#                        <label class="label">ช่องทางการชำระเงินอื่นๆ</label>#}
-                        {#                        <div class="control">#}
-                        {#                            {{ form.other_payment_method(class="input") }}#}
-                        {#                        </div>#}
-                        {#                    </div>#}
+                        <div class="field">
+                            <label class="label">ช่องทางการชำระเงินอื่นๆ</label>
+                            <div class="control">
+                                {{ form.other_payment_method(class="input") }}
+                            </div>
+                        </div>
                         <div class="field">
                             <label class="label">ได้รับเงินจาก</label>
                             <div class="control">
@@ -158,18 +158,21 @@
     {#            });#}
     {#        });#}
     {#    </script>#}
-    {#    <script>#}
-    {#        $(document).ready(()=>{#}
-    {#            $('#payment_method').change(e=>{#}
-    {#                if ($('#payment_method').val() === null) {#}
-    {#                $('#card_no').hide()#}
-    {#            } else {#}
-    {#                    $('#card_no').show()#}
-    {#                }#}
-    {#            })#}
-    {#            if ($('#payment_method').val() === null) {#}
-    {#                $('#card_no').show()#}
-    {#            }#}
-    {#        })#}
-    {#    </script>#}
+        <script>
+            $(document).ready(()=>{
+                $('#card-no').hide()
+                $('#cheque-no').hide()
+                $('#other_payment_method').hide()
+                $('#payment_method').change(e=>{
+                    if ($('#payment_method').val() !== null) {
+                    $('#card-no').show()
+                } else {
+                        $('#card-no').hide()
+                    }
+                })
+                if ($('#payment_method').val() === null) {
+                    $('#card-no').show()
+                }
+            })
+        </script>
 {% endblock %}
