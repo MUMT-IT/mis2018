@@ -23,6 +23,14 @@
                         </tr>
                         <tr>
                             <td>
+                                <label class="label">หน่วยงานที่จัด</label>
+                            </td>
+                            <td>
+                                {{ seminar.organize_by }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
                                 <label class="label">วันที่</label>
                             </td>
                             <td>
@@ -60,20 +68,40 @@
                         {% endif %}
                     </table>
                 </div>
+                <div class="columns">
+                    <div class="column">
+                        <div class="notification is-info is-light">
+                    <span>
+                        หากต้องการยกเลิกการเข้าร่วม กรุณาติดต่อหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่
+                    </span>
+                        </div>
+                    </div>
+                </div>
                 <div class="box">
+                    {% if not current_user_attended %}
+                    <div class="columns">
+                        <div class="column has-text-centered">
+                            <a href="{{ url_for('staff.seminar_create_record', seminar_id=seminar.id) }}"
+                               class="button is-light is-success">
+                                <span class="icon">
+                                    <i class="fas fa-user-plus"></i>
+                                </span>
+                                <span>เข้าร่วมกิจกรรมนี้</span>
+                            </a>
+                        </div>
+                    </div>
+                    {% endif %}
                     <table class="table is-fullwidth">
                         <thead>
                             <th>ชื่อ</th>
                             <th>ประเภทการเข้าร่วม</th>
                             <th>วันและเวลา</th>
-                            <th>Actions</th>
                         </thead>
                         <tbody>
                             {% for attend in attends %}
-                            {% for participant in attend.staff  %}
                             <tr>
                                 <td>
-                                    {{ participant.personal_info.fullname }}
+                                    {{ attend.staff.personal_info }}
                                 </td>
                                 <td>
                                     {{ attend.role }}
@@ -84,43 +112,16 @@
                                 <td>
                                     {{ attend.start_datetime|localdatetime }} - {{ attend.end_datetime|localdatetime }}
                                 </td>
-                                <td>
-                                    <a class="button is-danger is-light"href="{{ url_for('staff.delete_participant',
-                                    attend_id=attend.id, participant_id=participant.id) }}">
-                                        <span class="icon">
-                                            <i class="fas fa-user-minus"></i>
-                                        </span>
-                                    </a>
-                                </td>
                             </tr>
-                            {% endfor %}
                             {% endfor %}
                         </tbody>
                     </table>
-                    <div class="columns">
-                        <div class="column has-text-centered">
-                            <a href="{{ url_for('staff.seminar_add_attendee', seminar_id=seminar.id) }}"
-                               class="button is-light is-success">
-                                <span class="icon">
-                                    <i class="fas fa-user-plus"></i>
-                                </span>
-                                <span>เพิ่มผู้เข้าร่วม</span>
-                            </a>
-                             <a href="{{ url_for('staff.checkin_activity', seminar_id=seminar.id) }}"
-                               class="button is-light is-info">
-                                <span class="icon">
-                                   <i class="fas fa-qrcode"></i>
-                                </span>
-                                <span>สแกนเข้าร่วม</span>
-                            </a>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
         <div class="columns">
             <div class="column">
-                <a href="{{ url_for('staff.seminar_records') }}" class="button is-rounded is-info is-light">
+                <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}" class="button is-rounded is-info is-light">
                     <span class="icon">
                         <i class="fas fa-arrow-left"></i>
                     </span>

@@ -1,15 +1,18 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" href="@sweetalert2/theme-bulma/bulma.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
 {% endblock %}
 
 {% block page_content %}
         <div class="container" id="app">
             <div class="notification is-light is-link">
-                <h1 class="title has-text-centered has-text-link">ระบบบันทึกเวลาทำงานของบุคลากร</h1>
-                <h1 class="subtitle has-text-centered">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
-                <h1 class="title has-text-centered" id="clock"></h1>
+                <h1 class="title has-text-centered has-text-link">กิจกรรม{{ seminar.topic }}</h1>
+                <h1 class="subtitle has-text-centered">
+                    {{ seminar.start_datetime|localdatetime }} - {{ seminar.end_datetime|localdatetime }}
+                </h1>
+                <h1 class="title is-size-4 has-text-centered">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
+                <h1 class="subtitle is-size-4 has-text-centered" id="clock"></h1>
             </div>
             <div class="columns">
                 <div class="column">
@@ -22,7 +25,7 @@
                 <div class="column is-one-third">
                     <div class="has-text-centered">
                         <span class="icon is-large">
-                            <i class="fa-solid fa-qrcode fa-4x"></i>
+                            <i class="fas fa-qrcode fa-4x"></i>
                         </span>
                     </div>
                     <h1 class="title is-size-4 has-text-centered has-text-link">
@@ -30,13 +33,13 @@
                     </h1>
                     <div class="content">
                         <ol>
-                            <li>เปิด QR Code จาก We Mahidol App</li>
+                            <li>เปิด QR Code จาก We Mahidol App หรือระบบ MUMT-MIS หรือจาก MUMT Connect</li>
                             <li>หัน QR Code เข้าหากล้องจนมีกรอบสีแดงปรากฎรอบ QR Code</li>
                             <li>รอข้อความแสดงการแสกนเสร็จเรียบร้อย</li>
                         </ol>
                     </div>
                     <p>
-                        <strong>หมายเหตุ</strong> ระบบจะบันทึกการแสกนครั้งแรกของวันเป็นเวลาเข้างานและการแสกนครั้งสุดท้ายของวันเป็นเวลาเลิกงาน หากแสกนซ้ำมากกว่าหนึ่งครั้ง ระบบจะบันทึกเฉพาะครั้งสุดท้าย
+                        <strong>หมายเหตุ</strong> ระบบจะบันทึกการแสกนครั้งแรกของวันเป็นเวลาเข้างานและการแสกนครั้งสุดท้ายเป็นเวลาออกจากงาน หากแสกนซ้ำมากกว่าหนึ่งครั้ง ระบบจะบันทึกเฉพาะครั้งสุดท้าย
                     </p>
                     <br>
                     <div class="notification is-danger is-light">
@@ -134,14 +137,14 @@
                     this.info.thAffil = result[11]
                     this.info.enAffil = result[12]
                     this.turnCameraOff()
-                    axios.post("{{ url_for('staff.checkin_activity', seminar_id=seminar_id) }}", {
+                    axios.post("{{ url_for('staff.checkin_activity', seminar_id=seminar.id) }}", {
                         data: this.info
                     }).then(async (resp)=>{
                         this.time = moment(resp.data.time).format('DD/MM/YYYY h:mm:ss')
                         this.staff = resp.data.name
                         this.numScans = resp.data.numScans
                         Swal.fire({
-                            title: 'สวัสดีคุณ ' + this.staff,
+                            title: 'สวัสดี ' + this.staff,
                             timer: 3000,
                             timerProgressBar: true,
                             icon: 'success',

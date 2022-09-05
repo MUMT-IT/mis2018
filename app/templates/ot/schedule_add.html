@@ -34,7 +34,7 @@
                         </div>
                         <table class="table is-fullwidth" v-if="compId !== null">
                             <tr>
-                                <td><% info.role %></td>
+                                <td>ตำแหน่ง: <% info.role %></td>
                                 <td><% info.announcement %></td>
                                 <td>ปฏิบัติงาน ณ: <% info.work_at_org %></td>
                                 <td>ปฏิบัติงานให้แก่: <% info.work_for_org %></td>
@@ -64,9 +64,7 @@
                                 </div>
                                 <div class="field-body has-text-centered">
                                     <div class="field">
-                                        <div class="select">
-                                            {{ form.start_datetime(class="input") }}
-                                        </div>
+                                            {{ form.start_date(class="input", readonly=True) }}
                                     </div>
                                 </div>
                             </div>
@@ -126,7 +124,7 @@
                                 <input type="submit" value="submit" class="button is-primary"/>
                             </div>
                             <div class="control">
-                                <a href="{{ url_for('ot.schedule') }}" class="button is-danger">Cancel</a>
+                                <a href="{{ url_for('ot.document_approvals_list_for_create_ot') }}" class="button is-danger">Cancel</a>
                             </div>
                         </div>
                     </form>
@@ -164,7 +162,7 @@
     $(document).ready(function(){
         $('#staffTable').DataTable();
     });
-    $('input[name="start_datetime"]').daterangepicker({
+    $('input[name="start_date"]').daterangepicker({
         singleDatePicker: true,
         timePicker: false,
         autoUpdateInput: false,

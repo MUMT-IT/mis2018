@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block head %}
+{{ super() }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
+
+{% block page_content %}
+    <section class="section">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+            <ul>
+                <li><a href="{{ url_for('staff.edit_organizations') }}">หน่วยงานทั้งหมด</a></li>
+                <li class="is-active"><a href="#" aria-current="page">รายชื่อ</a></li>
+            </ul>
+        </nav>
+        {% include "messages.html" %}
+        <h1 class="title has-text-centered">รายชื่อบุคลากรในสังกัด</h1>
+        <h1 class="subtitle has-text-centered">{{ org.name }}</h1>
+        <h1 class="title is-size-6 has-text-info has-text-centered">
+            หัวหน้าส่วนงาน {{ org_head_name or '-' }}
+            <a href="{{ url_for('staff.edit_org_head_email', org_id=org.id) }}">
+                <span class="icon" id="pencil">
+                    <i class="fas fa-pencil-alt"></i>
+                </span>
+            </a>
+        </h1>
+        <div class="columns">
+            <div class="column">
+                <form method="post">
+                    <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">
+                                เพิ่มบุคลากรเข้าสังกัด
+                            </label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field is-grouped">
+                                <div class="control">
+                                    <select class="js-example-basic-multiple" name="employees" multiple="multiple">
+                                    </select>
+                                </div>
+                                <div class="control">
+                                    <input type="submit" value="Add" class="button is-success">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <span class="icon">
+                    <i class="fas fa-crown has-text-warning"></i>
+                </span>
+                <span>คลิกที่ไอคอนหน้าชื่อบุคลากรเพื่อเปลี่ยนหัวหน้าหน่วย/ส่วนงาน หรือคลิกที่ไอคอนปากกาด้านบน</span>
+                <table class="table is-fullwidth is-striped" id="employeeTable">
+                    <thead>
+                    <th></th>
+                    <th>ชื่อ นามสกุล</th>
+                    <th>บัญชี/อีเมล</th>
+                    <th>ประเภทการจ้างงาน</th>
+                    <th>วันที่บรรจุ</th>
+                    <th>สายงาน</th>
+                    </thead>
+                    <tbody>
+                    {% for staff in org.active_staff %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('staff.make_org_head', org_id=org.id, email=staff.staff_account.email) }}">
+                                    <span class="icon">
+                                    {% if staff.staff_account.email == org.head %}
+                                        <i class="fas fa-crown has-text-warning"></i>
+                                    {% else %}
+                                        <i class="fas fa-crown has-text-light"></i>
+                                    {% endif %}
+                                    </span>
+                                </a>
+                            </td>
+                        <td>{{ staff.fullname }}</td>
+                        <td>{{ staff.staff_account.email }}</td>
+                        <td>{{ staff.employment }}</td>
+                        <td>{{ staff.employed_date }} {{ staff.get_employ_period() }}</td>
+                        <td>
+                            {% if staff.academic_staff == True %}
+                            วิชาการ
+                            {% else %}
+                            สนับสนุน
+                            {% endif %}
+                        </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+    $(document).ready(()=> {
+        $('#employeeTable').DataTable();
+        $('.js-example-basic-multiple').select2({
+            width: '400px',
+            ajax: {
+                url: "{{ url_for('staff.get_all_employees') }}",
+                dataType: "json"
+            }
+        });
+    });
+    </script>
+{% endblock %}

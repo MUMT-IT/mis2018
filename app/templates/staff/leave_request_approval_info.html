@@ -3,9 +3,7 @@
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
-        {% for msg in get_flashed_messages() %}
-        <p class="notification is-warning">{{ msg }}</p>
-        {% endfor %}
+        {% include "messages.html" %}
         {% if current_user.line_id %}
         <div class="has-text-right">
             <input type="hidden" name="lineNotified" v-model="lineNotified">
@@ -38,7 +36,7 @@
                             {{ leave_req.created_at|localdatetime}}
                         </td>
                         <td>
-                            [{{ leave_req.quota.leave_type}}] ตั้งแต่ {{ leave_req.start_datetime|localdatetime }} ({{
+                            [{{ leave_req.quota.leave_type}}] ตั้งแต่ {{ leave_req.start_datetime|localdatetime }} - {{ leave_req.end_datetime|localdatetime }} ({{
                             leave_req.total_leave_days }} วัน)
                         </td>
                         {% if leave_req.approvals|length  %}
@@ -64,13 +62,15 @@
                         </td>
                         {% endif %}
                         <td>
-                            <a href="{{ url_for('staff.pending_leave_approval', req_id=leave_req.id) }}"
-                               class="button is-info is-rounded is-light">รายละเอียด</a>
-                            <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id, approved='yes') }}"
-                               class="button is-rounded is-success">อนุมัติ</a>
+                            <div class="buttons">
+                                <a href="{{ url_for('staff.pending_leave_approval', req_id=leave_req.id) }}"
+                                   class="button is-small is-info is-rounded is-light">รายละเอียด</a>
+                                <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id, approved='yes') }}"
+                                   class="button is-small is-rounded is-success">อนุมัติ</a>
 
-                            <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id, approved='no') }}"
-                               class="button is-rounded is-danger">ไม่อนุมัติ</a>
+                                <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id, approved='no') }}"
+                                   class="button is-small is-rounded is-danger">ไม่อนุมัติ</a>
+                            </div>
                         </td>
                     </tr>
                     {% endif %}

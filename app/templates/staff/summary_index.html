@@ -5,6 +5,7 @@
 {{ super() }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
 {% endblock %}
 
 {% block page_content %}
@@ -92,8 +93,10 @@
 {% block scripts %}
 {{ super() }}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
+<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(function() {
+        moment.updateLocale('th');
         $('#calendar').fullCalendar({
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             header: {
@@ -103,14 +106,26 @@
             displayEventEnd: true,
             timeFormat: 'H(:mm)',
             eventClick: function(calEvent, jsEvent, view) {
+                if(calEvent.type === 'login') {
+                    let status = calEvent.status === 'Done' ? 'success': 'warning'
+                    if (calEvent.end === null) {
+                        end = 'not logged out'
+                    } else {
+                        end = moment(calEvent.end).calendar()
+                    }
+                    Swal.fire(calEvent.title, moment(calEvent.start).format('lll') + ' - ' + end, status)
+                }
                 if(calEvent.type === 'leave') {
-                    window.location = '/staff/leave/requests/approval/pending/' + calEvent.id;
+                    let status = calEvent.status === 'Approved' ? 'success': 'warning'
+                    Swal.fire(calEvent.title, moment(calEvent.start).format('lll') + ' - ' + moment(calEvent.end).format('lll'), status)
                 }
                 if(calEvent.type === 'wfh') {
-                    window.location = '/staff/wfh/requests/approval/pending/' + calEvent.id;
+                    let status = calEvent.status === 'Approved' ? 'success': 'warning'
+                    Swal.fire(calEvent.title, moment(calEvent.start).format('lll') + ' - ' + moment(calEvent.end).format('lll'), status)
                 }
                 if(calEvent.type === 'smr') {
-                    window.location = '/staff/seminar/info/' + calEvent.id + '/staff/' + calEvent.staff_id ;
+                    let status = calEvent.status === 'Approved' ? 'success': 'warning'
+                    Swal.fire(calEvent.title, moment(calEvent.start).format('lll') + ' - ' + moment(calEvent.end).format('lll'), status)
                 }
             }
         })

@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">รายการประชุม อบรม สัมมนารอการอนุมัติ</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="seminarTable">
+                    <thead>
+                    <th>ประเภทกิจกรรม</th>
+                    <th>ชื่อบุคลากร</th>
+                    <th>ชื่อกิจกรรม</th>
+                    <th>วันที่เริ่มต้น</th>
+                    <th>วันที่สิ้นสุด</th>
+                    <th>ชื่อหนังสือ</th>
+                    </thead>
+                    <tbody>
+                    {% for records in seminar_records %}
+                    <tr>
+                        <td>
+                            {{ records.seminar.topic_type }}
+                        </td>
+                        <td>
+                            {{ records.staff.personal_info }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('staff.seminar_add_approval', attend_id=records.id) }}">
+                                {{ records.document_title }}
+                                <span class="icon">
+                                    <i class="fas fa-plus"></i>
+                                </span>
+                            </a>
+                        </td>
+                        <td>
+                            {{ records.start_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            {{ records.end_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            {{ records.seminar.topic }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">รายการประชุม อบรม สัมมนาที่ได้รับการอนุมัติทั้งหมด</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="seminarApprovedTable">
+                    <thead>
+                    <th>ประเภทกิจกรรม</th>
+                    <th>ชื่อบุคลากร</th>
+                    <th>ชื่อหนังสือ</th>
+                    <th>วันที่เริ่มต้น</th>
+                    <th>วันที่สิ้นสุด</th>
+                    <th>ชื่อหนังสือ</th>
+                    </thead>
+                    <tbody>
+                    {% for records in seminar_approval_records %}
+                    <tr>
+                        <td>
+                            {{ records.seminar.topic_type }}
+                        </td>
+                        <td>
+                            {{ records.staff.personal_info }}
+                        </td>
+                        <td>
+                            <a href="">
+                                {{ records.document_title }}
+                                <span class="icon">
+                                    <i class="fas fa-plus"></i>
+                                </span>
+                            </a>
+                        </td>
+                        <td>
+                            {{ records.start_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            {{ records.end_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            {{ records.seminar.topic }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('staff.seminar') }}" class="button is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับหน้าสัมมนา</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#seminarTable').DataTable();
+        $('#seminarApprovedTable').DataTable();
+    });
+</script>
+{% endblock %}

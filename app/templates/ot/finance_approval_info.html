@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link ref="//cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">รายละเอียดการขออนุมัติค่าล่วงเวลา</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <div class="box">
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">รอบที่</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ round.round_no }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field-label is-normal">
+                            <label class="label">ส่งเรื่องเมื่อ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ round.created_at | localdatetime }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">หน่วยงาน</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ round.created_by.personal_info.org }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field-label is-normal">
+                            <label class="label">ผู้ส่งเรื่อง</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ round.created_by.personal_info.fullname }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">อนุมัติรายการเมื่อ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ round.approval_at | localdatetime }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field-label is-normal">
+                            <label class="label">อนุมัติโดย</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ round.approval_by.personal_info.fullname }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% if round.verified_at %}
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <div class="box">
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">รับรองเมื่อ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ round.verified_at | localdatetime }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field-label is-normal">
+                            <label class="label">รับรองโดย</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ round.verified_by.personal_info.fullname }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <div class="box">
+                    <table id="otTable" class="table is-striped is-fullwidth">
+                        <thead>
+                        <th>
+                            วันที่ที่ปฏิบัติงาน
+                        </th>
+                        <th>
+                            ผู้ปฏิบัติงาน
+                        </th>
+                        <th>
+                            ตำแหน่ง
+                        </th>
+                        <th>
+                            ตำแหน่งย่อย(ถ้ามี)
+                        </th>
+                        <th>
+                            ปฏิบัติงาน ณ
+                        </th>
+                        <th>
+                            ปฏิบัติงานให้แก่ (หน่วยงาน)
+                        </th>
+                        <th>
+                            ทั้งหมด (ชั่วโมง)
+                        </th>
+                        <th>
+                            ได้ต่อหน่วย
+                        </th>
+                        <th>
+                            รวม (บาท)
+                        </th>
+                        </thead>
+                        <tbody>
+                        {% for record in round.ot_records %}
+                        <tr>
+                            <td>
+                                {{ record.start_datetime.date() }}
+                                ({{ record.start_datetime.time() }}
+                                -
+                                {{ record.end_datetime.time() }})
+                            </td>
+                            <td>
+                                {{ record.staff.personal_info.fullname }}
+                            </td>
+                            <td>
+                                {{ record.compensation }}
+                            </td>
+                            <td>
+                                {{ record.sub_role }}
+                            </td>
+                            <td>
+                                {{ record.compensation.work_at_org }}
+                            </td>
+                            <td>
+                                {{ record.compensation.work_for_org }}
+                            </td>
+                            <td>
+                                {{ record.total_ot_hours() }}
+                                {% if record.compensation.is_count_in_mins %}
+                                นาที
+                                {% else %}
+                                ชั่วโมง
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if record.compensation.per_period %}
+                                {{ record.compensation.per_period }} บาท:ช่วง
+                                {% elif record.compensation.per_hour %}
+                                {{ record.compensation.per_hour }} บาท:ชั่วโมง
+                                {% else %}
+                                {{ record.compensation.per_day }} บาท:วัน
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ record.count_rate() }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% if not round.verified_at %}
+                <div class="field is-grouped is-grouped-centered">
+                    <div class="control">
+                        <a @click="confirmApproved({{ round.id }})" class="button is-primary">รับรอง</a>
+                    </div>
+                    <div class="control">
+                        <a href="{{ url_for('ot.approved_list_from_org_head') }}" class="button is-info">กลับ</a>
+                    </div>
+                </div>
+                {% else %}
+                <div class="column">
+                    <a class="button is-info is-light" href="{{ url_for('ot.approved_list_from_org_head') }}">
+                     <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready(function () {
+        $('#otTable').DataTable(
+            {
+                "pageLength": 20
+            }
+        );
+    });
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        methods: {
+            confirmApproved: function (round_id) {
+                console.log(round_id);
+                this.$buefy.dialog.confirm({
+                    title: 'Confirm to approve',
+                    message: 'แน่ใจหรือไม่ที่จะ<b>รับรอง</b>การเบิกนี้ หากอนุมัติแล้วจะไม่สามารถแก้ไขได้',
+                    confirmText: 'Confirm',
+                    type: 'is-warning',
+                    hasIcon: true,
+                    onConfirm: () => window.location.href = "/ot/finance/requests-pending-list/" + round_id + "/verify"
+                })
+            }
+        }
+    });
+</script>
+{% endblock %}
+
+
+

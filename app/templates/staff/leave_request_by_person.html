@@ -35,6 +35,9 @@
                     {% endfor %}
                     <th>รวม (วัน)</th>
                     <th>รออนุมัติ (วัน)</th>
+                    {% for leave_remain in leave_types_r %}
+                    <th>{{ leave_remain }}</th>
+                    {% endfor %}
                     </thead>
                     <tbody>
                     {% for record in leaves_list %}
@@ -54,6 +57,9 @@
                         <td>
                             {{ record["pending"] }}
                         </td>
+                        {% for leave_remain in leave_types_r %}
+                        <td>{{ record[leave_remain] }}</td>
+                        {% endfor %}
                     </tr>
                     {% endfor %}
                     </tbody>

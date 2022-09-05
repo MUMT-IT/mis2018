@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block page_content %}
+<section class="section" id="app">
+    {% include "messages.html" %}
+    <h1 class="title has-text-centered">QR Code</h1>
+    <div class="subtitle has-text-centered" v-if="expireDateTime !== null">
+        หมดอายุ <% moment(expireDateTime).format('lll') %>
+    </div>
+    <div class="columns">
+        <div class="column has-text-centered">
+            <div v-if="loading">
+                <span class="icon is-large" v-if="loading">
+                    <i class="fas fa-pulse fa-4x fa-spinner has-text-link"></i>
+                </span>
+                <br>
+                <br>
+                <span class="has-text-link">กรุณากดอนุญาตหากโปรแกรมขอสิทธิในการเข้าถึงข้อมูล GPS</span>
+            </div>
+            <figure class="image is-1by1" v-else>
+                <img :src="qrcodeUrl"/>
+            </figure>
+            <div class="has-text-danger">
+                <% message %>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data () {
+            return {
+                qrcode_base64: '',
+                expireDateTime: null,
+                lat: '',
+                long: '',
+                loading: true,
+                message: ''
+            }
+        },
+        computed: {
+            qrcodeUrl () {
+                return "data:image/png;base64, " + this.qrcode_base64
+            }
+        },
+        methods: {
+            get_qrcode_data () {
+                axios.get("{{ url_for('staff.create_qrcode', account_id=current_user.id) }}",
+                    { params: {'lat': this.lat, 'long': this.long}}).then((resp)=>{
+                    this.qrcode_base64 = resp.data.qrcode
+                    this.expireDateTime = resp.data.expDateTime
+                    this.loading = false
+                })
+            }
+        },
+        mounted () {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition((position)=>{
+                    this.lat = position.coords.latitude
+                    this.long = position.coords.longitude
+                    console.log(this.lat, this.long)
+                    this.get_qrcode_data()
+                },
+                (error)=>{
+                    alert('GPS failed')
+                    this.message = 'ไม่สามารถค้นหาตำแหน่งของคุณได้แต่คุณยังสามารถใช้ QR Code ในการแสกนได้'
+                    this.get_qrcode_data()
+                },
+                {timeout: 9000, enableHighAccuracy: true});
+            } else {
+                alert('Geolocation not supported.')
+                this.get_qrcode_data()
+            }
+        }
+    })
+</script>
+{% endblock %}

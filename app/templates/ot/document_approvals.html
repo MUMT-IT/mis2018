@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% include "nav.html" %}
 
 {% block head %}
 {{ super() }}
@@ -33,6 +34,9 @@
                     <thead>
                     <th>
                         เรื่อง
+                    </th>
+                    <th>
+                        ประกาศ
                     </th>
                     <th>
                         เพิ่มประกาศ
@@ -75,6 +79,11 @@
                             </a>
                         </td>
                         <td>
+                            {% for document in document.announce %}
+                            {{ document.topic }},
+                            {% endfor %}
+                        </td>
+                        <td>
                             <a href="{{ url_for('ot.document_approval_show_announcement', document_id=document.id) }}">
                                 <span class="icon">
                                         <i class="far fa-plus-square"></i>
@@ -103,9 +112,9 @@
                         </td>
                         <td>
                             {% if document.upload_file_url %}
-                                <a href="{{ upload_file_url }}">{{ document.file_name }}</a>
+                            <a href="{{ upload_file_url }}">{{ document.file_name }}</a>
                             {% else %}
-                                {{ document.title }}
+                            {{ document.title }}
                             {% endif %}
                         </td>
                     </tr>
