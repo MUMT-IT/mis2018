@@ -1,13 +1,4 @@
 {% extends "base.html" %}
-{% block head %}
-{{ super() }}
-<style>
-    div.dataTables_wrapper {
-        width: 1000px;
-        margin: 0 auto;
-    }
-</style>
-{% endblock %}
 {% block title %}Chemicals Database{% endblock %}
 {% include "chemdb/nav.html" %}
 {% block page_content %}
@@ -79,9 +70,8 @@
     <script>
         $(document).ready(function() {
             $('#table').DataTable({
-                "scrollY": 600,
                 "scrollX": true,
-                "pageLength": 50,
+                "pageLength": 10,
             });
         });
     </script>
