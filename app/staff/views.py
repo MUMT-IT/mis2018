@@ -1796,6 +1796,30 @@ class LoginDataUploadView(BaseView):
         return 'Done'
 
 
+@staff.route('/for-hr/seminar-report/<int:seminar_id>', methods=['GET'])
+@hr_permission.require()
+@login_required
+def seminar_report(seminar_id):
+    seminar = StaffSeminar.query.get(seminar_id)
+    return render_template('staff/seminar_report.html', seminar=seminar)
+
+
+@staff.route('/for-hr/<int:seminar_id>/attend/download', methods=['GET'])
+def attend_download(seminar_id):
+    records = []
+    attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
+    for attend in attends:
+        records.append({
+            u'ชื่อ-นามสกุล': u"{}".format(attend.staff.personal_info.fullname),
+            u'หน่วยงาน/ภาควิชา': u"{}".format(attend.staff.personal_info.org.name),
+            u'ประเภทการเข้าร่วม': u"{}".format(attend.role),
+            u'วัน-เวลา': u"{}".format(attend.start_datetime.astimezone(tz).isoformat()),
+        })
+    df = DataFrame(records)
+    df.to_excel('attend_summary.xlsx')
+    return send_from_directory(os.getcwd(), filename='attend_summary.xlsx')
+
+
 @staff.route('/api/summary')
 @login_required
 def send_summary_data():
