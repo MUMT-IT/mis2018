@@ -605,6 +605,9 @@ class StaffSeminarAttend(db.Model):
                                 foreign_keys=[staff_account_id])
     seminar = db.relationship('StaffSeminar', backref=db.backref('attends'), foreign_keys=[seminar_id])
 
+    def __str__(self):
+        return u'{}'.format(self.seminar)
+
 
 class StaffSeminarApproval(db.Model):
     __tablename__ = 'staff_seminar_approvals'
