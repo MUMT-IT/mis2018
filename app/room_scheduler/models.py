@@ -1,3 +1,6 @@
+# -*- coding:utf-8 -*-
+from sqlalchemy import Table
+
 from app.main import db, ma
 from sqlalchemy.sql import func
 from ..asset.models import AssetItem
@@ -90,3 +93,29 @@ class RoomEvent(db.Model):
     iocode = db.relationship('IOCode', backref=db.backref('events' , lazy='dynamic'))
     google_event_id = db.Column('google_event_id', db.String(64))
     google_calendar_id = db.Column('google_calendar_id', db.String(255))
+
+
+complaint_topic_assoc = Table('room_complaint_topic_assoc',
+                              db.Column('room_complaint_topic_id', db.ForeignKey('scheduler_room_complaint_topics.id')),
+                              db.Column('room_complaint_id', db.ForeignKey('scheduler_room_complaints.id')),
+                              )
+
+
+class RoomComplaintTopic(db.Model):
+    __tablename__ = 'scheduler_room_complaint_topics'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    topic = db.Column('topic', db.String(), nullable=False)
+
+
+class RoomComplaint(db.Model):
+    __tablename__ = 'scheduler_room_complaints'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    room_id = db.Column('room_id', db.ForeignKey('scheduler_room_resources.id'), nullable=False)
+    room = db.relationship(RoomResource, backref=db.backref('complaints'))
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    note = db.Column('note', db.Text())
+    commenter = db.Column('commenter', db.String(), info={'label': u'โดย',
+                                                          'choices': [(c, c) for c in [u'นักศึกษา', u'บุคลากร', u'อื่น ๆ']]})
+    topics = db.relationship(RoomComplaintTopic,
+                             backref=db.backref('complaints'),
+                             secondary=complaint_topic_assoc)
