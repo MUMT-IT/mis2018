@@ -12,54 +12,34 @@
                     </div>
                     <form method="post">
                         {{ form.hidden_tag() }}
-                        {% for i in form.items %}
-                            <div class="field">
-                                <label class="label">รายการ</label>
-                                <div class="control">
-                                    {{ i.item(class="input") }}
-                                </div>
-                            </div>
-                            <div class="field-body">
+                        <p>
+                            {% for i in form.items %}
                                 <div class="field">
-                                    <label class="label">ราคา</label>
+                                    <label class="label">รายการ</label>
                                     <div class="control">
-                                        {{ i.price(class="input", placeholder="฿") }}
+                                        {{ i.item(class="input") }}
                                     </div>
                                 </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">หมายเหตุรายการ</label>
-                                <div class="control">
-                                    {{ i.comment(class="input") }}
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">ราคา</label>
+                                        <div class="control">
+                                            {{ i.price(class="input", placeholder="฿") }}
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        {% endfor %}
-                        <div class="field">
-                            <label class="label">รายการ</label>
-                            <div class="control">
-                                <input class="input" id="items-3-item" name="items-3-item" type="text" value="">
-                            </div>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <label class="label">ราคา</label>
-                                <div class="control">
-                                    <input class="input" id="items-3-price" name="items-3-price" placeholder="฿"
-                                           step="any" type="number" value="">
+                                <div class="field">
+                                    <label class="label">หมายเหตุ</label>
+                                    <div class="control">
+                                        {{ i.comment(class="input") }}
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">หมายเหตุรายการ</label>
-                            <div class="control">
-                                <textarea class="input" id="items-3-comment" name="items-3-comment"></textarea>
-                            </div>
-                        </div>
-
-                        <a href="javascript:void(0)" ; id="add-item" ; title="Add item field">
-                            <button class="button is-info add-item">เพิ่มรายการ</button>
-                        </a>
-
+                            {% endfor %}
+                        </p>
+                        <div id="items"></div>
+                        <button type="button" hx-post="{{ url_for('receipt_printing.list_add_items') }}"
+                                hx-target="#items" hx-swap="beforeend">เพิ่มรายการ
+                        </button>
                         <div class="field-body">
                             <div class="field">
                                 <label class="label">ช่องทางการชำระเงิน</label>
@@ -158,21 +138,21 @@
     {#            });#}
     {#        });#}
     {#    </script>#}
-        <script>
-            $(document).ready(()=>{
-                $('#card-no').hide()
-                $('#cheque-no').hide()
-                $('#other_payment_method').hide()
-                $('#payment_method').change(e=>{
-                    if ($('#payment_method').val() !== null) {
+    <script>
+        $(document).ready(() => {
+            $('#card-no').hide()
+            $('#cheque-no').hide()
+            $('#other_payment_method').hide()
+            $('#payment_method').change(e => {
+                if ($('#payment_method').val() !== null) {
                     $('#card-no').show()
                 } else {
-                        $('#card-no').hide()
-                    }
-                })
-                if ($('#payment_method').val() === null) {
-                    $('#card-no').show()
+                    $('#card-no').hide()
                 }
             })
-        </script>
+            if ($('#payment_method').val() === null) {
+                $('#card-no').show()
+            }
+        })
+    </script>
 {% endblock %}
