@@ -35,27 +35,46 @@ def landing():
 
 @receipt_printing.route('/receipt/create', methods=['POST', 'GET'])
 def create_receipt():
+    action = request.args.get('action')
     form = ReceiptDetailForm()
     cashiers = ElectronicReceiptCashier.query.all()
     cur_year = datetime.today().date().year + 543
     receipt_book = ComHealthReceiptID.query.filter_by(buddhist_year=cur_year, code='MTG').first()
 
     if form.validate_on_submit():
-        receipt_detail = ElectronicReceiptDetail()
-        # receipt_detail.created_datetime = datetime.now(tz=bangkok)
-        form.populate_obj(receipt_detail)  #insert data from Form to Model
-        receipt_detail.number = receipt_book.next
-        receipt_book.count += 1
-        receipt_detail.book_number = receipt_book.book_number
-        db.session.add(receipt_detail)
-        db.session.commit()
-        flash(u'บันทึกการสร้างใบเสร็จรับเงินสำเร็จ.', 'success')
-        return redirect(url_for('receipt_printing.list_all_receipts'))
-    # Check Error
-    else:
-        for er in form.errors:
-            flash("{}:{}".format(er, form.errors[er]), 'danger')
+        if action == 'add-items':
+            form.items.append_entry()
+            return render_template('receipt_printing/new_receipt.html', form=form, cashiers=cashiers)
+        else:
+            return 'Done'
+        # receipt_detail = ElectronicReceiptDetail()
+    #     # receipt_detail.created_datetime = datetime.now(tz=bangkok)
+    #     form.populate_obj(receipt_detail)  #insert data from Form to Model
+    #     receipt_detail.number = receipt_book.next
+    #     receipt_book.count += 1
+    #     receipt_detail.book_number = receipt_book.book_number
+    #     db.session.add(receipt_detail)
+    #     db.session.commit()
+    #     flash(u'บันทึกการสร้างใบเสร็จรับเงินสำเร็จ.', 'success')
+    #     return redirect(url_for('receipt_printing.list_all_receipts'))
+    # # Check Error
+    # else:
+    #     for er in form.errors:
+    #         flash("{}:{}".format(er, form.errors[er]), 'danger')
     return render_template('receipt_printing/new_receipt.html', form=form, cashiers=cashiers)
+
+
+@receipt_printing.route('/receipt/create/add-items', methods=['POST', 'GET'])
+def list_add_items():
+    form = ReceiptDetailForm()
+    form.items.append_entry()
+    item_form = form.items[-1]
+    return u'''
+    <p>
+        <label>{}</label>
+        {}
+    </p>
+    '''.format(item_form.label, item_form())
 
 
 @receipt_printing.route('/list/all', methods=['GET'])
