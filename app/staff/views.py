@@ -847,7 +847,7 @@ def show_leave_approval_info():
         cum_periods = defaultdict(float)
         for leave_request in requester.requester.leave_requests:
             if leave_request.cancelled_at is None and leave_request.get_approved:
-                if leave_request.start_datetime.date() >= START_FISCAL_DATE.date() and leave_request.end_datetime.date() \
+                if leave_request.start_datetime.date() >= START_FISCAL_DATE.date() and leave_request.end_datetime.date()\
                         <= END_FISCAL_DATE.date():
                     cum_periods[leave_request.quota.leave_type] += leave_request.total_leave_days
         requester_cum_periods[requester] = cum_periods
@@ -1415,7 +1415,7 @@ def request_work_from_home():
         db.session.commit()
 
         mails = []
-        req_title = u'ทดสอบแจ้งการขออนุมัติ' + req.detail
+        req_title = u'ทดสอบแจ้งการขออนุมัติ WFH'
         req_msg = u'{} ขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
                   u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
             format(current_user.personal_info.fullname, req.detail,
@@ -1554,7 +1554,7 @@ def wfh_approve(req_id, approver_id):
                 line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=approve_msg))
             else:
                 print(approve_msg, req.staff.id)
-        approve_title = u'แจ้งสถานะการอนุมัติ WFH เรื่อง' + req.detail
+        approve_title = u'แจ้งสถานะการอนุมัติ WFH'
         if os.environ["FLASK_ENV"] == "production":
             send_mail([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
         else:
@@ -2358,8 +2358,6 @@ def seminar_add_approval(attend_id):
         # if os.environ["FLASK_ENV"] == "production":
         #     send_mail(mails, req_title, req_msg)
 
-        if os.environ["FLASK_ENV"] == "production":
-            line_bot_api.push_message(to=attend.staff.line_id, messages=TextSendMessage(text=noti_msg))
         seminar_records = []
         for seminars in StaffSeminarAttend.query.filter(StaffSeminar.cancelled_at == None).all():
             if seminars.document_title:
