@@ -256,12 +256,14 @@ admin.add_views(ModelView(StaffWorkFromHomeApprover, db.session, category='Staff
 admin.add_views(ModelView(StaffWorkFromHomeApproval, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkFromHomeCheckedJob, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveRemainQuota, db.session, category='Staff'))
+admin.add_views(ModelView(StaffLeaveUsedQuota, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminar, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminarAttend, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkLogin, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSpecialGroup, db.session, category='Staff'))
 admin.add_views(ModelView(StaffShiftSchedule, db.session, category='Staff'))
 admin.add_views(ModelView(StaffShiftRole, db.session, category='Staff'))
+admin.add_views(ModelView(StaffSeminarApproval, db.session, category='Staff'))
 
 
 class StaffLeaveApprovalModelView(ModelView):
