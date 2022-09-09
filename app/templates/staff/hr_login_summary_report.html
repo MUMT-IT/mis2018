@@ -4,12 +4,10 @@
 {% block page_content %}
     <section class="section">
         <h1 class="title">สรุปรายงานการเข้าออกงานประจำวัน</h1>
-        <div class="columns">
-            <div class="column">
-                <div class="container has-text-centered">
-                    <div id="calendar_basic"></div>
-                </div>
-            </div>
+        <div class="container">
+            <div id="calendar_checkin"></div>
+            <div id="calendar_wfh"></div>
+            <div id="calendar_leave"></div>
         </div>
     </section>
 {% endblock %}
@@ -28,14 +26,58 @@
           }).responseText;
        var dataTable = new google.visualization.DataTable(jsonData);
 
-       var chart = new google.visualization.Calendar(document.getElementById('calendar_basic'));
+       var chart = new google.visualization.Calendar(document.getElementById('calendar_checkin'));
 
        var options = {
-         title: "จำนวน",
-         height: 350, calendar: { cellSize: 20 }
+         title: "แสกนเข้างาน",
+         height: 450, calendar: { cellSize: 20 }
        };
 
        chart.draw(dataTable, options);
    }
+    </script>
+    <script type="text/javascript">
+        google.charts.load("current", {packages:["calendar"]});
+        google.charts.setOnLoadCallback(drawChart);
+
+        function drawChart() {
+            var jsonData = $.ajax({
+                url: "{{ url_for('staff.get_hr_wfh_summary_report_data') }}",
+                dataType: "json",
+                async: false
+            }).responseText;
+            var dataTable = new google.visualization.DataTable(jsonData);
+
+            var chart = new google.visualization.Calendar(document.getElementById('calendar_wfh'));
+
+            var options = {
+                title: "Work From Home",
+                height: 450, calendar: { cellSize: 20 }
+            };
+
+            chart.draw(dataTable, options);
+        }
+    </script>
+    <script type="text/javascript">
+        google.charts.load("current", {packages:["calendar"]});
+        google.charts.setOnLoadCallback(drawChart);
+
+        function drawChart() {
+            var jsonData = $.ajax({
+                url: "{{ url_for('staff.get_hr_leave_summary_report_data') }}",
+                dataType: "json",
+                async: false
+            }).responseText;
+            var dataTable = new google.visualization.DataTable(jsonData);
+
+            var chart = new google.visualization.Calendar(document.getElementById('calendar_leave'));
+
+            var options = {
+                title: "ลา",
+                height: 450, calendar: { cellSize: 20 }
+            };
+
+            chart.draw(dataTable, options);
+        }
     </script>
 {% endblock %}

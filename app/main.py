@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from flask import Flask, render_template, redirect, url_for
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager
 from flask_marshmallow import Marshmallow
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user
@@ -45,6 +46,7 @@ load_dotenv()
 db = SQLAlchemy()
 migrate = Migrate()
 login = LoginManager()
+jwt = JWTManager()
 login.login_view = 'auth.login'
 cors = CORS()
 ma = Marshmallow()
@@ -93,12 +95,19 @@ def create_app():
     cors.init_app(app)
     qrcode.init_app(app)
     principal.init_app(app)
+    jwt.init_app(app)
 
     return app
 
 
 app = create_app()
 api = Api(app)
+
+
+# user_loader_callback_loader has renamed to user_lookup_loader in >=4.0
+@jwt.user_loader_callback_loader
+def user_lookup_callback(identity):
+    return ScbPaymentServiceApiClientAccount.get_account_by_id(identity)
 
 
 @app.errorhandler(403)
@@ -559,6 +568,7 @@ from scb_payment_service import scb_payment as scb_payment_blueprint
 
 app.register_blueprint(scb_payment_blueprint)
 
+from scb_payment_service.models import *
 
 
 # Commands

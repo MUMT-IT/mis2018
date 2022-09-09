@@ -22,7 +22,7 @@
                 <div class="column is-one-third">
                     <div class="has-text-centered">
                         <span class="icon is-large">
-                            <i class="fa-solid fa-qrcode fa-4x"></i>
+                            <i class="fas fa-qrcode fa-4x"></i>
                         </span>
                     </div>
                     <h1 class="title is-size-4 has-text-centered has-text-link">
@@ -30,7 +30,7 @@
                     </h1>
                     <div class="content">
                         <ol>
-                            <li>เปิด QR Code จาก We Mahidol App</li>
+                            <li>เปิด QR Code จาก We Mahidol App หรือระบบ MUMT-MIS หรือจาก MUMT Connect</li>
                             <li>หัน QR Code เข้าหากล้องจนมีกรอบสีแดงปรากฎรอบ QR Code</li>
                             <li>รอข้อความแสดงการแสกนเสร็จเรียบร้อย</li>
                         </ol>
@@ -73,6 +73,8 @@
                     time: null,
                     info: {
                         id: null,
+                        lat: null,
+                        long: null,
                         thTitle: null,
                         enTitle: null,
                         thName: null,
@@ -90,6 +92,8 @@
                     this.time = null
                     this.info = {
                         id: null,
+                        lat: null,
+                        long: null,
                         thTitle: null,
                         enTitle: null,
                         thName: null,
@@ -127,6 +131,8 @@
                     let result = content.split("|")
                     console.log(result)
                     this.info.id = result[0]
+                    this.info.lat = result[1]
+                    this.info.long = result[2]
                     this.info.qrCodeExpDateTime = result[4] + ' ' + result[3]
                     this.info.thTitle = result[6]
                     this.info.thName = result[7]

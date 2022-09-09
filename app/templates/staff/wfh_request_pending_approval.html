@@ -4,10 +4,10 @@
 <section class="section">
     <div class="container" id="app">
         <div class="columns">
-            {% for msg in get_flashed_messages() %}
-            <p class="notification is-warning">{{ msg }}</p>
-            {% endfor %}
             <div class="column is-half is-offset-one-quarter">
+                {% include "messages.html" %}
+                <h1 class="title has-text-centered">รายละเอียดการขออนุมัติ</h1>
+                <h1 class="subtitle has-text-centered">สำหรับหัวหน้างาน</h1>
                 <div class="box">
                     <table class="table is-fullwidth">
                         <tr>
@@ -68,18 +68,18 @@
                 <div class="columns">
                     <div class="column">
                         <a href="{{ url_for('staff.show_wfh_requests_for_approval') }}"
-                           class="button is-rounded is-info is-light">
+                           class="button is-light">
                             <span class="icon">
-                                <i class="fas fa-arrow-left"></i>
+                                <i class="fas fa-chevron-left"></i>
                             </span>
                             <span>กลับหน้าสรุปการขอ WFH</span>
                         </a>
                     </div>
                     <div class="column">
-                        <a href="{{ url_for('staff.summary_index') }}" class="button is-rounded is-info is-light">
+                        <a href="{{ url_for('staff.summary_index') }}" class="button is-light">
                             <span>กลับหน้าตารางสรุปการเข้างาน</span>
                             <span class="icon">
-                                <i class="fas fa-arrow-right"></i>
+                                <i class="fas fa-chevron-right"></i>
                             </span>
                         </a>
                     </div>

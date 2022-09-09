@@ -32,6 +32,20 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
+                            <label class="label">คำนำหน้า</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                           name="th_title" type="text" placeholder="ภาษาไทย"
+                                           value="{{ staff.th_title }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
                             <label class="label">ชื่อ</label>
                         </div>
                         <div class="field-body">
@@ -74,13 +88,27 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
+                            <label class="label">Title</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                           name="th_title" type="text" placeholder="ภาษาอังกฤษ"
+                                           value="{{ staff.en_title }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
                             <label class="label">Lastname</label>
                         </div>
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
                                     <input class="input"
-                                        name="en_lastname" type="text" placeholder=" ภาษาอังกฤษ"
+                                        name="en_lastname" type="text" placeholder="ภาษาอังกฤษ"
                                            value="{{ staff.en_lastname }}" required>
                                 </div>
                             </div>
@@ -221,7 +249,7 @@
         data() {
             return {
                 empDate: [],
-                selectedEmpDate: new Date({{ emp_date|tojsdatetime(single=True) }}),
+                selectedEmpDate: {% if emp_date %} new Date({{ emp_date|tojsdatetime(single=True) }}) {% else %} null {% endif %},
                 employed: "active",
             }
         },

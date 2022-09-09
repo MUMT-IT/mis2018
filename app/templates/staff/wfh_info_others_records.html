@@ -4,15 +4,15 @@
 <section class="section" id="app">
     {% include "messages.html" %}
     <div class="container">
-        <h4 class="title">ประวัติการขออนุญาตทำงานที่บ้าน</h4>
+        <h4 class="title has-text-centered">ประวัติการขออนุญาตทำงานที่บ้าน</h4>
+        <h1 class="subtitle has-text-centered">สำหรับบุคลากร</h1>
         <div class="columns">
             <div class="column">
-                <table class="table is-striped" id="wfhHistoryTable">
+                <table class="table is-fullwidth is-striped" id="wfhHistoryTable">
                     <thead>
-                    <th>วันเริ่มต้นwfh</th>
-                    <th>วันสิ้นสุดwfh</th>
+                    <th>วันเริ่มต้น</th>
+                    <th>วันสิ้นสุด</th>
                     <th>เรื่อง</th>
-                    <th>การอนุมัติ</th>
                     <th>การอนุมัติ</th>
                     </thead>
                     <tbody>
@@ -28,21 +28,24 @@
                             {{ records.detail }}
                         </td>
                         <td>
-                            <b-tooltip
-                                    label="" type="is-light">
-                                <a class="button is-text" href="{{ url_for('staff.show_wfh_approval',
-                                                                                request_id=records['id']) }}">
-                                    <span class="tag is-dark">อนุมัติ</span>
-                                    <span class="tag is-info">{{ records.get_approved|length }}</span>
-                                </a>
-                            </b-tooltip>
-                        </td>
-                        <td>
-                            <a class="button is-text" href="{{ url_for('staff.show_wfh_approval',
-                                                                                request_id=records['id']) }}">
-                                <span class="tag is-dark">ไม่อนุมัติ</span>
-                                <span class="tag is-danger">{{ recordsget_unapproved|length }}</span>
-                            </a>
+                            <div class="field is-grouped is-grouped-multiline">
+                                <div class="control">
+                                    <a href="{{ url_for('staff.show_wfh_approval', request_id=records['id']) }}">
+                                    <div class="tags has-addons">
+                                            <span class="tag is-dark">อนุมัติ</span>
+                                            <span class="tag is-success">{{ records.get_approved|length }}</span>
+                                    </div>
+                                    </a>
+                                </div>
+                                <div class="control">
+                                    <a href="{{ url_for('staff.show_wfh_approval', request_id=records['id']) }}">
+                                    <div class="tags has-addons">
+                                            <span class="tag is-dark">ไม่อนุมัติ</span>
+                                            <span class="tag is-danger">{{ records.get_unapproved|length }}</span>
+                                    </div>
+                                    </a>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -50,16 +53,14 @@
                 </table>
             </div>
         </div>
-        <h4 class="title">ประวัติการยกเลิก</h4>
+        <h4 class="title has-text-centered">ประวัติการยกเลิก</h4>
         <div class="columns">
             <div class="column">
-                <table class="table is-striped" id="wfhCancelledTable">
+                <table class="table is-striped is-fullwidth" id="wfhCancelledTable">
                     <thead>
-                    <th>วันเริ่มต้นwfh</th>
-                    <th>วันสิ้นสุดwfh</th>
+                    <th>วันเริ่มต้น</th>
+                    <th>วันสิ้นสุด</th>
                     <th>เรื่อง</th>
-                    <th>การอนุมัติ</th>
-                    <th>การอนุมัติ</th>
                     <th>วันที่ยกเลิก</th>
                     </thead>
                     <tbody>
@@ -75,23 +76,6 @@
                             {{ records.detail }}
                         </td>
                         <td>
-                            <b-tooltip
-                                    label="" type="is-light">
-                                <a class="button is-text" href="{{ url_for('staff.show_wfh_approval',
-                                                                                request_id=records['id']) }}">
-                                    <span class="tag is-dark">อนุมัติ</span>
-                                    <span class="tag is-info">{{ records.get_approved|length }}</span>
-                                </a>
-                            </b-tooltip>
-                        </td>
-                        <td>
-                            <a class="button is-text" href="{{ url_for('staff.show_wfh_approval',
-                                                                                request_id=records['id']) }}">
-                                <span class="tag is-dark">ไม่อนุมัติ</span>
-                                <span class="tag is-danger">{{ recordsget_unapproved|length }}</span>
-                            </a>
-                        </td>
-                        <td>
                             {{ records.cancelled_at|localdatetime }}
                         </td>
                     </tr>
@@ -100,12 +84,14 @@
                 </table>
             </div>
         </div>
-        <a href="{{ url_for('staff.show_work_from_home') }}" class="button is-rounded is-info is-light">
-            <span class="icon">
-                <i class="fas fa-arrow-left"></i>
-            </span>
-            <span>กลับ</span>
-        </a>
+        <div class="buttons is-centered">
+            <a href="{{ url_for('staff.show_work_from_home') }}" class="button is-light">
+                <span class="icon">
+                    <i class="fas fa-chevron-left"></i>
+                </span>
+                <span>กลับ</span>
+            </a>
+        </div>
     </div>
 </section>
 {% endblock %}

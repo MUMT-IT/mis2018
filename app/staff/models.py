@@ -72,6 +72,10 @@ class StaffAccount(db.Model):
     __password_hash = db.Column('password', db.String(255), nullable=True)
     roles = db.relationship('Role', secondary=user_roles, backref=db.backref('staff_account', lazy='dynamic'))
 
+    @classmethod
+    def get_account_by_email(cls, email):
+        return cls.query.filter_by(email=email).first()
+
     @property
     def has_password(self):
         return self.__password_hash != None
@@ -128,7 +132,6 @@ class StaffPersonalInfo(db.Model):
     finger_scan_id = db.Column('finger_scan_id', db.Integer)
     academic_staff = db.Column('academic_staff', db.Boolean())
     retired = db.Column('retired', db.Boolean(), default=False)
-
 
     def __str__(self):
         return self.fullname
@@ -415,8 +418,12 @@ class StaffLeaveApprover(db.Model):
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     approver_account_id = db.Column('approver_account_id', db.ForeignKey('staff_account.id'))
     is_active = db.Column('is_active', db.Boolean(), default=True)
-    requester = db.relationship('StaffAccount', backref=db.backref('leave_requesters'), foreign_keys=[staff_account_id])
-    account = db.relationship('StaffAccount', backref=db.backref('leave_approvers'), foreign_keys=[approver_account_id])
+    requester = db.relationship('StaffAccount',
+                                backref=db.backref('leave_requesters'),
+                                foreign_keys=[staff_account_id])
+    account = db.relationship('StaffAccount',
+                              backref=db.backref('leave_approvers'),
+                              foreign_keys=[approver_account_id])
     notified_by_line = db.Column('notified_by_line', db.Boolean(), default=True)
 
     def __str__(self):
@@ -431,8 +438,7 @@ class StaffLeaveApproval(db.Model):
     is_approved = db.Column('is_approved', db.Boolean(), default=False)
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     request = db.relationship('StaffLeaveRequest',
-                              backref=db.backref('approvals',
-                                                 cascade='all, delete-orphan'))
+                              backref=db.backref('approvals', cascade='all, delete-orphan'))
     approval_comment = db.Column('approval_comment', db.String())
     approver = db.relationship('StaffLeaveApprover',
                                backref=db.backref('approved_requests'))
@@ -480,8 +486,7 @@ class StaffWorkFromHomeRequest(db.Model):
     detail = db.Column('detail', db.String())
     deadline_date = db.Column('deadline_date', db.DateTime(timezone=True))
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
-    staff = db.relationship('StaffAccount',
-                            backref=db.backref('wfh_requests'))
+    staff = db.relationship('StaffAccount', backref=db.backref('wfh_requests'))
     notify_to_line = db.Column('notify_to_line', db.Boolean(), default=False)
 
     @property
@@ -515,9 +520,12 @@ class StaffWorkFromHomeApprover(db.Model):
     approver_account_id = db.Column('approver_account_id', db.ForeignKey('staff_account.id'))
     is_active = db.Column('is_active', db.Boolean(), default=True)
     requester = db.relationship('StaffAccount',
-                            foreign_keys=[staff_account_id])
+                                backref=db.backref('wfh_requesters'),
+                                foreign_keys=[staff_account_id])
     account = db.relationship('StaffAccount',
-                               foreign_keys=[approver_account_id])
+                              backref=db.backref('wfh_approvers'),
+                              foreign_keys=[approver_account_id])
+    notified_by_line = db.Column('notified_by_line', db.Boolean(), default=True)
 
 
 class StaffWorkFromHomeApproval(db.Model):
@@ -528,7 +536,8 @@ class StaffWorkFromHomeApproval(db.Model):
     is_approved = db.Column('is_approved', db.Boolean(), default=False)
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     approval_comment = db.Column('approval_comment', db.String())
-    request = db.relationship('StaffWorkFromHomeRequest', backref=db.backref('wfh_approvals'))
+    request = db.relationship('StaffWorkFromHomeRequest',
+                              backref=db.backref('wfh_approvals', cascade='all, delete-orphan'))
     approver = db.relationship('StaffWorkFromHomeApprover',
                                backref=db.backref('wfh_approved_requests'))
 
@@ -539,7 +548,8 @@ class StaffWorkFromHomeCheckedJob(db.Model):
     overall_result = db.Column('overall_result', db.String())
     request_id = db.Column('request_id', db.ForeignKey('staff_work_from_home_requests.id'))
     finished_at = db.Column('finish_at', db.DateTime(timezone=True))
-    request = db.relationship('StaffWorkFromHomeRequest', backref=db.backref('checked_jobs'))
+    request = db.relationship('StaffWorkFromHomeRequest',
+                              backref=db.backref('checked_jobs', cascade='all, delete-orphan'))
 
     def check_comment(self, account_id):
         for approval in self.request.wfh_approvals:
@@ -601,8 +611,8 @@ class StaffSeminarAttend(db.Model):
     head_account_id = db.Column('head_account_id', db.ForeignKey('staff_account.id'))
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     document_no = db.Column('document_no', db.String())
-    staff = db.relationship('StaffAccount',
-                                foreign_keys=[staff_account_id])
+    staff = db.relationship('StaffAccount', foreign_keys=[staff_account_id],
+                            backref=db.backref('seminar_attends', lazy='dynamic'))
     seminar = db.relationship('StaffSeminar', backref=db.backref('attends'), foreign_keys=[seminar_id])
 
     def __str__(self):
@@ -641,6 +651,8 @@ class StaffWorkLogin(db.Model):
     num_scans = db.Column('num_scans', db.Integer(), default=0)
     qrcode_in_exp_datetime = db.Column('qrcode_in_exp_datetime', db.DateTime(timezone=True))
     qrcode_out_exp_datetime = db.Column('qrcode_out_exp_datetime', db.DateTime(timezone=True))
+    lat = db.Column('lat', db.Numeric())
+    long = db.Column('long', db.Numeric())
 
     @staticmethod
     def generate_date_id(date):

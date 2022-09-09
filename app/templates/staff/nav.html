@@ -16,9 +16,9 @@
                     <span class="icon">
                         <i class="fas fa-user-circle"></i>
                     </span>
-                    <span>
-                        {{ current_user.email }}
-                    </span>
+                   <span>
+                       {{ current_user.personal_info.fullname }}
+                   </span>
                 </a>
                 <a class="navbar-item" href="{{ url_for('auth.logout') }}">
                     <span class="icon">

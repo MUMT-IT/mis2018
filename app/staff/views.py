@@ -23,6 +23,7 @@ import os
 from flask_mail import Message
 from flask_admin import BaseView, expose
 from itsdangerous import TimedJSONWebSignatureSerializer
+import qrcode
 
 from app.roles import admin_permission, hr_permission
 
@@ -1349,28 +1350,27 @@ def leave_request_by_person_detail(requester_id):
 @staff.route('/wfh')
 @login_required
 def show_work_from_home():
+    category = request.args.get('category', 'pending')
     wfh_list = []
-    for wfh in current_user.wfh_requests:
-        if wfh.start_datetime >= tz.localize(START_FISCAL_DATE) and wfh.end_datetime <= tz.localize(END_FISCAL_DATE) \
-                and not wfh.cancelled_at:
-            if not wfh.get_approved:
-                if not wfh.get_unapproved:
+    if category == 'pending':
+        for wfh in current_user.wfh_requests:
+            if wfh.start_datetime >= tz.localize(START_FISCAL_DATE) and wfh.end_datetime <= tz.localize(END_FISCAL_DATE) \
+                    and not wfh.cancelled_at:
+                if not wfh.get_approved:
+                    if not wfh.get_unapproved:
+                        wfh_list.append(wfh)
+    elif category == 'approved':
+        for wfh in current_user.wfh_requests:
+            if wfh.get_approved:
+                if not wfh.cancelled_at:
                     wfh_list.append(wfh)
-
-    wfh_approved_list = []
-    for wfh in current_user.wfh_requests:
-        if wfh.get_approved:
-            if not wfh.cancelled_at:
-                wfh_approved_list.append(wfh)
-
-    wfh_unapproved_list = []
-    for wfh in current_user.wfh_requests:
-        if wfh.get_unapproved:
-            if not wfh.cancelled_at:
-                wfh_unapproved_list.append(wfh)
+    elif category == 'rejected':
+        for wfh in current_user.wfh_requests:
+            if wfh.get_unapproved:
+                if not wfh.cancelled_at:
+                    wfh_list.append(wfh)
     approver = StaffWorkFromHomeApprover.query.filter_by(approver_account_id=current_user.id).first()
-    return render_template('staff/wfh_info.html', wfh_list=wfh_list, wfh_approved_list=wfh_approved_list,
-                           wfh_unapproved_list=wfh_unapproved_list, approver=approver)
+    return render_template('staff/wfh_info.html', category=category, wfh_list=wfh_list, approver=approver)
 
 
 @staff.route('/wfh/others-records')
@@ -1378,19 +1378,17 @@ def show_work_from_home():
 def show_work_from_home_others_records():
     wfh_history = []
     for wfh in current_user.wfh_requests:
-        if wfh.start_datetime <= tz.localize(START_FISCAL_DATE) and wfh.end_datetime < tz.localize(END_FISCAL_DATE) and wfh.cancelled_at is None:
+        if wfh.start_datetime >= tz.localize(START_FISCAL_DATE) and wfh.end_datetime < tz.localize(END_FISCAL_DATE) and wfh.cancelled_at is None:
             wfh_history.append(wfh)
 
     wfh_cancelled_list = []
     for wfh in current_user.wfh_requests:
         if wfh.cancelled_at:
             wfh_cancelled_list.append(wfh)
-    return render_template('staff/wfh_info_others_records.html', wfh_history=wfh_history,
-                           wfh_cancelled_list=wfh_cancelled_list)
+    return render_template('staff/wfh_info_others_records.html', wfh_history=wfh_history, wfh_cancelled_list=wfh_cancelled_list)
 
 
-@staff.route('/wfh/request',
-             methods=['GET', 'POST'])
+@staff.route('/wfh/request', methods=['GET', 'POST'])
 @login_required
 def request_work_from_home():
     if request.method == 'POST':
@@ -1421,31 +1419,36 @@ def request_work_from_home():
             format(current_user.personal_info.fullname, req.detail,
                    start_datetime, end_datetime,
                    url_for("staff.pending_wfh_request_for_approval", req_id=req.id, _external=True))
-        for approver in StaffWorkFromHomeApprover.query.filter_by(staff_account_id=current_user.id):
-            notify_by_line_of_leave_approver = StaffLeaveApprover.query\
-                                                    .filter_by(staff_account_id=current_user.id,is_active=True).first()
-            if notify_by_line_of_leave_approver:
-                notified_by_line = True
-            else:
-                notified_by_line = False
+
+        # if no approvers assigned, assign the head of the unit as a designated approver
+        if len(current_user.wfh_requesters) == 0:
+            print('no approver found, assign head of the organization')
+            org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
+            approver = StaffWorkFromHomeApprover(requester=current_user, account=org_head)
+            db.session.add(approver)
+            db.session.commit()
+
+        for approver in current_user.wfh_requesters:
             if approver.is_active:
-                if notified_by_line and approver.account.line_id:
+                if approver.notified_by_line and approver.account.line_id:
                     if os.environ["FLASK_ENV"] == "production":
                         line_bot_api.push_message(to=approver.account.line_id,
                                                   messages=TextSendMessage(text=req_msg))
                     else:
-                        print(req_msg ,approver.account.id)
+                        print(req_msg, approver.account.id)
                 mails.append(approver.account.email + "@mahidol.ac.th")
         if os.environ["FLASK_ENV"] == "production":
             send_mail(mails, req_title, req_msg)
+        else:
+            print([approver.account.email + 'mahidol.ac.th'], req_title, req_msg)
+
         flash(u'ส่งคำขอของท่านเรียบร้อยแล้ว (The request has been sent.)', 'success')
         return redirect(url_for('staff.show_work_from_home'))
     else:
         return render_template('staff/wfh_request.html')
 
 
-@staff.route('/wfh/request/<int:request_id>/edit',
-             methods=['GET', 'POST'])
+@staff.route('/wfh/request/<int:request_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_request_work_from_home(request_id):
     req = StaffWorkFromHomeRequest.query.get(request_id)
@@ -1538,7 +1541,7 @@ def wfh_approve(req_id, approver_id):
         )
         db.session.add(approval)
         db.session.commit()
-        flash(u'อนุมัติ WFH ให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที')
+        flash(u'อนุมัติ WFH ให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที', 'success')
 
         req = StaffWorkFromHomeRequest.query.get(req_id)
         if approval.is_approved is True:
@@ -1546,7 +1549,7 @@ def wfh_approve(req_id, approver_id):
                             .format(req.detail, current_user.personal_info.fullname
                                     ,url_for( "staff.show_wfh_approval",request_id=req_id,_external=True))
         else:
-            approve_msg = u'การขออนุมัติWFHเรื่อง {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
+            approve_msg = u'การขออนุมัติ WFH เรื่อง {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
                             .format(req.detail, current_user.personal_info.fullname
                                     ,url_for( "staff.show_wfh_approval",request_id=req_id,_external=True))
         if req.notify_to_line and req.staff.line_id:
@@ -1558,7 +1561,7 @@ def wfh_approve(req_id, approver_id):
         if os.environ["FLASK_ENV"] == "production":
             send_mail([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
         else:
-            print(approve_title ,approve_msg, req.staff.id)
+            print([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
         return redirect(url_for('staff.show_wfh_requests_for_approval'))
     if approved is not None:
         return render_template('staff/wfh_request_pending_approval_comment.html')
@@ -1720,8 +1723,54 @@ def for_hr():
 def get_hr_login_summary_report_data():
     description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
     data = defaultdict(int)
-    for rec in StaffWorkLogin.query.all():
+    for rec in StaffWorkLogin.query.filter(StaffWorkLogin.start_datetime.between(START_FISCAL_DATE, END_FISCAL_DATE)):
         data[rec.start_datetime.date()] += 1
+
+    count_data = []
+    for date, heads in data.iteritems():
+        count_data.append({
+            'date': date,
+            'heads': heads
+        })
+
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=('date', 'heads'))
+
+
+@staff.route('/api/for-hr/wfh-report')
+@hr_permission.require()
+@login_required
+def get_hr_wfh_summary_report_data():
+    description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
+    data = defaultdict(int)
+    for rec in StaffWorkFromHomeRequest.query\
+            .filter(StaffWorkFromHomeRequest.start_datetime.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+        if not rec.cancelled_at and rec.get_unapproved:
+            data[rec.start_datetime.date()] += 1
+
+    count_data = []
+    for date, heads in data.iteritems():
+        count_data.append({
+            'date': date,
+            'heads': heads
+        })
+
+    data_table = gviz_api.DataTable(description)
+    data_table.LoadData(count_data)
+    return data_table.ToJSon(columns_order=('date', 'heads'))
+
+
+@staff.route('/api/for-hr/leave-report')
+@hr_permission.require()
+@login_required
+def get_hr_leave_summary_report_data():
+    description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
+    data = defaultdict(int)
+    for rec in StaffLeaveRequest.query\
+            .filter(StaffLeaveRequest.start_datetime.between(START_FISCAL_DATE, END_FISCAL_DATE)):
+        if not rec.cancelled_at and not rec.get_unapproved:
+            data[rec.start_datetime.date()] += 1
 
     count_data = []
     for date, heads in data.iteritems():
@@ -1775,12 +1824,16 @@ def login_scan():
 
     if request.method == 'POST':
         req_data = request.get_json()
+        lat = req_data['data'].get('lat', '0.0')
+        long = req_data['data'].get('long', '0.0')
         th_name = req_data['data'].get('thName')
         en_name = req_data['data'].get('enName')
         qrcode_exp_datetime = datetime.strptime(req_data['data'].get('qrCodeExpDateTime'), DATETIME_FORMAT)
         qrcode_exp_datetime = qrcode_exp_datetime.replace(tzinfo=tz)
         if th_name:
-            fname, lname = th_name.split(' ')
+            name = th_name.split(' ')
+            # some lastnames contain spaces
+            fname, lname = name[0], ' '.join(name[1:])
             lname = lname.lstrip()
             person = StaffPersonalInfo.query \
                 .filter_by(th_firstname=fname, th_lastname=lname).first()
@@ -1809,6 +1862,8 @@ def login_scan():
                 record = StaffWorkLogin(
                     date_id=date_id,
                     staff=person.staff_account,
+                    lat=float(lat),
+                    long=float(long),
                     start_datetime=now,
                     num_scans=num_scans,
                     qrcode_in_exp_datetime=qrcode_exp_datetime.astimezone(pytz.utc)
@@ -1834,14 +1889,18 @@ def login_scan():
 
 @staff.route('/login-activity-scan/<int:seminar_id>', methods=['GET', 'POST'])
 @csrf.exempt
+@hr_permission.require()
 @login_required
 def checkin_activity(seminar_id):
+    seminar = StaffSeminar.query.get(seminar_id)
     if request.method == 'POST':
         req_data = request.get_json()
         th_name = req_data['data'].get('thName')
         en_name = req_data['data'].get('enName')
         if th_name:
-            fname, lname = th_name.split(' ')
+            name = th_name.split(' ')
+            # some lastnames contain spaces
+            fname, lname = name[0], ' '.join(name[1:])
             lname = lname.lstrip()
             person = StaffPersonalInfo.query \
                 .filter_by(th_firstname=fname, th_lastname=lname).first()
@@ -1868,8 +1927,8 @@ def checkin_activity(seminar_id):
             db.session.commit()
             return jsonify({'message': 'success', 'name': person.fullname, 'time': now.isoformat()})
         else:
-            return jsonify({'message': 'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
-    return render_template('staff/checkin_activity.html', seminar_id=seminar_id)
+            return jsonify({'message': u'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
+    return render_template('staff/checkin_activity.html', seminar=seminar)
 
 
 class LoginDataUploadView(BaseView):
@@ -1993,6 +2052,7 @@ def send_summary_data():
                     'id': rec.id,
                     'start': rec.start_datetime.astimezone(tz).isoformat(),
                     'end': end.isoformat() if end else None,
+                    'status': 'Done' if end else 'Not done',
                     'title': u'{}'.format(emp.th_firstname),
                     'backgroundColor': bg_color,
                     'borderColor': border_color,
@@ -2008,10 +2068,12 @@ def send_summary_data():
                         text_color = '#ffffff'
                         bg_color = '#2b8c36'
                         border_color = '#ffffff'
+                        leave_status = 'Approved'
                     else:
                         text_color = '#989898'
                         bg_color = '#d1e0e0'
                         border_color = '#ffffff'
+                        leave_status = 'Pending'
                     leaves.append({
                         'id': leave_req.id,
                         'start': leave_req.start_datetime.astimezone(tz).isoformat(),
@@ -2020,21 +2082,24 @@ def send_summary_data():
                         'backgroundColor': bg_color,
                         'borderColor': border_color,
                         'textColor': text_color,
+                        'status': leave_status,
                         'type': 'leave'
                     })
 
         if tab in ['wfh', 'all']:
             for wfh_req in StaffWorkFromHomeRequest.query.filter_by(staff=emp.staff_account).filter(
                     StaffWorkFromHomeRequest.start_datetime.between(cal_start, cal_end)):
-                if not wfh_req.cancelled_at:
+                if not wfh_req.cancelled_at and not wfh_req.get_unapproved:
                     if wfh_req.get_approved:
-                        text_color = '#ffffff'
-                        bg_color = '#109AD3'
-                        border_color = '#ffffff'
+                        text_color = '#989898'
+                        bg_color = '#C5ECFB'
+                        border_color = '#109AD3'
+                        wfh_status = 'Approved'
                     else:
                         text_color = '#989898'
                         bg_color = '#C5ECFB'
                         border_color = '#ffffff'
+                        wfh_status = 'Pending'
                     wfhs.append({
                         'id': wfh_req.id,
                         'start': wfh_req.start_datetime.astimezone(tz).isoformat(),
@@ -2043,6 +2108,7 @@ def send_summary_data():
                         'backgroundColor': bg_color,
                         'borderColor': border_color,
                         'textColor': text_color,
+                        'status': wfh_status,
                         'type': 'wfh'
                     })
         if tab in ['smr', 'all']:
@@ -2373,6 +2439,7 @@ def seminar_add_approval(attend_id):
 
 
 @staff.route('/seminar/create', methods=['GET', 'POST'])
+@hr_permission.require()
 @login_required
 def create_seminar():
     if request.method == 'POST':
@@ -2396,12 +2463,16 @@ def create_seminar():
             db.session.add(seminar)
             db.session.commit()
             flash(u'เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
-            return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar.id))
+            if hr_permission.can():
+                return redirect(url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id))
+            else:
+                return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar.id))
     return render_template('staff/seminar_create_event.html')
 
 
-@staff.route('/seminar/add-attend/for-hr/<int:seminar_id>', methods=['GET', 'POST'])
+@staff.route('/seminar/add-attend/for-hr/<int:seminar_id>')
 @login_required
+@hr_permission.require()
 def seminar_attend_info_for_hr(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
     attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
@@ -2731,12 +2802,14 @@ def staff_edit_info(staff_id):
             )
             db.session.add(createstaff)
         start_d = form.get('employed_date')
-        start_date = datetime.strptime(start_d, '%d/%m/%Y')
+        start_date = datetime.strptime(start_d, '%d/%m/%Y') if start_d else None
+        staff.th_title = form.get('th_title')
+        staff.en_title = form.get('en_title')
         staff.en_firstname = form.get('en_firstname')
         staff.en_lastname = form.get('en_lastname')
         staff.th_firstname = form.get('th_firstname')
         staff.th_lastname = form.get('th_lastname')
-        staff.employed_date = tz.localize(start_date)
+        staff.employed_date = tz.localize(start_date) if start_date else None
         if form.get('finger_scan_id'):
             staff.finger_scan_id = form.get('finger_scan_id')
         staff.employment_id = form.get('employment_id')
@@ -3061,3 +3134,115 @@ def add_leave_request_by_hr(staff_id):
         return redirect(url_for('staff.record_each_request_leave_request', request_id=createleave.id))
     return render_template('staff/leave_request_add_by_hr.html', staff=staff, approvers=approvers,
                            leave_types=leave_types)
+
+
+@staff.route('/for-hr/organizations')
+@hr_permission.require()
+@login_required
+def edit_organizations():
+    orgs = Org.query.all()
+    return render_template('staff/organizations.html', orgs=orgs)
+
+
+@staff.route('/for-hr/organizations/<int:org_id>/staff', methods=['GET', 'POST'])
+@hr_permission.require()
+@login_required
+def list_org_staff(org_id):
+    org = Org.query.get(org_id)
+    org_head = StaffAccount.query.filter_by(email=org.head).first()
+    if org_head:
+        org_head_name = org_head.personal_info.fullname
+    else:
+        org_head_name = 'N/A'
+    if request.method == 'POST':
+        for emp_id in request.form.getlist('employees'):
+            staff = StaffPersonalInfo.query.get(int(emp_id))
+            staff.org = org
+            db.session.add(staff)
+        db.session.commit()
+        flash(u'เพิ่มบุคลากรเข้าสังกัดเรียบร้อยแล้ว', 'success')
+    return render_template('staff/org_staff.html', org=org, org_head_name=org_head_name)
+
+
+@staff.route('/api/staff', methods=['GET'])
+@login_required
+def get_all_employees():
+    search_term = request.args.get('term', '')
+    results = []
+    for staff in StaffPersonalInfo.query.all():
+        if (search_term in staff.fullname or search_term in staff.staff_account.email) \
+                and staff.retired is not True:
+            results.append({
+                "id": staff.id,
+                "text": staff.fullname
+            })
+    return jsonify({'results': results})
+
+
+@staff.route('/for-hr/organizations/<int:org_id>/staff/<string:email>/make-head')
+@hr_permission.require()
+@login_required
+def make_org_head(org_id, email):
+    org = Org.query.get(org_id)
+    org.head = email
+    db.session.add(org)
+    db.session.commit()
+    return redirect(url_for('staff.list_org_staff', org_id=org_id))
+
+
+@staff.route('/for-hr/organizations/<int:org_id>/edit-head-email', methods=['GET', 'POST'])
+@hr_permission.require()
+@login_required
+def edit_org_head_email(org_id):
+    org = Org.query.get(org_id)
+    if request.method == 'POST':
+        email = request.form.get('org_head_email')
+        if StaffAccount.get_account_by_email(email):
+            org.head = email
+            db.session.add(org)
+            db.session.commit()
+            flash(u'แก้ไขชื่อหัวหน้าหน่วยงานเรียบร้อย', 'success')
+            return redirect(url_for('staff.list_org_staff', org_id=org_id))
+        else:
+            flash(u'ไม่พบบัญชีที่ใช้อีเมล {} กรุณาตรวจสอบอีกครั้ง'.format(email), 'danger')
+    return render_template('staff/org_head_email_form.html', org_id=org_id)
+
+
+@staff.route('/api/users/<int:account_id>/qrcode')
+@login_required
+def create_qrcode(account_id):
+    latitude = request.args.get('lat', '')
+    longitude = request.args.get('long', '')
+    account = StaffAccount.query.get(account_id)
+    qr = qrcode.QRCode(version=1, box_size=20)
+    current_time = datetime.now(pytz.utc)
+    expired_time = current_time + timedelta(minutes=10)
+    qr_data = '|'.join([
+        str(account.id),
+        latitude,
+        longitude,
+        expired_time.astimezone(tz).strftime('%H:%M:%S'),
+        expired_time.astimezone(tz).strftime('%d/%m/%Y'),
+        "",
+        account.personal_info.th_title or u'คุณ',
+        account.personal_info.th_firstname + ' ' + account.personal_info.th_lastname,
+        "",
+        account.personal_info.en_title or '',
+        account.personal_info.en_firstname + ' ' + account.personal_info.en_lastname,
+        u"คณะเทคนิคการแพทย์",
+        "FACULTY OF MEDICAL TECHNOLOGY",
+    ])
+    qr.add_data(qr_data)
+    qr.make(fit=True)
+    qr_img = qr.make_image()
+    qr_img.save('personal_qrcode.png')
+    import base64
+    with open("personal_qrcode.png", "rb") as img_file:
+        qrcode_base64 = base64.b64encode(img_file.read())
+    return jsonify(qrcode=qrcode_base64, expDateTime=expired_time.astimezone(tz).isoformat())
+
+
+@staff.route('/users/qrcode')
+@login_required
+def show_qrcode():
+    return render_template('staff/qrcode.html')

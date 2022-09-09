@@ -1,10 +1,5 @@
 {% extends "base.html" %}
 
-{% block head %}
-{{ super() }}
-<link ref="//cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css" rel="stylesheet">
-{% endblock %}
-
 {% block page_content %}
 {% include "documents/nav.html" %}
 <section class="section">
@@ -74,7 +69,6 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-<script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
 <script>
     $(document).ready( function () {
         $('#myTable').DataTable(
