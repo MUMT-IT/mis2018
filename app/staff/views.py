@@ -75,7 +75,14 @@ def send_mail(recp, title, message):
 @staff.route('/')
 @login_required
 def index():
-    return render_template('staff/index.html')
+    new_leave_requests = 0
+    for requester in current_user.leave_approvers:
+        if requester.is_active:
+            for req in StaffLeaveRequest.query.filter_by(staff=requester.requester):
+                if len(req.get_approved_by(current_user)) == 0 and req.cancelled_at is None:
+                    if (datetime.today().date() - req.created_at.date()).days < 60:
+                        new_leave_requests += 1
+    return render_template('staff/index.html', new_leave_requests=new_leave_requests)
 
 
 @staff.route('/person/<int:account_id>')
@@ -1348,8 +1355,9 @@ def wfh_approve(req_id, approver_id):
             else:
                 print(approve_msg, req.staff.id)
         approve_title = u'แจ้งสถานะการอนุมัติ WFH เรื่อง' + req.detail
-        if os.environ["FLASK_ENV"] == "production":
+        if os.environ["FLASK_ENV"] == "development":
             send_mail([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
+            print('The email has been sent.')
         else:
             print([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
         return redirect(url_for('staff.show_wfh_requests_for_approval'))

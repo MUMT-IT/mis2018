@@ -13,7 +13,6 @@ from datetime import datetime, timedelta
 from app.main import get_weekdays
 import numpy as np
 
-
 today = datetime.today()
 
 if today.month >= 10:
@@ -29,20 +28,18 @@ LEAVE_ANNUAL_QUOTA = 10
 tz = timezone('Asia/Bangkok')
 
 staff_group_assoc_table = db.Table('staff_group_assoc',
-                                            db.Column('staff_id', db.ForeignKey('staff_account.id'),
-                                                        primary_key=True),
-                                            db.Column('group_id', db.ForeignKey('staff_special_groups.id'),
-                                                        primary_key=True),
-                                           )
-
+                                   db.Column('staff_id', db.ForeignKey('staff_account.id'),
+                                             primary_key=True),
+                                   db.Column('group_id', db.ForeignKey('staff_special_groups.id'),
+                                             primary_key=True),
+                                   )
 
 seminar_approval_attend_assoc_table = db.Table('seminar_approval_attend_assoc',
-                                    db.Column('attend_id', db.ForeignKey('staff_seminar_attends.id'),
-                                              primary_key=True),
-                                    db.Column('approval_id', db.ForeignKey('staff_seminar_approvals.id'),
-                                              primary_key=True),
-                                    )
-
+                                               db.Column('attend_id', db.ForeignKey('staff_seminar_attends.id'),
+                                                         primary_key=True),
+                                               db.Column('approval_id', db.ForeignKey('staff_seminar_approvals.id'),
+                                                         primary_key=True),
+                                               )
 
 
 def local_datetime(dt):
@@ -194,15 +191,15 @@ class StaffPersonalInfo(db.Model):
                             total_leaves.append(req.total_leave_days)
 
         return sum(total_leaves)
-        #return len([req for req in self.staff_account.leave_requests if req.quota_id == leave_quota_id])
+        # return len([req for req in self.staff_account.leave_requests if req.quota_id == leave_quota_id])
 
     def get_total_pending_leaves_request(self, leave_quota_id, start_date=None, end_date=None):
         total_leaves = []
         for req in self.staff_account.leave_requests:
             if req.quota.id == leave_quota_id:
                 if start_date is None or end_date is None and not req.cancelled_at \
-                        and not req.get_approved and not req.get_unapproved :
-                        total_leaves.append(req.total_leave_days)
+                        and not req.get_approved and not req.get_unapproved:
+                    total_leaves.append(req.total_leave_days)
                 else:
                     if req.start_datetime >= start_date and req.end_datetime <= end_date \
                             and not req.cancelled_at and not req.get_approved and not req.get_unapproved:
@@ -362,7 +359,7 @@ class StaffLeaveRequest(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     leave_quota_id = db.Column('quota_id', db.ForeignKey('staff_leave_quota.id'))
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
-    #TODO: fixed offset-naive and offset-timezone comparison error.
+    # TODO: fixed offset-naive and offset-timezone comparison error.
     start_datetime = db.Column('start_date', db.DateTime(timezone=True))
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
     start_travel_datetime = db.Column('start_travel_datetime', db.DateTime(timezone=True))
@@ -371,7 +368,7 @@ class StaffLeaveRequest(db.Model):
     reason = db.Column('reason', db.String())
     contact_address = db.Column('contact_address', db.String())
     contact_phone = db.Column('contact_phone', db.String())
-    #TODO: travel_datetime = db.Column('travel_datetime', db.DateTime(timezone=True))
+    # TODO: travel_datetime = db.Column('travel_datetime', db.DateTime(timezone=True))
     staff = db.relationship('StaffAccount', backref=db.backref('leave_requests'), foreign_keys=[staff_account_id])
     quota = db.relationship('StaffLeaveQuota', backref=db.backref('leave_requests'))
 
@@ -385,13 +382,16 @@ class StaffLeaveRequest(db.Model):
     cancelled_by = db.relationship('StaffAccount', foreign_keys=[cancelled_account_id])
     last_cancel_requested_at = db.Column('last_cancel_requested_at', db.DateTime(timezone=True))
 
+    def get_approved_by(self, approver):
+        return [a for a in self.approvals if a.approver.account == approver]
+
     @property
     def get_approved(self):
         return [a for a in self.approvals if a.is_approved]
 
     @property
     def get_unapproved(self):
-        return [a for a in self.approvals if a.is_approved==False]
+        return [a for a in self.approvals if a.is_approved is False]
 
     def __str__(self):
         return "{}: {}".format(self.id, self.staff.email)
@@ -453,6 +453,7 @@ class StaffLeaveApproval(db.Model):
 
 class StaffPersonalInfoSchema(ma.ModelSchema):
     org = fields.Nested(OrgSchema)
+
     class Meta:
         model = StaffPersonalInfo
 
@@ -468,6 +469,7 @@ class StaffLeaveTypeSchema(ma.ModelSchema):
 
 class StaffLeaveQuotaSchema(ma.ModelSchema):
     leave_type = fields.Nested(StaffLeaveTypeSchema)
+
     class Meta:
         model = StaffLeaveQuota
 
@@ -475,8 +477,10 @@ class StaffLeaveQuotaSchema(ma.ModelSchema):
 class StaffLeaveRequestSchema(ma.ModelSchema):
     staff = fields.Nested(StaffAccountSchema)
     quota = fields.Nested(StaffLeaveQuotaSchema)
+
     class Meta:
         model = StaffLeaveRequest
+
     duration = fields.Float()
 
 
@@ -486,7 +490,7 @@ class StaffWorkFromHomeRequest(db.Model):
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     start_datetime = db.Column('start_date', db.DateTime(timezone=True))
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
-    created_at = db.Column('created_at',db.DateTime(timezone=True),
+    created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
     contact_phone = db.Column('contact_phone', db.String())
     # want to change name detail to be topic
@@ -513,7 +517,7 @@ class StaffWorkFromHomeRequest(db.Model):
 class StaffWorkFromHomeJobDetail(db.Model):
     __tablename__ = 'staff_work_from_home_job_detail'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    #want to change topic to activity and activity to comment(for Approver)
+    # want to change topic to activity and activity to comment(for Approver)
     activity = db.Column('topic', db.String(), nullable=False, unique=False)
     status = db.Column('status', db.Boolean())
     wfh_id = db.Column('wfh_id', db.ForeignKey('staff_work_from_home_requests.id'))
@@ -566,8 +570,10 @@ class StaffWorkFromHomeCheckedJob(db.Model):
 
 class StaffWorkFromHomeRequestSchema(ma.ModelSchema):
     staff = fields.Nested(StaffAccountSchema)
+
     class Meta:
         model = StaffWorkFromHomeRequest
+
     duration = fields.Int()
 
 
@@ -576,7 +582,7 @@ class StaffSeminar(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     start_datetime = db.Column('start_date', db.DateTime(timezone=True))
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
-    created_at = db.Column('created_at',db.DateTime(timezone=True),
+    created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
     topic_type = db.Column('topic_type', db.String())
     topic = db.Column('topic', db.String())
@@ -596,7 +602,7 @@ class StaffSeminarAttend(db.Model):
     seminar_id = db.Column('seminar_id', db.ForeignKey('staff_seminar.id'))
     start_datetime = db.Column('start_date', db.DateTime(timezone=True))
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
-    created_at = db.Column('created_at',db.DateTime(timezone=True),
+    created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
     role = db.Column('role', db.String())
     registration_fee = db.Column('registration_fee', db.Float())
@@ -627,23 +633,23 @@ class StaffSeminarApproval(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     seminar_attend_id = db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id'))
     seminar_attend = db.relationship('StaffSeminarAttend', backref=db.backref('seminar_approval')
-                                     ,foreign_keys=[seminar_attend_id])
+                                     , foreign_keys=[seminar_attend_id])
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     is_approved = db.Column('is_approved', db.Boolean(), default=True)
     approval_comment = db.Column('approval_comment', db.String())
     final_approver_account_id = db.Column('final_approver_account_id', db.ForeignKey('staff_account.id'))
     recorded_account_id = db.Column('recorded_account_id', db.ForeignKey('staff_account.id'))
-    created_at = db.Column('created_at',db.DateTime(timezone=True),
+    created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
     approver = db.relationship('StaffAccount', backref=db.backref('approval_approver'),
-                                foreign_keys=[final_approver_account_id])
+                               foreign_keys=[final_approver_account_id])
     recorded_by = db.relationship('StaffAccount', backref=db.backref('approval_recorded_by'),
-                              foreign_keys=[recorded_account_id])
+                                  foreign_keys=[recorded_account_id])
     attend = db.relationship('StaffSeminarAttend',
                              secondary=seminar_approval_attend_assoc_table,
                              backref=db.backref('seminar_approval_attendee', lazy='dynamic'))
-    
-    
+
+
 class StaffWorkLogin(db.Model):
     __tablename__ = 'staff_work_logins'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -684,7 +690,6 @@ class StaffShiftRole(db.Model):
     def __str__(self):
         return self.role
 
-
 # class StaffSapNo(db.Model):
 #     __tablename__ = 'staff_sap_no'
 #     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -693,6 +698,3 @@ class StaffShiftRole(db.Model):
 #     created_at = db.Column('created_at',db.DateTime(timezone=True),
 #                            default=datetime.now())
 #     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
-
-
-
