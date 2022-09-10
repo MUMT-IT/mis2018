@@ -900,8 +900,8 @@ def show_leave_approval_info_download():
     df = DataFrame(records)
     summary = df.pivot_table(index='name', columns='leave_type', aggfunc=len, fill_value=0)
     summary.to_excel('leave_summary.xlsx')
-    flash(u'ดาวน์โหลดไฟล์เรียบร้อยแล้ว ชื่อไฟล์ leave_summary.xlsx')
-    return redirect(url_for('staff.show_leave_approval_info'))
+    flash(u'ดาวน์โหลดไฟล์เรียบร้อยแล้ว ชื่อไฟล์ leave_summary.xlsx', 'success')
+    return send_from_directory(os.getcwd(), 'leave_summary.xlsx')
 
 
 @staff.route('/api/leave/requests/linenotified')
