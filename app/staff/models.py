@@ -350,9 +350,11 @@ class StaffLeaveUsedQuota(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     leave_type_id = db.Column('leave_type_id', db.ForeignKey('staff_leave_types.id'))
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    fiscal_year = db.Column('fiscal_year', db.Integer())
     used_days = db.Column('used_days', db.Float())
     quota_days = db.Column('quota_days', db.Float())
-
+    staff = db.relationship('StaffAccount', backref=db.backref('leave_used_quota'), foreign_keys=[staff_account_id])
+    leave_type = db.relationship('StaffLeaveType', backref=db.backref('type_used_quota'))
 
 class StaffLeaveRequest(db.Model):
     __tablename__ = 'staff_leave_requests'
@@ -626,9 +628,13 @@ class StaffSeminarAttend(db.Model):
     contact_no = db.Column('contact_no', db.Integer())
     head_account_id = db.Column('head_account_id', db.ForeignKey('staff_account.id'))
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    document_no = db.Column('document_no', db.String())
     staff = db.relationship('StaffAccount', foreign_keys=[staff_account_id],
                             backref=db.backref('seminar_attends', lazy='dynamic'))
     seminar = db.relationship('StaffSeminar', backref=db.backref('attends'), foreign_keys=[seminar_id])
+
+    def __str__(self):
+        return u'{}'.format(self.seminar)
 
 
 class StaffSeminarApproval(db.Model):
