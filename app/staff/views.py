@@ -76,13 +76,20 @@ def send_mail(recp, title, message):
 @login_required
 def index():
     new_leave_requests = 0
+    new_wfh_requests = 0
     for requester in current_user.leave_approvers:
         if requester.is_active:
             for req in StaffLeaveRequest.query.filter_by(staff=requester.requester):
                 if len(req.get_approved_by(current_user)) == 0 and req.cancelled_at is None:
                     if (datetime.today().date() - req.created_at.date()).days < 60:
                         new_leave_requests += 1
-    return render_template('staff/index.html', new_leave_requests=new_leave_requests)
+    for requester in current_user.wfh_approvers:
+        if requester.is_active:
+            for req in StaffWorkFromHomeRequest.query.filter_by(staff=requester.requester):
+                if len(req.get_approved_by(current_user)) == 0 and req.cancelled_at is None:
+                    if (datetime.today().date() - req.created_at.date()).days < 60:
+                        new_wfh_requests += 1
+    return render_template('staff/index.html', new_leave_requests=new_leave_requests, new_wfh_requests=new_wfh_requests)
 
 
 @staff.route('/person/<int:account_id>')

@@ -500,6 +500,9 @@ class StaffWorkFromHomeRequest(db.Model):
     staff = db.relationship('StaffAccount', backref=db.backref('wfh_requests'))
     notify_to_line = db.Column('notify_to_line', db.Boolean(), default=False)
 
+    def get_approved_by(self, approver):
+        return [a for a in self.wfh_approvals if a.approver.account == approver]
+
     @property
     def duration(self):
         delta = self.end_datetime - self.start_datetime
