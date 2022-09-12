@@ -26,29 +26,6 @@
                 <div class="column">
                     <div class="field">
                         <div class="field">
-                            <label class="label">เลขที่หนังสือ</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="control">
-                                <div class="field">
-                                    อว.
-                                    <div class="control">
-                                        <input class="input"
-                                               name="document_id" type="text"
-                                               required>
-                                    </div>
-                                    /
-                                    <div class="control">
-                                        <input class="input"
-                                               name="document_no" type="text"
-                                               required>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <div class="field">
                             <label class="label">ผู้อนุมัติคนสุดท้าย</label>
                         </div>
                         <div class="field-body">
@@ -93,8 +70,53 @@
                         </b-datepicker>
                     </b-field>
                     <input type="hidden" name="update_at" v-model="formattedStartDateTime">
+                    <div class="columns">
+                        <div class="column">
+                            <label class="label">ค่าใช้จ่าย</label>
+                            <table class="table is-striped">
+                                <thead>
+                                <th>ค่าลงทะเบียน</th>
+                                <th>ค่าที่พัก</th>
+                                <th>ค่าน้ำมัน</th>
+                                <th>ค่ารถไฟ</th>
+                                <th>ค่า Taxi</th>
+                                <th>ค่าตั๋วเครื่องบิน</th>
+                                <th>ค่าธนนมเนียมการโอนเงิน</th>
+                                <th>รวมทั้งสิ้น</th>
+                                </thead>
+                                <tbody>
+                                <tr>
+                                    <td>
+                                        {{ attend.registration_fee }}
+                                    </td>
+                                    <td>
+                                        {{ attend.accommodation_cost }}
+                                    </td>
+                                    <td>
+                                        {{ attend.fuel_cost }}
+                                    </td>
+                                    <td>
+                                        {{ attend.train_ticket_cost }}
+                                    </td>
+                                    <td>
+                                        {{ attend.taxi_cost }}
+                                    </td>
+                                    <td>
+                                        {{ attend.flight_ticket_cost }}
+                                    </td>
+                                    <td>
+                                        {{ attend.transaction_fee }}
+                                    </td>
+                                    <td>
+                                        {{ attend.budget }}
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-                <div class="column box">
+                <div class="column box" id="edit_payment">
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
                             <label class="label">ค่าลงทะเบียน</label>
@@ -209,7 +231,7 @@
                     </div>
                 </div>
             </div>
-            <div class="columns">
+            <div class="columns" id="attendees">
                 <div class="column">
                     <label class="label">รายชื่อผู้ที่เข้าร่วมกิจกรรมนี้</label>
                     <table class="table is-striped" id="attendTable">
@@ -319,11 +341,16 @@
     });
     $(document).ready(()=>{
         $('#other_approval').hide()
+        $('#edit_payment').hide()
         $('#approval').change(e=>{
             if ($('#approval').val() === "") {
                 $('#other_approval').show()
+                $('#attendees').hide()
+                $('#edit_payment').show()
             } else {
                 $('#other_approval').hide()
+                $('#attendees').show()
+                $('#edit_payment').hide()
             }
         })
     })
