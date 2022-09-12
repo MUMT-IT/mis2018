@@ -75,7 +75,21 @@ def send_mail(recp, title, message):
 @staff.route('/')
 @login_required
 def index():
-    return render_template('staff/index.html')
+    new_leave_requests = 0
+    new_wfh_requests = 0
+    for requester in current_user.leave_approvers:
+        if requester.is_active:
+            for req in StaffLeaveRequest.query.filter_by(staff=requester.requester):
+                if len(req.get_approved_by(current_user)) == 0 and req.cancelled_at is None:
+                    if (datetime.today().date() - req.created_at.date()).days < 60:
+                        new_leave_requests += 1
+    for requester in current_user.wfh_approvers:
+        if requester.is_active:
+            for req in StaffWorkFromHomeRequest.query.filter_by(staff=requester.requester):
+                if len(req.get_approved_by(current_user)) == 0 and req.cancelled_at is None:
+                    if (datetime.today().date() - req.created_at.date()).days < 60:
+                        new_wfh_requests += 1
+    return render_template('staff/index.html', new_leave_requests=new_leave_requests, new_wfh_requests=new_wfh_requests)
 
 
 @staff.route('/person/<int:account_id>')
@@ -886,8 +900,8 @@ def show_leave_approval_info_download():
     df = DataFrame(records)
     summary = df.pivot_table(index='name', columns='leave_type', aggfunc=len, fill_value=0)
     summary.to_excel('leave_summary.xlsx')
-    flash(u'ดาวน์โหลดไฟล์เรียบร้อยแล้ว ชื่อไฟล์ leave_summary.xlsx')
-    return redirect(url_for('staff.show_leave_approval_info'))
+    flash(u'ดาวน์โหลดไฟล์เรียบร้อยแล้ว ชื่อไฟล์ leave_summary.xlsx', 'success')
+    return send_from_directory(os.getcwd(), 'leave_summary.xlsx')
 
 
 @staff.route('/api/leave/requests/linenotified')
@@ -1546,12 +1560,12 @@ def wfh_approve(req_id, approver_id):
         req = StaffWorkFromHomeRequest.query.get(req_id)
         if approval.is_approved is True:
             approve_msg = u'การขออนุมัติWFHเรื่อง {} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
-                            .format(req.detail, current_user.personal_info.fullname
-                                    ,url_for( "staff.show_wfh_approval",request_id=req_id,_external=True))
+                            .format(req.detail, current_user.personal_info.fullname,
+                                    url_for("staff.show_wfh_approval", request_id=req_id, _external=True))
         else:
             approve_msg = u'การขออนุมัติ WFH เรื่อง {} ไม่ได้รับการอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
-                            .format(req.detail, current_user.personal_info.fullname
-                                    ,url_for( "staff.show_wfh_approval",request_id=req_id,_external=True))
+                            .format(req.detail, current_user.personal_info.fullname,
+                                    url_for("staff.show_wfh_approval", request_id=req_id, _external=True))
         if req.notify_to_line and req.staff.line_id:
             if os.environ["FLASK_ENV"] == "production":
                 line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=approve_msg))
