@@ -7,25 +7,25 @@ from app.staff.models import StaffAccount
 class ProcurementDetail(db.Model):
     __tablename__ = 'procurement_details'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column('name', db.String(255), info={'label': u'ชื่อครุภัณฑ์'})
+    name = db.Column('name', db.String(), nullable=False, info={'label': u'ชื่อครุภัณฑ์'})
     image = db.Column('image', db.Text(), info={'label': u'รูปภาพ'})
     qrcode = db.Column('qrcode', db.Text(), info={'label': 'QR Code'})
-    procurement_no = db.Column('procurement_no', db.String(), info={'label': u'เลขครุภัณฑ์'})
+    procurement_no = db.Column('procurement_no', db.String(), unique=True, nullable=False, info={'label': u'เลขครุภัณฑ์'})
     document_no = db.Column('document_no', db.String(), info={'label': u'เอกสารสั่งซื้อเลขที่'})
-    erp_code = db.Column('erp_code', db.String(), info={'label': u'รหัส ERP'})
+    erp_code = db.Column('erp_code', db.String(), info={'label': u'รหัส ERP/Inventory Number'})
     serial_no = db.Column('serial_no', db.String(), info={'label': u'Serial Number'})
-    purchasing_type = db.Column('purchasing_type', db.String(), info={'label': u'จัดซื้อด้วยเงิน',
-                                                    'choices': [(c, c) for c in
-                                                                [u'งบประมาณ', u'รายได้คณะ', u'เงินบริจาค', u'อื่นๆ']]})
     bought_by = db.Column('bought_by', db.String(), info={'label': u'วิธีการจัดซื้อ', 'choices': [(c, c) for c in
                                                                                   [u'ตกลงราคา', u'สอบราคา',
                                                                                    u'ประกวดราคา', u'วิธีพิเสษ',
                                                                                    u'รับบริจาค', u'e-Auction',
                                                                                    u'วิธีคัดเลือก', u'อื่นๆ']]})
-    budget_year = db.Column('budget_year', db.String(), info={'label': u'ปีงบประมาณ'})
-    price = db.Column('price', db.String(), info={'label': u'ราคา'})
+    budget_year = db.Column('budget_year', db.String(), nullable=False, info={'label': u'ปีงบประมาณ'})
+    price = db.Column('price', db.String(), info={'label': 'Original value'})
     received_date = db.Column('received_date', db.Date(), info={'label': u'วันที่ได้รับ'})
-    available = db.Column('available', db.String(), nullable=False, info={'label': u'ความสามารถการใช้งาน'})
+    available = db.Column('available', db.String(), nullable=False, info={'label': u'สภาพของสินทรัพย์'})
+    purchasing_type_id = db.Column('purchasing_type_id', db.ForeignKey('procurement_purchasing_types.id'))
+    purchasing_type = db.relationship('ProcurementPurchasingType',
+                               backref=db.backref('types', lazy='dynamic'))
     category_id = db.Column('category_id', db.ForeignKey('procurement_categories.id'))
     category = db.relationship('ProcurementCategory',
                                backref=db.backref('items', lazy='dynamic'))
@@ -37,19 +37,32 @@ class ProcurementDetail(db.Model):
     size = db.Column('size', db.String(), info={'label': u'ขนาด'})
     comment = db.Column('comment', db.Text(), info={'label': u'หมายเหตุ'})
     responsible_person = db.Column('responsible_person', db.String(), info={'label': u'ผู้ดูแลครุภัณฑ์'})
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'), nullable=False)
+    staff = db.relationship(StaffAccount)
     org_id = db.Column('org_id', db.ForeignKey('orgs.id'))
     org = db.relationship('Org', backref=db.backref('procurements',
                                                     lazy='dynamic',
                                                     cascade='all, delete-orphan'))
+    sub_number = db.Column('sub_number', db.Integer(), info={'label': 'Sub Number'})
+    curr_acq_value = db.Column('curr_acq_value', db.Float(), info={'label': u'มูลค่าที่ได้มา'})
 
     def __str__(self):
         return u'{}: {}'.format(self.name, self.procurement_no)
 
 
+class ProcurementPurchasingType(db.Model):
+    __tablename__ = 'procurement_purchasing_types'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    purchasing_type = db.Column('purchasing_type', db.String(), info={'label': u'จัดซื้อด้วยเงิน',
+                                                                      'choices': [(c, c) for c in
+                                                                                  [u'เงินงบประมาณแผ่นดิน', u'เงินรายได้ส่วนงาน']]})
+    fund = db.Column('fund', db.Integer(), info={'label': u'แหล่งเงิน'})
+
+
 class ProcurementCategory(db.Model):
     __tablename__ = 'procurement_categories'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    category = db.Column(db.String(255), nullable=False)
+    category = db.Column(db.String(), nullable=False)
 
     def __str__(self):
         return self.category
