@@ -35,6 +35,11 @@ staff_group_assoc_table = db.Table('staff_group_assoc',
                                                         primary_key=True),
                                            )
 
+staff_seminar_mission_assoc_table = db.Table('staff_seminar_mission_assoc',
+                                   db.Column('seminar_id', db.ForeignKey('staff_seminar.id')),
+                                   db.Column('seminar_mission_id', db.ForeignKey('staff_seminar_missions.id')),
+                                   )
+
 
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
@@ -573,7 +578,6 @@ class StaffSeminar(db.Model):
                            default=datetime.now())
     topic_type = db.Column('topic_type', db.String())
     topic = db.Column('topic', db.String())
-    mission = db.Column('mission', db.String())
     organize_by = db.Column('organize_by', db.String())
     location = db.Column('location', db.String())
     is_online = db.Column('is_online', db.Boolean(), default=False)
@@ -581,6 +585,12 @@ class StaffSeminar(db.Model):
 
     def __str__(self):
         return u'{}'.format(self.topic)
+
+
+class StaffSeminarMission(db.Model):
+    __tablename__ = 'staff_seminar_missions'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    mission = db.Column('mission', db.String())
 
 
 class StaffSeminarAttend(db.Model):
@@ -610,6 +620,7 @@ class StaffSeminarAttend(db.Model):
     contact_no = db.Column('contact_no', db.Integer())
     head_account_id = db.Column('head_account_id', db.ForeignKey('staff_account.id'))
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    #TODO: deleted document_no
     document_no = db.Column('document_no', db.String())
     staff = db.relationship('StaffAccount', foreign_keys=[staff_account_id],
                             backref=db.backref('seminar_attends', lazy='dynamic'))
