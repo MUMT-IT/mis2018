@@ -46,6 +46,11 @@ staff_seminar_mission_assoc_table = db.Table('staff_seminar_mission_assoc',
                                    db.Column('seminar_mission_id', db.ForeignKey('staff_seminar_missions.id')),
                                    )
 
+staff_seminar_objective_assoc_table = db.Table('staff_seminar_objective_assoc',
+                                             db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id')),
+                                             db.Column('seminar_objective_id', db.ForeignKey('staff_seminar_objectives.id')),
+                                             )
+
 
 def local_datetime(dt):
     bangkok = timezone('Asia/Bangkok')
@@ -590,16 +595,19 @@ class StaffWorkFromHomeRequestSchema(ma.ModelSchema):
 class StaffSeminar(db.Model):
     __tablename__ = 'staff_seminar'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    start_datetime = db.Column('start_date', db.DateTime(timezone=True))
-    end_datetime = db.Column('end_date', db.DateTime(timezone=True))
+    start_datetime = db.Column('start_date', db.DateTime(timezone=True), info={'label': u'วันเริ่มต้น'})
+    end_datetime = db.Column('end_date', db.DateTime(timezone=True), info={'label': u'วันสิ้นสุด'})
     created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
-    topic_type = db.Column('topic_type', db.String())
-    topic = db.Column('topic', db.String())
-    organize_by = db.Column('organize_by', db.String())
-    location = db.Column('location', db.String())
-    is_online = db.Column('is_online', db.Boolean(), default=False)
+    topic_type = db.Column('topic_type', db.String(),
+                           info={'label': u'ประเภท',
+                               'choices': [(c, c) for c in [u'อบรม', u'สัมมนา', u'ประชุม', u'ประชุมวิชาการ']]})
+    topic = db.Column('topic', db.String(), info={'label': u'หัวข้อ'})
+    organize_by = db.Column('organize_by', db.String(), info={'label': u'หน่วยงานที่จัด'})
+    location = db.Column('location', db.String(), info={'label': u'สถานที่จัด'})
+    is_online = db.Column('is_online', db.Boolean(), default=False, info={'label': u'จัดแบบ Online'})
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    missions = db.relationship('StaffSeminarMission', secondary=staff_seminar_mission_assoc_table)
 
     def __str__(self):
         return u'{}'.format(self.topic)
@@ -638,14 +646,20 @@ class StaffSeminarAttend(db.Model):
     contact_no = db.Column('contact_no', db.Integer())
     head_account_id = db.Column('head_account_id', db.ForeignKey('staff_account.id'))
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
-    #TODO: deleted document_no
     document_no = db.Column('document_no', db.String())
     staff = db.relationship('StaffAccount', foreign_keys=[staff_account_id],
                             backref=db.backref('seminar_attends', lazy='dynamic'))
     seminar = db.relationship('StaffSeminar', backref=db.backref('attends'), foreign_keys=[seminar_id])
+    objectives = db.relationship('StaffSeminarObjective', secondary=staff_seminar_objective_assoc_table)
 
     def __str__(self):
         return u'{}'.format(self.seminar)
+
+
+class StaffSeminarObjective(db.Model):
+    __tablename__ = 'staff_seminar_objectives'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    objective = db.Column('objective', db.String())
 
 
 class StaffSeminarApproval(db.Model):
