@@ -1,86 +1,129 @@
 {% extends "base.html" %}
 {% include "nav.html" %}
 {% block head %}
-{{ super() }}
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.12.1/css/dataTables.bulma.min.css">
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css"
+          href="https://cdn.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
 {% endblock %}
 {% block page_content %}
-<section class="section">
-    {% include "messages.html" %}
-    <div class="container">
-        <div class="columns">
-            <div class="column has-text-left">
-                <h1 class="title">QR Code List</h1>
+    <section class="section">
+        {% include "messages.html" %}
+        <div class="container">
+            <div class="columns">
+                <div class="column has-text-left">
+                    <h1 class="title">ข้อมูล QR Code ครุภัณฑ์</h1>
+                </div>
+                            <div class="buttons is-centered">
+                                <a href="" class="button is-warning">
+                                    <span class="icon">
+                                        <i class="fas fa-print"></i>
+                                    </span>
+                                    <span>พิมพ์ที่เลือก</span>
+                                </a>
+                            </div>
+                {#            <div class="buttons is-centered">#}
+                {#                <a href="{{ url_for('procurement.export_all_qrcode_pdf', procurement_no=procurement_no) }}" class="button is-warning">#}
+                {#                    <span class="icon">#}
+                {#                        <i class="fas fa-print"></i>#}
+                {#                    </span>#}
+                {#                    <span>พิมพ์ทั้งหมด</span>#}
+                {#                </a>#}
+                {#            </div>#}
             </div>
-            <div class="buttons is-centered">
-                <a href="{{ url_for('procurement.export_all_qrcode_pdf', procurement_no=procurement_no) }}" class="button is-info">
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped" id="QRTable">
+                        <thead>
+                        <th></th>
+                        <th>รายการ</th>
+                        <th>รหัสครุภัณฑ์</th>
+                        <th>ERP</th>
+                        <th>ปีงบประมาณ</th>
+                        <th>วันที่ได้รับ</th>
+                        <th>จัดซื้อด้วยเงิน</th>
+                        <th>สถานะ</th>
+                        <th>Print</th>
+                        <th>แก้ไข</th>
+                        <th>Scan</th>
+                        </thead>
+                        <tbody>
+                        {% for record in qrcode_list %}
+                            <tr>
+                            <td class="field">
+                                <input class="is-checkradio is-medium" id="pro_no{{ record.id }}" type="checkbox"
+                                       name="pro_no{{ record.id }}">
+                                <label for="pro_no{{ record.id }}"></label>
+                                {% if record in record.qrcode_list %}
+                                    checked
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ record["name"] }}
+                            </td>
+                            <td>
+                                {{ record["procurement_no"] }}
+                            </td>
+                            <td>
+                                {{ record["erp_code"] }}
+
+                            </td>
+                            <td>
+                                {{ record["budget_year"] }}
+                            </td>
+                            <td>
+                                {{ record["received_date"] }}
+                            </td>
+                            <td>
+                                {{ record["bought_by"] }}
+                            </td>
+                            <td>
+                                {{ record["available"] }}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('procurement.export_qrcode_pdf', procurement_id=record.id) }}">
+                                    <i class="fas fa-print"></i></a>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('procurement.edit_procurement', procurement_id=record.id) }}">
+                                    <i class="fas fa-edit"></i></a>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('procurement.qrcode_scan', procurement_id=record.id) }}"
+                                   class="button is-warning">
                     <span class="icon">
                         <i class="fas fa-print"></i>
                     </span>
-                    <span>พิมพ์ทั้งหมด</span>
-                </a>
+                                    <span>Scan Me</span>
+                                </a>
+                                <a href="{{ url_for('procurement.view_procurement_on_scan', procurement_no=record.procurement_no) }}"
+                                   class="button is-info">
+                                    <span>ปุ่มScanดูข้อมูล</span>
+                                </a>
+                            </td>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
-        <div class="columns">
-            <div class="column">
-                <table id="table" class="table is-striped is-fullwidth">
-                    <thead>
-                        <th>รหัสครุภัณฑ์</th>
-                        <th>ชื่อครุภัณฑ์</th>
-                        <th>ปีงบประมาณที่ได้มา</th>
-                        <th>ผู้รับผิดชอบ</th>
-                        <th>Print</th>
-                        <th>แก้ไข</th>
-                    </thead>
-                    <tbody>
-                    {% for record in qrcode_list %}
-                    <tr>
-                        <td>
-                            {{ record["procurement_no"] }}
-                        </td>
-                        <td>
-                            {{ record["name"] }}
-                        </td>
-                        <td>
-                            {{ record["budget_year"] }}
-                        </td>
-                        <td>
-                            {{ record["responsible_person"] }}
-                        </td>
-                        <td>
-                             <a href="{{ url_for('procurement.export_qrcode_pdf', procurement_id=record.id) }}">
-                                <i class="fas fa-print"></i></a>
-                        </td>
-                        <td>
-                            <a href="{{ url_for('procurement.edit_procurement', procurement_id=record.id) }}">
-                                <i class="fas fa-edit"></i></a>
-                        </td>
-                    {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="columns">
-            <div class="column">
-                <a href="{{ url_for('procurement.landing') }}" class="button is-rounded is-info is-light">
+            <div class="columns">
+                <div class="column">
+                    <a href="{{ url_for('procurement.landing') }}" class="button is-rounded is-info is-light">
                     <span class="icon">
                         <i class="fas fa-arrow-left"></i>
                     </span>
-                    <span>กลับ</span>
-                </a>
+                        <span>กลับ</span>
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
-{% block script %}
+{% block scripts %}
     {{ super() }}
-{#    <script type="text/javascript" src="https://code.jquery.com/jquery-3.5.1.js"></script>#}
-    <script type="text/javascript" src="https://cdn.datatables.net/1.12.1/js/jquery.dataTables.min.js"></script>
-    <script type="text/javascript" src="https://cdn.datatables.net/1.12.1/js/dataTables.bulma.min.js"></script>
     <script>
-        $(document).ready(function(){
-            $('#table').DataTable();
+        $(document).ready(function () {
+            $('#QRTable').DataTable();
         });
     </script>
 {% endblock %}
