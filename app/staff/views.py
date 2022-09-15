@@ -24,7 +24,7 @@ from flask_mail import Message
 from flask_admin import BaseView, expose
 from itsdangerous import TimedJSONWebSignatureSerializer
 import qrcode
-
+from app.staff.forms import StaffSeminarForm
 from app.roles import admin_permission, hr_permission
 
 from ..comhealth.views import allowed_file
@@ -320,6 +320,7 @@ def request_for_leave(quota_id=None):
                         if is_used_quota:
                             new_used=is_used_quota.used_days+req.total_leave_days
                             is_used_quota.used_days = new_used
+                            is_used_quota.quota_limit = quota_limit
                             db.session.add(is_used_quota)
                             db.session.commit()
                         else:
@@ -2374,6 +2375,11 @@ def seminar_add_approval(attend_id):
         db.session.add(approval)
         db.session.commit()
         attends = StaffSeminarAttend.query.get(attend_id)
+        if form.get('document_id'):
+            document_id = form.get('document_id')
+            document_no = form.get('document_no')
+            document = u'อว.{}/{}'.format(document_id, document_no)
+            attends.document_no=document
         attends.registration_fee=form.get('registration_fee')
         attends.budget_type=form.get('budget_type')
         attends.budget=form.get('budget')
@@ -2451,32 +2457,29 @@ def seminar_add_approval(attend_id):
 @hr_permission.require()
 @login_required
 def create_seminar():
-    if request.method == 'POST':
-        form = request.form
-        start_datetime = datetime.strptime(form.get('start_datetime'), '%d/%m/%Y %H:%M')
-        end_datetime = datetime.strptime(form.get('end_datetime'), '%d/%m/%Y %H:%M')
-        timedelta = end_datetime - start_datetime
-        if timedelta.days < 0 or timedelta.seconds == 0:
+    form = StaffSeminarForm()
+    if form.start_datetime.data:
+        print(form.start_datetime.data)
+    if form.validate_on_submit():
+        seminar = StaffSeminar()
+        form.populate_obj(seminar)
+        timedelta = form.end_datetime.data - form.start_datetime.data
+        if timedelta.days < 0 and timedelta.seconds == 0:
             flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
         else:
-            seminar = StaffSeminar(
-                start_datetime=tz.localize(start_datetime),
-                end_datetime=tz.localize(end_datetime)
-            )
-            seminar.topic_type = form.get('topic_type')
-            seminar.topic = form.get('topic')
-            seminar.mission = form.get('mission')
-            seminar.organize_by = form.get('organize_by')
-            seminar.location = form.get('location')
-            seminar.is_online = True if form.getlist("online") else False
+            seminar.start_datetime = tz.localize(form.start_datetime.data),
+            seminar.end_datetime = tz.localize(form.end_datetime.data)
             db.session.add(seminar)
             db.session.commit()
             flash(u'เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
-            if hr_permission.can():
-                return redirect(url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id))
-            else:
-                return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar.id))
-    return render_template('staff/seminar_create_event.html')
+        if hr_permission.can():
+            return redirect(url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id))
+        else:
+            return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar.id))
+    else:
+        for err in form.errors:
+            flash('{}: {}'.format(err, form.errors[err]), 'danger')
+    return render_template('staff/seminar_create_event.html', form=form)
 
 
 @staff.route('/seminar/add-attend/for-hr/<int:seminar_id>')
