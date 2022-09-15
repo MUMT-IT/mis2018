@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% include "procurement/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h3 class="title is-3">รายละเอียดครุภัณฑ์</h3>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-two-thirds is-offset-2">
+                    <div class="card">
+                        <label class="label">Cost Center:</label>
+                        <label class="label">รหัส ERP: {{ item.erp_code }}</label>
+                        <label class="label">ชื่อครุภัณฑ์: {{ item.name }}</label>
+                        <label class="label">เลขครุภัณฑ์: {{ item.procurement_no }}</label>
+                        <label class="label">รุ่น: {{ item.model }}</label>
+                        <label class="label">ยี่ห้อ: {{ item.maker }}</label>
+                        <label class="label">Serial Number: {{ item.serial_no }}</label>
+                        <label class="label">สถานที่ตั้ง: </label>
+                        <label class="label">ปีงบประมาณ: {{ item.budget_year }}</label>
+                        <label class="label">จัดซื้อด้วยเงิน: </label>
+                        <label class="label">ราคา: {{ item.price }}</label>
+                        <label class="label">วันที่ได้รับ: {{ item.received_date }}</label>
+                        <label class="label">สภาพของสินทรัพย์: {{ item.available }}</label>
+                        <label class="label">ประกัน: {{ item.guarantee }}</label>
+                        <label class="label">วันที่เริ่มประกัน: {{ item.start_guarantee_date }}</label>
+                        <label class="label">วันที่สิ้นสุดประกัน: {{ item.end_guarantee_date }}</label>
+                        <a href="{{ url_for('procurement.view_procurement') }}" class="button is-light">กลับ</a>
+                        <a href="{{ url_for('procurement.edit_procurement', procurement_id=item.id) }}"
+                           class="button is-danger">แก้ไข</a>
+                        <a href=""
+                           class="button is-success">ตรวจสอบ</a>
+                        <a href=""
+                           class="button is-warning">อัพเดต</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
