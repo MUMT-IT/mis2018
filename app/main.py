@@ -264,6 +264,8 @@ admin.add_views(ModelView(StaffSpecialGroup, db.session, category='Staff'))
 admin.add_views(ModelView(StaffShiftSchedule, db.session, category='Staff'))
 admin.add_views(ModelView(StaffShiftRole, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminarApproval, db.session, category='Staff'))
+admin.add_views(ModelView(StaffSeminarMission, db.session, category='Staff'))
+admin.add_views(ModelView(StaffSeminarObjective, db.session, category='Staff'))
 
 
 class StaffLeaveApprovalModelView(ModelView):
@@ -704,6 +706,11 @@ def add_update_staff_gsheet():
         db.session.add(account)
         db.session.commit()
         print('{} has been added/updated'.format(account.email))
+
+
+@dbutils.command('update-used-leave-quota')
+def update_leave_used_leave_quota():
+    pass
 
 
 @dbutils.command('update-remaining-leave-quota-2020')
