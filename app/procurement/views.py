@@ -3,9 +3,10 @@ import cStringIO
 import os, requests
 from base64 import b64decode
 
+import pandas
 from flask import render_template, request, flash, redirect, url_for, send_file
 from flask_login import current_user, login_required
-from reportlab.lib.units import mm
+from reportlab.lib.units import mm, cm
 
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
@@ -24,11 +25,13 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 
+from ..main import dbutils, get_credential, csrf
 
 style_sheet = getSampleStyleSheet()
 style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
 style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
+
 
 # Upload images for Google Drive
 
@@ -324,15 +327,15 @@ def export_qrcode_pdf(procurement_id):
         canvas.restoreState()
 
     doc = SimpleDocTemplate("app/qrcode.pdf",
-                            rightMargin=10,
-                            leftMargin=10,
-                            topMargin=10,
-                            bottomMargin=10,
-                            pagesize=(480, 480)
+                            rightMargin=7,
+                            leftMargin=5,
+                            topMargin=35,
+                            bottomMargin=0,
+                            pagesize=(170, 150)
                             )
     data = []
     if not procurement.qrcode:
-        qr = qrcode.QRCode(version=1, box_size=20)
+        qr = qrcode.QRCode(version=1, box_size=10)
         qr.add_data(procurement.procurement_no)
         qr.make(fit=True)
         qr_img = qr.make_image()
@@ -346,54 +349,93 @@ def export_qrcode_pdf(procurement_id):
     decoded_img = b64decode(procurement.qrcode)
     img_string = cStringIO.StringIO(decoded_img)
     img_string.seek(0)
-    im = Image(img_string, 100 * mm, 100 * mm, kind='bound')
+    im = Image(img_string, 50 * mm, 30 * mm, kind='bound')
     data.append(im)
-
-    data.append(Paragraph('<para align=center><font size=18>{}<br/><br/></font></para>'
+    data.append(Paragraph('<para align=center leading=10><font size=20>{}</font></para>'
                           .format(procurement.procurement_no.encode('utf-8')),
                           style=style_sheet['ThaiStyle']))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     return send_file('qrcode.pdf')
 
 
-@procurement.route('/qrcode/list/pdf/all')
-def export_all_qrcode_pdf():
-    procurement_query = ProcurementDetail.query.all()
+# @procurement.route('/qrcode/list/pdf/all')
+# def export_all_qrcode_pdf():
+#     procurement_query = ProcurementDetail.query.all()
+#
+#     def all_page_setup(canvas, doc):
+#         canvas.saveState()
+#         # logo_image = ImageReader('app/static/img/mumt-logo.png')
+#         # canvas.drawImage(logo_image, 10, 700, width=250, height=100)
+#         canvas.restoreState()
+#
+#     doc = SimpleDocTemplate("app/all_qrcode.pdf",
+#                             rightMargin=20,
+#                             leftMargin=20,
+#                             topMargin=20,
+#                             bottomMargin=10,
+#                             pagesize=letter
+#                             )
+#     data = []
+#     for procurement in procurement_query:
+#         if not procurement.qrcode:
+#             qr_img = qrcode.make(procurement.procurement_no, box_size=4)
+#             qr_img.save('procurement{}.png'.format(id))
+#             # convert image to base64(text) in database
+#             import base64
+#             with open("procurement_qrcode.png", "rb") as img_file:
+#                 procurement.qrcode = base64.b64encode(img_file.read())
+#                 db.session.add(procurement)
+#                 db.session.commit()
+#         else:
+#             # convert base64(text) to image in database
+#             decoded_img = b64decode(procurement.qrcode)
+#             img_string = cStringIO.StringIO(decoded_img)
+#             img_string.seek(0)
+#             im = Image(img_string, 50 * mm, 50 * mm, kind='bound')
+#             data.append(im)
+#
+#         data.append(Paragraph('<para align=center><font size=18>รหัสครุภัณฑ์ / Procurement No: {}<br/><br/></font></para>'
+#                               .format(procurement.procurement_no.encode('utf-8')),
+#                               style=style_sheet['ThaiStyle']))
+#     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+#     return send_file('all_qrcode.pdf')
 
-    def all_page_setup(canvas, doc):
-        canvas.saveState()
-        # logo_image = ImageReader('app/static/img/mumt-logo.png')
-        # canvas.drawImage(logo_image, 10, 700, width=250, height=100)
-        canvas.restoreState()
 
-    doc = SimpleDocTemplate("app/all_qrcode.pdf",
-                            rightMargin=20,
-                            leftMargin=20,
-                            topMargin=20,
-                            bottomMargin=10,
-                            pagesize=letter
-                            )
-    data = []
-    for procurement in procurement_query:
-        if not procurement.qrcode:
-            qr_img = qrcode.make(procurement.procurement_no, box_size=4)
-            qr_img.save('procurement{}.png'.format(id))
-            # convert image to base64(text) in database
-            import base64
-            with open("procurement_qrcode.png", "rb") as img_file:
-                procurement.qrcode = base64.b64encode(img_file.read())
-                db.session.add(procurement)
-                db.session.commit()
-        else:
-            # convert base64(text) to image in database
-            decoded_img = b64decode(procurement.qrcode)
-            img_string = cStringIO.StringIO(decoded_img)
-            img_string.seek(0)
-            im = Image(img_string, 50 * mm, 50 * mm, kind='bound')
-            data.append(im)
+# @dbutils.command('import-procurement-data')
+# def import_procurement_data():
+#     tz = timezone('Asia/Bangkok')
+#
+#     sheetid = '165tgZytipxxy5jY2ZOY5EaBJwxt3ZVRDwaBqggqmccY'
+#     print('Authorizing with Google..')
+#     gc = get_credential(json_keyfile)
+#     wb = gc.open_by_key(sheetid)
+#     sheet = wb.worksheet("all")
+#     df = pandas.DataFrame(sheet.get_all_records())
+#     df
+#     for idx, row in df.iterrows():
+#         cost_center = row['cost_center']
+#         erp_code = row['erp_code']
+#         procurement_no = row['procurement_no']
+#         sub_number = row['sub_number']
+#         fund = row['fund']
+#         original_value = row['original_value']
+#         curr_acq_value = row['curr_acq_value']
+#         crcy = row['crcy']
+#
+#     db.session.add()
+#     db.session.commit()
 
-        data.append(Paragraph('<para align=center><font size=18>รหัสครุภัณฑ์ / Procurement No: {}<br/><br/></font></para>'
-                              .format(procurement.procurement_no.encode('utf-8')),
-                              style=style_sheet['ThaiStyle']))
-    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
-    return send_file('all_qrcode.pdf')
+
+@procurement.route('/scan-qrcode/<int:procurement_id>', methods=['GET', 'POST'])
+@csrf.exempt
+@login_required
+def qrcode_scan(procurement_id):
+    scan_qr = ProcurementDetail.query.get(procurement_id)
+    return render_template('procurement/qr_scanner.html', scan_qr=scan_qr, procurement_id=procurement_id)
+
+
+@procurement.route('/scan-qrcode/info/view/<string:procurement_no>')
+def view_procurement_on_scan(procurement_no):
+    item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first_or_404()
+    return render_template('procurement/view_data_on_scan.html', item=item,
+                           procurement_no=item.procurement_no)
