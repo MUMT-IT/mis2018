@@ -327,6 +327,8 @@ app.register_blueprint(vehicle_blueprint, url_prefix='/vehicle')
 from vehicle_scheduler.models import *
 
 admin.add_views(ModelView(RoomResource, db.session, category='Physicals'))
+admin.add_views(ModelView(RoomComplaintTopic, db.session, category='Physicals'))
+admin.add_views(ModelView(RoomComplaint, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomEvent, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomType, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomAvailability, db.session, category='Physicals'))

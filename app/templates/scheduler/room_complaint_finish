@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Room Complaint Finish{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <h1 class="title is-size-4 has-text-centered">ขอขอบคุณสำหรับข้อเสนอแนะ</h1>
+            </div>
+        </div>
+    </section>
+{% endblock %}

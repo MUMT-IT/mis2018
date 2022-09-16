@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Room Complaint{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <h1 class="title is-size-4 has-text-centered">รายละเอียดข้อเสนอแนะ</h1>
+                <h1 class="subtitle has-text-centered">ห้องหมายเลข {{ room.number }} วิทยาเขต {{ room.location }}</h1>
+                <div class="card">
+                    <div class="card-content">
+                        <form method="post">
+                            {{ form.hidden_tag() }}
+                            <div class="field">
+                                <label class="label">{{ form.topics.label }}</label>
+                                {{ form.topics(class="checkbox") }}
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.note.label }}</label>
+                                <div class="control">
+                                    {{ form.note(class="textarea") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.commenter.label }}</label>
+                                <div class="select">
+                                    {{ form.commenter() }}
+                                </div>
+                            </div>
+                            <div class="buttons is-centered">
+                                <input type="submit" value="Submit" class="button is-success">
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

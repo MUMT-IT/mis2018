@@ -7,9 +7,11 @@ from datetime import datetime
 from dateutil import parser
 from flask import render_template, jsonify, request, flash, redirect, url_for
 from flask_login import login_required, current_user
+
+from .forms import RoomComplaintForm
 from ..main import db
 from . import roombp as room
-from .models import RoomResource, RoomEvent, EventCategory
+from .models import RoomResource, RoomEvent, EventCategory, RoomComplaint
 from ..models import IOCode
 
 tz = pytz.timezone('Asia/Bangkok')
@@ -54,7 +56,7 @@ def get_events():
     if cal_end:
         cal_end = parser.isoparse(cal_end)
     all_events = []
-    for event in RoomEvent.query.filter(RoomEvent.start >= cal_start)\
+    for event in RoomEvent.query.filter(RoomEvent.start >= cal_start) \
             .filter(RoomEvent.end <= cal_end).filter_by(cancelled_at=None):
         # The event object is a dict object with a 'summary' key.
         start = event.start
@@ -278,3 +280,18 @@ def room_reserve(room_id):
         if room:
             return render_template('scheduler/reserve_form.html',
                                    room=room, categories=categories)
+
+
+@room.route('/<int:room_id>/complaint', methods=['GET', 'POST'])
+def file_room_complaint(room_id):
+    room = RoomResource.query.get(room_id)
+    form = RoomComplaintForm()
+    if form.validate_on_submit():
+        new_complaint = RoomComplaint()
+        form.populate_obj(new_complaint)
+        new_complaint.room_id = room_id
+        db.session.add(new_complaint)
+        db.session.commit()
+        flash(u'ขอขอบคุณที่กรุณาเสนอข้อแนะนำและข้อร้องเรียน', 'success')
+        return render_template('scheduler/room_complaint_finish.html')
+    return render_template('scheduler/room_complaint.html', form=form, room=room)
