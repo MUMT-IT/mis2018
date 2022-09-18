@@ -23,7 +23,8 @@ class CreateProcurementForm(ModelForm):
     class Meta:
         model = ProcurementDetail
     image = FileField(u'อัพโหลดรูปภาพ')
-    days = IntegerField(u'ระยะเวลา')
+    # Calculate day to month
+    days = IntegerField(u'ระยะเวลา(วัน)')
     category = QuerySelectField(u'หมวดหมู่/ประเภท', query_factory=lambda: ProcurementCategory.query.all(),
                                 blank_text='Select Category..', allow_blank=False)
     org = QuerySelectField(query_factory=lambda: Org.query.all(),
