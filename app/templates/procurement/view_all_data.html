@@ -1,9 +1,5 @@
 {% extends "base.html" %}
 {% include "nav.html" %}
-{% block head %}
-{{ super() }}
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
-{% endblock %}
 {% block page_content %}
 <section class="section">
     {% include "messages.html" %}
@@ -15,7 +11,7 @@
         </div>
         <div class="columns">
             <div class="column">
-                <table class="table is-striped" id="procurementTable">
+                <table class="table is-fullwidth is-striped" id="proTable">
                     <thead>
                         <th>รายการ</th>
                         <th>รหัสครุภัณฑ์</th>
@@ -80,8 +76,8 @@
 {% block scripts %}
 {{ super() }}
 <script>
-    $(document).ready(function(){
-        $('#procurementTable').DataTable();
+    $(document).ready(()=> {
+        $('#proTable').DataTable();
     });
 </script>
 {% endblock %}
