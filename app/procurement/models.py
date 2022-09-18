@@ -1,4 +1,6 @@
 # -*- coding:utf-8 -*-
+from sqlalchemy import func
+
 from app.main import db
 from app.room_scheduler.models import RoomResource
 from app.staff.models import StaffAccount
@@ -36,15 +38,17 @@ class ProcurementDetail(db.Model):
     maker = db.Column('maker', db.String(), info={'label': u'ยี่ห้อ'})
     size = db.Column('size', db.String(), info={'label': u'ขนาด'})
     comment = db.Column('comment', db.Text(), info={'label': u'หมายเหตุ'})
-    responsible_person = db.Column('responsible_person', db.String(), info={'label': u'ผู้ดูแลครุภัณฑ์'})
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'), nullable=False)
-    staff = db.relationship(StaffAccount)
+    staff = db.relationship(StaffAccount, backref=db.backref('staff_responsible'))
     org_id = db.Column('org_id', db.ForeignKey('orgs.id'))
     org = db.relationship('Org', backref=db.backref('procurements',
                                                     lazy='dynamic',
                                                     cascade='all, delete-orphan'))
     sub_number = db.Column('sub_number', db.Integer(), info={'label': 'Sub Number'})
     curr_acq_value = db.Column('curr_acq_value', db.Float(), info={'label': u'มูลค่าที่ได้มา'})
+    approver_id = db.Column('approver_id', db.ForeignKey('procurement_committee_approvals.id'))
+    approver = db.relationship('ProcurementCommitteeApproval',
+                                      backref=db.backref('approved_items', lazy='dynamic'))
 
     def __str__(self):
         return u'{}: {}'.format(self.name, self.procurement_no)
@@ -93,6 +97,17 @@ class ProcurementRecord(db.Model):
     status_id = db.Column('status_id', db.ForeignKey('procurement_statuses.id'))
     status = db.relationship('ProcurementStatus',
                              backref=db.backref('records', lazy='dynamic'))
+
+
+class ProcurementCommitteeApproval(db.Model):
+    __tablename__ = 'procurement_committee_approvals'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
+    approver = db.relationship('StaffAccount',
+                              backref=db.backref('staff_approvers'))
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    approval_comment = db.Column('approval_comment', db.String())
 
 
 class ProcurementRequire(db.Model):
