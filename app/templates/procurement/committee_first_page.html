@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <h1 class="title">สำหรับคณะกรรมการตรวจสอบประจำปี</h1>
+        <div class="columns">
+            <div class="column">
+                <div class="container has-text-centered">
+                    <div class="box">
+                        <a href="{{ url_for('procurement.view_procurement_by_committee') }}">
+                            <span class="icon is-large"><i class="fas fa-file-alt fa-4x"></i></span><br><br>
+                            <span class="is-size-4">รายงานตรวจสอบประจำปี</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="container has-text-centered">
+                    <div class="box">
+                        <a href="">
+                            <span class="icon is-large"><i class="fas fa-qrcode fa-4x"></i></span><br><br>
+                            <span class="is-size-4">Scan QR Code</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <br>
+        <div class="container has-text-centered">
+            <a href="{{ url_for('procurement.first_page') }}">
+                <span class="icon">
+                    <i class="fas fa-arrow-circle-left fa-4x"></i>
+                </span>
+            </a>
+        </div>
+    </section>
+{% endblock %}
