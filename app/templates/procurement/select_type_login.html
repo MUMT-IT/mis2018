@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block title %}Procurement Login Page{% endblock %}
+{% block head %}
+    {{ super() }}
+    <style>
+        :root {
+            --brandColor: hsl(166, 67%, 51%);
+            --background: rgb(247, 247, 247);
+            --textDark: hsla(0, 0%, 0%, 0.66);
+            --textLight: hsla(0, 0%, 0%, 0.33);
+        }
+
+        body {
+            background: var(--background);
+            height: 100vh;
+            color: var(--textDark);
+        }
+
+        .field:not(:last-child) {
+            margin-bottom: 1rem;
+        }
+
+        .register {
+            margin-top: 10rem;
+            background: white;
+            border-radius: 10px;
+        }
+
+        .left,
+        .right {
+            padding: 4.5rem;
+        }
+
+        .left {
+            border-right: 5px solid var(--background);
+        }
+
+        .left .title {
+            font-weight: 800;
+            letter-spacing: -2px;
+        }
+
+        .left .colored {
+            color: var(--brandColor);
+            font-weight: 500;
+            margin-top: 1rem !important;
+            letter-spacing: -1px;
+        }
+
+        .left p {
+            color: var(--textLight);
+            font-size: 1.15rem;
+        }
+
+        .right .title {
+            font-weight: 800;
+            letter-spacing: -1px;
+        }
+
+        .right .description {
+            margin-top: 1rem;
+            margin-bottom: 1rem !important;
+            color: var(--textLight);
+            font-size: 1.15rem;
+        }
+
+        .right small {
+            color: var(--textLight);
+        }
+
+        input {
+            font-size: 1rem;
+        }
+
+        input:focus {
+            border-color: var(--brandColor) !important;
+            box-shadow: 0 0 0 1px var(--brandColor) !important;
+        }
+
+        .fab,
+        .fas {
+            color: var(--textLight);
+            margin-right: 1rem;
+        }
+    </style>
+{% endblock %}
+{% block page_content %}
+    <section class="container">
+        <div class="columns is-multiline">
+            <div class="column is-8 is-offset-2 register">
+                <a href="/">
+                    <span class="icon">
+                        <i class="fas fa-chevron-circle-left"></i>
+                    </span>
+                </a>
+                <div class="columns">
+                    <div class="column left">
+                        <img src="{{ url_for('static', filename='img/vender_managment.jpg') }}" width="750"/>
+                        <h1 class="title is-1">Procurement</h1>
+                        <h2 class="subtitle colored is-4">ระบบงานพัสดุและซ่อมบำรุง</h2>
+                    </div>
+                    <div class="column right has-text-centered">
+                     <span class="icon">
+                        <i class="fas fa-users fa-4x"></i>
+                     </span>
+                     <p class="description">ท่านคือ...</p>
+                        <a class="panel is-warning" href="{{ url_for('procurement.user_first') }}">
+                           <p class="panel-heading">เจ้าหน้าที่ MUMT</p>
+                        </a><br>
+                        <a class="panel is-info" href="{{ url_for('procurement.landing') }}">
+                           <p class="panel-heading">เจ้าหน้าที่พัสดุ</p>
+                        </a><br>
+                        <a class="panel is-success" href="{{ url_for('procurement.committee_first') }}">
+                           <p class="panel-heading">คณะกรรมการ</p>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="column is-8 is-offset-2">
+                <br>
+                <nav class="level">
+                    <div class="level-left">
+                    </div>
+                    <div class="level-right">
+                        <small class="level-item" style="color: var(--textLight)">
+                            <i class="fas fa-cogs"></i>หากพบปัญหาด้านระบบสามารถติดต่อ yada.boo@mahidol.ac.th (เอมไอที)
+                        </small>
+                    </div>
+                </nav>
+            </div>
+        </div>
+    </section>
+{% endblock %}
