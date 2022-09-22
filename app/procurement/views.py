@@ -26,6 +26,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 
 from ..main import dbutils, get_credential, csrf
+from ..roles import procurement_committee_permission, procurement_permission
 
 style_sheet = getSampleStyleSheet()
 style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
@@ -86,10 +87,63 @@ def add_procurement():
     return render_template('procurement/new_procurement.html', form=form)
 
 
-@procurement.route('/landing')
+@procurement.route('/official/login')
+@login_required
+def first_page():
+    return render_template('procurement/select_type_login.html')
+
+
+@procurement.route('/official/for-user/login')
+def user_first():
+    return render_template('procurement/user_first_page.html')
+
+
+@procurement.route('/official/for-procurement-staff/login')
+@login_required
+@procurement_permission.require()
 def landing():
     return render_template('procurement/landing.html')
 
+
+@procurement.route('/official/for-committee/login')
+@login_required
+@procurement_committee_permission.require()
+def committee_first():
+    return render_template('procurement/committee_first_page.html')
+
+
+@procurement.route('/info/by-committee/view')
+@login_required
+def view_procurement_by_committee():
+    procurement_list = []
+    procurement_query = ProcurementDetail.query.all()
+    for procurement in procurement_query:
+        record = {}
+        record["id"] = procurement.id
+        record["name"] = procurement.name
+        record["procurement_no"] = procurement.procurement_no
+        record["erp_code"] = procurement.erp_code
+        record["budget_year"] = procurement.budget_year
+        record["received_date"] = procurement.received_date
+        record["bought_by"] = procurement.bought_by
+        record["available"] = procurement.available
+        procurement_list.append(record)
+    return render_template('procurement/view_procurement_by_committee.html', procurement_list=procurement_list)
+
+
+# @procurement.route('/info/by-committee/download', methods=['GET'])
+# def report_info_download():
+#     records = []
+#     procurement_query = ProcurementDetail.query.all()
+#
+#     for items in procurement_query:
+#         for record in items.records:
+#             records.append({
+#
+#             })
+#     df = DataFrame(records)
+#     df.to_excel('report.xlsx')
+#     return send_from_directory(os.getcwd(), filename='report.xlsx')
 
 @procurement.route('/information/all')
 @login_required
@@ -310,8 +364,10 @@ def list_qrcode():
         record["id"] = procurement.id
         record["name"] = procurement.name
         record["procurement_no"] = procurement.procurement_no
+        record["erp_code"] = procurement.erp_code
         record["budget_year"] = procurement.budget_year
-        record["responsible_person"] = procurement.responsible_person
+        record["received_date"] = procurement.received_date
+        record["available"] = procurement.available
         qrcode_list.append(record)
     return render_template('procurement/list_qrcode.html', qrcode_list=qrcode_list)
 
@@ -426,12 +482,11 @@ def export_qrcode_pdf(procurement_id):
 #     db.session.commit()
 
 
-@procurement.route('/scan-qrcode/<int:procurement_id>', methods=['GET', 'POST'])
+@procurement.route('/scan-qrcode', methods=['GET'])
 @csrf.exempt
 @login_required
-def qrcode_scan(procurement_id):
-    scan_qr = ProcurementDetail.query.get(procurement_id)
-    return render_template('procurement/qr_scanner.html', scan_qr=scan_qr, procurement_id=procurement_id)
+def qrcode_scan():
+    return render_template('procurement/qr_scanner.html')
 
 
 @procurement.route('/scan-qrcode/info/view/<string:procurement_no>')
@@ -439,3 +494,56 @@ def view_procurement_on_scan(procurement_no):
     item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first_or_404()
     return render_template('procurement/view_data_on_scan.html', item=item,
                            procurement_no=item.procurement_no)
+
+
+@procurement.route('/items/<string:procurement_no>/check', methods=['GET', 'POST'])
+@login_required
+def check_procurement(procurement_no):
+    form = ProcurementApprovalForm()
+    # approver in Detail
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            new_approve = ProcurementCommitteeApproval()
+            form.populate_obj(new_approve)
+            new_approve.approver = current_user
+            new_approve.updated_at = datetime.now(tz=bangkok)
+            db.session.add(new_approve)
+            db.session.commit()
+            flash(u'ตรวจสอบเรียบร้อย.', 'success')
+            return redirect(url_for('procurement.view_procurement_on_scan', procurement_no=procurement_no))
+    return render_template('procurement/approval_by_committee.html', form=form, procurement_no=procurement_no)
+
+
+@procurement.route('/item/<string:procurement_no>/img/add', methods=['GET', 'POST'])
+@login_required
+def add_img_procurement(procurement_no):
+    form = CreateProcurementForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            img_procurement = ProcurementDetail()
+            form.populate_obj(img_procurement)
+            img_procurement.staff = current_user
+            file = form.image.data
+            print(form.image.data)
+            if file:
+                img_name = secure_filename(file.filename)
+                file.save(img_name)
+                # convert image to base64(text) in database
+                import base64
+                with open(img_name, "rb") as img_file:
+                    procurement.image = base64.b64encode(img_file.read())
+
+            else:
+                # convert base64(text) to image in database
+                decoded_img = b64decode(procurement.image)
+                img_string = cStringIO.StringIO(decoded_img)
+                img_string.seek(0)
+            db.session.add(procurement)
+            db.session.commit()
+            flash(u'บันทึกรูปภาพสำเร็จ.', 'success')
+            return redirect(url_for('procurement.add_img_procurement'))
+        # Check Error
+        else:
+            for er in form.errors:
+                flash(er, 'danger')
+    return render_template('procurement/add_img_procurement.html', form=form, procurement_no=procurement_no)
