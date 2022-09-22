@@ -1,6 +1,7 @@
 # -*- coding:utf-8 -*-
 from flask_wtf import FlaskForm
-from wtforms import SelectMultipleField, widgets, FileField, IntegerField
+from wtforms import SelectMultipleField, widgets, FileField, IntegerField, RadioField
+from wtforms.validators import DataRequired
 from wtforms_alchemy import (model_form_factory, QuerySelectField)
 from .models import *
 from ..models import Org
@@ -80,3 +81,13 @@ class ProcurementMaintenanceForm(ModelForm):
                                       label=u'เลขครุภัณฑ์')
     location = QuerySelectField(u'สถานที่ให้บริการ', query_factory=lambda: RoomResource.query.all(),
                                 blank_text='Select location..', allow_blank=False)
+
+
+class ProcurementApprovalForm(ModelForm):
+    class Meta:
+        model = ProcurementCommitteeApproval
+
+    checking_result = RadioField(u'ยืนยัน',
+                         choices=[(c, c) for c in [u'ตรวจสอบครุภัณฑ์ถูกต้อง', u'ตรวจสอบครุภัณฑ์ไม่ถูกต้อง']],
+                         coerce=unicode,
+                         validators=[DataRequired()])
