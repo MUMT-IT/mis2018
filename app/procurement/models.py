@@ -38,8 +38,6 @@ class ProcurementDetail(db.Model):
     maker = db.Column('maker', db.String(), info={'label': u'ยี่ห้อ'})
     size = db.Column('size', db.String(), info={'label': u'ขนาด'})
     comment = db.Column('comment', db.Text(), info={'label': u'หมายเหตุ'})
-    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'), nullable=False)
-    staff = db.relationship(StaffAccount, backref=db.backref('staff_responsible'))
     org_id = db.Column('org_id', db.ForeignKey('orgs.id'))
     org = db.relationship('Org', backref=db.backref('procurements',
                                                     lazy='dynamic',
@@ -52,6 +50,14 @@ class ProcurementDetail(db.Model):
 
     def __str__(self):
         return u'{}: {}'.format(self.name, self.procurement_no)
+
+    @property
+    def staff_responsible(self):
+        record = self.records.order_by('ProcurementRecord.updated_at.desc()').first()
+        if record:
+            return record.staff_responsible
+        else:
+            return None
 
 
 class ProcurementPurchasingType(db.Model):
@@ -92,11 +98,13 @@ class ProcurementRecord(db.Model):
     location = db.relationship(RoomResource,
                                backref=db.backref('items', lazy='dynamic'))
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), nullable=False)
-    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'), nullable=False)
-    staff = db.relationship(StaffAccount)
+    updater_id = db.Column('updater_id', db.ForeignKey('staff_account.id'), nullable=False)
+    updater = db.relationship(StaffAccount, foreign_keys=[updater_id])
     status_id = db.Column('status_id', db.ForeignKey('procurement_statuses.id'))
     status = db.relationship('ProcurementStatus',
                              backref=db.backref('records', lazy='dynamic'))
+    staff_responsible_id = db.Column('staff_responsible_id', db.ForeignKey('staff_account.id'))
+    staff_responsible = db.relationship(StaffAccount, foreign_keys=[staff_responsible_id])
 
 
 class ProcurementCommitteeApproval(db.Model):
