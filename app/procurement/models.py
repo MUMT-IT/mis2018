@@ -24,7 +24,10 @@ class ProcurementDetail(db.Model):
     budget_year = db.Column('budget_year', db.String(), nullable=False, info={'label': u'ปีงบประมาณ'})
     price = db.Column('price', db.String(), info={'label': 'Original value'})
     received_date = db.Column('received_date', db.Date(), info={'label': u'วันที่ได้รับ'})
-    available = db.Column('available', db.String(), nullable=False, info={'label': u'สภาพของสินทรัพย์'})
+    available = db.Column('available', db.String(), nullable=False, info={'label': u'สภาพของสินทรัพย์',
+                                                                          'choices': [(c, c) for c in
+                                                                                     [u'ใช้งาน', u'เสื่อมสภาพ/รอจำหน่าย',
+                                                                                      u'หมดความจำเป็น']]})
     purchasing_type_id = db.Column('purchasing_type_id', db.ForeignKey('procurement_purchasing_types.id'))
     purchasing_type = db.relationship('ProcurementPurchasingType',
                                backref=db.backref('types', lazy='dynamic'))
@@ -115,7 +118,12 @@ class ProcurementCommitteeApproval(db.Model):
                               backref=db.backref('staff_approvers'))
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
-    approval_comment = db.Column('approval_comment', db.String())
+    approval_comment = db.Column('approval_comment', db.Text(), info={'label': u'ระบุรายละเอียด'})
+    asset_status = db.Column('asset_status', db.String(), info={'label': u'สภาพของสินทรัพย์',
+                                                                'choices': [(c, c) for c in
+                                                                            [u'ใช้งาน', u'เสื่อมสภาพ/รอจำหน่าย',
+                                                                             u'หมดความจำเป็น']]})
+    checking_result = db.Column('checking_result', db.String(), nullable=False, info={'label': u'ผลการตรวจสอบ'})
 
 
 class ProcurementRequire(db.Model):
