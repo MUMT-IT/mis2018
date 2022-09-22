@@ -36,11 +36,8 @@
             delimiters: ['<%', '%>'],
             data() {
                 return {
-                    numScans: 0,
                     loading: false,
-                    result: null,
                     camera: 'auto',
-                    staff: null,
                     time: null,
                     info: {
                         id: null,
@@ -50,8 +47,6 @@
             },
             methods: {
                 reset() {
-                    this.numScans = 0,
-                        this.staff = null
                     this.time = null
                     this.info = {
                         procurementNo: null,
