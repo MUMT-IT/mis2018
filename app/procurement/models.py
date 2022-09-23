@@ -24,10 +24,7 @@ class ProcurementDetail(db.Model):
     budget_year = db.Column('budget_year', db.String(), nullable=False, info={'label': u'ปีงบประมาณ'})
     price = db.Column('price', db.String(), info={'label': 'Original value'})
     received_date = db.Column('received_date', db.Date(), info={'label': u'วันที่ได้รับ'})
-    available = db.Column('available', db.String(), nullable=False, info={'label': u'สภาพของสินทรัพย์',
-                                                                          'choices': [(c, c) for c in
-                                                                                     [u'ใช้งาน', u'เสื่อมสภาพ/รอจำหน่าย',
-                                                                                      u'หมดความจำเป็น']]})
+    available = db.Column('available', db.String(), nullable=False, info={'label': u'สภาพของสินทรัพย์'})
     purchasing_type_id = db.Column('purchasing_type_id', db.ForeignKey('procurement_purchasing_types.id'))
     purchasing_type = db.relationship('ProcurementPurchasingType',
                                backref=db.backref('types', lazy='dynamic'))
@@ -50,6 +47,7 @@ class ProcurementDetail(db.Model):
     approver_id = db.Column('approver_id', db.ForeignKey('procurement_committee_approvals.id'))
     approver = db.relationship('ProcurementCommitteeApproval',
                                       backref=db.backref('approved_items', lazy='dynamic'))
+    cost_center = db.Column('cost_center', db.String(), info={'label': u'ศูนย์ต้นทุน'})
 
     def __str__(self):
         return u'{}: {}'.format(self.name, self.procurement_no)
