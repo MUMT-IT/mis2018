@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% include "procurement/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h3 class="title is-3">ยืนยันการตรวจสอบครุภัณฑ์</h3>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-one-third is-offset-4">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <div class="control">
+                                {{ form.confirm(class="radio") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">Comment</label>
+                            <div class="control">
+                                {{ form.approval_comment(class="textarea") }}
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="buttons ">
+                                <button class="button is-success" type="submit" value="submit">Submit
+                                </button>
+                                <a href="{{ url_for('procurement.view_procurement_on_scan', procurement_no=procurement_no) }}"
+                                   class="button is-danger">Back</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
