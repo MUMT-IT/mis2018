@@ -73,8 +73,9 @@ def add_procurement():
                 decoded_img = b64decode(procurement.image)
                 img_string = cStringIO.StringIO(decoded_img)
                 img_string.seek(0)
-            record = ProcurementRecord(location=form.location.data, staff=current_user,
-                                       status=form.status.data, updated_at= bangkok.localize(datetime.now()))
+            record = ProcurementRecord(location=form.location.data, updater=current_user, status=form.status.data,
+                                       updated_at=bangkok.localize(datetime.now())
+                                       )
             procurement.records.append(record)
             db.session.add(procurement)
             db.session.commit()
