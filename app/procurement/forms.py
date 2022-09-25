@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 from flask_wtf import FlaskForm
-from wtforms import SelectMultipleField, widgets, FileField, IntegerField, RadioField
+from wtforms import SelectMultipleField, widgets, FileField, IntegerField, RadioField, SelectField
 from wtforms.validators import DataRequired
 from wtforms_alchemy import (model_form_factory, QuerySelectField)
 from .models import *
@@ -25,7 +25,10 @@ class CreateProcurementForm(ModelForm):
         model = ProcurementDetail
     image = FileField(u'อัพโหลดรูปภาพ')
     # Calculate day to month
-    days = IntegerField(u'ระยะเวลา(วัน)')
+    days = IntegerField(u'ระยะเวลา')
+    division = SelectField(u'ช่วงเวลา', choices=[(0, u'วัน'),
+                                            (1, u'เดือน'),
+                                            (2, u'ปี')])
     category = QuerySelectField(u'หมวดหมู่/ประเภท', query_factory=lambda: ProcurementCategory.query.all(),
                                 blank_text='Select Category..', allow_blank=False)
     org = QuerySelectField(query_factory=lambda: Org.query.all(),
@@ -35,6 +38,12 @@ class CreateProcurementForm(ModelForm):
                                 blank_text='Select location..', allow_blank=False)
     status = QuerySelectField(u'สถานะ', query_factory=lambda: ProcurementStatus.query.all(),
                               blank_text='Select status..', allow_blank=False)
+    available = SelectField(u'สภาพของสินทรัพย์',
+                         choices=[(c, c) for c in [u'ใช้งาน', u'เสื่อมสภาพ/รอจำหน่าย', u'หมดความจำเป็น']],
+                         coerce=unicode,
+                         validators=[DataRequired()])
+    purchasing_type = SelectField(u'จัดซื้อด้วยเงิน',
+                         choices=[(c, c) for c in [u'เงินงบประมาณแผ่นดิน', u'เงินรายได้ส่วนงาน']])
 
 
 class ProcurementRecordForm(ModelForm):
