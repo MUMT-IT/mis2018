@@ -2,7 +2,6 @@
 {% include "procurement/nav.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% block page_content %}
@@ -58,6 +57,12 @@
                                         {{ form.document_no(class="input") }}
                                     </div>
                                 </div>
+                                 <div class="field">
+                                    <label class="label">{{ form.bought_by.label }}</label>
+                                    <div class="select is-fullwidth">
+                                        {{ form.bought_by() }}
+                                    </div>
+                                </div>
                             </div>
                             <div class="field">
                                 <label class="label">{{ form.name.label }}</label>
@@ -65,21 +70,6 @@
                                     {{ form.name(class="input is-danger") }}
                                 </div>
                                 <p class="help is-danger">Required</p>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <label class="label">{{ form.serial_no.label }}</label>
-                                    <div class="control">
-                                        {{ form.serial_no(class="input") }}
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.available.label }}</label>
-                                    <div class="control">
-                                        {{ form.available(class="input is-danger") }}
-                                    </div>
-                                    <p class="help is-danger">Required</p>
-                                </div>
                             </div>
                             <div class="field-body">
                                 <div class="field">
@@ -109,10 +99,9 @@
                             </div>
                             <div class="field-body">
                                 <div class="field">
-{#                                 select date and day month year#}
                                     <label class="label">{{ form.start_guarantee_date.label }}</label>
                                     <div class="control">
-                                        {{ form.start_guarantee_date(class="input", value=default_date, readonly=True) }}
+                                        {{ form.start_guarantee_date(class="input", value=default_date) }}
                                     </div>
                                 </div>
                                 <div class="field">
@@ -121,15 +110,33 @@
                                         {{ form.days(class="input is-danger") }}
                                     </div>
                                 </div>
+                                <div class="field">
+                                    <label class="label">{{ form.division.label }}</label>
+                                    <div class="select is-danger">
+                                        {{ form.division() }}
+                                    </div>
+                                </div>
+                                 <div class="field">
+                                    <label class="label">{{ form.received_date.label }}</label>
+                                    <div class="control">
+                                        {{ form.received_date(class="input") }}
+                                    </div>
+                                </div>
+                                 <div class="field">
+                                    <label class="label">{{ form.available.label }}</label>
+                                    <div class="select is-fullwidth is-danger">
+                                        {{ form.available() }}
+                                    </div>
+                                    <p class="help is-danger">Required</p>
+                                </div>
                             </div>
                             <div class="field-body">
-{#                              purchasing_type field#}
-{#                                <div class="field">#}
-{#                                    <label class="label">{{ form.purchasing_type.label }}</label>#}
-{#                                    <div class="select is-fullwidth">#}
-{#                                        {{ form.purchasing_type() }}#}
-{#                                    </div>#}
-{#                                </div>#}
+                                <div class="field">
+                                    <label class="label">{{ form.purchasing_type.label }}</label>
+                                    <div class="select is-fullwidth">
+                                        {{ form.purchasing_type() }}
+                                    </div>
+                                </div>
                                 <div class="field">
                                     <label class="label">{{ form.budget_year.label }}</label>
                                     <div class="control">
@@ -146,20 +153,6 @@
                                     <label class="label">{{ form.curr_acq_value.label }}</label>
                                     <div class="control">
                                         {{ form.curr_acq_value(class="input", placeholder="฿") }}
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <label class="label">{{ form.received_date.label }}</label>
-                                    <div class="control">
-                                        {{ form.received_date(class="input", readonly=True) }}
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.bought_by.label }}</label>
-                                    <div class="select is-fullwidth">
-                                        {{ form.bought_by() }}
                                     </div>
                                 </div>
                             </div>
@@ -190,9 +183,9 @@
                                     </div>
                                 </div>
                                 <div class="field">
-                                    <label class="label">{{ form.location.label }}</label>
-                                    <div class="select is-fullwidth">
-                                        {{ form.location() }}
+                                    <label class="label">เพิ่มผู้ดูแลครุภัณฑ์</label>
+                                    <div class="control">
+                                        <select class="js-example-basic" name="employees"></select>
                                     </div>
                                 </div>
                             </div>
@@ -207,11 +200,10 @@
                                         {{ form.status() }}
                                     </div>
                                 </div>
-{#                               field in database#}
                                 <div class="field">
-                                    <label class="label">เพิ่มผู้ดูแลครุภัณฑ์</label>
-                                    <div class="control">
-                                        <select class="js-example-basic" name="employees"></select>
+                                    <label class="label">{{ form.location.label }}</label>
+                                    <div class="select is-fullwidth">
+                                        {{ form.location() }}
                                     </div>
                                 </div>
                             </div>
