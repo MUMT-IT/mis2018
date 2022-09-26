@@ -7,9 +7,9 @@
 {% block page_content %}
         <div class="container" id="app">
             <div class="notification is-light is-link">
-                <h1 class="title has-text-centered has-text-link">กิจกรรม{{ seminar.topic }}</h1>
+                <h1 class="title has-text-centered has-text-link">{{ seminar.topic }}</h1>
                 <h1 class="subtitle has-text-centered">
-                    {{ seminar.start_datetime|localdatetime }} - {{ seminar.end_datetime|localdatetime }}
+                    วันที่ {{ seminar.start_datetime|localdatetime }} - {{ seminar.end_datetime|localdatetime }}
                 </h1>
                 <h1 class="title is-size-4 has-text-centered">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
                 <h1 class="subtitle is-size-4 has-text-centered" id="clock"></h1>

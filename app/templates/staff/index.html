@@ -4,104 +4,65 @@
 {% block page_content %}
 <section class="section">
     {% include "messages.html" %}
-    <h1 class="title">Staff Page</h1>
+    <h1 class="title has-text-centered">ระบบสารสนเทศสำหรับบุคลากร</h1>
     <div class="columns">
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('doc.index') }}">
-                        <span class="icon is-large">
-                            <i class="far fa-paper-plane fa-4x"></i>
-                        </span><br><br>
-                        <span class="is-size-4">ระบบหนังสือเวียน</span><br>
-                        <span class="is-size-4">Document Circulation</span>
-                        <span class="is-size-6 has-text-danger">**Experimental**</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('staff.show_leave_info') }}">
-                        <span class="icon is-large">
-                            <i class="far fa-calendar-alt fa-4x"></i>
-                        </span><br><br>
-                        <span class="is-size-4">ข้อมูลวันลา</span><br>
-                        <span class="is-size-4">Leave Request</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('staff.show_time_report') }}">
-                        <span class="icon is-large"><i class="far fa-id-badge fa-4x"></i></span><br><br>
-                        <span class="is-size-4">ข้อมูลการเข้า-ออกงาน</span><br>
-                        <span class="is-size-4">Working Hours Report</span>
-                        <span class="is-size-6 has-text-danger">**Experimental**</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-    <div class="columns">
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                <a href="{{ url_for('staff.show_work_from_home') }}">
-                    <span class="icon is-large"><i class="fas fa-laptop fa-4x"></i></span><br><br>
-                    <span class="is-size-4">ข้อมูลการทำงานที่บ้าน</span><br>
-                    <span class="is-size-4">Work From Home</span>
-                    <span class="is-size-6 has-text-danger">**Experimental**</span>
+        <div class="column is-half is-offset-3">
+            <nav class="panel is-info">
+                <p class="panel-heading">Personal</p>
+                <a class="panel-block" href="{{ url_for('auth.account') }}">
+                    <span class="panel-icon">
+                        <i class="fas fa-user-circle"></i>
+                    </span>
+                    <span class="is-size-5">ข้อมูลส่วนบุคคล (My Profile)</span><br>
                 </a>
-                </div>
-            </div>
+                <a class="panel-block" href="{{ url_for('staff.show_leave_info') }}">
+                    <span class="panel-icon">
+                        <i class="far fa-calendar-alt"></i>
+                    </span>
+                    <span class="is-size-5">ระบบลาปฏิบัติงาน (Leave Request)</span><br>
+                </a>
+                <a class="panel-block" href="{{ url_for('staff.show_work_from_home') }}">
+                    <span class="panel-icon"><i class="fas fa-home"></i></span>
+                    <span class="is-size-5">ระบบขออนุม้ติทำงานที่บ้าน (Work From Home)</span><br>
+                </a>
+                <a class="panel-block" href="{{ url_for('staff.show_time_report') }}">
+                    <span class="panel-icon"><i class="far fa-id-badge"></i></span>
+                    <span class="is-size-5">ข้อมูลการเข้า-ออกงาน (Login Records)</span><br>
+                </a>
+            </nav>
+            {% if current_user.personal_info.org.head == current_user.email %}
+            <nav class="panel is-link">
+                <p class="panel-heading">สำหรับหัวหน้างาน</p>
+                <a class="panel-block" href="{{ url_for('staff.summary_index') }}">
+                    <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
+                    <span class="is-size-5">ข้อมูลสรุปวันทำงาน</span>
+                </a>
+                <a class="panel-block" href="{{ url_for('staff.show_leave_approval_info') }}">
+                    <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
+                    <span class="is-size-5">ข้อมูลวันลา</span>
+                    <span class="tag is-rounded is-danger">{{ new_leave_requests }}</span>
+                </a>
+                <a class="panel-block" href="{{ url_for('staff.show_wfh_requests_for_approval') }}">
+                    <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
+                    <span class="is-size-5">ข้อมูล WFH</span>
+                    <span class="tag is-rounded is-danger">{{ new_wfh_requests }}</span>
+                </a>
+            </nav>
+            {% endif %}
+            <nav class="panel is-danger">
+                <p class="panel-heading">อยู่ระหว่างการทดสอบ</p>
+                <a href="{{ url_for('doc.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="far fa-paper-plane"></i>
+                        </span>
+                    <span class="is-size-5">ระบบหนังสือเวียน</span><br>
+                </a>
+                <a class="panel-block" href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}">
+                    <span class="panel-icon"><i class="far fa-comments"></i></span>
+                    <span class="is-size-5">ข้อมูลการเข้าฝึกอบรม</span><br>
+                </a>
+            </nav>
         </div>
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}">
-                        <span class="icon is-large"><i class="far fa-comments fa-4x"></i></span><br><br>
-                        <span class="is-size-4">ข้อมูลการอบรม</span><br>
-                        <span class="is-size-4">Seminar</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        {% if current_user.personal_info.org.head == current_user.email %}
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="{{ url_for('staff.summary_index') }}">
-                        <span class="icon is-large">
-                            <i class="fas fa-chart-pie fa-4x"></i>
-                        </span><br><br>
-                        <span class="is-size-4">ข้อมูลสรุปวันทำงาน</span><br>
-                        <span class="is-size-4">Attendance</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-    </div>
-    <div class="columns">
-        <div class="column">
-            <div class="container has-text-centered">
-                <div class="box">
-                    <a href="">
-                        <span class="icon is-large"><i class="far fa-calendar-plus fa-4x"></i></span><br><br>
-                        <span class="is-size-4">ข้อมูลการทำงานล่วงเวลา</span><br>
-                        <span class="is-size-4">Overtime</span>
-                        <span class="is-size-6 has-text-danger">**Experimental**</span>
-                        <i class="fa fa-calendar-plus-o"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-        <div class="column"></div>
-        <div class="column"></div>
     </div>
     <div class="has-text-right">
         <span>พบปัญหาเกี่ยวกับระบบ <br>ติดต่อ napatsakorn.pis@mahidol.ac.th หรือโทรศัพท์ภายใน 2845</>
