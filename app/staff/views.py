@@ -519,6 +519,7 @@ def request_for_leave_info(quota_id=None):
     quota = StaffLeaveQuota.query.get(quota_id)
     leaves = []
     fiscal_years = set()
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     for leave in current_user.leave_requests:
         if leave.start_datetime >= tz.localize(START_FISCAL_DATE) and leave.end_datetime <= tz.localize(
                 END_FISCAL_DATE):
@@ -559,6 +560,7 @@ def leave_info_deleted_records(quota_id=None):
     quota = StaffLeaveQuota.query.get(quota_id)
     leaves = []
     fiscal_years = set()
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     for leave in current_user.leave_requests:
         if leave.start_datetime >= tz.localize(START_FISCAL_DATE) and leave.end_datetime <= tz.localize(
                 END_FISCAL_DATE) and leave.cancelled_at:
@@ -850,6 +852,7 @@ def show_leave_approval_info():
     leave_types = StaffLeaveType.query.all()
     requesters = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).all()
     requester_cum_periods = {}
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     for requester in requesters:
         cum_periods = defaultdict(float)
         for leave_request in requester.requester.leave_requests:
@@ -877,6 +880,7 @@ def show_leave_approval_info_download():
     requesters = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id, is_active=True).all()
     requester_cum_periods = {}
     records = []
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     for requester in requesters:
         cum_periods = defaultdict(float)
         for leave_request in requester.requester.leave_requests:
@@ -925,6 +929,7 @@ def pending_leave_approval(req_id):
         upload_file_url = upload_file.get('embedLink')
     else:
         upload_file_url = None
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(req.start_datetime)
     used_quota = req.staff.personal_info.get_total_leaves(req.quota.id, tz.localize(START_FISCAL_DATE),
                                                           tz.localize(END_FISCAL_DATE))
     last_req = None
@@ -1351,6 +1356,7 @@ def leave_request_by_person_detail(requester_id):
 @staff.route('/wfh')
 @login_required
 def show_work_from_home():
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     category = request.args.get('category', 'pending')
     wfh_list = []
     if category == 'pending':
@@ -1377,6 +1383,7 @@ def show_work_from_home():
 @staff.route('/wfh/others-records')
 @login_required
 def show_work_from_home_others_records():
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     wfh_history = []
     for wfh in current_user.wfh_requests:
         if wfh.start_datetime >= tz.localize(START_FISCAL_DATE) and wfh.end_datetime < tz.localize(END_FISCAL_DATE) and wfh.cancelled_at is None:
@@ -1724,6 +1731,7 @@ def for_hr():
 def get_hr_login_summary_report_data():
     description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
     data = defaultdict(int)
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     for rec in StaffWorkLogin.query.filter(StaffWorkLogin.start_datetime.between(START_FISCAL_DATE, END_FISCAL_DATE)):
         data[rec.start_datetime.date()] += 1
 
@@ -1745,6 +1753,7 @@ def get_hr_login_summary_report_data():
 def get_hr_wfh_summary_report_data():
     description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
     data = defaultdict(int)
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     for rec in StaffWorkFromHomeRequest.query\
             .filter(StaffWorkFromHomeRequest.start_datetime.between(START_FISCAL_DATE, END_FISCAL_DATE)):
         if not rec.cancelled_at and rec.get_unapproved:
@@ -1768,6 +1777,7 @@ def get_hr_wfh_summary_report_data():
 def get_hr_leave_summary_report_data():
     description = {'date': ("date", "Day"), 'heads': ("number", "heads")}
     data = defaultdict(int)
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
     for rec in StaffLeaveRequest.query\
             .filter(StaffLeaveRequest.start_datetime.between(START_FISCAL_DATE, END_FISCAL_DATE)):
         if not rec.cancelled_at and not rec.get_unapproved:
