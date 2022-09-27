@@ -3,9 +3,7 @@
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
-        {% for msg in get_flashed_messages() %}
-        <p class="notification is-warning">{{ msg }}</p>
-        {% endfor %}
+        {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">
                 <h1 class="title">บันทึกประชุม อบรม สัมมนา</h1>
@@ -17,99 +15,76 @@
                     <b-notification type="is-warning is-light" aria-close-label="Close notification" role="alert">
                         หากวันอบรมอยู่ในช่วง2ปีงบฯ ให้บันทึกครั้งเดียว
                     </b-notification>
-                    <form method="post" enctype="multipart/form-data">
-                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
                         <div class="field">
-                            <b-field label="ประเภทกิจกรรม">
-                                <b-select placeholder="เลือกประเภท" name="topic_type" required>
-                                    <option value="อบรม">อบรม</option>
-                                    <option value="อบรมเชิงปฏิบัติการ">อบรมเชิงปฏิบัติการ</option>
-                                    <option value="ประชุม">ประชุม</option>
-                                    <option value="ประชุมวิชาการ">ประชุมวิชาการ</option>
-                                    <option value="สัมมนา">สัมมนา</option>
-                                </b-select>
-                            </b-field>
-                            <b-field label="หัวข้อ"
-                                     type="is-danger">
-                                <b-input type="text"
-                                         name="topic"
-                                         icon-pack="fas"
-                                         icon="tag"
-                                         placeholder="เรื่อง" required>
-                                </b-input>
-                            </b-field>
-                            <b-field label="เวลาเริ่มต้น">
-                                <b-datetimepicker
-                                        required
-                                        v-model="startDateTime"
-                                        range
-                                        icon-pack="fa"
-                                        :timepicker="timepicker"
-                                        :mobile-native="false"
-                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
-                                        icon="calendar-alt">
-                                </b-datetimepicker>
-                            </b-field>
-                            <input type="hidden" name="start_datetime" v-model="formattedStartDateTime">
-                            <b-field label="เวลาสิ้นสุด">
-                                <b-datetimepicker
-                                        required
-                                        v-model="endDateTime"
-                                        range
-                                        icon-pack="fa"
-                                        :timepicker="timepicker"
-                                        :mobile-native="false"
-                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
-                                        icon="calendar-alt">
-                                </b-datetimepicker>
-                            </b-field>
-                            <input type="hidden" name="end_datetime" v-model="formattedEndDateTime">
-                            <b-field label="หน่วยงานที่จัด"
-                                     type="is-danger">
-                                <b-input type="text"
-                                         name="organize_by"
-                                         icon-pack="fas"
-                                         icon="tag"
-                                         placeholder="ชื่อหน่วยงาน" required>
-                                </b-input>
-                            </b-field>
-                            <b-field label="ด้าน">
-                                <b-select placeholder="เลือกด้าน" name="mission" required>
-                                    <option value="การศึกษา">การศึกษา</option>
-                                    <option value="การวิจัย">การวิจัย</option>
-                                    <option value="การบริการวิชาการ">การบริการวิชาการ</option>
-                                    <option value="การบริการสุขภาพ">การบริการสุขภาพ</option>
-                                    <option value="การบริหารจัดการ">การบริหารจัดการ</option>
-                                    <option value="การประกันสุขภาพ">การประกันสุขภาพ</option>
-                                    <option value="แลกเปลี่ยนเรียนรู้">แลกเปลี่ยนเรียนรู้</option>
-                                    <option value="ความรู้ทางวิชาการ">ความรู้ทางวิชาการ</option>
-                                    <option value="พัฒนาคุณภาพ">พัฒนาคุณภาพ</option>
-                                    <option value="วิชาชีพเทคนิคการแพทย์">วิชาชีพเทคนิคการแพทย์</option>
-                                    <option value="วิชาชีพรังสีเทคนิค">วิชาชีพรังสีเทคนิค</option>
-                                    <option value="ทำนุบำรุงศิลปวัฒนธรรม">ทำนุบำรุงศิลปวัฒนธรรม</option>
-                                </b-select>
-                            </b-field>
-                            <b-field label="สถานที่">
-                                <b-input type="text"
-                                         name="location"
-                                         icon-pack="far"
-                                         icon="map"
-                                         required>
-                                </b-input>
-                            </b-field>
+                            <label class="label">{{ form.topic_type.label }}</label>
+                            <div class="select">
+                                {{ form.topic_type() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.topic.label }}</label>
+                            <div class="control">
+                                {{ form.topic(class="input") }}
+                            </div>
+                        </div>
+                        <b-field label="เวลาเริ่มต้น">
+                            <b-datetimepicker
+                                    required
+                                    v-model="startDateTime"
+                                    range
+                                    icon-pack="fa"
+                                    :timepicker="timepicker"
+                                    :mobile-native="false"
+                                    placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                    icon="calendar-alt">
+                            </b-datetimepicker>
+                        </b-field>
+                        {{ form.start_datetime(type='hidden', **{'v-model': 'formattedStartDateTime'}) }}
+                        <b-field label="เวลาสิ้นสุด">
+                            <b-datetimepicker
+                                    required
+                                    v-model="endDateTime"
+                                    range
+                                    icon-pack="fa"
+                                    :timepicker="timepicker"
+                                    :mobile-native="false"
+                                    placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                    icon="calendar-alt">
+                            </b-datetimepicker>
+                        </b-field>
+                        {{ form.end_datetime(type='hidden', **{'v-model': 'formattedEndDateTime'}) }}
+                        <div class="field">
+                            <label class="label">{{ form.organize_by.label }}</label>
+                            <div class="control">
+                                {{ form.organize_by(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.missions.label }}</label>
+                            <div class="control">
+                                {{ form.missions() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.location.label }}</label>
+                            <div class="control">
+                                {{ form.location(class="input") }}
+                            </div>
+                        </div>
                             <div class="field">
                                <label class="checkbox">
-                                   <input type="checkbox" value="yes" name="online">
+                                   {{ form.is_online() }}
                                         จัดผ่านช่องทาง Online
                                </label>
                             </div>
-                        </div>
-                        <div class="field is-grouped">
+                        <div class="field is-grouped is-grouped-centered">
                             <div class="control">
-                                <input type="submit" value="submit" class="button is-primary"/>
+                                <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}" class="button is-light">Cancel</a>
                             </div>
                             <div class="control">
-                                <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}" class="button is-danger">Cancel</a>
+                                <input type="submit" value="submit" class="button is-success"/>
                             </div>
                         </div>
                     </form>
@@ -138,13 +113,13 @@
         computed: {
             formattedStartDateTime: function(){
                 if (this.startDateTime){
-                    return new moment(this.startDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
+                    return new moment(this.startDateTime.toISOString()).format('YYYY-MM-DD hh:mm:ss')
                 }
                 return null
             },
             formattedEndDateTime: function(){
                 if (this.endDateTime){
-                    return new moment(this.endDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
+                    return new moment(this.endDateTime.toISOString()).format('YYYY-MM-DD hh:mm:ss')
                 }
                 return null
             }
