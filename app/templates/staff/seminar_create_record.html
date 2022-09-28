@@ -22,7 +22,7 @@
             <div class="box">
                 <div class="columns">
                     <div class="column is-half is-offset-3">
-                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        {{ form.hidden_tag() }}
                         <div class="field">
                             <div class="field">
                                 <label class="label">สถานะการถูกเชิญ</label>
@@ -47,7 +47,6 @@
                                      required>
                             </b-input>
                         </b-field>
-                        <input type="hidden" name="document_dt" v-model="formattedDocumentDateTime">
                         <b-field label="ลงวันที่หนังสือ" v-if="status === 'invited'">
                             <b-datepicker
                                     required
@@ -58,40 +57,26 @@
                                     icon="calendar-alt">
                             </b-datepicker>
                         </b-field>
+                        {{ form.invited_document_date(type='hidden', **{'v-model': 'formattedDocumentDateTime'}) }}
                         <div class="field">
-                            <b-field label="บทบาทในการประชุม/อบรม">
-                                <b-select placeholder="เลือกประเภท" name="role" required>
-                                    <option value="อาจารย์พิเศษ">อาจารย์พิเศษ</option>
-                                    <option value="ผู้เข้าร่วม">ผู้เข้าร่วม</option>
-                                    <option value="ที่ปรึกษา">ที่ปรึกษา</option>
-                                    <option value="วิทยากร">วิทยากร</option>
-                                    <option value="กรรมการ">กรรมการ</option>
-                                    <option value="นิเทศน์งาน">นิเทศน์งาน</option>
-                                </b-select>
-                            </b-field>
-                            <b-field label="รายละเอียดการเข้าร่วม ดำเนินการภายใต้" v-if="status === 'wanttogo'">
-                                <b-select placeholder="เลือกประเภท" name="objective" id="objective" required>
-                                    <option value="แผนพัฒนาบุคลากรรายบุคคล(IDP)">แผนพัฒนาบุคลากรรายบุคคล(IDP)</option>
-                                    <option value="โครงการ MU-Talents">โครงการ MU-Talents</option>
-                                    <option value="ยุทธศาสตร์ภาควิชา/คณะฯ">ยุทธศาสตร์ภาควิชา/คณะฯ</option>
-                                    <option value="พัฒนาศักยภาพตามความสนใจ">พัฒนาศักยภาพตามความสนใจ</option>
-                                    <option value="">อื่นๆ</option>
-                                </b-select>
-                            </b-field>
-                            <b-field v-if="status === 'wanttogo'">
-                                <b-input id="other_objective"
-                                         type="text"
-                                         name="other_objective"
-                                         placeholder="โปรดระบุ"
-                                         >
-                                </b-input>
-                            </b-field>
+                            <div class="field">
+                                <label class="label">{{ form.role.label }}</label>
+                                <div class="select">
+                                    {{ form.role() }}
+                                </div>
+                            </div>
                             <div class="field">
                                 <b-field>
                                     <b-checkbox value="yes" name="attend_online">
                                         เข้าร่วมผ่านช่องทาง online
                                     </b-checkbox>
                                 </b-field>
+                            </div>
+                            <div class="field" v-if="status === 'wanttogo'">
+                                <label class="label">{{ form.objectives.label }}</label>
+                                <div class="control">
+                                    {{ form.objectives() }}
+                                </div>
                             </div>
                             <b-field label="เวลาเริ่มต้น">
                                 <b-datetimepicker
@@ -105,7 +90,8 @@
                                         icon="calendar-alt">
                                 </b-datetimepicker>
                             </b-field>
-                            <input type="hidden" name="start_dt" v-model="formattedStartDateTime">
+                            {{ form.start_datetime(type='hidden', **{'v-model': 'formattedStartDateTime'}) }}
+
                             <b-field label="เวลาสิ้นสุด">
                                 <b-datetimepicker
                                         required
@@ -118,7 +104,8 @@
                                         icon="calendar-alt">
                                 </b-datetimepicker>
                             </b-field>
-                            <input type="hidden" name="end_dt" v-model="formattedEndDateTime">
+                            {{ form.end_datetime(type='hidden', **{'v-model': 'formattedEndDateTime'}) }}
+
                             <div class="field" v-if="status === 'wanttogo'">
                                 <div class="field">
                                     <label class="label">ค่าใช้จ่าย</label>
@@ -242,13 +229,7 @@
                                     <div class="control">
                                         <div class="field">
                                             <div class="select">
-                                                <select name="approver_id">
-                                                    {% for approver in approvers %}
-                                                    <option value="{{ approver.id }}">
-                                                        {{ approver.account.personal_info.fullname }}
-                                                    </option>
-                                                    {% endfor %}
-                                                </select>
+                                                {{ form.approver() }}
                                             </div>
                                         </div>
                                     </div>
@@ -303,19 +284,19 @@
         computed: {
             formattedStartDateTime: function(){
                 if (this.startDateTime){
-                    return new moment(this.startDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
+                    return new moment(this.startDateTime.toISOString()).format('YYYY-MM-DD hh:mm:ss')
                 }
                 return null
             },
             formattedEndDateTime: function(){
                 if (this.endDateTime){
-                    return new moment(this.endDateTime.toISOString()).format('DD/MM/YYYY hh:mm')
+                    return new moment(this.endDateTime.toISOString()).format('YYYY-MM-DD hh:mm:ss')
                 }
                 return null
             },
             formattedDocumentDateTime: function(){
                 if (this.documentDateTime){
-                    return new moment(this.documentDateTime.toISOString()).format('DD/MM/YYYY')
+                    return new moment(this.documentDateTime.toISOString()).format('YYYY-MM-DD hh:mm:ss')
                 }
                 return null
             }
