@@ -445,6 +445,9 @@ class StaffLeaveApprover(db.Model):
                               foreign_keys=[approver_account_id])
     notified_by_line = db.Column('notified_by_line', db.Boolean(), default=True)
 
+    @property
+    def approver_name(self):
+        return self.account.personal_info.fullname
     def __str__(self):
         return "{}->{}".format(self.account.email, self.requester.email)
 
@@ -623,27 +626,29 @@ class StaffSeminarAttend(db.Model):
     __tablename__ = 'staff_seminar_attends'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     seminar_id = db.Column('seminar_id', db.ForeignKey('staff_seminar.id'))
-    start_datetime = db.Column('start_date', db.DateTime(timezone=True))
-    end_datetime = db.Column('end_date', db.DateTime(timezone=True))
+    start_datetime = db.Column('start_date', db.DateTime(timezone=True), info={'label': u'วันเริ่มต้น'})
+    end_datetime = db.Column('end_date', db.DateTime(timezone=True), info={'label': u'วันสิ้นสุด'})
     created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
-    role = db.Column('role', db.String())
-    registration_fee = db.Column('registration_fee', db.Float())
-    objective = db.Column('objective', db.String())
-    invited_document_id = db.Column('document_id', db.String())
-    invited_organization = db.Column('invited_organization', db.String())
-    invited_document_date = db.Column('invited_document_date', db.DateTime(timezone=True))
-    document_title = db.Column('document_title', db.String())
-    taxi_cost = db.Column('taxi_cost', db.Float())
-    train_ticket_cost = db.Column('train_ticket_cost', db.Float())
-    flight_ticket_cost = db.Column('flight_ticket_cost', db.Float())
-    fuel_cost = db.Column('fuel_cost', db.Float())
-    accommodation_cost = db.Column('accommodation_cost', db.Float())
-    budget_type = db.Column('budget_type', db.String())
-    transaction_fee = db.Column('transaction_fee', db.Float())
-    budget = db.Column('budget', db.Float())
-    attend_online = db.Column('attend_online', db.Boolean(), default=False)
-    contact_no = db.Column('contact_no', db.Integer())
+    role = db.Column('role', db.String(), info={'label': u'บทบาท', 'choices': [
+        (c, c) for c in [u'วิทยากร', u'อาจารย์พิเศษ']
+    ]})
+    registration_fee = db.Column('registration_fee', db.Float(), info={'label': u'ค่าลงทะเบียน (บาท)'})
+    objective = db.Column('objective', db.String(), info={'label': u'รายละเอียดการเข้าร่วม ดำเนินการภายใต้'})
+    invited_document_id = db.Column('document_id', db.String(), info={'label': u'เลขที่หนังสือเชิญ'})
+    invited_organization = db.Column('invited_organization', db.String(), info={'label': u'หน่วยงานที่เชิญ'})
+    invited_document_date = db.Column('invited_document_date', db.DateTime(timezone=True), info={'label': u'ลงวันที่หนังสือ'})
+    document_title = db.Column('document_title', db.String(), info={'label': u'ชื่อเรื่องหนังสือ'})
+    taxi_cost = db.Column('taxi_cost', db.Float(), info={'label': u'ค่า Taxi (บาท)'})
+    train_ticket_cost = db.Column('train_ticket_cost', db.Float(), info={'label': u'ค่าตั๋วรถไฟ (บาท)'})
+    flight_ticket_cost = db.Column('flight_ticket_cost', db.Float(), info={'label': u'ค่าตั๋วเครื่องบิน (บาท)'})
+    fuel_cost = db.Column('fuel_cost', db.Float(), info={'label': u'ค่าน้ำมัน (บาท)'})
+    accommodation_cost = db.Column('accommodation_cost', db.Float(), info={'label': u'ค่าที่พัก (บาท)'})
+    budget_type = db.Column('budget_type', db.String(), info={'label': u'แหล่งทุน'})
+    transaction_fee = db.Column('transaction_fee', db.Float(), info={'label': u'ค่าธรรมเนียมการโอน (บาท)'})
+    budget = db.Column('budget', db.Float(), info={'label': u'ค่าใช้จ่ายรวมทั้งหมด (บาท)'})
+    attend_online = db.Column('attend_online', db.Boolean(), default=False, info={'label': u'เข้าร่วมผ่านช่องทาง online'})
+    contact_no = db.Column('contact_no', db.Integer(), info={'label': u'เบอร์โทรภายใน'})
     head_account_id = db.Column('head_account_id', db.ForeignKey('staff_account.id'))
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     document_no = db.Column('document_no', db.String())
