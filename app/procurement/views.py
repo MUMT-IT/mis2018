@@ -349,10 +349,38 @@ def qrcode_render(procurement_no):
                            item=item)
 
 
-@procurement.route('/qrcode/list')
+@procurement.route('/qrcode/list', methods=['GET', 'POST'])
 def list_qrcode():
-    qrcode_list = []
+    def all_page_setup(canvas, doc):
+        canvas.saveState()
+        # logo_image = ImageReader('app/static/img/mumt-logo.png')
+        # canvas.drawImage(logo_image, 10, 700, width=250, height=100)
+        canvas.restoreState()
+
     procurement_query = ProcurementDetail.query.all()
+    if request.method == "POST":
+        doc = SimpleDocTemplate("app/qrcode.pdf",
+                                rightMargin=7,
+                                leftMargin=5,
+                                topMargin=35,
+                                bottomMargin=0,
+                                pagesize=(170, 150)
+                                )
+        data = []
+        for item_id in request.form.getlist('selected_items'):
+            item = ProcurementDetail.query.get(int(item_id))
+            decoded_img = b64decode(item.qrcode)
+            img_string = cStringIO.StringIO(decoded_img)
+            img_string.seek(0)
+            data.append(Image(img_string, 50 * mm, 30 * mm, kind='bound'))
+            data.append(Paragraph('<para align=center leading=10><font size=20>{}</font></para>'
+                                  .format(item.procurement_no.encode('utf-8')),
+                                  style=style_sheet['ThaiStyle']))
+            data.append(PageBreak())
+        doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+        return send_file('qrcode.pdf')
+
+    qrcode_list = []
     for procurement in procurement_query:
         record = {}
         record["id"] = procurement.id
