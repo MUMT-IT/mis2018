@@ -50,41 +50,42 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 @login_required
 def add_procurement():
     form = CreateProcurementForm()
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            procurement = ProcurementDetail()
-            form.populate_obj(procurement)
-            procurement.creation_date = bangkok.localize(datetime.now())
-            procurement.staff = current_user
-            procurement.end_guarantee_date = form.start_guarantee_date.data + timedelta(days=int(form.days.data))
-            # TODO: calculate end date from time needed to finish guarantee date
-            file = form.image.data
-            print(form.image.data)
-            if file:
-                img_name = secure_filename(file.filename)
-                file.save(img_name)
-                # convert image to base64(text) in database
-                import base64
-                with open(img_name, "rb") as img_file:
-                    procurement.image = base64.b64encode(img_file.read())
-
-            else:
-                # convert base64(text) to image in database
-                decoded_img = b64decode(procurement.image)
-                img_string = cStringIO.StringIO(decoded_img)
-                img_string.seek(0)
-            record = ProcurementRecord(location=form.location.data, updater=current_user, status=form.status.data,
-                                       updated_at=bangkok.localize(datetime.now())
-                                       )
-            procurement.records.append(record)
-            db.session.add(procurement)
-            db.session.commit()
-            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-            return redirect(url_for('procurement.view_procurement'))
+    if form.validate_on_submit():
+        procurement = ProcurementDetail()
+        form.populate_obj(procurement)
+        procurement.creation_date = bangkok.localize(datetime.now())
+        procurement.end_guarantee_date = form.start_guarantee_date.data + timedelta(days=int(form.days.data))
+        # TODO: calculate end date from time needed to finish guarantee date
+        # file = form.image.data
+        # print(form.image.data)
+        # if file:
+        #     img_name = secure_filename(file.filename)
+        #     file.save(img_name)
+        #     # convert image to base64(text) in database
+        #     import base64
+        #     with open(img_name, "rb") as img_file:
+        #         procurement.image = base64.b64encode(img_file.read())
+        # else:
+        #     # convert base64(text) to image in database
+        #     decoded_img = b64decode(procurement.image)
+        #     img_string = cStringIO.StringIO(decoded_img)
+        #     img_string.seek(0)
+        # record = ProcurementRecord(location=form.location.data, updater=current_user, status=form.status.data,
+        #                            updated_at=bangkok.localize(datetime.now()))
+        # procurement.records.append(record)
+        db.session.add(procurement)
+        db.session.commit()
+        record = procurement.records.order_by(ProcurementRecord.id.desc()).first()
+        record.updater = current_user
+        record.updated_at = bangkok.localize(datetime.now())
+        db.session.add(record)
+        db.session.commit()
+        flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
+        return redirect(url_for('procurement.view_procurement'))
         # Check Error
-        else:
-            for er in form.errors:
-                flash(er, 'danger')
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('procurement/new_procurement.html', form=form)
 
 
