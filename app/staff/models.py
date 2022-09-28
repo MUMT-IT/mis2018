@@ -622,6 +622,11 @@ class StaffSeminarMission(db.Model):
     mission = db.Column('mission', db.String())
 
 
+class StaffSeminarObjective(db.Model):
+    __tablename__ = 'staff_seminar_objectives'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    objective = db.Column('objective', db.String())
+
 class StaffSeminarAttend(db.Model):
     __tablename__ = 'staff_seminar_attends'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -631,10 +636,8 @@ class StaffSeminarAttend(db.Model):
     created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
     role = db.Column('role', db.String(), info={'label': u'บทบาท', 'choices': [
-        (c, c) for c in [u'วิทยากร', u'อาจารย์พิเศษ']
-    ]})
+        (c, c) for c in [u'ผู้เข้าร่วม', u'อาจารย์พิเศษ', u'วิทยากร', u'ที่ปรึกษา', u'กรรมการ', u'นิเทศน์งาน']]})
     registration_fee = db.Column('registration_fee', db.Float(), info={'label': u'ค่าลงทะเบียน (บาท)'})
-    objective = db.Column('objective', db.String(), info={'label': u'รายละเอียดการเข้าร่วม ดำเนินการภายใต้'})
     invited_document_id = db.Column('document_id', db.String(), info={'label': u'เลขที่หนังสือเชิญ'})
     invited_organization = db.Column('invited_organization', db.String(), info={'label': u'หน่วยงานที่เชิญ'})
     invited_document_date = db.Column('invited_document_date', db.DateTime(timezone=True), info={'label': u'ลงวันที่หนังสือ'})
@@ -659,12 +662,6 @@ class StaffSeminarAttend(db.Model):
 
     def __str__(self):
         return u'{}'.format(self.seminar)
-
-
-class StaffSeminarObjective(db.Model):
-    __tablename__ = 'staff_seminar_objectives'
-    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    objective = db.Column('objective', db.String())
 
 
 class StaffSeminarApproval(db.Model):
