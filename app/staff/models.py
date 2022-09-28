@@ -79,6 +79,10 @@ class StaffAccount(db.Model):
     roles = db.relationship('Role', secondary=user_roles, backref=db.backref('staff_account', lazy='dynamic'))
 
     @classmethod
+    def get_active_account(cls):
+        return [account for account in cls.query.all() if account.personal_info.retired != True]
+
+    @classmethod
     def get_account_by_email(cls, email):
         return cls.query.filter_by(email=email).first()
 
@@ -113,6 +117,13 @@ class StaffAccount(db.Model):
 
     def __str__(self):
         return u'{}'.format(self.email)
+    
+    @property
+    def fullname(self):
+        if self.personal_info:
+            return self.personal_info.fullname
+        else:
+            'Fullname not available.'
 
     @property
     def total_wfh_duration(self):
