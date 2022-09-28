@@ -82,9 +82,21 @@ class StaffAccount(db.Model):
     def get_account_by_email(cls, email):
         return cls.query.filter_by(email=email).first()
 
+    @classmethod
+    def get_active_accounts(cls):
+        return [account for account in cls.query.all() if account.is_active]
+
+    @property
+    def fullname(self):
+        return self.personal_info.fullname
+
     @property
     def has_password(self):
         return self.__password_hash != None
+
+    @property
+    def is_active(self):
+        return self.personal_info.retired != True
 
     @property
     def password(self):
