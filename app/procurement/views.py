@@ -56,23 +56,15 @@ def add_procurement():
         procurement.creation_date = bangkok.localize(datetime.now())
         procurement.end_guarantee_date = form.start_guarantee_date.data + timedelta(days=int(form.days.data))
         # TODO: calculate end date from time needed to finish guarantee date
-        # file = form.image.data
-        # print(form.image.data)
-        # if file:
-        #     img_name = secure_filename(file.filename)
-        #     file.save(img_name)
-        #     # convert image to base64(text) in database
-        #     import base64
-        #     with open(img_name, "rb") as img_file:
-        #         procurement.image = base64.b64encode(img_file.read())
-        # else:
-        #     # convert base64(text) to image in database
-        #     decoded_img = b64decode(procurement.image)
-        #     img_string = cStringIO.StringIO(decoded_img)
-        #     img_string.seek(0)
-        # record = ProcurementRecord(location=form.location.data, updater=current_user, status=form.status.data,
-        #                            updated_at=bangkok.localize(datetime.now()))
-        # procurement.records.append(record)
+        file = form.image_file_upload.data
+        if file:
+            img_name = secure_filename(file.filename)
+            file.save(img_name)
+            # convert image to base64(text) in database
+            import base64
+            with open(img_name, "rb") as img_file:
+                procurement.image = base64.b64encode(img_file.read())
+
         db.session.add(procurement)
         db.session.commit()
         record = procurement.records.order_by(ProcurementRecord.id.desc()).first()
@@ -415,6 +407,47 @@ def export_qrcode_pdf(procurement_id):
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     return send_file('qrcode.pdf')
 
+
+@procurement.route('/qrcode/pdf/list/<int:procurement_id>')
+def export_all_qrcode_pdf(procurement_id):
+    procurement = ProcurementDetail.query.get(procurement_id)
+
+    def all_page_setup(canvas, doc):
+        canvas.saveState()
+        # logo_image = ImageReader('app/static/img/mumt-logo.png')
+        # canvas.drawImage(logo_image, 10, 700, width=250, height=100)
+        canvas.restoreState()
+
+    doc = SimpleDocTemplate("app/qrcode.pdf",
+                            rightMargin=7,
+                            leftMargin=5,
+                            topMargin=35,
+                            bottomMargin=0,
+                            pagesize=(170, 150)
+                            )
+    data = []
+    if not procurement.qrcode:
+        qr = qrcode.QRCode(version=1, box_size=10)
+        qr.add_data(procurement.procurement_no)
+        qr.make(fit=True)
+        qr_img = qr.make_image()
+        qr_img.save('procurement_qrcode.png')
+        import base64
+        with open("procurement_qrcode.png", "rb") as img_file:
+            procurement.qrcode = base64.b64encode(img_file.read())
+            db.session.add(procurement)
+            db.session.commit()
+
+    decoded_img = b64decode(procurement.qrcode)
+    img_string = cStringIO.StringIO(decoded_img)
+    img_string.seek(0)
+    im = Image(img_string, 50 * mm, 30 * mm, kind='bound')
+    data.append(im)
+    data.append(Paragraph('<para align=center leading=10><font size=20>{}</font></para>'
+                          .format(procurement.procurement_no.encode('utf-8')),
+                          style=style_sheet['ThaiStyle']))
+    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+    return send_file('qrcode.pdf')
 
 # @procurement.route('/qrcode/list/pdf/all')
 # def export_all_qrcode_pdf():
