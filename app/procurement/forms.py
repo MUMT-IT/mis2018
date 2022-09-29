@@ -1,10 +1,11 @@
 # -*- coding:utf-8 -*-
 from flask_wtf import FlaskForm
-from wtforms import SelectMultipleField, widgets, FileField, IntegerField, RadioField, SelectField
+from wtforms import SelectMultipleField, widgets, FileField, IntegerField, RadioField, SelectField, FieldList, FormField
 from wtforms.validators import DataRequired
 from wtforms_alchemy import (model_form_factory, QuerySelectField)
 from .models import *
 from ..models import Org
+
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -20,32 +21,6 @@ class ModelForm(BaseModelForm):
         return db.session
 
 
-class CreateProcurementForm(ModelForm):
-    class Meta:
-        model = ProcurementDetail
-    image = FileField(u'อัพโหลดรูปภาพ')
-    # Calculate day to month
-    days = IntegerField(u'ระยะเวลา')
-    division = SelectField(u'ช่วงเวลา', choices=[(0, u'วัน'),
-                                            (1, u'เดือน'),
-                                            (2, u'ปี')])
-    category = QuerySelectField(u'หมวดหมู่/ประเภท', query_factory=lambda: ProcurementCategory.query.all(),
-                                blank_text='Select Category..', allow_blank=False)
-    org = QuerySelectField(query_factory=lambda: Org.query.all(),
-                                 get_label='name',
-                                 label=u'ภาควิชา/หน่วยงาน')
-    location = QuerySelectField(u'สถานที่', query_factory=lambda: RoomResource.query.all(),
-                                blank_text='Select location..', allow_blank=False)
-    status = QuerySelectField(u'สถานะ', query_factory=lambda: ProcurementStatus.query.all(),
-                              blank_text='Select status..', allow_blank=False)
-    available = SelectField(u'สภาพของสินทรัพย์',
-                         choices=[(c, c) for c in [u'ใช้งาน', u'เสื่อมสภาพ/รอจำหน่าย', u'หมดความจำเป็น']],
-                         coerce=unicode,
-                         validators=[DataRequired()])
-    purchasing_type = SelectField(u'จัดซื้อด้วยเงิน',
-                         choices=[(c, c) for c in [u'เงินงบประมาณแผ่นดิน', u'เงินรายได้ส่วนงาน']])
-
-
 class ProcurementRecordForm(ModelForm):
     class Meta:
         model = ProcurementRecord
@@ -55,6 +30,31 @@ class ProcurementRecordForm(ModelForm):
                                 blank_text='Select location..', allow_blank=False)
     status = QuerySelectField(u'สถานะ', query_factory=lambda: ProcurementStatus.query.all(),
                                 blank_text='Select status..', allow_blank=False)
+    staff_responsible = QuerySelectField(u'ผู้ดูแลครุภัณฑ์', query_factory=lambda: StaffAccount.get_active_accounts(),
+                                         get_label='fullname',
+                                         blank_text='Select staff'
+                                         )
+
+
+class ProcurementDetailForm(ModelForm):
+    class Meta:
+        model = ProcurementDetail
+    image = FileField(u'อัพโหลดรูปภาพ')
+    # Calculate day to month
+    days = IntegerField(u'ระยะเวลาประกัน')
+    division = SelectField(u'ช่วงเวลา', choices=[('days', u'วัน'), ('months', u'เดือน'), ('years', u'ปี')])
+    category = QuerySelectField(u'หมวดหมู่/ประเภท', query_factory=lambda: ProcurementCategory.query.all(),
+                                blank_text='Select Category..', allow_blank=False)
+    org = QuerySelectField(query_factory=lambda: Org.query.all(),
+                                 get_label='name',
+                                 label=u'ภาควิชา/หน่วยงาน')
+    available = SelectField(u'สภาพของสินทรัพย์',
+                         choices=[(c, c) for c in [u'ใช้งาน', u'เสื่อมสภาพ/รอจำหน่าย', u'หมดความจำเป็น']],
+                         validators=[DataRequired()])
+    purchasing_type = QuerySelectField(u'จัดซื้อด้วยเงิน', query_factory=lambda: ProcurementPurchasingType.query.all(),
+                                       get_label='purchasing_type',
+                                       blank_text='Select type..')
+    records = FieldList(FormField(ProcurementRecordForm, default=ProcurementRecord), min_entries=1)
 
 
 class ProcurementCategoryForm(ModelForm):
