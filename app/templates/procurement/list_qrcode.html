@@ -9,12 +9,14 @@
     <section class="section">
         {% include "messages.html" %}
         <div class="container">
+        <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="columns">
                 <div class="column has-text-left">
                     <h1 class="title">ข้อมูล QR Code ครุภัณฑ์</h1>
                 </div>
                 <div class="buttons is-centered">
-                    <a href="" class="button is-danger">
+                    <input type="submit" class="button is-danger">
                         <span class="icon">
                             <i class="fas fa-print"></i>
                         </span>
@@ -46,7 +48,7 @@
                             <tr>
                             <td class="field">
                                 <input class="is-checkradio is-medium" id="pro_no{{ record.id }}" type="checkbox"
-                                       name="pro_no{{ record.id }}">
+                                       name="selected_items" value="{{ record["id"] }}">
                                 <label for="pro_no{{ record.id }}"></label>
                                 {% if record in record.qrcode_list %}
                                     checked
@@ -90,6 +92,7 @@
                     </a>
                 </div>
             </div>
+        </form>
         </div>
     </section>
 {% endblock %}
