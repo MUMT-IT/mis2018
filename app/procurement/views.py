@@ -49,7 +49,7 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 @procurement.route('/new/add', methods=['GET', 'POST'])
 @login_required
 def add_procurement():
-    form = CreateProcurementForm()
+    form = ProcurementDetailForm()
     if form.validate_on_submit():
         procurement = ProcurementDetail()
         form.populate_obj(procurement)
@@ -168,7 +168,7 @@ def find_data():
 @login_required
 def edit_procurement(procurement_id):
     procurement = ProcurementDetail.query.get(procurement_id)
-    form = CreateProcurementForm(obj=procurement)
+    form = ProcurementDetailForm(obj=procurement)
     if request.method == 'POST':
         form.populate_obj(procurement)
         db.session.add(procurement)
