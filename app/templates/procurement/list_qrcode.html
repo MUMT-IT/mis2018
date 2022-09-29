@@ -18,15 +18,7 @@
                         <span class="icon">
                             <i class="fas fa-print"></i>
                         </span>
-                        <span>พิมพ์ที่เลือก</span>
-                    </a>
-                    <a href=""
-                       class="button is-success">
-                        <span class="icon">
-                            <i class="fas fa-print"></i>
-                        </span>
-                        <span>พิมพ์ทั้งหมด</span>
-                    </a>
+                    </input>
 {#                    <a href="{{ url_for('procurement.export_all_qrcode_pdf', procurement_no=procurement_no) }}"#}
 {#                       class="button is-warning">#}
 {#                        <span class="icon">#}
@@ -48,7 +40,6 @@
                         <th>วันที่ได้รับ</th>
                         <th>สถานะ</th>
                         <th>Print</th>
-                        <th>Scan</th>
                         </thead>
                         <tbody>
                         {% for record in qrcode_list %}
@@ -83,19 +74,6 @@
                             <td>
                                 <a href="{{ url_for('procurement.export_qrcode_pdf', procurement_id=record.id) }}">
                                     <i class="fas fa-print"></i></a>
-                            </td>
-                            <td>
-                                <a href="{{ url_for('procurement.qrcode_scan', procurement_id=record.id) }}"
-                                   class="button is-warning">
-                                    <span class="icon">
-                                        <i class="fas fa-print"></i>
-                                    </span>
-                                    <span>Scan Me</span>
-                                </a>
-                                <a href="{{ url_for('procurement.view_procurement_on_scan', procurement_no=record.procurement_no) }}"
-                                   class="button is-info">
-                                    <span>ปุ่มScanดูข้อมูล</span>
-                                </a>
                             </td>
                         {% endfor %}
                         </tbody>
