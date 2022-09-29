@@ -274,12 +274,9 @@
     </script>
     <script>
         $(document).ready(() => {
-            $('.js-example-basic').select2({
+            $('#records-0-staff_responsible').select2({
                 width: '400px',
-                ajax: {
-                    url: "{{ url_for('staff.get_all_employees') }}",
-                    dataType: "json"
-                }
+
             });
         });
     </script>
