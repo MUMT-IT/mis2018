@@ -580,14 +580,12 @@ def check_procurement(procurement_no):
 @procurement.route('/item/<string:procurement_no>/img/add', methods=['GET', 'POST'])
 @login_required
 def add_img_procurement(procurement_no):
-    form = CreateProcurementForm()
+    procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+    form = ProcurementDetailForm(obj=procurement)
     if request.method == 'POST':
         if form.validate_on_submit():
-            img_procurement = ProcurementDetail()
-            form.populate_obj(img_procurement)
-            img_procurement.staff = current_user
-            file = form.image.data
-            print(form.image.data)
+            form.populate_obj(procurement)
+            file = form.image_file_upload.data
             if file:
                 img_name = secure_filename(file.filename)
                 file.save(img_name)
@@ -595,12 +593,6 @@ def add_img_procurement(procurement_no):
                 import base64
                 with open(img_name, "rb") as img_file:
                     procurement.image = base64.b64encode(img_file.read())
-
-            else:
-                # convert base64(text) to image in database
-                decoded_img = b64decode(procurement.image)
-                img_string = cStringIO.StringIO(decoded_img)
-                img_string.seek(0)
             db.session.add(procurement)
             db.session.commit()
             flash(u'บันทึกรูปภาพสำเร็จ.', 'success')
