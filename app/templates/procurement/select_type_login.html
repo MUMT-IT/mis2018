@@ -99,21 +99,35 @@
                         <h1 class="title is-1">Procurement</h1>
                         <h2 class="subtitle colored is-4">ระบบงานพัสดุและซ่อมบำรุง</h2>
                     </div>
-                    <div class="column right has-text-centered">
-                     <span class="icon">
-                        <i class="fas fa-users fa-4x"></i>
-                     </span>
-                     <p class="description">ท่านคือ...</p>
-                        <a class="panel is-warning" href="{{ url_for('procurement.user_first') }}">
-                           <p class="panel-heading">เจ้าหน้าที่ MUMT</p>
-                        </a><br>
-                        <a class="panel is-info" href="{{ url_for('procurement.landing') }}">
-                           <p class="panel-heading">เจ้าหน้าที่พัสดุ</p>
-                        </a><br>
-                        <a class="panel is-success" href="{{ url_for('procurement.committee_first') }}">
-                           <p class="panel-heading">คณะกรรมการ</p>
-                        </a>
-                    </div>
+                    <div class="column">
+                        <nav class="panel is-success">
+                            <p class="panel-heading">You are..</p>
+                            <p class="panel-block">
+                                <span class="is-size-4">
+                                    <i class="fas fa-users"></i>
+                                    <a href="{{ url_for('procurement.user_first') }}">
+                                        เจ้าหน้าที่ MUMT
+                                    </a>
+                                </span>
+                            </p>
+                            <p class="panel-block">
+                                <span class="is-size-4">
+                                    <i class="fas fa-user-cog"></i>
+                                    <a href="{{ url_for('procurement.landing') }}">
+                                        เจ้าหน้าที่พัสดุ
+                                    </a>
+                                </span>
+                            </p>
+                            <p class="panel-block">
+                                <span class="is-size-4">
+                                    <i class="fas fa-user-check"></i>
+                                    <a href="{{ url_for('procurement.committee_first') }}">
+                                        คณะกรรมการ
+                                    </a>
+                                </span>
+                            </p>
+                        </nav>
+
                 </div>
             </div>
             <div class="column is-8 is-offset-2">
