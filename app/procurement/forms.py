@@ -39,7 +39,7 @@ class ProcurementRecordForm(ModelForm):
 class ProcurementDetailForm(ModelForm):
     class Meta:
         model = ProcurementDetail
-    image = FileField(u'อัพโหลดรูปภาพ')
+    image_file_upload = FileField(u'อัพโหลดรูปภาพ')
     # Calculate day to month
     days = IntegerField(u'ระยะเวลาประกัน')
     division = SelectField(u'ช่วงเวลา', choices=[('days', u'วัน'), ('months', u'เดือน'), ('years', u'ปี')])
