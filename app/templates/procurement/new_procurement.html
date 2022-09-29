@@ -20,14 +20,11 @@
                             {{ form.hidden_tag() }}
                             <div class="field-body">
                                 <div class="field">
-                                    <label class="label">{{ form.category.label }}
-                                        <a href="{{ url_for('procurement.add_category_ref') }}">
-                                            <i class="far fa-plus-square"></i>
-                                        </a>
-                                    </label>
-                                    <div class="select is-fullwidth is-danger">
-                                        {{ form.category() }}
+                                    <label class="label">{{ form.cost_center.label }}</label>
+                                    <div class="control">
+                                        {{ form.cost_center(class="input is-danger") }}
                                     </div>
+                                    <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
                                     <label class="label">{{ form.procurement_no.label }}</label>
@@ -37,17 +34,36 @@
                                     <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
+                                    <label class="label">{{ form.erp_code.label }}</label>
+                                    <div class="control">
+                                        {{ form.erp_code(class="input is-danger") }}
+                                    </div>
+                                    <p class="help is-danger">Required</p>
+                                </div>
+                                <div class="field">
                                     <label class="label">{{ form.sub_number.label }}</label>
                                     <div class="control">
                                         {{ form.sub_number(class="input is-danger") }}
                                     </div>
+                                    <p class="help is-danger">Required</p>
                                 </div>
                             </div>
                             <div class="field-body">
                                 <div class="field">
-                                    <label class="label">{{ form.erp_code.label }}</label>
+                                    <label class="label">{{ form.category.label }}
+                                        <a href="{{ url_for('procurement.add_category_ref') }}">
+                                            <i class="far fa-plus-square"></i>
+                                        </a>
+                                    </label>
+                                    <div class="select is-fullwidth is-danger">
+                                        {{ form.category() }}
+                                    </div>
+                                    <p class="help is-danger">Required</p>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.serial_no.label }}</label>
                                     <div class="control">
-                                        {{ form.erp_code(class="input is-danger") }}
+                                        {{ form.serial_no(class="input is-danger") }}
                                     </div>
                                     <p class="help is-danger">Required</p>
                                 </div>
@@ -57,7 +73,7 @@
                                         {{ form.document_no(class="input") }}
                                     </div>
                                 </div>
-                                 <div class="field">
+                                <div class="field">
                                     <label class="label">{{ form.bought_by.label }}</label>
                                     <div class="select is-fullwidth">
                                         {{ form.bought_by() }}
@@ -99,6 +115,12 @@
                             </div>
                             <div class="field-body">
                                 <div class="field">
+                                    <label class="label">{{ form.received_date.label }}</label>
+                                    <div class="control">
+                                        {{ form.received_date(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
                                     <label class="label">{{ form.start_guarantee_date.label }}</label>
                                     <div class="control">
                                         {{ form.start_guarantee_date(class="input", value=default_date) }}
@@ -116,13 +138,7 @@
                                         {{ form.division() }}
                                     </div>
                                 </div>
-                                 <div class="field">
-                                    <label class="label">{{ form.received_date.label }}</label>
-                                    <div class="control">
-                                        {{ form.received_date(class="input") }}
-                                    </div>
-                                </div>
-                                 <div class="field">
+                                <div class="field">
                                     <label class="label">{{ form.available.label }}</label>
                                     <div class="select is-fullwidth is-danger">
                                         {{ form.available() }}
@@ -140,8 +156,9 @@
                                 <div class="field">
                                     <label class="label">{{ form.budget_year.label }}</label>
                                     <div class="control">
-                                        {{ form.budget_year(class="input") }}
+                                        {{ form.budget_year(class="input is-danger") }}
                                     </div>
+                                    <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
                                     <label class="label">{{ form.price.label }}</label>
@@ -160,7 +177,13 @@
                             <div class="field">
                                 <img style='display:block; width:450px;height:350px;' id="preview">
                                 <div class="control">
-                                    {{ form.image(onchange="previewImage(event)", accept="image/*") }}
+                                    {{ form.image_file_upload(onchange="previewImage(event)", accept="image/*") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.org.label }}</label>
+                                <div class="select is-fullwidth">
+                                    {{ form.org() }}
                                 </div>
                             </div>
                             <div class="field">
@@ -169,44 +192,32 @@
                                     {{ form.comment(class="textarea") }}
                                 </div>
                             </div>
-                            <br>
-                            <div class="columns">
-                                <div class="column has-text-centered">
-                                    <h2 class="title is-3">ภาควิชาที่ซื้อและสถานที่ตั้ง</h2>
-                                </div>
-                            </div>
                             <div class="field-body">
-                                <div class="field">
-                                    <label class="label">{{ form.org.label }}</label>
-                                    <div class="select is-fullwidth">
-                                        {{ form.org() }}
+                                {% for record in form.records %}
+                                    <div class="field">
+                                        <label class="label">เพิ่มผู้ดูแลครุภัณฑ์</label>
+                                        <div>
+                                            {{ record.staff_responsible(class='select') }}
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">เพิ่มผู้ดูแลครุภัณฑ์</label>
-                                    <div class="control">
-                                        <select class="js-example-basic" name="employees"></select>
+                                    <div class="field">
+                                        <label class="label">{{ record.status.label }}
+                                            <a href="{{ url_for('procurement.add_status_ref') }}">
+                                                <i class="far fa-plus-square"></i>
+                                            </a>
+                                        </label>
+                                        <div class="select is-fullwidth">
+                                            {{ record.status() }}
+                                        </div>
                                     </div>
-                                </div>
-                            </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <label class="label">{{ form.status.label }}
-                                        <a href="{{ url_for('procurement.add_status_ref') }}">
-                                            <i class="far fa-plus-square"></i>
-                                        </a>
-                                    </label>
-                                    <div class="select is-fullwidth">
-                                        {{ form.status() }}
+                                    <div class="field">
+                                        <label class="label">{{ record.location.label }}</label>
+                                        <div class="select is-fullwidth">
+                                            {{ record.location() }}
+                                        </div>
                                     </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.location.label }}</label>
-                                    <div class="select is-fullwidth">
-                                        {{ form.location() }}
                                     </div>
-                                </div>
-                            </div>
+                                {% endfor %}
                             <br>
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="buttons">
