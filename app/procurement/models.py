@@ -9,22 +9,22 @@ from app.staff.models import StaffAccount
 class ProcurementDetail(db.Model):
     __tablename__ = 'procurement_details'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    name = db.Column('name', db.String(), nullable=False, info={'label': u'ชื่อครุภัณฑ์'})
+    name = db.Column('name', db.String(), info={'label': u'ชื่อครุภัณฑ์'})
     image = db.Column('image', db.Text(), info={'label': u'รูปภาพ'})
     qrcode = db.Column('qrcode', db.Text(), info={'label': 'QR Code'})
-    procurement_no = db.Column('procurement_no', db.String(), unique=True, nullable=False, info={'label': u'เลขครุภัณฑ์'})
+    procurement_no = db.Column('procurement_no', db.String(), unique=True, info={'label': u'เลขครุภัณฑ์'})
     document_no = db.Column('document_no', db.String(), info={'label': u'เอกสารสั่งซื้อเลขที่'})
-    erp_code = db.Column('erp_code', db.String(), info={'label': u'รหัส ERP/Inventory Number'})
+    erp_code = db.Column('erp_code', db.String(), info={'label': u'รหัส ERP'})
     serial_no = db.Column('serial_no', db.String(), info={'label': u'Serial Number'})
     bought_by = db.Column('bought_by', db.String(), info={'label': u'วิธีการจัดซื้อ', 'choices': [(c, c) for c in
                                                                                   [u'ตกลงราคา', u'สอบราคา',
-                                                                                   u'ประกวดราคา', u'วิธีพิเสษ',
+                                                                                   u'ประกวดราคา', u'วิธีพิเศษ',
                                                                                    u'รับบริจาค', u'e-Auction',
                                                                                    u'วิธีคัดเลือก', u'อื่นๆ']]})
-    budget_year = db.Column('budget_year', db.String(), nullable=False, info={'label': u'ปีงบประมาณ'})
+    budget_year = db.Column('budget_year', db.String(), info={'label': u'ปีงบประมาณ'})
     price = db.Column('price', db.String(), info={'label': 'Original value'})
     received_date = db.Column('received_date', db.Date(), info={'label': u'วันที่ได้รับ'})
-    available = db.Column('available', db.String(), nullable=False, info={'label': u'สภาพของสินทรัพย์'})
+    available = db.Column('available', db.String(), info={'label': u'สภาพของสินทรัพย์'})
     purchasing_type_id = db.Column('purchasing_type_id', db.ForeignKey('procurement_purchasing_types.id'))
     purchasing_type = db.relationship('ProcurementPurchasingType',
                                backref=db.backref('types', lazy='dynamic'))
@@ -64,9 +64,7 @@ class ProcurementDetail(db.Model):
 class ProcurementPurchasingType(db.Model):
     __tablename__ = 'procurement_purchasing_types'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    purchasing_type = db.Column('purchasing_type', db.String(), info={'label': u'จัดซื้อด้วยเงิน',
-                                                                      'choices': [(c, c) for c in
-                                                                                  [u'เงินงบประมาณแผ่นดิน', u'เงินรายได้ส่วนงาน']]})
+    purchasing_type = db.Column('purchasing_type', db.String(), info={'label': u'จัดซื้อด้วยเงิน'})
     fund = db.Column('fund', db.Integer(), info={'label': u'แหล่งเงิน'})
 
 
@@ -98,8 +96,8 @@ class ProcurementRecord(db.Model):
                             db.ForeignKey('scheduler_room_resources.id'))
     location = db.relationship(RoomResource,
                                backref=db.backref('items', lazy='dynamic'))
-    updated_at = db.Column('updated_at', db.DateTime(timezone=True), nullable=False)
-    updater_id = db.Column('updater_id', db.ForeignKey('staff_account.id'), nullable=False)
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    updater_id = db.Column('updater_id', db.ForeignKey('staff_account.id'))
     updater = db.relationship(StaffAccount, foreign_keys=[updater_id])
     status_id = db.Column('status_id', db.ForeignKey('procurement_statuses.id'))
     status = db.relationship('ProcurementStatus',
