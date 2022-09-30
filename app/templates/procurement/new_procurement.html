@@ -2,6 +2,7 @@
 {% include "procurement/nav.html" %}
 {% block head %}
     {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% block page_content %}
@@ -110,33 +111,31 @@
                             <div class="field">
                                 <label class="label">{{ form.guarantee.label }}</label>
                                 <div class="control">
-                                    {{ form.guarantee(class="input") }}
+                                    {{ form.guarantee(class="input is-danger") }}
                                 </div>
+                                <p class="help is-danger">Required</p>
                             </div>
                             <div class="field-body">
                                 <div class="field">
                                     <label class="label">{{ form.received_date.label }}</label>
                                     <div class="control">
-                                        {{ form.received_date(class="input") }}
+                                        {{ form.received_date(class="input is-danger", type="text") }}
                                     </div>
+                                    <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
                                     <label class="label">{{ form.start_guarantee_date.label }}</label>
                                     <div class="control">
-                                        {{ form.start_guarantee_date(class="input", value=default_date) }}
+                                        {{ form.start_guarantee_date(class="input is-danger", type="text") }}
                                     </div>
+                                    <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
-                                    <label class="label">{{ form.days.label }}</label>
+                                    <label class="label">{{ form.end_guarantee_date.label }}</label>
                                     <div class="control">
-                                        {{ form.days(class="input is-danger") }}
+                                        {{ form.end_guarantee_date(class="input is-danger", type="text") }}
                                     </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.division.label }}</label>
-                                    <div class="select is-danger">
-                                        {{ form.division() }}
-                                    </div>
+                                    <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
                                     <label class="label">{{ form.available.label }}</label>
@@ -149,9 +148,10 @@
                             <div class="field-body">
                                 <div class="field">
                                     <label class="label">{{ form.purchasing_type.label }}</label>
-                                    <div class="select is-fullwidth">
+                                    <div class="select is-fullwidth is-danger">
                                         {{ form.purchasing_type() }}
                                     </div>
+                                    <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
                                     <label class="label">{{ form.budget_year.label }}</label>
@@ -163,14 +163,16 @@
                                 <div class="field">
                                     <label class="label">{{ form.price.label }}</label>
                                     <div class="control">
-                                        {{ form.price(class="input", placeholder="฿") }}
+                                        {{ form.price(class="input is-danger", placeholder="฿") }}
                                     </div>
+                                    <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
                                     <label class="label">{{ form.curr_acq_value.label }}</label>
                                     <div class="control">
-                                        {{ form.curr_acq_value(class="input", placeholder="฿") }}
+                                        {{ form.curr_acq_value(class="input is-danger", placeholder="฿") }}
                                     </div>
+
                                 </div>
                             </div>
                             <br>
@@ -237,30 +239,86 @@
     {{ super() }}
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    <script>
-
-        $('input[name="start_guarantee_date"]').daterangepicker({
-            singleDatePicker: true,
-            timePicker: false,
-            locale: {
-                format: 'YYYY-MM-DD'
-            }
-        });
-        $('input[name="end_guarantee_date"]').daterangepicker({
-            singleDatePicker: true,
-            timePicker: false,
-            locale: {
-                format: 'YYYY-MM-DD'
-            }
-        });
-        $('input[name="received_date"]').daterangepicker({
-            singleDatePicker: true,
-            timePicker: false,
-            locale: {
-                format: 'YYYY-MM-DD'
-            }
-        });
-    </script>
+{#    <script>#}
+{#        $(document).ready(function () {#}
+{#             $('#start_guarantee_date').daterangepicker({#}
+{#                singleDatePicker: true,#}
+{#                 autoUpdateInput: false,#}
+{#                locale: {#}
+{#                    format: 'DD/MM/YYYY'#}
+{#                }#}
+{#            })#}
+{#            $('#end_guarantee_date').daterangepicker({#}
+{#                singleDatePicker: true,#}
+{#                autoUpdateInput: false,#}
+{#                autoApply: false,#}
+{#                locale: {#}
+{#                    format: 'DD/MM/YYYY'#}
+{#                }#}
+{#            })#}
+{#            $('#received_date').daterangepicker({#}
+{#                singleDatePicker: true,#}
+{#                autoUpdateInput: true,#}
+{#                locale: {#}
+{#                    format: 'DD/MM/YYYY'#}
+{#                }#}
+{#            })#}
+{#            $('#received_date').on('apply.daterangepicker', ()=>{#}
+                {#console.log($('input[name="received_date"]'))#}
+{#                $('#start_guarantee_date').data('daterangepicker').setStartDate(moment($('input[name="received_date"]').val(), "DD/MM/YYYY").add(1, "days").format("DD/MM/YYYY"))#}
+{#            })#}
+{#            $('#end_guarantee_date').on('change', ()=>{#}
+{#                console.log('changed')#}
+{#                $('#end_guarantee_date').val($('#end_guarantee_date').data('daterangepicker').startDate.format('DD/MM/YYYY'))#}
+{#            })#}
+{#            $('#end_guarantee_date').on('apply.daterangepicker', ()=>{#}
+{#                console.log('autoapplied.')#}
+{#                $('#end_guarantee_date').val($('#end_guarantee_date').data('daterangepicker').startDate.format('DD/MM/YYYY'))#}
+{#            })#}
+{#            $('#start_guarantee_date').on("change",()=>{#}
+{#                console.log($('#start_guarantee_date').data('daterangepicker'))#}
+{#                if($('#start_guarantee_date').val()===""){#}
+{#                    $('#end_guarantee_date').val("")#}
+{#                }#}
+{#                else {#}
+{#                    $('#start_guarantee_date').val($('#start_guarantee_date').data('daterangepicker').startDate.format('DD/MM/YYYY'))#}
+{#                     $('#end_guarantee_date').daterangepicker({#}
+{#                         autoUpdateInput: false,#}
+{#                    singleDatePicker: true,#}
+{#                    autoApply: true,#}
+{#                    ranges: {#}
+{#                  "1 เดือน": [moment($('#start_guarantee_date').val(), "DD/MM/YYYY").add(1, "months")],#}
+{#                    "3 เดือน": [moment($('#start_guarantee_date').val(), "DD/MM/YYYY").add(3, "months")],#}
+{#                    "6 เดือน": [moment($('#start_guarantee_date').val(), "DD/MM/YYYY").add(6, "months")],#}
+{#                    "1 ปี": [moment($('#start_guarantee_date').val(), "DD/MM/YYYY").add(1, "years")],#}
+{#                    "1 ปี 6 เดือน": [moment($('#start_guarantee_date').val(), "DD/MM/YYYY").add(1, "years").add(6, "months")],#}
+{#                },#}
+{#                locale: {#}
+{#                    format: 'DD/MM/YYYY'#}
+{#                }#}
+{#            })#}
+{#                }#}
+{#            })#}
+{#            $('#start_guarantee_date').on('apply.daterangepicker', (evt, picker)=>{#}
+{#                $('#start_guarantee_date').val($('#start_guarantee_date').data('daterangepicker').startDate.format('DD/MM/YYYY'))#}
+{#                $('#end_guarantee_date').daterangepicker({#}
+{#                         autoUpdateInput: false,#}
+{#                    singleDatePicker: true,#}
+{#                    autoApply: true,#}
+{#                    ranges: {#}
+{#                  "1 เดือน": [moment($('#start_guarantee_date').val(), "DD/MM/YYYY").add(1, "months")],#}
+{#                    "3 เดือน": [moment($('#start_guarantee_date').val(), "DD/MM/YYYY").add(3, "months")],#}
+{#                    "6 เดือน": [moment($('#start_guarantee_date').val(), "DD/MM/YYYY").add(6, "months")],#}
+{#                    "1 ปี": [moment($('#start_guarantee_date').val(), "DD/MM/YYYY").add(1, "years")],#}
+{#                    "1 ปี 6 เดือน": [moment($('#start_guarantee_date').val(), "DD/MM/YYYY").add(1, "years").add(6, "months")],#}
+{#                },#}
+{#                locale: {#}
+{#                    format: 'DD/MM/YYYY'#}
+{#                }#}
+{#            })#}
+{#            })#}
+{#        });#}
+{#    </script>#}
 
     <script>
         const previewImage = e => {
