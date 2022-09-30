@@ -41,8 +41,8 @@ class ProcurementDetailForm(ModelForm):
         model = ProcurementDetail
     image_file_upload = FileField(u'อัพโหลดรูปภาพ')
     # Calculate day to month
-    days = IntegerField(u'ระยะเวลาประกัน')
-    division = SelectField(u'ช่วงเวลา', choices=[('days', u'วัน'), ('months', u'เดือน'), ('years', u'ปี')])
+    # days = IntegerField(u'ระยะเวลาประกัน')
+    # division = SelectField(u'ช่วงเวลา', choices=[('days', u'วัน'), ('months', u'เดือน'), ('years', u'ปี')])
     category = QuerySelectField(u'หมวดหมู่/ประเภท', query_factory=lambda: ProcurementCategory.query.all(),
                                 blank_text='Select Category..', allow_blank=False)
     org = QuerySelectField(query_factory=lambda: Org.query.all(),
@@ -100,3 +100,11 @@ class ProcurementApprovalForm(ModelForm):
                          choices=[(c, c) for c in [u'ตรวจสอบครุภัณฑ์ถูกต้อง', u'ตรวจสอบครุภัณฑ์ไม่ถูกต้อง']],
                          coerce=unicode,
                          validators=[DataRequired()])
+
+
+class ProcurementAddImageForm(ModelForm):
+    class Meta:
+        model = ProcurementDetail
+        only = ['image']
+
+    image_upload = FileField(u'อัพโหลดรูปภาพ')
