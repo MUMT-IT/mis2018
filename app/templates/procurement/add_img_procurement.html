@@ -2,7 +2,6 @@
 {% include "procurement/nav.html" %}
 {% block head %}
     {{ super() }}
-    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% block page_content %}
@@ -21,15 +20,16 @@
                             {{ form.hidden_tag() }}
 
                             <div class="field">
-                                <img style='display:block; width:450px;height:350px;' id="preview">
+                                <img style='display:block; width:450px;height:350px;' id="preview"
+                                 src='data:image/png;base64, {{ procurement.image }}'>
                                 <div class="control">
-                                    {{ form.image(onchange="previewImage(event)", accept="image/*") }}
+                                    {{ form.image_upload(onchange="previewImage(event)", accept="image/*") }}
                                 </div>
                             </div>
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="buttons">
                                     <button class="button is-success" type="submit" value="submit">บันทึก</button>
-                                    <a href="{{ url_for('procurement.view_procurement_on_scan', procurement_no=procurement_no) }}"
+                                    <a href="{{ url_for('procurement.view_img_procurement', procurement_no=procurement_no) }}"
                                        class="button is-danger">ยกเลิก</a>
                                 </div>
                             </div>
