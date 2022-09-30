@@ -50,12 +50,18 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 @login_required
 def add_procurement():
     form = ProcurementDetailForm()
+    if form.start_guarantee_date.data:
+        form.start_guarantee_date.data = datetime.strptime(form.start_guarantee_date.data, '%d/%m/%Y')
+    if form.end_guarantee_date.data:
+        form.end_guarantee_date.data = datetime.strptime(form.end_guarantee_date.data, '%d/%m/%Y')
+    if form.received_date.data:
+        form.received_date.data = datetime.strptime(form.received_date.data, '%d/%m/%Y')
     if form.validate_on_submit():
         procurement = ProcurementDetail()
         form.populate_obj(procurement)
         procurement.creation_date = bangkok.localize(datetime.now())
-        procurement.end_guarantee_date = form.start_guarantee_date.data + timedelta(days=int(form.days.data))
-        # TODO: calculate end date from time needed to finish guarantee date
+        # procurement.end_guarantee_date = form.start_guarantee_date.data + timedelta(days=int(form.days.data))
+        # # TODO: calculate end date from time needed to finish guarantee date
         file = form.image_file_upload.data
         if file:
             img_name = secure_filename(file.filename)
@@ -183,7 +189,8 @@ def edit_procurement(procurement_id):
         db.session.commit()
         flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
         return redirect(url_for('procurement.view_procurement'))
-    return render_template('procurement/edit_procurement.html', form=form, procurement=procurement)
+    return render_template('procurement/edit_procurement.html', form=form, procurement=procurement,
+                           url_callback=request.referrer)
 
 
 @procurement.route('/qrcode/view/<int:procurement_id>')
@@ -600,29 +607,27 @@ def view_img_procurement():
     return render_template('procurement/view_img_procurement.html', procurement_list=procurement_list)
 
 
-@procurement.route('/item/<string:procurement_no>/img/add', methods=['GET', 'POST'])
+@procurement.route('/item/<int:procurement_id>/img/add', methods=['GET', 'POST'])
 @login_required
-def add_img_procurement(procurement_no):
-    procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
-    form = ProcurementDetailForm(obj=procurement)
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            form.populate_obj(procurement)
-            file = form.image_file_upload.data
-            if file:
-                img_name = secure_filename(file.filename)
-                file.save(img_name)
-                # convert image to base64(text) in database
-                import base64
-                with open(img_name, "rb") as img_file:
-                    procurement.image = base64.b64encode(img_file.read())
-            db.session.add(procurement)
-            db.session.commit()
-            flash(u'บันทึกรูปภาพสำเร็จ.', 'success')
-            return redirect(url_for('procurement.add_img_procurement'))
+def add_img_procurement(procurement_id):
+    procurement = ProcurementDetail.query.get(procurement_id)
+    form = ProcurementAddImageForm(obj=procurement)
+    if form.validate_on_submit():
+        form.populate_obj(procurement)
+        file = form.image_upload.data
+        if file:
+            img_name = secure_filename(file.filename)
+            file.save(img_name)                # convert image to base64(text) in database
+            import base64
+            with open(img_name, "rb") as img_file:
+                procurement.image = base64.b64encode(img_file.read())
+        db.session.add(procurement)
+        db.session.commit()
+        flash(u'บันทึกรูปภาพสำเร็จ.', 'success')
+        return redirect(url_for('procurement.add_img_procurement', procurement_id=procurement_id))
         # Check Error
-        else:
-            for er in form.errors:
-                flash(er, 'danger')
-    return render_template('procurement/add_img_procurement.html', form=form, procurement_no=procurement_no,
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
+    return render_template('procurement/add_img_procurement.html', form=form, procurement_id=procurement_id,
                                                                 procurement=procurement)
