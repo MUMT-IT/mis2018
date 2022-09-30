@@ -14,7 +14,7 @@ class ProcurementDetail(db.Model):
     qrcode = db.Column('qrcode', db.Text(), info={'label': 'QR Code'})
     procurement_no = db.Column('procurement_no', db.String(), unique=True, info={'label': u'เลขครุภัณฑ์'})
     document_no = db.Column('document_no', db.String(), info={'label': u'เอกสารสั่งซื้อเลขที่'})
-    erp_code = db.Column('erp_code', db.String(), info={'label': u'รหัส ERP'})
+    erp_code = db.Column('erp_code', db.String(), info={'label': u'Inventory Number/ERP'})
     serial_no = db.Column('serial_no', db.String(), info={'label': u'Serial Number'})
     bought_by = db.Column('bought_by', db.String(), info={'label': u'วิธีการจัดซื้อ', 'choices': [(c, c) for c in
                                                                                   [u'ตกลงราคา', u'สอบราคา',
