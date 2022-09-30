@@ -29,7 +29,7 @@ from ..main import dbutils, get_credential, csrf
 from ..roles import procurement_committee_permission, procurement_permission
 
 style_sheet = getSampleStyleSheet()
-style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
+style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Times-Bold'))
 style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 
@@ -89,7 +89,7 @@ def first_page():
 
 @procurement.route('/official/for-user/login')
 def user_first():
-    return render_template('procurement/user_first_page.html')
+    return render_template('procurement/user_first_page.html', name=current_user)
 
 
 @procurement.route('/official/for-procurement-staff/login')
@@ -103,7 +103,7 @@ def landing():
 @login_required
 @procurement_committee_permission.require()
 def committee_first():
-    return render_template('procurement/committee_first_page.html')
+    return render_template('procurement/committee_first_page.html', name=current_user)
 
 
 @procurement.route('/info/by-committee/view')
@@ -171,6 +171,14 @@ def edit_procurement(procurement_id):
     form = ProcurementDetailForm(obj=procurement)
     if request.method == 'POST':
         form.populate_obj(procurement)
+        file = form.image_file_upload.data
+        if file:
+            img_name = secure_filename(file.filename)
+            file.save(img_name)
+            # convert image to base64(text) in database
+            import base64
+            with open(img_name, "rb") as img_file:
+                procurement.image = base64.b64encode(img_file.read())
         db.session.add(procurement)
         db.session.commit()
         flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
@@ -430,7 +438,7 @@ def export_qrcode_pdf(procurement_id):
     im = Image(img_string, 50 * mm, 30 * mm, kind='bound')
     data.append(im)
     data.append(Paragraph('<para align=center leading=10><font size=20>{}</font></para>'
-                          .format(procurement.procurement_no.encode('utf-8')),
+                          .format(procurement.erp_code.encode('utf-8')),
                           style=style_sheet['ThaiStyle']))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     return send_file('qrcode.pdf')
@@ -577,6 +585,21 @@ def check_procurement(procurement_no):
     return render_template('procurement/approval_by_committee.html', form=form, procurement_no=procurement_no)
 
 
+@procurement.route('/item/image/view')
+def view_img_procurement():
+    procurement_list = []
+    procurement_query = ProcurementDetail.query.all()
+    for procurement in procurement_query:
+        record = {}
+        record["id"] = procurement.id
+        record["name"] = procurement.name
+        record["procurement_no"] = procurement.procurement_no
+        record["erp_code"] = procurement.erp_code
+        record["image"] = procurement.image
+        procurement_list.append(record)
+    return render_template('procurement/view_img_procurement.html', procurement_list=procurement_list)
+
+
 @procurement.route('/item/<string:procurement_no>/img/add', methods=['GET', 'POST'])
 @login_required
 def add_img_procurement(procurement_no):
@@ -601,4 +624,5 @@ def add_img_procurement(procurement_no):
         else:
             for er in form.errors:
                 flash(er, 'danger')
-    return render_template('procurement/add_img_procurement.html', form=form, procurement_no=procurement_no)
+    return render_template('procurement/add_img_procurement.html', form=form, procurement_no=procurement_no,
+                                                                procurement=procurement)
