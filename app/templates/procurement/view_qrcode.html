@@ -71,7 +71,7 @@
                                 <td>{{ item.document_no}}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">รหัส ERP</label></td>
+                                <td><label class="label">Inventory Number / ERP</label></td>
                                 <td>{{ item.erp_code }}</td>
                             </tr>
                             <tr>
@@ -80,7 +80,7 @@
                             </tr>
                             <tr>
                                 <td><label class="label">จัดซื้อด้วยเงิน</label></td>
-                                <td>{{ item.purchasing_type }}</td>
+                                <td>{{ item.purchasing_type.purchasing_type }}</td>
                             </tr>
                             <tr>
                                 <td><label class="label">วิธีการจัดซื้อ</label></td>
@@ -99,7 +99,7 @@
                                 <td>{{ item.received_date }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">ความสามารถการใช้งาน</label></td>
+                                <td><label class="label">สภาพของสินทรัพย์</label></td>
                                 <td>{{ item.available }}</td>
                             </tr>
                             <tr>
@@ -131,16 +131,13 @@
                                 <td>{{ item.comment }}</td>
                             </tr>
                             <tr>
-                                <td><label class="label">ผู้ดูแลครุภัณฑ์</label></td>
-                                <td>{{ item.responsible_person }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">ภาควิชา/หน่วยงาน</label></td>
+                                <td><label class="label">ภาควิชา / หน่วยงาน</label></td>
                                 <td>{{ item.org }}</td>
                             </tr>
                         </table>
                         <a href="{{ url_for('procurement.view_procurement') }}" class="button is-light">กลับ</a>
                         <a href="{{ url_for('procurement.edit_procurement', procurement_id=item.id) }}" class="button is-danger">แก้ไข</a>
+                        <a href="" class="button is-warning">Print</a>
                     </div>
                 </div>
             </div>
