@@ -3,14 +3,6 @@
 {% include "procurement/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <nav class="panel">
-        <p class="panel-heading">
-            หมวดหมู่/ประเภท
-        </p>
-        {% for ProcurementCategory in category %}
-        <a>{{ ProcurementCategory.Category }}</a>
-        {% endfor %}
-    </nav>
     <div class="container">
         <div class="columns">
             <div class="column has-text-centered">
@@ -20,10 +12,10 @@
         <div class="columns">
             <div class="column is-half is-offset-one-quarter">
                 <div class="box">
-                <form method="post" enctype="multipart/form-data">
+                <form method="post">
                     {{ form.hidden_tag() }}
                     <div class="field">
-                        <label class="label">{{ form.category.label }}</label>
+                        <label class="label">หมวดหมู่/ประเภท</label>
                         <div class="control">
                             {{ form.category(class="input is-info") }}
                         </div>
@@ -32,7 +24,7 @@
                     <div class="field is-grouped is-grouped-centered">
                         <div class="buttons">
                             <button class="button is-success" type="submit" value="submit">บันทึก</button>
-                            <a href="{{ url_for('procurement.index') }}" class="button is-danger">ยกเลิก</a>
+                            <a href="{{ url_for('procurement.add_procurement') }}" class="button is-danger">ยกเลิก</a>
                         </div>
                     </div>
                     <hr>

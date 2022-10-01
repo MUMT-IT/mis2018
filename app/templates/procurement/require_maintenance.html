@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Add New Maintenance{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <nav class="navbar">
+            <div class="container">
+                <div class="navbar-brand">
+                    <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" alt="Logo" width="250">
+                </div>
+                <div id="navbarMenu" class="navbar-menu">
+                    <div class="navbar-end">
+                        <a href="{{ url_for('procurement.first_page') }}"
+                           class="navbar-item is-active is-size-5 has-text-weight-semibold">
+                            Home
+                        </a>
+                        <a href="{{ url_for('procurement.view_maintenance') }}"
+                           class="navbar-item is-active is-size-5 has-text-weight-semibold">
+                            View
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+        <div class="columns">
+            <div class="column is-4 is-offset-4 has-text-centered">
+                <h1 class="title">New Maintenance</h1>
+                <form method="post" action="{{ url_for('procurement.list_maintenance') }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="field">
+                        <p class="control has-icons-right">
+                            <input class="input" type="text" name="procurement_number"
+                                   hx-post="{{ url_for('procurement.list_maintenance') }}"
+                                   hx-trigger="keyup changed delay:500ms"
+                                   hx-target="#procurementTable"
+                                   hx-swap="innerHTML"
+                                   placeholder="ค้นหาเลขครุภัณฑ์">
+                            <span class="icon is-right">
+                            <i class="fas fa-search"></i>
+                        </span>
+                        </p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <table class="table">
+                    <thead>
+                    <th>เลขครุภัณฑ์</th>
+                    <th>ชื่อครุภัณฑ์</th>
+                    <th>รายละเอียด</th>
+                    <th>ความพร้อมใช้</th>
+                    <th>สถานที่</th>
+                    <th>ดูข้อมูลการแจ้งซ่อม</th>
+                    <th></th>
+                    </thead>
+                    <tbody id="procurementTable"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <a href="{{ url_for('procurement.list_maintenance') }}">ดูรายการทั้งหมด</a>
+            </div>
+        </div>
+    </section>
+     <div class="container has-text-centered">
+                <a href="{{ url_for('procurement.user_first') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+{% endblock %}
+

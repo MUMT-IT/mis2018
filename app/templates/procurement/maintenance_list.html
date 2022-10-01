@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Add New Maintenance{% endblock %}
+{% include "procurement/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <h1 class="title">รายการครุภัณฑ์</h1>
+    <table class="table">
+        <thead>
+            <th>เลขครุภัณฑ์</th>
+            <th>ชื่อครุภัณฑ์</th>
+            <th>รายละเอียด</th>
+            <th>ความพร้อมใช้</th>
+            <th>สถานที่</th>
+            <th>ดูข้อมูลการแจ้งซ่อม</th>
+            <th></th>
+        </thead>
+        <tbody>
+        {% for maintenance in maintenance_query %}
+            <tr>
+                <td>{{ maintenance.procurement_no }}</td>
+                <td>{{ maintenance.name }}</td>
+                <td>{{ maintenance.desc }}</td>
+                <td>{{ maintenance.available }}</td>
+                <td>{{ maintenance.location }}</td>
+                <td>
+                    <span class="icon is-medium">
+                        <i class="fas fa-clipboard-list fa-lg"></i>
+                    </span>
+                </td>
+                <td>
+                    <a href="{{ url_for('procurement.contact_service') }}"
+                        class="button is-rounded is-info">
+                        <strong>แจ้งซ่อม</strong>
+                    </a>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock page_content %}

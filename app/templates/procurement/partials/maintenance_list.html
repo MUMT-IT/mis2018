@@ -1,0 +1,20 @@
+ {% for maintenance in maintenance_query %}
+    <tr>
+        <td>{{ maintenance.procurement_no }}</td>
+        <td>{{ maintenance.name }}</td>
+        <td>{{ maintenance.desc }}</td>
+        <td>{{ maintenance.available }}</td>
+        <td>{{ maintenance.location }}</td>
+        <td>
+            <span class="icon is-medium">
+                <i class="fas fa-clipboard-list fa-lg"></i>
+            </span>
+        </td>
+        <td>
+            <a href=""
+               class="button is-rounded is-info">
+                <strong>แจ้งซ่อม</strong>
+            </a>
+        </td>
+    </tr>
+{% endfor %}

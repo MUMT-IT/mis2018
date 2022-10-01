@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% include "nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
@@ -91,9 +95,10 @@
                         </div>
                     </div>
                     {% endif %}
-                    <table class="table is-fullwidth">
+                    <table class="table is-fullwidth" id="attendTable">
                         <thead>
                             <th>ชื่อ</th>
+                            <th>หน่วยงาน/ภาควิชา</th>
                             <th>ประเภทการเข้าร่วม</th>
                             <th>วันและเวลา</th>
                         </thead>
@@ -102,6 +107,9 @@
                             <tr>
                                 <td>
                                     {{ attend.staff.personal_info }}
+                                </td>
+                                <td>
+                                    {{ attend.staff.personal_info.org.name }}
                                 </td>
                                 <td>
                                     {{ attend.role }}
@@ -153,6 +161,11 @@
                 return start + ' - ' + end
             },
         }
+    });
+</script>
+<script>
+    $(document).ready(function(){
+        $('#attendTable').DataTable();
     });
 </script>
 {% endblock %}

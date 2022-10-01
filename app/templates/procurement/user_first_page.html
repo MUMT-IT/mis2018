@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block page_content %}
+<nav class="navbar">
+    <div class="container">
+      <div class="navbar-brand">
+          <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" alt="Logo" width="250">
+      </div>
+      <div id="navbarMenu" class="navbar-menu">
+        <div class="navbar-end">
+          <a href="{{ url_for('procurement.first_page') }}" class="navbar-item is-active is-size-5 has-text-weight-semibold">
+            Home
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+    <section class="section">
+        <h1 class="title has-text-centered">Welcome, K.{{ name.personal_info.en_firstname }}</h1>
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column is-half is-offset-3">
+                <nav class="panel is-danger">
+                    <p class="panel-heading">อยู่ระหว่างการทดสอบ</p>
+                    <a href="" class="panel-block">
+                        <span class="panel-icon"><i class="fas fa-bookmark"></i></span>
+                        <span class="is-size-5">ระบบจองครุภัณฑ์</span><br>
+                    </a>
+                    <a class="panel-block"
+                       href="{{ url_for('procurement.require_maintenance') }}">
+                        <span class="panel-icon"><i class="fas fa-wrench"></i></span>
+                        <span class="is-size-5">ระบบแจ้งซ่อม</span><br>
+                    </a>
+                    <a class="panel-block"
+                       href="">
+                        <span class="panel-icon"><i class="fas fa-dolly"></i></span>
+                        <span class="is-size-5">ระบบเคลื่อนย้ายครุภัณฑ์</span><br>
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+
+{% endblock %}

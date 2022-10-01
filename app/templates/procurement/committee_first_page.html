@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block page_content %}
+<nav class="navbar">
+    <div class="container">
+      <div class="navbar-brand">
+          <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" alt="Logo" width="250">
+      </div>
+      <div id="navbarMenu" class="navbar-menu">
+        <div class="navbar-end">
+          <a href="{{ url_for('procurement.first_page') }}" class="navbar-item is-active is-size-5 has-text-weight-semibold">
+            Home
+          </a>
+        </div>
+      </div>
+    </div>
+  </nav>
+    <section class="section">
+    <h1 class="title has-text-centered">Welcome, K.{{ name.personal_info.en_firstname }}</h1>
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column is-half is-offset-3">
+                <nav class="panel is-success">
+                    <p class="panel-heading">สำหรับคณะกรรมการตรวจสอบครุภัณฑ์</p>
+                    <a class="panel-block"
+                       href="{{ url_for('procurement.view_procurement_by_committee') }}">
+                        <span class="panel-icon"><i class="fas fa-file-alt"></i></span>
+                        <span class="is-size-5">รายงานตรวจสอบประจำปี</span><br>
+                    </a>
+                    <a class="panel-block"
+                       href="{{ url_for('procurement.qrcode_scan') }}">
+                        <span class="panel-icon"><i class="fas fa-qrcode"></i></span>
+                        <span class="is-size-5">Scan QR Code</span><br>
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </section>
+{% endblock %}

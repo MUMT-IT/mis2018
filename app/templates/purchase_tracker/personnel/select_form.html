@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}e-Form Page{% endblock %}
+{% include "nav.html" %}
+{% block head %}
+{{ super() }}
+    <meta charset="UTF-8">
+{% endblock %}
+{% block page_content %}
+<div class="container">
+    <nav class="navbar is-transparent" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <a class="navbar-item">
+                <img src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png') }}"/>
+            </a>
+            <a role="button" class="navbar-burger burger has-text-white" aria-label="menu" aria-expanded="false"
+               data-target="navbarBasicExample">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+        <div id="navbarBasicExample" class="navbar-menu">
+            <div class="navbar-start">
+                <a href="{{ url_for('purchase_tracker.index') }}" class="navbar-item ">Home</a>
+            </div>
+        </div>
+    </nav>
+</div>
+<section class="section">
+        <div class="container">
+          <div class="columns is-multiline">
+            <div class="column is-one-third">
+               <a href="{{ url_for('purchase_tracker.create_form', form_id="MTPC-001" ,account_id=123) }}" class="notification has-background-white media">
+                <figure class="media-left">
+                  <span class="icon has-text-info">
+                    <i class="fab fa-wpforms "></i>
+                  </span>
+                </figure>
+                <div class="media-content">
+                  <div class="content">
+                    <h1 class="title is-size-4">MTPC-001</h1>
+                    <p class="is-size-5 subtitle">
+                      รายงานขออนุมัติซื้อหรือจ้าง กรณีจำเป็นเร่งด่วนฯ
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="column is-one-third">
+              <a class="notification has-background-white media">
+                <figure class="media-left">
+                  <span class="icon has-text-info">
+                    <i class="fab fa-wpforms"></i>
+                  </span>
+                </figure>
+                <div class="media-content">
+                  <div class="content">
+                    <h1 class="title is-size-4">MTPC-002 </h1>
+                    <p class="is-size-5 subtitle">
+                      ขออนุมัติในหลักการ วงเงินไม่เกิน 30,000 บาท
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="column is-one-third">
+               <a class="notification has-background-white media">
+                <figure class="media-left">
+                  <span class="icon has-text-info">
+                    <i class="fab fa-wpforms"></i>
+                  </span>
+                </figure>
+                <div class="media-content">
+                  <div class="content">
+                    <h1 class="title is-size-4">MTPC-003</h1>
+                    <p class="is-size-5 subtitle">
+                      ขออนุมัติในหลักการ วงเงินเกิน 30,000 บาท ไม่เกิน 500,000 บาท
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="column is-one-third">
+               <a class="notification has-background-white media">
+                <figure class="media-left">
+                  <span class="icon has-text-info">
+                    <i class="fab fa-wpforms"></i>
+                  </span>
+                </figure>
+                <div class="media-content">
+                  <div class="content">
+                    <h1 class="title is-size-4">MTPC-005</h1>
+                    <p class="is-size-5 subtitle">
+                      ขออนุมัติในหลักการซื้อครุภัณฑ์ ไม่เกิน 500,000 บาท
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="column is-one-third">
+               <a class="notification has-background-white media">
+                <figure class="media-left">
+                  <span class="icon has-text-info">
+                    <i class="fab fa-wpforms"></i>
+                  </span>
+                </figure>
+                <div class="media-content">
+                  <div class="content">
+                    <h1 class="title is-size-4">MTPC-006</h1>
+                    <p class="is-size-5 subtitle">
+                      ขออนุมัติในหลักการซื้อครุภัณฑ์ วงเงินเกิน 500,000 บาท
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+            <div class="column is-one-third">
+               <a class="notification has-background-white media">
+                <figure class="media-left">
+                  <span class="icon has-text-info">
+                    <i class="fab fa-wpforms"></i>
+                  </span>
+                </figure>
+                <div class="media-content">
+                  <div class="content">
+                    <h1 class="title is-size-4">MTPC-007</h1>
+                    <p class="is-size-5 subtitle">
+                      ขออนุมัติในหลักการซ่อม
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+              <div class="column is-one-third">
+               <a class="notification has-background-white media">
+                <figure class="media-left">
+                  <span class="icon has-text-info">
+                    <i class="fab fa-wpforms"></i>
+                  </span>
+                </figure>
+                <div class="media-content">
+                  <div class="content">
+                    <h1 class="title is-size-4">Form</h1>
+                    <p class="is-size-5 subtitle">
+                      แบบฟอร์มการยืม-คืนพัสดุ
+                    </p>
+                  </div>
+                </div>
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+{% endblock %}
+

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css"
+          href="https://cdn.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        {% include "messages.html" %}
+        <div class="container">
+        <form method="post">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="columns">
+                <div class="column has-text-left">
+                    <h1 class="title">ข้อมูล QR Code ครุภัณฑ์</h1>
+                </div>
+                <div class="buttons is-centered">
+                    <input type="submit" class="button is-danger">
+                        <span class="icon">
+                            <i class="fas fa-print"></i>
+                        </span>
+                    </input>
+{#                    <a href="{{ url_for('procurement.export_all_qrcode_pdf', procurement_no=procurement_no) }}"#}
+{#                       class="button is-warning">#}
+{#                        <span class="icon">#}
+{#                            <i class="fas fa-print"></i>#}
+{#                        </span>#}
+{#                        <span>พิมพ์ทั้งหมด</span>#}
+{#                    </a>#}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-fullwidth is-striped" id="QTable">
+                        <thead>
+                        <th></th>
+                        <th>รายการ</th>
+                        <th>รหัสครุภัณฑ์</th>
+                        <th>Inventory Number/ERP</th>
+                        <th>ปีงบประมาณ</th>
+                        <th>วันที่ได้รับ</th>
+                        <th>สถานะ</th>
+                        <th>Print</th>
+                        </thead>
+                        <tbody>
+                        {% for record in qrcode_list %}
+                            <tr>
+                            <td class="field">
+                                <input class="is-checkradio is-medium" id="pro_no{{ record.id }}" type="checkbox"
+                                       name="selected_items" value="{{ record["id"] }}">
+                                <label for="pro_no{{ record.id }}"></label>
+                                {% if record in record.qrcode_list %}
+                                    checked
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ record["name"] }}
+                            </td>
+                            <td>
+                                {{ record["procurement_no"] }}
+                            </td>
+                            <td>
+                                {{ record["erp_code"] }}
+
+                            </td>
+                            <td>
+                                {{ record["budget_year"] }}
+                            </td>
+                            <td>
+                                {{ record["received_date"] }}
+                            </td>
+                            <td>
+                                {{ record["available"] }}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('procurement.export_qrcode_pdf', procurement_id=record.id) }}">
+                                    <i class="fas fa-print"></i></a>
+                            </td>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <a href="{{ url_for('procurement.landing') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </form>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(() => {
+            $('#QTable').DataTable();
+        });
+    </script>
+{% endblock %}

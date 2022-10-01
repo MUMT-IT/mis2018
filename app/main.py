@@ -224,6 +224,8 @@ admin.add_views(ModelView(ProcurementStatus, db.session, category='Procurement')
 admin.add_views(ModelView(ProcurementRecord, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementRequire, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementMaintenance, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementPurchasingType, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementCommitteeApproval, db.session, category='Procurement'))
 
 from purchase_tracker import purchase_tracker_bp as purchase_tracker_blueprint
 
@@ -233,7 +235,16 @@ from app.purchase_tracker.models import *
 admin.add_views(ModelView(PurchaseTrackerAccount, db.session, category='PurchaseTracker'))
 admin.add_views(ModelView(PurchaseTrackerStatus, db.session, category='PurchaseTracker'))
 admin.add_views(ModelView(PurchaseTrackerActivity, db.session, category='PurchaseTracker'))
+admin.add_views(ModelView(PurchaseTrackerForm, db.session, category='PurchaseTracker'))
 
+from receipt_printing import receipt_printing_bp as receipt_printing_blueprint
+
+app.register_blueprint(receipt_printing_blueprint, url_prefix='/receipt_printing')
+from app.receipt_printing.models import *
+
+admin.add_views(ModelView(ElectronicReceiptCashier, db.session, category='ReceiptPrinting'))
+admin.add_views(ModelView(ElectronicReceiptDetail, db.session, category='ReceiptPrinting'))
+admin.add_views(ModelView(ElectronicReceiptItem, db.session, category='ReceiptPrinting'))
 
 from staff import staffbp as staff_blueprint
 

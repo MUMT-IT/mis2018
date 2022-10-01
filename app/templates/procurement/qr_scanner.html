@@ -1,17 +1,102 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body>
-  <h3 id="result">Choose the service and repair button that's best for you. Version 4.2</h3>
-  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-  <script>
-	liff.init({ liffId: '1656852987-V6vzzwPx' }).then(async ()=>{
-		const result = await liff.scanCodeV2();
-		window.location = 'https://mumtmis.herokuapp.com/procurement/qr_scanner';
-	})
-  </script>
-</body>
-</html>
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css"/>
+{% endblock %}
+
+{% block page_content %}
+    <div class="container" id="app">
+        <div class="notification is-light is-link">
+            <h1 class="title has-text-centered has-text-link">Scan QR Code ครุภัณฑ์</h1>
+             <div class="has-text-centered">
+            <span class="icon is-large">
+                <i class="fas fa-qrcode fa-4x"></i>
+            </span>
+        </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <b-loading v-model="loading"></b-loading>
+                <qrcode-stream :key="_uid"
+                               :camera="camera"
+                               @decode="onDecode"
+                               :track="paintOutline" @init="onInit"/>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://unpkg.com/vue-qrcode-reader/dist/VueQrcodeReader.umd.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        new Vue({
+            el: '#app',
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    loading: false,
+                    camera: 'auto',
+                    time: null,
+                    info: {
+                        id: null,
+                        procurementNo: null,
+                    }
+                }
+            },
+            methods: {
+                reset() {
+                    this.time = null
+                    this.info = {
+                        procurementNo: null,
+                    }
+                },
+                paintOutline(detectedCodes, ctx) {
+                    for (const detectedCode of detectedCodes) {
+                        const [firstPoint, ...otherPoints] = detectedCode.cornerPoints
+                        ctx.strokeStyle = "red";
+                        ctx.beginPath();
+                        ctx.moveTo(firstPoint.x, firstPoint.y);
+                        for (const {x, y} of otherPoints) {
+                            ctx.lineTo(x, y);
+                        }
+                        ctx.lineTo(firstPoint.x, firstPoint.y);
+                        ctx.closePath();
+                        ctx.stroke();
+                    }
+                },
+                async onInit(promise) {
+                    this.loading = true
+                    try {
+                        await promise
+                    } catch (error) {
+                        console.error(error)
+                    } finally {
+                        this.loading = false
+                    }
+                },
+                async onDecode(content) {
+                    console.log(content)
+                    this.info.procurementNo = content
+                     window.location.replace("/procurement/scan-qrcode/info/view/" + content)
+                    this.turnCameraOff()
+                },
+                logErrors(promise) {
+                    promise.catch(console.error)
+                },
+                turnCameraOn() {
+                    this.camera = 'auto'
+                },
+                turnCameraOff() {
+                    this.camera = 'off'
+                },
+                timeout(ms) {
+                    return new Promise(resolve => {
+                        window.setTimeout(resolve, ms)
+                    })
+                }
+            }
+        })
+    </script>
+{% endblock %}
