@@ -937,20 +937,26 @@ def truncate_text(text, length=150):
 def count_weekdays(req):
     return get_weekdays(req)
 
-today = datetime.today()
 
-if today.month >= 10:
-    START_FISCAL_DATE = datetime(today.year, 10, 1)
-    END_FISCAL_DATE = datetime(today.year + 1, 9, 30, 23, 59, 59, 0)
-else:
-    START_FISCAL_DATE = datetime(today.year - 1, 10, 1)
-    END_FISCAL_DATE = datetime(today.year, 9, 30, 23, 59, 59, 0)
+def get_fiscal_date(date):
+    if date.month >= 10:
+        start_fiscal_date = datetime(date.year, 10, 1)
+        end_fiscal_date = datetime(date.year + 1, 9, 30, 23, 59, 59, 0)
+    else:
+        start_fiscal_date = datetime(date.year - 1, 10, 1)
+        end_fiscal_date = datetime(date.year, 9, 30, 23, 59, 59, 0)
+    return start_fiscal_date, end_fiscal_date
 
+from datetime import datetime
 @dbutils.command('calculateleavedays')
-def calculate_leave_days():
+@click.argument("date_time")
+def calculate_leave_days(date_time):
+    #date_time = '30/09/2022 01:55:19'
+    date_time = datetime.strptime(date_time, '%Y/%m/%d')
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(date_time)
     for leave_request in StaffLeaveRequest.query.filter(
             StaffLeaveRequest.start_datetime >= START_FISCAL_DATE, StaffLeaveRequest.end_datetime <= END_FISCAL_DATE,
-            StaffLeaveRequest.cancelled_at == None):
+            StaffLeaveRequest.cancelled_at == None, StaffLeaveRequest.staff_account_id == 237):
         if leave_request.staff.personal_info.retired:
             continue
         personal_info = leave_request.staff.personal_info
@@ -1002,7 +1008,7 @@ def calculate_leave_days():
             )
         db.session.add(used_quota)
         db.session.commit()
-        print (personal_info, leave_request)
+        print (personal_info,used_quota.used_days, leave_request.start_datetime, leave_request.total_leave_days)
 
 
 @dbutils.command('recalculateleavedaysofnextfiscal')
