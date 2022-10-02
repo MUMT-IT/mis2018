@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% include "procurement/nav.html" %}
 {% block head %}
-        {{ super() }}
+    {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
-      <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
-    {% endblock %}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
 {% block page_content %}
     <section class="section">
         <div class="container">
@@ -118,21 +118,21 @@
                                 <div class="field">
                                     <label class="label">{{ form.received_date.label }}</label>
                                     <div class="control">
-                                        {{ form.received_date(class="input is-danger", type="text") }}
+                                        {{ form.received_date(class="input is-danger") }}
                                     </div>
                                     <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
                                     <label class="label">{{ form.start_guarantee_date.label }}</label>
                                     <div class="control">
-                                        {{ form.start_guarantee_date(class="input is-danger", type="text") }}
+                                        {{ form.start_guarantee_date(class="input is-danger") }}
                                     </div>
                                     <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
                                     <label class="label">{{ form.end_guarantee_date.label }}</label>
                                     <div class="control">
-                                        {{ form.end_guarantee_date(class="input is-danger", type="text") }}
+                                        {{ form.end_guarantee_date(class="input is-danger") }}
                                     </div>
                                     <p class="help is-danger">Required</p>
                                 </div>
@@ -174,7 +174,7 @@
                             <br>
                             <div class="field">
                                 <img style='display:block; width:450px;height:350px;' id="preview"
-                                 src='data:image/png;base64, {{ procurement.image }}'>
+                                     src='data:image/png;base64, {{ procurement.image }}'>
                                 <div class="control">
                                     {{ form.image_file_upload(onchange="previewImage(event)", accept="image/*") }}
                                 </div>
@@ -235,47 +235,55 @@
 {% block scripts %}
     {{ super() }}
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-{#    <script>#}
-{#        $(document).ready(function () {#}
-{#             $('input[name="start_guarantee_date"]').daterangepicker({#}
-{#                singleDatePicker: true,#}
-{#                locale: {#}
-{#                    format: 'DD/MM/YYYY'#}
-{#                }#}
-{#            })#}
-{#            $('input[name="end_guarantee_date"]').daterangepicker({#}
-{#                singleDatePicker: true,#}
-{#                locale: {#}
-{#                    format: 'DD/MM/YYYY'#}
-{#                }#}
-{#            })#}
-{#            $('input[name="received_date"]').daterangepicker({#}
-{#                singleDatePicker: true,#}
-{#                autoUpdateInput: true,#}
-{#                locale: {#}
-{#                    format: 'DD/MM/YYYY'#}
-{#                }#}
-{#            })#}
-{#            $('input[name="received_date"]').change(()=>{#}
-                {#console.log($('input[name="received_date"]'))#}
-{#                $('input[name="start_guarantee_date"]').val(moment($('input[name="received_date"]').val(), "DD/MM/YYYY").add(1, "days").format("DD/MM/YYYY"))#}
-{#                $('input[name="end_guarantee_date"]').daterangepicker({#}
-{#                singleDatePicker: true,#}
-{#                    ranges: {#}
-{#                  "1 เดือน": [moment($('input[name="start_guarantee_date"]').val(), "DD/MM/YYYY").add(1, "months")],#}
-{#                    "3 เดือน": [moment($('input[name="start_guarantee_date"]').val(), "DD/MM/YYYY").add(3, "months")],#}
-{#                    "6 เดือน": [moment($('input[name="start_guarantee_date"]').val(), "DD/MM/YYYY").add(6, "months")],#}
-{#                    "1 ปี": [moment($('input[name="start_guarantee_date"]').val(), "DD/MM/YYYY").add(1, "years")],#}
-{#                    "1 ปี 6 เดือน": [moment($('input[name="start_guarantee_date"]').val(), "DD/MM/YYYY").add(1, "years").add(6, "months")],#}
-{#                },#}
-{#                locale: {#}
-{#                    format: 'DD/MM/YYYY'#}
-{#                }#}
-{#            })#}
-{#            })#}
-{#        });#}
-{#    </script>#}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(() => {
+            let DATEFORMAT = 'DD/MM/YYYY'
+            let receiveInput = $('input[name="received_date"]')
+            let startDateInput = $('input[name="start_guarantee_date"]')
+            let endDateInput = $('input[name="end_guarantee_date"]')
+
+            let purchaseCal = $('input[name="received_date"]').daterangepicker({
+                singleDatePicker: true,
+                autoUpdateInput: true,
+                locale: {
+                    format: DATEFORMAT,
+                }
+            });
+            let startCal = $('input[name="start_guarantee_date"]').daterangepicker({
+                singleDatePicker: true,
+                startDate: moment(receiveInput.val(), DATEFORMAT).add(1, "days"),
+                autoUpdateInput: true,
+                locale: {
+                    format: DATEFORMAT,
+                    cancelLabel: 'Clear'
+                }
+            });
+            let endCal = $('input[name="end_guarantee_date"]').daterangepicker({
+                singleDatePicker: true,
+                autoUpdateInput: true,
+                startDate: moment(startDateInput.val(), DATEFORMAT).add(1, "years"),
+                locale: {
+                    format: DATEFORMAT,
+                    cancelLabel: 'Clear'
+                }
+            });
+            receiveInput.on('apply.daterangepicker', (evt, picker) => {
+                startCal.data('daterangepicker').setStartDate(moment(receiveInput.val(), DATEFORMAT).add(1, "days").format(DATEFORMAT))
+                startCal.data('daterangepicker').setEndDate(moment(receiveInput.val(), DATEFORMAT).add(1, "days").format(DATEFORMAT))
+            })
+            startDateInput.on('change', () => {
+                endCal.data('daterangepicker').setStartDate(moment(startDateInput.val(), DATEFORMAT).add(1, "years").format(DATEFORMAT))
+                endCal.data('daterangepicker').setEndDate(moment(startDateInput.val(), DATEFORMAT).add(1, "years").format(DATEFORMAT))
+            })
+            endDateInput.on('cancel.daterangepicker', (evt, picker) => {
+                endDateInput.val('')
+            })
+            startDateInput.on('cancel.daterangepicker', (evt, picker) => {
+                startDateInput.val('')
+            })
+        })
+    </script>
 
     <script>
         const previewImage = e => {
