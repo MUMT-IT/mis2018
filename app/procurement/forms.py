@@ -1,7 +1,11 @@
 # -*- coding:utf-8 -*-
+import datetime
+
 from flask_wtf import FlaskForm
-from wtforms import SelectMultipleField, widgets, FileField, IntegerField, RadioField, SelectField, FieldList, FormField
+from wtforms import SelectMultipleField, widgets, FileField, IntegerField, RadioField, SelectField, FieldList, \
+    FormField, Field,  DateField
 from wtforms.validators import DataRequired
+from wtforms.widgets import TextInput
 from wtforms_alchemy import (model_form_factory, QuerySelectField)
 from .models import *
 from ..models import Org
@@ -36,13 +40,26 @@ class ProcurementRecordForm(ModelForm):
                                          )
 
 
+class DatePickerField(Field):
+    widget = TextInput()
+
+    def _value(self):
+        if self.data:
+            return self.data.strftime('%d/%m/%Y')
+        else:
+            return ''
+
+    def process_formdata(self, value):
+        if value[0]:
+            self.data = datetime.datetime.strptime(value[0], '%d/%m/%Y')
+        else:
+            self.data = None
+
+
 class ProcurementDetailForm(ModelForm):
     class Meta:
         model = ProcurementDetail
     image_file_upload = FileField(u'อัพโหลดรูปภาพ')
-    # Calculate day to month
-    # days = IntegerField(u'ระยะเวลาประกัน')
-    # division = SelectField(u'ช่วงเวลา', choices=[('days', u'วัน'), ('months', u'เดือน'), ('years', u'ปี')])
     category = QuerySelectField(u'หมวดหมู่/ประเภท', query_factory=lambda: ProcurementCategory.query.all(),
                                 blank_text='Select Category..', allow_blank=False)
     org = QuerySelectField(query_factory=lambda: Org.query.all(),
@@ -55,6 +72,9 @@ class ProcurementDetailForm(ModelForm):
                                        get_label='purchasing_type',
                                        blank_text='Select type..')
     records = FieldList(FormField(ProcurementRecordForm, default=ProcurementRecord), min_entries=1)
+    received_date = DatePickerField(u'วันที่ได้รับ')
+    start_guarantee_date = DatePickerField(u'วันที่เริ่มประกัน')
+    end_guarantee_date = DatePickerField(u'วันที่สิ้นสุดประกัน')
 
 
 class ProcurementCategoryForm(ModelForm):

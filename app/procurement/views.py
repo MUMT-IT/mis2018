@@ -50,12 +50,7 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 @login_required
 def add_procurement():
     form = ProcurementDetailForm()
-    if form.start_guarantee_date.data:
-        form.start_guarantee_date.data = datetime.strptime(form.start_guarantee_date.data, '%d/%m/%Y')
-    if form.end_guarantee_date.data:
-        form.end_guarantee_date.data = datetime.strptime(form.end_guarantee_date.data, '%d/%m/%Y')
-    if form.received_date.data:
-        form.received_date.data = datetime.strptime(form.received_date.data, '%d/%m/%Y')
+
     if form.validate_on_submit():
         procurement = ProcurementDetail()
         form.populate_obj(procurement)
