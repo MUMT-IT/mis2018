@@ -1013,7 +1013,6 @@ def calculate_leave_quota(date_time):
                                              quota_days=quota_limit)
         db.session.add(used_quota)
         db.session.commit()
-        print (personal_info, used_quota.used_days, leave_request.start_datetime, leave_request.total_leave_days)
 
 
 @dbutils.command('update_cumulative_leave_quota')
@@ -1041,20 +1040,15 @@ def update_cumulative_leave_quota(year1, year2):
                     before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
                     quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
             else:
-                quota_limit = used_quota.staff.leave_request.quota.first_year
+                quota_limit = quota.first_year
+
             used_quota.quota_days = quota_limit
 
             start_fiscal_date = tz.localize(datetime(int(year1), 10, 1))
             end_fiscal_date = tz.localize(datetime(int(year2), 9, 30))
-            pending_days = used_quota.staff.personal_info.get_total_pending_leaves_request(
-                quota.id,
-                start_fiscal_date,
-                end_fiscal_date)
-            if not pending_days:
-                pending_days = 0
-            used_quota.pending_days = pending_days
-        else:
-            used_quota.pending_days = 0
+            used_quota.pending_days = used_quota.staff.personal_info\
+                .get_total_pending_leaves_request(quota.id, start_fiscal_date, end_fiscal_date)
+
         db.session.add(used_quota)
         db.session.commit()
 
