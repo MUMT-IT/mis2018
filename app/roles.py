@@ -14,7 +14,9 @@ with app.app_context():
         finance_role = Role.query.filter_by(role_need='finance', action_need=None, resource_id=None).first()
         procurement_role = Role.query.filter_by(role_need='procurement', action_need=None, resource_id=None).first()
         # ot_secretary = Role.query.filter_by(role_need='secretary', action_need='ot', resource_id=None).first()
-        procurement_committee_role = Role.query.filter_by(role_need='procurement_committee', action_need=None, resource_id=None).first()
+        procurement_committee_role = Role.query.filter_by(role_need='procurement_committee',
+                                                          action_need=None,
+                                                          resource_id=None).first()
     except ProgrammingError:
         admin_permission = Permission()
         hr_permission = Permission()
