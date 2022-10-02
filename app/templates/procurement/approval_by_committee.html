@@ -14,14 +14,20 @@
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
+                            <label class="label">{{ form.asset_status.label }}</label>
+                            <div class="select is-fullwidth">
+                                {{ form.asset_status() }}
+                            </div>
+                        </div>
+                        <div class="field">
                             <div class="control">
-                                {{ form.confirm(class="radio") }}
+                                {{ form.checking_result(class="radio") }}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">Comment</label>
                             <div class="control">
-                                {{ form.approval_comment(class="textarea") }}
+                                {{ form.approval_comment(class="textarea", id="approval_comment") }}
                             </div>
                         </div>
                         <div class="field is-grouped is-grouped-centered">
@@ -37,4 +43,21 @@
             </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{#    <script>#}
+{#        $(document).ready(()=>{#}
+{#            $('#checking_result').change(e=>{#}
+{#                if ($('#checking_result-0').val() === null) {#}
+{#                $('#approval_comment').hide()#}
+{#            } else {#}
+{#                    $('#approval_comment').show()#}
+{#                }#}
+{#            })#}
+{#            if ($('#checking_result-1').val() === null) {#}
+{#                $('#approval_comment').hide()#}
+{#            }#}
+{#        })#}
+{#    </script>#}
 {% endblock %}
