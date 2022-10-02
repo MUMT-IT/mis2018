@@ -374,7 +374,7 @@ class StaffLeaveUsedQuota(db.Model):
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     fiscal_year = db.Column('fiscal_year', db.Integer())
     used_days = db.Column('used_days', db.Float())
-    pending_days = db.Column('pending_days', db.Float())
+    pending_days = db.Column('pending_days', db.Float(), default=0)
     quota_days = db.Column('quota_days', db.Float())
     staff = db.relationship('StaffAccount', backref=db.backref('leave_used_quota'), foreign_keys=[staff_account_id])
     leave_type = db.relationship('StaffLeaveType', backref=db.backref('type_used_quota'))
