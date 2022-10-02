@@ -954,7 +954,7 @@ def get_fiscal_date(date):
 from datetime import datetime
 
 
-@dbutils.command('calculate_leave_quota')
+@dbutils.command('calculate-leave-quota')
 @click.argument("date_time")
 def calculate_leave_quota(date_time):
     """Calculate used quota for the fiscal year from a given date.
@@ -1015,7 +1015,7 @@ def calculate_leave_quota(date_time):
         db.session.commit()
 
 
-@dbutils.command('update_cumulative_leave_quota')
+@dbutils.command('update-cumulative-leave-quota')
 @click.argument("year1")
 @click.argument("year2")
 def update_cumulative_leave_quota(year1, year2):
