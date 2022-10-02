@@ -637,12 +637,14 @@ def head_finish_round(sent_round_org_id):
         members.update(record.members)
     for member in members:
         line_id = member.staff_account.line_id
-        if line_id:
-            bubble_message = create_bubble_message_recipient(round_org, member.staff_account)
-            line_bot_api.push_message(to=line_id,
-                                      messages=FlexSendMessage(alt_text='New circular letters',
-                                                               contents=bubble_message))
-        send_mail_recipient(member.staff_account, round_org)
+        if os.environ['FLASK_ENV'] == 'production':
+            if line_id:
+                bubble_message = create_bubble_message_recipient(round_org, member.staff_account)
+                line_bot_api.push_message(to=line_id,
+                                          messages=FlexSendMessage(alt_text='New circular letters',
+                                                                   contents=bubble_message))
+            send_mail_recipient(member.staff_account, round_org)
+
     return redirect(url_for('doc.head_view_rounds'))
 
 
@@ -683,3 +685,26 @@ def head_add_private_msg(receipt_id, member_id):
                                     sent_round_org_id=receipt.round_org_id))
     return render_template('documents/head/private_message_form.html',
                            form=form, doc_reach=doc_reach)
+
+
+@docbp.route('/head/receipts/<int:receipt_id>/members/<int:member_id>/cancel', methods=['GET', 'POST'])
+@login_required
+def head_cancel_sending(receipt_id, member_id):
+    member = StaffPersonalInfo.query.get(member_id)
+    receipt = DocReceiveRecord.query.get(receipt_id)
+    receipt.members.remove(member)
+    db.session.add(receipt)
+    doc_reach = DocDocumentReach.query.filter_by(doc_id=receipt.doc_id,
+                                                 reacher_id=member_id,
+                                                 round_org_id=receipt.round_org_id).first()
+
+    if doc_reach:
+        db.session.delete(doc_reach)
+
+    round_reach = DocRoundOrgReach.query.filter_by(reacher_id=member_id,
+                                                   round_org_id=receipt.round_org_id).first()
+    if round_reach:
+        db.session.delete(round_reach)
+
+    db.session.commit()
+    return render_template('documents/head/sent_records.html', receipt=receipt)
