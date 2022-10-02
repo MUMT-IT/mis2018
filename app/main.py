@@ -948,20 +948,26 @@ def truncate_text(text, length=150):
 def count_weekdays(req):
     return get_weekdays(req)
 
-today = datetime.today()
 
-if today.month >= 10:
-    START_FISCAL_DATE = datetime(today.year, 10, 1)
-    END_FISCAL_DATE = datetime(today.year + 1, 9, 30, 23, 59, 59, 0)
-else:
-    START_FISCAL_DATE = datetime(today.year - 1, 10, 1)
-    END_FISCAL_DATE = datetime(today.year, 9, 30, 23, 59, 59, 0)
+def get_fiscal_date(date):
+    if date.month >= 10:
+        start_fiscal_date = datetime(date.year, 10, 1)
+        end_fiscal_date = datetime(date.year + 1, 9, 30, 23, 59, 59, 0)
+    else:
+        start_fiscal_date = datetime(date.year - 1, 10, 1)
+        end_fiscal_date = datetime(date.year, 9, 30, 23, 59, 59, 0)
+    return start_fiscal_date, end_fiscal_date
 
+from datetime import datetime
 @dbutils.command('calculateleavedays')
-def calculate_leave_days():
+@click.argument("date_time")
+def calculate_leave_days(date_time):
+    #date_time = '30/09/2022 01:55:19'
+    date_time = datetime.strptime(date_time, '%Y/%m/%d')
+    START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(date_time)
     for leave_request in StaffLeaveRequest.query.filter(
             StaffLeaveRequest.start_datetime >= START_FISCAL_DATE, StaffLeaveRequest.end_datetime <= END_FISCAL_DATE,
-            StaffLeaveRequest.cancelled_at == None):
+            StaffLeaveRequest.cancelled_at == None, StaffLeaveRequest.staff_account_id == 237):
         if leave_request.staff.personal_info.retired:
             continue
         personal_info = leave_request.staff.personal_info
@@ -970,15 +976,22 @@ def calculate_leave_days():
                                                          staff=leave_request.staff,
                                                          fiscal_year=END_FISCAL_DATE.year).first()
         if used_quota:
-            used_quota.used_days += (personal_info.get_total_leaves(quota.id, leave_request.start_datetime, leave_request.end_datetime) +
-                                     personal_info.get_total_pending_leaves_request(quota.id, leave_request.start_datetime, leave_request.end_datetime))
+            used_quota.used_days += (personal_info.get_total_leaves(quota.id, leave_request.start_datetime,
+                                                                    leave_request.end_datetime) +
+                                     personal_info.get_total_pending_leaves_request(quota.id,
+                                                                    leave_request.start_datetime,
+                                                                    leave_request.end_datetime))
+            used_quota.pending_days += personal_info.get_total_pending_leaves_request(quota.id,
+                                                                    leave_request.start_datetime,
+                                                                    leave_request.end_datetime)
         else:
             LEAVE_ANNUAL_QUOTA = 10
             delta = personal_info.get_employ_period()
             max_cum_quota = personal_info.get_max_cum_quota_per_year(quota)
+            #use StaffLeaveRemainQuota until fiscal year of 2022
             last_quota = StaffLeaveRemainQuota.query.filter(and_(StaffLeaveRemainQuota.leave_quota_id == quota.id,
-                                                             StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year - 1),
-                                                             StaffLeaveRemainQuota.staff_account_id == leave_request.staff.id)).first()
+                                            StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year - 1),
+                                            StaffLeaveRemainQuota.staff_account_id == leave_request.staff.id)).first()
             if delta.years > 0:
                 if max_cum_quota:
                     if last_quota:
@@ -996,14 +1009,61 @@ def calculate_leave_days():
                 leave_type_id=quota.leave_type_id,
                 staff_account_id=leave_request.staff.id,
                 fiscal_year=END_FISCAL_DATE.year,
-                used_days=(personal_info.get_total_leaves(quota.id, leave_request.start_datetime, leave_request.end_datetime) +
-                                     personal_info.get_total_pending_leaves_request(quota.id, leave_request.start_datetime, leave_request.end_datetime)),
+                used_days=(personal_info.get_total_leaves(quota.id, leave_request.start_datetime,
+                                                          leave_request.end_datetime) +
+                           personal_info.get_total_pending_leaves_request(quota.id, leave_request.start_datetime,
+                                                          leave_request.end_datetime)),
+                pending_days=personal_info.get_total_pending_leaves_request(quota.id, leave_request.start_datetime,
+                                                          leave_request.end_datetime),
                 quota_days=quota_limit
             )
         db.session.add(used_quota)
         db.session.commit()
-        print (personal_info, leave_request)
+        print (personal_info,used_quota.used_days, leave_request.start_datetime, leave_request.total_leave_days)
 
+
+@dbutils.command('recalculateleavedaysofnextfiscal')
+@click.argument("year1")
+@click.argument("year2")
+def re_calculate_leave_days_of_next_fiscal(year1, year2):
+    for used_quota in StaffLeaveUsedQuota.query.filter(StaffLeaveUsedQuota.fiscal_year == year2):
+        last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=used_quota.staff, fiscal_year=year1,
+                                                              leave_type=used_quota.leave_type).first()
+        print ('last used quota')
+        print last_used_quota
+
+        LEAVE_ANNUAL_QUOTA = 10
+        delta = used_quota.staff.personal_info.get_employ_period()
+        quota = StaffLeaveQuota.query.filter_by(employment=used_quota.staff.personal_info.employment,  leave_type=used_quota.leave_type).first()
+        print ('leave type')
+        print (u'{} {}'.format(quota.leave_type, used_quota.leave_type))
+        max_cum_quota = used_quota.staff.personal_info.get_max_cum_quota_per_year(quota)
+
+        if last_used_quota:
+            remaining_days = last_used_quota.quota_days - last_used_quota.used_days
+            if delta.years > 0:
+                if max_cum_quota:
+                    before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
+                    quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+            else:
+                quota_limit = used_quota.staff.leave_request.quota.first_year
+            used_quota.quota_days = quota_limit
+
+            start_fiscal_date = tz.localize(datetime(int(year1), 10, 1))
+            end_fiscal_date = tz.localize(datetime(int(year2), 9, 30))
+            pending_days = used_quota.staff.personal_info.get_total_pending_leaves_request(
+                                                                        quota.id,
+                                                                        start_fiscal_date,
+                                                                        end_fiscal_date)
+            print pending_days
+            if not pending_days:
+                pending_days = 0
+            used_quota.pending_days = pending_days
+        else:
+            used_quota.pending_days = 0
+        db.session.add(used_quota)
+        db.session.commit()
+        print (used_quota.staff.email, used_quota.used_days, used_quota.pending_days, used_quota.quota_days)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000, host="0.0.0.0")

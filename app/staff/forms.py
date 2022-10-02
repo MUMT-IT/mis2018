@@ -37,6 +37,11 @@ def create_seminar_attend_form(current_user):
                                               widget=widgets.ListWidget(prefix_label=False),
                                               option_widget=widgets.CheckboxInput()
                                               )
+        missions = QuerySelectMultipleField(u'รายละเอียดการเข้าร่วม ดำเนินการภายใต้', get_label='mission',
+                                              query_factory=lambda: StaffSeminarMission.query.all(),
+                                              widget=widgets.ListWidget(prefix_label=False),
+                                              option_widget=widgets.CheckboxInput()
+                                              )
         approver = QuerySelectField(u'ผู้บังคับบัญชา',
                                     get_label='approver_name',
                                     allow_blank=True,

@@ -10,14 +10,38 @@
                 <h4 class="subtitle is-size-6">{{ current_user.personal_info }} {{ current_user.personal_info.employment.title }}</h4>
             </div>
         </div>
+        {% if quota_info %}
         <div class="columns">
-            <div class="column has-text-centered">
-                <span class="subtitle has-text-success is-size-6">เหลือ</span>
-                <span class="subtitle has-text-success is-size-6">(Remaining)</span>
-                <span class="title has-text-success">{{ quota_limit - used_quota}}</span>
-                <span class="subtitle has-text-success is-size-6">วัน (days)</span>
+            <div class="column box is-half is-offset-one-quarter">
+                <table class="table is-fullwidth">
+                    <tbody>
+                    <tr>
+                        <td>
+                            วันลาสะสม (Cumulative)
+                        </td>
+                        <td>{{ quota_info.quota_days }} วัน (days)</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            ใช้ไป (Taken)
+                        </td>
+                        <td>{{ quota_info.used_days }} วัน (days) <br>
+                            อนุมัติแล้ว (Approved) {{ approved_days }} วัน (days) <br>
+                            รออนุมัติ (Pending) {{ pending_day }} วัน (days)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="subtitle has-text-success is-size-6">คงเหลือ (Remaining)</span></td>
+                        <td><span class="subtitle has-text-success is-size-6">
+                            {{ quota_info.quota_days - quota_info.used_days }} วัน (days)
+                            </span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
+        {% endif %}
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">

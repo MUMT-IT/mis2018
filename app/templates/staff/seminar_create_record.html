@@ -78,6 +78,12 @@
                                     {{ form.objectives() }}
                                 </div>
                             </div>
+                            <div class="field" v-if="status === 'wanttogo'">
+                                <label class="label">{{ form.missions.label }}</label>
+                                <div class="control">
+                                    {{ form.missions() }}
+                                </div>
+                            </div>
                             <b-field label="เวลาเริ่มต้น">
                                 <b-datetimepicker
                                         required
