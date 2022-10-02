@@ -957,14 +957,16 @@ from datetime import datetime
 @dbutils.command('calculate_leave_quota')
 @click.argument("date_time")
 def calculate_leave_quota(date_time):
+    """Calculate used quota for the fiscal year from a given date.
+
+    """
     # date_time = '30/09/2022'
+    print('Calculating leave quota from all requests...')
     date_time = datetime.strptime(date_time, '%Y/%m/%d')
     start_fiscal_date, end_fiscal_date = get_fiscal_date(date_time)
-    print(start_fiscal_date, end_fiscal_date)
     for leave_request in StaffLeaveRequest.query.filter(StaffLeaveRequest.start_datetime >= start_fiscal_date,
                                                         StaffLeaveRequest.end_datetime <= end_fiscal_date,
-                                                        StaffLeaveRequest.cancelled_at == None,
-                                                        StaffLeaveRequest.staff_account_id == 1):
+                                                        StaffLeaveRequest.cancelled_at == None):
         if leave_request.staff.personal_info.retired:
             continue
         personal_info = leave_request.staff.personal_info
@@ -976,8 +978,6 @@ def calculate_leave_quota(date_time):
         total_leave_days = personal_info.get_total_leaves(quota.id,
                                                           leave_request.start_datetime,
                                                           leave_request.end_datetime)
-        print('Your total leave days = {}'.format(total_leave_days))
-        print('Your pending days = {}'.format(pending_days))
 
         used_quota = StaffLeaveUsedQuota.query.filter_by(leave_type_id=quota.leave_type_id,
                                                          staff=leave_request.staff,
@@ -1020,9 +1020,12 @@ def calculate_leave_quota(date_time):
 @click.argument("year1")
 @click.argument("year2")
 def update_cumulative_leave_quota(year1, year2):
+    """Update cumulative leave quota from the previous year.
+    Make sure to run calculate_leave_quota for the year2 prior to running this command.
+
+    """
     print('Running; this could take a moment...')
-    for used_quota in StaffLeaveUsedQuota.query.filter(StaffLeaveUsedQuota.fiscal_year == year2,
-                                                       StaffLeaveUsedQuota.staff_account_id == 1):
+    for used_quota in StaffLeaveUsedQuota.query.filter(StaffLeaveUsedQuota.fiscal_year == year2):
         last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=used_quota.staff,
                                                               fiscal_year=year1,
                                                               leave_type=used_quota.leave_type).first()
