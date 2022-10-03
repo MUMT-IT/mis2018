@@ -61,12 +61,27 @@ class ProcurementDetail(db.Model):
         else:
             return None
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'procurement_no': self.procurement_no,
+            'erp_code': self.erp_code,
+            'budget_year': self.budget_year,
+            'received_date': self.received_date,
+            'purchasing_type': self.purchasing_type,
+            'available': self.available
+        }
+
 
 class ProcurementPurchasingType(db.Model):
     __tablename__ = 'procurement_purchasing_types'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     purchasing_type = db.Column('purchasing_type', db.String(), info={'label': u'จัดซื้อด้วยเงิน'})
     fund = db.Column('fund', db.Integer(), info={'label': u'แหล่งเงิน'})
+
+    def __str__(self):
+        return self.purchasing_type
 
 
 class ProcurementCategory(db.Model):
