@@ -1,5 +1,4 @@
 {% extends "base.html" %}
-{% include "procurement/nav.html" %}
 {% block page_content %}
     <section class="section">
         <div class="container">
@@ -28,14 +27,14 @@
                         <label class="label">ประกัน: {{ item.guarantee }}</label>
                         <label class="label">วันที่เริ่มประกัน: {{ item.start_guarantee_date }}</label>
                         <label class="label">วันที่สิ้นสุดประกัน: {{ item.end_guarantee_date }}</label>
-                        <label class="label">ตรวจสอบล่าสุด: {{ item.approver.updated_at }}</label>
-                        <label class="label">ผู้ตรวจสอบ: {{ item.approver.approver.personal_info.fullname }}</label>
-                        <a href="{{ url_for('procurement.edit_procurement', procurement_id=item.id) }}"
-                           class="button is-danger">แก้ไข</a>
-                        <a href="{{ url_for('procurement.check_procurement', procurement_no=procurement_no) }}"
-                           class="button is-success">ตรวจสอบ</a>
-                        <a href="{{ url_for('procurement.add_img_procurement', procurement_no=procurement_no)}}"
-                           class="button is-warning">อัพเดต</a>
+                        {#<label class="label">ตรวจสอบล่าสุด: {{ item.approver.updated_at }}</label>#}
+                        {#<label class="label">ผู้ตรวจสอบ: {{ item.approver.approver.personal_info.fullname }}</label>#}
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="buttons">
+                                <a href="{{ url_for('procurement.check_procurement', procurement_no=procurement_no) }}"
+                                   class="button is-success">ตรวจสอบ</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
