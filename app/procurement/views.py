@@ -212,7 +212,7 @@ def add_record(item_id):
             db.session.add(new_record)
             db.session.commit()
             flash('New Record Has Been Added.', 'success')
-            return redirect(url_for('procurement.view_procurement'))
+        return redirect(url_for('procurement.view_qrcode', procurement_id=item_id))
     return render_template('procurement/record_form.html', form=form)
 
 
@@ -499,7 +499,7 @@ def check_procurement(procurement_no):
             db.session.add(new_approve)
             db.session.commit()
             flash(u'ตรวจสอบเรียบร้อย.', 'success')
-            return redirect(url_for('procurement.view_procurement_on_scan', procurement_no=procurement_no))
+        return redirect(url_for('procurement.view_procurement_on_scan', procurement_no=procurement_no))
     return render_template('procurement/approval_by_committee.html', form=form, procurement_no=procurement_no)
 
 
@@ -535,10 +535,24 @@ def add_img_procurement(procurement_id):
         db.session.add(procurement)
         db.session.commit()
         flash(u'บันทึกรูปภาพสำเร็จ.', 'success')
-        return redirect(url_for('procurement.add_img_procurement', procurement_id=procurement_id))
+        return redirect(url_for('procurement.view_img_procurement'))
         # Check Error
     else:
         for er in form.errors:
             flash(er, 'danger')
     return render_template('procurement/add_img_procurement.html', form=form, procurement_id=procurement_id,
                                                                 procurement=procurement)
+
+
+@procurement.route('/scan-qrcode/location/status/update', methods=['GET'])
+@csrf.exempt
+@login_required
+def update_location_and_status():
+    return render_template('procurement/update_location_and_status.html')
+
+
+@procurement.route('/scan-qrcode/info/location-status/view/<string:procurement_no>')
+def view_location_and_status_on_scan(procurement_no):
+    item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first_or_404()
+    return render_template('procurement/view_location_and_status_on_scan.html', item=item,
+                           procurement_no=item.procurement_no)
