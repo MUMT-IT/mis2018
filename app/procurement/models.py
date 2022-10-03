@@ -17,12 +17,13 @@ class ProcurementDetail(db.Model):
     erp_code = db.Column('erp_code', db.String(), info={'label': u'Inventory Number/ERP'})
     serial_no = db.Column('serial_no', db.String(), info={'label': u'Serial Number'})
     bought_by = db.Column('bought_by', db.String(), info={'label': u'วิธีการจัดซื้อ', 'choices': [(c, c) for c in
-                                                                                  [u'ตกลงราคา', u'สอบราคา',
-                                                                                   u'ประกวดราคา', u'วิธีพิเศษ',
-                                                                                   u'รับบริจาค', u'e-Auction',
-                                                                                   u'วิธีคัดเลือก', u'อื่นๆ']]})
+                                                                                  [u'--โปรดเลือกวิธีการจัดซื้อ--',
+                                                                                   u'ประกาศเชิญชวนทั่วไป(E-Bidding)',
+                                                                                   u'วิธีคัดเลือก',
+                                                                                   u'วิธีเฉพาะเจาะจง',
+                                                                                   u'รับบริจาค/รับโอน']]})
     budget_year = db.Column('budget_year', db.String(), info={'label': u'ปีงบประมาณ'})
-    price = db.Column('price', db.String(), info={'label': 'Original value'})
+    price = db.Column('price', db.String(), info={'label': 'Original value(<=10,000)'})
     received_date = db.Column('received_date', db.Date(), info={'label': u'วันที่ได้รับ'})
     available = db.Column('available', db.String(), info={'label': u'สภาพของสินทรัพย์'})
     purchasing_type_id = db.Column('purchasing_type_id', db.ForeignKey('procurement_purchasing_types.id'))
@@ -31,7 +32,7 @@ class ProcurementDetail(db.Model):
     category_id = db.Column('category_id', db.ForeignKey('procurement_categories.id'))
     category = db.relationship('ProcurementCategory',
                                backref=db.backref('items', lazy='dynamic'))
-    guarantee = db.Column('guarantee', db.String(), info={'label': u'ประกัน'})
+    guarantee = db.Column('guarantee', db.String(), info={'label': u'บริษัทผู้ขาย/บริจาค'})
     start_guarantee_date = db.Column('start_guarantee_date', db.Date(), info={'label': u'วันที่เริ่มประกัน'})
     end_guarantee_date = db.Column('end_guarantee_date', db.Date(), info={'label': u'วันที่สิ้นสุดประกัน'})
     model = db.Column('model', db.String(), info={'label': u'รุ่น'})
@@ -43,7 +44,7 @@ class ProcurementDetail(db.Model):
                                                     lazy='dynamic',
                                                     cascade='all, delete-orphan'))
     sub_number = db.Column('sub_number', db.Integer(), info={'label': 'Sub Number'})
-    curr_acq_value = db.Column('curr_acq_value', db.Float(), info={'label': u'มูลค่าที่ได้มา'})
+    curr_acq_value = db.Column('curr_acq_value', db.Float(), info={'label': u'มูลค่าที่ได้มา(>10,000)'})
     approver_id = db.Column('approver_id', db.ForeignKey('procurement_committee_approvals.id'))
     approver = db.relationship('ProcurementCommitteeApproval',
                                       backref=db.backref('approved_items', lazy='dynamic'))
