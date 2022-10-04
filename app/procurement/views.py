@@ -4,8 +4,9 @@ import os, requests
 from base64 import b64decode
 
 import pandas
-from flask import render_template, request, flash, redirect, url_for, send_file
+from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify
 from flask_login import current_user, login_required
+from pandas import DataFrame
 from reportlab.lib.units import mm, cm
 
 from werkzeug.utils import secure_filename
@@ -126,37 +127,69 @@ def view_procurement_by_committee():
     return render_template('procurement/view_procurement_by_committee.html', procurement_list=procurement_list)
 
 
-# @procurement.route('/info/by-committee/download', methods=['GET'])
-# def report_info_download():
-#     records = []
-#     procurement_query = ProcurementDetail.query.all()
-#
-#     for items in procurement_query:
-#         for record in items.records:
-#             records.append({
-#
-#             })
-#     df = DataFrame(records)
-#     df.to_excel('report.xlsx')
-#     return send_from_directory(os.getcwd(), filename='report.xlsx')
+@procurement.route('/info/by-committee/download', methods=['GET'])
+def report_info_download():
+    records = []
+    procurement_query = ProcurementDetail.query.all()
 
-@procurement.route('/information/all')
+    for item in procurement_query:
+        records.append({
+            u'ศูนย์ต้นทุน': u"{}".format(item.cost_center),
+            u'Inventory Number/ERP': u"{}".format(item.erp_code),
+            u'เลขครุภัณฑ์': u"{}".format(item.procurement_no),
+            u'Sub Number': u"{}".format(item.sub_number),
+            u'ชื่อครุภัณฑ์': u"{}".format(item.name),
+            u'จัดซื้อด้วยเงิน': u"{}".format(item.purchasing_type),
+            u'มูลค่าที่ได้มา': u"{}".format(item.curr_acq_value),
+            u'Original value': u"{}".format(item.price),
+            u'สภาพของสินทรัพย์': u"{}".format(item.available),
+            u'วันที่ได้รับ': u"{}".format(item.received_date),
+            u'ปีงบประมาณ': u"{}".format(item.budget_year),
+            })
+    df = DataFrame(records)
+    df.to_excel('report.xlsx',
+                header=True,
+                columns=[u'ศูนย์ต้นทุน',
+                         u'Inventory Number/ERP',
+                         u'เลขครุภัณฑ์',
+                         u'Sub Number',
+                          u'ชื่อครุภัณฑ์',
+                         u'จัดซื้อด้วยเงิน',
+                         u'มูลค่าที่ได้มา',
+                         u'Original value',
+                         u'สภาพของสินทรัพย์',
+                         u'วันที่ได้รับ',
+                         u'ปีงบประมาณ'
+                         ],
+                        index=False,
+                        encoding='utf-8')
+    return send_from_directory(os.getcwd(), filename='report.xlsx')
+
+
+@procurement.route('/information/view')
 @login_required
 def view_procurement():
-    procurement_list = []
-    procurement_query = ProcurementDetail.query.all()
-    for procurement in procurement_query:
-        record = {}
-        record["id"] = procurement.id
-        record["name"] = procurement.name
-        record["procurement_no"] = procurement.procurement_no
-        record["erp_code"] = procurement.erp_code
-        record["budget_year"] = procurement.budget_year
-        record["received_date"] = procurement.received_date
-        record["bought_by"] = procurement.bought_by
-        record["available"] = procurement.available
-        procurement_list.append(record)
+    procurement_list = [item.to_dict() for item in ProcurementDetail.query.all()]
     return render_template('procurement/view_all_data.html', procurement_list=procurement_list)
+
+
+@procurement.route('/api/data')
+def get_procurement_data():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
+        ProcurementDetail.name.like(u'%{}%'.format(search)),
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    return jsonify({'data': [item.to_dict() for item in query],
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 
 @procurement.route('/information/find', methods=['POST', 'GET'])
@@ -446,31 +479,6 @@ def export_qrcode_pdf(procurement_id):
     return send_file('qrcode.pdf')
 
 
-# @dbutils.command('import-procurement-data')
-# def import_procurement_data():
-#     tz = timezone('Asia/Bangkok')
-#
-#     sheetid = '165tgZytipxxy5jY2ZOY5EaBJwxt3ZVRDwaBqggqmccY'
-#     print('Authorizing with Google..')
-#     gc = get_credential(json_keyfile)
-#     wb = gc.open_by_key(sheetid)
-#     sheet = wb.worksheet("all")
-#     df = pandas.DataFrame(sheet.get_all_records())
-#     df
-#     for idx, row in df.iterrows():
-#         cost_center = row['cost_center']
-#         erp_code = row['erp_code']
-#         procurement_no = row['procurement_no']
-#         sub_number = row['sub_number']
-#         fund = row['fund']
-#         original_value = row['original_value']
-#         curr_acq_value = row['curr_acq_value']
-#         crcy = row['crcy']
-#
-#     db.session.add()
-#     db.session.commit()
-
-
 @procurement.route('/scan-qrcode', methods=['GET'])
 @csrf.exempt
 @login_required
@@ -556,3 +564,4 @@ def view_location_and_status_on_scan(procurement_no):
     item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first_or_404()
     return render_template('procurement/view_location_and_status_on_scan.html', item=item,
                            procurement_no=item.procurement_no)
+
