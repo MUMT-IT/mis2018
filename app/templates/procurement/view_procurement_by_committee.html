@@ -8,7 +8,7 @@
             <div class="column has-text-left">
                 <h1 class="title">ข้อมูลครุภัณฑ์ทั้งหมด
                     <a class="button is-warning"
-                    href="">
+                    href="{{ url_for('procurement.report_info_download') }}">
                      <span class="icon">
                          <i class="fas fa-download"></i>
                      </span>
@@ -29,30 +29,6 @@
                         <th>สถานะ</th>
                     </thead>
                     <tbody>
-                    {% for record in procurement_list %}
-                    <tr>
-                        <td>
-                            {{ record["name"] }}
-                        </td>
-                        <td>
-                            {{ record["procurement_no"] }}
-                        </td>
-                        <td>
-                            {{ record["erp_code"] }}
-                        </td>
-                        <td>
-                            {{ record["budget_year"] }}
-                        </td>
-                        <td>
-                            {{ record["received_date"] }}
-                        </td>
-                        <td>
-                            {{ record["bought_by"] }}
-                        </td>
-                        <td>
-                            {{ record["available"] }}
-                        </td>
-                    {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -72,9 +48,21 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-<script>
-    $(document).ready(()=> {
-        $('#proCommitteeTable').DataTable();
-    });
-</script>
+    <script>
+        $(document).ready(function () {
+            $('#proCommitteeTable').DataTable({
+                ajax: '{{ url_for("procurement.get_procurement_data_to_committee") }}',
+                serverSide: true,
+                columns: [
+                    {data: 'name'},
+                    {data: 'procurement_no'},
+                    {data: 'erp_code'},
+                    {data: 'budget_year'},
+                    {data: 'received_date'},
+                    {data: 'purchasing_type'},
+                    {data: 'available'}
+                ],
+            });
+        });
+    </script>
 {% endblock %}
