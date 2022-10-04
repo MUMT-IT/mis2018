@@ -111,20 +111,30 @@ def committee_first():
 @procurement.route('/info/by-committee/view')
 @login_required
 def view_procurement_by_committee():
-    procurement_list = []
-    procurement_query = ProcurementDetail.query.all()
-    for procurement in procurement_query:
-        record = {}
-        record["id"] = procurement.id
-        record["name"] = procurement.name
-        record["procurement_no"] = procurement.procurement_no
-        record["erp_code"] = procurement.erp_code
-        record["budget_year"] = procurement.budget_year
-        record["received_date"] = procurement.received_date
-        record["bought_by"] = procurement.bought_by
-        record["available"] = procurement.available
-        procurement_list.append(record)
+    procurement_list = [item.to_dict() for item in ProcurementDetail.query.all()]
     return render_template('procurement/view_procurement_by_committee.html', procurement_list=procurement_list)
+
+
+@procurement.route('/api/data/committee')
+def get_procurement_data_to_committee():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
+        ProcurementDetail.name.like(u'%{}%'.format(search)),
+        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
+        ProcurementDetail.budget_year.like(u'%{}%'.format(search)),
+        ProcurementDetail.available.like(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    return jsonify({'data': [item.to_dict() for item in query],
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 
 @procurement.route('/info/by-committee/download', methods=['GET'])
@@ -180,12 +190,21 @@ def get_procurement_data():
     query = query.filter(db.or_(
         ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
         ProcurementDetail.name.like(u'%{}%'.format(search)),
+        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
+        ProcurementDetail.budget_year.like(u'%{}%'.format(search)),
+        ProcurementDetail.available.like(u'%{}%'.format(search))
     ))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
     query = query.offset(start).limit(length)
-    return jsonify({'data': [item.to_dict() for item in query],
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['view'] = '<a href="{}"><i class="fas fa-eye"></i></a>'.format(url_for('procurement.view_qrcode', procurement_id=item.id))
+        item_data['edit'] = '<a href="{}"><i class="fas fa-edit"></i></a>'.format(url_for('procurement.edit_procurement', procurement_id=item.id))
+        data.append(item_data)
+    return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
                     'recordsTotal': ProcurementDetail.query.count(),
                     'draw': request.args.get('draw', type=int),
