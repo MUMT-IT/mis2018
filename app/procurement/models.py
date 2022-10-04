@@ -59,6 +59,10 @@ class ProcurementDetail(db.Model):
         else:
             return None
 
+    @property
+    def current_record(self):
+        return self.records.order_by(ProcurementRecord.updated_at.desc()).first()
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -137,7 +141,7 @@ class ProcurementCommitteeApproval(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     record_id = db.Column('record_id', db.ForeignKey('procurement_records.id'))
     record = db.relationship('ProcurementRecord',
-                               backref=db.backref('procurement_records'))
+                               backref=db.backref('approval', uselist=False))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
     approver = db.relationship('StaffAccount',
                               backref=db.backref('staff_approvers'))
