@@ -431,13 +431,16 @@ def list_qrcode():
         data = []
         for item_id in request.form.getlist('selected_items'):
             item = ProcurementDetail.query.get(int(item_id))
+            if not item.qrcode:
+                item.generate_qrcode()
+
             decoded_img = b64decode(item.qrcode)
             img_string = cStringIO.StringIO(decoded_img)
             img_string.seek(0)
             data.append(Image(img_string, 50 * mm, 30 * mm, kind='bound'))
             data.append(Paragraph('<para align=center leading=10><font size=13>{}</font></para>'
-                                  .format(item.erp_code.encode('utf-8')),
-                                  style=style_sheet['ThaiStyle']))
+                                      .format(item.erp_code.encode('utf-8')),
+                                      style=style_sheet['ThaiStyle']))
             data.append(PageBreak())
         doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
         return send_file('qrcode.pdf')
@@ -475,16 +478,7 @@ def export_qrcode_pdf(procurement_id):
                             )
     data = []
     if not procurement.qrcode:
-        qr = qrcode.QRCode(version=1, box_size=10)
-        qr.add_data(procurement.procurement_no)
-        qr.make(fit=True)
-        qr_img = qr.make_image()
-        qr_img.save('procurement_qrcode.png')
-        import base64
-        with open("procurement_qrcode.png", "rb") as img_file:
-            procurement.qrcode = base64.b64encode(img_file.read())
-            db.session.add(procurement)
-            db.session.commit()
+        procurement.generate_qrcode()
 
     decoded_img = b64decode(procurement.qrcode)
     img_string = cStringIO.StringIO(decoded_img)
@@ -515,15 +509,20 @@ def view_procurement_on_scan(procurement_no):
 @procurement.route('/items/<string:procurement_no>/check', methods=['GET', 'POST'])
 @login_required
 def check_procurement(procurement_no):
-    form = ProcurementApprovalForm()
-    # approver in Detail
+    procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+    approval = procurement.current_record.approval
+    if approval:
+        form = ProcurementApprovalForm(obj=approval)
+    else:
+        form = ProcurementApprovalForm()
+        approval = ProcurementCommitteeApproval()
     if request.method == 'POST':
         if form.validate_on_submit():
-            new_approve = ProcurementCommitteeApproval()
-            form.populate_obj(new_approve)
-            new_approve.approver = current_user
-            new_approve.updated_at = datetime.now(tz=bangkok)
-            db.session.add(new_approve)
+            form.populate_obj(approval)
+            approval.approver = current_user
+            approval.updated_at = datetime.now(tz=bangkok)
+            approval.record = procurement.current_record
+            db.session.add(approval)
             db.session.commit()
             flash(u'ตรวจสอบเรียบร้อย.', 'success')
         return redirect(url_for('procurement.view_procurement_on_scan', procurement_no=procurement_no))
