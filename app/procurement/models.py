@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+import qrcode
 from sqlalchemy import func
 
 from app.main import db
@@ -45,9 +46,6 @@ class ProcurementDetail(db.Model):
                                                     cascade='all, delete-orphan'))
     sub_number = db.Column('sub_number', db.Integer(), info={'label': 'Sub Number'})
     curr_acq_value = db.Column('curr_acq_value', db.Float(), info={'label': u'มูลค่าที่ได้มา(>10,000)'})
-    approver_id = db.Column('approver_id', db.ForeignKey('procurement_committee_approvals.id'))
-    approver = db.relationship('ProcurementCommitteeApproval',
-                                      backref=db.backref('approved_items', lazy='dynamic'))
     cost_center = db.Column('cost_center', db.String(), info={'label': u'ศูนย์ต้นทุน'})
 
     def __str__(self):
@@ -69,9 +67,21 @@ class ProcurementDetail(db.Model):
             'erp_code': self.erp_code,
             'budget_year': self.budget_year,
             'received_date': self.received_date,
-            'purchasing_type': self.purchasing_type,
+            'purchasing_type': self.purchasing_type.purchasing_type,
             'available': self.available
         }
+
+    def generate_qrcode(self):
+        qr = qrcode.QRCode(version=1, box_size=10)
+        qr.add_data(self.procurement_no)
+        qr.make(fit=True)
+        qr_img = qr.make_image()
+        qr_img.save('procurement_qrcode.png')
+        import base64
+        with open("procurement_qrcode.png", "rb") as img_file:
+            self.qrcode = base64.b64encode(img_file.read())
+            db.session.add(self)
+            db.session.commit()
 
 
 class ProcurementPurchasingType(db.Model):
@@ -125,6 +135,9 @@ class ProcurementRecord(db.Model):
 class ProcurementCommitteeApproval(db.Model):
     __tablename__ = 'procurement_committee_approvals'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    record_id = db.Column('record_id', db.ForeignKey('procurement_records.id'))
+    record = db.relationship('ProcurementRecord',
+                               backref=db.backref('procurement_records'))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
     approver = db.relationship('StaffAccount',
                               backref=db.backref('staff_approvers'))
