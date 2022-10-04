@@ -6,7 +6,8 @@
 
         body {
             font-family: 'Nunito', sans-serif;
-        };
+        }
+        ;
         nav.navbar {
             height: 6rem !important;
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, .1), 0 1px 2px 0 rgba(0, 0, 0, .06) !important;
@@ -15,25 +16,22 @@
 {% endblock %}
 {% block page_content %}
     <!-- START NAV -->
-    <nav class="navbar">
-        <div class="container">
+    <div class="container">
+        <nav class="navbar" role="navigation" aria-label="main navigation">
             <div class="navbar-brand">
-                <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" alt="Logo" width="250">
+                <a href="{{ url_for('procurement.first_page') }}">
+                    <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" alt="Logo" width="250">
+                </a>
+                <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false"
+                   data-target="navbarBasicExample">
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                </a>
             </div>
-            <div id="navbarMenu" class="navbar-menu">
-                <div class="navbar-end">
-                    {#          <div class=" navbar-item">#}
-                    {#            <div class="control has-icons-left">#}
-                    {#              <input class="input is-rounded" id="mySearch" onkeyup="myFunction()" type="text" placeholder="Search">#}
-                    {#              <span class="icon is-left">#}
-                    {#                <i class="fa fa-search"></i>#}
-                    {#              </span>#}
-                    {#            </div>#}
-                    {#          </div>#}
-                    <a href="{{ url_for('procurement.first_page') }}"
-                       class="navbar-item is-active is-size-5 has-text-weight-semibold">
-                        Home
-                    </a>
+
+            <div id="navbarBasicExample" class="navbar-menu">
+                <div class="navbar-start">
                     <div class="navbar-item has-dropdown is-hoverable is-size-5 has-text-weight-semibold">
                         <a class="navbar-link ">
                             จัดการทะเบียน
@@ -50,6 +48,7 @@
                             </a>
                         </div>
                     </div>
+
                     <div class="navbar-item has-dropdown is-hoverable is-size-5 has-text-weight-semibold">
                         <a class="navbar-link ">
                             รายงาน
@@ -60,20 +59,11 @@
                             </a>
                         </div>
                     </div>
-                    <div class="navbar-item has-dropdown is-hoverable is-size-5 has-text-weight-semibold">
-                        <a class="navbar-link ">
-                            ตั้งค่า
-                        </a>
-                        <div class="navbar-dropdown">
-                            <a href="" class="navbar-item">
-                                ตั้งรหัสห้อง
-                            </a>
-                        </div>
-                    </div>
                 </div>
             </div>
-        </div>
-    </nav>
+        </nav>
+    </div>
+
     <!-- END NAV -->
 
     <!-- Image -->
