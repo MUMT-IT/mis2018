@@ -710,6 +710,7 @@ def import_procurement_data():
             purchasing_type = None
         if not item:
             item = ProcurementDetail(procurement_no=str(row['procurement_no']))
+            procurement_record = ProcurementRecord(item=item)
         item.cost_center = row['cost_center']
         item.erp_code = row['erp_code']
         item.sub_number = row['sub_number']
@@ -721,6 +722,7 @@ def import_procurement_data():
         item.received_date = row['received_date'] if not pd.isna(row['received_date']) else None
         item.purchasing_type = purchasing_type
         db.session.add(item)
+        db.session.add(procurement_record)
     db.session.commit()
 
 
