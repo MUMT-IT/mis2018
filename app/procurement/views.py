@@ -26,7 +26,6 @@ style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Times-Bold'))
 style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 
-
 # Upload images for Google Drive
 
 
@@ -157,7 +156,7 @@ def report_info_download():
                          u'Inventory Number/ERP',
                          u'เลขครุภัณฑ์',
                          u'Sub Number',
-                          u'ชื่อครุภัณฑ์',
+                         u'ชื่อครุภัณฑ์',
                          u'จัดซื้อด้วยเงิน',
                          u'มูลค่าที่ได้มา',
                          u'Original value',
@@ -169,8 +168,8 @@ def report_info_download():
                          # u'สถานะ',
                          # u'Comment'
                          ],
-                        index=False,
-                        encoding='utf-8')
+                index=False,
+                encoding='utf-8')
     return send_from_directory(os.getcwd(), filename='report.xlsx')
 
 
@@ -199,8 +198,10 @@ def get_procurement_data():
     data = []
     for item in query:
         item_data = item.to_dict()
-        item_data['view'] = '<a href="{}"><i class="fas fa-eye"></i></a>'.format(url_for('procurement.view_qrcode', procurement_id=item.id))
-        item_data['edit'] = '<a href="{}"><i class="fas fa-edit"></i></a>'.format(url_for('procurement.edit_procurement', procurement_id=item.id))
+        item_data['view'] = '<a href="{}"><i class="fas fa-eye"></i></a>'.format(
+            url_for('procurement.view_qrcode', procurement_id=item.id))
+        item_data['edit'] = '<a href="{}"><i class="fas fa-edit"></i></a>'.format(
+            url_for('procurement.edit_procurement', procurement_id=item.id))
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
@@ -312,7 +313,8 @@ def list_maintenance():
         procurement_number = request.form.get('procurement_number', None)
         users = request.form.get('users', 0)
         if procurement_number:
-            maintenance_query = ProcurementDetail.query.filter(ProcurementDetail.procurement_no.like('%{}%'.format(procurement_number)))
+            maintenance_query = ProcurementDetail.query.filter(
+                ProcurementDetail.procurement_no.like('%{}%'.format(procurement_number)))
         else:
             maintenance_query = []
         if request.headers.get('HX-Request') == 'true':
@@ -340,11 +342,11 @@ def contact_service():
     #     if require_id and noticedate:
     #         approval_needed = True if service.available == 2 else False
     #
-            # new_maintenance = ProcurementRequire(service_id=service.id,
-            #                                      record_id=record.id,
-            #                                      staff_id=current_user.id,
-            #                                      desc=desc,
-            #                                      notice_date=notice_date)
+    # new_maintenance = ProcurementRequire(service_id=service.id,
+    #                                      record_id=record.id,
+    #                                      staff_id=current_user.id,
+    #                                      desc=desc,
+    #                                      notice_date=notice_date)
 
     #         db.session.add(new_maintenance)
     #         db.session.commit()
@@ -414,6 +416,7 @@ def qrcode_render(procurement_no):
 
 @procurement.route('/qrcode/list', methods=['GET', 'POST'])
 def list_qrcode():
+    session['selected_procurement_items_printing'] = []
     def all_page_setup(canvas, doc):
         canvas.saveState()
         # logo_image = ImageReader('app/static/img/mumt-logo.png')
@@ -440,10 +443,12 @@ def list_qrcode():
             img_string.seek(0)
             data.append(Image(img_string, 50 * mm, 30 * mm, kind='bound'))
             data.append(Paragraph('<para align=center leading=10><font size=13>{}</font></para>'
-                                      .format(item.erp_code.encode('utf-8')),
-                                      style=style_sheet['ThaiStyle']))
+                                  .format(item.erp_code.encode('utf-8')),
+                                  style=style_sheet['ThaiStyle']))
             data.append(PageBreak())
         doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+        if 'selected_procurement_items_printing' in session:
+            del session['selected_procurement_items_printing']
         return send_file('qrcode.pdf')
 
     procurement_list = [item.to_dict() for item in ProcurementDetail.query.all()]
@@ -612,7 +617,7 @@ def add_img_procurement(procurement_id):
         file = form.image_upload.data
         if file:
             img_name = secure_filename(file.filename)
-            file.save(img_name)                # convert image to base64(text) in database
+            file.save(img_name)  # convert image to base64(text) in database
             import base64
             with open(img_name, "rb") as img_file:
                 procurement.image = base64.b64encode(img_file.read())
@@ -625,7 +630,7 @@ def add_img_procurement(procurement_id):
         for er in form.errors:
             flash(er, 'danger')
     return render_template('procurement/add_img_procurement.html', form=form, procurement_id=procurement_id,
-                                                                procurement=procurement)
+                           procurement=procurement)
 
 
 @procurement.route('/scan-qrcode/location/status/update', methods=['GET'])
@@ -640,4 +645,3 @@ def view_location_and_status_on_scan(procurement_no):
     item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first_or_404()
     return render_template('procurement/view_location_and_status_on_scan.html', item=item,
                            procurement_no=item.procurement_no)
-
