@@ -6,7 +6,9 @@
 
         body {
             font-family: 'Nunito', sans-serif;
-        };
+        }
+
+        ;
         nav.navbar {
             height: 6rem !important;
             box-shadow: 0 1px 3px 0 rgba(0, 0, 0, .1), 0 1px 2px 0 rgba(0, 0, 0, .06) !important;
@@ -18,22 +20,17 @@
     <nav class="navbar">
         <div class="container">
             <div class="navbar-brand">
-                <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" alt="Logo" width="250">
+                <a href="{{ url_for('procurement.first_page') }}">
+                    <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" alt="Logo" width="250">
+                </a>
+                <span class="navbar-burger burger" data-target="navbarMenu">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </span>
             </div>
             <div id="navbarMenu" class="navbar-menu">
                 <div class="navbar-end">
-                    {#          <div class=" navbar-item">#}
-                    {#            <div class="control has-icons-left">#}
-                    {#              <input class="input is-rounded" id="mySearch" onkeyup="myFunction()" type="text" placeholder="Search">#}
-                    {#              <span class="icon is-left">#}
-                    {#                <i class="fa fa-search"></i>#}
-                    {#              </span>#}
-                    {#            </div>#}
-                    {#          </div>#}
-                    <a href="{{ url_for('procurement.first_page') }}"
-                       class="navbar-item is-active is-size-5 has-text-weight-semibold">
-                        Home
-                    </a>
                     <div class="navbar-item has-dropdown is-hoverable is-size-5 has-text-weight-semibold">
                         <a class="navbar-link ">
                             จัดการทะเบียน
@@ -57,16 +54,6 @@
                         <div class="navbar-dropdown">
                             <a href="" class="navbar-item">
                                 ครุภัณฑ์ภายในภาค
-                            </a>
-                        </div>
-                    </div>
-                    <div class="navbar-item has-dropdown is-hoverable is-size-5 has-text-weight-semibold">
-                        <a class="navbar-link ">
-                            ตั้งค่า
-                        </a>
-                        <div class="navbar-dropdown">
-                            <a href="" class="navbar-item">
-                                ตั้งรหัสห้อง
                             </a>
                         </div>
                     </div>
@@ -106,7 +93,7 @@
                             <p class="panel-block">
                                 <span class="is-size-4">
                                     <i class="fas fa-location-arrow"></i>
-                                    <a href="{{ url_for('procurement.committee_first') }}">
+                                    <a href="{{ url_for('procurement.update_location_and_status') }}">
                                         Update Location & Status (ปรับปรุงสถานที่และสถานะ)
                                     </a>
                                 </span>

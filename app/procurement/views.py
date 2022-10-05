@@ -3,36 +3,28 @@ import cStringIO
 import os, requests
 from base64 import b64decode
 
-import pandas
-from flask import render_template, request, flash, redirect, url_for, send_file
+from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify, session
 from flask_login import current_user, login_required
-from reportlab.lib.units import mm, cm
+from pandas import DataFrame
+from reportlab.lib.units import mm
 
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
-from datetime import datetime, timedelta
+from datetime import datetime
 from pytz import timezone
-from reportlab.platypus import (SimpleDocTemplate, Table, Image,
-                                Spacer, Paragraph, TableStyle, PageBreak, Frame)
-from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_RIGHT
-from reportlab.lib.pagesizes import letter
-import qrcode
+from reportlab.platypus import (SimpleDocTemplate, Paragraph, PageBreak)
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.platypus import Image
-from reportlab.graphics.barcode import qr
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.utils import ImageReader
-from reportlab.pdfgen import canvas
-from reportlab.lib import colors
 
-from ..main import dbutils, get_credential, csrf
+from ..main import csrf
 from ..roles import procurement_committee_permission, procurement_permission
 
 style_sheet = getSampleStyleSheet()
 style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Times-Bold'))
 style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
-
 
 # Upload images for Google Drive
 
@@ -50,18 +42,11 @@ ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 @login_required
 def add_procurement():
     form = ProcurementDetailForm()
-    if form.start_guarantee_date.data:
-        form.start_guarantee_date.data = datetime.strptime(form.start_guarantee_date.data, '%d/%m/%Y')
-    if form.end_guarantee_date.data:
-        form.end_guarantee_date.data = datetime.strptime(form.end_guarantee_date.data, '%d/%m/%Y')
-    if form.received_date.data:
-        form.received_date.data = datetime.strptime(form.received_date.data, '%d/%m/%Y')
+
     if form.validate_on_submit():
         procurement = ProcurementDetail()
         form.populate_obj(procurement)
         procurement.creation_date = bangkok.localize(datetime.now())
-        # procurement.end_guarantee_date = form.start_guarantee_date.data + timedelta(days=int(form.days.data))
-        # # TODO: calculate end date from time needed to finish guarantee date
         file = form.image_file_upload.data
         if file:
             img_name = secure_filename(file.filename)
@@ -115,53 +100,124 @@ def committee_first():
 @procurement.route('/info/by-committee/view')
 @login_required
 def view_procurement_by_committee():
-    procurement_list = []
-    procurement_query = ProcurementDetail.query.all()
-    for procurement in procurement_query:
-        record = {}
-        record["id"] = procurement.id
-        record["name"] = procurement.name
-        record["procurement_no"] = procurement.procurement_no
-        record["erp_code"] = procurement.erp_code
-        record["budget_year"] = procurement.budget_year
-        record["received_date"] = procurement.received_date
-        record["bought_by"] = procurement.bought_by
-        record["available"] = procurement.available
-        procurement_list.append(record)
+    procurement_list = [item.to_dict() for item in ProcurementDetail.query.all()]
     return render_template('procurement/view_procurement_by_committee.html', procurement_list=procurement_list)
 
 
-# @procurement.route('/info/by-committee/download', methods=['GET'])
-# def report_info_download():
-#     records = []
-#     procurement_query = ProcurementDetail.query.all()
-#
-#     for items in procurement_query:
-#         for record in items.records:
-#             records.append({
-#
-#             })
-#     df = DataFrame(records)
-#     df.to_excel('report.xlsx')
-#     return send_from_directory(os.getcwd(), filename='report.xlsx')
+@procurement.route('/api/data/committee')
+def get_procurement_data_to_committee():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
+        ProcurementDetail.name.like(u'%{}%'.format(search)),
+        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
+        ProcurementDetail.budget_year.like(u'%{}%'.format(search)),
+        ProcurementDetail.available.like(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        current_record = item.current_record
+        item_data = item.to_dict()
+        item_data['checking_result'] = current_record.approval.checking_result if current_record and current_record.approval else ''
+        item_data['approver'] = current_record.approval.approver.personal_info.fullname if current_record and current_record.approval else ''
+        item_data['status'] = current_record.approval.asset_status if current_record and current_record.approval else ''
+        item_data['approver_comment'] = current_record.approval.approval_comment if current_record and current_record.approval else ''
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
 
-@procurement.route('/information/all')
+
+@procurement.route('/info/by-committee/download', methods=['GET'])
+def report_info_download():
+    records = []
+    procurement_query = ProcurementDetail.query.all()
+
+    for item in procurement_query:
+        current_record = item.current_record
+        records.append({
+            u'ศูนย์ต้นทุน': u"{}".format(item.cost_center),
+            u'Inventory Number/ERP': u"{}".format(item.erp_code),
+            u'เลขครุภัณฑ์': u"{}".format(item.procurement_no),
+            u'Sub Number': u"{}".format(item.sub_number),
+            u'ชื่อครุภัณฑ์': u"{}".format(item.name),
+            u'จัดซื้อด้วยเงิน': u"{}".format(item.purchasing_type),
+            u'มูลค่าที่ได้มา': u"{}".format(item.curr_acq_value),
+            u'Original value': u"{}".format(item.price),
+            u'สภาพของสินทรัพย์': u"{}".format(item.available),
+            u'วันที่ได้รับ': u"{}".format(item.received_date),
+            u'ปีงบประมาณ': u"{}".format(item.budget_year),
+            u'ผลการตรวจสอบ': u"{}".format(current_record.approval.checking_result if current_record and current_record.approval else ''),
+            u'ผู้ตรวจสอบ': u"{}".format(current_record.approval.approver.personal_info.fullname if current_record and current_record.approval else ''),
+            u'สถานะ': u"{}".format(current_record.approval.asset_status if current_record and current_record.approval else ''),
+            u'Comment': u"{}".format(current_record.approval.approval_comment if current_record and current_record.approval else '')
+        })
+    df = DataFrame(records)
+    df.to_excel('report.xlsx',
+                header=True,
+                columns=[u'ศูนย์ต้นทุน',
+                         u'Inventory Number/ERP',
+                         u'เลขครุภัณฑ์',
+                         u'Sub Number',
+                         u'ชื่อครุภัณฑ์',
+                         u'จัดซื้อด้วยเงิน',
+                         u'มูลค่าที่ได้มา',
+                         u'Original value',
+                         u'สภาพของสินทรัพย์',
+                         u'วันที่ได้รับ',
+                         u'ปีงบประมาณ',
+                         u'ผลการตรวจสอบ',
+                         u'ผู้ตรวจสอบ',
+                         u'สถานะ',
+                         u'Comment'
+                         ],
+                index=False,
+                encoding='utf-8')
+    return send_from_directory(os.getcwd(), filename='report.xlsx')
+
+
+@procurement.route('/information/view')
 @login_required
 def view_procurement():
-    procurement_list = []
-    procurement_query = ProcurementDetail.query.all()
-    for procurement in procurement_query:
-        record = {}
-        record["id"] = procurement.id
-        record["name"] = procurement.name
-        record["procurement_no"] = procurement.procurement_no
-        record["erp_code"] = procurement.erp_code
-        record["budget_year"] = procurement.budget_year
-        record["received_date"] = procurement.received_date
-        record["bought_by"] = procurement.bought_by
-        record["available"] = procurement.available
-        procurement_list.append(record)
+    procurement_list = [item.to_dict() for item in ProcurementDetail.query.all()]
     return render_template('procurement/view_all_data.html', procurement_list=procurement_list)
+
+
+@procurement.route('/api/data')
+def get_procurement_data():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
+        ProcurementDetail.name.like(u'%{}%'.format(search)),
+        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
+        ProcurementDetail.budget_year.like(u'%{}%'.format(search)),
+        ProcurementDetail.available.like(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['view'] = '<a href="{}"><i class="fas fa-eye"></i></a>'.format(
+            url_for('procurement.view_qrcode', procurement_id=item.id))
+        item_data['edit'] = '<a href="{}"><i class="fas fa-edit"></i></a>'.format(
+            url_for('procurement.edit_procurement', procurement_id=item.id))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 
 @procurement.route('/information/find', methods=['POST', 'GET'])
@@ -199,14 +255,14 @@ def view_qrcode(procurement_id):
     item = ProcurementDetail.query.get(procurement_id)
     return render_template('procurement/view_qrcode.html',
                            model=ProcurementRecord,
-                           item=item,
-                           procurement_no=item.procurement_no)
+                           item=item)
 
 
 @procurement.route('/items/<int:item_id>/records/add', methods=['GET', 'POST'])
 @login_required
 def add_record(item_id):
-    form = ProcurementRecordForm()
+    item = ProcurementDetail.query.get(item_id)
+    form = ProcurementUpdateRecordForm(obj=item.current_record)
     if request.method == 'POST':
         if form.validate_on_submit():
             new_record = ProcurementRecord()
@@ -216,8 +272,11 @@ def add_record(item_id):
             new_record.updated_at = datetime.now(tz=bangkok)
             db.session.add(new_record)
             db.session.commit()
-            flash('New Record Has Been Added.', 'success')
-            return redirect(url_for('procurement.view_procurement'))
+            flash(u'บันทึกสำเร็จ', 'success')
+        else:
+            for er in form.errors:
+                flash(er, 'danger')
+        return redirect(url_for('procurement.view_qrcode', procurement_id=item_id))
     return render_template('procurement/record_form.html', form=form)
 
 
@@ -264,7 +323,8 @@ def list_maintenance():
         procurement_number = request.form.get('procurement_number', None)
         users = request.form.get('users', 0)
         if procurement_number:
-            maintenance_query = ProcurementDetail.query.filter(ProcurementDetail.procurement_no.like('%{}%'.format(procurement_number)))
+            maintenance_query = ProcurementDetail.query.filter(
+                ProcurementDetail.procurement_no.like('%{}%'.format(procurement_number)))
         else:
             maintenance_query = []
         if request.headers.get('HX-Request') == 'true':
@@ -292,11 +352,11 @@ def contact_service():
     #     if require_id and noticedate:
     #         approval_needed = True if service.available == 2 else False
     #
-            # new_maintenance = ProcurementRequire(service_id=service.id,
-            #                                      record_id=record.id,
-            #                                      staff_id=current_user.id,
-            #                                      desc=desc,
-            #                                      notice_date=notice_date)
+    # new_maintenance = ProcurementRequire(service_id=service.id,
+    #                                      record_id=record.id,
+    #                                      staff_id=current_user.id,
+    #                                      desc=desc,
+    #                                      notice_date=notice_date)
 
     #         db.session.add(new_maintenance)
     #         db.session.commit()
@@ -366,6 +426,7 @@ def qrcode_render(procurement_no):
 
 @procurement.route('/qrcode/list', methods=['GET', 'POST'])
 def list_qrcode():
+    session['selected_procurement_items_printing'] = []
     def all_page_setup(canvas, doc):
         canvas.saveState()
         # logo_image = ImageReader('app/static/img/mumt-logo.png')
@@ -384,29 +445,70 @@ def list_qrcode():
         data = []
         for item_id in request.form.getlist('selected_items'):
             item = ProcurementDetail.query.get(int(item_id))
+            if not item.qrcode:
+                item.generate_qrcode()
+
             decoded_img = b64decode(item.qrcode)
             img_string = cStringIO.StringIO(decoded_img)
             img_string.seek(0)
             data.append(Image(img_string, 50 * mm, 30 * mm, kind='bound'))
-            data.append(Paragraph('<para align=center leading=10><font size=20>{}</font></para>'
-                                  .format(item.procurement_no.encode('utf-8')),
+            data.append(Paragraph('<para align=center leading=10><font size=13>{}</font></para>'
+                                  .format(item.erp_code.encode('utf-8')),
                                   style=style_sheet['ThaiStyle']))
             data.append(PageBreak())
         doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+        if 'selected_procurement_items_printing' in session:
+            del session['selected_procurement_items_printing']
         return send_file('qrcode.pdf')
 
-    qrcode_list = []
-    for procurement in procurement_query:
-        record = {}
-        record["id"] = procurement.id
-        record["name"] = procurement.name
-        record["procurement_no"] = procurement.procurement_no
-        record["erp_code"] = procurement.erp_code
-        record["budget_year"] = procurement.budget_year
-        record["received_date"] = procurement.received_date
-        record["available"] = procurement.available
-        qrcode_list.append(record)
-    return render_template('procurement/list_qrcode.html', qrcode_list=qrcode_list)
+    procurement_list = [item.to_dict() for item in ProcurementDetail.query.all()]
+    return render_template('procurement/list_qrcode.html', procurement_list=procurement_list)
+
+
+@procurement.route('/api/data/selected-items', methods=['POST'])
+def select_items_for_printing_qrcode():
+    if request.method == 'POST':
+        items = ''
+        print_items = session.get('selected_procurement_items_printing', [])
+        for _id in request.form.getlist('selected_items'):
+            if _id not in print_items:
+                print_items.append(_id)
+                item = ProcurementDetail.query.get(int(_id))
+                items += (u'<tr><td><input class="is-checkradio" id="pro_no{}_selected" type="checkbox"'
+                          u'name="selected_items" checked value="{}"><label for="pro_no{}_selected"></label></td>'
+                          u'<td>{}</td><td>{}</td><td>{}</td></tr>').format(_id, _id, _id, item.name, item.procurement_no, item.erp_code)
+        return items
+
+
+@procurement.route('/api/data/qrcode/list')
+def get_procurement_data_qrcode_list():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
+        ProcurementDetail.name.like(u'%{}%'.format(search)),
+        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
+        ProcurementDetail.budget_year.like(u'%{}%'.format(search)),
+        ProcurementDetail.available.like(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y')
+        item_data['select_item'] = ('<input class="is-checkradio" id="pro_no{}" type="checkbox" name="selected_items" value="{}">'
+                                    '<label for="pro_no{}"></label>').format(item.id, item.id, item.id)
+        item_data['print'] = '<a href="{}"><i class="fas fa-print"></i></a>'.format(
+            url_for('procurement.export_qrcode_pdf', procurement_id=item.id))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 
 @procurement.route('/qrcode/pdf/list/<int:procurement_id>')
@@ -428,136 +530,18 @@ def export_qrcode_pdf(procurement_id):
                             )
     data = []
     if not procurement.qrcode:
-        qr = qrcode.QRCode(version=1, box_size=10)
-        qr.add_data(procurement.procurement_no)
-        qr.make(fit=True)
-        qr_img = qr.make_image()
-        qr_img.save('procurement_qrcode.png')
-        import base64
-        with open("procurement_qrcode.png", "rb") as img_file:
-            procurement.qrcode = base64.b64encode(img_file.read())
-            db.session.add(procurement)
-            db.session.commit()
+        procurement.generate_qrcode()
 
     decoded_img = b64decode(procurement.qrcode)
     img_string = cStringIO.StringIO(decoded_img)
     img_string.seek(0)
     im = Image(img_string, 50 * mm, 30 * mm, kind='bound')
     data.append(im)
-    data.append(Paragraph('<para align=center leading=10><font size=20>{}</font></para>'
+    data.append(Paragraph('<para align=center leading=10><font size=13>{}</font></para>'
                           .format(procurement.erp_code.encode('utf-8')),
                           style=style_sheet['ThaiStyle']))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     return send_file('qrcode.pdf')
-
-
-@procurement.route('/qrcode/pdf/list/<int:procurement_id>')
-def export_all_qrcode_pdf(procurement_id):
-    procurement = ProcurementDetail.query.get(procurement_id)
-
-    def all_page_setup(canvas, doc):
-        canvas.saveState()
-        # logo_image = ImageReader('app/static/img/mumt-logo.png')
-        # canvas.drawImage(logo_image, 10, 700, width=250, height=100)
-        canvas.restoreState()
-
-    doc = SimpleDocTemplate("app/qrcode.pdf",
-                            rightMargin=7,
-                            leftMargin=5,
-                            topMargin=35,
-                            bottomMargin=0,
-                            pagesize=(170, 150)
-                            )
-    data = []
-    if not procurement.qrcode:
-        qr = qrcode.QRCode(version=1, box_size=10)
-        qr.add_data(procurement.procurement_no)
-        qr.make(fit=True)
-        qr_img = qr.make_image()
-        qr_img.save('procurement_qrcode.png')
-        import base64
-        with open("procurement_qrcode.png", "rb") as img_file:
-            procurement.qrcode = base64.b64encode(img_file.read())
-            db.session.add(procurement)
-            db.session.commit()
-
-    decoded_img = b64decode(procurement.qrcode)
-    img_string = cStringIO.StringIO(decoded_img)
-    img_string.seek(0)
-    im = Image(img_string, 50 * mm, 30 * mm, kind='bound')
-    data.append(im)
-    data.append(Paragraph('<para align=center leading=10><font size=20>{}</font></para>'
-                          .format(procurement.procurement_no.encode('utf-8')),
-                          style=style_sheet['ThaiStyle']))
-    doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
-    return send_file('qrcode.pdf')
-
-# @procurement.route('/qrcode/list/pdf/all')
-# def export_all_qrcode_pdf():
-#     procurement_query = ProcurementDetail.query.all()
-#
-#     def all_page_setup(canvas, doc):
-#         canvas.saveState()
-#         # logo_image = ImageReader('app/static/img/mumt-logo.png')
-#         # canvas.drawImage(logo_image, 10, 700, width=250, height=100)
-#         canvas.restoreState()
-#
-#     doc = SimpleDocTemplate("app/all_qrcode.pdf",
-#                             rightMargin=20,
-#                             leftMargin=20,
-#                             topMargin=20,
-#                             bottomMargin=10,
-#                             pagesize=letter
-#                             )
-#     data = []
-#     for procurement in procurement_query:
-#         if not procurement.qrcode:
-#             qr_img = qrcode.make(procurement.procurement_no, box_size=4)
-#             qr_img.save('procurement{}.png'.format(id))
-#             # convert image to base64(text) in database
-#             import base64
-#             with open("procurement_qrcode.png", "rb") as img_file:
-#                 procurement.qrcode = base64.b64encode(img_file.read())
-#                 db.session.add(procurement)
-#                 db.session.commit()
-#         else:
-#             # convert base64(text) to image in database
-#             decoded_img = b64decode(procurement.qrcode)
-#             img_string = cStringIO.StringIO(decoded_img)
-#             img_string.seek(0)
-#             im = Image(img_string, 50 * mm, 50 * mm, kind='bound')
-#             data.append(im)
-#
-#         data.append(Paragraph('<para align=center><font size=18>รหัสครุภัณฑ์ / Procurement No: {}<br/><br/></font></para>'
-#                               .format(procurement.procurement_no.encode('utf-8')),
-#                               style=style_sheet['ThaiStyle']))
-#     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
-#     return send_file('all_qrcode.pdf')
-
-
-# @dbutils.command('import-procurement-data')
-# def import_procurement_data():
-#     tz = timezone('Asia/Bangkok')
-#
-#     sheetid = '165tgZytipxxy5jY2ZOY5EaBJwxt3ZVRDwaBqggqmccY'
-#     print('Authorizing with Google..')
-#     gc = get_credential(json_keyfile)
-#     wb = gc.open_by_key(sheetid)
-#     sheet = wb.worksheet("all")
-#     df = pandas.DataFrame(sheet.get_all_records())
-#     df
-#     for idx, row in df.iterrows():
-#         cost_center = row['cost_center']
-#         erp_code = row['erp_code']
-#         procurement_no = row['procurement_no']
-#         sub_number = row['sub_number']
-#         fund = row['fund']
-#         original_value = row['original_value']
-#         curr_acq_value = row['curr_acq_value']
-#         crcy = row['crcy']
-#
-#     db.session.add()
-#     db.session.commit()
 
 
 @procurement.route('/scan-qrcode', methods=['GET'])
@@ -577,34 +561,60 @@ def view_procurement_on_scan(procurement_no):
 @procurement.route('/items/<string:procurement_no>/check', methods=['GET', 'POST'])
 @login_required
 def check_procurement(procurement_no):
-    form = ProcurementApprovalForm()
-    # approver in Detail
+    procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+    approval = procurement.current_record.approval
+    if approval:
+        form = ProcurementApprovalForm(obj=approval)
+    else:
+        form = ProcurementApprovalForm()
+        approval = ProcurementCommitteeApproval()
     if request.method == 'POST':
         if form.validate_on_submit():
-            new_approve = ProcurementCommitteeApproval()
-            form.populate_obj(new_approve)
-            new_approve.approver = current_user
-            new_approve.updated_at = datetime.now(tz=bangkok)
-            db.session.add(new_approve)
+            form.populate_obj(approval)
+            approval.approver = current_user
+            approval.updated_at = datetime.now(tz=bangkok)
+            approval.record = procurement.current_record
+            db.session.add(approval)
             db.session.commit()
             flash(u'ตรวจสอบเรียบร้อย.', 'success')
-            return redirect(url_for('procurement.view_procurement_on_scan', procurement_no=procurement_no))
+        return redirect(url_for('procurement.view_procurement_on_scan', procurement_no=procurement_no))
     return render_template('procurement/approval_by_committee.html', form=form, procurement_no=procurement_no)
 
 
 @procurement.route('/item/image/view')
 def view_img_procurement():
-    procurement_list = []
-    procurement_query = ProcurementDetail.query.all()
-    for procurement in procurement_query:
-        record = {}
-        record["id"] = procurement.id
-        record["name"] = procurement.name
-        record["procurement_no"] = procurement.procurement_no
-        record["erp_code"] = procurement.erp_code
-        record["image"] = procurement.image
-        procurement_list.append(record)
+    procurement_list = [item.to_dict() for item in ProcurementDetail.query.all()]
     return render_template('procurement/view_img_procurement.html', procurement_list=procurement_list)
+
+
+@procurement.route('/api/data/image/view')
+def get_procurement_image_data():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
+        ProcurementDetail.name.like(u'%{}%'.format(search)),
+        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['view_img'] = ('<img style="display:block; width:128px;height:128px;" id="base64image"'
+                                 'src="data:image/png;base64, {}">').format(item_data['image'])
+        item_data['img'] = '<a href="{}"><i class="fas fa-image"></a>'.format(
+            url_for('procurement.add_img_procurement', procurement_id=item.id))
+        item_data['edit'] = '<a href="{}"><i class="fas fa-edit"></i></a>'.format(
+            url_for('procurement.edit_procurement', procurement_id=item.id))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 
 @procurement.route('/item/<int:procurement_id>/img/add', methods=['GET', 'POST'])
@@ -617,17 +627,31 @@ def add_img_procurement(procurement_id):
         file = form.image_upload.data
         if file:
             img_name = secure_filename(file.filename)
-            file.save(img_name)                # convert image to base64(text) in database
+            file.save(img_name)  # convert image to base64(text) in database
             import base64
             with open(img_name, "rb") as img_file:
                 procurement.image = base64.b64encode(img_file.read())
         db.session.add(procurement)
         db.session.commit()
         flash(u'บันทึกรูปภาพสำเร็จ.', 'success')
-        return redirect(url_for('procurement.add_img_procurement', procurement_id=procurement_id))
+        return redirect(url_for('procurement.view_img_procurement'))
         # Check Error
     else:
         for er in form.errors:
             flash(er, 'danger')
     return render_template('procurement/add_img_procurement.html', form=form, procurement_id=procurement_id,
-                                                                procurement=procurement)
+                           procurement=procurement)
+
+
+@procurement.route('/scan-qrcode/location/status/update', methods=['GET'])
+@csrf.exempt
+@login_required
+def update_location_and_status():
+    return render_template('procurement/update_location_and_status.html')
+
+
+@procurement.route('/scan-qrcode/info/location-status/view/<string:procurement_no>')
+def view_location_and_status_on_scan(procurement_no):
+    item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first_or_404()
+    return render_template('procurement/view_location_and_status_on_scan.html', item=item,
+                           procurement_no=item.procurement_no)

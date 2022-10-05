@@ -1,19 +1,26 @@
 {% extends "base.html" %}
 {% block page_content %}
-<nav class="navbar">
-    <div class="container">
-      <div class="navbar-brand">
-          <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" alt="Logo" width="250">
-      </div>
-      <div id="navbarMenu" class="navbar-menu">
-        <div class="navbar-end">
-          <a href="{{ url_for('procurement.first_page') }}" class="navbar-item is-active is-size-5 has-text-weight-semibold">
-            Home
-          </a>
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" alt="Logo" width="250">
+                <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false"
+                   data-target="navbarBasicExample">
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                </a>
+            </div>
+            <div id="navbarMenu" class="navbar-menu">
+                <div class="navbar-end">
+                    <a href="{{ url_for('procurement.first_page') }}"
+                       class="navbar-item is-active is-size-5 has-text-weight-semibold">
+                        Home
+                    </a>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  </nav>
+    </nav>
     <section class="section">
         <h1 class="title has-text-centered">Welcome, K.{{ name.personal_info.en_firstname }}</h1>
         {% include "messages.html" %}
@@ -23,7 +30,7 @@
                     <p class="panel-heading">อยู่ระหว่างการทดสอบ</p>
                     <a href="" class="panel-block">
                         <span class="panel-icon"><i class="fas fa-bookmark"></i></span>
-                        <span class="is-size-5">ระบบจองครุภัณฑ์</span><br>
+                        <span class="is-size-5">ระบบยืมครุภัณฑ์</span><br>
                     </a>
                     <a class="panel-block"
                        href="{{ url_for('procurement.require_maintenance') }}">

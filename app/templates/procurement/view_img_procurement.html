@@ -21,30 +21,6 @@
                         <th>แก้ไข</th>
                     </thead>
                     <tbody>
-                    {% for record in procurement_list %}
-                    <tr>
-                        <td>
-                        <img style='display:block; width:128px;height:128px;' id='base64image'
-                                 src='data:image/png;base64, {{ record["image"] }}'>
-                        </td>
-                        <td>
-                            {{ record["name"] }}
-                        </td>
-                        <td>
-                            {{ record["procurement_no"] }}
-                        </td>
-                        <td>
-                            {{ record["erp_code"] }}
-                        </td>
-                        <td>
-                             <a href="{{ url_for('procurement.add_img_procurement', procurement_id=record.id) }}">
-                                <i class="fas fa-image"></i>
-                        </td>
-                        <td>
-                            <a href="{{ url_for('procurement.edit_procurement', procurement_id=record.id) }}">
-                                <i class="fas fa-edit"></i></a>
-                        </td>
-                    {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -64,9 +40,20 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-<script>
-    $(document).ready(()=> {
-        $('#proTable').DataTable();
-    });
-</script>
+    <script>
+        $(document).ready(function () {
+            $('#proTable').DataTable({
+                ajax: '{{ url_for("procurement.get_procurement_image_data") }}',
+                serverSide: true,
+                columns: [
+                    {data: 'view_img'},
+                    {data: 'name'},
+                    {data: 'procurement_no'},
+                    {data: 'erp_code'},
+                    {data: 'img'},
+                    {data: 'edit'}
+                ],
+            });
+        });
+    </script>
 {% endblock %}

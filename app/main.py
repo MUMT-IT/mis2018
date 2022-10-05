@@ -3,6 +3,7 @@ import os
 import click
 import arrow
 import pandas
+import pandas as pd
 import requests
 from flask_principal import Principal, PermissionDenied, Identity
 from flask.cli import AppGroup
@@ -663,6 +664,59 @@ def import_leave_data():
                 db.session.add(leave_approval)
         else:
             print(u'Cannot save data of email: {} start date: {}'.format(email, start_date))
+    db.session.commit()
+
+
+@dbutils.command('import-procurement-data')
+def import_procurement_data():
+    def convert_date(d, format='%d.%m.%Y'):
+        try:
+            new_date = pandas.to_datetime(d, format=format)
+        except ValueError:
+            new_date = None
+        return new_date
+
+    def convert_number(d):
+        if isinstance(d, int) or isinstance(d, float):
+            return d
+        try:
+            new_number = float(d.replace(",", "").replace("-", ""))
+        except ValueError:
+            new_number = None
+        return new_number
+
+    sheetid = '165tgZytipxxy5jY2ZOY5EaBJwxt3ZVRDwaBqggqmccY'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wb = gc.open_by_key(sheetid)
+    sheet = wb.worksheet("Data")
+    df = pandas.DataFrame(sheet.get_all_records())
+    df['curr_acq_value'] = df['curr_acq_value'].apply(convert_number)
+    df['received_date'] = df['received_date'].apply(convert_date)
+    for n, record in enumerate(df.iterrows()):
+        if n % 1000 == 0:
+            print(n)
+        idx, row = record
+        item = ProcurementDetail.query.filter_by(procurement_no=str(row['procurement_no'])).first()
+        if row['purchasing_type_id']:
+            purchasing_type = ProcurementPurchasingType.query.filter_by(fund=int(str(row['purchasing_type_id'])[0])).first()
+        else:
+            purchasing_type = None
+        if not item:
+            item = ProcurementDetail(procurement_no=str(row['procurement_no']))
+            procurement_record = ProcurementRecord(item=item)
+        item.cost_center = row['cost_center']
+        item.erp_code = row['erp_code']
+        item.sub_number = row['sub_number']
+        item.name = row['name']
+        item.curr_acq_value = row['curr_acq_value']
+        item.price = row['price']
+        item.available = row['available']
+        item.budget_year = row['budget_year']
+        item.received_date = row['received_date'] if not pd.isna(row['received_date']) else None
+        item.purchasing_type = purchasing_type
+        db.session.add(item)
+        db.session.add(procurement_record)
     db.session.commit()
 
 
