@@ -20,7 +20,7 @@
                         <span class="icon">
                             <i class="fas fa-print"></i>
                         </span>
-                        <span>Print ที่เลือก</span>
+                        <span>เลือก</span>
                     </button>
                 </div>
             </div>
@@ -38,40 +38,6 @@
                         <th>Print</th>
                         </thead>
                         <tbody>
-                        {% for record in qrcode_list %}
-                            <tr>
-                            <td class="field">
-                                <input class="is-checkradio is-medium" id="pro_no{{ record.id }}" type="checkbox"
-                                       name="selected_items" value="{{ record["id"] }}">
-                                <label for="pro_no{{ record.id }}"></label>
-                                {% if record in record.qrcode_list %}
-                                    checked
-                                {% endif %}
-                            </td>
-                            <td>
-                                {{ record["name"] }}
-                            </td>
-                            <td>
-                                {{ record["procurement_no"] }}
-                            </td>
-                            <td>
-                                {{ record["erp_code"] }}
-
-                            </td>
-                            <td>
-                                {{ record["budget_year"] }}
-                            </td>
-                            <td>
-                                {{ record["received_date"] }}
-                            </td>
-                            <td>
-                                {{ record["available"] }}
-                            </td>
-                            <td>
-                                <a href="{{ url_for('procurement.export_qrcode_pdf', procurement_id=record.id) }}">
-                                    <i class="fas fa-print"></i></a>
-                            </td>
-                        {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -93,8 +59,21 @@
 {% block scripts %}
     {{ super() }}
     <script>
-        $(document).ready(() => {
-            $('#QTable').DataTable();
+        $(document).ready(function () {
+            $('#QTable').DataTable({
+                ajax: '{{ url_for("procurement.get_procurement_data_qrcode_list") }}',
+                serverSide: true,
+                columns: [
+                    {data: 'select_item'},
+                    {data: 'name'},
+                    {data: 'procurement_no'},
+                    {data: 'erp_code'},
+                    {data: 'budget_year'},
+                    {data: 'received_date'},
+                    {data: 'available'},
+                    {data: 'print'}
+                ],
+            });
         });
     </script>
 {% endblock %}
