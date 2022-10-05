@@ -36,9 +36,14 @@
             {% for type,quota in quota_days.iteritems()|sort %}
                 <div class="column">
                     <nav class="panel is-info">
-                        <p class="panel-heading">
-                            {{ type }}
-                        </p>
+                        <a href="{{ url_for('staff.request_for_leave_info', quota_id=quota.id) }}">
+                            <p class="panel-heading">
+                                {{ type }}
+                                <span class="icon is-medium">
+                                     <i class="fas fa-info-circle"></i>
+                                 </span>
+                            </p>
+                        </a>
                         <div class="panel-block">
                             <span class="panel-icon">
                                 <i class="far fa-calendar-alt"></i>
