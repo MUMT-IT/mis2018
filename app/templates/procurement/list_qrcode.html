@@ -9,7 +9,8 @@
     <section class="section">
         {% include "messages.html" %}
         <div class="container">
-        <form method="post">
+        <form hx-post="{{ url_for('procurement.select_items_for_printing_qrcode') }}"
+            hx-target="#selected_items" hx-swap="beforeend">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="columns">
                 <div class="column has-text-left">
@@ -42,6 +43,18 @@
                     </table>
                 </div>
             </div>
+        </form>
+            <div class="columns">
+                <div class="column">
+                    <form method="post" action="{{ url_for('procurement.list_qrcode') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <h1 class="title">Selected Items</h1>
+                        <table class="table is-fullwidth" id="selected_items">
+                        </table>
+                        <input type="submit" value="Print" class="button is-success"></input>
+                    </form>
+                </div>
+            </div>
             <div class="columns">
                 <div class="column">
                     <a href="{{ url_for('procurement.landing') }}" class="button is-rounded is-info is-light">
@@ -52,7 +65,6 @@
                     </a>
                 </div>
             </div>
-        </form>
         </div>
     </section>
 {% endblock %}
