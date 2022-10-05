@@ -3,30 +3,22 @@ import cStringIO
 import os, requests
 from base64 import b64decode
 
-import pandas
-from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify
+from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify, session
 from flask_login import current_user, login_required
 from pandas import DataFrame
-from reportlab.lib.units import mm, cm
+from reportlab.lib.units import mm
 
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
-from datetime import datetime, timedelta
+from datetime import datetime
 from pytz import timezone
-from reportlab.platypus import (SimpleDocTemplate, Table, Image,
-                                Spacer, Paragraph, TableStyle, PageBreak, Frame)
-from reportlab.lib.enums import TA_JUSTIFY, TA_CENTER, TA_RIGHT
-from reportlab.lib.pagesizes import letter
-import qrcode
+from reportlab.platypus import (SimpleDocTemplate, Paragraph, PageBreak)
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.platypus import Image
-from reportlab.graphics.barcode import qr
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.utils import ImageReader
-from reportlab.pdfgen import canvas
-from reportlab.lib import colors
 
-from ..main import dbutils, get_credential, csrf
+from ..main import csrf
 from ..roles import procurement_committee_permission, procurement_permission
 
 style_sheet = getSampleStyleSheet()
@@ -56,8 +48,6 @@ def add_procurement():
         procurement = ProcurementDetail()
         form.populate_obj(procurement)
         procurement.creation_date = bangkok.localize(datetime.now())
-        # procurement.end_guarantee_date = form.start_guarantee_date.data + timedelta(days=int(form.days.data))
-        # # TODO: calculate end date from time needed to finish guarantee date
         file = form.image_file_upload.data
         if file:
             img_name = secure_filename(file.filename)
@@ -155,7 +145,11 @@ def report_info_download():
             u'สภาพของสินทรัพย์': u"{}".format(item.available),
             u'วันที่ได้รับ': u"{}".format(item.received_date),
             u'ปีงบประมาณ': u"{}".format(item.budget_year),
-            })
+            # u'ผลการตรวจสอบ': u"{}".format(item.current_record.approval.checking_result if item.current_record.approval else ''),
+            # u'ผู้ตรวจสอบ': u"{}".format(item.current_record.approval.approver.personal_info.fullname if item.current_record.approval else ''),
+            # u'สถานะ': u"{}".format(item.current_record.approval.asset_status if item.current_record.approval else ''),
+            # u'Comment': u"{}".format(item.current_record.approval.approval_comment if item.current_record.approval else '')
+        })
     df = DataFrame(records)
     df.to_excel('report.xlsx',
                 header=True,
@@ -169,7 +163,11 @@ def report_info_download():
                          u'Original value',
                          u'สภาพของสินทรัพย์',
                          u'วันที่ได้รับ',
-                         u'ปีงบประมาณ'
+                         u'ปีงบประมาณ',
+                         # u'ผลการตรวจสอบ',
+                         # u'ผู้ตรวจสอบ',
+                         # u'สถานะ',
+                         # u'Comment'
                          ],
                         index=False,
                         encoding='utf-8')
@@ -246,14 +244,14 @@ def view_qrcode(procurement_id):
     item = ProcurementDetail.query.get(procurement_id)
     return render_template('procurement/view_qrcode.html',
                            model=ProcurementRecord,
-                           item=item,
-                           procurement_no=item.procurement_no)
+                           item=item)
 
 
 @procurement.route('/items/<int:item_id>/records/add', methods=['GET', 'POST'])
 @login_required
 def add_record(item_id):
-    form = ProcurementRecordForm()
+    item = ProcurementDetail.query.get(item_id)
+    form = ProcurementUpdateRecordForm(obj=item.current_record)
     if request.method == 'POST':
         if form.validate_on_submit():
             new_record = ProcurementRecord()
@@ -263,7 +261,10 @@ def add_record(item_id):
             new_record.updated_at = datetime.now(tz=bangkok)
             db.session.add(new_record)
             db.session.commit()
-            flash('New Record Has Been Added.', 'success')
+            flash(u'บันทึกสำเร็จ', 'success')
+        else:
+            for er in form.errors:
+                flash(er, 'danger')
         return redirect(url_for('procurement.view_qrcode', procurement_id=item_id))
     return render_template('procurement/record_form.html', form=form)
 
@@ -445,18 +446,54 @@ def list_qrcode():
         doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
         return send_file('qrcode.pdf')
 
-    qrcode_list = []
-    for procurement in procurement_query:
-        record = {}
-        record["id"] = procurement.id
-        record["name"] = procurement.name
-        record["procurement_no"] = procurement.procurement_no
-        record["erp_code"] = procurement.erp_code
-        record["budget_year"] = procurement.budget_year
-        record["received_date"] = procurement.received_date
-        record["available"] = procurement.available
-        qrcode_list.append(record)
-    return render_template('procurement/list_qrcode.html', qrcode_list=qrcode_list)
+    procurement_list = [item.to_dict() for item in ProcurementDetail.query.all()]
+    return render_template('procurement/list_qrcode.html', procurement_list=procurement_list)
+
+
+@procurement.route('/api/data/selected-items', methods=['POST'])
+def select_items_for_printing_qrcode():
+    if request.method == 'POST':
+        items = ''
+        print_items = session.get('selected_procurement_items_printing', [])
+        for _id in request.form.getlist('selected_items'):
+            if _id not in print_items:
+                print_items.append(_id)
+                item = ProcurementDetail.query.get(int(_id))
+                items += (u'<tr><td><input class="is-checkradio" id="pro_no{}_selected" type="checkbox"'
+                          u'name="selected_items" checked value="{}"><label for="pro_no{}_selected"></label></td>'
+                          u'<td>{}</td><td>{}</td><td>{}</td></tr>').format(_id, _id, _id, item.name, item.procurement_no, item.erp_code)
+        return items
+
+
+@procurement.route('/api/data/qrcode/list')
+def get_procurement_data_qrcode_list():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
+        ProcurementDetail.name.like(u'%{}%'.format(search)),
+        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
+        ProcurementDetail.budget_year.like(u'%{}%'.format(search)),
+        ProcurementDetail.available.like(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y')
+        item_data['select_item'] = ('<input class="is-checkradio" id="pro_no{}" type="checkbox" name="selected_items" value="{}">'
+                                    '<label for="pro_no{}"></label>').format(item.id, item.id, item.id)
+        item_data['print'] = '<a href="{}"><i class="fas fa-print"></i></a>'.format(
+            url_for('procurement.export_qrcode_pdf', procurement_id=item.id))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 
 @procurement.route('/qrcode/pdf/list/<int:procurement_id>')
@@ -531,17 +568,38 @@ def check_procurement(procurement_no):
 
 @procurement.route('/item/image/view')
 def view_img_procurement():
-    procurement_list = []
-    procurement_query = ProcurementDetail.query.all()
-    for procurement in procurement_query:
-        record = {}
-        record["id"] = procurement.id
-        record["name"] = procurement.name
-        record["procurement_no"] = procurement.procurement_no
-        record["erp_code"] = procurement.erp_code
-        record["image"] = procurement.image
-        procurement_list.append(record)
+    procurement_list = [item.to_dict() for item in ProcurementDetail.query.all()]
     return render_template('procurement/view_img_procurement.html', procurement_list=procurement_list)
+
+
+@procurement.route('/api/data/image/view')
+def get_procurement_image_data():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
+        ProcurementDetail.name.like(u'%{}%'.format(search)),
+        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['view_img'] = ('<img style="display:block; width:128px;height:128px;" id="base64image"'
+                                 'src="data:image/png;base64, {}">').format(item_data['image'])
+        item_data['img'] = '<a href="{}"><i class="fas fa-image"></a>'.format(
+            url_for('procurement.add_img_procurement', procurement_id=item.id))
+        item_data['edit'] = '<a href="{}"><i class="fas fa-edit"></i></a>'.format(
+            url_for('procurement.edit_procurement', procurement_id=item.id))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 
 @procurement.route('/item/<int:procurement_id>/img/add', methods=['GET', 'POST'])
