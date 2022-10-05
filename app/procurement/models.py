@@ -66,6 +66,7 @@ class ProcurementDetail(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'image': self.image,
             'name': self.name,
             'procurement_no': self.procurement_no,
             'erp_code': self.erp_code,
