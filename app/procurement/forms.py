@@ -59,6 +59,7 @@ class DatePickerField(Field):
 class ProcurementDetailForm(ModelForm):
     class Meta:
         model = ProcurementDetail
+        exclude = ['image']
     image_file_upload = FileField(u'อัพโหลดรูปภาพ')
     category = QuerySelectField(u'หมวดหมู่/ประเภท', query_factory=lambda: ProcurementCategory.query.all(),
                                 blank_text='Select Category..', allow_blank=False)
