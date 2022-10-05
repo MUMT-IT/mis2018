@@ -77,6 +77,16 @@ class ProcurementDetailForm(ModelForm):
     end_guarantee_date = DatePickerField(u'วันที่สิ้นสุดประกัน')
 
 
+class ProcurementUpdateRecordForm(ModelForm):
+    class Meta:
+        model = ProcurementRecord
+
+    location = QuerySelectField(u'สถานที่', query_factory=lambda: RoomResource.query.all(),
+                                blank_text='Select location..', allow_blank=False)
+    status = QuerySelectField(u'สถานะ', query_factory=lambda: ProcurementStatus.query.all(),
+                              blank_text='Select status..', allow_blank=False)
+
+
 class ProcurementCategoryForm(ModelForm):
     class Meta:
         model = ProcurementCategory
@@ -128,3 +138,4 @@ class ProcurementAddImageForm(ModelForm):
         only = ['image']
 
     image_upload = FileField(u'อัพโหลดรูปภาพ')
+
