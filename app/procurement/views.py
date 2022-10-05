@@ -119,7 +119,16 @@ def get_procurement_data_to_committee():
     length = request.args.get('length', type=int)
     total_filtered = query.count()
     query = query.offset(start).limit(length)
-    return jsonify({'data': [item.to_dict() for item in query],
+    data = []
+    for item in query:
+        current_record = item.current_record
+        item_data = item.to_dict()
+        item_data['checking_result'] = current_record.approval.checking_result if current_record and current_record.approval else ''
+        item_data['approver_comment'] = current_record.approval.approval_comment if current_record and current_record.approval else ''
+        item_data['approver'] = current_record.approval.approver.personal_info.fullname if current_record and current_record.approval else ''
+        item_data['status'] = current_record.approval.asset_status if current_record and current_record.approval else ''
+        data.append(item_data)
+    return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
                     'recordsTotal': ProcurementDetail.query.count(),
                     'draw': request.args.get('draw', type=int),
@@ -132,6 +141,7 @@ def report_info_download():
     procurement_query = ProcurementDetail.query.all()
 
     for item in procurement_query:
+        current_record = item.current_record
         records.append({
             u'ศูนย์ต้นทุน': u"{}".format(item.cost_center),
             u'Inventory Number/ERP': u"{}".format(item.erp_code),
@@ -144,10 +154,10 @@ def report_info_download():
             u'สภาพของสินทรัพย์': u"{}".format(item.available),
             u'วันที่ได้รับ': u"{}".format(item.received_date),
             u'ปีงบประมาณ': u"{}".format(item.budget_year),
-            # u'ผลการตรวจสอบ': u"{}".format(item.current_record.approval.checking_result if item.current_record.approval else ''),
-            # u'ผู้ตรวจสอบ': u"{}".format(item.current_record.approval.approver.personal_info.fullname if item.current_record.approval else ''),
-            # u'สถานะ': u"{}".format(item.current_record.approval.asset_status if item.current_record.approval else ''),
-            # u'Comment': u"{}".format(item.current_record.approval.approval_comment if item.current_record.approval else '')
+            u'ผลการตรวจสอบ': u"{}".format(current_record.approval.checking_result if current_record and current_record.approval else ''),
+            u'ผู้ตรวจสอบ': u"{}".format(current_record.approval.approver.personal_info.fullname if current_record and current_record.approval else ''),
+            u'สถานะ': u"{}".format(current_record.approval.asset_status if current_record and current_record.approval else ''),
+            u'Comment': u"{}".format(current_record.approval.approval_comment if current_record and current_record.approval else '')
         })
     df = DataFrame(records)
     df.to_excel('report.xlsx',
