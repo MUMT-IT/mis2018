@@ -21,8 +21,19 @@
                             <div class="field">
                                 <img style='display:block; width:450px;height:350px;' id="preview"
                                  src='data:image/png;base64, {{ procurement.image }}'>
-                                <div class="control">
-                                    {{ form.image_upload(onchange="previewImage(event)", accept="image/*") }}
+                                <div class="file">
+                                    <label class="file-label">
+                                        {{ form.image_upload(class="file-input", onchange="previewImage(event)", accept="image/*") }}
+                                        <span class="file-cta">
+                                            <span class="file-icon">
+                                                <i class="fas fa-upload"></i>
+                                            </span>
+                                            <span class="file-label">
+                                            Choose a file…
+                                            </span>
+                                        </span>
+                                        <span class="file-name" id="filename"></span>
+                                    </label>
                                 </div>
                             </div>
                             <div class="field is-grouped is-grouped-centered">
@@ -51,6 +62,15 @@
                 preview.src = reader.result;
             };
         };
+    </script>
+    <script>
+    $(document).ready(()=>{
+        $('#filename').text("None");
+    })
+    $('#image_upload').change(function(e) {
+        let fileName = e.target.files[0].name;
+        $('#filename').text(fileName);
+    });
     </script>
 
 {% endblock %}
