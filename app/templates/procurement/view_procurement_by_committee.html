@@ -25,8 +25,11 @@
                         <th>ERP</th>
                         <th>ปีงบประมาณ</th>
                         <th>วันที่ได้รับ</th>
-                        <th>จัดซื้อด้วยเงิน</th>
                         <th>สถานะ</th>
+                        <th>ผลการตรวจสอบ</th>
+                        <th>ชื่อผู้ตรวจสอบ</th>
+                        <th>สถานะ</th>
+                        <th>Comment</th>
                     </thead>
                     <tbody>
                     </tbody>
@@ -59,8 +62,12 @@
                     {data: 'erp_code'},
                     {data: 'budget_year'},
                     {data: 'received_date'},
-                    {data: 'purchasing_type'},
-                    {data: 'available'}
+                    {data: 'available'},
+                    {data: 'checking_result'},
+                    {data: 'approver'},
+                    {data: 'status'},
+                    {data: 'approver_comment'},
+
                 ],
             });
         });

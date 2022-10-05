@@ -124,9 +124,9 @@ def get_procurement_data_to_committee():
         current_record = item.current_record
         item_data = item.to_dict()
         item_data['checking_result'] = current_record.approval.checking_result if current_record and current_record.approval else ''
-        item_data['approver_comment'] = current_record.approval.approval_comment if current_record and current_record.approval else ''
         item_data['approver'] = current_record.approval.approver.personal_info.fullname if current_record and current_record.approval else ''
         item_data['status'] = current_record.approval.asset_status if current_record and current_record.approval else ''
+        item_data['approver_comment'] = current_record.approval.approval_comment if current_record and current_record.approval else ''
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
