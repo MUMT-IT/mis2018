@@ -10,6 +10,8 @@
             </div>
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
+                <img style='display:block; width:350px;height:150px;' id='base64image'
+                         src='data:image/png;base64, {{ item.image }}'>
                     <table class="table is-fullwidth is-striped">
                         <tr>
                             <td><strong>Cost Center</strong></td>
@@ -82,8 +84,7 @@
                             </td>
                         </tr>
                     </table>
-                    <img style='display:block; width:128px;height:128px;' id='base64image'
-                         src='data:image/png;base64, {{ item.image }}'>
+
                     {% if item.current_record.approval %}
                         <label class="label">ผู้ตรวจสอบ: {{ item.current_record.approval.approver.personal_info.fullname }}</label>
                         <label class="label">สถานะ: {{ item.current_record.approval.asset_status }}</label>
