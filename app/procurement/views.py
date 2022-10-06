@@ -138,7 +138,7 @@ def get_procurement_data_to_committee():
 @procurement.route('/info/by-committee/download', methods=['GET'])
 def report_info_download():
     records = []
-    procurement_query = ProcurementDetail.query.all()
+    procurement_query = ProcurementDetail.query
 
     for item in procurement_query:
         current_record = item.current_record
@@ -186,8 +186,7 @@ def report_info_download():
 @procurement.route('/information/view')
 @login_required
 def view_procurement():
-    procurement_list = [item.to_dict() for item in ProcurementDetail.query.all()]
-    return render_template('procurement/view_all_data.html', procurement_list=procurement_list)
+    return render_template('procurement/view_all_data.html')
 
 
 @procurement.route('/api/data')
@@ -433,7 +432,6 @@ def list_qrcode():
         # canvas.drawImage(logo_image, 10, 700, width=250, height=100)
         canvas.restoreState()
 
-    procurement_query = ProcurementDetail.query.all()
     if request.method == "POST":
         doc = SimpleDocTemplate("app/qrcode.pdf",
                                 rightMargin=7,
@@ -461,8 +459,7 @@ def list_qrcode():
             del session['selected_procurement_items_printing']
         return send_file('qrcode.pdf')
 
-    procurement_list = [item.to_dict() for item in ProcurementDetail.query.all()]
-    return render_template('procurement/list_qrcode.html', procurement_list=procurement_list)
+    return render_template('procurement/list_qrcode.html')
 
 
 @procurement.route('/api/data/selected-items', methods=['POST'])
@@ -583,8 +580,7 @@ def check_procurement(procurement_no):
 
 @procurement.route('/item/image/view')
 def view_img_procurement():
-    procurement_list = [item.to_dict() for item in ProcurementDetail.query.all()]
-    return render_template('procurement/view_img_procurement.html', procurement_list=procurement_list)
+    return render_template('procurement/view_img_procurement.html')
 
 
 @procurement.route('/api/data/image/view')
