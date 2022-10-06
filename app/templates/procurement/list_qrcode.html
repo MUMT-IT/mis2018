@@ -9,41 +9,39 @@
     <section class="section">
         {% include "messages.html" %}
         <div class="container">
-        <form hx-post="{{ url_for('procurement.select_items_for_printing_qrcode') }}"
-            hx-target="#selected_items" hx-swap="beforeend">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="columns">
-                <div class="column has-text-left">
-                    <h1 class="title">ข้อมูล QR Code ครุภัณฑ์</h1>
-                </div>
-                <div class="buttons is-centered">
-                    <button class="button is-info">
+            <form hx-post="{{ url_for('procurement.select_items_for_printing_qrcode') }}"
+                  hx-target="#selected_items" hx-swap="beforeend">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="columns">
+                    <div class="column has-text-left">
+                        <h1 class="title">ข้อมูล QR Code ครุภัณฑ์</h1>
+                        <button class="button is-info">
                         <span class="icon">
                             <i class="fas fa-print"></i>
                         </span>
-                        <span>เลือก</span>
-                    </button>
+                            <span>เลือก</span>
+                        </button>
+                    </div>
                 </div>
-            </div>
-            <div class="columns">
-                <div class="column">
-                    <table class="table is-fullwidth is-striped" id="QTable">
-                        <thead>
-                        <th></th>
-                        <th>รายการ</th>
-                        <th>รหัสครุภัณฑ์</th>
-                        <th>Inventory Number/ERP</th>
-                        <th>ปีงบประมาณ</th>
-                        <th>วันที่ได้รับ</th>
-                        <th>สถานะ</th>
-                        <th>Print</th>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    </table>
+                <div class="columns">
+                    <div class="column">
+                        <table class="table is-fullwidth is-striped" id="QTable">
+                            <thead>
+                            <th></th>
+                            <th>รายการ</th>
+                            <th>รหัสครุภัณฑ์</th>
+                            <th>Inventory Number/ERP</th>
+                            <th>ปีงบประมาณ</th>
+                            <th>วันที่ได้รับ</th>
+                            <th>สถานะ</th>
+                            <th>Print</th>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
-        </form>
+            </form>
             <div class="columns">
                 <div class="column">
                     <form method="post" action="{{ url_for('procurement.list_qrcode') }}">
@@ -73,6 +71,7 @@
     <script>
         $(document).ready(function () {
             $('#QTable').DataTable({
+                searchDelay: 350,
                 ajax: '{{ url_for("procurement.get_procurement_data_qrcode_list") }}',
                 serverSide: true,
                 columns: [
