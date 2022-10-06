@@ -197,7 +197,6 @@ def get_procurement_data():
         ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
         ProcurementDetail.name.like(u'%{}%'.format(search)),
         ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
-        ProcurementDetail.budget_year.like(u'%{}%'.format(search)),
         ProcurementDetail.available.like(u'%{}%'.format(search))
     ))
     start = request.args.get('start', type=int)
@@ -211,6 +210,8 @@ def get_procurement_data():
             url_for('procurement.view_qrcode', procurement_id=item.id))
         item_data['edit'] = '<a href="{}"><i class="fas fa-edit"></i></a>'.format(
             url_for('procurement.edit_procurement', procurement_id=item.id))
+        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
+            'received_date'] else ''
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
