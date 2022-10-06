@@ -495,7 +495,7 @@ def get_procurement_data_qrcode_list():
     data = []
     for item in query:
         item_data = item.to_dict()
-        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y')
+        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data['received_date'] else ''
         item_data['select_item'] = ('<input class="is-checkradio" id="pro_no{}" type="checkbox" name="selected_items" value="{}">'
                                     '<label for="pro_no{}"></label>').format(item.id, item.id, item.id)
         item_data['print'] = '<a href="{}"><i class="fas fa-print"></i></a>'.format(
