@@ -19,7 +19,7 @@
                         <form method="post" enctype="multipart/form-data">
                             {{ form.hidden_tag() }}
                             <div class="field">
-                                <img style='display:block; width:450px;height:350px;' id="preview"
+                                <img style='display:block; width:330px;height:230px;' id="preview"
                                  src='data:image/png;base64, {{ procurement.image }}'>
                                 <div class="file">
                                     <label class="file-label">
@@ -41,6 +41,10 @@
                                     <button class="button is-success" type="submit" value="submit">บันทึก</button>
                                     <a href="{{ url_for('procurement.view_img_procurement', procurement_no=procurement_no) }}"
                                        class="button is-danger">ยกเลิก</a>
+                                    <a href="{{ url_for('procurement.update_location_and_status') }}" class="button is-warning">
+                                    <span class="panel-icon"><i class="fas fa-qrcode"></i></span>
+                                    <span class="is-size-5">Scan</span>
+                                </a>
                                 </div>
                             </div>
                         </form>
