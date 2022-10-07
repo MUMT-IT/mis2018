@@ -197,7 +197,6 @@ def get_procurement_data():
         ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
         ProcurementDetail.name.like(u'%{}%'.format(search)),
         ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
-        ProcurementDetail.budget_year.like(u'%{}%'.format(search)),
         ProcurementDetail.available.like(u'%{}%'.format(search))
     ))
     start = request.args.get('start', type=int)
@@ -211,6 +210,8 @@ def get_procurement_data():
             url_for('procurement.view_qrcode', procurement_id=item.id))
         item_data['edit'] = '<a href="{}"><i class="fas fa-edit"></i></a>'.format(
             url_for('procurement.edit_procurement', procurement_id=item.id))
+        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
+            'received_date'] else ''
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
@@ -495,7 +496,7 @@ def get_procurement_data_qrcode_list():
     data = []
     for item in query:
         item_data = item.to_dict()
-        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y')
+        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data['received_date'] else ''
         item_data['select_item'] = ('<input class="is-checkradio" id="pro_no{}" type="checkbox" name="selected_items" value="{}">'
                                     '<label for="pro_no{}"></label>').format(item.id, item.id, item.id)
         item_data['print'] = '<a href="{}"><i class="fas fa-print"></i></a>'.format(

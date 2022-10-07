@@ -43,6 +43,7 @@
     <script>
         $(document).ready(function () {
             $('#proTable').DataTable({
+                searchDelay: 350,
                 ajax: '{{ url_for("procurement.get_procurement_image_data") }}',
                 serverSide: true,
                 columns: [

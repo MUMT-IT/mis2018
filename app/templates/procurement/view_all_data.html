@@ -13,15 +13,15 @@
                 <div class="column">
                     <table id="data" class="table is-fullwidth is-striped">
                         <thead>
+                        <th>View</th>
+                        <th>Edit</th>
                         <th>รายการ</th>
                         <th>รหัสครุภัณฑ์</th>
                         <th>Inventory Number/ERP</th>
                         <th>ปีงบประมาณ</th>
                         <th>วันที่ได้รับ</th>
-                        <th>จัดซื้อด้วยเงิน</th>
                         <th>สถานะ</th>
-                        <th>ดูข้อมูล</th>
-                        <th>แก้ไข</th>
+
                         </thead>
                         <tbody>
                         </tbody>
@@ -46,18 +46,19 @@
     <script>
         $(document).ready(function () {
             $('#data').DataTable({
+                searchDelay: 350,
                 ajax: '{{ url_for("procurement.get_procurement_data") }}',
                 serverSide: true,
                 columns: [
+                    {data: 'view'},
+                    {data: 'edit'},
                     {data: 'name'},
                     {data: 'procurement_no'},
                     {data: 'erp_code'},
                     {data: 'budget_year'},
                     {data: 'received_date'},
-                    {data: 'purchasing_type'},
-                    {data: 'available'},
-                    {data: 'view'},
-                    {data: 'edit'}
+                    {data: 'available'}
+
                 ],
             });
         });
