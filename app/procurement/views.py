@@ -233,6 +233,10 @@ def edit_procurement(procurement_id):
     form = ProcurementDetailForm(obj=procurement)
     if request.method == 'POST':
         form.populate_obj(procurement)
+        record = procurement.current_record
+        record.updated_at = bangkok.localize(datetime.now())
+        db.session.add(record)
+
         file = form.image_file_upload.data
         if file:
             img_name = secure_filename(file.filename)
@@ -268,7 +272,7 @@ def add_record(item_id):
             new_record = ProcurementRecord()
             form.populate_obj(new_record)
             new_record.item_id = item_id
-            new_record.staff = current_user
+            new_record.updater = current_user
             new_record.updated_at = datetime.now(tz=bangkok)
             db.session.add(new_record)
             db.session.commit()
