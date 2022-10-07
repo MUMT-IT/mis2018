@@ -78,11 +78,15 @@
                             <td>{{ item.available }}</td>
                         </tr>
                         <br>
+                        {% if item.current_record %}
                         <tr>
                             <td><strong>ตรวจสอบล่าสุด</strong></td>
                             <td>{{ item.current_record.approval.updated_at|humanizedt }}
                             </td>
                         </tr>
+                        {% else %}
+                           None
+                        {% endif %}
                     </table>
 
                     {% if item.current_record.approval %}
