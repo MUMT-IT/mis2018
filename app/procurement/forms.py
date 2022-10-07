@@ -36,8 +36,7 @@ class ProcurementRecordForm(ModelForm):
                                 blank_text='Select status..', allow_blank=False)
     staff_responsible = QuerySelectField(u'ผู้ดูแลครุภัณฑ์', query_factory=lambda: StaffAccount.get_active_accounts(),
                                          get_label='fullname',
-                                         blank_text='Select staff'
-                                         )
+                                         blank_text='Select staff', allow_blank=True)
 
 
 class DatePickerField(Field):
