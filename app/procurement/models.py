@@ -61,7 +61,7 @@ class ProcurementDetail(db.Model):
 
     @property
     def current_record(self):
-        return self.records.filter(ProcurementRecord.updated_at !=None).order_by(ProcurementRecord.updated_at.desc()).first()
+        return self.records.order_by(ProcurementRecord.id.desc()).first()
 
     def to_dict(self):
         return {
