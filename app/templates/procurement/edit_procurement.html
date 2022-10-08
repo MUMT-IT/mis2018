@@ -212,16 +212,16 @@
                                                 <i class="far fa-plus-square"></i>
                                             </a>
                                         </label>
-                                        <div class="select is-fullwidth">
-                                            {{ record.status() }}
+                                        <div>
+                                            {{ record.status(class='select') }}
                                         </div>
                                     </div>
+                                 </div>
                                     <div class="field">
                                         <label class="label">{{ record.location.label }}</label>
-                                        <div class="select is-fullwidth">
-                                            {{ record.location() }}
+                                        <div>
+                                            {{ record.location(class='select') }}
                                         </div>
-                                    </div>
                                     </div>
                             <br>
                             <div class="field is-grouped is-grouped-centered">
