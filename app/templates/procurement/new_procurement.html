@@ -215,16 +215,16 @@
                                                 <i class="far fa-plus-square"></i>
                                             </a>
                                         </label>
-                                        <div class="select is-fullwidth">
-                                            {{ record.status() }}
+                                        <div>
+                                            {{ record.status(class='select') }}
                                         </div>
+                                    </div>
                                     </div>
                                     <div class="field">
                                         <label class="label">{{ record.location.label }}</label>
-                                        <div class="select is-fullwidth">
-                                            {{ record.location() }}
+                                        <div>
+                                            {{ record.location(class='select') }}
                                         </div>
-                                    </div>
                                     </div>
                                 {% endfor %}
                             <br>
@@ -315,8 +315,8 @@
     });
     </script>
     <script>
-        $(document).ready(() => {
-            $('#records-0-staff_responsible').select2({
+       $(document).ready(() => {
+            $('select[id^="records-"]').select2({
                 width: '400px',
 
             });
