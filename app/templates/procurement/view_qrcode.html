@@ -5,8 +5,10 @@
     <div class="container">
         <nav class="breadcrumb" aria-label="breadcrumbs">
             <ul>
-                <li><a href="{{ url_for('procurement.landing') }}">Main</a></li>
-                <li class="is-active"><a href="#" aria-current="page">Information</a></li>
+                <li><a href="{{ url_for('procurement.landing') }}">หน้าหลัก</a></li>
+                <li><a href="{{ url_for('procurement.edit_procurement', procurement_id=item.id) }}">แก้ไขข้อมูล</a></li>
+                <li><a href="{{ url_for('procurement.update_location_and_status')  }}">สแกนคิวอาร์โค้ด</a></li>
+                <li class="is-active"><a href="#" aria-current="page">ข้อมูล</a></li>
             </ul>
         </nav>
         {% include "messages.html" %}
@@ -20,7 +22,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h1 class="card-header-title">
-                            <img style='display:block; width:128px;height:128px;' id='base64image'
+                            <img class="zoom-image" style='display:block; width:128px;height:128px;' id='base64image'
                                     src='data:image/png;base64, {{ item.image }}' />
                             <table class="table ">
                             {% set last_record = item.current_record %}
@@ -48,14 +50,6 @@
                     </div>
                     <div class="card-content">
                         <table class="table is-striped is-bordered is-fullwidth">
-                            <div class="buttons is-centered">
-                                <a href="{{ url_for('procurement.edit_procurement', procurement_id=item.id) }}" class="button is-danger">แก้ไข</a>
-{#                                <a href="" class="button is-info">Print</a>#}
-                                <a href="{{ url_for('procurement.update_location_and_status') }}" class="button is-warning">
-                                    <span class="panel-icon"><i class="fas fa-qrcode"></i></span>
-                                    <span class="is-size-5">Scan</span>
-                                </a>
-                            </div>
                             <colgroup>
                                 <col span="1" style="width: 25%;">
                                 <col span="1" style="width: 75%;">
@@ -141,11 +135,23 @@
                                 <td>{{ item.org }}</td>
                             </tr>
                         </table>
-                        <a href="{{ url_for('procurement.view_procurement') }}" class="button is-light">กลับ</a>
+                        <a href="{{ url_callback }}" class="button is-light">กลับ</a>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/medium-zoom@1.0.2/dist/medium-zoom.min.js"></script>
+    <script>
+        mediumZoom('.zoom-image', {
+            margin: 24,
+            background: '#ffffff',
+            scrollOffset: 40 /* The number of pixels to scroll to close the zoom = > Your 40px */
+        })
+    </script>
 {% endblock %}
