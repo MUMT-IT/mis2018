@@ -296,7 +296,7 @@ def add_category_ref():
             db.session.commit()
             flash('New category has been added.', 'success')
             return redirect(url_for('procurement.add_procurement'))
-    return render_template('procurement/category_ref.html', form=form, category=category)
+    return render_template('procurement/category_ref.html', form=form, category=category, url_callback=request.referrer)
 
 
 @procurement.route('/status/add', methods=['GET', 'POST'])
@@ -311,7 +311,7 @@ def add_status_ref():
             db.session.commit()
             flash('New status has been added.', 'success')
             return redirect(url_for('procurement.add_procurement'))
-    return render_template('procurement/status_ref.html', form=form, status=status)
+    return render_template('procurement/status_ref.html', form=form, status=status, url_callback=request.referrer)
 
 
 @procurement.route('/service/maintenance/require')
