@@ -259,7 +259,7 @@ def view_qrcode(procurement_id):
     item = ProcurementDetail.query.get(procurement_id)
     return render_template('procurement/view_qrcode.html',
                            model=ProcurementRecord,
-                           item=item)
+                           item=item, url_callback=request.referrer)
 
 
 @procurement.route('/items/<int:item_id>/records/add', methods=['GET', 'POST'])
@@ -281,7 +281,7 @@ def add_record(item_id):
             for er in form.errors:
                 flash(er, 'danger')
         return redirect(url_for('procurement.view_qrcode', procurement_id=item_id))
-    return render_template('procurement/record_form.html', form=form)
+    return render_template('procurement/record_form.html', form=form, url_callback=request.referrer)
 
 
 @procurement.route('/category/add', methods=['GET', 'POST'])
@@ -641,7 +641,7 @@ def add_img_procurement(procurement_id):
         for er in form.errors:
             flash(er, 'danger')
     return render_template('procurement/add_img_procurement.html', form=form, procurement_id=procurement_id,
-                           procurement=procurement)
+                           procurement=procurement, url_callback=request.referrer)
 
 
 @procurement.route('/scan-qrcode/location/status/update', methods=['GET'])
