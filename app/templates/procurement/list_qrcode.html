@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% include "nav.html" %}
+{% include "procurement/nav.html" %}
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css"
@@ -13,18 +13,20 @@
                   hx-target="#selected_items" hx-swap="beforeend">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="columns">
-                    <div class="column has-text-left">
+                    <div class="column has-text-centered">
                         <h1 class="title">ข้อมูล QR Code ครุภัณฑ์</h1>
-                        <button class="button is-info">
-                        <span class="icon">
-                            <i class="fas fa-print"></i>
-                        </span>
-                            <span>เลือก</span>
-                        </button>
                     </div>
                 </div>
                 <div class="columns">
                     <div class="column">
+                        <div class="column has-text-left">
+                            <button class="button is-info">
+                                <span class="icon">
+                                    <i class="fas fa-print"></i>
+                                </span>
+                                <span>เลือก</span>
+                            </button>
+                        </div>
                         <table class="table is-fullwidth is-striped" id="QTable">
                             <thead>
                             <th></th>
