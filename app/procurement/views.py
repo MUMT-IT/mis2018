@@ -220,6 +220,44 @@ def get_procurement_data():
                     })
 
 
+@procurement.route('/information/updated')
+@login_required
+def view_procurement_updated():
+    return render_template('procurement/view_all_data_is_updated.html')
+
+
+@procurement.route('/api/data/updated')
+def get_procurement_data_is_updated():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
+        ProcurementDetail.name.like(u'%{}%'.format(search)),
+        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
+        ProcurementDetail.available.like(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        current_record = item.current_record
+        item_data = item.to_dict()
+        item_data['location'] = current_record.records.location if current_record and current_record.records else ''
+        item_data['status'] = current_record.records.status if current_record and current_record.records else ''
+        item_data['updater'] = current_record.records.updater if current_record and current_record.records else ''
+        item_data['updated_at'] = current_record.records.updated_at if current_record and current_record.records else ''
+        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
+            'received_date'] else ''
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
 @procurement.route('/information/find', methods=['POST', 'GET'])
 @login_required
 def find_data():
@@ -233,6 +271,10 @@ def edit_procurement(procurement_id):
     form = ProcurementDetailForm(obj=procurement)
     if request.method == 'POST':
         form.populate_obj(procurement)
+        record = procurement.current_record
+        record.updated_at = bangkok.localize(datetime.now())
+        db.session.add(record)
+
         file = form.image_file_upload.data
         if file:
             img_name = secure_filename(file.filename)
@@ -249,13 +291,20 @@ def edit_procurement(procurement_id):
                            url_callback=request.referrer)
 
 
+# @procurement.route('information/report')
+# @login_required
+# def report_info():
+#     data = ProcurementDetail.query
+#     return render_template('procurement/report_info.html', data=data)
+
+
 @procurement.route('/qrcode/view/<int:procurement_id>')
 @login_required
 def view_qrcode(procurement_id):
     item = ProcurementDetail.query.get(procurement_id)
     return render_template('procurement/view_qrcode.html',
                            model=ProcurementRecord,
-                           item=item)
+                           item=item, url_callback=request.referrer)
 
 
 @procurement.route('/items/<int:item_id>/records/add', methods=['GET', 'POST'])
@@ -268,7 +317,7 @@ def add_record(item_id):
             new_record = ProcurementRecord()
             form.populate_obj(new_record)
             new_record.item_id = item_id
-            new_record.staff = current_user
+            new_record.updater = current_user
             new_record.updated_at = datetime.now(tz=bangkok)
             db.session.add(new_record)
             db.session.commit()
@@ -277,7 +326,7 @@ def add_record(item_id):
             for er in form.errors:
                 flash(er, 'danger')
         return redirect(url_for('procurement.view_qrcode', procurement_id=item_id))
-    return render_template('procurement/record_form.html', form=form)
+    return render_template('procurement/record_form.html', form=form, url_callback=request.referrer)
 
 
 @procurement.route('/category/add', methods=['GET', 'POST'])
@@ -292,7 +341,7 @@ def add_category_ref():
             db.session.commit()
             flash('New category has been added.', 'success')
             return redirect(url_for('procurement.add_procurement'))
-    return render_template('procurement/category_ref.html', form=form, category=category)
+    return render_template('procurement/category_ref.html', form=form, category=category, url_callback=request.referrer)
 
 
 @procurement.route('/status/add', methods=['GET', 'POST'])
@@ -307,7 +356,7 @@ def add_status_ref():
             db.session.commit()
             flash('New status has been added.', 'success')
             return redirect(url_for('procurement.add_procurement'))
-    return render_template('procurement/status_ref.html', form=form, status=status)
+    return render_template('procurement/status_ref.html', form=form, status=status, url_callback=request.referrer)
 
 
 @procurement.route('/service/maintenance/require')
@@ -335,33 +384,6 @@ def list_maintenance():
 
 @procurement.route('/service/contact', methods=['GET', 'POST'])
 def contact_service():
-    # if request.method == 'POST':
-    #     service_id = request.form.get('service_id', None)
-    #     record_id = request.form.get('record_id', None)
-    #     service = request.form.get('service', ''),
-    #     desc = request.form.get('desc', ''),
-    #     notice_date = request.form.get('notice_date', '')
-    #     require = ProcurementRequire.query.get(require_id)
-    #     tz = pytz.timezone('Asia/Bangkok')
-    #     if notice_date:
-    #         noticedate = parser.isoparse(notice_date)
-    #         noticedate = noticedate.astimezone(tz)
-    #     else:
-    #         noticedate = None
-    #
-    #     if require_id and noticedate:
-    #         approval_needed = True if service.available == 2 else False
-    #
-    # new_maintenance = ProcurementRequire(service_id=service.id,
-    #                                      record_id=record.id,
-    #                                      staff_id=current_user.id,
-    #                                      desc=desc,
-    #                                      notice_date=notice_date)
-
-    #         db.session.add(new_maintenance)
-    #         db.session.commit()
-    #         flash(u'บันทึกการจองห้องเรียบร้อยแล้ว', 'success')
-    #         return redirect(url_for(''))
     return render_template('procurement/maintenance_contact.html')
 
 
@@ -637,7 +659,7 @@ def add_img_procurement(procurement_id):
         for er in form.errors:
             flash(er, 'danger')
     return render_template('procurement/add_img_procurement.html', form=form, procurement_id=procurement_id,
-                           procurement=procurement)
+                           procurement=procurement, url_callback=request.referrer)
 
 
 @procurement.route('/scan-qrcode/location/status/update', methods=['GET'])

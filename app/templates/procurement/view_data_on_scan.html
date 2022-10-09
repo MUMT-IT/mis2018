@@ -10,7 +10,7 @@
             </div>
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
-                <img style='display:block; width:350px;height:150px;' id='base64image'
+                <img class="zoom-image" style='display:block; width:128px;height:128px;' id='base64image'
                          src='data:image/png;base64, {{ item.image }}'>
                     <table class="table is-fullwidth is-striped">
                         <tr>
@@ -78,11 +78,15 @@
                             <td>{{ item.available }}</td>
                         </tr>
                         <br>
+                        {% if item.current_record %}
                         <tr>
                             <td><strong>ตรวจสอบล่าสุด</strong></td>
                             <td>{{ item.current_record.approval.updated_at|humanizedt }}
                             </td>
                         </tr>
+                        {% else %}
+                           None
+                        {% endif %}
                     </table>
 
                     {% if item.current_record.approval %}
@@ -93,16 +97,32 @@
                         <div class="buttons is-centered">
                             <a href="{{ url_for('procurement.check_procurement', procurement_no=procurement_no) }}"
                                class="button is-success">แก้ไข</a>
+                            <a href="{{ url_for('procurement.qrcode_scan') }}"
+                               class="button is-warning">สแกนคิวอาร์โค้ด</a>
                         </div>
                     {% else %}
                         ยังไม่มีการตรวจสอบ
                         <div class="buttons is-centered">
                             <a href="{{ url_for('procurement.check_procurement', procurement_no=procurement_no) }}"
                                class="button is-success">ตรวจสอบ</a>
+                            <a href="{{ url_for('procurement.qrcode_scan') }}"
+                               class="button is-warning">สแกนคิวอาร์โค้ด</a>
                         </div>
                     {% endif %}
                 </div>
             </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+{{ super }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/medium-zoom@1.0.2/dist/medium-zoom.min.js"></script>
+    <script>
+        mediumZoom('.zoom-image', {
+            margin: 24,
+            background: '#ffffff',
+            scrollOffset: 40 /* The number of pixels to scroll to close the zoom = > Your 40px */
+        })
+    </script>
 {% endblock %}

@@ -10,7 +10,7 @@
             </div>
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
-                    <img style='display:block; width:128px;height:128px;' id='base64image'
+                    <img class="zoom-image" style='display:block; width:128px;height:128px;' id='base64image'
                          src='data:image/png;base64, {{ item.image }}'>
                     <table class="table is-fullwidth is-striped">
                         <tr>
@@ -93,4 +93,16 @@
             </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+{{ super }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/medium-zoom@1.0.2/dist/medium-zoom.min.js"></script>
+    <script>
+        mediumZoom('.zoom-image', {
+            margin: 24,
+            background: '#ffffff',
+            scrollOffset: 40 /* The number of pixels to scroll to close the zoom = > Your 40px */
+        })
+    </script>
 {% endblock %}
