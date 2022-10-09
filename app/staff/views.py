@@ -11,7 +11,7 @@ from flask import jsonify, render_template, request, redirect, url_for, flash, s
 from datetime import date, datetime
 from collections import defaultdict, namedtuple
 import pytz
-from sqlalchemy import and_, desc, func, cast, Date
+from sqlalchemy import and_, desc, func, cast, Date, or_
 from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
 from linebot.models import TextSendMessage
@@ -986,9 +986,11 @@ def leave_approve(req_id, approver_id):
                                                                 staff_account_id=req.staff_account_id,
                                                                 fiscal_year=END_FISCAL_DATE.year).first()
             if is_used_quota:
-                is_used_quota.pending_days = is_used_quota.pending_days - req.total_leave_days
-                db.session.add(is_used_quota)
-                db.session.commit()
+                already_approved = StaffLeaveApproval.query.filter_by(request_id=req_id).first()
+                if not already_approved:
+                    is_used_quota.pending_days = is_used_quota.pending_days - req.total_leave_days
+                    db.session.add(is_used_quota)
+                    db.session.commit()
             else:
                 used_quota = req.staff.personal_info.get_total_leaves(req.quota.id, tz.localize(START_FISCAL_DATE),
                                                                          tz.localize(END_FISCAL_DATE))
@@ -1364,10 +1366,16 @@ def leave_request_result_by_person():
     if org_id is None:
         account_query = StaffAccount.query.all()
     else:
-        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id))
+        START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
+        if start_date == START_FISCAL_DATE.date():
+            account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id)).filter(or_(
+                                                          StaffAccount.personal_info.has(retired=False),
+                                                          StaffAccount.personal_info.has(retired=None)))
+        else:
+            account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id))
     for account in account_query:
         # record = account.personal_info.get_remaining_leave_day
-        record = {}
+        record = defaultdict(int)
         record["staffid"] = account.id
         record["fullname"] = account.personal_info.fullname
         record["total"] = 0
@@ -1380,6 +1388,7 @@ def leave_request_result_by_person():
             record[leave_type] = 0
         for leave_remain in leave_types_r:
             record[leave_remain] = 0
+        used_quota = StaffLeaveUsedQuota.query.filter_by(staff=account).first()
         for req in account.leave_requests:
             if not req.cancelled_at:
                 if req.get_approved:
@@ -2999,10 +3008,9 @@ def staff_show_approvers():
     if org_id is None:
         account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(retired=False))
     else:
-        account_query = StaffAccount.query\
-            .filter(and_(StaffAccount.personal_info.has(org_id=org_id),
-                         StaffAccount.personal_info.has(retired=None),
-                         StaffAccount.personal_info.has(retired=False)))
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id))\
+                                          .filter(or_(StaffAccount.personal_info.has(retired=False),
+                                                      StaffAccount.personal_info.has(retired=None)))
 
     return render_template('staff/show_leave_approver.html',
                            sel_dept=org_id, account_list=account_query,
