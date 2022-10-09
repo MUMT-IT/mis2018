@@ -92,23 +92,23 @@
                                     </span>
                                 <span class="is-size-4">Scan QR Code(สแกนคิวอาร์โค้ด)</span>
                             </a>
-                            <a href="" class="panel-block">
+                            <a href="{{ url_for('procurement.view_procurement') }}" class="panel-block">
                                     <span class="panel-icon">
-                                       <i class="fas fa-info-circle"></i>
+                                       <i class="fas fa-info"></i>
                                     </span>
                                 <span class="is-size-4">View Procurement Data(ดูข้อมูลครุภัณฑ์)</span>
                             </a>
-                            <a href="" class="panel-block">
-                                    <span class="panel-icon">
-                                        <i class="fas fa-file-powerpoint"></i>
+                            <a href="{{ url_for('procurement.view_procurement_updated') }}" class="panel-block">
+                                    <span class="panel-icon has-text-grey-lighter">
+                                       <i class="fas fa-info-circle"></i>
                                     </span>
-                                <span class="is-size-4">Print Procurement Data(ปริ้นข้อมูลครุภัณฑ์)</span>
+                                <span class="is-size-4 has-text-grey-lighter">View Procurement is updated(ดูข้อมูลครุภัณฑ์อัพเดต)</span>
                             </a>
                             <a href="" class="panel-block">
-                                    <span class="panel-icon">
+                                    <span class="panel-icon has-text-grey-lighter">
                                        <i class="fas fa-download"></i>
                                     </span>
-                                <span class="is-size-4">Export Procurement by Excel(ดาวน์โหลดข้อมูลครุภัณฑ์)</span>
+                                <span class="is-size-4 has-text-grey-lighter">Export Procurement by Excel(ดาวน์โหลดข้อมูลครุภัณฑ์)</span>
                             </a>
                         </nav>
                     </div>
@@ -147,19 +147,4 @@
 
         });
     </script>
-    {#    <script>#}
-    {#        function myFunction() {#}
-    {#          var input, filter, a, i;#}
-    {#          input = document.getElementById("mySearch");#}
-    {#          filter = input.value.toUpperCase();#}
-    {#          for (i = 0; i < li.length; i++) {#}
-    {#            a = li[i].getElementsByTagName("a")[0];#}
-    {#            if (a.innerHTML.toUpperCase().indexOf(filter) > -1) {#}
-    {#              li[i].style.display = "";#}
-    {#            } else {#}
-    {#              li[i].style.display = "none";#}
-    {#            }#}
-    {#          }#}
-    {#        }#}
-    {#    </script>#}
 {% endblock %}
