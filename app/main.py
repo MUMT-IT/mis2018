@@ -19,7 +19,7 @@ from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
-from wtforms.validators import required
+from wtforms.validators import InputRequired
 from flask_mail import Mail
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -453,11 +453,11 @@ admin.add_view(ModelView(ComHealthConsentRecord, db.session, category='Com Healt
 class ComHealthTestModelView(ModelView):
     form_args = {
         'name': {
-            'validators': [required()]
+            'validators': [InputRequired()]
         },
         'code': {
             'label': 'Test code',
-            'validators': [required()]
+            'validators': [InputRequired()]
         }
     }
 
@@ -465,7 +465,7 @@ class ComHealthTestModelView(ModelView):
 class ComHealthContainerModelView(ModelView):
     form_args = {
         'name': {
-            'validators': [required()]
+            'validators': [InputRequired()]
         }
     }
     form_choices = {
@@ -478,7 +478,7 @@ class ComHealthContainerModelView(ModelView):
 class ComHealthDepartmentModelView(ModelView):
     form_args = {
         'name': {
-            'validators': [required()]
+            'validators': [InputRequired()]
         }
     }
 
