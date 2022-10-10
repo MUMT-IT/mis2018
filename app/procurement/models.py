@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+import qrcode
 from sqlalchemy import func
 
 from app.main import db
@@ -17,12 +18,13 @@ class ProcurementDetail(db.Model):
     erp_code = db.Column('erp_code', db.String(), info={'label': u'Inventory Number/ERP'})
     serial_no = db.Column('serial_no', db.String(), info={'label': u'Serial Number'})
     bought_by = db.Column('bought_by', db.String(), info={'label': u'วิธีการจัดซื้อ', 'choices': [(c, c) for c in
-                                                                                  [u'ตกลงราคา', u'สอบราคา',
-                                                                                   u'ประกวดราคา', u'วิธีพิเศษ',
-                                                                                   u'รับบริจาค', u'e-Auction',
-                                                                                   u'วิธีคัดเลือก', u'อื่นๆ']]})
+                                                                                  [u'--โปรดเลือกวิธีการจัดซื้อ--',
+                                                                                   u'ประกาศเชิญชวนทั่วไป(E-Bidding)',
+                                                                                   u'วิธีคัดเลือก',
+                                                                                   u'วิธีเฉพาะเจาะจง',
+                                                                                   u'รับบริจาค/รับโอน']]})
     budget_year = db.Column('budget_year', db.String(), info={'label': u'ปีงบประมาณ'})
-    price = db.Column('price', db.String(), info={'label': 'Original value'})
+    price = db.Column('price', db.String(), info={'label': 'Original value(<=10,000)'})
     received_date = db.Column('received_date', db.Date(), info={'label': u'วันที่ได้รับ'})
     available = db.Column('available', db.String(), info={'label': u'สภาพของสินทรัพย์'})
     purchasing_type_id = db.Column('purchasing_type_id', db.ForeignKey('procurement_purchasing_types.id'))
@@ -31,7 +33,7 @@ class ProcurementDetail(db.Model):
     category_id = db.Column('category_id', db.ForeignKey('procurement_categories.id'))
     category = db.relationship('ProcurementCategory',
                                backref=db.backref('items', lazy='dynamic'))
-    guarantee = db.Column('guarantee', db.String(), info={'label': u'ประกัน'})
+    guarantee = db.Column('guarantee', db.String(), info={'label': u'บริษัทผู้ขาย/บริจาค'})
     start_guarantee_date = db.Column('start_guarantee_date', db.Date(), info={'label': u'วันที่เริ่มประกัน'})
     end_guarantee_date = db.Column('end_guarantee_date', db.Date(), info={'label': u'วันที่สิ้นสุดประกัน'})
     model = db.Column('model', db.String(), info={'label': u'รุ่น'})
@@ -43,10 +45,7 @@ class ProcurementDetail(db.Model):
                                                     lazy='dynamic',
                                                     cascade='all, delete-orphan'))
     sub_number = db.Column('sub_number', db.Integer(), info={'label': 'Sub Number'})
-    curr_acq_value = db.Column('curr_acq_value', db.Float(), info={'label': u'มูลค่าที่ได้มา'})
-    approver_id = db.Column('approver_id', db.ForeignKey('procurement_committee_approvals.id'))
-    approver = db.relationship('ProcurementCommitteeApproval',
-                                      backref=db.backref('approved_items', lazy='dynamic'))
+    curr_acq_value = db.Column('curr_acq_value', db.Float(), info={'label': u'มูลค่าที่ได้มา(>10,000)'})
     cost_center = db.Column('cost_center', db.String(), info={'label': u'ศูนย์ต้นทุน'})
 
     def __str__(self):
@@ -60,12 +59,44 @@ class ProcurementDetail(db.Model):
         else:
             return None
 
+    @property
+    def current_record(self):
+        return self.records.order_by(ProcurementRecord.id.desc()).first()
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'image': self.image,
+            'name': self.name,
+            'procurement_no': self.procurement_no,
+            'erp_code': self.erp_code,
+            'budget_year': self.budget_year,
+            'received_date': self.received_date,
+            'purchasing_type': self.purchasing_type.purchasing_type,
+            'available': self.available
+        }
+
+    def generate_qrcode(self):
+        qr = qrcode.QRCode(version=1, box_size=10)
+        qr.add_data(self.procurement_no)
+        qr.make(fit=True)
+        qr_img = qr.make_image()
+        qr_img.save('procurement_qrcode.png')
+        import base64
+        with open("procurement_qrcode.png", "rb") as img_file:
+            self.qrcode = base64.b64encode(img_file.read())
+            db.session.add(self)
+            db.session.commit()
+
 
 class ProcurementPurchasingType(db.Model):
     __tablename__ = 'procurement_purchasing_types'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     purchasing_type = db.Column('purchasing_type', db.String(), info={'label': u'จัดซื้อด้วยเงิน'})
     fund = db.Column('fund', db.Integer(), info={'label': u'แหล่งเงิน'})
+
+    def __str__(self):
+        return self.purchasing_type
 
 
 class ProcurementCategory(db.Model):
@@ -109,6 +140,9 @@ class ProcurementRecord(db.Model):
 class ProcurementCommitteeApproval(db.Model):
     __tablename__ = 'procurement_committee_approvals'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    record_id = db.Column('record_id', db.ForeignKey('procurement_records.id'))
+    record = db.relationship('ProcurementRecord',
+                               backref=db.backref('approval', uselist=False))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
     approver = db.relationship('StaffAccount',
                               backref=db.backref('staff_approvers'))

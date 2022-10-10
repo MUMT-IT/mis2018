@@ -10,7 +10,7 @@
             </div>
             <div class="columns">
                 <div class="column is-two-thirds is-offset-2">
-                <img class="zoom-image" style='display:block; width:128px;height:128px;' id='base64image'
+                    <img class="zoom-image" style='display:block; width:128px;height:128px;' id='base64image'
                          src='data:image/png;base64, {{ item.image }}'>
                     <table class="table is-fullwidth is-striped">
                         <tr>
@@ -78,37 +78,17 @@
                             <td>{{ item.available }}</td>
                         </tr>
                         <br>
-                        {% if item.current_record %}
-                        <tr>
-                            <td><strong>ตรวจสอบล่าสุด</strong></td>
-                            <td>{{ item.current_record.approval.updated_at|humanizedt }}
-                            </td>
-                        </tr>
-                        {% else %}
-                           None
-                        {% endif %}
-                    </table>
 
-                    {% if item.current_record.approval %}
-                        <label class="label">ผู้ตรวจสอบ: {{ item.current_record.approval.approver.personal_info.fullname }}</label>
-                        <label class="label">สถานะ: {{ item.current_record.approval.asset_status }}</label>
-                        <label class="label">ผลการตรวจสอบ: {{ item.current_record.approval.checking_result }}</label>
-                        <label class="label">Comment: {{ item.current_record.approval.approval_comment }}</label>
-                        <div class="buttons is-centered">
-                            <a href="{{ url_for('procurement.check_procurement', procurement_no=procurement_no) }}"
-                               class="button is-success">แก้ไข</a>
-                            <a href="{{ url_for('procurement.qrcode_scan') }}"
-                               class="button is-warning">สแกนคิวอาร์โค้ด</a>
-                        </div>
-                    {% else %}
-                        ยังไม่มีการตรวจสอบ
-                        <div class="buttons is-centered">
-                            <a href="{{ url_for('procurement.check_procurement', procurement_no=procurement_no) }}"
-                               class="button is-success">ตรวจสอบ</a>
-                            <a href="{{ url_for('procurement.qrcode_scan') }}"
-                               class="button is-warning">สแกนคิวอาร์โค้ด</a>
-                        </div>
-                    {% endif %}
+                    </table>
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('procurement.view_qrcode', procurement_id=item.id) }}"
+                           class="button is-info">อัพเดต</a>
+                        <a href="{{ url_for('procurement.add_img_procurement', procurement_id=item.id) }}"
+                           class="button is-warning">เพิ่มรูปภาพ</a>
+                        <a href="{{ url_for('procurement.edit_procurement', procurement_id=item.id) }}"
+                           class="button is-danger">แก้ไข</a>
+                    </div>
+
                 </div>
             </div>
         </div>

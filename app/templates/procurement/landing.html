@@ -18,22 +18,17 @@
     <nav class="navbar">
         <div class="container">
             <div class="navbar-brand">
-                <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" alt="Logo" width="250">
+                <a href="{{ url_for('procurement.first_page') }}">
+                    <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" alt="Logo" width="250">
+                </a>
+                <span class="navbar-burger burger" data-target="navbarMenu">
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </span>
             </div>
             <div id="navbarMenu" class="navbar-menu">
                 <div class="navbar-end">
-                    {#          <div class=" navbar-item">#}
-                    {#            <div class="control has-icons-left">#}
-                    {#              <input class="input is-rounded" id="mySearch" onkeyup="myFunction()" type="text" placeholder="Search">#}
-                    {#              <span class="icon is-left">#}
-                    {#                <i class="fa fa-search"></i>#}
-                    {#              </span>#}
-                    {#            </div>#}
-                    {#          </div>#}
-                    <a href="{{ url_for('procurement.first_page') }}"
-                       class="navbar-item is-active is-size-5 has-text-weight-semibold">
-                        Home
-                    </a>
                     <div class="navbar-item has-dropdown is-hoverable is-size-5 has-text-weight-semibold">
                         <a class="navbar-link ">
                             จัดการทะเบียน
@@ -60,16 +55,6 @@
                             </a>
                         </div>
                     </div>
-                    <div class="navbar-item has-dropdown is-hoverable is-size-5 has-text-weight-semibold">
-                        <a class="navbar-link ">
-                            ตั้งค่า
-                        </a>
-                        <div class="navbar-dropdown">
-                            <a href="" class="navbar-item">
-                                ตั้งรหัสห้อง
-                            </a>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -81,36 +66,50 @@
         <div class="hero-body">
             <div class="container">
                 <div class="columns">
-                    <div class="column is-8 is-offset-2">
+                    <div class="column is half">
                         <figure class="image is-16by9">
-                            <img src="{{ url_for('static', filename='img/post.png') }}" alt="">
+                            <img src="{{ url_for('static', filename='img/post.png') }}" alt="" width="250">
                         </figure>
+                    </div>
+                    <div class="column is-half">
                         <nav class="panel is-info">
                             <p class="panel-heading">Feature</p>
-                            <p class="panel-block">
-                                <span class="is-size-4">
-                                    <i class="fas fa-print"></i>
-                                    <a href="{{ url_for('procurement.list_qrcode') }}">
-                                        Print QR Code(ปริ้นคิวอาร์โค้ด)
-                                    </a>
-                                </span>
-                            </p>
-                            <p class="panel-block">
-                                <span class="is-size-4">
-                                    <i class="fas fa-images"></i>
-                                    <a href="{{ url_for('procurement.view_img_procurement') }}">
-                                        Add image(เพิ่มรูปภาพ)
-                                    </a>
-                                </span>
-                            </p>
-                            <p class="panel-block">
-                                <span class="is-size-4">
-                                    <i class="fas fa-location-arrow"></i>
-                                    <a href="{{ url_for('procurement.committee_first') }}">
-                                        Update Location & Status (ปรับปรุงสถานที่และสถานะ)
-                                    </a>
-                                </span>
-                            </p>
+                            <a href="{{ url_for('procurement.list_qrcode') }}" class="panel-block">
+                                    <span class="panel-icon">
+                                        <i class="fas fa-print "></i>
+                                    </span>
+                                <span class="is-size-4">Print QR Code(ปริ้นคิวอาร์โค้ด)</span>
+                            </a>
+                            <a href="{{ url_for('procurement.view_img_procurement') }}" class="panel-block">
+                                    <span class="panel-icon">
+                                        <i class="fas fa-images"></i>
+                                    </span>
+                                <span class="is-size-4">Add image(เพิ่มรูปภาพ)</span>
+                            </a>
+                            <a href="{{ url_for('procurement.update_location_and_status') }}" class="panel-block">
+                                    <span class="panel-icon">
+                                       <i class="fas fa-qrcode"></i>
+                                    </span>
+                                <span class="is-size-4">Scan QR Code(สแกนคิวอาร์โค้ด)</span>
+                            </a>
+                            <a href="{{ url_for('procurement.view_procurement') }}" class="panel-block">
+                                    <span class="panel-icon">
+                                       <i class="fas fa-info"></i>
+                                    </span>
+                                <span class="is-size-4">View Procurement Data(ดูข้อมูลครุภัณฑ์)</span>
+                            </a>
+                            <a href="{{ url_for('procurement.view_procurement_updated') }}" class="panel-block">
+                                    <span class="panel-icon has-text-grey-lighter">
+                                       <i class="fas fa-info-circle"></i>
+                                    </span>
+                                <span class="is-size-4 has-text-grey-lighter">View Procurement is updated(ดูข้อมูลครุภัณฑ์อัพเดต)</span>
+                            </a>
+                            <a href="" class="panel-block">
+                                    <span class="panel-icon has-text-grey-lighter">
+                                       <i class="fas fa-download"></i>
+                                    </span>
+                                <span class="is-size-4 has-text-grey-lighter">Export Procurement by Excel(ดาวน์โหลดข้อมูลครุภัณฑ์)</span>
+                            </a>
                         </nav>
                     </div>
                 </div>
@@ -148,19 +147,4 @@
 
         });
     </script>
-    {#    <script>#}
-    {#        function myFunction() {#}
-    {#          var input, filter, a, i;#}
-    {#          input = document.getElementById("mySearch");#}
-    {#          filter = input.value.toUpperCase();#}
-    {#          for (i = 0; i < li.length; i++) {#}
-    {#            a = li[i].getElementsByTagName("a")[0];#}
-    {#            if (a.innerHTML.toUpperCase().indexOf(filter) > -1) {#}
-    {#              li[i].style.display = "";#}
-    {#            } else {#}
-    {#              li[i].style.display = "none";#}
-    {#            }#}
-    {#          }#}
-    {#        }#}
-    {#    </script>#}
 {% endblock %}

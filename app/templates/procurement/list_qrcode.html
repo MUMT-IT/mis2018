@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% include "nav.html" %}
+{% include "procurement/nav.html" %}
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css"
@@ -9,77 +9,50 @@
     <section class="section">
         {% include "messages.html" %}
         <div class="container">
-        <form method="post">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <div class="columns">
-                <div class="column has-text-left">
-                    <h1 class="title">ข้อมูล QR Code ครุภัณฑ์</h1>
+            <form hx-post="{{ url_for('procurement.select_items_for_printing_qrcode') }}"
+                  hx-target="#selected_items" hx-swap="beforeend">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="columns">
+                    <div class="column has-text-centered">
+                        <h1 class="title">ข้อมูล QR Code ครุภัณฑ์</h1>
+                    </div>
                 </div>
-                <div class="buttons is-centered">
-                    <input type="submit" class="button is-danger">
-                        <span class="icon">
-                            <i class="fas fa-print"></i>
-                        </span>
-                    </input>
-{#                    <a href="{{ url_for('procurement.export_all_qrcode_pdf', procurement_no=procurement_no) }}"#}
-{#                       class="button is-warning">#}
-{#                        <span class="icon">#}
-{#                            <i class="fas fa-print"></i>#}
-{#                        </span>#}
-{#                        <span>พิมพ์ทั้งหมด</span>#}
-{#                    </a>#}
+                <div class="columns">
+                    <div class="column">
+                        <div class="column has-text-left">
+                            <button class="button is-info">
+                                <span class="icon">
+                                    <i class="fas fa-print"></i>
+                                </span>
+                                <span>เลือก</span>
+                            </button>
+                        </div>
+                        <table class="table is-fullwidth is-striped" id="QTable">
+                            <thead>
+                            <th></th>
+                            <th>รายการ</th>
+                            <th>รหัสครุภัณฑ์</th>
+                            <th>Inventory Number/ERP</th>
+                            <th>ปีงบประมาณ</th>
+                            <th>วันที่ได้รับ</th>
+                            <th>สถานะ</th>
+                            <th>Print</th>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
+            </form>
             <div class="columns">
                 <div class="column">
-                    <table class="table is-fullwidth is-striped" id="QTable">
-                        <thead>
-                        <th></th>
-                        <th>รายการ</th>
-                        <th>รหัสครุภัณฑ์</th>
-                        <th>Inventory Number/ERP</th>
-                        <th>ปีงบประมาณ</th>
-                        <th>วันที่ได้รับ</th>
-                        <th>สถานะ</th>
-                        <th>Print</th>
-                        </thead>
-                        <tbody>
-                        {% for record in qrcode_list %}
-                            <tr>
-                            <td class="field">
-                                <input class="is-checkradio is-medium" id="pro_no{{ record.id }}" type="checkbox"
-                                       name="selected_items" value="{{ record["id"] }}">
-                                <label for="pro_no{{ record.id }}"></label>
-                                {% if record in record.qrcode_list %}
-                                    checked
-                                {% endif %}
-                            </td>
-                            <td>
-                                {{ record["name"] }}
-                            </td>
-                            <td>
-                                {{ record["procurement_no"] }}
-                            </td>
-                            <td>
-                                {{ record["erp_code"] }}
-
-                            </td>
-                            <td>
-                                {{ record["budget_year"] }}
-                            </td>
-                            <td>
-                                {{ record["received_date"] }}
-                            </td>
-                            <td>
-                                {{ record["available"] }}
-                            </td>
-                            <td>
-                                <a href="{{ url_for('procurement.export_qrcode_pdf', procurement_id=record.id) }}">
-                                    <i class="fas fa-print"></i></a>
-                            </td>
-                        {% endfor %}
-                        </tbody>
-                    </table>
+                    <form method="post" action="{{ url_for('procurement.list_qrcode') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <h1 class="title">Selected Items</h1>
+                        <table class="table is-fullwidth" id="selected_items">
+                        </table>
+                        <input type="submit" value="Print" class="button is-success"></input>
+                    </form>
                 </div>
             </div>
             <div class="columns">
@@ -92,15 +65,28 @@
                     </a>
                 </div>
             </div>
-        </form>
         </div>
     </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
     <script>
-        $(document).ready(() => {
-            $('#QTable').DataTable();
+        $(document).ready(function () {
+            $('#QTable').DataTable({
+                searchDelay: 350,
+                ajax: '{{ url_for("procurement.get_procurement_data_qrcode_list") }}',
+                serverSide: true,
+                columns: [
+                    {data: 'select_item'},
+                    {data: 'name'},
+                    {data: 'procurement_no'},
+                    {data: 'erp_code'},
+                    {data: 'budget_year'},
+                    {data: 'received_date'},
+                    {data: 'available'},
+                    {data: 'print'}
+                ],
+            });
         });
     </script>
 {% endblock %}
