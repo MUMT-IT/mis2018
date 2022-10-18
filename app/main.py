@@ -744,7 +744,7 @@ def import_procurement_image():
         item = ProcurementDetail.query.filter_by(procurement_no=asset_code).first()
         if item:
             print(rec['Picture'])
-            query = "title = '{}'".format(rec['Picture'])
+            query = u"title = '{}'".format(rec['Picture'])
             for file_list in drive.ListFile({'q': query, 'spaces': 'drive'}):
                 if file_list:
                     print(query)
@@ -756,7 +756,7 @@ def import_procurement_image():
                         print('The image has been added to item with ERP code={}'.format(item.erp_code))
                     db.session.commit()
         else:
-            print('\tItem with ERP code={} not found..'.format(rec['ERPCode']))
+            print(u'\tItem with ERP code={} not found..'.format(rec['ERPCode']))
 
 
 @dbutils.command('add-update-staff-gsheet')
