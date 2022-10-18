@@ -29,7 +29,7 @@ class ProcurementDetail(db.Model):
     available = db.Column('available', db.String(), info={'label': u'สภาพของสินทรัพย์'})
     purchasing_type_id = db.Column('purchasing_type_id', db.ForeignKey('procurement_purchasing_types.id'))
     purchasing_type = db.relationship('ProcurementPurchasingType',
-                               backref=db.backref('types', lazy='dynamic'))
+                                      backref=db.backref('types', lazy='dynamic'))
     category_id = db.Column('category_id', db.ForeignKey('procurement_categories.id'))
     category = db.relationship('ProcurementCategory',
                                backref=db.backref('items', lazy='dynamic'))
