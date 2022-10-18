@@ -741,8 +741,6 @@ def import_procurement_image():
     img_name = 'temp_image.jpg'
     for rec in sheet.get_all_records():
         asset_code = str(rec['AssetCode'])
-        if asset_code != '904000005103':
-            continue
         item = ProcurementDetail.query.filter_by(procurement_no=asset_code).first()
         if item:
             print(rec['Picture'])
@@ -757,7 +755,6 @@ def import_procurement_image():
                             db.session.add(item)
                         print('The image has been added to item with ERP code={}'.format(item.erp_code))
                     db.session.commit()
-                    break
         else:
             print('\tItem with ERP code={} not found..'.format(rec['ERPCode']))
 
