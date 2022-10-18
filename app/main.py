@@ -758,8 +758,6 @@ def import_procurement_image():
         else:
             print('\tItem with ERP code={} not found..'.format(rec['ERPCode']))
 
-    drive = initialize_gdrive()
-
 
 @dbutils.command('add-update-staff-gsheet')
 def add_update_staff_gsheet():
