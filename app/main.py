@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+import base64
 import os
 import click
 import arrow
@@ -19,6 +20,8 @@ from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
 from wtforms.validators import required
 from flask_mail import Mail
 import gspread
@@ -718,6 +721,47 @@ def import_procurement_data():
         item.purchasing_type = purchasing_type
         db.session.add(item)
     db.session.commit()
+
+
+def initialize_gdrive():
+    gauth = GoogleAuth()
+    scope = ['https://www.googleapis.com/auth/drive']
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scope)
+    return GoogleDrive(gauth)
+
+
+@dbutils.command('import-procurement-image')
+def import_procurement_image():
+    sheetid = '1OBRNFE5ZNq75Y5GXy76XLW0mSMk2l9kzt4PPtdF2ujE'
+    print('Authorizing with Google sheet..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("dbo_Asset")
+    drive = initialize_gdrive()
+    img_name = 'temp_image.jpg'
+    for rec in sheet.get_all_records():
+        asset_code = str(rec['AssetCode'])
+        if asset_code != '904000005103':
+            continue
+        item = ProcurementDetail.query.filter_by(procurement_no=asset_code).first()
+        if item:
+            print(rec['Picture'])
+            query = "title = '{}'".format(rec['Picture'])
+            for file_list in drive.ListFile({'q': query, 'spaces': 'drive'}):
+                if file_list:
+                    print(query)
+                    for fi in file_list:
+                        fi.GetContentFile(img_name)
+                        with open(img_name, "rb") as img_file:
+                            item.image = base64.b64encode(img_file.read())
+                            db.session.add(item)
+                        print('The image has been added to item with ERP code={}'.format(item.erp_code))
+                    db.session.commit()
+                    break
+        else:
+            print('\tItem with ERP code={} not found..'.format(rec['ERPCode']))
+
+    drive = initialize_gdrive()
 
 
 @dbutils.command('add-update-staff-gsheet')
