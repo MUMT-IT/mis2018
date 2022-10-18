@@ -111,9 +111,7 @@ def get_procurement_data_to_committee():
     query = query.filter(db.or_(
         ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
         ProcurementDetail.name.like(u'%{}%'.format(search)),
-        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
-        ProcurementDetail.budget_year.like(u'%{}%'.format(search)),
-        ProcurementDetail.available.like(u'%{}%'.format(search))
+        ProcurementDetail.erp_code.like(u'%{}%'.format(search))
     ))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
@@ -123,6 +121,7 @@ def get_procurement_data_to_committee():
     for item in query:
         current_record = item.current_record
         item_data = item.to_dict()
+        item_data['updated_at'] = current_record.approval.updated_at.strftime('%d/%m/%Y') if current_record and current_record.approval else ''
         item_data['checking_result'] = current_record.approval.checking_result if current_record and current_record.approval else ''
         item_data['approver'] = current_record.approval.approver.personal_info.fullname if current_record and current_record.approval else ''
         item_data['status'] = current_record.approval.asset_status if current_record and current_record.approval else ''
@@ -154,10 +153,16 @@ def report_info_download():
             u'สภาพของสินทรัพย์': u"{}".format(item.available),
             u'วันที่ได้รับ': u"{}".format(item.received_date),
             u'ปีงบประมาณ': u"{}".format(item.budget_year),
-            u'ผลการตรวจสอบ': u"{}".format(current_record.approval.checking_result if current_record and current_record.approval else ''),
-            u'ผู้ตรวจสอบ': u"{}".format(current_record.approval.approver.personal_info.fullname if current_record and current_record.approval else ''),
-            u'สถานะ': u"{}".format(current_record.approval.asset_status if current_record and current_record.approval else ''),
-            u'Comment': u"{}".format(current_record.approval.approval_comment if current_record and current_record.approval else '')
+            u'วัน-เวลาที่ตรวจ': u"{}".format(
+                current_record.approval.updated_at if current_record and current_record.approval else ''),
+            u'ผลการตรวจสอบ': u"{}".format(
+                current_record.approval.checking_result if current_record and current_record.approval else ''),
+            u'ผู้ตรวจสอบ': u"{}".format(
+                current_record.approval.approver.personal_info.fullname if current_record and current_record.approval else ''),
+            u'สถานะ': u"{}".format(
+                current_record.approval.asset_status if current_record and current_record.approval else ''),
+            u'Comment': u"{}".format(
+                current_record.approval.approval_comment if current_record and current_record.approval else '')
         })
     df = DataFrame(records)
     df.to_excel('report.xlsx',
@@ -173,6 +178,7 @@ def report_info_download():
                          u'สภาพของสินทรัพย์',
                          u'วันที่ได้รับ',
                          u'ปีงบประมาณ',
+                         u'วัน-เวลาที่ตรวจ',
                          u'ผลการตรวจสอบ',
                          u'ผู้ตรวจสอบ',
                          u'สถานะ',
@@ -244,10 +250,10 @@ def get_procurement_data_is_updated():
     for item in query:
         current_record = item.current_record
         item_data = item.to_dict()
-        item_data['location'] = current_record.records.location if current_record and current_record.records else ''
-        item_data['status'] = current_record.records.status if current_record and current_record.records else ''
-        item_data['updater'] = current_record.records.updater if current_record and current_record.records else ''
-        item_data['updated_at'] = current_record.records.updated_at if current_record and current_record.records else ''
+        item_data['location'] = u'{}'.format(current_record.location)
+        item_data['status'] = u'{}'.format(current_record.status)
+        item_data['updater'] = u'{}'.format(current_record.updater)
+        item_data['updated_at'] = u'{}'.format(current_record.updated_at)
         item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
             'received_date'] else ''
         data.append(item_data)
@@ -449,6 +455,7 @@ def qrcode_render(procurement_no):
 @procurement.route('/qrcode/list', methods=['GET', 'POST'])
 def list_qrcode():
     session['selected_procurement_items_printing'] = []
+
     def all_page_setup(canvas, doc):
         canvas.saveState()
         # logo_image = ImageReader('app/static/img/mumt-logo.png')
@@ -496,7 +503,8 @@ def select_items_for_printing_qrcode():
                 item = ProcurementDetail.query.get(int(_id))
                 items += (u'<tr><td><input class="is-checkradio" id="pro_no{}_selected" type="checkbox"'
                           u'name="selected_items" checked value="{}"><label for="pro_no{}_selected"></label></td>'
-                          u'<td>{}</td><td>{}</td><td>{}</td></tr>').format(_id, _id, _id, item.name, item.procurement_no, item.erp_code)
+                          u'<td>{}</td><td>{}</td><td>{}</td></tr>').format(_id, _id, _id, item.name,
+                                                                            item.procurement_no, item.erp_code)
         return items
 
 
@@ -518,9 +526,11 @@ def get_procurement_data_qrcode_list():
     data = []
     for item in query:
         item_data = item.to_dict()
-        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data['received_date'] else ''
-        item_data['select_item'] = ('<input class="is-checkradio" id="pro_no{}" type="checkbox" name="selected_items" value="{}">'
-                                    '<label for="pro_no{}"></label>').format(item.id, item.id, item.id)
+        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
+            'received_date'] else ''
+        item_data['select_item'] = (
+            '<input class="is-checkradio" id="pro_no{}" type="checkbox" name="selected_items" value="{}">'
+            '<label for="pro_no{}"></label>').format(item.id, item.id, item.id)
         item_data['print'] = '<a href="{}"><i class="fas fa-print"></i></a>'.format(
             url_for('procurement.export_qrcode_pdf', procurement_id=item.id))
         data.append(item_data)
