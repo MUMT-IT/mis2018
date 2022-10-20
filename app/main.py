@@ -731,32 +731,37 @@ def initialize_gdrive():
 
 
 @dbutils.command('import-procurement-image')
-def import_procurement_image():
-    sheetid = '1OBRNFE5ZNq75Y5GXy76XLW0mSMk2l9kzt4PPtdF2ujE'
+@click.argument('index')
+@click.argument('limit')
+def import_procurement_image(index, limit):
+    sheetid = '16A6yb_W-GcWRLbpqV-9cAnpqgh7nQsZogsNlzz_73ds'
     print('Authorizing with Google sheet..')
     gc = get_credential(json_keyfile)
     wks = gc.open_by_key(sheetid)
-    sheet = wks.worksheet("dbo_Asset")
+    sheet = wks.worksheet("Asset")
     drive = initialize_gdrive()
     img_name = 'temp_image.jpg'
-    for rec in sheet.get_all_records():
-        asset_code = str(rec['AssetCode'])
-        item = ProcurementDetail.query.filter_by(procurement_no=asset_code).first()
-        if item:
-            print(rec['Picture'])
-            query = u"title = '{}'".format(rec['Picture'])
-            for file_list in drive.ListFile({'q': query, 'spaces': 'drive'}):
-                if file_list:
-                    print(query)
-                    for fi in file_list:
-                        fi.GetContentFile(img_name)
-                        with open(img_name, "rb") as img_file:
-                            item.image = base64.b64encode(img_file.read())
-                            db.session.add(item)
-                        print('The image has been added to item with ERP code={}'.format(item.erp_code))
-                    db.session.commit()
-        else:
-            print(u'\tItem with ERP code={} not found..'.format(rec['ERPCode']))
+    for n, rec in enumerate(sheet.get_all_records(), start=1):
+        if n >= int(index) and n < int(limit) + int(index):
+            print(n)
+            asset_code = str(rec['AssetCode'])
+            item = ProcurementDetail.query.filter_by(procurement_no=asset_code).first()
+            if item:
+                if not item.image:
+                    print(rec['Picture'])
+                    query = u"title = '{}'".format(rec['Picture'])
+                    for file_list in drive.ListFile({'q': query, 'spaces': 'drive'}):
+                        if file_list:
+                            print(query)
+                            for fi in file_list:
+                                fi.GetContentFile(img_name)
+                                with open(img_name, "rb") as img_file:
+                                    item.image = base64.b64encode(img_file.read())
+                                    db.session.add(item)
+                                print('The image has been added to item with Asset code={}'.format(item.procurement_no))
+                            db.session.commit()
+            else:
+                print(u'\tItem with Asset code={} not found..'.format(rec['AssetCode']))
 
 
 @dbutils.command('add-update-staff-gsheet')
