@@ -99,6 +99,8 @@
                                class="button is-success">แก้ไข</a>
                             <a href="{{ url_for('procurement.qrcode_scan') }}"
                                class="button is-warning">สแกนคิวอาร์โค้ด</a>
+                            <a href="{{ url_for('procurement.search_erp_code_info') }}"
+                               class="button is-info">ค้นหารหัส ERP</a>
                         </div>
                     {% else %}
                         ยังไม่มีการตรวจสอบ
@@ -107,6 +109,8 @@
                                class="button is-success">ตรวจสอบ</a>
                             <a href="{{ url_for('procurement.qrcode_scan') }}"
                                class="button is-warning">สแกนคิวอาร์โค้ด</a>
+                            <a href="{{ url_for('procurement.search_erp_code_info') }}"
+                               class="button is-info">ค้นหารหัส ERP</a>
                         </div>
                     {% endif %}
                 </div>
