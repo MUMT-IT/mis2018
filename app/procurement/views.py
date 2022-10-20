@@ -189,6 +189,36 @@ def report_info_download():
     return send_from_directory(os.getcwd(), filename='report.xlsx')
 
 
+@procurement.route('/for-committee/search-info', methods=['GET', 'POST'])
+@login_required
+def search_erp_code_info():
+    return render_template('procurement/committee_find_erp_code_to_approve.html')
+
+
+@procurement.route('/api/data/search')
+def get_procurement_search_data():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.erp_code.like(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['check'] = '<a href="{}"><i class="far fa-check-circle"></i></a>'.format(
+            url_for('procurement.view_procurement_on_scan', procurement_no=item.procurement_no))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
 @procurement.route('/information/view')
 @login_required
 def view_procurement():
