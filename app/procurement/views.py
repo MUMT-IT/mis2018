@@ -7,7 +7,7 @@ from flask import render_template, request, flash, redirect, url_for, send_file,
 from flask_login import current_user, login_required
 from pandas import DataFrame
 from reportlab.lib.units import mm
-
+from sqlalchemy import cast, Date
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
@@ -97,11 +97,25 @@ def committee_first():
     return render_template('procurement/committee_first_page.html', name=current_user)
 
 
+# @procurement.route('/info/by-committee/view', methods=['GET', 'POST'])
+# @login_required
+# def view_procurement_by_committee():
+#     start_date = None
+#     end_date = None
+#     form = ProcurementApprovalForm()
+#     if request.method == 'POST':
+#         if form.validate_on_submit():
+#             start_date = datetime.strptime(form.updated_at.data, '%d-%m-%Y')
+#             end_date = datetime.strptime(form.updated_at.data, '%d-%m-%Y')
+#
+#         else:
+#             flash(form.errors, 'danger')
+#     return render_template('procurement/view_procurement_by_committee.html',
+#                             start_date=start_date, end_date=end_date, form=form)
 @procurement.route('/info/by-committee/view')
 @login_required
 def view_procurement_by_committee():
-    procurement_list = [item.to_dict() for item in ProcurementDetail.query.all()]
-    return render_template('procurement/view_procurement_by_committee.html', procurement_list=procurement_list)
+    return render_template('procurement/view_procurement_by_committee.html')
 
 
 @procurement.route('/api/data/committee')
