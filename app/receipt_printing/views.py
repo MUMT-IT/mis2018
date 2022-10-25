@@ -45,22 +45,20 @@ def create_receipt():
         if action == 'add-items':
             form.items.append_entry()
             return render_template('receipt_printing/new_receipt.html', form=form, cashiers=cashiers)
-        else:
-            return 'Done'
-        # receipt_detail = ElectronicReceiptDetail()
-    #     # receipt_detail.created_datetime = datetime.now(tz=bangkok)
-    #     form.populate_obj(receipt_detail)  #insert data from Form to Model
-    #     receipt_detail.number = receipt_book.next
-    #     receipt_book.count += 1
-    #     receipt_detail.book_number = receipt_book.book_number
-    #     db.session.add(receipt_detail)
-    #     db.session.commit()
-    #     flash(u'บันทึกการสร้างใบเสร็จรับเงินสำเร็จ.', 'success')
-    #     return redirect(url_for('receipt_printing.list_all_receipts'))
-    # # Check Error
-    # else:
-    #     for er in form.errors:
-    #         flash("{}:{}".format(er, form.errors[er]), 'danger')
+        receipt_detail = ElectronicReceiptDetail()
+        # receipt_detail.created_datetime = datetime.now(tz=bangkok)
+        form.populate_obj(receipt_detail)  #insert data from Form to Model
+        receipt_detail.number = receipt_book.next
+        receipt_book.count += 1
+        receipt_detail.book_number = receipt_book.book_number
+        db.session.add(receipt_detail)
+        db.session.commit()
+        flash(u'บันทึกการสร้างใบเสร็จรับเงินสำเร็จ.', 'success')
+        return redirect(url_for('receipt_printing.list_all_receipts'))
+    # Check Error
+    else:
+        for er in form.errors:
+            flash("{}:{}".format(er, form.errors[er]), 'danger')
     return render_template('receipt_printing/new_receipt.html', form=form, cashiers=cashiers)
 
 
@@ -70,11 +68,26 @@ def list_add_items():
     form.items.append_entry()
     item_form = form.items[-1]
     return u'''
-    <p>
-        <label>{}</label>
-        {}
-    </p>
-    '''.format(item_form.label, item_form())
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label, item_form.price(class_="input", placeholder=u"฿"),
+               item_form.comment.label, item_form.comment(class_="input"))
 
 
 @receipt_printing.route('/list/all', methods=['GET'])
