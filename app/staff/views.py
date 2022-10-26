@@ -1365,48 +1365,34 @@ def leave_request_result_by_person():
     if org_id is None:
         account_query = StaffAccount.query.all()
     else:
-        START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(datetime.today())
-        if start_date == START_FISCAL_DATE.date():
-            account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id)).filter(or_(
-                                                          StaffAccount.personal_info.has(retired=False),
-                                                          StaffAccount.personal_info.has(retired=None)))
-        else:
-            account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id))
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id))
     for account in account_query:
         # record = account.personal_info.get_remaining_leave_day
-        record = defaultdict(int)
+        record = {}
         record["staffid"] = account.id
         record["fullname"] = account.personal_info.fullname
-        #record["total"] = 0
-        #record["pending"] = 0
+        record["total"] = 0
+        record["pending"] = 0
         if account.personal_info.org:
             record["org"] = account.personal_info.org.name
         else:
             record["org"] = ""
         for leave_type in leave_types:
-            used_quota = StaffLeaveUsedQuota.query.filter_by(staff=account,
-                                                             leave_type=leave_type,
-                                                             fiscal_year=years).first()
-            if used_quota:
-                record["pending"] = used_quota.pending_days
-                record["total"] = used_quota.quota_days
-                #used_quota.fiscal_year
-            else:
-                for req in account.leave_requests:
-                    if not req.cancelled_at:
-                        if req.get_approved:
-                            years.add(req.start_datetime.year)
-                            if start_date and end_date:
-                                if req.start_datetime.date() < start_date or req.start_datetime.date() > end_date:
-                                    continue
-                            leave_type = req.quota.leave_type.type_
-                            record[leave_type] = record.get(leave_type, 0) + req.total_leave_days
-                            record["total"] += req.total_leave_days
-                        if not req.get_approved and not req.get_unapproved:
-                            record["pending"] += req.total_leave_days
-            #record[leave_type] = 0
+            record[leave_type] = 0
         for leave_remain in leave_types_r:
             record[leave_remain] = 0
+        for req in account.leave_requests:
+            if not req.cancelled_at:
+                if req.get_approved:
+                    years.add(req.start_datetime.year)
+                    if start_date and end_date:
+                        if req.start_datetime.date() < start_date or req.start_datetime.date() > end_date:
+                            continue
+                    leave_type = req.quota.leave_type.type_
+                    record[leave_type] = record.get(leave_type, 0) + req.total_leave_days
+                    record["total"] += req.total_leave_days
+                if not req.get_approved and not req.get_unapproved:
+                    record["pending"] += req.total_leave_days
         quota = StaffLeaveQuota.query.filter_by(employment_id=account.personal_info.employment_id).all()
         for quota in quota:
             leave_remain = quota.leave_type.type_
@@ -3268,7 +3254,7 @@ def add_leave_request_by_hr(staff_id):
         req_title = u'แจ้งการบันทึกการขอลา' + createleave.quota.leave_type.type_
         req_msg = u'การขออนุมัติ{} ของ{} ระหว่างวันที่ {} ถึงวันที่ {}\nเจ้าหน้าที่หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่ได้ทำการบันทึกลงระบบเรียบร้อยแล้ว' \
                   u'\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {}\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
-            format(createleave.quota.leave_type.type_, current_user.personal_info.fullname, start_datetime,
+            format(createleave.quota.leave_type.type_, createleave.staff.personal_info.fullname, start_datetime,
                    end_datetime,
                    url_for("staff.record_each_request_leave_request", request_id=createleave.id, _external=True))
         if os.environ["FLASK_ENV"] == "production":
