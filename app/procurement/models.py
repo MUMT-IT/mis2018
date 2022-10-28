@@ -13,7 +13,7 @@ class ProcurementDetail(db.Model):
     name = db.Column('name', db.String(), info={'label': u'ชื่อครุภัณฑ์'})
     image = db.Column('image', db.Text(), info={'label': u'รูปภาพ'})
     qrcode = db.Column('qrcode', db.Text(), info={'label': 'QR Code'})
-    procurement_no = db.Column('procurement_no', db.String(), unique=True, info={'label': u'เลขครุภัณฑ์'})
+    procurement_no = db.Column('procurement_no', db.String(), info={'label': u'เลขครุภัณฑ์'})
     document_no = db.Column('document_no', db.String(), info={'label': u'เอกสารสั่งซื้อเลขที่'})
     erp_code = db.Column('erp_code', db.String(), info={'label': u'Inventory Number/ERP'})
     serial_no = db.Column('serial_no', db.String(), info={'label': u'Serial Number'})
@@ -22,7 +22,8 @@ class ProcurementDetail(db.Model):
                                                                                    u'ประกาศเชิญชวนทั่วไป(E-Bidding)',
                                                                                    u'วิธีคัดเลือก',
                                                                                    u'วิธีเฉพาะเจาะจง',
-                                                                                   u'รับบริจาค/รับโอน']]})
+                                                                                   u'รับบริจาค/รับโอน',
+                                                                                   u'สำรวจเจอ/แจ้งขึ้นทะเบียน']]})
     budget_year = db.Column('budget_year', db.String(), info={'label': u'ปีงบประมาณ'})
     price = db.Column('price', db.String(), info={'label': 'Original value(<=10,000)'})
     received_date = db.Column('received_date', db.Date(), info={'label': u'วันที่ได้รับ'})
