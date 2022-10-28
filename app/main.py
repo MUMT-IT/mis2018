@@ -1063,48 +1063,41 @@ def calculate_remain_leave_used_quota(currentdate):
         for type in StaffLeaveType.query.all():
             date_time = datetime.strptime(currentdate, '%Y/%m/%d')
             start_fiscal_date, end_fiscal_date = get_fiscal_date(date_time)
-            is_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff,
-                                                                  fiscal_year=end_fiscal_date.year,
-                                                                  leave_type=type).first()
-            print ("before is_used_quota")
-            if not is_used_quota:
-                print ("not is_used_quota")
-                quota = StaffLeaveQuota.query.filter_by(employment=staff.personal_info.employment,
+
+            quota = StaffLeaveQuota.query.filter_by(employment=staff.personal_info.employment,
                                                         leave_type=type).first()
-                pending_days = staff.personal_info.get_total_pending_leaves_request(quota.id,
+            pending_days = staff.personal_info.get_total_pending_leaves_request(quota.id,
                                                                                     tz.localize(start_fiscal_date),
                                                                                     tz.localize(end_fiscal_date))
-                total_leave_days = staff.personal_info.get_total_leaves(quota.id,tz.localize(start_fiscal_date),
+            total_leave_days = staff.personal_info.get_total_leaves(quota.id,tz.localize(start_fiscal_date),
                                                                         tz.localize(end_fiscal_date))
-                delta = staff.personal_info.get_employ_period()
-                max_cum_quota = staff.personal_info.get_max_cum_quota_per_year(quota)
-                if delta.years > 0:
-                    if max_cum_quota:
-                        last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff,
+            delta = staff.personal_info.get_employ_period()
+            max_cum_quota = staff.personal_info.get_max_cum_quota_per_year(quota)
+            if delta.years > 0:
+                if max_cum_quota:
+                    last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff,
                                                                               fiscal_year=end_fiscal_date.year-1,
                                                                               leave_type=type).first()
-                        if last_used_quota:
-                            remaining_days = last_used_quota.quota_days - last_used_quota.used_days
-                        else:
-                            remaining_days = 0
-                        before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
-                        quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                    if last_used_quota:
+                        remaining_days = last_used_quota.quota_days - last_used_quota.used_days
                     else:
-                        quota_limit = quota.max_per_year
+                        remaining_days = max_cum_quota
+                    before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
+                    quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
                 else:
-                    quota_limit = quota.first_year
+                    quota_limit = quota.max_per_year
+            else:
+                quota_limit = quota.first_year
 
-                used_quota = StaffLeaveUsedQuota(leave_type_id=type.id,
+            used_quota = StaffLeaveUsedQuota(leave_type_id=type.id,
                                                  staff_account_id=staff.id,
                                                  fiscal_year=end_fiscal_date.year,
                                                  used_days=total_leave_days + pending_days,
                                                  pending_days=pending_days,
                                                  quota_days=quota_limit)
-                db.session.add(used_quota)
-                db.session.commit()
-                print (used_quota.leave_type_id, used_quota.used_days, used_quota.pending_days, used_quota.quota_days)
-            else:
-                print (is_used_quota.used_days, is_used_quota.quota_days)
+            db.session.add(used_quota)
+            db.session.commit()
+            print (used_quota.leave_type_id, used_quota.used_days, used_quota.pending_days, used_quota.quota_days)
 
 
 if __name__ == '__main__':

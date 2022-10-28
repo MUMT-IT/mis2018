@@ -158,7 +158,7 @@ def show_leave_info():
                 if last_quota:
                     quota_limit = last_quota.quota_days
                 else:
-                    quota_limit = 0
+                    quota_limit = max_cum_quota
             else:
                 quota_limit = quota.max_per_year
         else:
@@ -267,7 +267,7 @@ def request_for_leave(quota_id=None):
                                     if is_last_used_quota:
                                         last_remain_quota = is_last_used_quota.quota_days - is_last_used_quota.used_days
                                     else:
-                                        last_remain_quota = 0
+                                        last_remain_quota = max_cum_quota
                                     before_cut_max_quota = last_remain_quota + LEAVE_ANNUAL_QUOTA
                                     quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
                                 else:
@@ -354,10 +354,10 @@ def request_for_leave(quota_id=None):
                 else:
                     if last_year_quota:
                         last_year_quota = last_year_quota.quota_days - last_year_quota.used_days
-                        before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
-                        quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
                     else:
-                        quota_limit = quota.first_year
+                        last_year_quota = max_cum_quota
+                    before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
+                    quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
             else:
                 quota_limit = quota.max_per_year
         else:
@@ -436,7 +436,7 @@ def request_for_leave_period(quota_id=None):
                                 if is_last_used_quota:
                                     last_remain_quota = is_last_used_quota.quota_days - is_last_used_quota.used_days
                                 else:
-                                    last_remain_quota = 0
+                                    last_remain_quota = max_cum_quota
                                 before_cut_max_quota = last_remain_quota + LEAVE_ANNUAL_QUOTA
                                 quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
                             else:
@@ -701,7 +701,7 @@ def edit_leave_request(req_id=None):
                             if is_last_used_quota:
                                 last_remain_quota = is_last_used_quota.quota_days - is_last_used_quota.used_days
                             else:
-                                last_remain_quota = 0
+                                last_remain_quota = max_cum_quota
                             before_cut_max_quota = last_remain_quota + LEAVE_ANNUAL_QUOTA
                             quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
                         else:
@@ -816,7 +816,7 @@ def edit_leave_request_period(req_id=None):
                         if is_last_used_quota:
                             last_remain_quota = is_last_used_quota.quota_days - is_last_used_quota.used_days
                         else:
-                            last_remain_quota = 0
+                            last_remain_quota = max_cum_quota
                         before_cut_max_quota = last_remain_quota + LEAVE_ANNUAL_QUOTA
                         quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
                     else:
@@ -1010,7 +1010,7 @@ def leave_approve(req_id, approver_id):
                             if is_last_used_quota:
                                 last_remain_quota = is_last_used_quota.quota_days - is_last_used_quota.used_days
                             else:
-                                last_remain_quota = 0
+                                last_remain_quota = max_cum_quota
                             before_cut_max_quota = last_remain_quota + LEAVE_ANNUAL_QUOTA
                             quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
                         else:
@@ -1152,7 +1152,7 @@ def approver_cancel_leave_request(req_id, cancelled_account_id):
                 if is_last_used_quota:
                     last_remain_quota = is_last_used_quota.quota_days - is_last_used_quota.used_days
                 else:
-                    last_remain_quota = 0
+                    last_remain_quota = max_cum_quota
                 before_cut_max_quota = last_remain_quota + LEAVE_ANNUAL_QUOTA
                 quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
             else:
@@ -1166,7 +1166,7 @@ def approver_cancel_leave_request(req_id, cancelled_account_id):
     if is_used_quota:
         new_used=is_used_quota.used_days-req.total_leave_days
         is_used_quota.used_days = new_used
-        is_used_quota.pending_days = pending_days-req.total_leave_days
+        is_used_quota.pending_days = is_used_quota.pending_days-req.total_leave_days
         db.session.add(is_used_quota)
         db.session.commit()
     else:
@@ -1174,8 +1174,8 @@ def approver_cancel_leave_request(req_id, cancelled_account_id):
             leave_type_id=req.quota.leave_type_id,
             staff_account_id=req.staff_account_id,
             fiscal_year=END_FISCAL_DATE.year,
-            used_days=abs((used_quota + pending_days)-req.total_leave_days),
-            pending_days=pending_days-req.total_leave_days,
+            used_days=used_quota,
+            pending_days=pending_days,
             quota_days=quota_limit
         )
         db.session.add(new_used_quota)
@@ -1229,7 +1229,7 @@ def cancel_leave_request(req_id, cancelled_account_id):
                 if is_last_used_quota:
                     last_remain_quota = is_last_used_quota.quota_days - is_last_used_quota.used_days
                 else:
-                    last_remain_quota = 0
+                    last_remain_quota = max_cum_quota
                 before_cut_max_quota = last_remain_quota + LEAVE_ANNUAL_QUOTA
                 quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
             else:
@@ -1245,7 +1245,7 @@ def cancel_leave_request(req_id, cancelled_account_id):
     if is_used_quota:
         new_used=is_used_quota.used_days-req.total_leave_days
         is_used_quota.used_days = new_used
-        is_used_quota.pending_days = pending_days - req.total_leave_days
+        is_used_quota.pending_days = is_used_quota.pending_days - req.total_leave_days
         db.session.add(is_used_quota)
         db.session.commit()
     else:
@@ -1253,8 +1253,8 @@ def cancel_leave_request(req_id, cancelled_account_id):
             leave_type_id=req.quota.leave_type_id,
             staff_account_id=current_user.id,
             fiscal_year=END_FISCAL_DATE.year,
-            used_days=abs((used_quota + pending_days)-req.total_leave_days),
-            pending_days=pending_days-req.total_leave_days,
+            used_days=used_quota,
+            pending_days=pending_days,
             quota_days=quota_limit
         )
         db.session.add(new_used_quota)
@@ -3220,7 +3220,7 @@ def add_leave_request_by_hr(staff_id):
                         if is_last_used_quota:
                             last_remain_quota = is_last_used_quota.quota_days - is_last_used_quota.used_days
                         else:
-                            last_remain_quota = 0
+                            last_remain_quota = max_cum_quota
                         before_cut_max_quota = last_remain_quota + LEAVE_ANNUAL_QUOTA
                         quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
                     else:
