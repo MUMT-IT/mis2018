@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import SelectMultipleField, widgets
+from wtforms import SelectMultipleField, widgets, FieldList, FormField
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
 from app.main import db
 from models import *
@@ -79,8 +79,22 @@ def create_instructors_form(course):
     class EduCourseSessionForm(ModelForm):
         class Meta:
             model = EduQACourseSession
-        instructors = QuerySelectMultipleField(u'ผู้สอน', get_label='fullname',
+        instructors = QuerySelectMultipleField(u'ผู้สอน',
+                                               get_label='fullname',
                                                query_factory=lambda: course.instructors.all(),
                                                widget=widgets.ListWidget(prefix_label=False),
                                                option_widget=widgets.CheckboxInput())
     return EduCourseSessionForm
+
+
+class EduCourseSessionDetailTopicForm(ModelForm):
+    class Meta:
+        model = EduQACourseSessionDetailTopic
+
+
+class EduCourseSessionDetailForm(ModelForm):
+    class Meta:
+        model = EduQACourseSessionDetail
+
+    topics = FieldList(FormField(EduCourseSessionDetailTopicForm,
+                                 default=EduQACourseSessionDetailTopic), min_entries=1)

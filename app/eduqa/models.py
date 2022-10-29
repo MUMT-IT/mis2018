@@ -144,3 +144,27 @@ class EduQACourseSession(db.Model):
     def total_seconds(self):
         delta = self.end - self.start
         return delta.seconds
+
+
+class EduQACourseSessionDetail(db.Model):
+    __tablename__ = 'eduqa_course_session_details'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    session_id = db.Column(db.ForeignKey('eduqa_course_sessions.id'))
+    staff_id = db.Column(db.ForeignKey('staff_account.id'))
+    role = db.Column('role', db.String(), info={'label': u'บทบาท',
+                                                'choices': [(c, c) for c in [u'ผู้บรรยายหลัก',
+                                                                             u'ผู้บรรยายเสริม',
+                                                                             u'ผู้ร่วมอภิปราย',
+                                                                             u'ผู้สอนปฏิบัติหลัก',
+                                                                             u'ผู้ร่วมสอนปฏิบัติ']],
+                                                })
+
+
+class EduQACourseSessionDetailTopic(db.Model):
+    __tablename__ = 'eduqa_course_session_detail_topics'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    session_detail_id = db.Column(db.ForeignKey('eduqa_course_session_details.id'))
+    topic = db.Column('topic', db.String(), info={'label': u'หัวข้อ'})
+    detail = db.Column('detail', db.Text(), info={'label': u'รายละเอียด'})
+    session_detail = db.relationship(EduQACourseSessionDetail,
+                                     backref=db.backref('topics', cascade='all, delete-orphan'))

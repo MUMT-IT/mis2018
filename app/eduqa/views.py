@@ -347,7 +347,8 @@ def copy_course(course_id):
 @login_required
 def show_course_detail(course_id):
     course = EduQACourse.query.get(course_id)
-    return render_template('eduqa/QA/course_detail.html', course=course)
+    instructor = EduQAInstructor.query.filter_by(account=current_user).first()
+    return render_template('eduqa/QA/course_detail.html', course=course, instructor=instructor)
 
 
 @edu.route('/qa/courses/<int:course_id>/instructors/add')
@@ -462,6 +463,63 @@ def delete_session(session_id):
     else:
         flash(u'ไม่พบรายการ', 'warning')
     return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
+
+
+@edu.route('/qa/courses/<int:course_id>/sessions/<int:session_id>/detail/add', methods=['GET', 'POST'])
+@login_required
+def add_session_detail(course_id, session_id):
+    course = EduQACourse.query.get(course_id)
+    a_session = EduQACourseSession.query.get(session_id)
+    session_detail = EduQACourseSessionDetail.query\
+        .filter_by(session_id=session_id, staff_id=current_user.id).first()
+    if session_detail:
+        form = EduCourseSessionDetailForm(obj=session_detail)
+    else:
+        form = EduCourseSessionDetailForm()
+
+    if form.validate_on_submit():
+        if session_detail:
+            form.populate_obj(session_detail)
+            db.session.add(session_detail)
+            db.session.commit()
+            flash(u'แก้ไขรายละเอียดการสอนเรียบร้อยแล้ว', 'success')
+        else:
+            new_detail = EduQACourseSessionDetail()
+            form.populate_obj(new_detail)
+            new_detail.session_id = session_id
+            new_detail.staff_id = current_user.id
+            db.session.add(new_detail)
+            db.session.commit()
+            flash(u'เพิ่มรายละเอียดการสอนเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
+    return render_template('eduqa/QA/staff/session_detail_edit.html', form=form, course=course, a_session=a_session)
+
+
+@edu.route('/api/qa/sessions/<int:session_id>/detail/topics/add', methods=['POST'])
+@login_required
+def add_session_detail_topic(session_id):
+    form = EduCourseSessionDetailForm()
+    form.topics.append_entry()
+    topic_form = form.topics[-1]
+    template = u"""
+        <div class="field">
+            <label class="label">{} {}</label>
+            <div class="control">
+                {}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{}</label>
+            <div class="control">
+                {}
+            </div>
+        </div>
+    """
+    return template.format(topic_form.topic.label,
+                           len(form.topics),
+                           topic_form.topic(class_="input"),
+                           topic_form.detail.label,
+                           topic_form.detail(class_='textarea'))
 
 
 @edu.route('/qa/hours/<int:instructor_id>')

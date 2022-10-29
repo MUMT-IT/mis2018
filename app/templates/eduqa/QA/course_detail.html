@@ -206,6 +206,15 @@
                                                 </span>
                                                 <span>delete</span>
                                             </a>
+                                            {% if instructor in s.instructors %}
+                                            <a class="button is-success is-small is-rounded"
+                                               href="{{ url_for('eduqa.add_session_detail', course_id=course.id, session_id=s.id) }}">
+                                                <span class="icon">
+                                                    <i class="far fa-star"></i>
+                                                </span>
+                                                <span>workpoint</span>
+                                            </a>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
