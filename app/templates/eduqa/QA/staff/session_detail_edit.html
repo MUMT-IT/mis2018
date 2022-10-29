@@ -7,41 +7,71 @@
         <div class="columns">
             <div class="column box is-two-thirds is-offset-2">
                 <h1 class="title has-text-centered">บันทึกข้อมูลการสอน</h1>
-                <label class="label">รายวิชา</label>
-                <p>
-                    {{ a_session.course.th_name }} ({{ a_session.course.th_code }})
-                </p>
-                <p>
-                    {{ a_session.course.en_name }} ({{ a_session.course.en_code }})
-                </p>
-                <label class="label">วันและเวลา</label>
-                <p>
-                    {{ a_session.start|localdatetime }} - {{ a_session.end|localdatetime }}
-                </p>
-                <label class="label">ผู้สอน</label>
-                <p>
-                    {{ current_user.fullname }}
-                </p>
+                <table class="table is-bordered is-fullwidth">
+                    <tr>
+                        <td>
+                            <label class="label">รายวิชา</label>
+                        </td>
+                        <td>
+                            <p>
+                                {{ a_session.course.th_name }} ({{ a_session.course.th_code }})
+                            </p>
+                            <p>
+                                {{ a_session.course.en_name }} ({{ a_session.course.en_code }})
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">วันและเวลา</label>
+                        </td>
+                        <td>
+                            <p>
+                                {{ a_session.start|localdatetime }} - {{ a_session.end|localdatetime }}
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><label class="label">รวมเวลาสอน</label></td>
+                        <td>{{ a_session.total_hours }}</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">หัวข้อ</label>
+                        </td>
+                        <td>
+                            <ul>
+                                {% for topic in a_session.topics %}
+                                    <li>- {{ topic.topic }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">ผู้สอน</label>
+                        </td>
+                        <td>
+                            <p>
+                                {{ current_user.fullname }}
+                            </p>
+                        </td>
+                    </tr>
+                </table>
                 <form method="post">
                     {{ form.hidden_tag() }}
-                    <div class="field">
-                        <label class="label">{{ form.role.label }}</label>
-                        <div class="select">
-                            {{ form.role() }}
-                        </div>
-                    </div>
-                    <div id="topics">
-                        {% for topic_form in form.topics %}
+                    <div id="roles">
+                        {% for role_form in form.roles %}
                             <div class="field">
-                                <label class="label">{{ topic_form.topic.label }} {{ loop.index }}</label>
-                                <div class="control">
-                                    {{ topic_form.topic(class="input") }}
+                                <label class="label">{{ role_form.role.label }}</label>
+                                <div class="select">
+                                    {{ role_form.role() }}
                                 </div>
                             </div>
                             <div class="field">
-                                <label class="label">{{ topic_form.detail.label }}</label>
+                                <label class="label">{{ role_form.detail.label }}</label>
                                 <div class="control">
-                                    {{ topic_form.detail(class="textarea") }}
+                                    {{ role_form.detail(class="textarea") }}
                                 </div>
                             </div>
                         {% endfor %}
@@ -49,14 +79,15 @@
                     <hr>
                     <div class="buttons is-centered">
                         <button class="button is-small is-light"
-                                hx-post="{{ url_for('eduqa.add_session_detail_topic', session_id=a_session.id) }}"
-                                hx-target="#topics" hx-swap="beforeend">
+                                hx-post="{{ url_for('eduqa.add_session_role', course_id=course.id, session_id=a_session.id) }}"
+                                hx-target="#roles" hx-swap="beforeend">
                             <span class="icon">
                                 <i class="fas fa-plus"></i>
                             </span>
                             <span>เพิ่มหัวข้อ</span>
                         </button>
                     </div>
+                    <br>
                     <div class="buttons is-centered">
                         <a href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}" class="button is-text">
                             Back

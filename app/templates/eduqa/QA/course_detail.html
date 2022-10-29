@@ -174,7 +174,8 @@
                             <table class="table is-bordered">
                                 <thead>
                                 <th>วันที่</th>
-                                <th>รายละเอียด</th>
+                                <th>เวลา</th>
+                                <th>หัวข้อ</th>
                                 <th>ประเภท</th>
                                 <th>ผู้สอน</th>
                                 <th></th>
@@ -182,8 +183,19 @@
                                 <tbody>
                                 {% for s in course.sessions|sort(attribute='start') %}
                                 <tr>
-                                    <td>{{s.start|localdatetime}}</td>
-                                    <td>{{s.end|localdatetime}}</td>
+                                    <td>{{s.start|localdatetime}} - {{ s.end|localdatetime }}</td>
+                                    <td>
+                                        {{ s.total_hours }}
+                                    </td>
+                                    <td class="content">
+                                        <ul>
+                                            {% for topic in s.topics %}
+                                                <li>
+                                                    {{ topic.topic }}
+                                                </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </td>
                                     <td>{{s.type_}}</td>
                                     <td>
                                         {% for i in s.instructors %}

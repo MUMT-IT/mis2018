@@ -495,16 +495,37 @@ def add_session_detail(course_id, session_id):
     return render_template('eduqa/QA/staff/session_detail_edit.html', form=form, course=course, a_session=a_session)
 
 
-@edu.route('/api/qa/sessions/<int:session_id>/detail/topics/add', methods=['POST'])
+@edu.route('/api/qa/courses/<int:course_id>/sessions/topics', methods=['POST'])
 @login_required
-def add_session_detail_topic(session_id):
-    form = EduCourseSessionDetailForm()
+def add_session_topic(course_id):
+    course = EduQACourse.query.get(course_id)
+    EduCourseSessionForm = create_instructors_form(course)
+    form = EduCourseSessionForm()
     form.topics.append_entry()
     topic_form = form.topics[-1]
     template = u"""
         <div class="field">
             <label class="label">{} {}</label>
             <div class="control">
+                {}
+            </div>
+        </div>
+    """
+    return template.format(topic_form.topic.label,
+                           len(form.topics),
+                           topic_form.topic(class_="input"))
+
+
+@edu.route('/api/qa/courses/<int:course_id>/sessions/<int:session_id>/roles', methods=['POST'])
+@login_required
+def add_session_role(course_id, session_id):
+    form = EduCourseSessionDetailForm()
+    form.roles.append_entry()
+    role_form = form.roles[-1]
+    template = u"""
+        <div class="field">
+            <label class="label">{}</label>
+            <div class="select">
                 {}
             </div>
         </div>
@@ -515,11 +536,10 @@ def add_session_detail_topic(session_id):
             </div>
         </div>
     """
-    return template.format(topic_form.topic.label,
-                           len(form.topics),
-                           topic_form.topic(class_="input"),
-                           topic_form.detail.label,
-                           topic_form.detail(class_='textarea'))
+    return template.format(role_form.role.label,
+                           role_form.role(),
+                           role_form.detail.label,
+                           role_form.detail(class_="textarea"))
 
 
 @edu.route('/qa/hours/<int:instructor_id>')
