@@ -153,13 +153,15 @@
                                 {% endfor %}
                                     <tr>
                                         <td colspan="3">
-                                            <a href="{{ url_for('eduqa.add_instructor', course_id=course.id) }}"
-                                               class="button is-link is-small is-rounded">
+                                            <div class="buttons is-centered">
+                                                <a href="{{ url_for('eduqa.add_instructor', course_id=course.id) }}"
+                                                   class="button is-link is-small is-rounded">
                                                 <span class="icon">
                                                    <i class="fas fa-user-plus"></i>
                                                 </span>
-                                                <span>เพิ่ม</span>
-                                            </a>
+                                                    <span>เพิ่ม</span>
+                                                </a>
+                                            </div>
                                         </td>
                                     </tr>
                                 </tbody>
@@ -177,7 +179,7 @@
                                 <th>เวลา</th>
                                 <th>หัวข้อ</th>
                                 <th>ประเภท</th>
-                                <th>ผู้สอน</th>
+                                <th>ผู้สอน (คลิกที่ชื่อเพื่อดูบทบาทหน้าที่)</th>
                                 <th></th>
                                 </thead>
                                 <tbody>
@@ -187,11 +189,11 @@
                                     <td>
                                         {{ s.total_hours }}
                                     </td>
-                                    <td class="content">
+                                    <td>
                                         <ul>
                                             {% for topic in s.topics %}
                                                 <li>
-                                                    {{ topic.topic }}
+                                                    - {{ topic.topic }}
                                                 </li>
                                             {% endfor %}
                                         </ul>
@@ -199,7 +201,9 @@
                                     <td>{{s.type_}}</td>
                                     <td>
                                         {% for i in s.instructors %}
-                                        {{ i.fullname }},
+                                            <a href="{{ url_for('eduqa.view_session_detail', session_id=s.id, course_id=course.id, instructor_id=i.id) }}">
+                                                <span>{{ i.fullname }}</span>
+                                            </a>,
                                         {% endfor %}
                                     </td>
                                     <td>
@@ -232,14 +236,16 @@
                                 </tr>
                                 {% endfor %}
                                 <tr>
-                                    <td colspan="5">
-                                        <a href="{{ url_for('eduqa.add_session', course_id=course.id) }}"
-                                           class="button is-link is-small is-rounded">
+                                    <td colspan="6">
+                                        <div class="buttons is-centered">
+                                            <a href="{{ url_for('eduqa.add_session', course_id=course.id) }}"
+                                               class="button is-link is-small is-rounded">
                                                 <span class="icon">
                                                    <i class="fas fa-user-plus"></i>
                                                 </span>
-                                            <span>เพิ่ม</span>
-                                        </a>
+                                                <span>เพิ่ม</span>
+                                            </a>
+                                        </div>
                                     </td>
                                 </tr>
                                 </tbody>

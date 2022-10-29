@@ -184,7 +184,11 @@ class EduQACourseSessionDetailRole(db.Model):
     role = db.Column('role', db.String(), info={'label': u'บทบาท',
                                                 'choices': [(c, c) for c in [u'ผู้บรรยายหลัก',
                                                                              u'ผู้บรรยายเสริม',
+                                                                             u'ผู้นำอภิปราย',
                                                                              u'ผู้ร่วมอภิปราย',
+                                                                             u'ผู้ดำเนินการอภิปราย',
                                                                              u'ผู้สอนปฏิบัติหลัก',
-                                                                             u'ผู้ร่วมสอนปฏิบัติ']],
+                                                                             u'ผู้ร่วมสอนปฏิบัติ',
+                                                                             u'ผู้คุมสอบ',
+                                                                             ]],
                                                 })

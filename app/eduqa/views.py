@@ -495,6 +495,19 @@ def add_session_detail(course_id, session_id):
     return render_template('eduqa/QA/staff/session_detail_edit.html', form=form, course=course, a_session=a_session)
 
 
+@edu.route('/qa/courses/<int:course_id>/sessions/<int:session_id>/instructor/<int:instructor_id>/detail')
+@login_required
+def view_session_detail(session_id, course_id, instructor_id):
+    instructor = EduQAInstructor.query.get(instructor_id)
+    a_session = EduQACourseSession.query.get(session_id)
+    course = EduQACourse.query.get(course_id)
+    session_detail = EduQACourseSessionDetail.query.filter_by(staff_id=current_user.id, session_id=session_id).first()
+    return render_template('eduqa/QA/staff/session_detail_view.html',
+                           instructor=instructor,
+                           course=course,
+                           session_detail=session_detail, a_session=a_session)
+
+
 @edu.route('/api/qa/courses/<int:course_id>/sessions/topics', methods=['POST'])
 @login_required
 def add_session_topic(course_id):
