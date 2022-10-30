@@ -1,18 +1,76 @@
 {% extends "base.html" %}
 {% block page_content %}
-     <section class="section">
+    <section class="section">
         <div class="container">
             {% include "messages.html" %}
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li>
+                        <a href="{{ url_for('procurement.committee_first') }}">
+                        <span class="icon is-small">
+                            <i class="fas fa-home" aria-hidden="true"></i>
+                        </span>
+                            <span>Home</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('procurement.qrcode_scan') }}">
+                        <span class="icon is-small">
+                            <i class="fas fa-qrcode" aria-hidden="true"></i>
+                        </span>
+                            <span>Scan QR Code</span>
+                        </a>
+                    </li>
+                    <li class="is-active">
+                        <a href="#">
+                        <span class="icon is-small">
+                            <i class="fas fa-check-square" aria-hidden="true"></i>
+                        </span>
+                            <span>Select</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
             <div class="columns">
                 <div class="column has-text-centered">
                     <h3 class="title is-3">Select Procurement</h3>
+                    <h4 class="subtitle is-size-6">เลือกรายการครุภัณฑ์ของรหัส: {{ procurement_no }}</h4>
                 </div>
             </div>
-            <ul>
-                {% for s in sub_items %}
-                    <li><a href="{{ url_for(next_view, procurement_id=s.id, **request_args ) }}">{{ s.erp_code }}: {{ s.name }}</a></li>
+            <table class="table is-fullwidth is-striped" id="table">
+                <thead>
+                <th></th>
+                <th>รายการ</th>
+                <th>Inventory Number/ERP</th>
+                </thead>
+                <tbody>
+                {% for sub in sub_items %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for(next_view, procurement_id=sub.id, **request_args ) }}"
+                               class="button is-small is-primary is-outlined">
+                            <span class="icon">
+                                <i class="fas fa-check"></i>
+                            </span>
+                            </a>
+                        </td>
+                        <td>{{ sub.name }}</td>
+                        <td>{{ sub.erp_code }}</td>
+                    </tr>
                 {% endfor %}
-            </ul>
+                </tbody>
+            </table>
         </div>
-     </section>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#table').DataTable({
+                "scrollX": true,
+                "pageLength": 10,
+            });
+        });
+    </script>
 {% endblock %}

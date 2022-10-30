@@ -640,7 +640,7 @@ def view_procurement_on_scan(procurement_no=None):
             item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
 
     return render_template('procurement/view_data_on_scan.html', item=item,
-                           procurement_no=item.procurement_no)
+                           procurement_no=item.procurement_no, url_callback=request.referrer)
 
 
 @procurement.route('/items/<int:procurement_id>/check', methods=['GET', 'POST'])
@@ -747,5 +747,5 @@ def view_sub_items(procurement_no):
     sub_items = ProcurementDetail.query.filter_by(procurement_no=procurement_no).all()
     next_view = request.args.get('next_view')
     return render_template('procurement/view_sub_items.html', next_view=next_view, sub_items=sub_items,
-                           request_args=request.args)
+                           request_args=request.args, procurement_no=procurement_no)
 
