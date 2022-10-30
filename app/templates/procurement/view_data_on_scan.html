@@ -95,7 +95,7 @@
                         <label class="label">ผลการตรวจสอบ: {{ item.current_record.approval.checking_result }}</label>
                         <label class="label">Comment: {{ item.current_record.approval.approval_comment }}</label>
                         <div class="buttons is-centered">
-                            <a href="{{ url_for('procurement.check_procurement', procurement_no=procurement_no) }}"
+                            <a href="{{ url_for('procurement.check_procurement', procurement_id=item.id) }}"
                                class="button is-success">แก้ไข</a>
                             <a href="{{ url_for('procurement.qrcode_scan') }}"
                                class="button is-warning">สแกนคิวอาร์โค้ด</a>
@@ -105,7 +105,7 @@
                     {% else %}
                         ยังไม่มีการตรวจสอบ
                         <div class="buttons is-centered">
-                            <a href="{{ url_for('procurement.check_procurement', procurement_no=procurement_no) }}"
+                            <a href="{{ url_for('procurement.check_procurement', procurement_id=item.id) }}"
                                class="button is-success">ตรวจสอบ</a>
                             <a href="{{ url_for('procurement.qrcode_scan') }}"
                                class="button is-warning">สแกนคิวอาร์โค้ด</a>
