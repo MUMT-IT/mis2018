@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block page_content %}
+     <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h3 class="title is-3">Select Procurement</h3>
+                </div>
+            </div>
+            <ul>
+                {% for s in sub_items %}
+                    <li><a href="{{ url_for(next_view, procurement_id=s.id, **request_args ) }}">{{ s.erp_code }}: {{ s.name }}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+     </section>
+{% endblock %}
