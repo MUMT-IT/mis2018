@@ -39,7 +39,6 @@
             </div>
             <table class="table is-fullwidth is-striped" id="table">
                 <thead>
-                <th></th>
                 <th>รายการ</th>
                 <th>Inventory Number/ERP</th>
                 </thead>
@@ -47,14 +46,10 @@
                 {% for sub in sub_items %}
                     <tr>
                         <td>
-                            <a href="{{ url_for(next_view, procurement_id=sub.id, **request_args ) }}"
-                               class="button is-small is-primary is-outlined">
-                            <span class="icon">
-                                <i class="fas fa-check"></i>
-                            </span>
-                            </a>
+                            <li>
+                                <a href="{{ url_for(next_view, procurement_id=sub.id, **request_args ) }}">{{ sub.name }}</a>
+                            </li>
                         </td>
-                        <td>{{ sub.name }}</td>
                         <td>{{ sub.erp_code }}</td>
                     </tr>
                 {% endfor %}
