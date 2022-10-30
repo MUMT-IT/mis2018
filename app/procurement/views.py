@@ -734,11 +734,22 @@ def update_location_and_status():
     return render_template('procurement/update_location_and_status.html')
 
 
+@procurement.route('/scan-qrcode/info/location-status')
 @procurement.route('/scan-qrcode/info/location-status/view/<string:procurement_no>')
-def view_location_and_status_on_scan(procurement_no):
-    item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first_or_404()
+def view_location_and_status_on_scan(procurement_no=None):
+    procurement_id = request.args.get('procurement_id')
+    if procurement_id:
+        item = ProcurementDetail.query.get(procurement_id)
+    if procurement_no:
+        item_count = ProcurementDetail.query.filter_by(procurement_no=procurement_no).count()
+        if item_count > 1:
+            return redirect(url_for('procurement.view_sub_items', procurement_no=procurement_no,
+                                    next_view="procurement.view_location_and_status_on_scan"))
+        else:
+            item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+
     return render_template('procurement/view_location_and_status_on_scan.html', item=item,
-                           procurement_no=item.procurement_no)
+                           procurement_no=item.procurement_no, url_callback=request.referrer)
 
 
 @procurement.route('/<string:procurement_no>/sub-items')
