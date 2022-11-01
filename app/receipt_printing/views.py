@@ -17,6 +17,7 @@ from .forms import *
 from .models import *
 from ..comhealth.models import ComHealthReceiptID
 from ..main import db
+from ..roles import finance_permission
 
 bangkok = pytz.timezone('Asia/Bangkok')
 
@@ -24,6 +25,7 @@ ALLOWED_EXTENSIONS = ['xlsx', 'xls']
 
 
 @receipt_printing.route('/index')
+@finance_permission.require()
 def index():
     return render_template('receipt_printing/index.html')
 
@@ -90,7 +92,7 @@ def list_add_items():
                item_form.comment.label, item_form.comment(class_="input"))
 
 
-@receipt_printing.route('/list/all', methods=['GET'])
+@receipt_printing.route('/list/receipts', methods=['GET'])
 def list_all_receipts():
     record = ElectronicReceiptDetail.query.all()
     return render_template('receipt_printing/list_all_receipts.html', record=record)
@@ -104,10 +106,9 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', align
 style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
 
 
-
-@receipt_printing.route('/receipts/pdf/blank')
-def export_blank_receipt_pdf():
-    # logo = Image('app/static/img/logo-MU_black-white-2-1.png', 60, 60)
+@receipt_printing.route('/receipts/pdf/<int:receipt_id>')
+def export_receipt_pdf(receipt_id):
+    receipt = ElectronicReceiptDetail.query.get(receipt_id)
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -121,8 +122,8 @@ def export_blank_receipt_pdf():
                             topMargin=20,
                             bottomMargin=10,
                             )
-    book_id = 'MTG000000'
-    receipt_number = 0
+    book_id = receipt.book_number
+    receipt_number = receipt.number
     data = []
     affiliation = '''<para align=center><font size=10>
     </font></para>
@@ -133,7 +134,7 @@ def export_blank_receipt_pdf():
 
     receipt_info = '''<font size=15>
     {original}</font><br/><br/>
-    <font size=11>
+    <font size=12>
     เล่มที่ / Book No. {book_id}<br/>
     เลขที่ / No. {receipt_number}<br/>
     วันที่ / Date {issued_date}
@@ -176,9 +177,9 @@ def export_blank_receipt_pdf():
     header_copy.hAlign = 'CENTER'
     header_copy.setStyle(header_styles)
     customer_name = '''<para><font size=12>
-    ได้รับเงินจาก / RECEIVED FROM {customer_name}
+    ได้รับเงินจาก / RECEIVED FROM {received_from}
     </font></para>
-    '''.format(customer_name='-')
+    '''.format(received_from=receipt.received_from.encode('utf-8'))
 
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
                     ]],
@@ -188,7 +189,7 @@ def export_blank_receipt_pdf():
                                   ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
     items = [[Paragraph('<font size=10>ลำดับ / No.</font>', style=style_sheet['ThaiStyleCenter']),
               Paragraph('<font size=10>รายการ / Description</font>', style=style_sheet['ThaiStyleCenter']),
-              Paragraph('<font size=10>รวม / Total</font>', style=style_sheet['ThaiStyleCenter']),
+              Paragraph('<font size=10>จำนวนเงิน / Amount</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
     total = 0
     price = 0
@@ -214,13 +215,13 @@ def export_blank_receipt_pdf():
         n += 1
 
     total_thai = bahttext(total)
-    total_text = "รวมเงินทั้งสิ้น {}".format(total_thai.encode('utf-8'))
+    total_text = "รวมเงินทั้งสิ้น/ TOTAL {}".format(total_thai.encode('utf-8'))
     items.append([
         Paragraph('<font size=12>{}</font>'.format(total_text), style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(total), style=style_sheet['ThaiStyleNumber'])
     ])
-    item_table = Table(items, colWidths=[40, 240, 70, 70, 70])
+    item_table = Table(items, colWidths=[50, 450, 75])
     item_table.setStyle(TableStyle([
         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
         ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
@@ -236,7 +237,21 @@ def export_blank_receipt_pdf():
     item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
     item_table.setStyle([('SPAN', (0, -1), (1, -1))])
 
-    payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
+    if receipt.payment_method == u'เงินสด':
+        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
+    elif receipt.payment_method == u'บัตรเครดิต':
+        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: บัตรเครดิต / CREDIT CARD NUMBER {}-****-****-{}</font>'.format(receipt.card_number[:4], receipt.card_number[-4:]),
+                                 style=style_sheet['ThaiStyle'])
+    elif receipt.payment_method == u'Scan QR Code':
+        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: สแกนคิวอาร์โค้ด / SCAN QR CODE</font>', style=style_sheet['ThaiStyle'])
+    elif receipt.payment_method == u'โอนผ่านระบบธนาคารอัตโนมัติ':
+        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: โอนผ่านระบบธนาคารอัตโนมัติ / TRANSFER TO BANK</font>',
+                                 style=style_sheet['ThaiStyle'])
+    elif receipt.payment_method == u'เช็คสั่งจ่าย':
+        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: เช็คสั่งจ่าย / CHEQUE NUMBER{}</font>'.format(receipt.cheque_number),
+                                 style=style_sheet['ThaiStyle'])
+    else:
+        payment_info = Paragraph('<font size=11>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])
 
     total_content = [[payment_info,
                       Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -245,8 +260,8 @@ def export_blank_receipt_pdf():
     total_table = Table(total_content, colWidths=[300, 150, 50])
 
     notice_text = '''<para align=center><font size=10>
-    ใบเสร็จฉบับนี้จะสมบูรณ์เมื่อมีลายมือชื่อผู้รับเงินเท่านั้น / The receipt is not completed without the cashier's signature.
-    <br/>*สิทธิการเบิกตามระเบียบกระทรวงการคลัง / Reimbursement is in accordance with the regulation of the Ministry of Finance.</font></para>
+    กรณีชำระด้วยเช็ค ใบเสร็จรับเงินฉบับนี้จะสมบูรณ์ต่อเมื่อ เรียกเก็บเงินได้ตามเช็คเรียบร้อยแล้ว <br/> In case of cheque payment, a receipt will be completed as cheque clearing is completed.
+    <br/>เอกสารนี้พิมพ์จากคอมพิวเตอร์</font></para>
     '''
     notice = Table([[Paragraph(notice_text, style=style_sheet['ThaiStyle'])]])
 
@@ -254,7 +269,8 @@ def export_blank_receipt_pdf():
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbspลงชื่อ ............................................ ผู้รับเงิน / Cashier<br/>
     ({})<br/>
     ตำแหน่ง / Position {}
-    </font></para>'''.format('-', '-')
+    </font></para>'''.format(receipt.issuer.staff.personal_info.fullname.encode('utf-8'),
+                             receipt.issuer.position.encode('utf-8'))
 
     if request.args.get('receipt_copy') == 'copy':
         data.append(header_copy)
