@@ -92,7 +92,13 @@
                             </tr>
                             <tr>
                                 <td><label class="label">ราคา</label></td>
-                                <td>{{ item.price }}</td>
+                                <td>
+                                    {% if item.price=="-"or""%}
+                                        {{ item.curr_acq_value }}
+                                    {% else %}
+                                        {{ item.price }}
+                                    {% endif %}
+                                </td>
                             </tr>
                             <tr>
                                 <td><label class="label">วันที่ได้รับ</label></td>

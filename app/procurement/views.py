@@ -625,17 +625,28 @@ def qrcode_scan():
     return render_template('procurement/qr_scanner.html')
 
 
-@procurement.route('/scan-qrcode/info/view/<string:procurement_no>')
-def view_procurement_on_scan(procurement_no):
-    item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first_or_404()
+@procurement.route('/scan-qrcode/info/view')
+@procurement.route('/scan-qrcode/info/view/procurement_no/<string:procurement_no>')
+def view_procurement_on_scan(procurement_no=None):
+    procurement_id = request.args.get('procurement_id')
+    if procurement_id:
+        item = ProcurementDetail.query.get(procurement_id)
+    if procurement_no:
+        item_count = ProcurementDetail.query.filter_by(procurement_no=procurement_no).count()
+        if item_count > 1:
+            return redirect(url_for('procurement.view_sub_items', procurement_no=procurement_no,
+                                    next_view="procurement.view_procurement_on_scan"))
+        else:
+            item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+
     return render_template('procurement/view_data_on_scan.html', item=item,
-                           procurement_no=item.procurement_no)
+                           procurement_no=item.procurement_no, url_callback=request.referrer)
 
 
-@procurement.route('/items/<string:procurement_no>/check', methods=['GET', 'POST'])
+@procurement.route('/items/<int:procurement_id>/check', methods=['GET', 'POST'])
 @login_required
-def check_procurement(procurement_no):
-    procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+def check_procurement(procurement_id):
+    procurement = ProcurementDetail.query.get(procurement_id)
     approval = procurement.current_record.approval
     if approval:
         form = ProcurementApprovalForm(obj=approval)
@@ -651,8 +662,8 @@ def check_procurement(procurement_no):
             db.session.add(approval)
             db.session.commit()
             flash(u'ตรวจสอบเรียบร้อย.', 'success')
-        return redirect(url_for('procurement.view_procurement_on_scan', procurement_no=procurement_no))
-    return render_template('procurement/approval_by_committee.html', form=form, procurement_no=procurement_no)
+        return redirect(url_for('procurement.view_procurement_on_scan', procurement_no=procurement.procurement_no))
+    return render_template('procurement/approval_by_committee.html', form=form, procurement_no=procurement.procurement_no)
 
 
 @procurement.route('/item/image/view')
@@ -723,8 +734,29 @@ def update_location_and_status():
     return render_template('procurement/update_location_and_status.html')
 
 
+@procurement.route('/scan-qrcode/info/location-status')
 @procurement.route('/scan-qrcode/info/location-status/view/<string:procurement_no>')
-def view_location_and_status_on_scan(procurement_no):
-    item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first_or_404()
+def view_location_and_status_on_scan(procurement_no=None):
+    procurement_id = request.args.get('procurement_id')
+    if procurement_id:
+        item = ProcurementDetail.query.get(procurement_id)
+    if procurement_no:
+        item_count = ProcurementDetail.query.filter_by(procurement_no=procurement_no).count()
+        if item_count > 1:
+            return redirect(url_for('procurement.view_sub_items', procurement_no=procurement_no,
+                                    next_view="procurement.view_location_and_status_on_scan"))
+        else:
+            item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+
     return render_template('procurement/view_location_and_status_on_scan.html', item=item,
-                           procurement_no=item.procurement_no)
+                           procurement_no=item.procurement_no, url_callback=request.referrer)
+
+
+@procurement.route('/<string:procurement_no>/sub-items')
+@login_required
+def view_sub_items(procurement_no):
+    sub_items = ProcurementDetail.query.filter_by(procurement_no=procurement_no).all()
+    next_view = request.args.get('next_view')
+    return render_template('procurement/view_sub_items.html', next_view=next_view, sub_items=sub_items,
+                           request_args=request.args, procurement_no=procurement_no)
+

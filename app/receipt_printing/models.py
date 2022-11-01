@@ -40,7 +40,7 @@ class ElectronicReceiptDetail(db.Model):
     cashier = db.relationship('ElectronicReceiptCashier', foreign_keys=[cashier_id])
     payment_method = db.Column('payment_method', db.String(), info={'label': u'ช่องทางการชำระเงิน',
                                 'choices': [(c, c) for c in
-                                [u'เงินสด', u'บัตรเครดิต', u'Scan QR Code', u'โอนผ่านระบบธนาคารอัตโนมัติ', u'เช็คสั่งจ่าย', u'อื่นๆ' ]]})
+                                ['Select..', u'เงินสด', u'บัตรเครดิต', u'Scan QR Code', u'โอนผ่านระบบธนาคารอัตโนมัติ', u'เช็คสั่งจ่าย', u'อื่นๆ' ]]})
     paid_amount = db.Column('paid_amount', db.Numeric(), default=0.0)
     card_number = db.Column('card_number', db.String(16), info={'label': u'เลขบัตรเครดิต'})
     cheque_number = db.Column('cheque_number', db.String(), info={'label': u'เช็คเลขที่'})
@@ -56,5 +56,5 @@ class ElectronicReceiptItem(db.Model):
     receipt_id = db.Column('receipt_id', db.ForeignKey('electronic_receipt_details.id'))
     receipt_detail = db.relationship('ElectronicReceiptDetail',
                            backref=db.backref('items', cascade='all, delete-orphan'))
-    price = db.Column('price', db.Numeric(), default=0.0)
-    comment = db.Column('comment', db.Text())
+    price = db.Column('price', db.Numeric(), default=0.0, info={'label': u'ราคา'})
+    comment = db.Column('comment', db.Text(), info={'label': u'หมายเหตุ'})

@@ -2131,6 +2131,7 @@ def attend_download(seminar_id):
     for attend in attends:
         records.append({
             u'ชื่อ-นามสกุล': u"{}".format(attend.staff.personal_info.fullname),
+            'Email': u"{}".format(attend.staff.email),
             u'หน่วยงาน/ภาควิชา': u"{}".format(attend.staff.personal_info.org.name),
             u'ประเภทการเข้าร่วม': u"{}".format(attend.role),
             u'วัน-เวลา': u"{}".format(attend.start_datetime.astimezone(tz).isoformat()),

@@ -36,7 +36,7 @@
                                 </div>
                             {% endfor %}
                         </p>
-                        <div id="items"></div>
+                        <div id="items"></div><br>
                         <button type="button" hx-post="{{ url_for('receipt_printing.list_add_items') }}"
                                 hx-target="#items" hx-swap="beforeend">เพิ่มรายการ
                         </button>
@@ -54,22 +54,22 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="field">
+                        <div class="field" id="card-no">
                             <label class="label">{{ form.card_number.label }}</label>
                             <div class="control">
                                 {{ form.card_number(class="input", id="card-no") }}
                             </div>
                         </div>
-                        <div class="field">
+                        <div class="field" id="cheque-no">
                             <label class="label">เช็คเลขที่</label>
                             <div class="control">
                                 {{ form.cheque_number(class="input", id="cheque-no") }}
                             </div>
                         </div>
-                        <div class="field">
+                        <div class="field" id="other_payment_method">
                             <label class="label">ช่องทางการชำระเงินอื่นๆ</label>
                             <div class="control">
-                                {{ form.other_payment_method(class="input") }}
+                                {{ form.other_payment_method(class="input", id="other_payment_method") }}
                             </div>
                         </div>
                         <div class="field">
@@ -117,42 +117,31 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    {#    <script>#}
-    {#        $(document).ready(function () {#}
-    {#            var max_input_fields = 10;#}
-    {#            var add_input = $('.add-item');#}
-    {#            var input_ = $('.input');#}
-    {#            var new_input = '<div><input type="text" name="field[]" value=""/><a href="javascript:void(0);" ' +#}
-    {#                'class="remove-input" title="Remove input"></a></div>';#}
-    {#            var add_input_count = 1;#}
-    {#            $(add_input).click(function () {#}
-    {#                if (add_input_count < max_input_fields) {#}
-    {#                    add_input_count++;#}
-    {#                    $(input_).append(new_input);#}
-    {#                }#}
-    {#            });#}
-    {#            $(input_).on('click', '.remove-input', function (e) {#}
-    {#                e.preventDefault();#}
-    {#                $(this).parent('div').remove();#}
-    {#                add_input_count--;#}
-    {#            });#}
-    {#        });#}
-    {#    </script>#}
     <script>
         $(document).ready(() => {
             $('#card-no').hide()
             $('#cheque-no').hide()
             $('#other_payment_method').hide()
             $('#payment_method').change(e => {
-                if ($('#payment_method').val() !== null) {
+                $('#card-no').hide()
+                $('#cheque-no').hide()
+                $('#other_payment_method').hide()
+                if ($('#payment_method').val() === "บัตรเครดิต") {
                     $('#card-no').show()
                 } else {
                     $('#card-no').hide()
                 }
+                if ($('#payment_method').val() === "เช็คสั่งจ่าย") {
+                    $('#cheque-no').show()
+                } else {
+                    $('#cheque-no').hide()
+                }
+                if ($('#payment_method').val() === "อื่นๆ") {
+                    $('#other_payment_method').show()
+                } else {
+                    $('#other_payment_method').hide()
+                }
             })
-            if ($('#payment_method').val() === null) {
-                $('#card-no').show()
-            }
         })
     </script>
 {% endblock %}
