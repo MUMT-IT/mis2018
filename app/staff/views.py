@@ -344,9 +344,11 @@ def request_for_leave(quota_id=None):
         delta = current_user.personal_info.get_employ_period()
         max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
 
-        this_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=current_user, fiscal_year=END_FISCAL_DATE.year).first()
+        this_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=current_user, fiscal_year=END_FISCAL_DATE.year,
+                                                              leave_type_id=quota_id).first()
         last_year_quota = StaffLeaveUsedQuota.query.filter_by(staff=current_user,
-                                                              fiscal_year=END_FISCAL_DATE.year-1).first()
+                                                              fiscal_year=END_FISCAL_DATE.year-1,
+                                                              leave_type_id=quota_id).first()
         if delta.years > 0:
             if max_cum_quota:
                 if this_year_quota:
