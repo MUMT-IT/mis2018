@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block head %}
+{{ super() }}
+
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">ข้อมูลห้อง</h1>
+            </div>
+            <div class="buttons is-centered">
+                <a class="button is-success"
+                   href="{{ url_for('procurement.add_room_ref') }}">
+                    <span class="icon">
+                        <i class="fas fa-plus-square"></i>
+                    </span>
+                    <span>Add Room</span>
+                </a>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-fullwidth is-striped" id="Table">
+                    <thead>
+                        <th>สถานที่</th>
+                        <th>ห้อง</th>
+                        <th>ชั้น</th>
+                        <th>คำอธิบาย</th>
+                        <th>Edit</th>
+                        <th>Delete</th>
+                    </thead>
+                    <tbody>
+                    {% for record in room_list %}
+                    <tr>
+                        <td>
+                            {{ record["location"] }}
+                        </td>
+                        <td>
+                            {{ record["number"] }}
+                        </td>
+                        <td>
+                            {{ record["floor"] }}
+                        </td>
+                        <td>
+                            {{ record["desc"] }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('procurement.edit_room', room_id=record.id) }}"
+                               class="button is-small is-info is-outlined">
+                                <span class="icon">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </span>
+                                <span>แก้ไข</span>
+                            </a>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('procurement.delete_room', room_id=record.id) }}"
+                               class="button is-small is-danger is-outlined">
+                                <span class="icon">
+                                    <i class="far fa-trash-alt"></i>
+                                </span>
+                                <span>ลบ</span>
+                            </a>
+                        </td>
+
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('procurement.landing') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#Table').DataTable();
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Room Page{% endblock %}
+{% include "procurement/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">Add Room</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                <form method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">สถานที่</label>
+                        <div class="control">
+                            {{ form.location(class="input", placeholder="ศาลายา/ศิริราช") }}
+                        </div>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <label class="label">เลขห้อง</label>
+                            <div class="control">
+                                {{ form.number(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">ชั้น</label>
+                            <div class="control">
+                                {{ form.floor(class="input") }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">จำนวน(คน)</label>
+                        <div class="control">
+                            {{ form.occupancy(class="input") }}
+                        </div>
+                        <p class="help is-danger">Required</p>
+                    </div>
+                    <div class="field">
+                        <label class="label">คำอธิบาย</label>
+                        <div class="control">
+                            {{ form.desc(class="textarea") }}
+                        </div>
+                    </div>
+                    <br>
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="buttons">
+                            <button class="button is-success" type="submit" value="submit">บันทึก</button>
+                            <a href="{{ url_callback }}" class="button is-danger">ยกเลิก</a>
+                        </div>
+                    </div>
+                    <hr>
+                    </form>
+                </div>
+             </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
