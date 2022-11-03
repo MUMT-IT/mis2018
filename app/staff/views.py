@@ -3395,3 +3395,9 @@ def create_qrcode(account_id):
 @login_required
 def show_qrcode():
     return render_template('staff/qrcode.html')
+
+
+@staff.route('/users/pa_index')
+@login_required
+def pa_index():
+    return render_template('staff/pa_index.html')
