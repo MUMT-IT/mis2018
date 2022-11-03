@@ -177,13 +177,15 @@ def export_receipt_pdf(receipt_id):
     header_copy.hAlign = 'CENTER'
     header_copy.setStyle(header_styles)
     customer_name = '''<para><font size=12>
-    ได้รับเงินจาก / RECEIVED FROM {received_from}
+    ได้รับเงินจาก / RECEIVED FROM {received_from}<br/>
+    ที่อยู่ / ADDRESS {address}
     </font></para>
-    '''.format(received_from=receipt.received_from.encode('utf-8'))
+    '''.format(received_from=receipt.received_from.encode('utf-8'),
+               address=receipt.address.encode('utf-8'))
 
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
                     ]],
-                     colWidths=[300, 200]
+                     colWidths=[580, 200]
                      )
     customer.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
                                   ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
@@ -248,7 +250,7 @@ def export_receipt_pdf(receipt_id):
         payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: โอนผ่านระบบธนาคารอัตโนมัติ / TRANSFER TO BANK</font>',
                                  style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == u'เช็คสั่งจ่าย':
-        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: เช็คสั่งจ่าย / CHEQUE NUMBER{}</font>'.format(receipt.cheque_number),
+        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: เช็คสั่งจ่าย / CHEQUE NUMBER {}****</font>'.format(receipt.cheque_number[:4]),
                                  style=style_sheet['ThaiStyle'])
     else:
         payment_info = Paragraph('<font size=11>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])
@@ -277,8 +279,8 @@ def export_receipt_pdf(receipt_id):
     else:
         data.append(header_ori)
 
-    data.append(Paragraph('<para align=center><font size=18>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
-                          style=style_sheet['ThaiStyle']))
+    # data.append(Paragraph('<para align=center><font size=18>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
+    #                       style=style_sheet['ThaiStyle']))
     data.append(customer)
     data.append(Spacer(1, 12))
     data.append(Spacer(1, 6))
