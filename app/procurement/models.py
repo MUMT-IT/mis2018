@@ -13,9 +13,9 @@ class ProcurementDetail(db.Model):
     name = db.Column('name', db.String(), nullable=False, info={'label': u'ชื่อครุภัณฑ์'})
     image = db.Column('image', db.Text(), info={'label': u'รูปภาพ'})
     qrcode = db.Column('qrcode', db.Text(), info={'label': 'QR Code'})
-    procurement_no = db.Column('procurement_no', db.String(), nullable=False, info={'label': u'เลขครุภัณฑ์'})
+    procurement_no = db.Column('procurement_no', db.String(12), nullable=False, info={'label': u'เลขครุภัณฑ์'})
     document_no = db.Column('document_no', db.String(), info={'label': u'เอกสารสั่งซื้อเลขที่'})
-    erp_code = db.Column('erp_code', db.String(), nullable=False, unique=True, info={'label': u'Inventory Number/ERP'})
+    erp_code = db.Column('erp_code', db.String(22), nullable=True, unique=True, info={'label': u'Inventory Number/ERP'})
     serial_no = db.Column('serial_no', db.String(), info={'label': u'Serial Number'})
     bought_by = db.Column('bought_by', db.String(), info={'label': u'วิธีการจัดซื้อ', 'choices': [(c, c) for c in
                                                                                   [u'--โปรดเลือกวิธีการจัดซื้อ--',
@@ -47,7 +47,7 @@ class ProcurementDetail(db.Model):
                                                     cascade='all, delete-orphan'))
     sub_number = db.Column('sub_number', db.Integer(), info={'label': 'Sub Number'})
     curr_acq_value = db.Column('curr_acq_value', db.Float(), info={'label': u'มูลค่าที่ได้มา(>10,000)'})
-    cost_center = db.Column('cost_center', db.String(), info={'label': u'ศูนย์ต้นทุน'})
+    cost_center = db.Column('cost_center', db.String(8), info={'label': u'ศูนย์ต้นทุน'})
 
     def __str__(self):
         return u'{}: {}'.format(self.name, self.procurement_no)
