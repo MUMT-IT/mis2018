@@ -24,10 +24,10 @@
                             {% if requester.start_datetime.date() >= START_FISCAL_DATE.date() %}
                             <tr>
                                 <td>
-                                    {{ requester.start_datetime|localdate }}
+                                    {{ requester.start_datetime.date() }}
                                 </td>
                                 <td>
-                                    {{ requester.end_datetime|localdate }}
+                                    {{ requester.end_datetime.date() }}
                                 </td>
                                 <td>
                                     {{ requester.total_leave_days }}
@@ -79,10 +79,10 @@
                             {% if requester.start_datetime.date() >= START_FISCAL_DATE.date() %}
                             <tr>
                                 <td>
-                                    {{ requester.start_datetime|localdate }}
+                                    {{ requester.start_datetime.date() }}
                                 </td>
                                 <td>
-                                    {{ requester.end_datetime|localdate }}
+                                    {{ requester.end_datetime.date() }}
                                 </td>
                                 <td>
                                     {{ requester.total_leave_days }}
@@ -120,10 +120,10 @@
                         {% if not requester.cancelled_at and requester.get_approved or requester.get_unapproved %}
                         <tr>
                             <td>
-                                {{ requester.start_datetime|localdate }}
+                                {{ requester.start_datetime.date() }}
                             </td>
                             <td>
-                                {{ requester.end_datetime|localdate }}
+                                {{ requester.end_datetime.date() }}
                             </td>
                             <td>
                                 {{ requester.total_leave_days }}
@@ -173,10 +173,10 @@
                         {% if not requester.get_unapproved %}
                         <tr>
                             <td>
-                                {{ requester.start_datetime|localdate }}
+                                {{ requester.start_datetime.date() }}
                             </td>
                             <td>
-                                {{ requester.end_datetime|localdate }}
+                                {{ requester.end_datetime.date() }}
                             </td>
                             <td>
                                 {{ requester.total_leave_days }}
