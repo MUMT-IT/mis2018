@@ -13,6 +13,18 @@
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <p>
+                        <div class="field">
+                            <label class="label">ที่อยู่ในใบเสร็จรับเงิน</label>
+                            <div class="control">
+                                {{ form.address(class="textarea") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">ได้รับเงินจาก</label>
+                            <div class="control">
+                                {{ form.received_from(class="input") }}
+                            </div>
+                        </div>
                             {% for i in form.items %}
                                 <div class="field">
                                     <label class="label">รายการ</label>
@@ -39,6 +51,10 @@
                         <div id="items"></div><br>
                         <button type="button" hx-post="{{ url_for('receipt_printing.list_add_items') }}"
                                 hx-target="#items" hx-swap="beforeend">เพิ่มรายการ
+                        </button>
+                        <button type="button" hx-post="{{ url_for('receipt_printing.delete_items') }}"
+                                hx-target="#items" hx-swap="outerHTML swap:1s" hx-delete="/contact/1"
+                                hx-confirm="Are you sure to delete?">ลบรายการ
                         </button>
                         <div class="field-body">
                             <div class="field">
@@ -73,21 +89,9 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">ได้รับเงินจาก</label>
-                            <div class="control">
-                                {{ form.received_from(class="input") }}
-                            </div>
-                        </div>
-                        <div class="field">
                             <label class="label">หมายเหตุรายละเอียด</label>
                             <div class="control">
                                 {{ form.comment(class="input") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">ที่อยู่ในใบเสร็จรับเงิน</label>
-                            <div class="control">
-                                {{ form.address(class="textarea") }}
                             </div>
                         </div>
                         <div class="field">
