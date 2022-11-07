@@ -92,6 +92,18 @@ def list_add_items():
                item_form.comment.label, item_form.comment(class_="input"))
 
 
+@receipt_printing.route('/receipt/create/items-delete', methods=['POST', 'GET'])
+def delete_items():
+    form = ReceiptDetailForm()
+    form.items.append_entry()
+    item_form = form.items[-1]
+    for item in item_form:
+        print(item)
+    form.items.pop_entry()
+    return '''
+    '''
+
+
 @receipt_printing.route('/list/receipts', methods=['GET'])
 def list_all_receipts():
     record = ElectronicReceiptDetail.query.all()
@@ -250,7 +262,7 @@ def export_receipt_pdf(receipt_id):
         payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: โอนผ่านระบบธนาคารอัตโนมัติ / TRANSFER TO BANK</font>',
                                  style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == u'เช็คสั่งจ่าย':
-        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: เช็คสั่งจ่าย / CHEQUE NUMBER {}****</font>'.format(receipt.cheque_number[:4]),
+        payment_info = Paragraph('<font size=14>ชำระโดย / PAYMENT METHOD: เช็คสั่งจ่าย / CHEQUE NUMBER {}****</font>'.format(receipt.cheque_number[:4]),
                                  style=style_sheet['ThaiStyle'])
     else:
         payment_info = Paragraph('<font size=11>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])
