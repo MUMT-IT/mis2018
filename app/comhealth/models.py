@@ -420,7 +420,7 @@ class ComHealthReceiptID(db.Model):
         while count > RECEIPT_PER_BOOK:
             count -= RECEIPT_PER_BOOK
             number += 1
-        return u'{}{}{:03}'.format(self.code, str(self.buddhist_year)[-2:], number)
+        return u'{}{}{:05}'.format(self.code, u'-', number)
 
 
 class ComHealthReceipt(db.Model):
