@@ -11,9 +11,8 @@
                             <th>ออกวันที่</th>
                             <th>จำนวนรายการ</th>
                             <th>จำนวนครั้งที่พิมพ์</th>
-                            <th>การจ่ายเงิน</th>
                             <th>พิมพ์ใบเสร็จ</th>
-                            <th>รายละเอียด</th>
+                            <th>ยกเลิกใบเสร็จ</th>
                             <th>หมายเหตุ</th>
                             <th>สถานะ</th>
                             <th>สาเหตุของการยกเลิก</th>
@@ -26,26 +25,17 @@
                                 <td>{{ r.created_datetime|localdatetime }}</td>
                                 <td></td>
                                 <td>{{ r.copy_number - 1 }}</td>
-                                <td>
-                                    <span class="icon">
-                                    {% if r.paid %}
-                                        <i class="far fa-check-circle has-text-success"></i>
-                                    {% else %}
-                                        <i class="far fa-times-circle has-text-danger"></i>
-                                    {% endif %}
-                                    </span>
-                                </td>
                                 <td><a href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=r.id) }}">
                                         <span class="icon">
                                             <i class="fas fa-print"></i>
                                         </span>
                                     </a>
                                 </td>
-                                <td><a href="">
+                                <td><a href="{{ url_for('receipt_printing.confirm_cancel_receipt', receipt_id=r.id) }}">
                                         <span class="icon">
-                                            <i class="far fa-eye"></i>
+                                            <i class="far fa-times-circle has-text-danger"></i>
                                         </span>
-                                        <span>View</span>
+                                        <span>cancel</span>
                                     </a>
                                 </td>
                                 <td>{{ r.comment or '' }}</td>
