@@ -40,14 +40,14 @@ def create_receipt():
     action = request.args.get('action')
     form = ReceiptDetailForm()
     cashiers = ElectronicReceiptCashier.query.all()
-    cur_year = datetime.today().date().year + 543
-    receipt_book = ComHealthReceiptID.query.filter_by(buddhist_year=cur_year, code='MTG').first()
+    receipt_book = ComHealthReceiptID.query.filter_by(code='MTG').first()
 
     if form.validate_on_submit():
         if action == 'add-items':
             form.items.append_entry()
             return render_template('receipt_printing/new_receipt.html', form=form, cashiers=cashiers)
         receipt_detail = ElectronicReceiptDetail()
+
         # receipt_detail.created_datetime = datetime.now(tz=bangkok)
         form.populate_obj(receipt_detail)  #insert data from Form to Model
         receipt_detail.number = receipt_book.next
@@ -308,3 +308,21 @@ def export_receipt_pdf(receipt_id):
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
 
     return send_file('receipt.pdf')
+
+
+@receipt_printing.route('/receipts/cancel/confirm/<int:receipt_id>', methods=['GET', 'POST'])
+def confirm_cancel_receipt(receipt_id):
+    receipt = ElectronicReceiptDetail.query.get(receipt_id)
+    if not receipt.cancelled:
+        return render_template('receipt_printing/confirm_cancel_receipt.html', receipt=receipt)
+    return redirect(url_for('receipt_printing.list_all_receipts'))
+
+
+@receipt_printing.route('receipts/cancel/<int:receipt_id>', methods=['POST'])
+def cancel_receipt(receipt_id):
+    receipt = ElectronicReceiptDetail.query.get(receipt_id)
+    receipt.cancelled = True
+    receipt.cancel_comment = request.form.get('comment')
+    db.session.add(receipt)
+    db.session.commit()
+    return redirect(url_for('receipt_printing.list_all_receipts'))
