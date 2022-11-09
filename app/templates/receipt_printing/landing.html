@@ -51,13 +51,18 @@
                         </a>
                     </div>
                     </span>
-                    <span class="navbar-item">
-                    <a class="button is-dark is-outlined" href="#">
+                     <span class="navbar-item is-hoverable">
+                    <a class="button is-dark is-outlined">
                         <span class="icon">
                             <i class="fas fa-bookmark"></i>
                         </span>
                         <span>Report</span>
                     </a>
+                    <div class="navbar-dropdown">
+                        <a class="navbar-item" href="{{ url_for('receipt_printing.daily_payment_report') }}">
+                            รายงานการรับเงินประจำวัน
+                        </a>
+                    </div>
                     </span>
                     <span class="navbar-item">
                     <a class="button is-dark is-outlined" href="{{ url_for('receipt_printing.index') }}">
