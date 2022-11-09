@@ -46,8 +46,12 @@ def create_receipt():
         if action == 'add-items':
             form.items.append_entry()
             return render_template('receipt_printing/new_receipt.html', form=form, cashiers=cashiers)
-        receipt_detail = ElectronicReceiptDetail()
+        total_price = 0
+        for price in form.price:
+            total_price += price
 
+        receipt_detail = ElectronicReceiptDetail()
+        receipt_detail.paid_amount = total_price
         # receipt_detail.created_datetime = datetime.now(tz=bangkok)
         form.populate_obj(receipt_detail)  #insert data from Form to Model
         receipt_detail.number = receipt_book.next
@@ -326,3 +330,9 @@ def cancel_receipt(receipt_id):
     db.session.add(receipt)
     db.session.commit()
     return redirect(url_for('receipt_printing.list_all_receipts'))
+
+
+@receipt_printing.route('/daily/payment/report')
+def daily_payment_report():
+    record = ElectronicReceiptDetail.query.all()
+    return render_template('receipt_printing/daily_payment_report.html', record=record)
