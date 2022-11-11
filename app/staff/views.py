@@ -1306,7 +1306,7 @@ def record_each_request_leave_request(request_id):
 @staff.route('/leave/requests/search')
 @login_required
 def search_leave_request_info():
-    reqs = StaffLeaveRequest.query.all()
+    reqs = StaffLeaveRequest.query.filter(StaffLeaveRequest.cancelled_at == None).all()
     record_schema = StaffLeaveRequestSchema(many=True)
     return jsonify(record_schema.dump(reqs).data)
 
@@ -1368,7 +1368,9 @@ def leave_request_result_by_person():
     if org_id is None:
         account_query = StaffAccount.query.all()
     else:
-        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id))
+        account_query = StaffAccount.query.filter(StaffAccount.personal_info.has(org_id=org_id)) \
+                                          .filter(or_(StaffAccount.personal_info.has(retired=False),
+                                                      StaffAccount.personal_info.has(retired=None)))
     for account in account_query:
         # record = account.personal_info.get_remaining_leave_day
         record = {}
@@ -1385,12 +1387,11 @@ def leave_request_result_by_person():
         for leave_remain in leave_types_r:
             record[leave_remain] = 0
         quota = StaffLeaveQuota.query.filter_by(employment_id=account.personal_info.employment_id).all()
-        #ค่ามันไม่ใส่ตรงตามช่อง เช่น pending ไปใส่ใน total
+        #ค่ามันไม่ใส่ตรงตามช่อง เช่น pending ไปใส่ใน total ค่า total บางคนครบ3 type
         for quota in quota:
            leave_type = quota.leave_type.type_
            leave_remain = quota.leave_type.type_
            if fiscal_year:
-               fiscal_year = fiscal_year
                used_quota = StaffLeaveUsedQuota.query.filter_by(staff=account,leave_type_id=quota.leave_type_id,
                                                                 fiscal_year=fiscal_year).first()
                if used_quota:
