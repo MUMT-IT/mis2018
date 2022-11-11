@@ -1,9 +1,11 @@
 # -*- coding:utf-8 -*-
+import os
 from datetime import datetime
 
 import pytz
 from bahttext import bahttext
-from flask import render_template, request, flash, redirect, url_for, send_file
+from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory
+from pandas import DataFrame
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -256,17 +258,17 @@ def export_receipt_pdf(receipt_id):
     item_table.setStyle([('SPAN', (0, -1), (1, -1))])
 
     if receipt.payment_method == u'เงินสด':
-        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
+        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == u'บัตรเครดิต':
-        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: บัตรเครดิต / CREDIT CARD NUMBER {}-****-****-{}</font>'.format(receipt.card_number[:4], receipt.card_number[-4:]),
+        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: บัตรเครดิต / CREDIT CARD NUMBER {}-****-****-{}</font>'.format(receipt.card_number[:4], receipt.card_number[-4:]),
                                  style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == u'Scan QR Code':
-        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: สแกนคิวอาร์โค้ด / SCAN QR CODE</font>', style=style_sheet['ThaiStyle'])
+        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: สแกนคิวอาร์โค้ด / SCAN QR CODE</font>', style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == u'โอนผ่านระบบธนาคารอัตโนมัติ':
-        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: โอนผ่านระบบธนาคารอัตโนมัติ / TRANSFER TO BANK</font>',
+        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: โอนผ่านระบบธนาคารอัตโนมัติ / TRANSFER TO BANK</font>',
                                  style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == u'เช็คสั่งจ่าย':
-        payment_info = Paragraph('<font size=14>ชำระโดย / PAYMENT METHOD: เช็คสั่งจ่าย / CHEQUE NUMBER {}****</font>'.format(receipt.cheque_number[:4]),
+        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: เช็คสั่งจ่าย / CHEQUE NUMBER {}****</font>'.format(receipt.cheque_number[:4]),
                                  style=style_sheet['ThaiStyle'])
     else:
         payment_info = Paragraph('<font size=11>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])
@@ -278,7 +280,7 @@ def export_receipt_pdf(receipt_id):
     total_table = Table(total_content, colWidths=[300, 150, 50])
 
     notice_text = '''<para align=center><font size=10>
-    กรณีชำระด้วยเช็ค ใบเสร็จรับเงินฉบับนี้จะสมบูรณ์ต่อเมื่อ เรียกเก็บเงินได้ตามเช็คเรียบร้อยแล้ว <br/> In case of cheque payment, a receipt will be completed as cheque clearing is completed.
+    กรณีชำระด้วยเช็ค ใบเสร็จรับเงินฉบับนี้จะสมบูรณ์ต่อเมื่อ เรียกเก็บเงินได้ตามเช็คเรียบร้อยแล้ว <br/> If paying by cheque, a receipt will be completed upon receipt of the cheque complete.
     <br/>เอกสารนี้พิมพ์จากคอมพิวเตอร์</font></para>
     '''
     notice = Table([[Paragraph(notice_text, style=style_sheet['ThaiStyle'])]])
@@ -336,3 +338,37 @@ def cancel_receipt(receipt_id):
 def daily_payment_report():
     record = ElectronicReceiptDetail.query.all()
     return render_template('receipt_printing/daily_payment_report.html', record=record)
+
+
+@receipt_printing.route('/daily/payment/report/download')
+def download_daily_payment_report():
+    records = []
+    receipt_record = ElectronicReceiptDetail.query.all()
+
+    for receipt in receipt_record:
+        records.append({
+            u'เล่มที่': u"{}".format(receipt.book_number),
+            u'เลขที่': u"{}".format(receipt.number),
+            u'ช่องทางการชำระเงิน': u"{}".format(receipt.payment_method),
+            u'เลขที่บัตรเครดิต': u"{}".format(receipt.card_number),
+            u'เลขที่เช็ค': u"{}".format(receipt.cheque_number),
+            u'ชื่อผู้ชำระเงิน': u"{}".format(receipt.received_from),
+            u'ผู้รับเงิน/ผู้บันทึก': u"{}".format(receipt.cashier),
+            u'ตำแหน่ง': u"{}".format(receipt.issuer.staff.personal_info.fullname),
+            u'หมายเหตุ': u"{}".format(receipt.comment),
+        })
+    df = DataFrame(records)
+    df.to_excel('daily_payment_report.xlsx',
+                header=True,
+                columns=[u'เล่มที่',
+                         u'เลขที่',
+                         u'ช่องทางการชำระเงิน',
+                         u'เลขที่บัตรเครดิต',
+                         u'เลขที่เช็ค',
+                         u'ผู้รับเงิน/ผู้บันทึก',
+                         u'ตำแหน่ง',
+                         u'หมายเหตุ'
+                         ],
+                index=False,
+                encoding='utf-8')
+    return send_from_directory(os.getcwd(), filename='daily_payment_report.xlsx')

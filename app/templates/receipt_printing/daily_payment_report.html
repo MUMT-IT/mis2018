@@ -6,6 +6,15 @@
                 <ul>
                     <li><a href="{{ url_for('receipt_printing.landing') }}">หน้าหลัก</a></li>
                     <li class="is-active"><a href="#" aria-current="page">รายงานการรับเงินประจำวัน</a></li>
+                    <div class="buttons">
+                        <a class="button is-info"
+                           href="{{ url_for('receipt_printing.download_daily_payment_report') }}">
+                            <span class="icon">
+                                <i class="fas fa-download"></i>
+                            </span>
+                            <span>Download</span>
+                        </a>
+                    </div>
                 </ul>
             </nav>
             <div class="columns">
