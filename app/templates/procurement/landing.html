@@ -55,6 +55,19 @@
                             </a>
                         </div>
                     </div>
+                    <div class="navbar-item has-dropdown is-hoverable is-size-5 has-text-weight-semibold">
+                        <a class="navbar-link ">
+                            ตั้งค่า
+                        </a>
+                        <div class="navbar-dropdown">
+                            <a href="{{ url_for('procurement.add_room_ref') }}" class="navbar-item">
+                                ตั้งรหัสห้อง
+                            </a>
+                            <a href="{{ url_for('procurement.view_room') }}" class="navbar-item">
+                                ดูรหัสห้อง
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

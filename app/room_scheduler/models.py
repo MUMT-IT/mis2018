@@ -43,7 +43,7 @@ class RoomResource(db.Model):
     equipments = db.relationship(AssetItem, backref=db.backref('room'))
 
     def __str__(self):
-        return u'Room: {} {}'.format(self.number, self.location)
+        return u'Room: {} {} {}'.format(self.number, self.location, self.desc)
 
     def __repr__(self):
         return u'Room: {}, ID: {}'.format(self.number, self.id)

@@ -56,5 +56,5 @@ class ElectronicReceiptItem(db.Model):
     receipt_id = db.Column('receipt_id', db.ForeignKey('electronic_receipt_details.id'))
     receipt_detail = db.relationship('ElectronicReceiptDetail',
                            backref=db.backref('items', cascade='all, delete-orphan'))
-    price = db.Column('price', db.Numeric(), default=0.0, info={'label': u'ราคา'})
+    price = db.Column('price', db.Numeric(), default=0.0, info={'label': u'จำนวนเงิน'})
     comment = db.Column('comment', db.Text(), info={'label': u'หมายเหตุ'})

@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="{{ url_for('receipt_printing.landing') }}">หน้าหลัก</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">รายงานการรับเงินประจำวัน</a></li>
+                </ul>
+            </nav>
+            <div class="columns">
+                <table id="receipt_data" class="table is-fullwidth is-striped">
+                    <thead>
+                    <th>เล่มที่</th>
+                    <th>เลขที่</th>
+                    <th>ช่องทางการชำระเงิน</th>
+                    <th>เลขที่บัตรเครดิต</th>
+                    <th>เลขที่เช็ค</th>
+                    {#<th>รายการ</th>#}
+                    <th>ชื่อผู้ชำระเงิน</th>
+                    <th>ผู้รับเงิน/ผู้บันทึก</th>
+                    <th>ตำแหน่ง</th>
+                    <th>หมายเหตุ</th>
+                    </thead>
+                    <tbody>
+                    {% for r in record %}
+                        <tr>
+                            <td>{{ r.book_number }}</td>
+                            <td>{{ r.number }}</td>
+                            <td>{{ r.payment_method }}</td>
+                            <td>{{ r.card_number }}</td>
+                            <td>{{ r.cheque_number }}</td>
+                            {# <td></td>#}
+                            <td>{{ r.received_from }}</td>
+                            <td>{{ r.cashier }}</td>
+                            <td>{{ r.issuer.staff.personal_info.fullname }}</td>
+                            <td>{{ r.comment or '' }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-left">
+                        <a class="button is-light"
+                           href="{{ url_for('receipt_printing.landing') }}">
+                            <span class="icon">
+                                <i class="fas fa-chevron-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#receipt_data').DataTable({})
+        });
+    </script>
+{% endblock %}

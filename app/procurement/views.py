@@ -462,7 +462,7 @@ def view_require_service():
         record["id"] = maintenance.id
         record["service"] = maintenance.service
         record["notice_date"] = maintenance.notice_date
-        record["explan"] = maintenance.explan
+        # record["explan"] = maintenance.explan
         require_list.append(record)
     return render_template('procurement/view_by_ITxRepair.html', require_list=require_list)
 
@@ -760,3 +760,60 @@ def view_sub_items(procurement_no):
     return render_template('procurement/view_sub_items.html', next_view=next_view, sub_items=sub_items,
                            request_args=request.args, procurement_no=procurement_no)
 
+
+@procurement.route('/room/add', methods=['GET', 'POST'])
+@login_required
+def add_room_ref():
+    form = ProcurementRoomForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            new_room = RoomResource()
+            form.populate_obj(new_room)
+            db.session.add(new_room)
+            db.session.commit()
+            flash('New room has been added.', 'success')
+            return redirect(url_for('procurement.add_room_ref'))
+    return render_template('procurement/room_ref.html', form=form, url_callback=request.referrer)
+
+
+@procurement.route('/room/all')
+@login_required
+def view_room():
+    room_list = []
+    room = RoomResource.query.all()
+    for r in room:
+        record = {}
+        record["id"] = r.id
+        record["location"] = r.location
+        record["number"] = r.number
+        record["floor"] = r.floor
+        record["desc"] = r.desc
+        room_list.append(record)
+    return render_template('procurement/view_room.html', room_list=room_list)
+
+
+@procurement.route('/room/<int:room_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_room(room_id):
+    room = RoomResource.query.get(room_id)
+    form = ProcurementRoomForm(obj=room)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(room)
+            db.session.add(room)
+            db.session.commit()
+            flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
+        return redirect(url_for('procurement.view_room', room_id=room_id))
+    return render_template('procurement/edit_room.html',
+                           room_id=room_id, form=form)
+
+
+@procurement.route('/room/<int:room_id>/delete')
+@login_required
+def delete_room(room_id):
+    if room_id:
+        room = RoomResource.query.get(room_id)
+        flash(u'Room has been removed.')
+        db.session.delete(room)
+        db.session.commit()
+        return redirect(url_for('procurement.view_room', room_id=room_id))
