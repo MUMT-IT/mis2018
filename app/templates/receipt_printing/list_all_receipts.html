@@ -29,7 +29,7 @@
                                 <td>{{ r.book_number }}</td>
                                 <td>{{ r.number }}</td>
                                 <td>{{ r.created_datetime|localdatetime }}</td>
-                                <td></td>
+                                <td>{{ r.items|length }}</td>
                                 <td>{{ r.copy_number - 1 }}</td>
                                 <td><a
                                         {% if not r.cancelled %}
