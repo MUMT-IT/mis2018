@@ -807,13 +807,3 @@ def edit_room(room_id):
     return render_template('procurement/edit_room.html',
                            room_id=room_id, form=form)
 
-
-@procurement.route('/room/<int:room_id>/delete')
-@login_required
-def delete_room(room_id):
-    if room_id:
-        room = RoomResource.query.get(room_id)
-        flash(u'Room has been removed.')
-        db.session.delete(room)
-        db.session.commit()
-        return redirect(url_for('procurement.view_room', room_id=room_id))
