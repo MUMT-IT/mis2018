@@ -8,7 +8,9 @@
             การลาของท่านจะได้รับการพิจารณาและอนุมัติโดยผู้บังคับบัญชาได้แก่
             <strong>
                 {% for approver in current_user.leave_requesters %}
-                    {{ loop.index }}. {{ approver.account.personal_info.fullname }}
+                    {% if approver.is_active == True %}
+                        {{ loop.index }}. {{ approver.account.personal_info.fullname }}
+                    {% endif %}
                 {% endfor %}
             </strong>
             อย่างน้อยหนึ่งท่าน หากสายงานการบังคับบัญชาไม่ถูกต้องกรุณาติดต่อเจ้าหน้าที่หน่วย HR เพื่อแก้ไข
