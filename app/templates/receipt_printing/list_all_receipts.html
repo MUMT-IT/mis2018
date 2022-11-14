@@ -31,7 +31,13 @@
                                 <td>{{ r.created_datetime|localdatetime }}</td>
                                 <td></td>
                                 <td>{{ r.copy_number - 1 }}</td>
-                                <td><a href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=r.id) }}">
+                                <td><a
+                                        {% if not r.cancelled %}
+                                        href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=r.id) }}"
+                                        {% else %}
+                                        disabled
+                                        {% endif %}
+                                        >
                                         <span class="icon">
                                             <i class="fas fa-print"></i>
                                         </span>
