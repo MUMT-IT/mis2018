@@ -152,10 +152,10 @@ def export_receipt_pdf(receipt_id):
 
     receipt_info = '''<font size=15>
     {original}</font><br/><br/>
-    <font size=12>
-    เล่มที่ / Book No. {book_id}<br/>
-    เลขที่ / No. {receipt_number}<br/>
-    วันที่ / Date {issued_date}
+    <font size=11>
+    เล่มที่/Book No.{book_id}<br/>
+    เลขที่/No. {receipt_number}<br/>
+    วันที่/Date {issued_date}
     </font>
     '''
     issued_date = datetime.now().strftime('%d/%m/%Y')
@@ -285,30 +285,36 @@ def export_receipt_pdf(receipt_id):
     </font></para>'''.format(receipt.issuer.staff.personal_info.fullname.encode('utf-8'),
                              receipt.issuer.position.encode('utf-8'))
 
-    if request.args.get('receipt_copy') == 'copy':
-        data.append(header_copy)
-    else:
-        data.append(header_ori)
+    number_of_copies = 2 if receipt.copy_number == 1 else 1
+    for i in range(number_of_copies):
+        if i == 0 and receipt.copy_number == 1:
+            data.append(header_ori)
+        else:
+            data.append(header_copy)
 
     # data.append(Paragraph('<para align=center><font size=18>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
     #                       style=style_sheet['ThaiStyle']))
-    data.append(customer)
-    data.append(Spacer(1, 12))
-    data.append(Spacer(1, 6))
-    data.append(item_table)
-    data.append(Spacer(1, 6))
-    data.append(total_table)
-    data.append(Paragraph('เลขที่กำกับเอกสาร Regulatory Document No. {}'.format(receipt.book_number),
-                          style=style_sheet['ThaiStyle']))
-    data.append(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
-                          style=style_sheet['ThaiStyle']))
-    data.append(Spacer(1, 6))
-    data.append(Spacer(1, 12))
-    data.append(Paragraph(sign_text, style=style_sheet['ThaiStyle']))
-    data.append(Spacer(1, 6))
-    data.append(notice)
-    data.append(PageBreak())
+        data.append(customer)
+        data.append(Spacer(1, 12))
+        data.append(Spacer(1, 6))
+        data.append(item_table)
+        data.append(Spacer(1, 6))
+        data.append(total_table)
+        data.append(Paragraph('เลขที่กำกับเอกสาร Regulatory Document No. {}'.format(receipt.book_number),
+                              style=style_sheet['ThaiStyle']))
+        data.append(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
+                              style=style_sheet['ThaiStyle']))
+        data.append(Spacer(1, 6))
+        data.append(Spacer(1, 12))
+        data.append(Paragraph(sign_text, style=style_sheet['ThaiStyle']))
+        data.append(Spacer(1, 6))
+        data.append(notice)
+        data.append(PageBreak())
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+
+    receipt.copy_number += 1
+    db.session.add(receipt)
+    db.session.commit()
 
     return send_file('receipt.pdf')
 
