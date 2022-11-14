@@ -48,12 +48,12 @@ def create_receipt():
         if action == 'add-items':
             form.items.append_entry()
             return render_template('receipt_printing/new_receipt.html', form=form, cashiers=cashiers)
-        total_price = 0
-        for price in form.price:
-            total_price += price
+        # total_price = 0
+        # for price in form.price:
+        #     total_price += price
 
         receipt_detail = ElectronicReceiptDetail()
-        receipt_detail.paid_amount = total_price
+        # receipt_detail.paid_amount = total_price
         # receipt_detail.created_datetime = datetime.now(tz=bangkok)
         form.populate_obj(receipt_detail)  #insert data from Form to Model
         receipt_detail.number = receipt_book.next
@@ -212,32 +212,25 @@ def export_receipt_pdf(receipt_id):
               Paragraph('<font size=10>จำนวนเงิน / Amount</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
     total = 0
-    price = 0
-    item = [Paragraph('<font size=12>{} ({})</font>'.format('-', '-'), style=style_sheet['ThaiStyle'])]
-    item.append(
-        Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
-    item.append(Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']))
-    item.append(
-        Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
-    items.append([
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(total), style=style_sheet['ThaiStyleNumber'])
-    ])
+    for n, item in enumerate(receipt.items, start=1):
+        item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
+                Paragraph('<font size=12>{}</font>'.format(item.item.encode('utf-8')), style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=12>{}</font>'.format(item.price), style=style_sheet['ThaiStyleNumber'])
+                ]
+        items.append(item_record)
+        total += item.price
 
     n = len(items)
-    while n <=25:
+    for i in range(22-n):
         items.append([
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
         ])
-        n += 1
-
     total_thai = bahttext(total)
-    total_text = "รวมเงินทั้งสิ้น/ TOTAL {}".format(total_thai.encode('utf-8'))
+    total_text = "รวมเงินทั้งสิ้น/ TOTAL : {}".format(total_thai.encode('utf-8'))
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(total_text), style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{}</font>'.format(total_text), style=style_sheet['ThaiStyleNumber']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(total), style=style_sheet['ThaiStyleNumber'])
     ])
@@ -305,6 +298,10 @@ def export_receipt_pdf(receipt_id):
     data.append(item_table)
     data.append(Spacer(1, 6))
     data.append(total_table)
+    data.append(Paragraph('เลขที่กำกับเอกสาร Regulatory Document No. {}'.format(receipt.book_number),
+                          style=style_sheet['ThaiStyle']))
+    data.append(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
+                          style=style_sheet['ThaiStyle']))
     data.append(Spacer(1, 6))
     data.append(Spacer(1, 12))
     data.append(Paragraph(sign_text, style=style_sheet['ThaiStyle']))
