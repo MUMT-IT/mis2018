@@ -32,6 +32,10 @@ class ElectronicReceiptDetail(db.Model):
     issuer_id = db.Column('issuer_id', db.ForeignKey('staff_account.id'))
     issuer = db.relationship(StaffAccount, foreign_keys=[issuer_id])
 
+    @property
+    def item_list(self):
+        return ', '.join([i.item for i in self.items])
+
 
 class ElectronicReceiptItem(db.Model):
     __tablename__ = 'electronic_receipt_items'
