@@ -72,11 +72,19 @@
                             <div class="control">
                                 {{ form.card_number(class="input", id="card-no") }}
                             </div>
+                            <label class="label">{{ form.bank_name.label }}</label>
+                            <div class="control">
+                                {{ form.bank_name(class="input", id="card-no") }}
+                            </div>
                         </div>
                         <div class="field" id="cheque-no">
                             <label class="label">เช็คเลขที่</label>
                             <div class="control">
                                 {{ form.cheque_number(class="input", id="cheque-no") }}
+                            </div>
+                            <label class="label">{{ form.bank_name.label }}</label>
+                            <div class="control">
+                                {{ form.bank_name(class="input", id="cheque-no") }}
                             </div>
                         </div>
                         <div class="field" id="other_payment_method">
@@ -113,19 +121,13 @@
                         </div>
                         <div class="field">
                             <label class="label">ผู้ออกใบเสร็จ</label>
-                            <div class="select">
-                                {{ form.issuer() }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">ผู้รับเงิน</label>
-                            <div class="select">
-                                {{ form.cashier() }}
+                            <div class="control">
+                                {{ current_user.personal_info.fullname }}
                             </div>
                         </div>
 
-                        <div class="field is-grouped is-grouped-centered"><br><br>
-                            <div class="buttons">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
                                 <button class="button is-success" type="submit" value="submit">Submit</button>
                                 <a href="{{ url_for('receipt_printing.landing') }}" class="button is-danger">Cancel</a>
                             </div>
