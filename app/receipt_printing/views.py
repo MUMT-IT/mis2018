@@ -88,14 +88,7 @@ def list_add_items():
             {}
         </div>
     </div>
-    <div class="field">
-        <label class="label">{}</label>
-        <div class="control">
-            {}
-        </div>
-    </div>
-    '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label, item_form.price(class_="input", placeholder=u"฿"),
-               item_form.comment.label, item_form.comment(class_="input"))
+    '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label, item_form.price(class_="input", placeholder=u"฿"))
 
 
 @receipt_printing.route('/receipt/create/items-delete', methods=['POST', 'GET'])
