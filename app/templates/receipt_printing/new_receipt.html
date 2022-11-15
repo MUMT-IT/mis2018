@@ -15,7 +15,6 @@
                     </div>
                     <form method="post">
                         {{ form.hidden_tag() }}
-                        <p>
                         <div class="field">
                             <label class="label">ที่อยู่ในใบเสร็จรับเงิน</label>
                             <div class="control">
@@ -28,6 +27,7 @@
                                 {{ form.received_from(class="input") }}
                             </div>
                         </div>
+                        <div id="items">
                             {% for i in form.items %}
                                 <div class="field">
                                     <label class="label">รายการ</label>
@@ -35,24 +35,27 @@
                                         {{ i.item(class="input") }}
                                     </div>
                                 </div>
-                                <div class="field-body">
-                                    <div class="field">
-                                        <label class="label">จำนวนเงิน</label>
-                                        <div class="control">
-                                            {{ i.price(class="input", placeholder="฿") }}
-                                        </div>
+                                <div class="field">
+                                    <label class="label">จำนวนเงิน</label>
+                                    <div class="control">
+                                        {{ i.price(class="input", placeholder="฿", **{'hx-post': url_for("receipt_printing.update_amount"), 'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}) }}
                                     </div>
                                 </div>
                             {% endfor %}
-                        </p>
-                        <div id="items"></div><br>
-                        <button type="button" hx-post="{{ url_for('receipt_printing.list_add_items') }}"
-                                hx-target="#items" hx-swap="beforeend">เพิ่มรายการ
-                        </button>
-                        <button type="button" hx-post="{{ url_for('receipt_printing.delete_items') }}"
-                                hx-target="#items" hx-swap="outerHTML swap:1s" hx-delete="/contact/1"
-                                hx-confirm="Are you sure to delete?">ลบรายการ
-                        </button>
+                        </div><br>
+                        <div class="field is-grouped">
+                            <div class="control">
+                                <button class="button is-small is-info" hx-post="{{ url_for('receipt_printing.list_add_items') }}"
+                                        hx-target="#items" hx-swap="beforeend">เพิ่มรายการ
+                                </button>
+                            </div>
+                            <div class="control">
+                                <button class="button is-small is-danger" hx-post="{{ url_for('receipt_printing.delete_items') }}"
+                                        hx-target="#items" hx-swap="innerHTML"
+                                        hx-confirm="Are you sure to delete?">ลบรายการ
+                                </button>
+                            </div>
+                        </div>
                         <div class="field-body">
                             <div class="field">
                                 <label class="label">ช่องทางการชำระเงิน</label>
@@ -63,7 +66,7 @@
                             <div class="field">
                                 <label class="label">จำนวนเงิน</label>
                                 <div class="control">
-                                    {{ form.paid_amount(class="input") }}
+                                    {{ form.paid_amount(class="input", readonly=True) }}
                                 </div>
                             </div>
                         </div>
@@ -129,6 +132,8 @@
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
                                 <button class="button is-success" type="submit" value="submit">Submit</button>
+                            </div>
+                            <div class="control">
                                 <a href="{{ url_for('receipt_printing.landing') }}" class="button is-danger">Cancel</a>
                             </div>
                         </div>
@@ -140,6 +145,24 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script>
+        $.ajaxSetup({
+            headers:
+            { 'X-CSRF-TOKEN': "{{ csrf_token() }}" }
+        });
+        function delete_warning() {
+            alert("The form needs at least one entry.")
+        }
+        document.addEventListener('delete_warning', delete_warning)
+        function update_amount() {
+            let total_amount = 0.0
+            $('[id$=price]').each(function() {
+                total_amount += Number($(this).val())
+            })
+            $('#paid_amount').val(total_amount)
+        }
+        document.addEventListener('update_amount', update_amount)
+    </script>
     <script>
         $(document).ready(() => {
             $('#card-no').hide()
