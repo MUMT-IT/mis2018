@@ -43,12 +43,6 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="field">
-                                    <label class="label">หมายเหตุ</label>
-                                    <div class="control">
-                                        {{ i.comment(class="input") }}
-                                    </div>
-                                </div>
                             {% endfor %}
                         </p>
                         <div id="items"></div><br>
@@ -91,10 +85,30 @@
                                 {{ form.other_payment_method(class="input", id="other_payment_method") }}
                             </div>
                         </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">GL</label>
+                                <div class="control">
+                                    {{ form.gl(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">Cost Center</label>
+                                <div class="control">
+                                    {{ form.cost_center(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">Internal Order/IO</label>
+                                <div class="control">
+                                    {{ form.internal_order(class="input") }}
+                                </div>
+                            </div>
+                        </div>
                         <div class="field">
                             <label class="label">หมายเหตุรายละเอียด</label>
                             <div class="control">
-                                {{ form.comment(class="input") }}
+                                {{ form.comment(class="textarea") }}
                             </div>
                         </div>
                         <div class="field">
