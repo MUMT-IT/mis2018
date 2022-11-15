@@ -2,7 +2,7 @@
 from sqlalchemy import func
 
 from app.main import db
-
+from app.staff.models import StaffAccount
 
 
 class ElectronicReceiptDetail(db.Model):
@@ -29,6 +29,8 @@ class ElectronicReceiptDetail(db.Model):
     cost_center = db.Column('cost_center', db.String(8), info={'label': u'ศูนย์ต้นทุน'})
     internal_order = db.Column('internal_order', db.Integer(), info={'label': 'Internal Order/IO'})
     bank_name = db.Column('bank_name', db.String(), info={'label': u'ชื่อธนาคาร'})
+    issuer_id = db.Column('issuer_id', db.ForeignKey('staff_account.id'))
+    issuer = db.relationship(StaffAccount, foreign_keys=[issuer_id])
 
 
 class ElectronicReceiptItem(db.Model):
