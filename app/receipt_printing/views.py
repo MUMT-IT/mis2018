@@ -76,7 +76,7 @@ def list_add_items():
     form = ReceiptDetailForm()
     form.items.append_entry()
     item_form = form.items[-1]
-    return u'''
+    form_text = u'''
     <div class="field">
         <label class="label">{}</label>
         <div class="control">
@@ -89,7 +89,19 @@ def list_add_items():
             {}
         </div>
     </div>
-    '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label, item_form.price(class_="input", placeholder=u"฿"))
+    '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label, item_form.price(class_="input", placeholder=u"฿", **{'hx-post': url_for("receipt_printing.update_amount"), 'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}))
+    resp = make_response(form_text)
+    resp.headers['HX-Trigger-After-Swap'] = 'update_amount'
+    return resp
+
+
+@receipt_printing.route('/receipt/create/update-amount', methods=['POST'])
+def update_amount():
+    form = ReceiptDetailForm()
+    total_amount = 0.0
+    for item in form.items.entries:
+        total_amount += float(item.price.data)
+    return form.paid_amount(class_="input", readonly=True, value=total_amount)
 
 
 @receipt_printing.route('/receipt/create/items-delete', methods=['POST', 'GET'])
