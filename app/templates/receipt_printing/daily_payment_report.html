@@ -25,9 +25,9 @@
                     <th>ช่องทางการชำระเงิน</th>
                     <th>เลขที่บัตรเครดิต</th>
                     <th>เลขที่เช็ค</th>
-                    {#<th>รายการ</th>#}
+                    <th>รายการ</th>
                     <th>ชื่อผู้ชำระเงิน</th>
-                    <th>ผู้รับเงิน/ผู้บันทึก</th>
+{#                    <th>ผู้รับเงิน/ผู้บันทึก</th>#}
                     <th>ตำแหน่ง</th>
                     <th>หมายเหตุ</th>
                     </thead>
@@ -39,10 +39,10 @@
                             <td>{{ r.payment_method }}</td>
                             <td>{{ r.card_number }}</td>
                             <td>{{ r.cheque_number }}</td>
-                            {# <td></td>#}
+                             <td>{{ r.item_list }}</td>
                             <td>{{ r.received_from }}</td>
                             <td>{{ r.cashier }}</td>
-                            <td>{{ r.issuer.staff.personal_info.fullname }}</td>
+{#                            <td>{{ r.issuer.staff.personal_info.fullname }}</td>#}
                             <td>{{ r.comment or '' }}</td>
                         </tr>
                     {% endfor %}
