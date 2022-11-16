@@ -242,7 +242,7 @@ def export_receipt_pdf(receipt_id):
     for n, item in enumerate(receipt.items, start=1):
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
                 Paragraph('<font size=12>{}</font>'.format(item.item.encode('utf-8')), style=style_sheet['ThaiStyle']),
-                Paragraph('<font size=12>{}</font>'.format(item.price), style=style_sheet['ThaiStyleNumber'])
+                Paragraph('<font size=12>{:,.2f}</font>'.format(item.price), style=style_sheet['ThaiStyleNumber'])
                 ]
         items.append(item_record)
         total += item.price
@@ -305,10 +305,25 @@ def export_receipt_pdf(receipt_id):
     '''
     notice = Table([[Paragraph(notice_text, style=style_sheet['ThaiStyle'])]])
 
-    sign_text = '''<para align=right><font size=12>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp ............................................................................ ผู้รับเงิน / Cashier<br/>
-    ({})<br/>
-    </font></para>'''.format(receipt.issuer.personal_info.fullname.encode('utf-8'))
+    sign_text = Paragraph('<br/><font size=12>............................................................................ ผู้รับเงิน / RECEIVING OFFICER<br/></font>',
+                          style=style_sheet['ThaiStyle'])
+    receive = [[sign_text,
+                      Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+                      Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    receive_officer = Table(receive, colWidths=[0, 80, 20])
+
+    fullname = Paragraph('<font size=12>({})<br/></font>'.format(receipt.issuer.personal_info.fullname.encode('utf-8')),
+                         style=style_sheet['ThaiStyle'])
+    personal_info = [[fullname,
+                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    issuer_personal_info = Table(personal_info, colWidths=[0, 30, 20])
+
+    position = Paragraph('<font size=12>..............{}..................... ตำแหน่ง / POSITION </font>'.format(receipt.issuer.personal_info.position.encode('utf-8')),
+                         style=style_sheet['ThaiStyle'])
+    position_info = [[position,
+                      Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    issuer_position = Table(position_info, colWidths=[0, 80, 20])
+
 
     number_of_copies = 2 if receipt.copy_number == 1 else 1
     for i in range(number_of_copies):
@@ -325,14 +340,14 @@ def export_receipt_pdf(receipt_id):
         data.append(item_table)
         data.append(Spacer(1, 6))
         data.append(total_table)
-        data.append(Paragraph('<br/>เลขที่กำกับเอกสาร<br/> Regulatory Document No. {}'.format(receipt.book_number),
+        data.append(Spacer(1, 12))
+        data.append(receive_officer)
+        data.append(issuer_personal_info)
+        data.append(issuer_position)
+        data.append(Paragraph('เลขที่กำกับเอกสาร<br/> Regulatory Document No. {}'.format(receipt.book_number),
                               style=style_sheet['ThaiStyle']))
         data.append(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
                               style=style_sheet['ThaiStyle']))
-        data.append(Spacer(1, 6))
-        data.append(Spacer(1, 12))
-        data.append(Paragraph(sign_text, style=style_sheet['ThaiStyle']))
-        data.append(Spacer(1, 6))
         data.append(notice)
         data.append(PageBreak())
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
