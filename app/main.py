@@ -245,7 +245,6 @@ from receipt_printing import receipt_printing_bp as receipt_printing_blueprint
 app.register_blueprint(receipt_printing_blueprint, url_prefix='/receipt_printing')
 from app.receipt_printing.models import *
 
-admin.add_views(ModelView(ElectronicReceiptCashier, db.session, category='ReceiptPrinting'))
 admin.add_views(ModelView(ElectronicReceiptDetail, db.session, category='ReceiptPrinting'))
 admin.add_views(ModelView(ElectronicReceiptItem, db.session, category='ReceiptPrinting'))
 

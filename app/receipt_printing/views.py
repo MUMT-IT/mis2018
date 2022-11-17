@@ -1,9 +1,12 @@
 # -*- coding:utf-8 -*-
+import os
 from datetime import datetime
 
 import pytz
 from bahttext import bahttext
-from flask import render_template, request, flash, redirect, url_for, send_file
+from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, make_response
+from flask_login import current_user
+from pandas import DataFrame
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -39,19 +42,19 @@ def landing():
 def create_receipt():
     action = request.args.get('action')
     form = ReceiptDetailForm()
-    cashiers = ElectronicReceiptCashier.query.all()
     receipt_book = ComHealthReceiptID.query.filter_by(code='MTG').first()
 
     if form.validate_on_submit():
         if action == 'add-items':
             form.items.append_entry()
-            return render_template('receipt_printing/new_receipt.html', form=form, cashiers=cashiers)
-        total_price = 0
-        for price in form.price:
-            total_price += price
+            return render_template('receipt_printing/new_receipt.html', form=form)
+        # total_price = 0
+        # for price in form.price:
+        #     total_price += price
 
         receipt_detail = ElectronicReceiptDetail()
-        receipt_detail.paid_amount = total_price
+        receipt_detail.issuer = current_user
+        # receipt_detail.paid_amount = total_price
         # receipt_detail.created_datetime = datetime.now(tz=bangkok)
         form.populate_obj(receipt_detail)  #insert data from Form to Model
         receipt_detail.number = receipt_book.next
@@ -65,7 +68,7 @@ def create_receipt():
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
-    return render_template('receipt_printing/new_receipt.html', form=form, cashiers=cashiers)
+    return render_template('receipt_printing/new_receipt.html', form=form)
 
 
 @receipt_printing.route('/receipt/create/add-items', methods=['POST', 'GET'])
@@ -73,7 +76,7 @@ def list_add_items():
     form = ReceiptDetailForm()
     form.items.append_entry()
     item_form = form.items[-1]
-    return u'''
+    form_text = u'''
     <div class="field">
         <label class="label">{}</label>
         <div class="control">
@@ -86,26 +89,52 @@ def list_add_items():
             {}
         </div>
     </div>
-    <div class="field">
-        <label class="label">{}</label>
-        <div class="control">
-            {}
-        </div>
-    </div>
-    '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label, item_form.price(class_="input", placeholder=u"฿"),
-               item_form.comment.label, item_form.comment(class_="input"))
+    '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label, item_form.price(class_="input", placeholder=u"฿", **{'hx-post': url_for("receipt_printing.update_amount"), 'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}))
+    resp = make_response(form_text)
+    resp.headers['HX-Trigger-After-Swap'] = 'update_amount'
+    return resp
+
+
+@receipt_printing.route('/receipt/create/update-amount', methods=['POST'])
+def update_amount():
+    form = ReceiptDetailForm()
+    total_amount = 0.0
+    for item in form.items.entries:
+        total_amount += float(item.price.data)
+    return form.paid_amount(class_="input", readonly=True, value=total_amount)
 
 
 @receipt_printing.route('/receipt/create/items-delete', methods=['POST', 'GET'])
 def delete_items():
     form = ReceiptDetailForm()
-    form.items.append_entry()
-    item_form = form.items[-1]
-    for item in item_form:
-        print(item)
-    form.items.pop_entry()
-    return '''
-    '''
+    if len(form.items.entries) > 1:
+        form.items.pop_entry()
+        alert = False
+    else:
+        alert = True
+    form_text = ''
+    for item_form in form.items.entries:
+        form_text += u'''
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label, item_form.price(class_="input", placeholder=u"฿", **{'hx-post': url_for("receipt_printing.update_amount"), 'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}))
+
+    resp = make_response(form_text)
+    if alert:
+        resp.headers['HX-Trigger-After-Swap'] = 'delete_warning'
+    else:
+        resp.headers['HX-Trigger-After-Swap'] = 'update_amount'
+    return resp
 
 
 @receipt_printing.route('/list/receipts', methods=['GET'])
@@ -150,10 +179,10 @@ def export_receipt_pdf(receipt_id):
 
     receipt_info = '''<font size=15>
     {original}</font><br/><br/>
-    <font size=12>
-    เล่มที่ / Book No. {book_id}<br/>
-    เลขที่ / No. {receipt_number}<br/>
-    วันที่ / Date {issued_date}
+    <font size=11>
+    เล่มที่/Book No.{book_id}<br/>
+    เลขที่/No. {receipt_number}<br/>
+    วันที่/Date {issued_date}
     </font>
     '''
     issued_date = datetime.now().strftime('%d/%m/%Y')
@@ -210,32 +239,25 @@ def export_receipt_pdf(receipt_id):
               Paragraph('<font size=10>จำนวนเงิน / Amount</font>', style=style_sheet['ThaiStyleCenter']),
               ]]
     total = 0
-    price = 0
-    item = [Paragraph('<font size=12>{} ({})</font>'.format('-', '-'), style=style_sheet['ThaiStyle'])]
-    item.append(
-        Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
-    item.append(Paragraph('<font size=12>-</font>', style=style_sheet['ThaiStyleCenter']))
-    item.append(
-        Paragraph('<font size=12>{:,.2f}</font>'.format(price), style=style_sheet['ThaiStyleNumber']))
-    items.append([
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
-        Paragraph('<font size=12>{:,.2f}</font>'.format(total), style=style_sheet['ThaiStyleNumber'])
-    ])
+    for n, item in enumerate(receipt.items, start=1):
+        item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
+                Paragraph('<font size=12>{}</font>'.format(item.item.encode('utf-8')), style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=12>{:,.2f}</font>'.format(item.price), style=style_sheet['ThaiStyleNumber'])
+                ]
+        items.append(item_record)
+        total += item.price
 
     n = len(items)
-    while n <=25:
+    for i in range(25-n):
         items.append([
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
-            Paragraph('<font size=12></font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+            Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
         ])
-        n += 1
-
     total_thai = bahttext(total)
-    total_text = "รวมเงินทั้งสิ้น/ TOTAL {}".format(total_thai.encode('utf-8'))
+    total_text = "รวมเงินทั้งสิ้น/ TOTAL : {}".format(total_thai.encode('utf-8'))
     items.append([
-        Paragraph('<font size=12>{}</font>'.format(total_text), style=style_sheet['ThaiStyle']),
+        Paragraph('<font size=12>{}</font>'.format(total_text), style=style_sheet['ThaiStyleNumber']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12>{:,.2f}</font>'.format(total), style=style_sheet['ThaiStyleNumber'])
     ])
@@ -256,17 +278,17 @@ def export_receipt_pdf(receipt_id):
     item_table.setStyle([('SPAN', (0, -1), (1, -1))])
 
     if receipt.payment_method == u'เงินสด':
-        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
+        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == u'บัตรเครดิต':
-        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: บัตรเครดิต / CREDIT CARD NUMBER {}-****-****-{}</font>'.format(receipt.card_number[:4], receipt.card_number[-4:]),
+        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: บัตรเครดิต / CREDIT CARD NUMBER {}-****-****-{}</font>'.format(receipt.card_number[:4], receipt.card_number[-4:]),
                                  style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == u'Scan QR Code':
-        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: สแกนคิวอาร์โค้ด / SCAN QR CODE</font>', style=style_sheet['ThaiStyle'])
+        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: สแกนคิวอาร์โค้ด / SCAN QR CODE</font>', style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == u'โอนผ่านระบบธนาคารอัตโนมัติ':
-        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD: โอนผ่านระบบธนาคารอัตโนมัติ / TRANSFER TO BANK</font>',
+        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: โอนผ่านระบบธนาคารอัตโนมัติ / TRANSFER TO BANK</font>',
                                  style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == u'เช็คสั่งจ่าย':
-        payment_info = Paragraph('<font size=14>ชำระโดย / PAYMENT METHOD: เช็คสั่งจ่าย / CHEQUE NUMBER {}****</font>'.format(receipt.cheque_number[:4]),
+        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: เช็คสั่งจ่าย / CHEQUE NUMBER {}****</font>'.format(receipt.cheque_number[:4]),
                                  style=style_sheet['ThaiStyle'])
     else:
         payment_info = Paragraph('<font size=11>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])
@@ -275,41 +297,64 @@ def export_receipt_pdf(receipt_id):
                       Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
                       Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
 
-    total_table = Table(total_content, colWidths=[300, 150, 50])
+    total_table = Table(total_content, colWidths=[360, 150, 50])
 
     notice_text = '''<para align=center><font size=10>
-    กรณีชำระด้วยเช็ค ใบเสร็จรับเงินฉบับนี้จะสมบูรณ์ต่อเมื่อ เรียกเก็บเงินได้ตามเช็คเรียบร้อยแล้ว <br/> In case of cheque payment, a receipt will be completed as cheque clearing is completed.
+    กรณีชำระด้วยเช็ค ใบเสร็จรับเงินฉบับนี้จะสมบูรณ์ต่อเมื่อ เรียกเก็บเงินได้ตามเช็คเรียบร้อยแล้ว <br/> If paying by cheque, a receipt will be completed upon receipt of the cheque complete.
     <br/>เอกสารนี้พิมพ์จากคอมพิวเตอร์</font></para>
     '''
     notice = Table([[Paragraph(notice_text, style=style_sheet['ThaiStyle'])]])
 
-    sign_text = '''<para align=center><font size=12>
-    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbspลงชื่อ ............................................ ผู้รับเงิน / Cashier<br/>
-    ({})<br/>
-    ตำแหน่ง / Position {}
-    </font></para>'''.format(receipt.issuer.staff.personal_info.fullname.encode('utf-8'),
-                             receipt.issuer.position.encode('utf-8'))
+    sign_text = Paragraph('<br/><font size=12>............................................................................ ผู้รับเงิน / RECEIVING OFFICER<br/></font>',
+                          style=style_sheet['ThaiStyle'])
+    receive = [[sign_text,
+                      Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+                      Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    receive_officer = Table(receive, colWidths=[0, 80, 20])
 
-    if request.args.get('receipt_copy') == 'copy':
-        data.append(header_copy)
-    else:
-        data.append(header_ori)
+    fullname = Paragraph('<font size=12>({})<br/></font>'.format(receipt.issuer.personal_info.fullname.encode('utf-8')),
+                         style=style_sheet['ThaiStyle'])
+    personal_info = [[fullname,
+                Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    issuer_personal_info = Table(personal_info, colWidths=[0, 30, 20])
+
+    position = Paragraph('<font size=12>..............{}..................... ตำแหน่ง / POSITION </font>'.format(receipt.issuer.personal_info.position.encode('utf-8')),
+                         style=style_sheet['ThaiStyle'])
+    position_info = [[position,
+                      Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+    issuer_position = Table(position_info, colWidths=[0, 80, 20])
+
+
+    number_of_copies = 2 if receipt.copy_number == 1 else 1
+    for i in range(number_of_copies):
+        if i == 0 and receipt.copy_number == 1:
+            data.append(header_ori)
+        else:
+            data.append(header_copy)
 
     # data.append(Paragraph('<para align=center><font size=18>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
     #                       style=style_sheet['ThaiStyle']))
-    data.append(customer)
-    data.append(Spacer(1, 12))
-    data.append(Spacer(1, 6))
-    data.append(item_table)
-    data.append(Spacer(1, 6))
-    data.append(total_table)
-    data.append(Spacer(1, 6))
-    data.append(Spacer(1, 12))
-    data.append(Paragraph(sign_text, style=style_sheet['ThaiStyle']))
-    data.append(Spacer(1, 6))
-    data.append(notice)
-    data.append(PageBreak())
+        data.append(customer)
+        data.append(Spacer(1, 12))
+        data.append(Spacer(1, 6))
+        data.append(item_table)
+        data.append(Spacer(1, 6))
+        data.append(total_table)
+        data.append(Spacer(1, 12))
+        data.append(receive_officer)
+        data.append(issuer_personal_info)
+        data.append(issuer_position)
+        data.append(Paragraph('เลขที่กำกับเอกสาร<br/> Regulatory Document No. {}'.format(receipt.book_number),
+                              style=style_sheet['ThaiStyle']))
+        data.append(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
+                              style=style_sheet['ThaiStyle']))
+        data.append(notice)
+        data.append(PageBreak())
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+
+    receipt.copy_number += 1
+    db.session.add(receipt)
+    db.session.commit()
 
     return send_file('receipt.pdf')
 
@@ -336,3 +381,37 @@ def cancel_receipt(receipt_id):
 def daily_payment_report():
     record = ElectronicReceiptDetail.query.all()
     return render_template('receipt_printing/daily_payment_report.html', record=record)
+
+
+@receipt_printing.route('/daily/payment/report/download')
+def download_daily_payment_report():
+    records = []
+    receipt_record = ElectronicReceiptDetail.query.all()
+
+    for receipt in receipt_record:
+        records.append({
+            u'เล่มที่': u"{}".format(receipt.book_number),
+            u'เลขที่': u"{}".format(receipt.number),
+            u'ช่องทางการชำระเงิน': u"{}".format(receipt.payment_method),
+            u'เลขที่บัตรเครดิต': u"{}".format(receipt.card_number),
+            u'เลขที่เช็ค': u"{}".format(receipt.cheque_number),
+            u'ชื่อผู้ชำระเงิน': u"{}".format(receipt.received_from),
+            u'ผู้รับเงิน/ผู้บันทึก': u"{}".format(receipt.cashier),
+            u'ตำแหน่ง': u"{}".format(receipt.issuer.staff.personal_info.fullname),
+            u'หมายเหตุ': u"{}".format(receipt.comment),
+        })
+    df = DataFrame(records)
+    df.to_excel('daily_payment_report.xlsx',
+                header=True,
+                columns=[u'เล่มที่',
+                         u'เลขที่',
+                         u'ช่องทางการชำระเงิน',
+                         u'เลขที่บัตรเครดิต',
+                         u'เลขที่เช็ค',
+                         u'ผู้รับเงิน/ผู้บันทึก',
+                         u'ตำแหน่ง',
+                         u'หมายเหตุ'
+                         ],
+                index=False,
+                encoding='utf-8')
+    return send_from_directory(os.getcwd(), filename='daily_payment_report.xlsx')
