@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 
 import pytz
+import requests
 from bahttext import bahttext
 from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, make_response
 from flask_login import current_user
@@ -14,6 +15,12 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, PageBreak
+from werkzeug.utils import secure_filename
+from pydrive.auth import GoogleAuth
+from oauth2client.service_account import ServiceAccountCredentials
+from pydrive.drive import GoogleDrive
+from flask_mail import Message
+from ..main import mail
 
 from . import receipt_printing_bp as receipt_printing
 from .forms import *
@@ -25,6 +32,13 @@ from ..roles import finance_permission
 bangkok = pytz.timezone('Asia/Bangkok')
 
 ALLOWED_EXTENSIONS = ['xlsx', 'xls']
+
+FOLDER_ID = "1k_k0fAKnEEZaO3fhKwTLhv2_ONLam0-c"
+
+json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
+
+
+ALLOWED_EXTENSION = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
 @receipt_printing.route('/index')
@@ -48,14 +62,10 @@ def create_receipt():
         if action == 'add-items':
             form.items.append_entry()
             return render_template('receipt_printing/new_receipt.html', form=form)
-        # total_price = 0
-        # for price in form.price:
-        #     total_price += price
 
         receipt_detail = ElectronicReceiptDetail()
         receipt_detail.issuer = current_user
-        # receipt_detail.paid_amount = total_price
-        # receipt_detail.created_datetime = datetime.now(tz=bangkok)
+        receipt_detail.created_datetime = datetime.now(tz=bangkok)
         form.populate_obj(receipt_detail)  #insert data from Form to Model
         receipt_detail.number = receipt_book.next
         receipt_book.count += 1
@@ -248,7 +258,7 @@ def export_receipt_pdf(receipt_id):
         total += item.price
 
     n = len(items)
-    for i in range(25-n):
+    for i in range(22-n):
         items.append([
             Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
             Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
@@ -324,39 +334,72 @@ def export_receipt_pdf(receipt_id):
                       Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     issuer_position = Table(position_info, colWidths=[0, 80, 20])
 
+    cancel_text = '''<para align=right><font size=20 color=red>ยกเลิก <br/>{}</font></para>'''.format(receipt.number)
+    cancel_receipts = Table([[Paragraph(cancel_text, style=style_sheet['ThaiStyle'])]])
 
-    number_of_copies = 2 if receipt.copy_number == 1 else 1
-    for i in range(number_of_copies):
-        if i == 0 and receipt.copy_number == 1:
-            data.append(header_ori)
-        else:
-            data.append(header_copy)
+    if receipt.cancelled:
+        number_of_copies = 2 if receipt.copy_number == 1 else 1
+        for i in range(number_of_copies):
+            if i == 0 and receipt.copy_number == 1:
+                data.append(header_ori)
+                data.append(cancel_receipts)
+            else:
+                data.append(cancel_receipts)
+                data.append(header_copy)
 
-    # data.append(Paragraph('<para align=center><font size=18>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
-    #                       style=style_sheet['ThaiStyle']))
-        data.append(customer)
-        data.append(Spacer(1, 12))
-        data.append(Spacer(1, 6))
-        data.append(item_table)
-        data.append(Spacer(1, 6))
-        data.append(total_table)
-        data.append(Spacer(1, 12))
-        data.append(receive_officer)
-        data.append(issuer_personal_info)
-        data.append(issuer_position)
-        data.append(Paragraph('เลขที่กำกับเอกสาร<br/> Regulatory Document No. {}'.format(receipt.book_number),
-                              style=style_sheet['ThaiStyle']))
-        data.append(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
-                              style=style_sheet['ThaiStyle']))
-        data.append(notice)
-        data.append(PageBreak())
+            data.append(customer)
+            data.append(Spacer(1, 12))
+            data.append(Spacer(1, 6))
+            data.append(item_table)
+            data.append(Spacer(1, 6))
+            data.append(total_table)
+            data.append(Spacer(1, 12))
+            data.append(receive_officer)
+            data.append(issuer_personal_info)
+            data.append(issuer_position)
+            data.append(Paragraph('เลขที่กำกับเอกสาร<br/> Regulatory Document No. {}'.format(receipt.book_number),
+                                  style=style_sheet['ThaiStyle']))
+            data.append(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
+                                  style=style_sheet['ThaiStyle']))
+            data.append(notice)
+            data.append(PageBreak())
+    else:
+        number_of_copies = 2 if receipt.copy_number == 1 else 1
+        for i in range(number_of_copies):
+            if i == 0 and receipt.copy_number == 1:
+                data.append(header_ori)
+            else:
+                data.append(header_copy)
+
+            data.append(customer)
+            data.append(Spacer(1, 12))
+            data.append(Spacer(1, 6))
+            data.append(item_table)
+            data.append(Spacer(1, 6))
+            data.append(total_table)
+            data.append(Spacer(1, 12))
+            data.append(receive_officer)
+            data.append(issuer_personal_info)
+            data.append(issuer_position)
+            data.append(Paragraph('เลขที่กำกับเอกสาร<br/> Regulatory Document No. {}'.format(receipt.book_number),
+                                  style=style_sheet['ThaiStyle']))
+            data.append(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
+                                  style=style_sheet['ThaiStyle']))
+            data.append(notice)
+            data.append(PageBreak())
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
 
-    receipt.copy_number += 1
+    receipt.print_number += 1
     db.session.add(receipt)
     db.session.commit()
 
     return send_file('receipt.pdf')
+
+
+@receipt_printing.route('list/receipts/cancel')
+def list_to_cancel_receipt():
+    record = ElectronicReceiptDetail.query.filter_by(cancelled=True)
+    return render_template('receipt_printing/list_to_cancel_receipt.html', record=record)
 
 
 @receipt_printing.route('/receipts/cancel/confirm/<int:receipt_id>', methods=['GET', 'POST'])
@@ -364,7 +407,7 @@ def confirm_cancel_receipt(receipt_id):
     receipt = ElectronicReceiptDetail.query.get(receipt_id)
     if not receipt.cancelled:
         return render_template('receipt_printing/confirm_cancel_receipt.html', receipt=receipt)
-    return redirect(url_for('receipt_printing.list_all_receipts'))
+    return redirect(url_for('receipt_printing.list_to_cancel_receipt'))
 
 
 @receipt_printing.route('receipts/cancel/<int:receipt_id>', methods=['POST'])
@@ -374,7 +417,7 @@ def cancel_receipt(receipt_id):
     receipt.cancel_comment = request.form.get('comment')
     db.session.add(receipt)
     db.session.commit()
-    return redirect(url_for('receipt_printing.list_all_receipts'))
+    return redirect(url_for('receipt_printing.list_to_cancel_receipt'))
 
 
 @receipt_printing.route('/daily/payment/report')
@@ -415,3 +458,60 @@ def download_daily_payment_report():
                 index=False,
                 encoding='utf-8')
     return send_from_directory(os.getcwd(), filename='daily_payment_report.xlsx')
+
+
+def send_mail(recp, title, message):
+    message = Message(subject=title, body=message, recipients=recp)
+    mail.send(message)
+
+
+@receipt_printing.route('receipt/new/require', methods=['GET', 'POST'])
+def require_new_receipt():
+    form = ReceiptRequireForm()
+    if request.method == 'POST':
+        filename = ''
+        receipt_require = ElectronicReceiptRequest()
+        form.populate_obj(receipt_require)
+        receipt_require.staff = current_user
+        drive = initialize_gdrive()
+        if form.upload.data:
+            if not filename or (form.upload.data.filename != filename):
+                upfile = form.upload.data
+                filename = secure_filename(upfile.filename)
+                upfile.save(filename)
+                file_drive = drive.CreateFile({'title': filename,
+                                               'parents': [{'id': FOLDER_ID, "kind": "drive#fileLink"}]})
+                file_drive.SetContentFile(filename)
+                try:
+                    file_drive.Upload()
+                except:
+                    flash('Failed to upload the attached file to the Google drive.', 'danger')
+                else:
+                    flash('The attached file has been uploaded to the Google drive', 'success')
+                    receipt_require.url = file_drive['id']
+
+        db.session.add(receipt_require)
+        db.session.commit()
+        # title = u'แจ้งเตือนคำร้องขอออกใบเสร็จใหม่ {}'.format(receipt_require.detail.number)
+        # message = u'เรียน คุณพิชญาสินี\n\nขออนุมัติคำร้องขอออกใบเสร็จเลขที่ {} เล่มที่ {} เนื่องจาก {}' \
+        #     .format(receipt_require.detail.number, receipt_require.detail.book_number, receipt_require.reason)
+        # message += u'\n\n======================================================'
+        # message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
+        #            u'หากมีปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
+        # message += u'\nThis email was sent by an automated system. Please do not reply.' \
+        #            u' If you have any problem about website, please contact the IT unit.'
+        # send_mail([u'yada.boo@mahidol.ac.th'], title, message)
+        flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
+        return render_template('receipt_printing/require_new_receipt.html', form=form)
+        # Check Error
+    else:
+        for er in form.errors:
+            flash(er, 'danger')
+    return render_template('receipt_printing/require_new_receipt.html', form=form)
+
+
+def initialize_gdrive():
+    gauth = GoogleAuth()
+    scopes = ['https://www.googleapis.com/auth/drive']
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
+    return GoogleDrive(gauth)
