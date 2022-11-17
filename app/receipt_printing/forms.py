@@ -1,8 +1,8 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import FormField, FieldList
-from wtforms_alchemy import model_form_factory, QuerySelectField
+from wtforms import FormField, FieldList, FileField
+from wtforms_alchemy import model_form_factory
 
 from app.main import db
 from app.receipt_printing.models import *
@@ -29,6 +29,13 @@ class ReceiptDetailForm(ModelForm):
                 'received_from', 'gl', 'cost_center', 'internal_order', 'bank_name']
 
     items = FieldList(FormField(ReceiptListForm, default=ElectronicReceiptItem), min_entries=1)
+
+
+class ReceiptRequireForm(ModelForm):
+    class Meta:
+        model = ElectronicReceiptRequest
+
+    upload = FileField(u'อัพโหลดไฟล์')
 
 
 
