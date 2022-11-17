@@ -31,7 +31,7 @@ class ElectronicReceiptDetail(db.Model):
     bank_name = db.Column('bank_name', db.String(), info={'label': u'ชื่อธนาคาร'})
     issuer_id = db.Column('issuer_id', db.ForeignKey('staff_account.id'))
     issuer = db.relationship(StaffAccount, foreign_keys=[issuer_id])
-    print_number = db.Column('print_number', db.Integer, info={'label': u'จำนวนพิมพ์'})
+    print_number = db.Column('print_number', db.Integer, default=0, info={'label': u'จำนวนพิมพ์'})
 
     @property
     def item_list(self):
