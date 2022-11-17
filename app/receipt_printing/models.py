@@ -31,6 +31,7 @@ class ElectronicReceiptDetail(db.Model):
     bank_name = db.Column('bank_name', db.String(), info={'label': u'ชื่อธนาคาร'})
     issuer_id = db.Column('issuer_id', db.ForeignKey('staff_account.id'))
     issuer = db.relationship(StaffAccount, foreign_keys=[issuer_id])
+    print_number = db.Column('print_number', db.Integer, info={'label': u'จำนวนพิมพ์'})
 
     @property
     def item_list(self):
@@ -45,4 +46,19 @@ class ElectronicReceiptItem(db.Model):
     receipt_detail = db.relationship('ElectronicReceiptDetail',
                            backref=db.backref('items', cascade='all, delete-orphan'))
     price = db.Column('price', db.Numeric(), default=0.0, info={'label': u'จำนวนเงิน'})
+
+
+class ElectronicReceiptRequest(db.Model):
+    __tablename__ = 'electronic_receipt_requests'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    detail_id = db.Column('detail_id', db.ForeignKey('electronic_receipt_details.id'))
+    detail = db.relationship('ElectronicReceiptDetail',
+                             backref=db.backref('reprint_requests', lazy='dynamic'))
+    reason = db.Column('reason', db.Text())
+    url_drive = db.Column('url_drive', db.String())
+    created_at = db.Column('created_at', db.Date(), server_default=func.now())
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship(StaffAccount, foreign_keys=[staff_id])
+
+
 
