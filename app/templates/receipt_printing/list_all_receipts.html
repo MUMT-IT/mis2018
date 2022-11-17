@@ -30,9 +30,9 @@
                                 <td>{{ r.number }}</td>
                                 <td>{{ r.created_datetime|localdatetime }}</td>
                                 <td>{{ r.items|length }}</td>
-                                <td>{{ r.copy_number - 1 }}</td>
+                                <td>{{ r.print_number}}</td>
                                 <td><a
-                                        {% if not r.cancelled %}
+                                        {% if not r.cancelled and r.print_number<1 %}
                                         href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=r.id) }}"
                                         {% else %}
                                         disabled
