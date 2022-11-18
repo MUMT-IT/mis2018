@@ -14,6 +14,16 @@
             </div>
             <div class="columns">
                 <div class="column is-one-third is-offset-4">
+                    <table class="table is-fullwidth is-striped">
+                         <tr>
+                            <td><strong>เล่มที่</strong></td>
+                            <td>{{ receipt.book_number }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>เลขที่</strong></td>
+                            <td>{{ receipt.number }}</td>
+                        </tr>
+                    </table>
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         <div class="field">
@@ -41,7 +51,7 @@
                         <div class="field is-grouped is-grouped-centered">
                             <div class="buttons">
                                 <button class="button is-success" type="submit" value="submit">Submit</button>
-                                <a href="" class="button is-danger">Cancel</a>
+                                <a href="{{ url_for('receipt_printing.list_to_require_receipt') }}" class="button is-danger">Cancel</a>
                             </div>
                         </div>
                     </form>
