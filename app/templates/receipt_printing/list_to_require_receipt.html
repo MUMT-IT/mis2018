@@ -3,6 +3,12 @@
     <section class="section">
         {% include "messages.html" %}
         <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="{{ url_for('receipt_printing.landing') }}">หน้าหลัก</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">ข้อมูลใบเสร็จทั้งหมดที่ถูกยกเลิก</a></li>
+                </ul>
+            </nav>
             <div class="columns">
                 <div class="column">
                     <table id="data" class="table is-fullwidth is-striped">
@@ -13,7 +19,7 @@
                             <th>หมายเหตุ</th>
                             <th>สถานะ</th>
                             <th>สาเหตุของการยกเลิก</th>
-                            <th>ขอออกใบเสร็จใหม่</th>
+                            <th>ขอสำเนาใบเสร็จรับเงิน</th>
                         </thead>
                         <tbody>
                         </tbody>
