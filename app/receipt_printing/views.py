@@ -5,7 +5,8 @@ from datetime import datetime
 import pytz
 import requests
 from bahttext import bahttext
-from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, make_response
+from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, make_response, \
+    jsonify
 from flask_login import current_user
 from pandas import DataFrame
 from reportlab.lib import colors
@@ -25,7 +26,7 @@ from ..main import mail
 from . import receipt_printing_bp as receipt_printing
 from .forms import *
 from .models import *
-from ..comhealth.models import ComHealthReceiptID
+from ..comhealth.models import ComHealthReceiptID, ComHealthReceipt
 from ..main import db
 from ..roles import finance_permission
 
@@ -407,7 +408,7 @@ def confirm_cancel_receipt(receipt_id):
     receipt = ElectronicReceiptDetail.query.get(receipt_id)
     if not receipt.cancelled:
         return render_template('receipt_printing/confirm_cancel_receipt.html', receipt=receipt)
-    return redirect(url_for('receipt_printing.list_to_cancel_receipt'))
+    return redirect(url_for('receipt_printing.list_all_receipts'))
 
 
 @receipt_printing.route('receipts/cancel/<int:receipt_id>', methods=['POST'])
@@ -417,13 +418,14 @@ def cancel_receipt(receipt_id):
     receipt.cancel_comment = request.form.get('comment')
     db.session.add(receipt)
     db.session.commit()
-    return redirect(url_for('receipt_printing.list_to_cancel_receipt'))
+    return redirect(url_for('receipt_printing.list_all_receipts'))
 
 
 @receipt_printing.route('/daily/payment/report')
 def daily_payment_report():
     record = ElectronicReceiptDetail.query.all()
-    return render_template('receipt_printing/daily_payment_report.html', record=record)
+    record_comhealth = ComHealthReceipt.query.all()
+    return render_template('receipt_printing/daily_payment_report.html', record=record, record_comhealth=record_comhealth)
 
 
 @receipt_printing.route('/daily/payment/report/download')
@@ -435,12 +437,13 @@ def download_daily_payment_report():
         records.append({
             u'เล่มที่': u"{}".format(receipt.book_number),
             u'เลขที่': u"{}".format(receipt.number),
+            u'รายการ': u"{}".format(receipt.item_list),
             u'ช่องทางการชำระเงิน': u"{}".format(receipt.payment_method),
             u'เลขที่บัตรเครดิต': u"{}".format(receipt.card_number),
             u'เลขที่เช็ค': u"{}".format(receipt.cheque_number),
             u'ชื่อผู้ชำระเงิน': u"{}".format(receipt.received_from),
-            u'ผู้รับเงิน/ผู้บันทึก': u"{}".format(receipt.cashier),
-            u'ตำแหน่ง': u"{}".format(receipt.issuer.staff.personal_info.fullname),
+            u'ผู้รับเงิน/ผู้บันทึก': u"{}".format(receipt.issuer.personal_info.fullname),
+            u'ตำแหน่ง': u"{}".format(receipt.issuer.personal_info.position),
             u'หมายเหตุ': u"{}".format(receipt.comment),
         })
     df = DataFrame(records)
@@ -448,6 +451,7 @@ def download_daily_payment_report():
                 header=True,
                 columns=[u'เล่มที่',
                          u'เลขที่',
+                         u'รายการ',
                          u'ช่องทางการชำระเงิน',
                          u'เลขที่บัตรเครดิต',
                          u'เลขที่เช็ค',
@@ -465,9 +469,10 @@ def send_mail(recp, title, message):
     mail.send(message)
 
 
-@receipt_printing.route('receipt/new/require', methods=['GET', 'POST'])
-def require_new_receipt():
+@receipt_printing.route('receipt/new/require/<int:receipt_id>', methods=['GET', 'POST'])
+def require_new_receipt(receipt_id):
     form = ReceiptRequireForm()
+    receipt = ElectronicReceiptDetail.query.get(receipt_id)
     if request.method == 'POST':
         filename = ''
         receipt_require = ElectronicReceiptRequest()
@@ -502,12 +507,12 @@ def require_new_receipt():
         #            u' If you have any problem about website, please contact the IT unit.'
         # send_mail([u'yada.boo@mahidol.ac.th'], title, message)
         flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        return render_template('receipt_printing/require_new_receipt.html', form=form)
+        return render_template('receipt_printing/list_to_require_receipt.html')
         # Check Error
     else:
         for er in form.errors:
             flash(er, 'danger')
-    return render_template('receipt_printing/require_new_receipt.html', form=form)
+    return render_template('receipt_printing/require_new_receipt.html', form=form, receipt=receipt)
 
 
 def initialize_gdrive():
@@ -515,3 +520,42 @@ def initialize_gdrive():
     scopes = ['https://www.googleapis.com/auth/drive']
     gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scopes)
     return GoogleDrive(gauth)
+
+
+@receipt_printing.route('/receipt/require/list')
+def list_to_require_receipt():
+    return render_template('receipt_printing/list_to_require_receipt.html')
+
+
+@receipt_printing.route('/api/data/require')
+def get_require_receipt_data():
+    query = ElectronicReceiptDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ElectronicReceiptDetail.number.like(u'%{}%'.format(search)),
+        ElectronicReceiptDetail.book_number.like(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for r in query:
+        record_data = r.to_dict()
+        record_data['created_datetime'] = record_data['created_datetime'].strftime('%d/%m/%Y')
+        record_data['require_receipt'] = '<a href="{}"><i class="fas fa-receipt"></i></a>'.format(
+            url_for('receipt_printing.require_new_receipt', receipt_id=r.id))
+
+        record_data['cancelled'] = '<i class="fas fa-times has-text-danger"></i>' if r.cancelled else '<i class="far fa-check-circle has-text-success"></i>'
+        data.append(record_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ElectronicReceiptDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
+@receipt_printing.route('/receipt/require/list/view')
+def view_require_receipt():
+    request_receipt = ElectronicReceiptRequest.query.all()
+    return render_template('receipt_printing/view_require_receipt.html', request_receipt=request_receipt)

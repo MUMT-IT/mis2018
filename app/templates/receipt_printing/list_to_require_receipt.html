@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="section">
+        {% include "messages.html" %}
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                    <table id="data" class="table is-fullwidth is-striped">
+                        <thead>
+                            <th>หมายเลขเล่ม</th>
+                            <th>เลขที่</th>
+                            <th>ออกวันที่</th>
+                            <th>หมายเหตุ</th>
+                            <th>สถานะ</th>
+                            <th>สาเหตุของการยกเลิก</th>
+                            <th>ขอออกใบเสร็จใหม่</th>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <a href="{{ url_for('receipt_printing.landing') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#data').DataTable({
+                searchDelay: 350,
+                ajax: '{{ url_for("receipt_printing.get_require_receipt_data") }}',
+                serverSide: true,
+                columns: [
+                    {data: 'book_number'},
+                    {data: 'number'},
+                    {data: 'created_datetime'},
+                    {data: 'comment'},
+                    {data: 'cancelled'},
+                    {data: 'cancel_comment'},
+                    {data: 'require_receipt'}
+                ],
+            });
+        });
+    </script>
+{% endblock %}
