@@ -37,6 +37,18 @@ class ElectronicReceiptDetail(db.Model):
     def item_list(self):
         return ', '.join([i.item for i in self.items])
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'book_number': self.book_number,
+            'number': self.number,
+            'created_datetime': self.created_datetime,
+            'print_number': self.print_number,
+            'comment': self.comment,
+            'cancelled': self.cancelled,
+            'cancel_comment': self.cancel_comment
+        }
+
 
 class ElectronicReceiptItem(db.Model):
     __tablename__ = 'electronic_receipt_items'
