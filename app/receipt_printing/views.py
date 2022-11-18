@@ -7,7 +7,7 @@ import requests
 from bahttext import bahttext
 from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, make_response, \
     jsonify
-from flask_login import current_user
+from flask_login import current_user, login_required
 from pandas import DataFrame
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
@@ -22,13 +22,14 @@ from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.drive import GoogleDrive
 from flask_mail import Message
 from ..main import mail
+from sqlalchemy import cast, Date
 
 from . import receipt_printing_bp as receipt_printing
 from .forms import *
 from .models import *
 from ..comhealth.models import ComHealthReceiptID, ComHealthReceipt
 from ..main import db
-from ..roles import finance_permission
+from ..roles import finance_permission, finance_head_permission
 
 bangkok = pytz.timezone('Asia/Bangkok')
 
@@ -421,11 +422,17 @@ def cancel_receipt(receipt_id):
     return redirect(url_for('receipt_printing.list_all_receipts'))
 
 
-@receipt_printing.route('/daily/payment/report')
+@receipt_printing.route('/daily/payment/report', methods=['GET', 'POST'])
 def daily_payment_report():
     record = ElectronicReceiptDetail.query.all()
-    record_comhealth = ComHealthReceipt.query.all()
-    return render_template('receipt_printing/daily_payment_report.html', record=record, record_comhealth=record_comhealth)
+    # record_comhealth = ComHealthReceipt.query.all()
+    form = ReportDateForm()
+    if request.method == 'POST':
+        created_datetime = datetime.strptime(form.created_datetime.data, '%d-%m-%Y')
+        record = ElectronicReceiptDetail.query.filter(cast(ElectronicReceiptDetail.created_datetime, Date) >= created_datetime)
+    else:
+        flash(form.errors, 'danger')
+    return render_template('receipt_printing/daily_payment_report.html', record=record, form=form)
 
 
 @receipt_printing.route('/daily/payment/report/download')
@@ -529,7 +536,7 @@ def list_to_require_receipt():
 
 @receipt_printing.route('/api/data/require')
 def get_require_receipt_data():
-    query = ElectronicReceiptDetail.query
+    query = ElectronicReceiptDetail.query.filter_by(cancelled=True)
     search = request.args.get('search[value]')
     query = query.filter(db.or_(
         ElectronicReceiptDetail.number.like(u'%{}%'.format(search)),
@@ -556,6 +563,8 @@ def get_require_receipt_data():
 
 
 @receipt_printing.route('/receipt/require/list/view')
+@login_required
+@finance_head_permission.require()
 def view_require_receipt():
     request_receipt = ElectronicReceiptRequest.query.all()
     return render_template('receipt_printing/view_require_receipt.html', request_receipt=request_receipt)
