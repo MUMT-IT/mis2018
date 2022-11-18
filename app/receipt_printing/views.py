@@ -22,7 +22,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 from pydrive.drive import GoogleDrive
 from flask_mail import Message
 from ..main import mail
-from sqlalchemy import cast, Date
+from sqlalchemy import cast, Date, and_
 
 from . import receipt_printing_bp as receipt_printing
 from .forms import *
@@ -424,23 +424,43 @@ def cancel_receipt(receipt_id):
 
 @receipt_printing.route('/daily/payment/report', methods=['GET', 'POST'])
 def daily_payment_report():
-    record = ElectronicReceiptDetail.query.all()
-    # record_comhealth = ComHealthReceipt.query.all()
+    query = ElectronicReceiptDetail.query
     form = ReportDateForm()
+    start_date = None
+    end_date = None
     if request.method == 'POST':
-        created_datetime = datetime.strptime(form.created_datetime.data, '%d-%m-%Y')
-        record = ElectronicReceiptDetail.query.filter(cast(ElectronicReceiptDetail.created_datetime, Date) >= created_datetime)
+        start_date, end_date = form.created_datetime.data.split(' - ')
+        start_date = datetime.strptime(start_date, '%d-%m-%Y')
+        end_date = datetime.strptime(end_date, '%d-%m-%Y')
+        if start_date < end_date:
+            query = query.filter(and_(ElectronicReceiptDetail.created_datetime >= start_date,
+                                      ElectronicReceiptDetail.created_datetime <= end_date))
+        else:
+            query = query.filter(cast(ElectronicReceiptDetail.created_datetime, Date) == start_date)
     else:
         flash(form.errors, 'danger')
-    return render_template('receipt_printing/daily_payment_report.html', record=record, form=form)
+    start_date = start_date.strftime('%d-%m-%Y') if start_date else ''
+    end_date = end_date.strftime('%d-%m-%Y') if end_date else ''
+    return render_template('receipt_printing/daily_payment_report.html', records=query, form=form,
+                           start_date=start_date, end_date=end_date)
 
 
 @receipt_printing.route('/daily/payment/report/download')
 def download_daily_payment_report():
     records = []
-    receipt_record = ElectronicReceiptDetail.query.all()
+    query = ElectronicReceiptDetail.query
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    if start_date:
+        start_date = datetime.strptime(start_date, '%d-%m-%Y')
+        end_date = datetime.strptime(end_date, '%d-%m-%Y')
+        if start_date < end_date:
+            query = query.filter(and_(ElectronicReceiptDetail.created_datetime >= start_date,
+                                      ElectronicReceiptDetail.created_datetime <= end_date))
+        else:
+            query = query.filter(cast(ElectronicReceiptDetail.created_datetime, Date) == start_date)
 
-    for receipt in receipt_record:
+    for receipt in query:
         records.append({
             u'เล่มที่': u"{}".format(receipt.book_number),
             u'เลขที่': u"{}".format(receipt.number),
