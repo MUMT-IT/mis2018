@@ -28,12 +28,8 @@
                                 <div class="control">
                                     <input class="button is-success" type="submit" value="ค้นหาข้อมูล">
                                     <a class="button is-info"
-                                            {% if created_datetime %}
-                                       href="{{ url_for('receipt_printing.download_daily_payment_report', created_datetime=created_datetime.strftime('%Y-%m-%d')) }}"
-                                            {% else %}
-                                       href="{{ url_for('receipt_printing.daily_payment_report') }}"
-                                            {% endif %}
-                                    >
+                                       href="{{ url_for('receipt_printing.download_daily_payment_report', start_date=start_date,
+                                               end_date=end_date) }}">
                                         <span class="icon">
                                             <i class="fas fa-download"></i>
                                         </span>
@@ -46,6 +42,12 @@
                 </div>
             </div>
             <div class="columns">
+            <div class="column">
+                {% if start_date %}
+                <h1 class="title is-size-5 has-text-centered">Receipts from {{ start_date }} - {{ end_date }}</h1>
+                {% else %}
+                    <h1 class="title is-size-5 has-text-centered">All Receipts</h1>
+                {% endif %}
                 <table id="receipt_data" class="table is-fullwidth is-striped">
                     <thead>
                     <th>เล่มที่</th>
@@ -60,20 +62,8 @@
                     <th>ตำแหน่ง</th>
                     <th>หมายเหตุ</th>
                     </thead>
-                    {#                <thead>#}
-                    {#                    <th>เล่มที่</th>#}
-                    {#                    <th>เลขที่</th>#}
-                    {#                    <th>ช่องทางการชำระเงิน</th>#}
-                    {#                    <th>เลขที่บัตรเครดิต</th>#}
-                    {#                    <th>เลขที่เช็ค</th>#}
-                    {#                    <th>รายการ</th>#}
-                    {#                    <th>ชื่อผู้ชำระเงิน</th>#}
-                    {#                    <th>ผู้รับเงิน/ผู้บันทึก</th>#}
-                    {#                    <th>ตำแหน่ง</th>#}
-                    {#                    <th>หมายเหตุ</th>#}
-                    {#                    </thead>#}
                     <tbody>
-                    {% for r in record %}
+                    {% for r in records %}
                         <tr>
                             <td>{{ r.book_number }}</td>
                             <td>{{ r.number }}</td>
@@ -108,6 +98,7 @@
                     </tbody>
                 </table>
             </div>
+            </div>
             <div class="columns">
                 <div class="column">
                     <div class="buttons is-left">
@@ -130,7 +121,7 @@
     <script>
         $(document).ready(function () {
             $('input[name="created_datetime"]').daterangepicker({
-                singleDatePicker: true,
+                singleDatePicker: false,
                 locale: {
                     format: 'DD-MM-YYYY'
                 }
