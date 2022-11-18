@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import FormField, FieldList, FileField
+from wtforms import FormField, FieldList, FileField, StringField
 from wtforms_alchemy import model_form_factory
 
 from app.main import db
@@ -36,6 +36,11 @@ class ReceiptRequireForm(ModelForm):
         model = ElectronicReceiptRequest
 
     upload = FileField(u'อัพโหลดไฟล์')
+
+
+class ReportDateForm(FlaskForm):
+   created_datetime = StringField(u'วันที่ใบเสร็จ')
+
 
 
 
