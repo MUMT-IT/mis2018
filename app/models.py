@@ -225,10 +225,16 @@ class Mission(db.Model):
     def __str__(self):
         return u'{}'.format(self.name)
 
+cost_center_iocode_assoc = db.Table('cost_center_iocode_assoc',
+                              db.Column('cost_center_id', db.String(), db.ForeignKey('cost_centers.id'), primary_key=True),
+                              db.Column('iocode_id', db.String(), db.ForeignKey('iocodes.id'), primary_key=True),
+                              )
+
 
 class CostCenter(db.Model):
     __tablename__ = 'cost_centers'
     id = db.Column('id', db.String(12), primary_key=True)
+
 
     def __repr__(self):
         return u'{}'.format(self.id)
@@ -237,9 +243,7 @@ class CostCenter(db.Model):
 class IOCode(db.Model):
     __tablename__ = 'iocodes'
     id = db.Column('id', db.String(16), primary_key=True)
-    cost_center_id = db.Column('cost_center_id', db.String(),
-                               db.ForeignKey('cost_centers.id'), nullable=False)
-    cost_center = db.relationship('CostCenter', backref=db.backref('iocodes'))
+    cost_center = db.relationship('CostCenter', backref=db.backref('iocodes'), secondary=cost_center_iocode_assoc)
     mission_id = db.Column('mission_id', db.Integer(), db.ForeignKey('missions.id'), nullable=False)
     mission = db.relationship('Mission', backref=db.backref('iocodes'))
     org_id = db.Column('org_id', db.Integer(), db.ForeignKey('orgs.id'), nullable=False)
