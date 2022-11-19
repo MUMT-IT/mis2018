@@ -25,9 +25,6 @@ class ElectronicReceiptDetail(db.Model):
     other_payment_method = db.Column('other_payment_method', db.String(), info={'label': u'ช่องทางการชำระเงินอื่นๆ'})
     address = db.Column('address', db.Text(), info={'label': u'ที่อยู่'})
     received_from = db.Column('received_from', db.String(), info={'label': u'ได้รับเงินจาก'})
-    gl = db.Column('gl', db.Integer(), info={'label': u'รหัสบัญชี'})
-    cost_center = db.Column('cost_center', db.String(8), info={'label': u'ศูนย์ต้นทุน'})
-    internal_order = db.Column('internal_order', db.Integer(), info={'label': 'Internal Order/IO'})
     bank_name = db.Column('bank_name', db.String(), info={'label': u'ชื่อธนาคาร'})
     issuer_id = db.Column('issuer_id', db.ForeignKey('staff_account.id'))
     issuer = db.relationship(StaffAccount, foreign_keys=[issuer_id])
@@ -58,6 +55,7 @@ class ElectronicReceiptItem(db.Model):
     receipt_detail = db.relationship('ElectronicReceiptDetail',
                            backref=db.backref('items', cascade='all, delete-orphan'))
     price = db.Column('price', db.Numeric(), default=0.0, info={'label': u'จำนวนเงิน'})
+
 
 
 class ElectronicReceiptRequest(db.Model):
