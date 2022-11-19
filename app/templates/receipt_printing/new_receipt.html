@@ -41,6 +41,24 @@
                                         {{ i.price(class="input", placeholder="฿", **{'hx-post': url_for("receipt_printing.update_amount"), 'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}) }}
                                     </div>
                                 </div>
+                                <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">Cost Center</label>
+                                        <div class="control">
+                                            <div class="select">
+                                            {{ i.cost_center(class="select") }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">Internal Order/IO</label>
+                                        <div class="control">
+                                            <div class="select">
+                                            {{ i.internal_order(class="select") }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             {% endfor %}
                         </div><br>
                         <div class="field is-grouped">

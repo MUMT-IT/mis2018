@@ -27,7 +27,7 @@ from sqlalchemy import cast, Date, and_
 from . import receipt_printing_bp as receipt_printing
 from .forms import *
 from .models import *
-from ..comhealth.models import ComHealthReceiptID, ComHealthReceipt
+from ..comhealth.models import ComHealthReceiptID
 from ..main import db
 from ..roles import finance_permission, finance_head_permission
 
@@ -101,7 +101,28 @@ def list_add_items():
             {}
         </div>
     </div>
-    '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label, item_form.price(class_="input", placeholder=u"฿", **{'hx-post': url_for("receipt_printing.update_amount"), 'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}))
+    <div class="field-body">
+        <div class="field">
+            <label class="label">{}</label>
+            <div class="select">
+                {}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{}</label>
+            <div class="select">
+                {}
+            </div>
+        </div>
+    </div>
+    '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label,
+               item_form.price(class_="input", placeholder=u"฿",
+                               **{'hx-post': url_for("receipt_printing.update_amount"),
+                                  'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount',
+                                  'hx-swap': 'outerHTML'}),
+               item_form.cost_center.label, item_form.cost_center(class_="select"),
+               item_form.internal_order.label, item_form.internal_order(class_="select")
+               )
     resp = make_response(form_text)
     resp.headers['HX-Trigger-After-Swap'] = 'update_amount'
     return resp
