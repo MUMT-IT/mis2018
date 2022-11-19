@@ -245,9 +245,17 @@ from receipt_printing import receipt_printing_bp as receipt_printing_blueprint
 app.register_blueprint(receipt_printing_blueprint, url_prefix='/receipt_printing')
 from app.receipt_printing.models import *
 
+
+class ElectronicReceiptGLModel(ModelView):
+    can_create = True
+    form_columns = ('gl', 'receive_name', 'items_gl')
+    column_list = ('gl', 'receive_name', 'items_gl')
+
+
 admin.add_views(ModelView(ElectronicReceiptDetail, db.session, category='ReceiptPrinting'))
 admin.add_views(ModelView(ElectronicReceiptItem, db.session, category='ReceiptPrinting'))
 admin.add_views(ModelView(ElectronicReceiptRequest, db.session, category='ReceiptPrinting'))
+admin.add_views(ElectronicReceiptGLModel(ElectronicReceiptGL, db.session, category='ReceiptPrinting'))
 
 from staff import staffbp as staff_blueprint
 
