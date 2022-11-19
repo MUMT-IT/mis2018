@@ -7,7 +7,7 @@ from app.staff.models import StaffAccount
 
 class ElectronicReceiptDetail(db.Model):
     __tablename__ = 'electronic_receipt_details'
-    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    id = db.Column('id', db.Integer(), autoincrement=True, primary_key=True)
     number = db.Column('number', db.String(), info={'label': u'เลขที่'})
     copy_number = db.Column('copy_number', db.Integer(), default=1)
     book_number = db.Column('book_number', db.String(), info={'label': u'เล่มที่'})
@@ -49,21 +49,19 @@ class ElectronicReceiptDetail(db.Model):
 
 class ElectronicReceiptItem(db.Model):
     __tablename__ = 'electronic_receipt_items'
-    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    id = db.Column('id', db.Integer(), autoincrement=True, primary_key=True)
     item = db.Column('item', db.String(), info={'label': u'รายการ'})
     receipt_id = db.Column('receipt_id', db.ForeignKey('electronic_receipt_details.id'))
     receipt_detail = db.relationship('ElectronicReceiptDetail',
                            backref=db.backref('items', cascade='all, delete-orphan'))
     price = db.Column('price', db.Numeric(), default=0.0, info={'label': u'จำนวนเงิน'})
-    gl = db.Column('gl', db.Integer(), info={'label': u'รหัสบัญชี'})
     cost_center = db.Column('cost_center', db.String(), info={'label': u'ศูนย์ต้นทุน'})
     internal_order = db.Column('internal_order', db.Integer(), info={'label': 'Internal Order/IO'})
 
 
-
 class ElectronicReceiptRequest(db.Model):
     __tablename__ = 'electronic_receipt_requests'
-    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    id = db.Column('id', db.Integer(), autoincrement=True, primary_key=True)
     detail_id = db.Column('detail_id', db.ForeignKey('electronic_receipt_details.id'))
     detail = db.relationship('ElectronicReceiptDetail',
                              backref=db.backref('reprint_requests', lazy='dynamic'))
