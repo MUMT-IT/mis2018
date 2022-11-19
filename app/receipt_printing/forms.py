@@ -25,8 +25,11 @@ class ReceiptListForm(ModelForm):
                                    query_factory=lambda: CostCenter.query.all(),
                                    get_label='id', blank_text='Select Cost Center..', allow_blank=True)
     internal_order = QuerySelectField('Internal Order',
-                                   query_factory=lambda: IOCode.query.all(),
-                                   blank_text='Select Internal Order/IO..', allow_blank=True)
+                                      query_factory=lambda: IOCode.query.all(),
+                                      blank_text='Select Internal Order/IO..', allow_blank=True)
+    gl = QuerySelectField(u'รหัสบัญชี',
+                          query_factory=lambda: ElectronicReceiptGL.query.all(),
+                          blank_text='Select GL..', allow_blank=True)
 
 
 class ReceiptDetailForm(ModelForm):

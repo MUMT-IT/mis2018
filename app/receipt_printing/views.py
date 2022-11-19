@@ -113,13 +113,20 @@ def list_add_items():
             {}
         </div>
     </div>
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="select">
+            {}
+        </div>
+    </div>
     '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label,
                item_form.price(class_="input", placeholder=u"฿",
                                **{'hx-post': url_for("receipt_printing.update_amount"),
                                   'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount',
                                   'hx-swap': 'outerHTML'}),
                item_form.cost_center.label, item_form.cost_center(class_="select"),
-               item_form.internal_order.label, item_form.internal_order(class_="select")
+               item_form.internal_order.label, item_form.internal_order(class_="select"),
+               item_form.gl.label, item_form.gl(class_="select"),
                )
     resp = make_response(form_text)
     resp.headers['HX-Trigger-After-Swap'] = 'update_amount'
