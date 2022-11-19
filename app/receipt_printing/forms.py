@@ -26,7 +26,7 @@ class ReceiptListForm(ModelForm):
                                    get_label='id', blank_text='Select Cost Center..', allow_blank=True)
     internal_order = QuerySelectField('Internal Order',
                                    query_factory=lambda: IOCode.query.all(),
-                                   get_label='id', blank_text='Select Internal Order/IO..', allow_blank=True)
+                                   blank_text='Select Internal Order/IO..', allow_blank=True)
 
 
 class ReceiptDetailForm(ModelForm):
