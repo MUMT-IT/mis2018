@@ -253,6 +253,9 @@ class IOCode(db.Model):
     def __repr__(self):
         return u'{}:{}:{}:{}'.format(self.id, self.name, self.org.name, self.mission)
 
+    def __str__(self):
+        return u'{}: {}'.format(self.id, self.name)
+
     def to_dict(self):
         return {
             'id': self.id,
