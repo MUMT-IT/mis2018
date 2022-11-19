@@ -101,18 +101,16 @@ def list_add_items():
             {}
         </div>
     </div>
-    <div class="field-body">
-        <div class="field">
-            <label class="label">{}</label>
-            <div class="select">
-                {}
-            </div>
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="select">
+            {}            
         </div>
-        <div class="field">
-            <label class="label">{}</label>
-            <div class="select">
-                {}
-            </div>
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="select">
+            {}
         </div>
     </div>
     '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label,

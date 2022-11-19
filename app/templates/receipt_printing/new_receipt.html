@@ -41,34 +41,37 @@
                                         {{ i.price(class="input", placeholder="฿", **{'hx-post': url_for("receipt_printing.update_amount"), 'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}) }}
                                     </div>
                                 </div>
-                                <div class="field-body">
-                                    <div class="field">
-                                        <label class="label">Cost Center</label>
-                                        <div class="control">
-                                            <div class="select">
+
+                                <div class="field">
+                                    <label class="label">Cost Center</label>
+                                    <div class="control">
+                                        <div class="select">
                                             {{ i.cost_center(class="select") }}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="label">Internal Order/IO</label>
-                                        <div class="control">
-                                            <div class="select">
-                                            {{ i.internal_order(class="select") }}
-                                            </div>
                                         </div>
                                     </div>
                                 </div>
+                                <div class="field">
+                                    <label class="label">Internal Order/IO</label>
+                                    <div class="control">
+                                        <div class="select">
+                                            {{ i.internal_order(class="select") }}
+                                        </div>
+                                    </div>
+                                </div>
+
                             {% endfor %}
-                        </div><br>
+                        </div>
+                        <br>
                         <div class="field is-grouped">
                             <div class="control">
-                                <button class="button is-small is-info" hx-post="{{ url_for('receipt_printing.list_add_items') }}"
+                                <button class="button is-small is-info"
+                                        hx-post="{{ url_for('receipt_printing.list_add_items') }}"
                                         hx-target="#items" hx-swap="beforeend">เพิ่มรายการ
                                 </button>
                             </div>
                             <div class="control">
-                                <button class="button is-small is-danger" hx-post="{{ url_for('receipt_printing.delete_items') }}"
+                                <button class="button is-small is-danger"
+                                        hx-post="{{ url_for('receipt_printing.delete_items') }}"
                                         hx-target="#items" hx-swap="innerHTML"
                                         hx-confirm="Are you sure to delete?">ลบรายการ
                                 </button>
@@ -146,19 +149,23 @@
     <script>
         $.ajaxSetup({
             headers:
-            { 'X-CSRF-TOKEN': "{{ csrf_token() }}" }
+                {'X-CSRF-TOKEN': "{{ csrf_token() }}"}
         });
+
         function delete_warning() {
             alert("The form needs at least one entry.")
         }
+
         document.addEventListener('delete_warning', delete_warning)
+
         function update_amount() {
             let total_amount = 0.0
-            $('[id$=price]').each(function() {
+            $('[id$=price]').each(function () {
                 total_amount += Number($(this).val())
             })
             $('#paid_amount').val(total_amount)
         }
+
         document.addEventListener('update_amount', update_amount)
     </script>
     <script>
