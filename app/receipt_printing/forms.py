@@ -34,10 +34,9 @@ class ReceiptDetailForm(ModelForm):
         model = ElectronicReceiptDetail
         only = ['number', 'copy_number', 'book_number', 'comment', 'paid', 'cancelled', 'cancel_comment',
                 'payment_method', 'paid_amount', 'card_number', 'cheque_number', 'other_payment_method', 'address',
-                'received_from', 'gl', 'cost_center', 'internal_order', 'bank_name']
+                'received_from', 'bank_name']
 
     items = FieldList(FormField(ReceiptListForm, default=ElectronicReceiptItem), min_entries=1)
-
 
 
 class ReceiptRequireForm(ModelForm):
