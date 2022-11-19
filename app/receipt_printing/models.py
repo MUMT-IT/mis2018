@@ -57,6 +57,9 @@ class ElectronicReceiptItem(db.Model):
     price = db.Column('price', db.Numeric(), default=0.0, info={'label': u'จำนวนเงิน'})
     cost_center = db.Column('cost_center', db.String(), info={'label': u'ศูนย์ต้นทุน'})
     internal_order = db.Column('internal_order', db.Integer(), info={'label': 'Internal Order/IO'})
+    gl_id = db.Column('gl_id', db.ForeignKey('electronic_receipt_gls.gl'))
+    gl = db.relationship('ElectronicReceiptGL',
+                         backref=db.backref('items_gl'))
 
 
 class ElectronicReceiptRequest(db.Model):
@@ -71,5 +74,13 @@ class ElectronicReceiptRequest(db.Model):
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship(StaffAccount, foreign_keys=[staff_id])
 
+
+class ElectronicReceiptGL(db.Model):
+    __tablename__ = 'electronic_receipt_gls'
+    gl = db.Column('gl', db.String(), primary_key=True, nullable=False, info={'label': u'รหัสบัญชี'})
+    receive_name = db.Column('receive_name', db.String())
+
+    def __str__(self):
+        return u'{}: {}'.format(self.gl, self.receive_name)
 
 
