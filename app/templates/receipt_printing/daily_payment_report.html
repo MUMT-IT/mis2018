@@ -61,6 +61,9 @@
                     <th>ผู้รับเงิน/ผู้บันทึก</th>
                     <th>ตำแหน่ง</th>
                     <th>หมายเหตุ</th>
+                    <th>GL</th>
+                    <th>Cost Center</th>
+                    <th>IO</th>
                     </thead>
                     <tbody>
                     {% for r in records %}
@@ -76,6 +79,9 @@
                             <td>{{ r.issuer.personal_info.fullname }}</td>
                             <td>{{ r.issuer.personal_info.position }}</td>
                             <td>{{ r.comment or '' }}</td>
+                            <td>{{ r.item_gl_list }}</td>
+                            <td>{{ r.item_cost_center_list }}</td>
+                            <td>{{ r.item_internal_order_list }}</td>
                         </tr>
                     {% endfor %}
 {#                    {% for c in record_comhealth %}#}
