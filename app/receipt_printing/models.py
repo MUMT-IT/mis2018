@@ -53,10 +53,14 @@ class ElectronicReceiptItem(db.Model):
     item = db.Column('item', db.String(), info={'label': u'รายการ'})
     receipt_id = db.Column('receipt_id', db.ForeignKey('electronic_receipt_details.id'))
     receipt_detail = db.relationship('ElectronicReceiptDetail',
-                           backref=db.backref('items', cascade='all, delete-orphan'))
+                                     backref=db.backref('items', cascade='all, delete-orphan'))
     price = db.Column('price', db.Numeric(), default=0.0, info={'label': u'จำนวนเงิน'})
     cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'))
+    cost_center = db.relationship('CostCenter',
+                                  backref=db.backref('items_cost_center'))
     iocode_id = db.Column('iocode_id', db.ForeignKey('iocodes.id'))
+    internal_order_code = db.relationship('IOCode',
+                             backref=db.backref('items_io'))
     gl_id = db.Column('gl_id', db.ForeignKey('electronic_receipt_gls.gl'))
     gl = db.relationship('ElectronicReceiptGL',
                          backref=db.backref('items_gl'))
