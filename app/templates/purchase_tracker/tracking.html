@@ -65,7 +65,7 @@
         </div>
         <div class="columns">
             <div class="column">
-                <table class="table is-striped" id="PurchaseTrackerTable">
+                <table class="table is-fullwidth is-striped" id="PurchaseTrackerTable">
                     <thead>
                     <th>ชื่อเรื่อง</th>
                     <th>เลขที่หนังสือ</th>
@@ -104,8 +104,8 @@
                                 <span>View</span>
                             </a>
                         </td>
+                            {% if record.records.count() == 0 and not record.cancelled_datetime and not record.end_datetime and not list_type=='ourAccount' %}
 {#                        <td>#}
-{#                        {% if record.records.count() == 0 and not record.cancelled_datetime and not record.end_datetime and not list_type=='ourAccount' %}#}
 {#                            <a href="{{ url_for('purchase_tracker.select_form', account_id=record.id) }}">#}
 {#                                <i class="fab fa-wpforms"></i>#}
 {#                                <span>สร้างฟอร์ม</span>#}
@@ -118,7 +118,7 @@
                                     </span>
                                     <span>แก้ไข</span>
                                 </a>
-{#                            {% endif %}#}
+                            {% endif %}
                         </td>
                     {% endfor %}
                     </tbody>

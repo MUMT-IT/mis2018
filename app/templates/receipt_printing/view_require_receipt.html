@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="{{ url_for('receipt_printing.landing') }}">หน้าหลัก</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">ดูคำร้องขอออกใบเสร็จทั้งหมด</a></li>
+                </ul>
+            </nav>
+            <div class="columns">
+                <div class="column">
+                    <table id="receipt_data" class="table is-fullwidth is-striped">
+                        <thead>
+                        <th>หมายเลขเล่ม</th>
+                        <th>เลขที่</th>
+                        <th>ออกวันที่</th>
+                        <th>หมายเหตุ</th>
+                        <th>สาเหตุ</th>
+                        </thead>
+                        <tbody>
+                        {% for r in request_receipt %}
+                            <tr>
+                                <td>{{ r.detail.book_number }}</td>
+                                <td>{{ r.detail.number }}</td>
+                                <td>{{ r.detail.created_datetime|localdatetime }}</td>
+                                <td>{{ r.detail.comment }}</td>
+                                <td>{{ r.reason }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-left">
+                        <a class="button is-light"
+                           href="{{ url_for('receipt_printing.landing') }}">
+                            <span class="icon">
+                                <i class="fas fa-chevron-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#receipt_data').DataTable({})
+        });
+    </script>
+
+{% endblock %}
