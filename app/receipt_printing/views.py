@@ -80,7 +80,7 @@ def create_receipt():
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
-    return render_template('receipt_printing/new_receipt.html', form=form)
+    return render_template('receipt_printing/new_receipt.html', form=form, url_callback=request.referrer)
 
 
 @receipt_printing.route('/receipt/create/add-items', methods=['POST', 'GET'])
