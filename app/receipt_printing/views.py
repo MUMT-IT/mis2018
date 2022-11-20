@@ -125,8 +125,8 @@ def list_add_items():
                                   'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount',
                                   'hx-swap': 'outerHTML'}),
                item_form.cost_center.label, item_form.cost_center(class_="select"),
-               item_form.internal_order.label, item_form.internal_order(class_="select"),
-               item_form.gl.label, item_form.gl(class_="select"),
+               item_form.internal_order_code.label, item_form.internal_order_code(class_="select"),
+               item_form.gl.label, item_form.gl(class_="select")
                )
     resp = make_response(form_text)
     resp.headers['HX-Trigger-After-Swap'] = 'update_amount'
@@ -165,7 +165,32 @@ def delete_items():
             {}
         </div>
     </div>
-    '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label, item_form.price(class_="input", placeholder=u"฿", **{'hx-post': url_for("receipt_printing.update_amount"), 'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}))
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="select">
+            {}            
+        </div>
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="select">
+            {}
+        </div>
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="select">
+            {}
+        </div>
+    </div>
+    '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label,
+               item_form.price(class_="input", placeholder=u"฿",
+                               **{'hx-post': url_for("receipt_printing.update_amount"), 'hx-trigger': 'keyup changed delay:500ms',
+                                  'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}),
+               item_form.cost_center.label, item_form.cost_center(class_="select"),
+               item_form.internal_order_code.label, item_form.internal_order_code(class_="select"),
+               item_form.gl.label, item_form.gl(class_="select")
+               )
 
     resp = make_response(form_text)
     if alert:
@@ -362,7 +387,7 @@ def export_receipt_pdf(receipt_id):
                       Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     issuer_position = Table(position_info, colWidths=[0, 80, 20])
 
-    cancel_text = '''<para align=right><font size=20 color=red>ยกเลิก <br/>{}</font></para>'''.format(receipt.number)
+    cancel_text = '''<para align=right><font size=20 color=red>ยกเลิก {}</font></para>'''.format(receipt.number)
     cancel_receipts = Table([[Paragraph(cancel_text, style=style_sheet['ThaiStyle'])]])
 
     if receipt.cancelled:
@@ -598,8 +623,9 @@ def get_require_receipt_data():
         record_data['created_datetime'] = record_data['created_datetime'].strftime('%d/%m/%Y')
         record_data['require_receipt'] = '<a href="{}"><i class="fas fa-receipt"></i></a>'.format(
             url_for('receipt_printing.require_new_receipt', receipt_id=r.id))
-
         record_data['cancelled'] = '<i class="fas fa-times has-text-danger"></i>' if r.cancelled else '<i class="far fa-check-circle has-text-success"></i>'
+        record_data['view_require_receipt'] = '<a href="{}"><i class="fas fa-eye"></i></a>'.format(
+            url_for('receipt_printing.view_require_receipt', receipt_id=r.id))
         data.append(record_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
