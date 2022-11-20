@@ -56,15 +56,10 @@ def landing():
 
 @receipt_printing.route('/receipt/create', methods=['POST', 'GET'])
 def create_receipt():
-    action = request.args.get('action')
     form = ReceiptDetailForm()
     receipt_book = ComHealthReceiptID.query.filter_by(code='MTG').first()
 
     if form.validate_on_submit():
-        if action == 'add-items':
-            form.items.append_entry()
-            return render_template('receipt_printing/new_receipt.html', form=form)
-
         receipt_detail = ElectronicReceiptDetail()
         receipt_detail.issuer = current_user
         receipt_detail.created_datetime = datetime.now(tz=bangkok)
@@ -217,6 +212,9 @@ style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', align
 @receipt_printing.route('/receipts/pdf/<int:receipt_id>')
 def export_receipt_pdf(receipt_id):
     receipt = ElectronicReceiptDetail.query.get(receipt_id)
+    # if receipt.print_number >= 1:
+    #     flash(u"ไม่สามารถพิมพ์ได้มากกว่า 1 ครั้ง", "danger")
+    #     return redirect(url_for("receipt_printing.list_all_receipts"))
 
     def all_page_setup(canvas, doc):
         canvas.saveState()
@@ -522,7 +520,11 @@ def download_daily_payment_report():
             u'ชื่อผู้ชำระเงิน': u"{}".format(receipt.received_from),
             u'ผู้รับเงิน/ผู้บันทึก': u"{}".format(receipt.issuer.personal_info.fullname),
             u'ตำแหน่ง': u"{}".format(receipt.issuer.personal_info.position),
-            u'หมายเหตุ': u"{}".format(receipt.comment),
+            u'วันที่': u"{}".format(receipt.created_datetime.strftime('%d/%m/%Y')),
+            u'หมายเหตุ': u"{}".format(receipt.comment)
+            # u'GL': u"{}".format(receipt.item_gl_list if receipt and receipt.item_gl_list else ''),
+            # u'Cost Center': u"{}".format(receipt.item_cost_center_list if receipt and receipt.item_cost_center_list else ''),
+            # u'IO': u"{}".format(receipt.item_internal_order_list if receipt and receipt.item_internal_order_list else '')
         })
     df = DataFrame(records)
     df.to_excel('daily_payment_report.xlsx',
@@ -535,7 +537,11 @@ def download_daily_payment_report():
                          u'เลขที่เช็ค',
                          u'ผู้รับเงิน/ผู้บันทึก',
                          u'ตำแหน่ง',
-                         u'หมายเหตุ'
+                         u'วันที่',
+                         u'หมายเหตุ',
+                         # u'GL',
+                         # u'Cost Center',
+                         # u'IO'
                          ],
                 index=False,
                 encoding='utf-8')
@@ -556,6 +562,7 @@ def require_new_receipt(receipt_id):
         receipt_require = ElectronicReceiptRequest()
         form.populate_obj(receipt_require)
         receipt_require.staff = current_user
+        receipt_require.detail = receipt
         drive = initialize_gdrive()
         if form.upload.data:
             if not filename or (form.upload.data.filename != filename):
@@ -571,19 +578,19 @@ def require_new_receipt(receipt_id):
                     flash('Failed to upload the attached file to the Google drive.', 'danger')
                 else:
                     flash('The attached file has been uploaded to the Google drive', 'success')
-                    receipt_require.url = file_drive['id']
+                    receipt_require.url_drive = file_drive['id']
 
         db.session.add(receipt_require)
         db.session.commit()
-        # title = u'แจ้งเตือนคำร้องขอออกใบเสร็จใหม่ {}'.format(receipt_require.detail.number)
-        # message = u'เรียน คุณพิชญาสินี\n\nขออนุมัติคำร้องขอออกใบเสร็จเลขที่ {} เล่มที่ {} เนื่องจาก {}' \
-        #     .format(receipt_require.detail.number, receipt_require.detail.book_number, receipt_require.reason)
-        # message += u'\n\n======================================================'
-        # message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
-        #            u'หากมีปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อหน่วยข้อมูลและสารสนเทศ '
-        # message += u'\nThis email was sent by an automated system. Please do not reply.' \
-        #            u' If you have any problem about website, please contact the IT unit.'
-        # send_mail([u'yada.boo@mahidol.ac.th'], title, message)
+        title = u'แจ้งเตือนคำร้องขอออกใบเสร็จใหม่ {}'.format(receipt_require.detail.number)
+        message = u'เรียน คุณพิชญาสินี\n\n ขออนุมัติคำร้องขอออกใบเสร็จเลขที่ {} เล่มที่ {} เนื่องจาก {}' \
+            .format(receipt_require.detail.number, receipt_require.detail.book_number, receipt_require.reason)
+        message += u'\n\n======================================================'
+        message += u'\nอีเมลนี้ส่งโดยระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
+                   u'หากมีปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อ yada.boo@mahidol.ac.th หน่วยข้อมูลและสารสนเทศ '
+        message += u'\nThis email was sent by an automated system. Please do not reply.' \
+                   u' If you have any problem about website, please contact the IT unit.'
+        send_mail([u'pichayasini.jit@mahidol.ac.th'], title, message)
         flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
         return render_template('receipt_printing/list_to_require_receipt.html')
         # Check Error
@@ -639,4 +646,5 @@ def get_require_receipt_data():
 @finance_head_permission.require()
 def view_require_receipt():
     request_receipt = ElectronicReceiptRequest.query.all()
-    return render_template('receipt_printing/view_require_receipt.html', request_receipt=request_receipt)
+    return render_template('receipt_printing/view_require_receipt.html',
+                           request_receipt=request_receipt)
