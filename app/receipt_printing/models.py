@@ -34,6 +34,18 @@ class ElectronicReceiptDetail(db.Model):
     def item_list(self):
         return ', '.join([i.item for i in self.items])
 
+    @property
+    def item_gl_list(self):
+        return ', '.join([i.gl.gl for i in self.items])
+
+    @property
+    def item_cost_center_list(self):
+        return ', '.join([i.cost_center.id for i in self.items])
+
+    @property
+    def item_internal_order_list(self):
+        return ', '.join([i.internal_order_code.id for i in self.items])
+
     def to_dict(self):
         return {
             'id': self.id,
