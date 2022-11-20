@@ -55,8 +55,6 @@ class ElectronicReceiptItem(db.Model):
     receipt_detail = db.relationship('ElectronicReceiptDetail',
                            backref=db.backref('items', cascade='all, delete-orphan'))
     price = db.Column('price', db.Numeric(), default=0.0, info={'label': u'จำนวนเงิน'})
-    cost_center = db.Column('cost_center', db.String(), info={'label': u'ศูนย์ต้นทุน'})
-    internal_order = db.Column('internal_order', db.String(), info={'label': 'Internal Order/IO'})
     gl_id = db.Column('gl_id', db.ForeignKey('electronic_receipt_gls.gl'))
     gl = db.relationship('ElectronicReceiptGL',
                          backref=db.backref('items_gl'))
