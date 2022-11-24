@@ -27,7 +27,7 @@ class ReceiptListForm(ModelForm):
     internal_order_code = QuerySelectField('Internal Order Code',
                                       query_factory=lambda: IOCode.query.all(),
                                       blank_text='Select Internal Order/IO..', allow_blank=True)
-    gl = QuerySelectField(u'รหัสบัญชี',
+    gl = QuerySelectField('GL',
                           query_factory=lambda: ElectronicReceiptGL.query.all(),
                           blank_text='Select GL..', allow_blank=True)
 
