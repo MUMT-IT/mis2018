@@ -104,6 +104,27 @@
                             </form>
                         </td>
                     </tr>
+                    <tr>
+                        <td>รายการไฟล์</td>
+                        <td>
+                            <table>
+                                <thead>
+                                <th>Name</th>
+                                <th>Updated At</th>
+                                <th>Created At</th>
+                                <th>URL</th>
+                                </thead>
+                                {% for fn in dataset.files %}
+                                <tr>
+                                    <td>{{ fn.name }}</td>
+                                    <td>{{ fn.updated_at|localdatetime }}</td>
+                                    <td>{{ fn.created_at|localdatetime }}</td>
+                                    <td></td>
+                                </tr>
+                                {% endfor %}
+                            </table>
+                        </td>
+                    </tr>
                 </table>
                 <div class="buttons is-centered">
                     <a class="button is-light" href="{{ url_for('data_bp.data_detail', data_id=dataset.data.id) }}">Back</a>
