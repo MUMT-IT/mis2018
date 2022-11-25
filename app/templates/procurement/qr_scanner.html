@@ -79,7 +79,7 @@
                 async onDecode(content) {
                     console.log(content)
                     this.info.procurementNo = content
-                     window.location.replace("/procurement/scan-qrcode/info/view/" + content)
+                     window.location.replace("/procurement/scan-qrcode/info/view/procurement_no/" + content)
                     this.turnCameraOff()
                 },
                 logErrors(promise) {

@@ -7,7 +7,7 @@ from flask import render_template, request, flash, redirect, url_for, send_file,
 from flask_login import current_user, login_required
 from pandas import DataFrame
 from reportlab.lib.units import mm
-
+from sqlalchemy import cast, Date
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
@@ -97,11 +97,25 @@ def committee_first():
     return render_template('procurement/committee_first_page.html', name=current_user)
 
 
+# @procurement.route('/info/by-committee/view', methods=['GET', 'POST'])
+# @login_required
+# def view_procurement_by_committee():
+#     start_date = None
+#     end_date = None
+#     form = ProcurementApprovalForm()
+#     if request.method == 'POST':
+#         if form.validate_on_submit():
+#             start_date = datetime.strptime(form.updated_at.data, '%d-%m-%Y')
+#             end_date = datetime.strptime(form.updated_at.data, '%d-%m-%Y')
+#
+#         else:
+#             flash(form.errors, 'danger')
+#     return render_template('procurement/view_procurement_by_committee.html',
+#                             start_date=start_date, end_date=end_date, form=form)
 @procurement.route('/info/by-committee/view')
 @login_required
 def view_procurement_by_committee():
-    procurement_list = [item.to_dict() for item in ProcurementDetail.query.all()]
-    return render_template('procurement/view_procurement_by_committee.html', procurement_list=procurement_list)
+    return render_template('procurement/view_procurement_by_committee.html')
 
 
 @procurement.route('/api/data/committee')
@@ -111,9 +125,7 @@ def get_procurement_data_to_committee():
     query = query.filter(db.or_(
         ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
         ProcurementDetail.name.like(u'%{}%'.format(search)),
-        ProcurementDetail.erp_code.like(u'%{}%'.format(search)),
-        ProcurementDetail.budget_year.like(u'%{}%'.format(search)),
-        ProcurementDetail.available.like(u'%{}%'.format(search))
+        ProcurementDetail.erp_code.like(u'%{}%'.format(search))
     ))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
@@ -123,6 +135,7 @@ def get_procurement_data_to_committee():
     for item in query:
         current_record = item.current_record
         item_data = item.to_dict()
+        item_data['updated_at'] = current_record.approval.updated_at.strftime('%d/%m/%Y') if current_record and current_record.approval else ''
         item_data['checking_result'] = current_record.approval.checking_result if current_record and current_record.approval else ''
         item_data['approver'] = current_record.approval.approver.personal_info.fullname if current_record and current_record.approval else ''
         item_data['status'] = current_record.approval.asset_status if current_record and current_record.approval else ''
@@ -154,10 +167,16 @@ def report_info_download():
             u'สภาพของสินทรัพย์': u"{}".format(item.available),
             u'วันที่ได้รับ': u"{}".format(item.received_date),
             u'ปีงบประมาณ': u"{}".format(item.budget_year),
-            u'ผลการตรวจสอบ': u"{}".format(current_record.approval.checking_result if current_record and current_record.approval else ''),
-            u'ผู้ตรวจสอบ': u"{}".format(current_record.approval.approver.personal_info.fullname if current_record and current_record.approval else ''),
-            u'สถานะ': u"{}".format(current_record.approval.asset_status if current_record and current_record.approval else ''),
-            u'Comment': u"{}".format(current_record.approval.approval_comment if current_record and current_record.approval else '')
+            u'วัน-เวลาที่ตรวจ': u"{}".format(
+                current_record.approval.updated_at if current_record and current_record.approval else ''),
+            u'ผลการตรวจสอบ': u"{}".format(
+                current_record.approval.checking_result if current_record and current_record.approval else ''),
+            u'ผู้ตรวจสอบ': u"{}".format(
+                current_record.approval.approver.personal_info.fullname if current_record and current_record.approval else ''),
+            u'สถานะ': u"{}".format(
+                current_record.approval.asset_status if current_record and current_record.approval else ''),
+            u'Comment': u"{}".format(
+                current_record.approval.approval_comment if current_record and current_record.approval else '')
         })
     df = DataFrame(records)
     df.to_excel('report.xlsx',
@@ -173,6 +192,7 @@ def report_info_download():
                          u'สภาพของสินทรัพย์',
                          u'วันที่ได้รับ',
                          u'ปีงบประมาณ',
+                         u'วัน-เวลาที่ตรวจ',
                          u'ผลการตรวจสอบ',
                          u'ผู้ตรวจสอบ',
                          u'สถานะ',
@@ -181,6 +201,36 @@ def report_info_download():
                 index=False,
                 encoding='utf-8')
     return send_from_directory(os.getcwd(), filename='report.xlsx')
+
+
+@procurement.route('/for-committee/search-info', methods=['GET', 'POST'])
+@login_required
+def search_erp_code_info():
+    return render_template('procurement/committee_find_erp_code_to_approve.html')
+
+
+@procurement.route('/api/data/search')
+def get_procurement_search_data():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.erp_code.like(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['check'] = '<a href="{}"><i class="far fa-check-circle"></i></a>'.format(
+            url_for('procurement.view_procurement_on_scan', procurement_no=item.procurement_no))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 
 @procurement.route('/information/view')
@@ -244,10 +294,10 @@ def get_procurement_data_is_updated():
     for item in query:
         current_record = item.current_record
         item_data = item.to_dict()
-        item_data['location'] = current_record.records.location if current_record and current_record.records else ''
-        item_data['status'] = current_record.records.status if current_record and current_record.records else ''
-        item_data['updater'] = current_record.records.updater if current_record and current_record.records else ''
-        item_data['updated_at'] = current_record.records.updated_at if current_record and current_record.records else ''
+        item_data['location'] = u'{}'.format(current_record.location)
+        item_data['status'] = u'{}'.format(current_record.status)
+        item_data['updater'] = u'{}'.format(current_record.updater)
+        item_data['updated_at'] = u'{}'.format(current_record.updated_at)
         item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
             'received_date'] else ''
         data.append(item_data)
@@ -412,7 +462,7 @@ def view_require_service():
         record["id"] = maintenance.id
         record["service"] = maintenance.service
         record["notice_date"] = maintenance.notice_date
-        record["explan"] = maintenance.explan
+        # record["explan"] = maintenance.explan
         require_list.append(record)
     return render_template('procurement/view_by_ITxRepair.html', require_list=require_list)
 
@@ -449,6 +499,7 @@ def qrcode_render(procurement_no):
 @procurement.route('/qrcode/list', methods=['GET', 'POST'])
 def list_qrcode():
     session['selected_procurement_items_printing'] = []
+
     def all_page_setup(canvas, doc):
         canvas.saveState()
         # logo_image = ImageReader('app/static/img/mumt-logo.png')
@@ -496,7 +547,8 @@ def select_items_for_printing_qrcode():
                 item = ProcurementDetail.query.get(int(_id))
                 items += (u'<tr><td><input class="is-checkradio" id="pro_no{}_selected" type="checkbox"'
                           u'name="selected_items" checked value="{}"><label for="pro_no{}_selected"></label></td>'
-                          u'<td>{}</td><td>{}</td><td>{}</td></tr>').format(_id, _id, _id, item.name, item.procurement_no, item.erp_code)
+                          u'<td>{}</td><td>{}</td><td>{}</td></tr>').format(_id, _id, _id, item.name,
+                                                                            item.procurement_no, item.erp_code)
         return items
 
 
@@ -518,9 +570,11 @@ def get_procurement_data_qrcode_list():
     data = []
     for item in query:
         item_data = item.to_dict()
-        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data['received_date'] else ''
-        item_data['select_item'] = ('<input class="is-checkradio" id="pro_no{}" type="checkbox" name="selected_items" value="{}">'
-                                    '<label for="pro_no{}"></label>').format(item.id, item.id, item.id)
+        item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
+            'received_date'] else ''
+        item_data['select_item'] = (
+            '<input class="is-checkradio" id="pro_no{}" type="checkbox" name="selected_items" value="{}">'
+            '<label for="pro_no{}"></label>').format(item.id, item.id, item.id)
         item_data['print'] = '<a href="{}"><i class="fas fa-print"></i></a>'.format(
             url_for('procurement.export_qrcode_pdf', procurement_id=item.id))
         data.append(item_data)
@@ -571,17 +625,28 @@ def qrcode_scan():
     return render_template('procurement/qr_scanner.html')
 
 
-@procurement.route('/scan-qrcode/info/view/<string:procurement_no>')
-def view_procurement_on_scan(procurement_no):
-    item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first_or_404()
+@procurement.route('/scan-qrcode/info/view')
+@procurement.route('/scan-qrcode/info/view/procurement_no/<string:procurement_no>')
+def view_procurement_on_scan(procurement_no=None):
+    procurement_id = request.args.get('procurement_id')
+    if procurement_id:
+        item = ProcurementDetail.query.get(procurement_id)
+    if procurement_no:
+        item_count = ProcurementDetail.query.filter_by(procurement_no=procurement_no).count()
+        if item_count > 1:
+            return redirect(url_for('procurement.view_sub_items', procurement_no=procurement_no,
+                                    next_view="procurement.view_procurement_on_scan"))
+        else:
+            item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+
     return render_template('procurement/view_data_on_scan.html', item=item,
-                           procurement_no=item.procurement_no)
+                           procurement_no=item.procurement_no, url_callback=request.referrer)
 
 
-@procurement.route('/items/<string:procurement_no>/check', methods=['GET', 'POST'])
+@procurement.route('/items/<int:procurement_id>/check', methods=['GET', 'POST'])
 @login_required
-def check_procurement(procurement_no):
-    procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+def check_procurement(procurement_id):
+    procurement = ProcurementDetail.query.get(procurement_id)
     approval = procurement.current_record.approval
     if approval:
         form = ProcurementApprovalForm(obj=approval)
@@ -597,8 +662,8 @@ def check_procurement(procurement_no):
             db.session.add(approval)
             db.session.commit()
             flash(u'ตรวจสอบเรียบร้อย.', 'success')
-        return redirect(url_for('procurement.view_procurement_on_scan', procurement_no=procurement_no))
-    return render_template('procurement/approval_by_committee.html', form=form, procurement_no=procurement_no)
+        return redirect(url_for('procurement.view_procurement_on_scan', procurement_no=procurement.procurement_no))
+    return render_template('procurement/approval_by_committee.html', form=form, procurement_no=procurement.procurement_no)
 
 
 @procurement.route('/item/image/view')
@@ -669,8 +734,76 @@ def update_location_and_status():
     return render_template('procurement/update_location_and_status.html')
 
 
+@procurement.route('/scan-qrcode/info/location-status')
 @procurement.route('/scan-qrcode/info/location-status/view/<string:procurement_no>')
-def view_location_and_status_on_scan(procurement_no):
-    item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first_or_404()
+def view_location_and_status_on_scan(procurement_no=None):
+    procurement_id = request.args.get('procurement_id')
+    if procurement_id:
+        item = ProcurementDetail.query.get(procurement_id)
+    if procurement_no:
+        item_count = ProcurementDetail.query.filter_by(procurement_no=procurement_no).count()
+        if item_count > 1:
+            return redirect(url_for('procurement.view_sub_items', procurement_no=procurement_no,
+                                    next_view="procurement.view_location_and_status_on_scan"))
+        else:
+            item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+
     return render_template('procurement/view_location_and_status_on_scan.html', item=item,
-                           procurement_no=item.procurement_no)
+                           procurement_no=item.procurement_no, url_callback=request.referrer)
+
+
+@procurement.route('/<string:procurement_no>/sub-items')
+@login_required
+def view_sub_items(procurement_no):
+    sub_items = ProcurementDetail.query.filter_by(procurement_no=procurement_no).all()
+    next_view = request.args.get('next_view')
+    return render_template('procurement/view_sub_items.html', next_view=next_view, sub_items=sub_items,
+                           request_args=request.args, procurement_no=procurement_no)
+
+
+@procurement.route('/room/add', methods=['GET', 'POST'])
+@login_required
+def add_room_ref():
+    form = ProcurementRoomForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            new_room = RoomResource()
+            form.populate_obj(new_room)
+            db.session.add(new_room)
+            db.session.commit()
+            flash('New room has been added.', 'success')
+            return redirect(url_for('procurement.add_room_ref'))
+    return render_template('procurement/room_ref.html', form=form, url_callback=request.referrer)
+
+
+@procurement.route('/room/all')
+@login_required
+def view_room():
+    room_list = []
+    room = RoomResource.query.all()
+    for r in room:
+        record = {}
+        record["id"] = r.id
+        record["location"] = r.location
+        record["number"] = r.number
+        record["floor"] = r.floor
+        record["desc"] = r.desc
+        room_list.append(record)
+    return render_template('procurement/view_room.html', room_list=room_list)
+
+
+@procurement.route('/room/<int:room_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_room(room_id):
+    room = RoomResource.query.get(room_id)
+    form = ProcurementRoomForm(obj=room)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(room)
+            db.session.add(room)
+            db.session.commit()
+            flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
+        return redirect(url_for('procurement.view_room', room_id=room_id))
+    return render_template('procurement/edit_room.html',
+                           room_id=room_id, form=form)
+

@@ -1,50 +1,68 @@
 {% extends "base.html" %}
 {% block page_content %}
     <section class="section" id="app">
+     {% include "messages.html" %}
         <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="{{ url_for('receipt_printing.landing') }}">หน้าหลัก</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">ข้อมูลใบเสร็จทั้งหมด</a></li>
+                </ul>
+            </nav>
             <div class="columns">
                 <div class="column">
-                    <table class="table is-fullwidth is-striped">
+                <div class="control">
+                    <a class="button is-info"
+                       href="{{ url_for('receipt_printing.create_receipt')}}">
+                        <span class="icon">
+                            <i class="fas fa-plus-square"></i>
+                        </span>
+                        <span>สร้างใบเสร็จรับเงิน</span>
+                    </a>
+                </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table id="receipt_data" class="table is-fullwidth is-striped">
                         <thead>
-                            <th>หมายเลขเล่ม</th>
-                            <th>ออกวันที่</th>
-                            <th>จำนวนรายการ</th>
-                            <th>จำนวนครั้งที่พิมพ์</th>
-                            <th>การจ่ายเงิน</th>
-                            <th>พิมพ์ใบเสร็จ</th>
-                            <th>รายละเอียด</th>
-                            <th>หมายเหตุ</th>
-                            <th>สถานะ</th>
-                            <th>สาเหตุของการยกเลิก</th>
+                        <th>หมายเลขเล่ม</th>
+                        <th>เลขที่</th>
+                        <th>ออกวันที่</th>
+                        <th>จำนวนรายการ</th>
+                        <th>จำนวนครั้งที่พิมพ์</th>
+                        <th>พิมพ์ใบเสร็จ</th>
+                        <th>ยกเลิกใบเสร็จ</th>
+                        <th>หมายเหตุ</th>
+                        <th>สถานะ</th>
+                        <th>สาเหตุของการยกเลิก</th>
                         </thead>
                         <tbody>
-                            {% for r in record %}
+                        {% for r in record %}
                             <tr>
                                 <td>{{ r.book_number }}</td>
+                                <td>{{ r.number }}</td>
                                 <td>{{ r.created_datetime|localdatetime }}</td>
-                                <td></td>
-                                <td>{{ r.copy_number - 1 }}</td>
-                                <td>
-                                    <span class="icon">
-                                    {% if r.paid %}
-                                        <i class="far fa-check-circle has-text-success"></i>
-                                    {% else %}
-                                        <i class="far fa-times-circle has-text-danger"></i>
-                                    {% endif %}
-                                    </span>
-                                </td>
-                                <td><a href="{{ url_for('receipt_printing.export_blank_receipt_pdf') }}">
+                                <td>{{ r.items|length }}</td>
+                                <td>{{ r.print_number}}</td>
+                                <td><a
+                                        {% if not r.cancelled and r.print_number<1 %}
+                                        href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=r.id) }}"
+                                        {% else %}
+                                        disabled
+                                        {% endif %}
+                                        >
                                         <span class="icon">
                                             <i class="fas fa-print"></i>
                                         </span>
-                                    </a>
+                                </a>
                                 </td>
-                                <td><a href="">
+                                <td><a href="{{ url_for('receipt_printing.confirm_cancel_receipt', receipt_id=r.id) }}">
                                         <span class="icon">
-                                            <i class="far fa-eye"></i>
+                                            <i class="far fa-times-circle has-text-danger"></i>
                                         </span>
-                                        <span>View</span>
-                                    </a>
+                                    <span>cancel</span>
+                                </a>
                                 </td>
                                 <td>{{ r.comment or '' }}</td>
                                 <td>
@@ -58,7 +76,7 @@
                                 </td>
                                 <td>{{ r.cancel_comment or '' }}</td>
                             </tr>
-                            {% endfor %}
+                        {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -81,15 +99,10 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript">
-        var vm = new Vue({
-            el: "#app",
-            delimiters: ['<%', '%>'],
-            data() {
-                return {
-                }
-            },
-            computed: {}
+    <script>
+        $(document).ready(function () {
+            $('#receipt_data').DataTable({})
         });
     </script>
+
 {% endblock %}

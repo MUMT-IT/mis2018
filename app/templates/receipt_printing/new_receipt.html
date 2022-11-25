@@ -1,4 +1,7 @@
 {% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
 {% block page_content %}
     <section class="section">
         <div class="container">
@@ -12,7 +15,19 @@
                     </div>
                     <form method="post">
                         {{ form.hidden_tag() }}
-                        <p>
+                        <div class="field">
+                            <label class="label">ที่อยู่ในใบเสร็จรับเงิน</label>
+                            <div class="control">
+                                {{ form.address(class="textarea") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">ได้รับเงินจาก</label>
+                            <div class="control">
+                                {{ form.received_from(class="input") }}
+                            </div>
+                        </div>
+                        <div id="items">
                             {% for i in form.items %}
                                 <div class="field">
                                     <label class="label">รายการ</label>
@@ -20,26 +35,56 @@
                                         {{ i.item(class="input") }}
                                     </div>
                                 </div>
-                                <div class="field-body">
-                                    <div class="field">
-                                        <label class="label">ราคา</label>
-                                        <div class="control">
-                                            {{ i.price(class="input", placeholder="฿") }}
+                                <div class="field">
+                                    <label class="label">จำนวนเงิน</label>
+                                    <div class="control">
+                                        {{ i.price(class="input", placeholder="฿", **{'hx-post': url_for("receipt_printing.update_amount"), 'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}) }}
+                                    </div>
+                                </div>
+
+                                <div class="field">
+                                    <label class="label">Cost Center</label>
+                                    <div class="control">
+                                        <div class="select">
+                                            {{ i.cost_center(class="select") }}
                                         </div>
                                     </div>
                                 </div>
                                 <div class="field">
-                                    <label class="label">หมายเหตุ</label>
+                                    <label class="label">GL</label>
                                     <div class="control">
-                                        {{ i.comment(class="input") }}
+                                        <div class="select">
+                                            {{ i.gl(class="select") }}
+                                        </div>
                                     </div>
                                 </div>
+                                <div class="field">
+                                    <label class="label">Internal Order/IO</label>
+                                    <div class="control">
+                                        <div class="select">
+                                            {{ i.internal_order_code(class="select") }}
+                                        </div>
+                                    </div>
+                                </div>
+
                             {% endfor %}
-                        </p>
-                        <div id="items"></div>
-                        <button type="button" hx-post="{{ url_for('receipt_printing.list_add_items') }}"
-                                hx-target="#items" hx-swap="beforeend">เพิ่มรายการ
-                        </button>
+                        </div>
+                        <br>
+                        <div class="field is-grouped">
+                            <div class="control">
+                                <button class="button is-small is-info"
+                                        hx-post="{{ url_for('receipt_printing.list_add_items') }}"
+                                        hx-target="#items" hx-swap="beforeend">เพิ่มรายการ
+                                </button>
+                            </div>
+                            <div class="control">
+                                <button class="button is-small is-danger"
+                                        hx-post="{{ url_for('receipt_printing.delete_items') }}"
+                                        hx-target="#items" hx-swap="innerHTML"
+                                        hx-confirm="Are you sure to delete?">ลบรายการ
+                                </button>
+                            </div>
+                        </div>
                         <div class="field-body">
                             <div class="field">
                                 <label class="label">ช่องทางการชำระเงิน</label>
@@ -50,63 +95,55 @@
                             <div class="field">
                                 <label class="label">จำนวนเงิน</label>
                                 <div class="control">
-                                    {{ form.paid_amount(class="input") }}
+                                    {{ form.paid_amount(class="input", readonly=True) }}
                                 </div>
                             </div>
                         </div>
-                        <div class="field">
+                        <div class="field" id="card-no">
                             <label class="label">{{ form.card_number.label }}</label>
                             <div class="control">
                                 {{ form.card_number(class="input", id="card-no") }}
                             </div>
+                            <label class="label">{{ form.bank_name.label }}</label>
+                            <div class="control">
+                                {{ form.bank_name(class="input", id="card-no") }}
+                            </div>
                         </div>
-                        <div class="field">
+                        <div class="field" id="cheque-no">
                             <label class="label">เช็คเลขที่</label>
                             <div class="control">
                                 {{ form.cheque_number(class="input", id="cheque-no") }}
                             </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">ช่องทางการชำระเงินอื่นๆ</label>
+                            <label class="label">{{ form.bank_name.label }}</label>
                             <div class="control">
-                                {{ form.other_payment_method(class="input") }}
+                                {{ form.bank_name(class="input", id="cheque-no") }}
                             </div>
                         </div>
-                        <div class="field">
-                            <label class="label">ได้รับเงินจาก</label>
+                        <div class="field" id="other_payment_method">
+                            <label class="label">ช่องทางการชำระเงินอื่นๆ</label>
                             <div class="control">
-                                {{ form.received_from(class="input") }}
+                                {{ form.other_payment_method(class="input", id="other_payment_method") }}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">หมายเหตุรายละเอียด</label>
                             <div class="control">
-                                {{ form.comment(class="input") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">ที่อยู่ในใบเสร็จรับเงิน</label>
-                            <div class="control">
-                                {{ form.address(class="textarea") }}
+                                {{ form.comment(class="textarea") }}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">ผู้ออกใบเสร็จ</label>
-                            <div class="select">
-                                {{ form.issuer() }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">ผู้รับเงิน</label>
-                            <div class="select">
-                                {{ form.cashier() }}
+                            <div class="control">
+                                {{ current_user.personal_info.fullname }}
                             </div>
                         </div>
 
-                        <div class="field is-grouped is-grouped-centered"><br><br>
-                            <div class="buttons">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
                                 <button class="button is-success" type="submit" value="submit">Submit</button>
-                                <a href="{{ url_for('receipt_printing.landing') }}" class="button is-danger">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_callback }}" class="button is-danger">Cancel</a>
                             </div>
                         </div>
                     </form>
@@ -117,42 +154,53 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    {#    <script>#}
-    {#        $(document).ready(function () {#}
-    {#            var max_input_fields = 10;#}
-    {#            var add_input = $('.add-item');#}
-    {#            var input_ = $('.input');#}
-    {#            var new_input = '<div><input type="text" name="field[]" value=""/><a href="javascript:void(0);" ' +#}
-    {#                'class="remove-input" title="Remove input"></a></div>';#}
-    {#            var add_input_count = 1;#}
-    {#            $(add_input).click(function () {#}
-    {#                if (add_input_count < max_input_fields) {#}
-    {#                    add_input_count++;#}
-    {#                    $(input_).append(new_input);#}
-    {#                }#}
-    {#            });#}
-    {#            $(input_).on('click', '.remove-input', function (e) {#}
-    {#                e.preventDefault();#}
-    {#                $(this).parent('div').remove();#}
-    {#                add_input_count--;#}
-    {#            });#}
-    {#        });#}
-    {#    </script>#}
+    <script>
+        $.ajaxSetup({
+            headers:
+                {'X-CSRF-TOKEN': "{{ csrf_token() }}"}
+        });
+
+        function delete_warning() {
+            alert("The form needs at least one entry.")
+        }
+
+        document.addEventListener('delete_warning', delete_warning)
+
+        function update_amount() {
+            let total_amount = 0.0
+            $('[id$=price]').each(function () {
+                total_amount += Number($(this).val())
+            })
+            $('#paid_amount').val(total_amount)
+        }
+
+        document.addEventListener('update_amount', update_amount)
+    </script>
     <script>
         $(document).ready(() => {
             $('#card-no').hide()
             $('#cheque-no').hide()
             $('#other_payment_method').hide()
             $('#payment_method').change(e => {
-                if ($('#payment_method').val() !== null) {
+                $('#card-no').hide()
+                $('#cheque-no').hide()
+                $('#other_payment_method').hide()
+                if ($('#payment_method').val() === "บัตรเครดิต") {
                     $('#card-no').show()
                 } else {
                     $('#card-no').hide()
                 }
+                if ($('#payment_method').val() === "เช็คสั่งจ่าย") {
+                    $('#cheque-no').show()
+                } else {
+                    $('#cheque-no').hide()
+                }
+                if ($('#payment_method').val() === "อื่นๆ") {
+                    $('#other_payment_method').show()
+                } else {
+                    $('#other_payment_method').hide()
+                }
             })
-            if ($('#payment_method').val() === null) {
-                $('#card-no').show()
-            }
         })
     </script>
 {% endblock %}

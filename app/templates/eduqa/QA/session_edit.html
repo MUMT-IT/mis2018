@@ -39,6 +39,35 @@
                         </div>
                     </div>
                     <div class="field">
+                        <label class="label">{{ form.format.label }}</label>
+                        <div class="control">
+                            <div class="select">
+                                {{ form.format() }}
+                            </div>
+                        </div>
+                    </div>
+                    <div id="topics">
+                        {% for topic_form in form.topics %}
+                        <div class="field">
+                            <label class="label">{{ topic_form.topic.label }} {{ loop.index }}</label>
+                            <div class="control">
+                                {{ topic_form.topic(class="input") }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <hr>
+                    <div class="buttons is-centered">
+                        <button class="button is-small is-light"
+                                hx-post="{{ url_for('eduqa.add_session_topic', course_id=course.id) }}"
+                                hx-target="#topics" hx-swap="beforeend">
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>เพิ่มหัวข้อ</span>
+                        </button>
+                    </div>
+                    <div class="field">
                         <label class="label">{{ form.instructors.label }}</label>
                         <div class="control">
                             {{ form.instructors() }}

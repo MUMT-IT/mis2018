@@ -13,23 +13,24 @@ class ProcurementDetail(db.Model):
     name = db.Column('name', db.String(), info={'label': u'ชื่อครุภัณฑ์'})
     image = db.Column('image', db.Text(), info={'label': u'รูปภาพ'})
     qrcode = db.Column('qrcode', db.Text(), info={'label': 'QR Code'})
-    procurement_no = db.Column('procurement_no', db.String(), unique=True, info={'label': u'เลขครุภัณฑ์'})
+    procurement_no = db.Column('procurement_no', db.String(12), info={'label': u'เลขครุภัณฑ์'})
     document_no = db.Column('document_no', db.String(), info={'label': u'เอกสารสั่งซื้อเลขที่'})
-    erp_code = db.Column('erp_code', db.String(), info={'label': u'Inventory Number/ERP'})
+    erp_code = db.Column('erp_code', db.String(22), unique=True, info={'label': u'Inventory Number/ERP'})
     serial_no = db.Column('serial_no', db.String(), info={'label': u'Serial Number'})
-    bought_by = db.Column('bought_by', db.String(), info={'label': u'วิธีการจัดซื้อ', 'choices': [(c, c) for c in
-                                                                                  [u'--โปรดเลือกวิธีการจัดซื้อ--',
-                                                                                   u'ประกาศเชิญชวนทั่วไป(E-Bidding)',
-                                                                                   u'วิธีคัดเลือก',
-                                                                                   u'วิธีเฉพาะเจาะจง',
-                                                                                   u'รับบริจาค/รับโอน']]})
+    bought_by = db.Column('bought_by', db.String(), info={'label': u'c', 'choices': [('None', u'--โปรดเลือกวิธีการจัดซื้อ--'),
+                                                                                            (u'ประกาศเชิญชวนทั่วไป(E-Bidding)',
+                                                                                             u'ประกาศเชิญชวนทั่วไป(E-Bidding)'),
+                                                                                            (u'วิธีคัดเลือก', u'วิธีคัดเลือก'),
+                                                                                            (u'วิธีเฉพาะเจาะจง',u'วิธีเฉพาะเจาะจง'),
+                                                                                            (u'รับบริจาค/รับโอน', u'รับบริจาค/รับโอน'),
+                                                                                            (u'สำรวจเจอ/แจ้งขึ้นทะเบียน', u'สำรวจเจอ/แจ้งขึ้นทะเบียน')]})
     budget_year = db.Column('budget_year', db.String(), info={'label': u'ปีงบประมาณ'})
     price = db.Column('price', db.String(), info={'label': 'Original value(<=10,000)'})
     received_date = db.Column('received_date', db.Date(), info={'label': u'วันที่ได้รับ'})
     available = db.Column('available', db.String(), info={'label': u'สภาพของสินทรัพย์'})
     purchasing_type_id = db.Column('purchasing_type_id', db.ForeignKey('procurement_purchasing_types.id'))
     purchasing_type = db.relationship('ProcurementPurchasingType',
-                               backref=db.backref('types', lazy='dynamic'))
+                                      backref=db.backref('types', lazy='dynamic'))
     category_id = db.Column('category_id', db.ForeignKey('procurement_categories.id'))
     category = db.relationship('ProcurementCategory',
                                backref=db.backref('items', lazy='dynamic'))
@@ -46,7 +47,7 @@ class ProcurementDetail(db.Model):
                                                     cascade='all, delete-orphan'))
     sub_number = db.Column('sub_number', db.Integer(), info={'label': 'Sub Number'})
     curr_acq_value = db.Column('curr_acq_value', db.Float(), info={'label': u'มูลค่าที่ได้มา(>10,000)'})
-    cost_center = db.Column('cost_center', db.String(), info={'label': u'ศูนย์ต้นทุน'})
+    cost_center = db.Column('cost_center', db.String(8), info={'label': u'ศูนย์ต้นทุน'})
 
     def __str__(self):
         return u'{}: {}'.format(self.name, self.procurement_no)

@@ -55,6 +55,19 @@
                             </a>
                         </div>
                     </div>
+                    <div class="navbar-item has-dropdown is-hoverable is-size-5 has-text-weight-semibold">
+                        <a class="navbar-link ">
+                            ตั้งค่า
+                        </a>
+                        <div class="navbar-dropdown">
+                            <a href="{{ url_for('procurement.add_room_ref') }}" class="navbar-item">
+                                ตั้งรหัสห้อง
+                            </a>
+                            <a href="{{ url_for('procurement.view_room') }}" class="navbar-item">
+                                ดูรหัสห้อง
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -99,10 +112,10 @@
                                 <span class="is-size-4">View Procurement Data(ดูข้อมูลครุภัณฑ์)</span>
                             </a>
                             <a href="{{ url_for('procurement.view_procurement_updated') }}" class="panel-block">
-                                    <span class="panel-icon has-text-grey-lighter">
+                                    <span class="panel-icon">
                                        <i class="fas fa-info-circle"></i>
                                     </span>
-                                <span class="is-size-4 has-text-grey-lighter">View Procurement is updated(ดูข้อมูลครุภัณฑ์อัพเดต)</span>
+                                <span class="is-size-4 ">View Procurement is updated(ดูข้อมูลครุภัณฑ์อัพเดต)</span>
                             </a>
                             <a href="" class="panel-block">
                                     <span class="panel-icon has-text-grey-lighter">

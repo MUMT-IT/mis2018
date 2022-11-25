@@ -88,7 +88,12 @@
                         <a href="{{ url_for('procurement.edit_procurement', procurement_id=item.id) }}"
                            class="button is-danger">แก้ไข</a>
                     </div>
-
+                    <a href="{{ url_callback }}" class="button is-rounded is-info is-light">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                        <span>กลับ</span>
+                    </a>
                 </div>
             </div>
         </div>

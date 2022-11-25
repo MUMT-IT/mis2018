@@ -96,6 +96,7 @@
                     <table class="cell-border" id="attendTable">
                         <thead>
                         <th>ชื่อ-นามสกุล</th>
+                        <th>Email</th>
                         <th>หน่วยงาน/ภาควิชา</th>
                         <th>ประเภทการเข้าร่วม</th>
                         <th>วันและเวลา</th>
@@ -106,6 +107,9 @@
                         <tr>
                             <td>
                                 {{ attend.staff.personal_info.fullname }}
+                            </td>
+                            <td>
+                                {{ attend.staff.email }}
                             </td>
                             <td>
                                 {{ attend.staff.personal_info.org.name }}

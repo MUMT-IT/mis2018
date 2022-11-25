@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+import base64
 import os
 import click
 import arrow
@@ -19,6 +20,8 @@ from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
 from wtforms.validators import required
 from flask_mail import Mail
 import gspread
@@ -242,9 +245,17 @@ from receipt_printing import receipt_printing_bp as receipt_printing_blueprint
 app.register_blueprint(receipt_printing_blueprint, url_prefix='/receipt_printing')
 from app.receipt_printing.models import *
 
-admin.add_views(ModelView(ElectronicReceiptCashier, db.session, category='ReceiptPrinting'))
+
+class ElectronicReceiptGLModel(ModelView):
+    can_create = True
+    form_columns = ('gl', 'receive_name', 'items_gl')
+    column_list = ('gl', 'receive_name', 'items_gl')
+
+
 admin.add_views(ModelView(ElectronicReceiptDetail, db.session, category='ReceiptPrinting'))
 admin.add_views(ModelView(ElectronicReceiptItem, db.session, category='ReceiptPrinting'))
+admin.add_views(ModelView(ElectronicReceiptRequest, db.session, category='ReceiptPrinting'))
+admin.add_views(ElectronicReceiptGLModel(ElectronicReceiptGL, db.session, category='ReceiptPrinting'))
 
 from staff import staffbp as staff_blueprint
 
@@ -416,6 +427,9 @@ from eduqa.models import *
 app.register_blueprint(eduqa_blueprint, url_prefix='/eduqa')
 admin.add_view(ModelView(EduQACourseCategory, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQACourse, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAProgram, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQACurriculum, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQACurriculumnRevision, db.session, category='EduQA'))
 
 from chemdb import chemdbbp as chemdb_blueprint
 import chemdb.models
@@ -720,6 +734,47 @@ def import_procurement_data():
     db.session.commit()
 
 
+def initialize_gdrive():
+    gauth = GoogleAuth()
+    scope = ['https://www.googleapis.com/auth/drive']
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scope)
+    return GoogleDrive(gauth)
+
+
+@dbutils.command('import-procurement-image')
+@click.argument('index')
+@click.argument('limit')
+def import_procurement_image(index, limit):
+    sheetid = '16A6yb_W-GcWRLbpqV-9cAnpqgh7nQsZogsNlzz_73ds'
+    print('Authorizing with Google sheet..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("Asset")
+    drive = initialize_gdrive()
+    img_name = 'temp_image.jpg'
+    for n, rec in enumerate(sheet.get_all_records(), start=1):
+        if n >= int(index) and n < int(limit) + int(index):
+            print(n)
+            asset_code = str(rec['AssetCode'])
+            item = ProcurementDetail.query.filter_by(procurement_no=asset_code).first()
+            if item:
+                if not item.image:
+                    print(rec['Picture'])
+                    query = u"title = '{}'".format(rec['Picture'])
+                    for file_list in drive.ListFile({'q': query, 'spaces': 'drive'}):
+                        if file_list:
+                            print(query)
+                            for fi in file_list:
+                                fi.GetContentFile(img_name)
+                                with open(img_name, "rb") as img_file:
+                                    item.image = base64.b64encode(img_file.read())
+                                    db.session.add(item)
+                                print('The image has been added to item with Asset code={}'.format(item.procurement_no))
+                            db.session.commit()
+            else:
+                print(u'\tItem with Asset code={} not found..'.format(rec['AssetCode']))
+
+
 @dbutils.command('add-update-staff-gsheet')
 def add_update_staff_gsheet():
     sheetid = '17lUlFNYk5znYqXL1vVCmZFtgTcjGvlNRZIlaDaEhy5E'
@@ -1014,7 +1069,7 @@ def calculate_leave_quota(date_time):
     """Calculate used quota for the fiscal year from a given date.
 
     """
-    # date_time = '30/09/2022'
+    # date_time = '2022/09/30'
     print('Calculating leave quota from all requests...')
     date_time = datetime.strptime(date_time, '%Y/%m/%d')
     start_fiscal_date, end_fiscal_date = get_fiscal_date(date_time)
@@ -1093,6 +1148,8 @@ def update_cumulative_leave_quota(year1, year2):
                 if max_cum_quota:
                     before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
                     quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                else:
+                    quota_limit = quota.max_per_year
             else:
                 quota_limit = quota.first_year
 
@@ -1105,6 +1162,51 @@ def update_cumulative_leave_quota(year1, year2):
 
         db.session.add(used_quota)
         db.session.commit()
+
+
+@dbutils.command('calculate_remain_leave_used_quota')
+@click.argument("currentdate")
+def calculate_remain_leave_used_quota(currentdate):
+    # currentdate format '2022/09/30'
+    for staff in StaffAccount.query.filter(StaffPersonalInfo.retired != True):
+        for type in StaffLeaveType.query.all():
+            date_time = datetime.strptime(currentdate, '%Y/%m/%d')
+            start_fiscal_date, end_fiscal_date = get_fiscal_date(date_time)
+
+            quota = StaffLeaveQuota.query.filter_by(employment=staff.personal_info.employment,
+                                                        leave_type=type).first()
+            pending_days = staff.personal_info.get_total_pending_leaves_request(quota.id,
+                                                                                    tz.localize(start_fiscal_date),
+                                                                                    tz.localize(end_fiscal_date))
+            total_leave_days = staff.personal_info.get_total_leaves(quota.id,tz.localize(start_fiscal_date),
+                                                                        tz.localize(end_fiscal_date))
+            delta = staff.personal_info.get_employ_period()
+            max_cum_quota = staff.personal_info.get_max_cum_quota_per_year(quota)
+            if delta.years > 0:
+                if max_cum_quota:
+                    last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff,
+                                                                              fiscal_year=end_fiscal_date.year-1,
+                                                                              leave_type=type).first()
+                    if last_used_quota:
+                        remaining_days = last_used_quota.quota_days - last_used_quota.used_days
+                    else:
+                        remaining_days = max_cum_quota
+                    before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
+                    quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                else:
+                    quota_limit = quota.max_per_year
+            else:
+                quota_limit = quota.first_year
+
+            used_quota = StaffLeaveUsedQuota(leave_type_id=type.id,
+                                                 staff_account_id=staff.id,
+                                                 fiscal_year=end_fiscal_date.year,
+                                                 used_days=total_leave_days + pending_days,
+                                                 pending_days=pending_days,
+                                                 quota_days=quota_limit)
+            db.session.add(used_quota)
+            db.session.commit()
+            print (used_quota.leave_type_id, used_quota.used_days, used_quota.pending_days, used_quota.quota_days)
 
 
 if __name__ == '__main__':

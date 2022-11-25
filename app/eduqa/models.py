@@ -134,6 +134,8 @@ class EduQACourseSession(db.Model):
     instructors = db.relationship('EduQAInstructor',
                                   secondary=session_instructors,
                                   backref=db.backref('sessions', lazy='dynamic'))
+    format = db.Column('format', db.String(),
+                       info={'label': u'รูปแบบ', 'choices': [(c, c) for c in [u'ออนไซต์', u'ออนไลน์']]})
 
     @property
     def total_hours(self):
@@ -144,3 +146,49 @@ class EduQACourseSession(db.Model):
     def total_seconds(self):
         delta = self.end - self.start
         return delta.seconds
+    @property
+    def topics(self):
+        topics = []
+        for detail in self.details:
+            topics += [topic for topic in detail.topics]
+        return topics
+
+
+class EduQACourseSessionTopic(db.Model):
+    __tablename__ = 'eduqa_course_session_topics'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    session_id = db.Column('session_id', db.ForeignKey('eduqa_course_sessions.id'))
+    session = db.relationship(EduQACourseSession, backref=db.backref('topics',
+                                                                     cascade='all, delete-orphan'))
+    topic = db.Column('topic', db.String(), nullable=False, info={'label': u'หัวข้อ'})
+    method = db.Column('method', db.String(),
+                       info={'label': u'รูปแบบการจัดการสอน',
+                             'choices': [(c, c) for c in [u'บรรยาย', u'ปฏิบัติ', u'อภิปราย', u'กิจกรรมกลุ่ม', u'สาธิต']]})
+
+
+class EduQACourseSessionDetail(db.Model):
+    __tablename__ = 'eduqa_course_session_details'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    session_id = db.Column(db.ForeignKey('eduqa_course_sessions.id'))
+    staff_id = db.Column(db.ForeignKey('staff_account.id'))
+    session = db.relationship(EduQACourseSession, backref=db.backref('details', cascade='all, delete-orphan'))
+
+
+class EduQACourseSessionDetailRole(db.Model):
+    __tablename__ = 'eduqa_course_session_detail_roles'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    session_detail_id = db.Column(db.ForeignKey('eduqa_course_session_details.id'))
+    detail = db.Column('detail', db.Text(), info={'label': u'รายละเอียด'})
+    session_detail = db.relationship(EduQACourseSessionDetail,
+                                     backref=db.backref('roles', cascade='all, delete-orphan'))
+    role = db.Column('role', db.String(), info={'label': u'บทบาท',
+                                                'choices': [(c, c) for c in [u'ผู้บรรยายหลัก',
+                                                                             u'ผู้บรรยายเสริม',
+                                                                             u'ผู้นำอภิปราย',
+                                                                             u'ผู้ร่วมอภิปราย',
+                                                                             u'ผู้ดำเนินการอภิปราย',
+                                                                             u'ผู้สอนปฏิบัติหลัก',
+                                                                             u'ผู้ร่วมสอนปฏิบัติ',
+                                                                             u'ผู้คุมสอบ',
+                                                                             ]],
+                                                })
