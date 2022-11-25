@@ -2,9 +2,9 @@
 import datetime
 
 from . import data_bp
-from app.main import db
+from app.main import db, csrf
 from forms import *
-from flask import url_for, render_template, redirect, flash, request
+from flask import url_for, render_template, redirect, flash, request, jsonify
 from flask_login import current_user, login_required
 from pytz import timezone
 
@@ -327,3 +327,18 @@ def add_subject(ropa_id):
         flash(u'เพิ่มรายการเรียบร้อยแล้ว', 'success')
         return redirect(url_for('data_bp.edit_ropa', ropa_id=ropa.id, dataset_id=ropa.dataset.id))
     return render_template('data_blueprint/data_subject_form.html', form=form, ropa_id=ropa_id)
+
+
+@data_bp.route('api/v1.0/data-file', methods=['POST'])
+@csrf.exempt
+def add_datafile():
+    data_file = request.get_json()
+    dataset_ref = data_file['dataset_ref']
+    dataset = Dataset.query.filter_by(reference=dataset_ref).first()
+    update_datetime = datetime.datetime.fromtimestamp(data_file['update_datetime'])
+    create_datetime = datetime.datetime.fromtimestamp(data_file['create_datetime'])
+    new_file = DataFile(name=data_file['name'], dataset=dataset,
+                        created_at=create_datetime, updated_at=update_datetime)
+    db.session.add(new_file)
+    db.session.commit()
+    return jsonify({'message': 'success'}), 201

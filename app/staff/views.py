@@ -1,4 +1,6 @@
 # -*- coding:utf-8 -*-
+import time
+
 from dateutil import parser
 from flask_login import login_required, current_user
 from pandas import read_excel, isna, DataFrame
@@ -7,7 +9,8 @@ from models import *
 from . import staffbp as staff
 from app.main import db, get_weekdays, mail, app, csrf
 from app.models import Holidays, Org
-from flask import jsonify, render_template, request, redirect, url_for, flash, session, send_from_directory
+from flask import jsonify, render_template, request, redirect, url_for, flash, session, send_from_directory, \
+    make_response
 from datetime import date, datetime
 from collections import defaultdict, namedtuple
 import pytz
@@ -224,13 +227,17 @@ def request_for_leave(quota_id=None):
                         upload_file_id = file_drive['id']
                     else:
                         upload_file_id = None
-                    if start_datetime.date() <= END_FISCAL_DATE.date() and end_datetime.date() > END_FISCAL_DATE.date():
+                    if start_datetime.date() <= END_FISCAL_DATE.date() < end_datetime.date():
                         flash(u'ไม่สามารถลาข้ามปีงบประมาณได้ กรุณาส่งคำร้องแยกกัน 2 ครั้ง โดยแยกตามปีงบประมาณ')
-                        return redirect(request.referrer)
+                        resp = make_response()
+                        resp.headers['HX-Redirect'] = request.referrer
+                        return resp
                     delta = start_datetime.date() - datetime.today().date()
                     if delta.days > 0 and not quota.leave_type.request_in_advance:
                         flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
-                        return redirect(request.referrer)
+                        resp = make_response()
+                        resp.headers['HX-Redirect'] = request.referrer
+                        return resp
                         # retrieve cum periods
                     used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                              tz.localize(END_FISCAL_DATE))
@@ -243,12 +250,15 @@ def request_for_leave(quota_id=None):
                     delta = current_user.personal_info.get_employ_period()
                     if req_duration == 0:
                         flash(u'วันลาตรงกับวันหยุด')
-                        return redirect(request.referrer)
+                        resp = make_response()
+                        resp.headers['HX-Redirect'] = request.referrer
+                        return resp
                     if quota.max_per_leave:
                         if req_duration >= quota.max_per_leave and upload_file_id is None:
-                            flash(
-                                u'ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ')
-                            return redirect(request.referrer)
+                            flash(u'ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ', 'danger')
+                            resp = make_response()
+                            resp.headers['HX-Redirect'] = request.referrer
+                            return resp
                         else:
                             if delta.years > 0:
                                 quota_limit = quota.max_per_year
@@ -315,9 +325,8 @@ def request_for_leave(quota_id=None):
                                                                             staff_account_id=req.staff_account_id,
                                                                             fiscal_year=END_FISCAL_DATE.year).first()
                         if is_used_quota:
-                            new_used = is_used_quota.used_days+req.total_leave_days
-                            is_used_quota.used_days = new_used
-                            is_used_quota.pending_days = pending_days+req_duration
+                            is_used_quota.used_days += req_duration
+                            is_used_quota.pending_days += req_duration
                             db.session.add(is_used_quota)
                             db.session.commit()
                         else:
@@ -332,12 +341,19 @@ def request_for_leave(quota_id=None):
                             db.session.add(new_used_quota)
                             db.session.commit()
                         flash(u'ส่งคำขอของท่านเรียบร้อยแล้ว (The request has been sent.)', 'success')
-                        return redirect(url_for('staff.request_for_leave_info', quota_id=quota_id))
+                        resp = make_response()
+                        resp.headers['HX-Redirect'] = url_for('staff.request_for_leave_info', quota_id=quota_id)
+                        return resp
                     else:
                         flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ (The quota is exceeded.)', 'danger')
-                        return redirect(request.referrer)
+                        resp = make_response()
+                        resp.headers['HX-Redirect'] = request.referrer
+                        return resp
             else:
-                return 'Error happened'
+                flash(u'ไม่พบข้อมูลในระบบฐานข้อมูล (Leave quota not found)', 'danger')
+                resp = make_response()
+                resp.headers['HX-Redirect'] = request.referrer
+                return resp
     else:
         quota = StaffLeaveQuota.query.get(quota_id)
         holidays = [h.tojson()['date'] for h in Holidays.query.all()]
@@ -376,9 +392,12 @@ def request_for_leave(quota_id=None):
             used_quota = this_year_quota.used_days
         else:
             used_quota = used_quota + pending_quota
-
-        return render_template('staff/leave_request.html', errors={}, quota=quota, holidays=holidays,
-                               used_quota=used_quota, quota_limit=quota_limit)
+        return render_template('staff/leave_request.html',
+                               errors={},
+                               quota=quota,
+                               holidays=holidays,
+                               used_quota=used_quota,
+                               quota_limit=quota_limit)
 
 
 @staff.route('/leave/request/quota/period/<int:quota_id>', methods=["POST", "GET"])
@@ -611,8 +630,7 @@ def request_for_leave_info_others_fiscal(quota_id=None, fiscal_year=None):
                            fiscal_year=fiscal_year)
 
 
-@staff.route('/leave/request/edit/<int:req_id>',
-             methods=['GET', 'POST'])
+@staff.route('/leave/request/edit/<int:req_id>', methods=['GET', 'POST'])
 @login_required
 def edit_leave_request(req_id=None):
     req = StaffLeaveRequest.query.get(req_id)

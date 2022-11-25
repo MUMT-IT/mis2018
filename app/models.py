@@ -402,6 +402,18 @@ class Dataset(db.Model):
                            backref=db.backref('datasets', lazy=True))
 
 
+class DataFile(db.Model):
+    __tablename__ = 'db_files'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    data_set_id = db.Column('data_set_id', db.ForeignKey('db_datasets.id'))
+    name = db.Column('name', db.String(255), info={'label': u'ชื่อ'})
+    dataset = db.relationship('Dataset', backref=db.backref('files', lazy='dynamic', cascade='all, delete-orphan'))
+    desc = db.Column('desc', db.Text(), info={'label': u'รายละเอียด'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    url = db.Column('url', db.String())
+
+
 ropa_subject_assoc = db.Table('ropa_service_assoc',
                               db.Column('ropa_id', db.Integer, db.ForeignKey('db_ropas.id'), primary_key=True),
                               db.Column('subject_id', db.Integer, db.ForeignKey('db_data_subjects.id'),
