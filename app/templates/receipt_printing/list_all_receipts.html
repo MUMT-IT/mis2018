@@ -1,41 +1,119 @@
 {% extends "base.html" %}
 {% block page_content %}
-    <section class="section" id="app">
-     {% include "messages.html" %}
+    <nav class="navbar" role="navigation" aria-label="main navigation">
         <div class="container">
-            <nav class="breadcrumb" aria-label="breadcrumbs">
-                <ul>
-                    <li><a href="{{ url_for('receipt_printing.landing') }}">หน้าหลัก</a></li>
-                    <li class="is-active"><a href="#" aria-current="page">ข้อมูลใบเสร็จทั้งหมด</a></li>
-                </ul>
-            </nav>
-            <div class="columns">
-                <div class="column">
-                <div class="control">
-                    <a class="button is-info"
-                       href="{{ url_for('receipt_printing.create_receipt')}}">
+            <div class="navbar-brand">
+                <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" width="200"/>
+            </div>
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
+              <span aria-hidden="true"></span>
+              <span aria-hidden="true"></span>
+              <span aria-hidden="true"></span>
+            </a>
+            <div id="navbarMenu" class="navbar-menu">
+                <div class="navbar-end">
+                <span class="navbar-item is-hoverable">
+                    <a class="button is-dark is-outlined">
                         <span class="icon">
                             <i class="fas fa-plus-square"></i>
                         </span>
-                        <span>สร้างใบเสร็จรับเงิน</span>
+                        <span>บันทึกข้อมูล</span>
                     </a>
-                </div>
+                    <div class="navbar-dropdown">
+                        <a class="navbar-item" href="{{ url_for('receipt_printing.create_receipt') }}">
+                            สร้างใบเสร็จรับเงิน
+                        </a>
+                    </div>
+                </span>
+                    <span class="navbar-item is-hoverable">
+                    <a class="button is-dark is-outlined">
+                        <span class="icon">
+                            <i class="fas fa-eye"></i>
+                        </span>
+                        <span>ดูข้อมูลทั้งหมด</span>
+                    </a>
+                    <div class="navbar-dropdown">
+                        <a class="navbar-item" href="{{ url_for('receipt_printing.view_receipt_by_list_type') }}">
+                            ดูข้อมูล ยกเลิก และพิมพ์ใบเสร็จรับเงิน
+                        </a>
+                        <a class="navbar-item" href="{{ url_for('receipt_printing.list_to_cancel_receipt') }}">
+                            พิมพ์ใบเสร็จรับเงินที่ถูกยกเลิก
+                        </a>
+                        <a class="navbar-item" href="{{ url_for('receipt_printing.list_to_require_receipt') }}">
+                            คำร้องขอสำเนาใบเสร็จรับเงิน
+                        </a>
+                        <a class="navbar-item" href="{{ url_for('receipt_printing.view_require_receipt') }}">
+                            ดูข้อมูลคำร้องขอสำเนาใบเสร็จรับเงิน
+                        </a>
+                    </div>
+                    </span>
+                     <span class="navbar-item is-hoverable">
+                    <a class="button is-dark is-outlined">
+                        <span class="icon">
+                            <i class="fas fa-bookmark"></i>
+                        </span>
+                        <span>Report</span>
+                    </a>
+                    <div class="navbar-dropdown">
+                        <a class="navbar-item" href="{{ url_for('receipt_printing.daily_payment_report') }}">
+                            รายงานการรับเงินประจำวัน
+                        </a>
+                        <hr class="navbar-divider">
+                        <a class="navbar-item">
+                            Report an issue
+                        </a>
+                    </div>
+                    </span>
+                    <span class="navbar-item">
+                    <a class="button is-dark is-outlined" href="{{ url_for('receipt_printing.index') }}">
+                        <span class="icon">
+                           <i class="fas fa-sign-out-alt"></i>
+                        </span>
+                        <span>Logout</span>
+                    </a>
+                    </span>
                 </div>
             </div>
+        </div>
+    </nav>
+    <section class="section" id="app">
+     {% include "messages.html" %}
+        <div class="container">
+        <div class="column has-text-centered">
+            <h1 class="title">ใบเสร็จรับเงิน</h1>
+        </div>
+        <div class="tabs is-centered" id="type_tab">
+            <ul>
+                <li class="is-active">
+                    <a href="{{ url_for('receipt_printing.view_receipt_by_list_type', list_type='myAccount') }}">
+                        <span class="icon is-small"><i class="fas fa-portrait" aria-hidden="true"></i></span>
+                        <span>ข้อมูลการสร้างใบเสร็จของตนเอง</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{{ url_for('receipt_printing.view_receipt_by_list_type', list_type='ourAccount') }}">
+                        <span class="icon is-small"><i class="fas fa-sitemap" aria-hidden="true"></i></span>
+                        <span>ข้อมูลการสร้างใบเสร็จภายในหน่วยงาน</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
             <div class="columns">
                 <div class="column">
                     <table id="receipt_data" class="table is-fullwidth is-striped">
                         <thead>
-                        <th>หมายเลขเล่ม</th>
+                        <th>เล่มที่</th>
                         <th>เลขที่</th>
                         <th>ออกวันที่</th>
                         <th>จำนวนรายการ</th>
-                        <th>จำนวนครั้งที่พิมพ์</th>
-                        <th>พิมพ์ใบเสร็จ</th>
-                        <th>ยกเลิกใบเสร็จ</th>
+                        <th>ครั้งที่พิมพ์</th>
+                        <th>รายละเอียด</th>
+{#                        <th>พิมพ์ใบเสร็จ</th>#}
+{#                        <th>ยกเลิกใบเสร็จ</th>#}
                         <th>หมายเหตุ</th>
                         <th>สถานะ</th>
                         <th>สาเหตุของการยกเลิก</th>
+                        <th>สร้างโดย</th>
                         </thead>
                         <tbody>
                         {% for r in record %}
@@ -45,25 +123,33 @@
                                 <td>{{ r.created_datetime|localdatetime }}</td>
                                 <td>{{ r.items|length }}</td>
                                 <td>{{ r.print_number}}</td>
-                                <td><a
-                                        {% if not r.cancelled and r.print_number<1 %}
-                                        href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=r.id) }}"
-                                        {% else %}
-                                        disabled
-                                        {% endif %}
-                                        >
+                                <td>
+                                    <a href="">
                                         <span class="icon">
-                                            <i class="fas fa-print"></i>
+                                            <i class="fas fa-eye"></i>
                                         </span>
-                                </a>
+                                    <span>preview</span>
+                                    </a>
                                 </td>
-                                <td><a href="{{ url_for('receipt_printing.confirm_cancel_receipt', receipt_id=r.id) }}">
-                                        <span class="icon">
-                                            <i class="far fa-times-circle has-text-danger"></i>
-                                        </span>
-                                    <span>cancel</span>
-                                </a>
-                                </td>
+{#                                <td><a#}
+{#                                        {% if not r.cancelled and r.print_number<1 %}#}
+{#                                        href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=r.id) }}"#}
+{#                                        {% else %}#}
+{#                                        disabled#}
+{#                                        {% endif %}#}
+{#                                        >#}
+{#                                        <span class="icon">#}
+{#                                            <i class="fas fa-print"></i>#}
+{#                                        </span>#}
+{#                                </a>#}
+{#                                </td>#}
+{#                                <td><a href="{{ url_for('receipt_printing.confirm_cancel_receipt', receipt_id=r.id) }}">#}
+{#                                        <span class="icon">#}
+{#                                            <i class="far fa-times-circle has-text-danger"></i>#}
+{#                                        </span>#}
+{#                                    <span>cancel</span>#}
+{#                                </a>#}
+{#                                </td>#}
                                 <td>{{ r.comment or '' }}</td>
                                 <td>
                                     <span class="icon">
@@ -75,6 +161,7 @@
                                     </span>
                                 </td>
                                 <td>{{ r.cancel_comment or '' }}</td>
+                                <td>{{ r.issuer.personal_info.fullname }}</td>
                             </tr>
                         {% endfor %}
                         </tbody>
