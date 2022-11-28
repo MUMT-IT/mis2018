@@ -119,9 +119,9 @@ def list_add_items():
                                **{'hx-post': url_for("receipt_printing.update_amount"),
                                   'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount',
                                   'hx-swap': 'outerHTML'}),
+               item_form.gl.label, item_form.gl(class_="select"),
                item_form.cost_center.label, item_form.cost_center(class_="select"),
-               item_form.internal_order_code.label, item_form.internal_order_code(class_="select"),
-               item_form.gl.label, item_form.gl(class_="select")
+               item_form.internal_order_code.label, item_form.internal_order_code(class_="select")
                )
     resp = make_response(form_text)
     resp.headers['HX-Trigger-After-Swap'] = 'update_amount'
@@ -182,9 +182,9 @@ def delete_items():
                item_form.price(class_="input", placeholder=u"฿",
                                **{'hx-post': url_for("receipt_printing.update_amount"), 'hx-trigger': 'keyup changed delay:500ms',
                                   'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}),
+               item_form.gl.label, item_form.gl(class_="select"),
                item_form.cost_center.label, item_form.cost_center(class_="select"),
-               item_form.internal_order_code.label, item_form.internal_order_code(class_="select"),
-               item_form.gl.label, item_form.gl(class_="select")
+               item_form.internal_order_code.label, item_form.internal_order_code(class_="select")
                )
 
     resp = make_response(form_text)
@@ -195,10 +195,10 @@ def delete_items():
     return resp
 
 
-@receipt_printing.route('/list/receipts', methods=['GET'])
-def list_all_receipts():
-    record = ElectronicReceiptDetail.query.all()
-    return render_template('receipt_printing/list_all_receipts.html', record=record)
+# @receipt_printing.route('/list/receipts', methods=['GET'])
+# def list_all_receipts():
+#     record = ElectronicReceiptDetail.query.all()
+#     return render_template('receipt_printing/list_all_receipts.html', record=record)
 
 
 sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
@@ -648,3 +648,17 @@ def view_require_receipt():
     request_receipt = ElectronicReceiptRequest.query.all()
     return render_template('receipt_printing/view_require_receipt.html',
                            request_receipt=request_receipt)
+
+
+@receipt_printing.route('/receipt-data/')
+@receipt_printing.route('/receipt-data/<int:receipt_id>', methods=['GET'])
+def view_receipt_by_list_type(receipt_id=None):
+    list_type = request.args.get('list_type')
+    if list_type == "myAccount" or list_type is None:
+        record= ElectronicReceiptDetail.query.filter_by(issuer_id=current_user.id).all()
+    elif list_type == "ourAccount":
+        org = current_user.personal_info.org
+        record = [receipt for receipt in ElectronicReceiptDetail.query.all()
+                    if receipt.issuer.personal_info.org == org]
+    return render_template('receipt_printing/list_all_receipts.html',
+                           receipt_id=receipt_id, record=record, list_type=list_type)
