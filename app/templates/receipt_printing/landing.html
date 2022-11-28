@@ -30,11 +30,7 @@
                     </a>
                     <div class="navbar-dropdown">
                         <a class="navbar-item" href="{{ url_for('receipt_printing.create_receipt') }}">
-                            บันทึกข้อมูล
-                        </a>
-                        <hr class="navbar-divider">
-                        <a class="navbar-item">
-                            Report an issue
+                            สร้างใบเสร็จรับเงิน
                         </a>
                     </div>
                 </span>
@@ -46,7 +42,7 @@
                         <span>ดูข้อมูลทั้งหมด</span>
                     </a>
                     <div class="navbar-dropdown">
-                        <a class="navbar-item" href="{{ url_for('receipt_printing.list_all_receipts') }}">
+                        <a class="navbar-item" href="{{ url_for('receipt_printing.view_receipt_by_list_type') }}">
                             ดูข้อมูล ยกเลิก และพิมพ์ใบเสร็จรับเงิน
                         </a>
                         <a class="navbar-item" href="{{ url_for('receipt_printing.list_to_cancel_receipt') }}">
@@ -70,6 +66,10 @@
                     <div class="navbar-dropdown">
                         <a class="navbar-item" href="{{ url_for('receipt_printing.daily_payment_report') }}">
                             รายงานการรับเงินประจำวัน
+                        </a>
+                        <hr class="navbar-divider">
+                        <a class="navbar-item">
+                            Report an issue
                         </a>
                     </div>
                     </span>
