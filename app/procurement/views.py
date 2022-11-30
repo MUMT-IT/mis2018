@@ -768,13 +768,12 @@ def view_sub_items(procurement_no):
 def add_room_ref():
     form = ProcurementRoomForm()
     if request.method == 'POST':
-        if form.validate_on_submit():
-            new_room = RoomResource()
-            form.populate_obj(new_room)
-            db.session.add(new_room)
-            db.session.commit()
-            flash('New room has been added.', 'success')
-            return redirect(url_for('procurement.add_room_ref'))
+       new_room = RoomResource()
+       form.populate_obj(new_room)
+       db.session.add(new_room)
+       db.session.commit()
+       flash('New room has been added.', 'success')
+       return redirect(url_for('procurement.view_room'))
     return render_template('procurement/room_ref.html', form=form, url_callback=request.referrer)
 
 
