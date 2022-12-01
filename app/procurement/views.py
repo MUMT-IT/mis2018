@@ -155,7 +155,8 @@ def report_info_download():
 
     for item in procurement_query:
         current_record = item.current_record
-        records.append({
+        if current_record and current_record.approval:
+            records.append({
             u'ศูนย์ต้นทุน': u"{}".format(item.cost_center),
             u'Inventory Number/ERP': u"{}".format(item.erp_code),
             u'เลขครุภัณฑ์': u"{}".format(item.procurement_no),
@@ -168,15 +169,15 @@ def report_info_download():
             u'วันที่ได้รับ': u"{}".format(item.received_date),
             u'ปีงบประมาณ': u"{}".format(item.budget_year),
             u'วัน-เวลาที่ตรวจ': u"{}".format(
-                current_record.approval.updated_at if current_record and current_record.approval else ''),
+                current_record.approval.updated_at),
             u'ผลการตรวจสอบ': u"{}".format(
-                current_record.approval.checking_result if current_record and current_record.approval else ''),
+                current_record.approval.checking_result),
             u'ผู้ตรวจสอบ': u"{}".format(
-                current_record.approval.approver.personal_info.fullname if current_record and current_record.approval else ''),
+                current_record.approval.approver.personal_info.fullname),
             u'สถานะ': u"{}".format(
-                current_record.approval.asset_status if current_record and current_record.approval else ''),
+                current_record.approval.asset_status),
             u'Comment': u"{}".format(
-                current_record.approval.approval_comment if current_record and current_record.approval else '')
+                current_record.approval.approval_comment)
         })
     df = DataFrame(records)
     df.to_excel('report.xlsx',
@@ -336,7 +337,7 @@ def edit_procurement(procurement_id):
         db.session.add(procurement)
         db.session.commit()
         flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
-        return redirect(url_for('procurement.view_procurement'))
+        return redirect(url_for('procurement.view_qrcode', procurement_id=procurement_id, url_next=url_for('procurement.view_procurement')))
     return render_template('procurement/edit_procurement.html', form=form, procurement=procurement,
                            url_callback=request.referrer)
 
@@ -352,9 +353,10 @@ def edit_procurement(procurement_id):
 @login_required
 def view_qrcode(procurement_id):
     item = ProcurementDetail.query.get(procurement_id)
+    next_url = request.args.get('url_next', url_for('procurement.view_procurement'))
     return render_template('procurement/view_qrcode.html',
                            model=ProcurementRecord,
-                           item=item, url_callback=request.referrer)
+                           item=item, url_next=next_url)
 
 
 @procurement.route('/items/<int:item_id>/records/add', methods=['GET', 'POST'])
@@ -766,13 +768,12 @@ def view_sub_items(procurement_no):
 def add_room_ref():
     form = ProcurementRoomForm()
     if request.method == 'POST':
-        if form.validate_on_submit():
-            new_room = RoomResource()
-            form.populate_obj(new_room)
-            db.session.add(new_room)
-            db.session.commit()
-            flash('New room has been added.', 'success')
-            return redirect(url_for('procurement.add_room_ref'))
+       new_room = RoomResource()
+       form.populate_obj(new_room)
+       db.session.add(new_room)
+       db.session.commit()
+       flash('New room has been added.', 'success')
+       return redirect(url_for('procurement.view_room'))
     return render_template('procurement/room_ref.html', form=form, url_callback=request.referrer)
 
 

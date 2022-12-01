@@ -3,19 +3,22 @@
     {{ super() }}
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <meta name="description" content="">
-    <meta name="author" content="">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css"/>
     <link rel="icon" href="favicon.ico">
     <script src="/js/app-page.js"></script>
 {% endblock %}
 {% block page_content %}
     <!-- Menu -->
-    <nav class="navbar">
+    <nav class="navbar" role="navigation" aria-label="main navigation">
         <div class="container">
             <div class="navbar-brand">
                 <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" width="200"/>
             </div>
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
+              <span aria-hidden="true"></span>
+              <span aria-hidden="true"></span>
+              <span aria-hidden="true"></span>
+            </a>
             <div id="navbarMenu" class="navbar-menu">
                 <div class="navbar-end">
                 <span class="navbar-item is-hoverable">
@@ -27,11 +30,7 @@
                     </a>
                     <div class="navbar-dropdown">
                         <a class="navbar-item" href="{{ url_for('receipt_printing.create_receipt') }}">
-                            บันทึกข้อมูล
-                        </a>
-                        <hr class="navbar-divider">
-                        <a class="navbar-item">
-                            Report an issue
+                            สร้างใบเสร็จรับเงิน
                         </a>
                     </div>
                 </span>
@@ -43,7 +42,7 @@
                         <span>ดูข้อมูลทั้งหมด</span>
                     </a>
                     <div class="navbar-dropdown">
-                        <a class="navbar-item" href="{{ url_for('receipt_printing.list_all_receipts') }}">
+                        <a class="navbar-item" href="{{ url_for('receipt_printing.view_receipt_by_list_type') }}">
                             ดูข้อมูล ยกเลิก และพิมพ์ใบเสร็จรับเงิน
                         </a>
                         <a class="navbar-item" href="{{ url_for('receipt_printing.list_to_cancel_receipt') }}">
@@ -67,6 +66,10 @@
                     <div class="navbar-dropdown">
                         <a class="navbar-item" href="{{ url_for('receipt_printing.daily_payment_report') }}">
                             รายงานการรับเงินประจำวัน
+                        </a>
+                        <hr class="navbar-divider">
+                        <a class="navbar-item">
+                            Report an issue
                         </a>
                     </div>
                     </span>
@@ -142,7 +145,7 @@
                         </svg>
                       </span>
                         <div class="ml-3">
-                            <h4 class="is-size-4 has-text-weight-bold mb-2">3. เล่มที่/Book No. MTG65001</h4>
+                            <h4 class="is-size-4 has-text-weight-bold mb-2">3. เล่มที่/Book No. MTG00001</h4>
                             <p class="subtitle has-text-grey">กำหนดรหัสขึ้นต้นด้วยตัวอักษรภาษาอังกฤษ ตัวพิมพ์ใหญ่
                                 ประกอบไปด้วย MT = Medical Technology , G = General ตัวเลข กำหนดไว้ที่ 5 หลัก
                                 โดยเริ่มตั้งแต่ 00001 เรียงกันไปตามลำดับ</p>
@@ -161,8 +164,8 @@
                             <h4 class="is-size-4 has-text-weight-bold mb-2">4. เลขที่/No. ตัวเลข กำหนดไว้ที่ 8 หลัก</h4>
                             <p class="subtitle has-text-grey"> โดยเริ่มตั้งแต่ 00000001 เรียงกันไปตามลำดับ
                                 กำหนดให้ใบเสร็จ 1 เล่ม ออกได้ 500 ฉบับ
-                                ตัวอย่างเช่น เล่มที่/Book No. MTG65001 เลขที่ใบเสร็จ 00000001-0000500 เล่มที่/Book No.
-                                MTG65002 เลขที่ใบเสร็จ 00000501-0001000
+                                ตัวอย่างเช่น เล่มที่/Book No. MTG00001 เลขที่ใบเสร็จ 00000001-0000500 เล่มที่/Book No.
+                                MTG00002 เลขที่ใบเสร็จ 00000501-0001000
                             </p>
                         </div>
                     </div>

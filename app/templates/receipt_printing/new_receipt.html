@@ -1,13 +1,17 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    {#    <script src="sweetalert2.all.min.js"></script>#}
+    {#    <script src="sweetalert2.min.js"></script>#}
+    {#    <link rel="stylesheet" href="sweetalert2.min.css">#}
 {% endblock %}
 {% block page_content %}
     <section class="section">
         <div class="container">
+            {% include "messages.html" %}
             <div class="columns">
                 <div class="column box is-half is-offset-one-quarter">
-                    {% include "messages.html" %}
                     <div class="has-text-centered">
                         <h2 class="title is-size-2">ใบเสร็จรับเงิน</h2>
                         <h3 class="title is-size-3"></h3>
@@ -16,15 +20,15 @@
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <label class="label">ที่อยู่ในใบเสร็จรับเงิน</label>
+                            <label class="label">ได้รับเงินจาก</label>
                             <div class="control">
-                                {{ form.address(class="textarea") }}
+                                {{ form.received_from(class="input is-danger") }}
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">ได้รับเงินจาก</label>
+                            <label class="label">ที่อยู่ในใบเสร็จรับเงิน</label>
                             <div class="control">
-                                {{ form.received_from(class="input") }}
+                                {{ form.address(class="textarea is-danger") }}
                             </div>
                         </div>
                         <div id="items">
@@ -32,41 +36,28 @@
                                 <div class="field">
                                     <label class="label">รายการ</label>
                                     <div class="control">
-                                        {{ i.item(class="input") }}
+                                        {{ i.item(class="input is-danger") }}
                                     </div>
                                 </div>
                                 <div class="field">
                                     <label class="label">จำนวนเงิน</label>
                                     <div class="control">
-                                        {{ i.price(class="input", placeholder="฿", **{'hx-post': url_for("receipt_printing.update_amount"), 'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}) }}
-                                    </div>
-                                </div>
-
-                                <div class="field">
-                                    <label class="label">Cost Center</label>
-                                    <div class="control">
-                                        <div class="select">
-                                            {{ i.cost_center(class="select") }}
-                                        </div>
+                                        {{ i.price(class="input is-danger", placeholder="฿", **{'hx-post': url_for("receipt_printing.update_amount"),
+                                        'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}) }}
                                     </div>
                                 </div>
                                 <div class="field">
                                     <label class="label">GL</label>
-                                    <div class="control">
-                                        <div class="select">
-                                            {{ i.gl(class="select") }}
-                                        </div>
-                                    </div>
+                                    {{ i.gl(class="select is-danger") }}
+                                </div>
+                                <div class="field">
+                                    <label class="label">Cost Center</label>
+                                    {{ i.cost_center(class="select is-danger") }}
                                 </div>
                                 <div class="field">
                                     <label class="label">Internal Order/IO</label>
-                                    <div class="control">
-                                        <div class="select">
-                                            {{ i.internal_order_code(class="select") }}
-                                        </div>
-                                    </div>
+                                    {{ i.internal_order_code(class="select is-danger") }}
                                 </div>
-
                             {% endfor %}
                         </div>
                         <br>
@@ -89,7 +80,7 @@
                             <div class="field">
                                 <label class="label">ช่องทางการชำระเงิน</label>
                                 <div class="select is-fullwidth">
-                                    {{ form.payment_method(class="input") }}
+                                    {{ form.payment_method(class="input is-danger") }}
                                 </div>
                             </div>
                             <div class="field">
@@ -102,27 +93,27 @@
                         <div class="field" id="card-no">
                             <label class="label">{{ form.card_number.label }}</label>
                             <div class="control">
-                                {{ form.card_number(class="input", id="card-no") }}
+                                {{ form.card_number(class="input is-danger", id="card-no") }}
                             </div>
                             <label class="label">{{ form.bank_name.label }}</label>
                             <div class="control">
-                                {{ form.bank_name(class="input", id="card-no") }}
+                                {{ form.bank_name(class="input is-danger", id="card-no") }}
                             </div>
                         </div>
                         <div class="field" id="cheque-no">
                             <label class="label">เช็คเลขที่</label>
                             <div class="control">
-                                {{ form.cheque_number(class="input", id="cheque-no") }}
+                                {{ form.cheque_number(class="input is-danger", id="cheque-no") }}
                             </div>
                             <label class="label">{{ form.bank_name.label }}</label>
                             <div class="control">
-                                {{ form.bank_name(class="input", id="cheque-no") }}
+                                {{ form.bank_name(class="input is-danger", id="cheque-no") }}
                             </div>
                         </div>
                         <div class="field" id="other_payment_method">
                             <label class="label">ช่องทางการชำระเงินอื่นๆ</label>
                             <div class="control">
-                                {{ form.other_payment_method(class="input", id="other_payment_method") }}
+                                {{ form.other_payment_method(class="input is-danger", id="other_payment_method") }}
                             </div>
                         </div>
                         <div class="field">
@@ -154,6 +145,8 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    {#    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>#}
     <script>
         $.ajaxSetup({
             headers:
@@ -175,6 +168,7 @@
         }
 
         document.addEventListener('update_amount', update_amount)
+
     </script>
     <script>
         $(document).ready(() => {
@@ -203,4 +197,28 @@
             })
         })
     </script>
+    <script>
+        $(document).ready(() => {
+            $('select[id^="items-"]').select2({
+                width: '400px',
+
+            });
+        });
+    </script>
+    {#    <script>#}
+    {#    Swal.fire({#}
+    {#      title: 'Do you want to save the changes?',#}
+    {#      showDenyButton: true,#}
+    {#      showCancelButton: true,#}
+    {#      confirmButtonText: 'Save',#}
+    {#      denyButtonText: `Don't save`,#}
+    {#    }).then((result) => {#}
+    {#      /* Read more about isConfirmed, isDenied below */#}
+    {#      if (result.isConfirmed) {#}
+    {#        Swal.fire('Saved!', '', 'success')#}
+    {#      } else if (result.isDenied) {#}
+    {#        Swal.fire('Changes are not saved', '', 'info')#}
+    {#      }#}
+    {#    })#}
+    {#    </script>#}
 {% endblock %}

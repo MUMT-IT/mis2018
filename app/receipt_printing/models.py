@@ -16,15 +16,19 @@ class ElectronicReceiptDetail(db.Model):
     paid = db.Column('paid', db.Boolean(), default=False)
     cancelled = db.Column('cancelled', db.Boolean(), default=False)
     cancel_comment = db.Column('cancel_comment', db.Text())
-    payment_method = db.Column('payment_method', db.String(), info={'label': u'ช่องทางการชำระเงิน',
-                                'choices': [(c, c) for c in
-                                ['Select..', u'เงินสด', u'บัตรเครดิต', u'Scan QR Code', u'โอนผ่านระบบธนาคารอัตโนมัติ', u'เช็คสั่งจ่าย', u'อื่นๆ' ]]})
+    payment_method = db.Column('payment_method', db.String(), nullable=False, info={'label': u'ช่องทางการชำระเงิน',
+                                                                                    'choices': [('None', u'--โปรดเลือกช่องทางการชำระเงิน--'),
+                                                                                            ('Cash', 'Cash'),
+                                                                                            ('Credit Card', 'Credit Card'),
+                                                                                            ('Scan QR Code','Scan QR Code'),
+                                                                                            ('Transfer Bank', 'Transfer Bank'),
+                                                                                            ('Cheque', 'Cheque'), ('Other', 'Other')]})
     paid_amount = db.Column('paid_amount', db.Numeric(), default=0.0)
     card_number = db.Column('card_number', db.String(16), info={'label': u'เลขบัตรเครดิต'})
     cheque_number = db.Column('cheque_number', db.String(8), info={'label': u'เช็คเลขที่'})
     other_payment_method = db.Column('other_payment_method', db.String(), info={'label': u'ช่องทางการชำระเงินอื่นๆ'})
     address = db.Column('address', db.Text(), info={'label': u'ที่อยู่'})
-    received_from = db.Column('received_from', db.String(), info={'label': u'ได้รับเงินจาก'})
+    received_from = db.Column('received_from', db.String(), nullable=False, info={'label': u'ได้รับเงินจาก'})
     bank_name = db.Column('bank_name', db.String(), info={'label': u'ชื่อธนาคาร'})
     issuer_id = db.Column('issuer_id', db.ForeignKey('staff_account.id'))
     issuer = db.relationship(StaffAccount, foreign_keys=[issuer_id])
@@ -32,19 +36,19 @@ class ElectronicReceiptDetail(db.Model):
 
     @property
     def item_list(self):
-        return ', '.join([i.item for i in self.items])
+        return '\n '.join([i.item for i in self.items])
 
     @property
     def item_gl_list(self):
-        return ', '.join([i.gl.gl for i in self.items])
+        return '\n '.join([i.gl.gl for i in self.items])
 
     @property
     def item_cost_center_list(self):
-        return ', '.join([i.cost_center.id for i in self.items])
+        return '\n '.join([i.cost_center.id for i in self.items])
 
     @property
     def item_internal_order_list(self):
-        return ', '.join([i.internal_order_code.id for i in self.items])
+        return '\n '.join([i.internal_order_code.id for i in self.items])
 
     def to_dict(self):
         return {
@@ -62,11 +66,11 @@ class ElectronicReceiptDetail(db.Model):
 class ElectronicReceiptItem(db.Model):
     __tablename__ = 'electronic_receipt_items'
     id = db.Column('id', db.Integer(), autoincrement=True, primary_key=True)
-    item = db.Column('item', db.String(), info={'label': u'รายการ'})
+    item = db.Column('item', db.String(), nullable=False, info={'label': u'รายการ'})
     receipt_id = db.Column('receipt_id', db.ForeignKey('electronic_receipt_details.id'))
     receipt_detail = db.relationship('ElectronicReceiptDetail',
                                      backref=db.backref('items', cascade='all, delete-orphan'))
-    price = db.Column('price', db.Numeric(), default=0.0, info={'label': u'จำนวนเงิน'})
+    price = db.Column('price', db.Numeric(), nullable=False, default=0.0, info={'label': u'จำนวนเงิน'})
     cost_center_id = db.Column('cost_center_id', db.ForeignKey('cost_centers.id'))
     cost_center = db.relationship('CostCenter',
                                   backref=db.backref('items_cost_center'))
@@ -84,7 +88,7 @@ class ElectronicReceiptRequest(db.Model):
     detail_id = db.Column('detail_id', db.ForeignKey('electronic_receipt_details.id'))
     detail = db.relationship('ElectronicReceiptDetail',
                              backref=db.backref('reprint_requests', lazy='dynamic'))
-    reason = db.Column('reason', db.Text())
+    reason = db.Column('reason', db.Text(), nullable=False)
     url_drive = db.Column('url_drive', db.String())
     created_at = db.Column('created_at', db.Date(), server_default=func.now())
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
