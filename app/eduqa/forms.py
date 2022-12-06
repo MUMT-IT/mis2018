@@ -93,7 +93,7 @@ def create_instructors_form(course):
 
         instructors = QuerySelectMultipleField(u'ผู้สอน',
                                                get_label='fullname',
-                                               query_factory=lambda: course.instructors.all(),
+                                               query_factory=lambda: course.instructors,
                                                widget=widgets.ListWidget(prefix_label=False),
                                                option_widget=widgets.CheckboxInput())
         topics = FieldList(FormField(EduCourseSessionTopicForm,
@@ -102,21 +102,35 @@ def create_instructors_form(course):
     return EduCourseSessionForm
 
 
-class EduCourseSessionDetailRoleForm(ModelForm):
-    class Meta:
-        model = EduQACourseSessionDetailRole
+def CourseSessionDetailRoleFormFactory(format):
+    class EduCourseSessionDetailRoleForm(ModelForm):
+        class Meta:
+            model = EduQACourseSessionDetailRole
+
+        role_item = QuerySelectField(u'บทบาท',
+                                     get_label='role',
+                                     query_factory=lambda: EduQACourseSessionDetailRoleItem
+                                     .query.filter_by(format=format))
+
+    return EduCourseSessionDetailRoleForm
 
 
-class EduCourseSessionDetailForm(ModelForm):
-    class Meta:
-        model = EduQACourseSessionDetail
-    roles = FieldList(FormField(EduCourseSessionDetailRoleForm,
-                                default=EduQACourseSessionDetailRole), min_entries=1)
+def CourseSessionDetailFormFactory(learning_format):
+    class EduCourseSessionDetailForm(ModelForm):
+        class Meta:
+            model = EduQACourseSessionDetail
+
+        EduCourseSessionDetailRoleForm = CourseSessionDetailRoleFormFactory(learning_format)
+        roles = FieldList(FormField(EduCourseSessionDetailRoleForm,
+                                    default=EduQACourseSessionDetailRole), min_entries=1)
+
+    return EduCourseSessionDetailForm
 
 
 class EduCourseInstructorRoleFormField(ModelForm):
     class Meta:
         model = EduQACourseInstructorAssociation
+
     instructor_id = HiddenField('instructor_id')
     role = QuerySelectField('Role', get_label='role',
                             query_factory=lambda: EduQAInstructorRole.query.all())

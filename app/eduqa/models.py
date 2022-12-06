@@ -118,7 +118,7 @@ class EduQACourse(db.Model):
 
     instructors = association_proxy('course_instructor_associations', 'instructor')
     course_instructor_associations = db.relationship('EduQACourseInstructorAssociation',
-                                                    back_populates='course', cascade='all, delete-orphan')
+                                                     back_populates='course', cascade='all, delete-orphan')
 
     @property
     def credits(self):
@@ -130,6 +130,7 @@ class EduQAInstructor(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     account_id = db.Column(db.ForeignKey('staff_account.id'))
     account = db.relationship(StaffAccount, backref=db.backref('instructed_courses', lazy='dynamic'))
+
     # courses = db.relationship(EduQACourseInstructorAssociation, back_populates='instructor')
 
     def __init__(self, account_id):
@@ -155,7 +156,8 @@ class EduQACourseSession(db.Model):
     start = db.Column(db.DateTime(timezone=True), nullable=False, info={'label': u'เริ่ม'})
     end = db.Column(db.DateTime(timezone=True), nullable=False, info={'label': u'สิ้นสุด'})
     type_ = db.Column(db.String(255), info={'label': u'รูปแบบการสอน',
-                                            'choices': [(c, c) for c in (u'บรรยาย', u'ปฏิบัติการ', u'กิจกรรม', u'สอบ')]})
+                                            'choices': [(c, c) for c in
+                                                        (u'บรรยาย', u'ปฏิบัติการ', u'กิจกรรม', u'สอบ')]})
     desc = db.Column(db.Text())
 
     course = db.relationship(EduQACourse, backref=db.backref('sessions', lazy='dynamic'))
@@ -168,12 +170,13 @@ class EduQACourseSession(db.Model):
     @property
     def total_hours(self):
         delta = self.end - self.start
-        return u'{} ชม. {} นาที'.format(delta.seconds//3600, (delta.seconds//60)%60)
+        return u'{} ชม. {} นาที'.format(delta.seconds // 3600, (delta.seconds // 60) % 60)
 
     @property
     def total_seconds(self):
         delta = self.end - self.start
         return delta.seconds
+
     @property
     def topics(self):
         topics = []
@@ -191,7 +194,8 @@ class EduQACourseSessionTopic(db.Model):
     topic = db.Column('topic', db.String(), nullable=False, info={'label': u'หัวข้อ'})
     method = db.Column('method', db.String(),
                        info={'label': u'รูปแบบการจัดการสอน',
-                             'choices': [(c, c) for c in [u'บรรยาย', u'ปฏิบัติ', u'อภิปราย', u'กิจกรรมกลุ่ม', u'สาธิต']]})
+                             'choices': [(c, c) for c in
+                                         [u'บรรยาย', u'ปฏิบัติ', u'อภิปราย', u'กิจกรรมกลุ่ม', u'สาธิต']]})
 
 
 class EduQACourseSessionDetail(db.Model):
@@ -209,14 +213,12 @@ class EduQACourseSessionDetailRole(db.Model):
     detail = db.Column('detail', db.Text(), info={'label': u'รายละเอียด'})
     session_detail = db.relationship(EduQACourseSessionDetail,
                                      backref=db.backref('roles', cascade='all, delete-orphan'))
-    role = db.Column('role', db.String(), info={'label': u'บทบาท',
-                                                'choices': [(c, c) for c in [u'ผู้บรรยายหลัก',
-                                                                             u'ผู้บรรยายเสริม',
-                                                                             u'ผู้นำอภิปราย',
-                                                                             u'ผู้ร่วมอภิปราย',
-                                                                             u'ผู้ดำเนินการอภิปราย',
-                                                                             u'ผู้สอนปฏิบัติหลัก',
-                                                                             u'ผู้ร่วมสอนปฏิบัติ',
-                                                                             u'ผู้คุมสอบ',
-                                                                             ]],
-                                                })
+    role_item_id = db.Column('role_item_id', db.ForeignKey('eduqa_course_session_detail_role_items.id'))
+    role_item = db.relationship('EduQACourseSessionDetailRoleItem')
+
+
+class EduQACourseSessionDetailRoleItem(db.Model):
+    __tablename__ = 'eduqa_course_session_detail_role_items'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    role = db.Column('role', db.String(), info={'label': u'บทบาท'})
+    format = db.Column('format', db.String(), info={'label': u'รูปแบบการสอน'})

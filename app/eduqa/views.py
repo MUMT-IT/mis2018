@@ -509,6 +509,7 @@ def add_session_detail(course_id, session_id):
     a_session = EduQACourseSession.query.get(session_id)
     session_detail = EduQACourseSessionDetail.query\
         .filter_by(session_id=session_id, staff_id=current_user.id).first()
+    EduCourseSessionDetailForm = CourseSessionDetailFormFactory(a_session.type_)
     if session_detail:
         form = EduCourseSessionDetailForm(obj=session_detail)
     else:
@@ -569,6 +570,8 @@ def add_session_topic(course_id):
 @edu.route('/api/qa/courses/<int:course_id>/sessions/<int:session_id>/roles', methods=['POST'])
 @login_required
 def add_session_role(course_id, session_id):
+    session = EduQACourseSession.query.get(session_id)
+    EduCourseSessionDetailForm = CourseSessionDetailFormFactory(session.type_)
     form = EduCourseSessionDetailForm()
     form.roles.append_entry()
     role_form = form.roles[-1]
@@ -586,8 +589,8 @@ def add_session_role(course_id, session_id):
             </div>
         </div>
     """
-    return template.format(role_form.role.label,
-                           role_form.role(),
+    return template.format(role_form.role_item.label,
+                           role_form.role_item(),
                            role_form.detail.label,
                            role_form.detail(class_="textarea"))
 

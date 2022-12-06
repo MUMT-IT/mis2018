@@ -63,9 +63,9 @@
                     <div id="roles">
                         {% for role_form in form.roles %}
                             <div class="field">
-                                <label class="label">{{ role_form.role.label }}</label>
+                                <label class="label">{{ role_form.role_item.label }}</label>
                                 <div class="select">
-                                    {{ role_form.role() }}
+                                    {{ role_form.role_item() }}
                                 </div>
                             </div>
                             <div class="field">
