@@ -1,8 +1,9 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import SelectMultipleField, widgets, FieldList, FormField
-from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
+from wtforms import SelectMultipleField, widgets, FieldList, FormField, IntegerField, HiddenField
+from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField, ModelFormField, \
+    ModelFieldList
 from app.main import db
 from models import *
 from app.staff.models import (StaffAcademicPositionRecord,
@@ -111,3 +112,15 @@ class EduCourseSessionDetailForm(ModelForm):
         model = EduQACourseSessionDetail
     roles = FieldList(FormField(EduCourseSessionDetailRoleForm,
                                 default=EduQACourseSessionDetailRole), min_entries=1)
+
+
+class EduCourseInstructorRoleFormField(ModelForm):
+    class Meta:
+        model = EduQACourseInstructorAssociation
+    instructor_id = HiddenField('instructor_id')
+    role = QuerySelectField('Role', get_label='role',
+                            query_factory=lambda: EduQAInstructorRole.query.all())
+
+
+class EduCourseInstructorRoleForm(ModelForm):
+    roles = ModelFieldList(ModelFormField(EduCourseInstructorRoleFormField), min_entries=0)

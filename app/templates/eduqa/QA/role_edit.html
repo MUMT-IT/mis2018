@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container" id="app">
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter has-text-centered">
+                    {% include 'messages.html' %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <h1 class="title has-text-centered">{{ course.th_name }}</h1>
+                    <h1 class="subtitle has-text-centered">{{ course.en_name }}</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-one-third is-offset-4">
+                    <h5 class="title is-size-4 has-text-centered">กำหนดบทบาท</h5>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                    <table class="table is-bordered is-fullwidth">
+                        <tr>
+                            <td><strong>ชื่อ</strong></td>
+                            <td><strong>บทบาท</strong></td>
+                        </tr>
+                        {% for field in form.roles %}
+                            {% set association = course.course_instructor_associations[loop.index0] %}
+                        <tr>
+                            <td>
+                                {{ field.instructor_id(value=association.instructor.id) }}
+                                <div>{{ association.instructor.fullname }}</div>
+                            </td>
+                            <td>
+                                <div class="field">
+                                    <div class="select">
+                                        {{ field.role() }}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                        <div class="buttons is-centered">
+                            <a class="button is-light" href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}">
+                                Back
+                            </a>
+                            <input type="submit" value="Save" class="button is-success">
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        vm = new Vue({
+            el: '#app',
+            methods: {
+                warn: function() {
+                    this.$buefy.dialog.confirm({
+                        message: 'ต้องการลบรายวิชานี้จริงหรือไม่',
+                        onConfirm: ()=> window.location.href = "{{ url_for('eduqa.delete_course', course_id=course.id) }}",
+                        type: 'is-danger'
+                    })
+                }
+            }
+        })
+    </script>
+{% endblock %}

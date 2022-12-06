@@ -132,16 +132,18 @@
                                 <th></th>
                                 </thead>
                                 <tbody>
-                                {% for inst in course.instructors %}
+                                {% for asc in course.course_instructor_associations %}
                                     <tr>
                                         <td>
-                                            <a href="{{ url_for('eduqa.show_hours_summary', instructor_id=inst.id) }}">
-                                                {{ inst.account.personal_info }}
+                                            <a href="{{ url_for('eduqa.show_hours_summary', instructor_id=asc.instructor.id) }}">
+                                                {{ asc.instructor.account.personal_info }}
                                             </a>
                                         </td>
-                                        <td id="course_role"></td>
+                                        <td id="course_role">
+                                            {{ asc.role.role }}
+                                        </td>
                                         <td>
-                                            <a href="{{ url_for('eduqa.remove_instructor_from_list', course_id=course.id, instructor_id=inst.id) }}"
+                                            <a href="{{ url_for('eduqa.remove_instructor_from_list', course_id=course.id, instructor_id=asc.instructor.id) }}"
                                                class="is-danger button is-small is-rounded">
                                                 <span class="icon">
                                                     <i class="far fa-trash-alt"></i>
@@ -161,7 +163,7 @@
                                                 </span>
                                                     <span>เพิ่มผู้สอน</span>
                                                 </a>
-                                                <a href=""
+                                                <a href="{{ url_for('eduqa.assign_roles', course_id=course.id) }}"
                                                    class="is-info is-outlined button is-small is-rounded">
                                                 <span class="icon">
                                                     <i class="fas fa-pencil-alt"></i>

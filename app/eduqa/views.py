@@ -5,6 +5,7 @@ from datetime import datetime
 from flask import render_template, request, flash, redirect, url_for, session, jsonify
 from flask_login import current_user, login_required
 from sqlalchemy.orm import make_transient
+from wtforms import Label
 
 from . import eduqa_bp as edu
 from forms import *
@@ -365,7 +366,7 @@ def add_instructor_to_list(course_id, account_id):
     instructor = EduQAInstructor.query.filter_by(account_id=account_id).first()
     if not instructor:
         instructor = EduQAInstructor(account_id=account_id)
-    course.instructors.append(instructor)
+    course.course_instructor_associations.append(EduQACourseInstructorAssociation(instructor=instructor))
     course.updater = current_user
     course.updated_at = localtz.localize(datetime.now())
     db.session.add(instructor)
@@ -374,6 +375,26 @@ def add_instructor_to_list(course_id, account_id):
     flash(u'เพิ่มรายชื่อผู้สอนเรียบร้อยแล้ว', 'success')
     return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
 
+
+@edu.route('/qa/courses/<int:course_id>/instructors/roles/assignment', methods=['GET', 'POST'])
+@login_required
+def assign_roles(course_id):
+    course = EduQACourse.query.get(course_id)
+    form = EduCourseInstructorRoleForm()
+    if form.validate_on_submit():
+        for form_field in form.roles:
+            course_inst = EduQACourseInstructorAssociation.query\
+                .filter_by(course_id=course_id).filter_by(instructor_id=int(form_field.instructor_id.data)).first()
+            course_inst.role = form_field.role.data
+            db.session.add(course_inst)
+        db.session.commit()
+        return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
+
+    for asc in course.course_instructor_associations:
+        # form_field = EduCourseInstructorRoleFormField(obj=asc)
+        form.roles.append_entry(asc)
+    instructor = EduQAInstructor.query.filter_by(account=current_user).first()
+    return render_template('eduqa/QA/role_edit.html', course=course, instructor=instructor, form=form)
 
 @edu.route('/qa/courses/<int:course_id>/instructors/remove/<int:instructor_id>')
 @login_required

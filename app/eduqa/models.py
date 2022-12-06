@@ -1,21 +1,32 @@
 # -*- coding:utf-8 -*-
+from sqlalchemy.ext.associationproxy import association_proxy
+
 from app.main import db
 from app.staff.models import StaffAccount
 
-course_instructors = db.Table('eduqa_course_instructor_assoc',
-                              db.Column('course_id', db.Integer, db.ForeignKey('eduqa_courses.id')),
-                              db.Column('instructor_id', db.Integer, db.ForeignKey('eduqa_course_instructors.id'))
-                              )
-
 session_instructors = db.Table('eduqa_session_instructor_assoc',
                                db.Column('session_id', db.Integer, db.ForeignKey('eduqa_course_sessions.id')),
-                               db.Column('instructor_id', db.Integer, db.ForeignKey('eduqa_course_instructors.id'))
+                               db.Column('instructor_id', db.Integer, db.ForeignKey('eduqa_course_instructors.id')),
                                )
 
-course_instructor_roles = db.Table('eduqa_course_instructor_role_assoc',
-                                   db.Column('role_id', db.Integer, db.ForeignKey('eduqa_course_instructor_roles.id')),
-                                   db.Column('instructor_id', db.Integer, db.ForeignKey('eduqa_course_instructors.id'))
-                                   )
+
+class EduQACourseInstructorAssociation(db.Model):
+    __tablename__ = 'eduqa_course_instructor_assoc'
+
+    def __init__(self, instructor=None, course=None, role=None):
+        self.instructor = instructor
+        self.course = course
+        self.role = role
+
+    course_id = db.Column('course_id', db.Integer,
+                          db.ForeignKey('eduqa_courses.id'), primary_key=True)
+    instructor_id = db.Column('instructor_id', db.Integer,
+                              db.ForeignKey('eduqa_course_instructors.id'), primary_key=True)
+    role_id = db.Column('role_id', db.Integer, db.ForeignKey('eduqa_course_instructor_roles.id'))
+
+    course = db.relationship('EduQACourse', back_populates='course_instructor_associations')
+    instructor = db.relationship('EduQAInstructor')
+    role = db.relationship('EduQAInstructorRole')
 
 
 class EduQAProgram(db.Model):
@@ -105,6 +116,10 @@ class EduQACourse(db.Model):
     revision = db.relationship(EduQACurriculumnRevision,
                                backref=db.backref('courses', lazy='dynamic'))
 
+    instructors = association_proxy('course_instructor_associations', 'instructor')
+    course_instructor_associations = db.relationship('EduQACourseInstructorAssociation',
+                                                    back_populates='course', cascade='all, delete-orphan')
+
     @property
     def credits(self):
         return self.lecture_credit + self.lab_credit
@@ -114,11 +129,11 @@ class EduQAInstructor(db.Model):
     __tablename__ = 'eduqa_course_instructors'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     account_id = db.Column(db.ForeignKey('staff_account.id'))
-    account = db.relationship(StaffAccount, backref=db.backref('instructed_courses',
-                                                               lazy='dynamic'))
-    courses = db.relationship('EduQACourse',
-                              secondary=course_instructors,
-                              backref=db.backref('instructors', lazy='dynamic'))
+    account = db.relationship(StaffAccount, backref=db.backref('instructed_courses', lazy='dynamic'))
+    # courses = db.relationship(EduQACourseInstructorAssociation, back_populates='instructor')
+
+    def __init__(self, account_id):
+        self.account_id = account_id
 
     @property
     def fullname(self):
