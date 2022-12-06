@@ -139,7 +139,7 @@
                                                 {{ inst.account.personal_info }}
                                             </a>
                                         </td>
-                                        <td></td>
+                                        <td id="course_role"></td>
                                         <td>
                                             <a href="{{ url_for('eduqa.remove_instructor_from_list', course_id=course.id, instructor_id=inst.id) }}"
                                                class="is-danger button is-small is-rounded">
@@ -155,11 +155,18 @@
                                         <td colspan="3">
                                             <div class="buttons is-centered">
                                                 <a href="{{ url_for('eduqa.add_instructor', course_id=course.id) }}"
-                                                   class="button is-link is-small is-rounded">
+                                                   class="button is-success is-outlined is-small is-rounded">
                                                 <span class="icon">
                                                    <i class="fas fa-user-plus"></i>
                                                 </span>
-                                                    <span>เพิ่ม</span>
+                                                    <span>เพิ่มผู้สอน</span>
+                                                </a>
+                                                <a href=""
+                                                   class="is-info is-outlined button is-small is-rounded">
+                                                <span class="icon">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </span>
+                                                    <span>แก้ไขบทบาท</span>
                                                 </a>
                                             </div>
                                         </td>

@@ -12,6 +12,11 @@ session_instructors = db.Table('eduqa_session_instructor_assoc',
                                db.Column('instructor_id', db.Integer, db.ForeignKey('eduqa_course_instructors.id'))
                                )
 
+course_instructor_roles = db.Table('eduqa_course_instructor_role_assoc',
+                                   db.Column('role_id', db.Integer, db.ForeignKey('eduqa_course_instructor_roles.id')),
+                                   db.Column('instructor_id', db.Integer, db.ForeignKey('eduqa_course_instructors.id'))
+                                   )
+
 
 class EduQAProgram(db.Model):
     __tablename__ = 'eduqa_programs'
@@ -118,6 +123,12 @@ class EduQAInstructor(db.Model):
     @property
     def fullname(self):
         return self.account.personal_info.fullname
+
+
+class EduQAInstructorRole(db.Model):
+    __tablename__ = 'eduqa_course_instructor_roles'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    role = db.Column('role', db.String())
 
 
 class EduQACourseSession(db.Model):
