@@ -144,6 +144,8 @@ class EduQAInstructorRole(db.Model):
     __tablename__ = 'eduqa_course_instructor_roles'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     role = db.Column('role', db.String())
+    admin = db.Column('admin', db.Boolean(), default=False)
+    credit_hour = db.Column('credit_hour', db.Integer(), default=0)
 
 
 class EduQACourseSession(db.Model):

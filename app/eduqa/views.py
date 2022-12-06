@@ -240,7 +240,8 @@ def show_revision_detail(revision_id):
     print(display_my_courses_only)
     if instructor and display_my_courses_only == 'true':
         display_my_courses_only = True
-        courses = [c for c in revision.courses if c in instructor.courses]
+        courses = [c.course for c in EduQACourseInstructorAssociation.query.filter_by(instructor=instructor)
+                   if c.course in revision.courses]
     elif not instructor or display_my_courses_only == 'false':
         display_my_courses_only = False
         courses = revision.courses
@@ -348,8 +349,19 @@ def copy_course(course_id):
 @login_required
 def show_course_detail(course_id):
     course = EduQACourse.query.get(course_id)
-    instructor = EduQAInstructor.query.filter_by(account=current_user).first()
-    return render_template('eduqa/QA/course_detail.html', course=course, instructor=instructor)
+    admin = None
+    instructor = None
+    instructor_role = None
+    for asc in course.course_instructor_associations:
+        if asc.role and asc.role.admin:
+            admin = asc.instructor
+        if asc.instructor.account == current_user:
+            instructor = asc.instructor
+            instructor_role = asc.role
+    return render_template('eduqa/QA/course_detail.html', course=course,
+                           instructor=instructor,
+                           admin=admin,
+                           instructor_role=instructor_role)
 
 
 @edu.route('/qa/courses/<int:course_id>/instructors/add')
@@ -391,9 +403,13 @@ def assign_roles(course_id):
         return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
 
     for asc in course.course_instructor_associations:
-        # form_field = EduCourseInstructorRoleFormField(obj=asc)
         form.roles.append_entry(asc)
-    instructor = EduQAInstructor.query.filter_by(account=current_user).first()
+        if asc.instructor.account == current_user:
+            instructor = asc.instructor
+            instructor_role = asc.role
+        else:
+            instructor = None
+            instructor_role = None
     return render_template('eduqa/QA/role_edit.html', course=course, instructor=instructor, form=form)
 
 @edu.route('/qa/courses/<int:course_id>/instructors/remove/<int:instructor_id>')
