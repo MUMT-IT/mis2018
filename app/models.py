@@ -4,6 +4,12 @@ from main import db, ma
 from sqlalchemy.sql import func
 
 
+dataset_tag_assoc = db.Table('db_dataset_tag_assoc',
+                          db.Column('dataset_id', db.ForeignKey('db_datasets.id'), primary_key=True),
+                          db.Column('tag_id', db.ForeignKey('db_datatags.id'), primary_key=True)
+                          )
+
+
 class Org(db.Model):
     __tablename__ = 'orgs'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -400,6 +406,23 @@ class Dataset(db.Model):
     data = db.relationship(Data, backref=db.backref('datasets', lazy='dynamic', cascade='all, delete-orphan'))
     kpis = db.relationship(KPI, secondary=dataset_kpi_assoc, lazy='subquery',
                            backref=db.backref('datasets', lazy=True))
+    tags = db.relationship('DataTag', secondary=dataset_tag_assoc, lazy='subquery',
+                           backref=db.backref('datasets', lazy=True))
+
+
+class DataTag(db.Model):
+    __tablename__ = 'db_datatags'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    tag = db.Column('tag', db.String(), nullable=False, unique=True)
+
+    def __str__(self):
+        return u'{}'.format(self.tag)
+
+    def to_dict(self):
+        return {
+                'id': self.tag,
+                'text': self.tag
+                }
 
 
 class DataFile(db.Model):
