@@ -209,11 +209,19 @@ def dataset_form(data_id, dataset_id=None):
                 return redirect(url_for('data_bp.data_detail', data_id=data_id))
             else:
                 form.populate_obj(dataset)
+                new_tags = []
+                for text in request.form.getlist('tags'):
+                    tag = DataTag.query.filter_by(tag=text).first()
+                    if tag is None:
+                        tag = DataTag(tag=text)
+                    new_tags.append(tag)
+
+                dataset.tags = new_tags
                 db.session.add(dataset)
                 db.session.commit()
                 flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
                 return render_template('data_blueprint/dataset_detail.html', dataset=dataset)
-    return render_template('data_blueprint/dataset_form.html', form=form)
+    return render_template('data_blueprint/dataset_form.html', form=form, dataset=dataset)
 
 
 @data_bp.route('/datasets/<int:dataset_id>', methods=['GET'])
@@ -342,3 +350,10 @@ def add_datafile():
     db.session.add(new_file)
     db.session.commit()
     return jsonify({'message': 'success'}), 201
+
+
+@data_bp.route('api/v1.0/tags', methods=['GET'])
+@csrf.exempt
+def get_all_tags():
+    tags = [tag.to_dict() for tag in DataTag.query.all()]
+    return jsonify({'results': tags})
