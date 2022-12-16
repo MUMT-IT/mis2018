@@ -1,0 +1,13 @@
+<!doctype html>
+<html>
+<body>
+    <ul>
+        {% for rec in records %}
+        <li><a href="{{ url_for('scb_payment.verify_slip', transaction_id=rec.transaction_id) }}">
+            {{ rec.transaction_id }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
