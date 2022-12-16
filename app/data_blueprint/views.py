@@ -3,6 +3,7 @@ import datetime
 
 from . import data_bp
 from app.main import db, csrf
+from app.models import DataFile
 from forms import *
 from flask import url_for, render_template, redirect, flash, request, jsonify
 from flask_login import current_user, login_required
