@@ -66,6 +66,24 @@ class ScbPaymentRecord(db.Model):
     service = db.Column('service', db.String())
     created_datetime = db.Column('created_datetime', db.DateTime(timezone=True), server_default=func.now())
 
-
     def __str__(self):
         return u'{}: {}:{}'.format(self.payee_name, self.payer_name, self.amount)
+
+    def assign_data_from_request(self, data):
+        def camel_to_snake(text):
+            new_text = []
+            for s in text:
+                if s.isupper():
+                    new_text.append('_')
+                    new_text.append(s.lower())
+                else:
+                    new_text.append(s)
+            return ''.join(new_text)
+        for key in data:
+            snake_key = camel_to_snake(key)
+            try:
+                setattr(self, snake_key, data[key])
+            except:
+                pass
+            else:
+                print(snake_key, getattr(self, snake_key))
