@@ -598,12 +598,6 @@ def add_session_role(course_id, session_id):
                            role_form.detail(class_="textarea"))
 
 
-@edu.route('/qa/hours/<int:instructor_id>')
-def show_hours_summary(instructor_id):
-    instructor = EduQAInstructor.query.get(instructor_id)
-    return render_template('eduqa/QA/hours_summary.html', instructor=instructor)
-
-
 @edu.route('/qa/revisions/<int:revision_id>/summary/hours')
 def show_hours_summary_all(revision_id):
     revision = EduQACurriculumnRevision.query.get(revision_id)
