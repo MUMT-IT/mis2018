@@ -61,10 +61,7 @@ class EduCurriculumnRevisionForm(ModelForm):
     class Meta:
         model = EduQACurriculumnRevision
 
-    curriculum = QuerySelectField(u'หลักสูตร',
-                                  get_label='th_name',
-                                  query_factory=lambda: EduQACurriculum.query.all()
-                                  )
+    curriculum = QuerySelectField(u'หลักสูตร', query_factory=lambda: EduQACurriculum.query.all())
 
 
 class EduCourseCategoryForm(ModelForm):
@@ -79,6 +76,8 @@ class EduCourseForm(ModelForm):
     category = QuerySelectField(u'หมวด',
                                 get_label='category',
                                 query_factory=lambda: EduQACourseCategory.query.all())
+    revision = QuerySelectField(u'หลักสูตร',
+                                query_factory=lambda: EduQACurriculumnRevision.query.all())
 
 
 class EduCourseSessionTopicForm(ModelForm):

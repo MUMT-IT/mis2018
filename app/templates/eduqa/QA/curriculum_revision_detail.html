@@ -11,24 +11,14 @@
         </div>
         <div class="columns">
             <div class="column">
-                <nav class="breadcrumb" aria-label="breadcrumbs">
+                <nav class="breadcrumb has-succeeds-separator" aria-label="breadcrumbs">
                   <ul>
-                    <li><a href="{{ url_for('eduqa.index') }}">หน้าหลัก</a></li>
                     <li><a href="{{ url_for('eduqa.show_revisions', curriculum_id=revision.curriculum.id) }}">หลักสูตร</a></li>
                     <li class="is-active"><a href="#" aria-current="page">รายวิชา</a></li>
                   </ul>
                 </nav>
-                <p class="notification is-light is-warning">
-                    <span class="icon">
-                        <i class="fas fa-info-circle"></i>
-                    </span>
-                    <span>ท่านสามารถค้นหารายวิชาได้ในช่อง Search ด้านขวามือของตารางด้วยชื่อ รหัส ปีการศึกษา ฯลฯ</span>
-                </p>
                 <h1 class="title has-text-centered">รายวิชา</h1>
-                <h1 class="subtitle has-text-centered">ท่านมีส่วนร่วมในการสอนทั้งหมด {{ instructor.courses|length }} วิชา</h1>
-                <b-field>
-                    <b-switch @input="changeMode()" v-model="displayMyCourseOnly">แสดงเฉพาะรายวิชาที่สอน</b-switch>
-                </b-field>
+                <h1 class="subtitle has-text-centered">ท่านมีส่วนร่วมในการสอนทั้งหมด <strong>{{ my_courses|length }}</strong> วิชา</h1>
                 <div class="buttons is-centered">
                     <a href="{{ url_for('eduqa.add_course', revision_id=revision.id) }}" class="button is-success">
                     <span class="icon">
@@ -44,6 +34,9 @@
                         <span>สรุปชั่วโมงสอน</span>
                     </a>
                 </div>
+                <b-field>
+                    <b-switch @input="changeMode()" v-model="displayMyCourseOnly">แสดงเฉพาะรายวิชาที่สอน</b-switch>
+                </b-field>
                 <table class="table is-fullwidth is-striped" id="courseTable">
                     <thead>
                         <th>รหัส</th>

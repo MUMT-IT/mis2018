@@ -237,7 +237,6 @@ def show_revision_detail(revision_id):
         session['display_my_courses_only'] = display_my_courses_only
     revision = EduQACurriculumnRevision.query.get(revision_id)
     instructor = EduQAInstructor.query.filter_by(account=current_user).first()
-    print(display_my_courses_only)
     if instructor and display_my_courses_only == 'true':
         display_my_courses_only = True
         courses = [c.course for c in EduQACourseInstructorAssociation.query.filter_by(instructor=instructor)
@@ -245,10 +244,14 @@ def show_revision_detail(revision_id):
     elif not instructor or display_my_courses_only == 'false':
         display_my_courses_only = False
         courses = revision.courses
+
+    my_courses = [c.course for c in EduQACourseInstructorAssociation.query.filter_by(instructor=instructor)
+                  if c.course in revision.courses]
     return render_template('eduqa/QA/curriculum_revision_detail.html',
                            revision=revision,
                            display_my_course_only=display_my_courses_only,
                            instructor=instructor,
+                           my_courses=my_courses,
                            courses=courses)
 
 

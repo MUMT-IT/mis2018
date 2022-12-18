@@ -86,7 +86,8 @@ def create_app():
     app.config['MAIL_USE_TLS'] = True
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-    app.config['MAIL_DEFAULT_SENDER'] = ('MUMT-MIS', os.environ.get('MAIL_USERNAME'))
+    app.config['MAIL_DEFAULT_SENDER'] = ('MUMT-MIS',
+                                         os.environ.get('MAIL_USERNAME'))
 
     db.init_app(app)
     ma.init_app(app)
@@ -113,18 +114,13 @@ def user_lookup_callback(identity):
     return ScbPaymentServiceApiClientAccount.get_account_by_id(identity)
 
 
-@app.errorhandler(403)
-def page_not_found(e):
-    return render_template('errors/403.html', error=e), 404
-
-
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('errors/404.html', error=e), 404
 
 
 @app.errorhandler(500)
-def page_not_found(e):
+def internal_server_error(e):
     return render_template('errors/500.html', error=e), 500
 
 
