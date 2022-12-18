@@ -229,6 +229,7 @@ class EduQACourseSessionDetail(db.Model):
     session_id = db.Column(db.ForeignKey('eduqa_course_sessions.id'))
     staff_id = db.Column(db.ForeignKey('staff_account.id'))
     session = db.relationship(EduQACourseSession, backref=db.backref('details', cascade='all, delete-orphan'))
+    factor = db.Column('factor', db.Integer(), default=1, info={'label': u'ตัวคูณ'})
 
 
 class EduQACourseSessionDetailRole(db.Model):
