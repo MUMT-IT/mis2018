@@ -22,6 +22,16 @@
                         <td>{{ dataset.desc }}</td>
                     </tr>
                     <tr>
+                        <td>คำสำคัญ</td>
+                        <td>
+                          {% for tag in dataset.tags %}
+                          <span class="tag is-light is-info is-medium is-rounded">
+                            {{tag.tag}}
+                          </span>
+                          {% endfor %}
+                        </td>
+                    </tr>
+                    <tr>
                         <td>ข้อมูลส่วนบุคคล</td>
                         <td>
                             {% if dataset.personal %}
