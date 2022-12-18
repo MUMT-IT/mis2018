@@ -3,6 +3,7 @@ import datetime
 
 from . import data_bp
 from app.main import db, csrf
+from app.models import DataFile
 from forms import *
 from flask import url_for, render_template, redirect, flash, request, jsonify
 from flask_login import current_user, login_required
@@ -337,7 +338,7 @@ def add_datafile():
     dataset = Dataset.query.filter_by(reference=dataset_ref).first()
     update_datetime = datetime.datetime.fromtimestamp(data_file['update_datetime'])
     create_datetime = datetime.datetime.fromtimestamp(data_file['create_datetime'])
-    new_file = DataFile(name=data_file['name'], dataset=dataset,
+    new_file = DataFile(name=data_file['name'], dataset=dataset, url=data_file['url'],
                         created_at=create_datetime, updated_at=update_datetime)
     db.session.add(new_file)
     db.session.commit()
