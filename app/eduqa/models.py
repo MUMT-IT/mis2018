@@ -3,6 +3,9 @@ from sqlalchemy.ext.associationproxy import association_proxy
 
 from app.main import db
 from app.staff.models import StaffAccount
+from pytz import timezone
+
+bangkok = timezone('Asia/Bangkok')
 
 session_instructors = db.Table('eduqa_session_instructor_assoc',
                                db.Column('session_id', db.Integer,
@@ -195,6 +198,16 @@ class EduQACourseSession(db.Model):
         for detail in self.details:
             topics += [topic for topic in detail.topics]
         return topics
+
+    def to_event(self):
+        return {
+                'title': self.course.en_code if self.course else 'N/A',
+                'start': self.start.astimezone(bangkok).isoformat(),
+                'end': self.end.astimezone(bangkok).isoformat(),
+                'id': self.id,
+                'course_id': self.course.id,
+                'name': self.course.th_name
+                }
 
 
 class EduQACourseSessionTopic(db.Model):
