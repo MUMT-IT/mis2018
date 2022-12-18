@@ -5,8 +5,10 @@ from app.main import db
 from app.staff.models import StaffAccount
 
 session_instructors = db.Table('eduqa_session_instructor_assoc',
-                               db.Column('session_id', db.Integer, db.ForeignKey('eduqa_course_sessions.id')),
-                               db.Column('instructor_id', db.Integer, db.ForeignKey('eduqa_course_instructors.id')),
+                               db.Column('session_id', db.Integer,
+                                         db.ForeignKey('eduqa_course_sessions.id')),
+                               db.Column('instructor_id', db.Integer,
+                                         db.ForeignKey('eduqa_course_instructors.id')),
                                )
 
 
@@ -21,10 +23,13 @@ class EduQACourseInstructorAssociation(db.Model):
     course_id = db.Column('course_id', db.Integer,
                           db.ForeignKey('eduqa_courses.id'), primary_key=True)
     instructor_id = db.Column('instructor_id', db.Integer,
-                              db.ForeignKey('eduqa_course_instructors.id'), primary_key=True)
-    role_id = db.Column('role_id', db.Integer, db.ForeignKey('eduqa_course_instructor_roles.id'))
+                              db.ForeignKey('eduqa_course_instructors.id'),
+                              primary_key=True)
+    role_id = db.Column('role_id', db.Integer,
+                        db.ForeignKey('eduqa_course_instructor_roles.id'))
 
-    course = db.relationship('EduQACourse', back_populates='course_instructor_associations')
+    course = db.relationship('EduQACourse',
+                             back_populates='course_instructor_associations')
     instructor = db.relationship('EduQAInstructor')
     role = db.relationship('EduQAInstructorRole')
 
@@ -60,11 +65,18 @@ class EduQACurriculumnRevision(db.Model):
     __tablename__ = 'eduqa_curriculum_revisions'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     curriculum_id = db.Column(db.ForeignKey('eduqa_curriculums.id'))
-    curriculum = db.relationship(EduQACurriculum, backref=db.backref('revisions'))
-    revision_year = db.Column(db.Date(), nullable=False, info={'label': u'วันที่ปรับปรุงล่าสุด'})
+    curriculum = db.relationship(EduQACurriculum,
+                                 backref=db.backref('revisions'))
+    revision_year = db.Column(db.Date(),
+                              nullable=False,
+                              info={'label': u'วันที่ปรับปรุงล่าสุด'})
+
+    @property
+    def buddhist_year(self):
+        return u'{}'.format(self.revision_year.year + 543)
 
     def __str__(self):
-        return u'{}: ปี {}'.format(self.curriculum, self.revision_year)
+        return u'{}: ปี {}'.format(self.curriculum, self.buddhist_year)
 
 
 class EduQAAcademicStaff(db.Model):

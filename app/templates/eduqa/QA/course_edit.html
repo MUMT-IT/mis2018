@@ -51,6 +51,12 @@
                         <p class="help is-danger">required</p>
                     </div>
                     <div class="field">
+                      <div class="label">{{ form.revision.label }}</label>
+                      <div class="select">
+                        {{ form.revision() }}
+                      </div>
+                    </div>
+                    <div class="field">
                         <label class="label">{{ form.semester.label }}</label>
                         <div class="control">
                             {{ form.semester(class="input", placeholder="กรุณาใช้เลขอารบิค") }}
