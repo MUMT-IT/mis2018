@@ -105,8 +105,8 @@ class StaffAccount(db.Model):
         return self.__password_hash != None
 
     @property
-    def is_active(self):
-        return self.personal_info.retired != True
+    def is_retired(self):
+        return self.personal_info.retired is True
 
     @property
     def password(self):
