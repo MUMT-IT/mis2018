@@ -4,6 +4,7 @@ import time
 from dateutil import parser
 from flask_login import login_required, current_user
 from pandas import read_excel, isna, DataFrame
+from app.eduqa.models import EduQAInstructor
 
 from models import *
 from . import staffbp as staff
@@ -3443,3 +3444,26 @@ def show_qrcode():
 @login_required
 def pa_index():
     return render_template('staff/pa_index.html')
+
+
+@staff.route('/users/teaching-calendar')
+@login_required
+def teaching_calendar():
+    return render_template('staff/teaching_calendar.html')
+
+
+@staff.route('/api/my-teaching-events')
+@login_required
+def get_my_teaching_events():
+    events = []
+    end = request.args.get('end')
+    start = request.args.get('start')
+    if start:
+        start = parser.isoparse(start)
+    if end:
+        end = parser.isoparse(end)
+    instructor = EduQAInstructor.query.filter_by(account=current_user).first()
+    for evt in instructor.sessions:
+        if evt.start >= start and evt.end <= end:
+            events.append(evt.to_event())
+    return jsonify(events)

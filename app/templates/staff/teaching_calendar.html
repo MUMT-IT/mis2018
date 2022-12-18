@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column">
+              <h1 class="title has-text-centered">ตารางสอน</h1>
+              <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{super()}}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.0.0/index.global.min.js"></script>
+<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    let calendarEl = document.getElementById('calendar');
+    let calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      events: "{{url_for('staff.get_my_teaching_events')}}",
+      eventClick: function(info) {
+        Swal.fire({
+          title: info.event.title,
+          html: info.event.extendedProps.name + '<br>' + info.event.start.toLocaleString() + ' - ' + info.event.end.toLocaleString(),
+          footer: '<a href="/eduqa/qa/courses/' + info.event.extendedProps.course_id + '/sessions/' + info.event.id + '/detail/add">จัดการข้อมูลภาระงานสอน</a>'
+        })
+      }
+    });
+    calendar.render();
+  });
+</script>
+{% endblock %}
