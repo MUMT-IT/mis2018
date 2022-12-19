@@ -19,23 +19,32 @@
                 </nav>
                 <h1 class="title has-text-centered">รายวิชา</h1>
                 <h1 class="subtitle has-text-centered">ท่านมีส่วนร่วมในการสอนทั้งหมด <strong>{{ my_courses|length }}</strong> วิชา</h1>
-                <div class="buttons is-centered">
-                    <a href="{{ url_for('eduqa.add_course', revision_id=revision.id) }}" class="button is-success">
-                    <span class="icon">
-                        <i class="fas fa-plus"></i>
-                    </span>
-                        <span>เพิ่มรายวิชา</span>
+                <div class="buttons is-centered has-addons">
+                    <a href="{{ url_for('eduqa.add_course', revision_id=revision.id) }}"
+                      class="button is-rounded">
+                      <span class="icon">
+                          <i class="fas fa-plus"></i>
+                      </span>
+                      <span>เพิ่มรายวิชา</span>
                     </a>
-                    <a href="{{ url_for('eduqa.show_hours_summary_all', revision_id=revision.id) }}"
-                       class="button is-info">
-                    <span class="icon">
-                        <i class="fas fa-chart-pie"></i>
-                    </span>
-                        <span>สรุปชั่วโมงสอน</span>
+                    <a href="{{ url_for('staff.show_teaching_hours_summary') }}"
+                       class="button is-rounded">
+                      <span class="icon">
+                          <i class="fas fa-chart-pie"></i>
+                      </span>
+                      <span>สรุปชั่วโมงสอน</span>
+                    </a>
+                    <a href="{{ url_for('staff.teaching_calendar') }}"
+                       class="button is-rounded">
+                      <span class="icon">
+                        <i class="fas fa-calendar-alt"></i>
+                      </span>
+                      <span>ตารางสอน</span>
                     </a>
                 </div>
                 <b-field>
-                    <b-switch @input="changeMode()" v-model="displayMyCourseOnly">แสดงเฉพาะรายวิชาที่สอน</b-switch>
+                    <b-switch type="is-success"
+                      @input="changeMode()" v-model="displayMyCourseOnly">แสดงเฉพาะรายวิชาที่สอน</b-switch>
                 </b-field>
                 <table class="table is-fullwidth is-striped" id="courseTable">
                     <thead>
@@ -48,12 +57,19 @@
                         <th>ปีการศึกษา</th>
                         <th>ปรับปรุงล่าสุดโดย</th>
                         <th>เมื่อ</th>
-                        <th></th>
                     </thead>
                     {% for course in courses %}
                     <tr>
-                        <td>{{ course.th_code }} ({{ course.en_code }})</td>
-                        <td>{{ course.th_name }} ({{ course.en_name }})</td>
+                        <td>
+                          <a href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}">
+                            {{ course.th_code }} ({{ course.en_code }})
+                          </a>
+                        </td>
+                        <td>
+                          <a href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}">
+                            {{ course.th_name }} ({{ course.en_name }})
+                          </a>
+                        </td>
                         <td>{{ course.lecture_credit }}</td>
                         <td>{{ course.lab_credit }}</td>
                         <td>{{ course.category.category }}</td>
@@ -61,15 +77,6 @@
                         <td>{{ course.academic_year or "" }}</td>
                         <td>{{ course.updater.personal_info }}</td>
                         <td>{{ course.updated_at|localdatetime }}</td>
-                        <td>
-                            <a class="button is-link is-small is-rounded"
-                                href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}">
-                                <span class="icon">
-                                    <i class="fas fa-info-circle"></i>
-                                </span>
-                                <span>รายละเอียด</span>
-                            </a>
-                        </td>
                     </tr>
                     {% endfor %}
                 </table>

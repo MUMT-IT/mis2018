@@ -513,8 +513,10 @@ def add_session_detail(course_id, session_id):
     session_detail = EduQACourseSessionDetail.query\
         .filter_by(session_id=session_id, staff_id=current_user.id).first()
     EduCourseSessionDetailForm = CourseSessionDetailFormFactory(a_session.type_)
+    factor = 1
     if session_detail:
         form = EduCourseSessionDetailForm(obj=session_detail)
+        factor = session_detail.factor if session_detail.factor else 1
     else:
         form = EduCourseSessionDetailForm()
 
@@ -533,7 +535,8 @@ def add_session_detail(course_id, session_id):
             db.session.commit()
             flash(u'เพิ่มรายละเอียดการสอนเรียบร้อยแล้ว', 'success')
         return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
-    return render_template('eduqa/QA/staff/session_detail_edit.html', form=form, course=course, a_session=a_session)
+    return render_template('eduqa/QA/staff/session_detail_edit.html',
+                           form=form, course=course, a_session=a_session, factor=factor)
 
 
 @edu.route('/qa/courses/<int:course_id>/sessions/<int:session_id>/instructor/<int:instructor_id>/detail')
@@ -598,21 +601,20 @@ def add_session_role(course_id, session_id):
                            role_form.detail(class_="textarea"))
 
 
-@edu.route('/qa/hours/<int:instructor_id>')
-def show_hours_summary(instructor_id):
-    instructor = EduQAInstructor.query.get(instructor_id)
-    return render_template('eduqa/QA/hours_summary.html', instructor=instructor)
-
-
 @edu.route('/qa/revisions/<int:revision_id>/summary/hours')
 def show_hours_summary_all(revision_id):
     revision = EduQACurriculumnRevision.query.get(revision_id)
     data = []
     for session in EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id)).all():
         for instructor in session.instructors:
+            session_detail = session.details.filter_by(staff_id=instructor.account_id).first()
+            if session_detail:
+                factor = session_detail.factor if session_detail.factor else 1
+            else:
+                factor = 1
             d = {'course': session.course.en_code,
                  'instructor': instructor.account.personal_info.fullname,
-                 'seconds': session.total_seconds
+                 'seconds': session.total_seconds * factor
                  }
             data.append(d)
     df = pd.DataFrame(data)

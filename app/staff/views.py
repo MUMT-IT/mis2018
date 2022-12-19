@@ -4,6 +4,7 @@ import time
 from dateutil import parser
 from flask_login import login_required, current_user
 from pandas import read_excel, isna, DataFrame
+from app.eduqa.models import EduQAInstructor, EduQACourseSession, EduQACurriculumnRevision
 
 from models import *
 from . import staffbp as staff
@@ -3443,3 +3444,97 @@ def show_qrcode():
 @login_required
 def pa_index():
     return render_template('staff/pa_index.html')
+
+
+@staff.route('/users/teaching-calendar')
+@login_required
+def teaching_calendar():
+    instructor = EduQAInstructor.query.filter_by(account=current_user).first()
+    year = request.args.get('year')
+    # revision = EduQACurriculumnRevision.query.get(revision_id)
+    data = []
+    years = set()
+    # for session in EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id)).all():
+    for session in instructor.sessions:
+        if session.course:
+            session_detail = session.details.filter_by(staff_id=current_user.id).first()
+            if session_detail:
+                factor = session_detail.factor if session_detail.factor else 1
+            else:
+                factor = 1
+            print(session.total_seconds * factor, session.total_seconds, factor)
+            d = {
+                    'course': session.course.en_code,
+                    'instructor': instructor.account.personal_info.fullname,
+                    'seconds': session.total_seconds * factor
+                }
+            years.add(str(session.course.academic_year))
+            if year:
+                if str(session.course.academic_year) == year:
+                    data.append(d)
+            else:
+                data.append(d)
+    df = DataFrame(data)
+    sum_hours = df.pivot_table(index='course',
+                               values='seconds',
+                               aggfunc='sum',
+                               margins=True).apply(lambda x: (x // 3600) / 40.0).fillna('')
+    years = sorted(years)
+    return render_template('staff/teaching_calendar.html',
+                           year=year,
+                           instructor=instructor,
+                           sum_hours=sum_hours,
+                           years=years)
+
+
+@staff.route('/api/my-teaching-events')
+@login_required
+def get_my_teaching_events():
+    events = []
+    end = request.args.get('end')
+    start = request.args.get('start')
+    if start:
+        start = parser.isoparse(start)
+    if end:
+        end = parser.isoparse(end)
+    instructor = EduQAInstructor.query.filter_by(account=current_user).first()
+    for evt in instructor.sessions:
+        if evt.start >= start and evt.end <= end:
+            events.append(evt.to_event())
+    return jsonify(events)
+
+
+@staff.route('/users/teaching-hours/summary')
+def show_teaching_hours_summary():
+    instructor = EduQAInstructor.query.filter_by(account=current_user).first()
+    year = request.args.get('year')
+    # revision = EduQACurriculumnRevision.query.get(revision_id)
+    data = []
+    years = set()
+    # for session in EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id)).all():
+    for session in instructor.sessions:
+        if session.course:
+            d = {
+                    'course': session.course.en_code,
+                    'instructor': instructor.account.personal_info.fullname,
+                    'seconds': session.total_seconds
+                }
+            years.add(str(session.course.academic_year))
+            if year:
+                if str(session.course.academic_year) == year:
+                    data.append(d)
+            else:
+                data.append(d)
+    df = DataFrame(data)
+    sum_hours = df.pivot_table(index='course',
+                               values='seconds',
+                               aggfunc='sum',
+                               margins=True).apply(lambda x: (x // 3600) / 40.0).fillna('')
+    years = sorted(years)
+    return render_template('eduqa/QA/hours_summary.html',
+                           year=year,
+                           instructor=instructor,
+                           sum_hours=sum_hours,
+                           years=years)
+
+

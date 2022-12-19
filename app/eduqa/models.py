@@ -3,6 +3,9 @@ from sqlalchemy.ext.associationproxy import association_proxy
 
 from app.main import db
 from app.staff.models import StaffAccount
+from pytz import timezone
+
+bangkok = timezone('Asia/Bangkok')
 
 session_instructors = db.Table('eduqa_session_instructor_assoc',
                                db.Column('session_id', db.Integer,
@@ -196,6 +199,16 @@ class EduQACourseSession(db.Model):
             topics += [topic for topic in detail.topics]
         return topics
 
+    def to_event(self):
+        return {
+                'title': self.course.en_code if self.course else 'N/A',
+                'start': self.start.astimezone(bangkok).isoformat(),
+                'end': self.end.astimezone(bangkok).isoformat(),
+                'id': self.id,
+                'course_id': self.course.id,
+                'name': self.course.th_name
+                }
+
 
 class EduQACourseSessionTopic(db.Model):
     __tablename__ = 'eduqa_course_session_topics'
@@ -215,7 +228,11 @@ class EduQACourseSessionDetail(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     session_id = db.Column(db.ForeignKey('eduqa_course_sessions.id'))
     staff_id = db.Column(db.ForeignKey('staff_account.id'))
-    session = db.relationship(EduQACourseSession, backref=db.backref('details', cascade='all, delete-orphan'))
+    session = db.relationship(EduQACourseSession,
+                              backref=db.backref('details',
+                                                 cascade='all, delete-orphan',
+                                                 lazy='dynamic'))
+    factor = db.Column('factor', db.Integer(), default=1, info={'label': u'ตัวคูณ'})
 
 
 class EduQACourseSessionDetailRole(db.Model):

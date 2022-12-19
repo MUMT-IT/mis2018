@@ -5,7 +5,12 @@
 <section class="section">
     <div class="container" id="app">
         <div class="columns">
-            <div class="column box is-two-thirds is-offset-2">
+            <div class="column is-two-thirds is-offset-2">
+              <div class="has-text-centered">
+                <figure class="image is-inline-block is-128x128">
+                  <img src="{{url_for('static', filename='img/test.png')}}">
+                </figure>
+              </div>
                 <h1 class="title has-text-centered">บันทึกข้อมูลการสอน</h1>
                 <table class="table is-bordered is-fullwidth">
                     <tr>
@@ -33,7 +38,15 @@
                     </tr>
                     <tr>
                         <td><label class="label">รวมเวลาสอน</label></td>
-                        <td>{{ a_session.total_hours }}</td>
+                        <td>
+                          {{ a_session.total_hours }}
+                          <span class="tag is-rounded is-warning">
+                            <span class="icon">
+                              <i class="fas fa-times"></i>
+                            </span>
+                            {{ factor }}
+                          </span>
+                        </td>
                     </tr>
                     <tr>
                         <td>
@@ -60,6 +73,15 @@
                 </table>
                 <form method="post">
                     {{ form.hidden_tag() }}
+                    <div class="field">
+                      <label class="label">{{ form.factor.label }}</label>
+                      <div class="control">
+                        {{ form.factor(class="input") }}
+                        <p class="help is-info">
+                          จำนวนตัวคูณสำหรับบางกรณี เช่น มีนักศึกษาที่ดูแล 2 คนให้ใส่ตัวคูณเท่ากับ 2 หากเว้นไว้จะมีค่าเป็น 1 โดยอัตโนมัติ
+                        </p>
+                      </div>
+                    </div>
                     <div id="roles">
                         {% for role_form in form.roles %}
                             <div class="field">
@@ -76,9 +98,9 @@
                             </div>
                         {% endfor %}
                     </div>
-                    <hr>
+                    <br>
                     <div class="buttons is-centered">
-                        <button class="button is-small is-light"
+                        <button class="button is-small is-light is-rounded"
                                 hx-post="{{ url_for('eduqa.add_session_role', course_id=course.id, session_id=a_session.id) }}"
                                 hx-target="#roles" hx-swap="beforeend">
                             <span class="icon">
@@ -87,12 +109,12 @@
                             <span>เพิ่มหัวข้อ</span>
                         </button>
                     </div>
-                    <br>
                     <div class="buttons is-centered">
-                        <a href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}" class="button is-text">
+                        <a href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}"
+                          class="button is-text is-rounded">
                             Back
                         </a>
-                        <input type="submit" value="Submit" class="button is-success">
+                        <input type="submit" value="Submit" class="button is-rounded is-success">
                     </div>
                 </form>
             </div>
