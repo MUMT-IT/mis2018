@@ -3457,10 +3457,16 @@ def teaching_calendar():
     # for session in EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id)).all():
     for session in instructor.sessions:
         if session.course:
+            session_detail = session.details.filter_by(staff_id=current_user.id).first()
+            if session_detail:
+                factor = session_detail.factor if session_detail.factor else 1
+            else:
+                factor = 1
+            print(session.total_seconds * factor, session.total_seconds, factor)
             d = {
                     'course': session.course.en_code,
                     'instructor': instructor.account.personal_info.fullname,
-                    'seconds': session.total_seconds
+                    'seconds': session.total_seconds * factor
                 }
             years.add(str(session.course.academic_year))
             if year:
