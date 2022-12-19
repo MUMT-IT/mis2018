@@ -149,7 +149,7 @@
                                 {% for asc in course.course_instructor_associations %}
                                     <tr>
                                         <td>
-                                            <a href="{{ url_for('eduqa.show_hours_summary', instructor_id=asc.instructor.id) }}">
+                                            <a href="{{ url_for('staff.show_teaching_hours_summary') }}">
                                                 {{ asc.instructor.account.personal_info }}
                                             </a>
                                         </td>
