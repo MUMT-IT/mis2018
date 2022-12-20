@@ -145,7 +145,8 @@ def show_leave_info():
     quota_days = defaultdict(float)
     pending_days = defaultdict(float)
     for req in current_user.leave_requests:
-        used_quota = current_user.personal_info.get_total_leaves(req.quota.id, tz.localize(START_FISCAL_DATE),
+        used_quota = current_user.personal_info.get_total_leaves(req.quota.id,
+                                                                 tz.localize(START_FISCAL_DATE),
                                                                  tz.localize(END_FISCAL_DATE))
         leave_type = unicode(req.quota.leave_type)
         cum_days[leave_type] = used_quota
