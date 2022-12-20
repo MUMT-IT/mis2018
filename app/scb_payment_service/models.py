@@ -49,7 +49,7 @@ class ScbPaymentRecord(db.Model):
     bill_payment_ref3 = db.Column('bill_payment_ref3', db.String())
     currency_code = db.Column('currency_code', db.String())
     transaction_type = db.Column('transaction_type', db.String())
-    transaction_date_time = db.Column('transaction_date_time', db.DateTime(timezone=True))
+    transaction_dateand_time = db.Column('transaction_date_time', db.DateTime(timezone=True))
     channel_code = db.Column('channel_code', db.String())
     bill_payment_ref1 = db.Column('bill_payment_ref1', db.String())
     amount = db.Column('amount', db.Float(asdecimal=True))
