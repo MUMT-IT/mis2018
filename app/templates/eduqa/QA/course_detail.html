@@ -258,6 +258,15 @@
                                                 <span>workpoint</span>
                                             </a>
                                             {% endif %}
+                                            {% if admin == instructor or admin == None %}
+                                            <a href="{{ url_for('eduqa.duplicate_session', course_id=course.id, session_id=s.id) }}"
+                                               class="button is-link is-rounded is-small is-light">
+                                                <span class="icon">
+                                                  <i class="far fa-copy"></i>
+                                                </span>
+                                                <span>duplicate</span>
+                                            </a>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
