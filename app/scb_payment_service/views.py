@@ -10,7 +10,6 @@ from . import scb_payment
 from .models import ScbPaymentServiceApiClientAccount, ScbPaymentRecord
 from ..main import csrf, db
 
-
 AUTH_URL = 'https://api-sandbox.partners.scb/partners/sandbox/v1/oauth/token'
 QRCODE_URL = 'https://api-sandbox.partners.scb/partners/sandbox/v1/payment/qrcode/create'
 APP_KEY = os.environ.get('SCB_APP_KEY')
@@ -148,7 +147,47 @@ def verify_slip():
         access_token = response_data['data']['accessToken']
 
         headers['authorization'] = 'Bearer {}'.format(access_token)
-        resp = requests.get('https://api-sandbox.partners.scb/partners/sandbox/v1/payment/billpayment/transactions/{}?sendingBank={}'.format(trnx.transaction_id, trnx.sending_bank_code), headers=headers)
+        resp = requests.get(
+            'https://api-sandbox.partners.scb/partners/sandbox/v1/payment/billpayment/transactions/{}?sendingBank={}'.format(
+                trnx.transaction_id, trnx.sending_bank_code), headers=headers)
         return jsonify(resp.json())
     records = ScbPaymentRecord.query.all()
     return render_template('scb_payment_service/verify_slips.html', records=records)
+
+
+@scb_payment.route('/transaction-inquiry')
+def transaction_inquiry():
+    bill_payment_ref1 = request.args.get('bill_payment_ref1')
+    bill_payment_ref2 = request.args.get('bill_payment_ref2')
+    print(bill_payment_ref1)
+    trnx = None
+    if bill_payment_ref1 and bill_payment_ref2:
+        trnx = ScbPaymentRecord.query.filter_by(bill_payment_ref1=bill_payment_ref1,
+                                                bill_payment_ref2=bill_payment_ref2).first()
+    elif bill_payment_ref1:
+        trnx = ScbPaymentRecord.query.filter_by(bill_payment_ref1=bill_payment_ref1).first()
+
+    if trnx:
+        headers = {
+            'Content-Type': 'application/json',
+            'requestUId': REQUEST_UID,
+            'resourceOwnerId': APP_KEY
+         }
+        response = requests.post(AUTH_URL, headers=headers, json={
+            'applicationKey': APP_KEY,
+            'applicationSecret': APP_SECRET
+        })
+        response_data = response.json()
+        access_token = response_data['data']['accessToken']
+
+        headers['authorization'] = 'Bearer {}'.format(access_token)
+        resp = requests.get(
+            'http://api-sandbox.scb.co.th/partners/sandbox/v1/payment/billpayment/inquiry',
+            params={"billerId": BILLERID,
+                "reference1": trnx.bill_payment_ref1,
+                "transactionDate": trnx.created_datetime.strftime("%Y-%m-%d"),
+                "eventCode": "00300100"}
+            , headers=headers)
+        return jsonify(resp.json())
+    records = ScbPaymentRecord.query.all()
+    return render_template('scb_payment_service/transaction_inquiry.html', records=records)
