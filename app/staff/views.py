@@ -145,7 +145,8 @@ def show_leave_info():
     quota_days = defaultdict(float)
     pending_days = defaultdict(float)
     for req in current_user.leave_requests:
-        used_quota = current_user.personal_info.get_total_leaves(req.quota.id, tz.localize(START_FISCAL_DATE),
+        used_quota = current_user.personal_info.get_total_leaves(req.quota.id,
+                                                                 tz.localize(START_FISCAL_DATE),
                                                                  tz.localize(END_FISCAL_DATE))
         leave_type = unicode(req.quota.leave_type)
         cum_days[leave_type] = used_quota
@@ -3478,7 +3479,7 @@ def teaching_calendar():
     sum_hours = df.pivot_table(index='course',
                                values='seconds',
                                aggfunc='sum',
-                               margins=True).apply(lambda x: (x // 3600) / 40.0).fillna('')
+                               margins=True).apply(lambda x: (x / 3600.0)).fillna('')
     years = sorted(years)
     return render_template('staff/teaching_calendar.html',
                            year=year,
@@ -3529,7 +3530,7 @@ def show_teaching_hours_summary():
     sum_hours = df.pivot_table(index='course',
                                values='seconds',
                                aggfunc='sum',
-                               margins=True).apply(lambda x: (x // 3600) / 40.0).fillna('')
+                               margins=True).apply(lambda x: (x / 3600.0)).fillna('')
     years = sorted(years)
     return render_template('eduqa/QA/hours_summary.html',
                            year=year,

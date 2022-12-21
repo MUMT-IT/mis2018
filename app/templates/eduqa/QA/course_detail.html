@@ -143,6 +143,7 @@
                                 <thead>
                                 <th>ชื่อ</th>
                                 <th>บทบาท</th>
+                                <th>ชั่วโมง</th>
                                 <th></th>
                                 </thead>
                                 <tbody>
@@ -157,6 +158,9 @@
                                             {{ asc.role.role }}
                                         </td>
                                         <td>
+                                          {{ asc.instructor|total_hours(course.id)}}
+                                        </td>
+                                        <td>
                                             <a href="{{ url_for('eduqa.remove_instructor_from_list', course_id=course.id, instructor_id=asc.instructor.id) }}"
                                                class="is-danger button is-small is-rounded">
                                                 <span class="icon">
@@ -168,7 +172,7 @@
                                     </tr>
                                 {% endfor %}
                                     <tr>
-                                        <td colspan="3">
+                                        <td colspan="4">
                                             <div class="buttons is-centered">
                                                 <a href="{{ url_for('eduqa.add_instructor', course_id=course.id) }}"
                                                    class="button is-success is-rounded">
@@ -252,6 +256,15 @@
                                                     <i class="far fa-star"></i>
                                                 </span>
                                                 <span>workpoint</span>
+                                            </a>
+                                            {% endif %}
+                                            {% if admin == instructor or admin == None %}
+                                            <a href="{{ url_for('eduqa.duplicate_session', course_id=course.id, session_id=s.id) }}"
+                                               class="button is-link is-rounded is-small is-light">
+                                                <span class="icon">
+                                                  <i class="far fa-copy"></i>
+                                                </span>
+                                                <span>duplicate</span>
                                             </a>
                                             {% endif %}
                                         </div>
