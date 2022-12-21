@@ -491,6 +491,34 @@ def edit_session(course_id, session_id):
     return render_template('eduqa/QA/session_edit.html', form=form, course=course, localtz=localtz)
 
 
+@edu.route('/qa/courses/<int:course_id>/sessions/<int:session_id>/duplicate', methods=['GET', 'POST'])
+@login_required
+def duplicate_session(course_id, session_id):
+    course = EduQACourse.query.get(course_id)
+    a_session = EduQACourseSession.query.get(session_id)
+    new_session = EduQACourseSession(
+            course_id=course_id,
+            start=a_session.start,
+            end=a_session.end,
+            type_=a_session.type_,
+            desc=a_session.desc,
+            instructors=a_session.instructors,
+            format=a_session.format,
+            )
+    for topic in a_session.topics:
+        new_topic = EduQACourseSessionTopic(
+                topic=topic.topic,
+                method=topic.method,
+                )
+        new_session.topics.append(new_topic)
+        db.session.add(new_topic)
+
+    db.session.add(new_session)
+    db.session.commit()
+    flash(u'เพิ่มรายการสอนเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('eduqa.show_course_detail', course_id=course.id))
+
+
 @edu.route('/qa/sessions/<int:session_id>')
 @login_required
 def delete_session(session_id):

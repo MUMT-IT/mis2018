@@ -939,6 +939,23 @@ def import_chem_items(excel_file):
     database.load_chem_items(excel_file)
 
 
+@app.template_filter('total_hours')
+def cal_total_hours(instructor, course_id):
+    total_seconds = []
+    for session in instructor.sessions.filter_by(course_id=course_id):
+        detail = EduQACourseSessionDetail.query.filter_by(session_id=session.id,
+                                                          staff_id=instructor.account.id).first()
+        if detail:
+            factor = detail.factor if detail.factor else 1
+            seconds = session.total_seconds * factor
+            total_seconds.append(seconds)
+        else:
+            total_seconds.append(session.total_seconds)
+    hours = sum(total_seconds) // 3600
+    mins = (sum(total_seconds) // 60) % 60
+    return u'{} ชม. {} นาที'.format(hours, mins)
+
+
 @app.template_filter("moneyformat")
 def money_format(value):
     return '{:,.2f}'.format(value)
