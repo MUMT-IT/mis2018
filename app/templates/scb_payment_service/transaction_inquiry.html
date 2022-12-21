@@ -1,0 +1,13 @@
+<!doctype html>
+<html>
+<body>
+    <ul>
+        {% for rec in records %}
+        <li><a href="{{ url_for('scb_payment.transaction_inquiry', bill_payment_ref1=rec.bill_payment_ref1) }}">
+            {{ rec.bill_payment_ref1 }}
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</body>
+</html>
