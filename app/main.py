@@ -590,6 +590,8 @@ app.register_blueprint(scb_payment_blueprint)
 
 from scb_payment_service.models import *
 
+admin.add_view(ModelView(ScbPaymentServiceApiClientAccount, db.session, category='SCB Payment Service'))
+admin.add_view(ModelView(ScbPaymentRecord, db.session, category='SCB Payment Service'))
 
 # Commands
 
