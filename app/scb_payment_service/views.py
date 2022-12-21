@@ -10,12 +10,13 @@ from . import scb_payment
 from .models import ScbPaymentServiceApiClientAccount, ScbPaymentRecord
 from ..main import csrf, db
 
-AUTH_URL = 'https://api-sandbox.partners.scb/partners/sandbox/v1/oauth/token'
-QRCODE_URL = 'https://api-sandbox.partners.scb/partners/sandbox/v1/payment/qrcode/create'
+AUTH_URL = os.environ.get('SCB_AUTH_URL')
+QRCODE_URL = os.environ.get('SCB_QRCODE_URL')
 APP_KEY = os.environ.get('SCB_APP_KEY')
 APP_SECRET = os.environ.get('SCB_APP_SECRET')
 BILLERID = os.environ.get('BILLERID')
 REQUEST_UID = os.environ.get('SCB_REQUEST_UID')
+REF3 = os.environ.get('SCB_REF3')
 
 
 def generate_qrcode(amount, ref1, ref2, ref3):
@@ -29,6 +30,7 @@ def generate_qrcode(amount, ref1, ref2, ref3):
         'applicationSecret': APP_SECRET
     })
     response_data = response.json()
+    print(response.text)
     access_token = response_data['data']['accessToken']
 
     headers['authorization'] = 'Bearer {}'.format(access_token)
@@ -90,7 +92,7 @@ def create_qrcode():
     record = ScbPaymentRecord.query.filter_by(bill_payment_ref1=ref1, bill_payment_ref2=ref2).first()
     if amount is None:
         return jsonify({'message': 'Amount is needed'}), 400
-    data = generate_qrcode(amount, ref1=ref1, ref2=ref2, ref3='YPM')
+    data = generate_qrcode(amount, ref1=ref1, ref2=ref2, ref3=REF3)
     if data:
         if not record:
             record = ScbPaymentRecord(bill_payment_ref1=ref1, bill_payment_ref2=ref2,
