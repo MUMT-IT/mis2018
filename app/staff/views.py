@@ -3456,26 +3456,29 @@ def teaching_calendar():
     data = []
     years = set()
     # for session in EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id)).all():
-    for session in instructor.sessions:
-        if session.course:
-            session_detail = session.details.filter_by(staff_id=current_user.id).first()
-            if session_detail:
-                factor = session_detail.factor if session_detail.factor else 1
-            else:
-                factor = 1
-            print(session.total_seconds * factor, session.total_seconds, factor)
-            d = {
-                    'course': session.course.en_code,
-                    'instructor': instructor.account.personal_info.fullname,
-                    'seconds': session.total_seconds * factor
-                }
-            years.add(str(session.course.academic_year))
-            if year:
-                if str(session.course.academic_year) == year:
+    if instructor:
+        for session in instructor.sessions:
+            if session.course:
+                session_detail = session.details.filter_by(staff_id=current_user.id).first()
+                if session_detail:
+                    factor = session_detail.factor if session_detail.factor else 1
+                else:
+                    factor = 1
+                print(session.total_seconds * factor, session.total_seconds, factor)
+                d = {
+                        'course': session.course.en_code,
+                        'instructor': instructor.account.personal_info.fullname,
+                        'seconds': session.total_seconds * factor
+                    }
+                years.add(str(session.course.academic_year))
+                if year:
+                    if str(session.course.academic_year) == year:
+                        data.append(d)
+                else:
                     data.append(d)
-            else:
-                data.append(d)
-    df = DataFrame(data)
+        df = DataFrame(data)
+    else:
+        df = DataFrame(columns=['course', 'instructor', 'seconds'])
     sum_hours = df.pivot_table(index='course',
                                values='seconds',
                                aggfunc='sum',
