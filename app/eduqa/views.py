@@ -601,6 +601,27 @@ def add_session_topic(course_id):
                            topic_form.topic(class_="input"))
 
 
+@edu.route('/api/qa/courses/<int:course_id>/sessions/topics', methods=['DELETE'])
+@login_required
+def delete_session_topic(course_id):
+    course = EduQACourse.query.get(course_id)
+    EduCourseSessionForm = create_instructors_form(course)
+    form = EduCourseSessionForm()
+    if len(form.topics) > 1:
+        form.topics.pop_entry()
+    template = ''
+    for n, topic in enumerate(form.topics, start=1):
+        template += u"""
+            <div class="field">
+                <label class="label">{} {}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+        """.format(topic.topic.label, n, topic.topic(class_="input"))
+    return template
+
+
 @edu.route('/api/qa/courses/<int:course_id>/sessions/<int:session_id>/roles', methods=['POST'])
 @login_required
 def add_session_role(course_id, session_id):
@@ -627,6 +648,37 @@ def add_session_role(course_id, session_id):
                            role_form.role_item(),
                            role_form.detail.label,
                            role_form.detail(class_="textarea"))
+
+
+@edu.route('/api/qa/courses/<int:course_id>/sessions/<int:session_id>/roles', methods=['DELETE'])
+@login_required
+def delete_session_role(course_id, session_id):
+    session = EduQACourseSession.query.get(session_id)
+    EduCourseSessionDetailForm = CourseSessionDetailFormFactory(session.type_)
+    form = EduCourseSessionDetailForm()
+    if len(form.roles) > 1:
+        form.roles.pop_entry()
+
+    template = ''
+    for n, role_form in enumerate(form.roles, start=1):
+        template += u"""
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="select">
+                    {}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+        """.format(role_form.role_item.label,
+                   role_form.role_item(),
+                   role_form.detail.label,
+                   role_form.detail(class_="textarea"))
+    return template
 
 
 @edu.route('/qa/revisions/<int:revision_id>/summary/hours')
