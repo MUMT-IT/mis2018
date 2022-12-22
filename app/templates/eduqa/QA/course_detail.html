@@ -274,7 +274,6 @@
                                 <tr>
                                     <td colspan="6">
                                         <div class="buttons is-centered">
-                                            {% if admin == instructor or admin == None %}
                                             <a href="{{ url_for('eduqa.add_session', course_id=course.id) }}"
                                                class="button is-link is-rounded">
                                                 <span class="icon">
@@ -282,7 +281,6 @@
                                                 </span>
                                                 <span>session</span>
                                             </a>
-                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
