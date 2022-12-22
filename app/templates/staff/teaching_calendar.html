@@ -44,7 +44,7 @@
                     <tbody>
                       {% for idx, row in sum_hours.iterrows() %}
                       <tr>
-                          <td>{{ idx }}</td>
+                          <td>{{ idx|safe }}</td>
                           {% for c in row %}
                           <td>{{ c }}</td>
                           {% endfor %}

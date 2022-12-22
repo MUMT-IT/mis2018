@@ -3466,7 +3466,10 @@ def teaching_calendar():
                     factor = 1
                 print(session.total_seconds * factor, session.total_seconds, factor)
                 d = {
-                        'course': session.course.en_code,
+                        'course': '<a href="{}">{} ({}/{})</a>'.format(url_for('eduqa.show_course_detail', course_id=session.course.id),
+                                                                       session.course.en_code,
+                                                                       session.course.semester,
+                                                                       session.course.academic_year),
                         'instructor': instructor.account.personal_info.fullname,
                         'seconds': session.total_seconds * factor
                     }
@@ -3519,7 +3522,7 @@ def show_teaching_hours_summary():
     for session in instructor.sessions:
         if session.course:
             d = {
-                    'course': session.course.en_code,
+                    'course': '<a href="{}">{}</a>'.format(url_for('eduqa.show_course_detail', course_id=session.course.id), session.course.en_code),
                     'instructor': instructor.account.personal_info.fullname,
                     'seconds': session.total_seconds
                 }
