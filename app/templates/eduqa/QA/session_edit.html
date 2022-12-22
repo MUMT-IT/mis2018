@@ -127,5 +127,9 @@
             format: 'YYYY-MM-DD HH:mm:ss'
         }
     });
+    $('input[name="start"]').change(function () {
+      $('input[name="end"]').data('daterangepicker').setStartDate($(this).val())
+      $('input[name="end"]').data('daterangepicker').setEndDate($(this).val())
+    })
 </script>
 {% endblock %}
