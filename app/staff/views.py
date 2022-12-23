@@ -241,10 +241,14 @@ def request_for_leave(quota_id=None):
                         resp.headers['HX-Redirect'] = request.referrer
                         return resp
                         # retrieve cum periods
-                    used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
-                                                                             tz.localize(END_FISCAL_DATE))
-                    pending_days = current_user.personal_info.get_total_pending_leaves_request \
-                        (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
+                    used_quota = current_user.personal_info \
+                            .get_total_leaves(quota.id,
+                                              tz.localize(START_FISCAL_DATE),
+                                              tz.localize(END_FISCAL_DATE))
+                    pending_days = current_user.personal_info \
+                            .get_total_pending_leaves_request(quota.id,
+                                                              tz.localize(START_FISCAL_DATE),
+                                                              tz.localize(END_FISCAL_DATE))
                     req_duration = get_weekdays(req)
                     holidays = Holidays.query.filter(and_(Holidays.holiday_date >= start_datetime.date(),
                                                           Holidays.holiday_date <= end_datetime.date())).all()
