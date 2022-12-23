@@ -115,6 +115,14 @@
                             {{ course.en_desc }}
                         </td>
                     </tr>
+                    <tr>
+                      <td>
+                        <label class="label">เพิ่มรายวิชาโดย</label>
+                      </td>
+                      <td>
+                        {{ course.creator.fullname }}
+                      </td>
+                    </tr>
                 </table>
                 <div class="buttons is-centered">
                     <a class="button is-rounded is-outlined is-info" href="{{ url_for('eduqa.edit_course', course_id=course.id) }}">
@@ -123,7 +131,7 @@
                         </span>
                         <span>แก้ไขข้อมูลทั่วไป</span>
                     </a>
-                    {% if current_user == course.creator %}
+                    {% if current_user == course.creator or course.has_admin(current_user.instructor) %}
                     <a class="button is-danger is-rounded" @click="warn">
                         <span class="icon">
                             <i class="far fa-trash-alt"></i>
