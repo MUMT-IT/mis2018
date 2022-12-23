@@ -139,14 +139,19 @@ class EduQACourse(db.Model):
     def credits(self):
         return self.lecture_credit + self.lab_credit
 
+    def has_admin(self, instructor):
+        for asc in self.course_instructor_associations:
+            if asc.instructor == instructor and asc.role.admin:
+                return True
+        return False
+
 
 class EduQAInstructor(db.Model):
     __tablename__ = 'eduqa_course_instructors'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     account_id = db.Column(db.ForeignKey('staff_account.id'))
-    account = db.relationship(StaffAccount, backref=db.backref('instructed_courses', lazy='dynamic'))
-
-    # courses = db.relationship(EduQACourseInstructorAssociation, back_populates='instructor')
+    account = db.relationship(StaffAccount,
+                              backref=db.backref('instructor', uselist=False))
 
     def __init__(self, account_id):
         self.account_id = account_id
