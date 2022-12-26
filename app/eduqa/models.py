@@ -141,8 +141,9 @@ class EduQACourse(db.Model):
 
     def has_admin(self, instructor):
         for asc in self.course_instructor_associations:
-            if asc.instructor == instructor and asc.role.admin:
-                return True
+            if asc.role:
+                if asc.instructor == instructor and asc.role.admin:
+                    return True
         return False
 
 
