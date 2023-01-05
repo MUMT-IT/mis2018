@@ -9,20 +9,22 @@ from werkzeug.security import check_password_hash
 from . import scb_payment
 from .models import ScbPaymentServiceApiClientAccount, ScbPaymentRecord
 from ..main import csrf, db
+import uuid
 
 AUTH_URL = os.environ.get('SCB_AUTH_URL')
 QRCODE_URL = os.environ.get('SCB_QRCODE_URL')
 APP_KEY = os.environ.get('SCB_APP_KEY')
 APP_SECRET = os.environ.get('SCB_APP_SECRET')
 BILLERID = os.environ.get('BILLERID')
-REQUEST_UID = os.environ.get('SCB_REQUEST_UID')
 REF3 = os.environ.get('SCB_REF3')
+QR30_INQUIRY = os.environ.get('QR30_INQUIRY')
+SLIP_VERIFICATION = os.environ.get('SLIP_VERIFICATION')
 
 
 def generate_qrcode(amount, ref1, ref2, ref3):
     headers = {
         'Content-Type': 'application/json',
-        'requestUId': REQUEST_UID,
+        'requestUId': str(uuid.uuid4()),
         'resourceOwnerId': APP_KEY
     }
     response = requests.post(AUTH_URL, headers=headers, json={
@@ -138,7 +140,7 @@ def verify_slip():
         trnx = ScbPaymentRecord.query.filter_by(transaction_id=transaction_id).first()
         headers = {
             'Content-Type': 'application/json',
-            'requestUId': REQUEST_UID,
+            'requestUId': str(uuid.uuid4()),
             'resourceOwnerId': APP_KEY
         }
         response = requests.post(AUTH_URL, headers=headers, json={
@@ -150,8 +152,7 @@ def verify_slip():
 
         headers['authorization'] = 'Bearer {}'.format(access_token)
         resp = requests.get(
-            'https://api-sandbox.partners.scb/partners/sandbox/v1/payment/billpayment/transactions/{}?sendingBank={}'.format(
-                trnx.transaction_id, trnx.sending_bank_code), headers=headers)
+            "{}/{}?sendingBank={}".format(SLIP_VERIFICATION, trnx.transaction_id, trnx.sending_bank_code))
         return jsonify(resp.json())
     records = ScbPaymentRecord.query.all()
     return render_template('scb_payment_service/verify_slips.html', records=records)
@@ -172,9 +173,9 @@ def transaction_inquiry():
     if trnx:
         headers = {
             'Content-Type': 'application/json',
-            'requestUId': REQUEST_UID,
+            'requestUId': str(uuid.uuid4()),
             'resourceOwnerId': APP_KEY
-         }
+        }
         response = requests.post(AUTH_URL, headers=headers, json={
             'applicationKey': APP_KEY,
             'applicationSecret': APP_SECRET
@@ -184,11 +185,11 @@ def transaction_inquiry():
 
         headers['authorization'] = 'Bearer {}'.format(access_token)
         resp = requests.get(
-            'http://api-sandbox.scb.co.th/partners/sandbox/v1/payment/billpayment/inquiry',
+            QR30_INQUIRY,
             params={"billerId": BILLERID,
-                "reference1": trnx.bill_payment_ref1,
-                "transactionDate": trnx.created_datetime.strftime("%Y-%m-%d"),
-                "eventCode": "00300100"}
+                    "reference1": trnx.bill_payment_ref1,
+                    "transactionDate": trnx.created_datetime.strftime("%Y-%m-%d"),
+                    "eventCode": "00300100"}
             , headers=headers)
         return jsonify(resp.json())
     records = ScbPaymentRecord.query.all()
