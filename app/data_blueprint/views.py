@@ -8,6 +8,9 @@ from flask import url_for, render_template, redirect, flash, request, jsonify
 from flask_login import current_user, login_required
 from pytz import timezone
 
+from ..models import DataFile, DataTag
+from ..staff.models import StaffAccount
+
 tz = timezone('Asia/Bangkok')
 
 
@@ -108,6 +111,7 @@ def process_form(process_id=None):
 @data_bp.route('/kpi/<int:kpi_id>/edit', methods=['GET', 'POST'])
 @login_required
 def kpi_form(kpi_id=None):
+    accounts = [("", u"โปรดระบุชื่อ")] + [(u.email, u.fullname) for u in StaffAccount.query.all()]
     section = request.args.get('section', 'general')
     process_id = request.args.get('process_id', type=int)
     service_id = request.args.get('service_id', type=int)
@@ -126,6 +130,21 @@ def kpi_form(kpi_id=None):
         form = Form(obj=data_)
     else:
         form = Form()
+    if section == 'general':
+        form.keeper.choices = accounts
+    elif section == 'target':
+        form.target_account.choices = accounts
+        form.target_reporter.choices = accounts
+        form.target_setter.choices = accounts
+    elif section == 'report':
+        form.account.choices = accounts
+        form.pfm_account.choices = accounts
+        form.pfm_responsible.choices = accounts
+        form.pfm_consult.choices = accounts
+        form.pfm_informed.choices = accounts
+        form.reporter.choices = accounts
+        form.consult.choices = accounts
+        form.informed.choices = accounts
     if request.method == 'POST':
         if form.validate_on_submit():
             if not kpi_id:

@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Add/Edit KPI{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
 {% include "data_blueprint/nav.html" %}
 {% block page_content %}
 <section class="section">
@@ -60,9 +64,8 @@
                     </div>
                     <div class="field">
                         <label class="label">{{form.keeper.label}}</label>
-                        <div class="control">
-                            {{form.keeper(class="input is-danger", pattern="\w+\.\w{3}")}}
-                            <p class="help">เช่น likit.pre</p>
+                        <div>
+                            {{form.keeper(class="js-example-basic-single", style="width: 100%")}}
                         </div>
                     </div>
                 </div>
@@ -109,7 +112,11 @@
 {% endblock %}
 {% block scripts %}
 {{super()}}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script type="text/javascript">
+    $(document).ready(function() {
+        $('.js-example-basic-single').select2();
+    });
 </script>
 </section>
 {% endblock %}
