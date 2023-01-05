@@ -152,7 +152,7 @@ def verify_slip():
 
         headers['authorization'] = 'Bearer {}'.format(access_token)
         resp = requests.get(
-            "{}/{}?sendingBank={}".format(SLIP_VERIFICATION, trnx.transaction_id, trnx.sending_bank_code))
+            "{}/{}?sendingBank={}".format(SLIP_VERIFICATION, trnx.transaction_id, trnx.sending_bank_code), headers=headers)
         return jsonify(resp.json())
     records = ScbPaymentRecord.query.all()
     return render_template('scb_payment_service/verify_slips.html', records=records)
