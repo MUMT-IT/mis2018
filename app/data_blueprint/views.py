@@ -163,7 +163,6 @@ def kpi_form(kpi_id=None):
                 db.session.add(data_)
             db.session.commit()
             flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
-            return redirect(url_for('data_bp.index'))
         else:
             flash(form.errors, 'danger')
     if section == 'general':
