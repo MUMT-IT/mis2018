@@ -112,7 +112,8 @@ def process_form(process_id=None):
 @data_bp.route('/kpi/<int:kpi_id>/edit', methods=['GET', 'POST'])
 @login_required
 def kpi_form(kpi_id=None):
-    accounts = [("", u"โปรดระบุชื่อ")] + [(u.email, u.fullname) for u in StaffAccount.query.all()]
+    accounts = [("", u"โปรดระบุชื่อ")] + [(u.email, u.fullname)
+                                          for u in StaffAccount.query.all() if not u.is_retired]
     section = request.args.get('section', 'general')
     process_id = request.args.get('process_id', type=int)
     service_id = request.args.get('service_id', type=int)
