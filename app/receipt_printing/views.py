@@ -70,7 +70,7 @@ def create_receipt():
         db.session.add(receipt_detail)
         db.session.commit()
         flash(u'บันทึกการสร้างใบเสร็จรับเงินสำเร็จ.', 'success')
-        return redirect(url_for('receipt_printing.list_all_receipts'))
+        return redirect(url_for('receipt_printing.view_receipt_by_list_type'))
     # Check Error
     else:
         for er in form.errors:
@@ -468,7 +468,7 @@ def cancel_receipt(receipt_id):
     receipt.cancel_comment = request.form.get('comment')
     db.session.add(receipt)
     db.session.commit()
-    return redirect(url_for('receipt_printing.list_all_receipts'))
+    return redirect(url_for('receipt_printing.list_to_cancel_receipt'))
 
 
 @receipt_printing.route('/daily/payment/report', methods=['GET', 'POST'])
@@ -662,3 +662,9 @@ def view_receipt_by_list_type(receipt_id=None):
                     if receipt.issuer.personal_info.org == org]
     return render_template('receipt_printing/list_all_receipts.html',
                            receipt_id=receipt_id, record=record, list_type=list_type)
+
+
+@receipt_printing.route('/receipt/detail/show/<int:receipt_id>', methods=['GET', 'POST'])
+def show_receipt_detail(receipt_id):
+    receipt = ElectronicReceiptDetail.query.get(receipt_id)
+    return render_template('receipt_printing/receipt_detail.html', receipt=receipt, enumerate=enumerate)
