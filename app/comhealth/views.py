@@ -1226,6 +1226,15 @@ def add_employee(org_id):
             flash(form.errors, 'warning')
     return render_template('comhealth/edit_customer_data.html', form=form)
 
+@comhealth.route('/note/<int:record_id>/edit', methods=['GET', 'POST'])
+def edit_note_data(record_id):
+    record = ComHealthRecord.query.get(record_id)
+    if request.method == 'POST':
+        record.note = request.form.get('note')
+        db.session.add(record)
+        db.session.commit()
+        return redirect(request.args.get('next'))
+    return render_template('comhealth/edit_note.html',record=record)
 
 @comhealth.route('/customers/<int:customer_id>/edit', methods=['GET', 'POST'])
 @login_required
