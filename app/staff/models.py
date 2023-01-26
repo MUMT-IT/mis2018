@@ -299,9 +299,10 @@ class StaffAcademicPosition(db.Model):
                             'choices': ((0, u'อาจารย์'),
                                         (1, u'ผู้ช่วยศาสตราจารย์'),
                                         (2, u'รองศาสตรจารย์'),
-                                        (3, u'ศาสตรจารย์'))
+                                        (3, u'ศาสตราจารย์'))
                             })
-
+    def __str__(self):
+        return self.shortname_th
 
 class StaffAcademicPositionRecord(db.Model):
     __tablename__ = 'staff_academic_position_records'
