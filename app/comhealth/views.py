@@ -123,7 +123,7 @@ def api_finance_record(service_id):
     record_schema = ComHealthRecordSchema(many=True,
                                           only=('labno', 'customer', 'id',
                                                 'checkin_datetime', 'finance_contact',
-                                                'receipts'))
+                                                'receipts','note'))
     return jsonify(record_schema.dump(records).data)
 
 
@@ -185,7 +185,6 @@ def index():
 
 
 @comhealth.route('/api/services/<int:service_id>/search')
-@login_required
 def search_service_customer(service_id):
     #TODO: search should be done at the backend
     service = ComHealthService.query.get(service_id)
