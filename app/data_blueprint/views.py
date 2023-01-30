@@ -216,6 +216,7 @@ def dataset_form(data_id, dataset_id=None):
         form = createDatasetForm(data_id=data_id)(obj=dataset)
     else:
         form = createDatasetForm(data_id=data_id)()
+        dataset = None
     if request.method == 'POST':
         if form.validate_on_submit():
             if not dataset_id:
