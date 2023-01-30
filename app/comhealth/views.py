@@ -653,6 +653,8 @@ def save_test_profile(profile_id):
                 test_item.price = float(request.form.get(test))
                 db.session.add(test_item)
                 print(test_item.test.name, test_item.price, request.form.get(test))
+        profile.quote = float(request.form.get('quote'))
+        db.session.add(profile)
         db.session.commit()
     flash('Change has been saved.')
     return redirect(url_for('comhealth.test_profile', profile_id=profile_id))
@@ -1587,6 +1589,15 @@ def add_many_employees(orgid):
                     db.session.commit()
                     new_customer.generate_hn()
                     db.session.add(new_customer)
+                    db.session.commit()
+                else:
+                    customer_.emp_id = emp_id
+                    customer_.dept=department
+                    customer_.division=division
+                    customer_.unit=unit
+                    customer_.emptype=emptype
+                    customer_.phone = phone
+                    db.session.add(customer_)
                     db.session.commit()
 
                 # temporarily disable creation of a new record with predefined labno
