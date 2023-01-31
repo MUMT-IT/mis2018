@@ -9,12 +9,8 @@ from flask import url_for, render_template, redirect, flash, request, jsonify
 from flask_login import current_user, login_required
 from pytz import timezone
 
-<<<<<<< HEAD
-from ..models import DataFile
-=======
 from ..models import DataFile, DataTag
 from ..staff.models import StaffAccount
->>>>>>> 88f5780772161bfd0c9d757f8160b1ab4831d174
 
 tz = timezone('Asia/Bangkok')
 
