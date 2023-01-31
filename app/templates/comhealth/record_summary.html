@@ -137,6 +137,14 @@
                                     </td>
                                 </tr>
                                 <tr>
+                                    <td>
+                                        <h1 class="subtitle">โน๊ต / Note</h1>
+                                    </td>
+                                    <td>
+                                        <h1 class="subtitle">{{ record.note }}</h1>
+                                    </td>
+                                </tr>
+                                <tr>
                                     <td><h1 class="subtitle">ติดต่อการเงิน / Contact Cashier</h1>
                                         <form method="post" action="{{ url_for('comhealth.update_finance_contact') }}">
                                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

@@ -105,8 +105,8 @@ class StaffAccount(db.Model):
         return self.__password_hash != None
 
     @property
-    def is_active(self):
-        return self.personal_info.retired != True
+    def is_retired(self):
+        return self.personal_info.retired is True
 
     @property
     def password(self):
@@ -161,6 +161,8 @@ class StaffPersonalInfo(db.Model):
     academic_staff = db.Column('academic_staff', db.Boolean())
     retired = db.Column('retired', db.Boolean(), default=False)
     position = db.Column('position', db.String(), info={'label': u'ตำแหน่ง'})
+    retirement_date = db.Column('retirement_date', db.Date(), nullable=True)
+    resignation_date = db.Column('resignation_date', db.Date(), nullable=True)
 
     def __str__(self):
         return self.fullname
@@ -297,9 +299,10 @@ class StaffAcademicPosition(db.Model):
                             'choices': ((0, u'อาจารย์'),
                                         (1, u'ผู้ช่วยศาสตราจารย์'),
                                         (2, u'รองศาสตรจารย์'),
-                                        (3, u'ศาสตรจารย์'))
+                                        (3, u'ศาสตราจารย์'))
                             })
-
+    def __str__(self):
+        return self.shortname_th
 
 class StaffAcademicPositionRecord(db.Model):
     __tablename__ = 'staff_academic_position_records'

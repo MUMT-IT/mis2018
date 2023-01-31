@@ -124,7 +124,7 @@
                                 <td>{{ r.items|length }}</td>
                                 <td>{{ r.print_number}}</td>
                                 <td>
-                                    <a href="">
+                                    <a href="{{ url_for('receipt_printing.show_receipt_detail', receipt_id=r.id) }}">
                                         <span class="icon">
                                             <i class="fas fa-eye"></i>
                                         </span>

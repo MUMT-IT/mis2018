@@ -86,7 +86,8 @@ def create_app():
     app.config['MAIL_USE_TLS'] = True
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-    app.config['MAIL_DEFAULT_SENDER'] = ('MUMT-MIS', os.environ.get('MAIL_USERNAME'))
+    app.config['MAIL_DEFAULT_SENDER'] = ('MUMT-MIS',
+                                         os.environ.get('MAIL_USERNAME'))
 
     db.init_app(app)
     ma.init_app(app)
@@ -113,18 +114,13 @@ def user_lookup_callback(identity):
     return ScbPaymentServiceApiClientAccount.get_account_by_id(identity)
 
 
-@app.errorhandler(403)
-def page_not_found(e):
-    return render_template('errors/403.html', error=e), 404
-
-
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('errors/404.html', error=e), 404
 
 
 @app.errorhandler(500)
-def page_not_found(e):
+def internal_server_error(e):
     return render_template('errors/500.html', error=e), 500
 
 
@@ -266,7 +262,9 @@ from staff.models import *
 admin.add_views(ModelView(Role, db.session, category='Permission'))
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
+admin.add_views(ModelView(StaffEduDegree, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPosition, db.session, category='Staff'))
+admin.add_views(ModelView(StaffAcademicPositionRecord, db.session, category='Staff'))
 admin.add_views(ModelView(StaffEmployment, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveType, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveQuota, db.session, category='Staff'))
@@ -430,6 +428,8 @@ admin.add_view(ModelView(EduQACourse, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQAProgram, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQACurriculum, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQACurriculumnRevision, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAInstructorRole, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQACourseSessionDetailRoleItem, db.session, category='EduQA'))
 
 from chemdb import chemdbbp as chemdb_blueprint
 import chemdb.models
@@ -590,6 +590,8 @@ app.register_blueprint(scb_payment_blueprint)
 
 from scb_payment_service.models import *
 
+admin.add_view(ModelView(ScbPaymentServiceApiClientAccount, db.session, category='SCB Payment Service'))
+admin.add_view(ModelView(ScbPaymentRecord, db.session, category='SCB Payment Service'))
 
 # Commands
 
@@ -939,6 +941,23 @@ def load_staff_list(excel_file):
 @click.argument('excel_file')
 def import_chem_items(excel_file):
     database.load_chem_items(excel_file)
+
+
+@app.template_filter('total_hours')
+def cal_total_hours(instructor, course_id):
+    total_seconds = []
+    for session in instructor.sessions.filter_by(course_id=course_id):
+        detail = EduQACourseSessionDetail.query.filter_by(session_id=session.id,
+                                                          staff_id=instructor.account.id).first()
+        if detail:
+            factor = detail.factor if detail.factor else 1
+            seconds = session.total_seconds * factor
+            total_seconds.append(seconds)
+        else:
+            total_seconds.append(session.total_seconds)
+    hours = sum(total_seconds) // 3600
+    mins = (sum(total_seconds) // 60) % 60
+    return u'{} ชม. {} นาที'.format(hours, mins)
 
 
 @app.template_filter("moneyformat")

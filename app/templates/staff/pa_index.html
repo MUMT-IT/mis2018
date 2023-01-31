@@ -9,15 +9,13 @@
         <div class="column is-half is-offset-3">
             <nav class="panel is-info">
                 <p class="panel-heading">PA</p>
-                {% if current_user.personal_info.academic_staff %}
-                <a class="panel-block" href="{{ url_for('eduqa.show_curriculums') }}">
+                <a class="panel-block" href="{{ url_for('staff.teaching_calendar') }}">
                     <span class="panel-icon">
                         <i class="far fa-star"></i>
                     </span>
-                    <span class="is-size-5">บันทึกภาระงานสอน</span><br>
+                    <span class="is-size-5">ภาระงานสอน</span><br>
                     <span class="tag is-rounded is-success">New</span>
                 </a>
-                {% endif %}
             </nav>
         </div>
     </div>

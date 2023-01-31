@@ -14,7 +14,7 @@
             </div>
         </div>
         <div class="columns">
-            <div class="column is-one-third is-offset-4">
+            <div class="column is-two-thirds is-offset-2">
                 <h1 class="title has-text-centered">New Course Session</h1>
                 <form method="post" class="box">
                     {{ form.hidden_tag() }}
@@ -58,13 +58,21 @@
                     </div>
                     <hr>
                     <div class="buttons is-centered">
-                        <button class="button is-small is-light"
+                        <button class="button is-rounded is-success"
                                 hx-post="{{ url_for('eduqa.add_session_topic', course_id=course.id) }}"
                                 hx-target="#topics" hx-swap="beforeend">
                             <span class="icon">
                                 <i class="fas fa-plus"></i>
                             </span>
                             <span>เพิ่มหัวข้อ</span>
+                        </button>
+                        <button class="button is-rounded is-danger"
+                                hx-delete="{{ url_for('eduqa.delete_session_topic', course_id=course.id) }}"
+                                hx-target="#topics" hx-swap="innerHTML">
+                            <span class="icon">
+                              <i class="far fa-trash-alt"></i>
+                            </span>
+                            <span>ลบหัวข้อ</span>
                         </button>
                     </div>
                     <div class="field">
@@ -80,7 +88,7 @@
                                    class="button is-light">Cancel</a>
                             </div>
                             <div class="control">
-                                <input type="submit" class="button is-success" value="Add"/>
+                                <input type="submit" class="button is-success" value="Save"/>
                             </div>
                         </div>
                     </div>
@@ -127,5 +135,9 @@
             format: 'YYYY-MM-DD HH:mm:ss'
         }
     });
+    $('input[name="start"]').change(function () {
+      $('input[name="end"]').data('daterangepicker').setStartDate($(this).val())
+      $('input[name="end"]').data('daterangepicker').setEndDate($(this).val())
+    })
 </script>
 {% endblock %}

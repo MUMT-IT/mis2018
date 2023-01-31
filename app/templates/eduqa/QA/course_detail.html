@@ -10,31 +10,35 @@
             </div>
         </div>
         <div class="columns">
+          <div class="column">
+            <nav class="breadcrumb has-succeeds-separator" aria-label="breadcrumbs">
+              <ul>
+                <li><a href="{{ url_for('eduqa.show_revisions', curriculum_id=course.revision.curriculum.id) }}">หลักสูตร</a></li>
+                <li><a href="{{ url_for('eduqa.show_revision_detail', revision_id=course.revision_id) }}" aria-current="page">รายวิชา</a></li>
+                <li class="is-active"><a href="#" aria-current="page">รายละเอียด</a></li>
+              </ul>
+            </nav>
+          </div>
+        </div>
+        <div class="columns">
             <div class="column">
                 <h1 class="title has-text-centered">{{ course.th_name }}</h1>
                 <h1 class="subtitle has-text-centered">{{ course.en_name }}</h1>
-                <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('eduqa.edit_course', course_id=course.id) }}">
-                        <span class="icon">
-                            <i class="fas fa-pencil-alt"></i>
-                        </span>
-                        <span>แก้ไขข้อมูลทั่วไป</span>
-                    </a>
-                    <a class="button is-warning"
+                <div class="buttons is-centered has-addons">
+                    <a class="button is-rounded"
                        href="{{ url_for('eduqa.copy_course', course_id=course.id) }}">
                         <span class="icon">
                             <i class="far fa-copy"></i>
                         </span>
                         <span>คัดลอกรายวิชา</span>
                     </a>
-                    {% if current_user == course.creator %}
-                    <a class="button is-danger" @click="warn">
-                        <span class="icon">
-                            <i class="far fa-trash-alt"></i>
-                        </span>
-                        <span>ลบรายวิชา</span>
+                    <a href="{{ url_for('staff.teaching_calendar') }}"
+                       class="button is-rounded">
+                      <span class="icon">
+                        <i class="fas fa-calendar-alt"></i>
+                      </span>
+                      <span>ตารางสอน</span>
                     </a>
-                    {% endif %}
                 </div>
                 <p class="notification is-light is-warning has-text-centered">
                     ท่านสามารถคัดลอกข้อมูลทั่วไปของรายวิชาเพื่อสร้างรายการใหม่ได้ ด้วยการคลิกที่ปุ่มคัดลอกรายวิชาด้านบน
@@ -90,15 +94,9 @@
                             <label class="label">ภาคการศึกษา</label>
                         </td>
                         <td>
-                            {{ course.semester }}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <label class="label">ปีการศึกษา</label>
-                        </td>
-                        <td>
-                            {{ course.academic_year }}
+                            <span class="tag is-rounded is-info is-medium">
+                                {{ course.semester }} / {{ course.academic_year }}
+                            </span>
                         </td>
                     </tr>
                     <tr>
@@ -117,7 +115,31 @@
                             {{ course.en_desc }}
                         </td>
                     </tr>
+                    <tr>
+                      <td>
+                        <label class="label">เพิ่มรายวิชาโดย</label>
+                      </td>
+                      <td>
+                        {{ course.creator.fullname }}
+                      </td>
+                    </tr>
                 </table>
+                <div class="buttons is-centered">
+                    <a class="button is-rounded is-outlined is-info" href="{{ url_for('eduqa.edit_course', course_id=course.id) }}">
+                        <span class="icon">
+                            <i class="fas fa-pencil-alt"></i>
+                        </span>
+                        <span>แก้ไขข้อมูลทั่วไป</span>
+                    </a>
+                    {% if current_user == course.creator or course.has_admin(current_user.instructor) %}
+                    <a class="button is-danger is-rounded" @click="warn">
+                        <span class="icon">
+                            <i class="far fa-trash-alt"></i>
+                        </span>
+                        <span>ลบรายวิชา</span>
+                    </a>
+                    {% endif %}
+                </div>
                 <h5 class="title is-size-4">ข้อมูลการจัดการเรียนการสอน</h5>
                 <table class="table is-striped is-fullwidth is-bordered">
                     <tr>
@@ -129,19 +151,25 @@
                                 <thead>
                                 <th>ชื่อ</th>
                                 <th>บทบาท</th>
+                                <th>ชั่วโมง</th>
                                 <th></th>
                                 </thead>
                                 <tbody>
-                                {% for inst in course.instructors %}
+                                {% for asc in course.course_instructor_associations %}
                                     <tr>
                                         <td>
-                                            <a href="{{ url_for('eduqa.show_hours_summary', instructor_id=inst.id) }}">
-                                                {{ inst.account.personal_info }}
+                                            <a href="{{ url_for('staff.show_teaching_hours_summary') }}">
+                                                {{ asc.instructor.account.personal_info }}
                                             </a>
                                         </td>
-                                        <td></td>
+                                        <td id="course_role">
+                                            {{ asc.role.role }}
+                                        </td>
                                         <td>
-                                            <a href="{{ url_for('eduqa.remove_instructor_from_list', course_id=course.id, instructor_id=inst.id) }}"
+                                          {{ asc.instructor|total_hours(course.id)}}
+                                        </td>
+                                        <td>
+                                            <a href="{{ url_for('eduqa.remove_instructor_from_list', course_id=course.id, instructor_id=asc.instructor.id) }}"
                                                class="is-danger button is-small is-rounded">
                                                 <span class="icon">
                                                     <i class="far fa-trash-alt"></i>
@@ -152,14 +180,21 @@
                                     </tr>
                                 {% endfor %}
                                     <tr>
-                                        <td colspan="3">
+                                        <td colspan="4">
                                             <div class="buttons is-centered">
                                                 <a href="{{ url_for('eduqa.add_instructor', course_id=course.id) }}"
-                                                   class="button is-link is-small is-rounded">
+                                                   class="button is-success is-rounded">
                                                 <span class="icon">
                                                    <i class="fas fa-user-plus"></i>
                                                 </span>
-                                                    <span>เพิ่ม</span>
+                                                    <span>instructor</span>
+                                                </a>
+                                                <a href="{{ url_for('eduqa.assign_roles', course_id=course.id) }}"
+                                                   class="is-info is-outlined button is-rounded">
+                                                <span class="icon">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </span>
+                                                    <span>roles</span>
                                                 </a>
                                             </div>
                                         </td>
@@ -231,6 +266,15 @@
                                                 <span>workpoint</span>
                                             </a>
                                             {% endif %}
+                                            {% if admin == instructor or admin == None %}
+                                            <a href="{{ url_for('eduqa.duplicate_session', course_id=course.id, session_id=s.id) }}"
+                                               class="button is-link is-rounded is-small is-light">
+                                                <span class="icon">
+                                                  <i class="far fa-copy"></i>
+                                                </span>
+                                                <span>duplicate</span>
+                                            </a>
+                                            {% endif %}
                                         </div>
                                     </td>
                                 </tr>
@@ -239,11 +283,11 @@
                                     <td colspan="6">
                                         <div class="buttons is-centered">
                                             <a href="{{ url_for('eduqa.add_session', course_id=course.id) }}"
-                                               class="button is-link is-small is-rounded">
+                                               class="button is-link is-rounded">
                                                 <span class="icon">
-                                                   <i class="fas fa-user-plus"></i>
+                                                    <i class="fas fa-plus"></i>
                                                 </span>
-                                                <span>เพิ่ม</span>
+                                                <span>session</span>
                                             </a>
                                         </div>
                                     </td>
@@ -254,7 +298,7 @@
                     </tr>
                 </table>
                 <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('eduqa.show_revision_detail', revision_id=course.revision.id) }}">
+                    <a class="button is-rounded is-light" href="{{ url_for('eduqa.show_revision_detail', revision_id=course.revision.id) }}">
                         Back
                     </a>
                 </div>

@@ -4,6 +4,7 @@ import time
 from dateutil import parser
 from flask_login import login_required, current_user
 from pandas import read_excel, isna, DataFrame
+from app.eduqa.models import EduQAInstructor, EduQACourseSession, EduQACurriculumnRevision
 
 from models import *
 from . import staffbp as staff
@@ -144,7 +145,8 @@ def show_leave_info():
     quota_days = defaultdict(float)
     pending_days = defaultdict(float)
     for req in current_user.leave_requests:
-        used_quota = current_user.personal_info.get_total_leaves(req.quota.id, tz.localize(START_FISCAL_DATE),
+        used_quota = current_user.personal_info.get_total_leaves(req.quota.id,
+                                                                 tz.localize(START_FISCAL_DATE),
                                                                  tz.localize(END_FISCAL_DATE))
         leave_type = unicode(req.quota.leave_type)
         cum_days[leave_type] = used_quota
@@ -239,10 +241,14 @@ def request_for_leave(quota_id=None):
                         resp.headers['HX-Redirect'] = request.referrer
                         return resp
                         # retrieve cum periods
-                    used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
-                                                                             tz.localize(END_FISCAL_DATE))
-                    pending_days = current_user.personal_info.get_total_pending_leaves_request \
-                        (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
+                    used_quota = current_user.personal_info \
+                            .get_total_leaves(quota.id,
+                                              tz.localize(START_FISCAL_DATE),
+                                              tz.localize(END_FISCAL_DATE))
+                    pending_days = current_user.personal_info \
+                            .get_total_pending_leaves_request(quota.id,
+                                                              tz.localize(START_FISCAL_DATE),
+                                                              tz.localize(END_FISCAL_DATE))
                     req_duration = get_weekdays(req)
                     holidays = Holidays.query.filter(and_(Holidays.holiday_date >= start_datetime.date(),
                                                           Holidays.holiday_date <= end_datetime.date())).all()
@@ -3443,3 +3449,103 @@ def show_qrcode():
 @login_required
 def pa_index():
     return render_template('staff/pa_index.html')
+
+
+@staff.route('/users/teaching-calendar')
+@login_required
+def teaching_calendar():
+    instructor = EduQAInstructor.query.filter_by(account=current_user).first()
+    year = request.args.get('year')
+    # revision = EduQACurriculumnRevision.query.get(revision_id)
+    data = []
+    years = set()
+    # for session in EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id)).all():
+    if instructor:
+        for session in instructor.sessions:
+            if session.course:
+                session_detail = session.details.filter_by(staff_id=current_user.id).first()
+                if session_detail:
+                    factor = session_detail.factor if session_detail.factor else 1
+                else:
+                    factor = 1
+                print(session.total_seconds * factor, session.total_seconds, factor)
+                d = {
+                        'course': '<a href="{}">{} ({}/{})</a>'.format(url_for('eduqa.show_course_detail', course_id=session.course.id),
+                                                                       session.course.en_code,
+                                                                       session.course.semester,
+                                                                       session.course.academic_year),
+                        'instructor': instructor.account.personal_info.fullname,
+                        'seconds': session.total_seconds * factor
+                    }
+                years.add(str(session.course.academic_year))
+                if year:
+                    if str(session.course.academic_year) == year:
+                        data.append(d)
+                else:
+                    data.append(d)
+        df = DataFrame(data)
+    else:
+        df = DataFrame(columns=['course', 'instructor', 'seconds'])
+    sum_hours = df.pivot_table(index='course',
+                               values='seconds',
+                               aggfunc='sum',
+                               margins=True).apply(lambda x: (x / 3600.0)).fillna('')
+    years = sorted(years)
+    return render_template('staff/teaching_calendar.html',
+                           year=year,
+                           instructor=instructor,
+                           sum_hours=sum_hours,
+                           years=years)
+
+
+@staff.route('/api/my-teaching-events')
+@login_required
+def get_my_teaching_events():
+    events = []
+    end = request.args.get('end')
+    start = request.args.get('start')
+    if start:
+        start = parser.isoparse(start)
+    if end:
+        end = parser.isoparse(end)
+    instructor = EduQAInstructor.query.filter_by(account=current_user).first()
+    for evt in instructor.sessions:
+        if evt.start >= start and evt.end <= end:
+            events.append(evt.to_event())
+    return jsonify(events)
+
+
+@staff.route('/users/teaching-hours/summary')
+def show_teaching_hours_summary():
+    instructor = EduQAInstructor.query.filter_by(account=current_user).first()
+    year = request.args.get('year')
+    # revision = EduQACurriculumnRevision.query.get(revision_id)
+    data = []
+    years = set()
+    # for session in EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id)).all():
+    for session in instructor.sessions:
+        if session.course:
+            d = {
+                    'course': '<a href="{}">{}</a>'.format(url_for('eduqa.show_course_detail', course_id=session.course.id), session.course.en_code),
+                    'instructor': instructor.account.personal_info.fullname,
+                    'seconds': session.total_seconds
+                }
+            years.add(str(session.course.academic_year))
+            if year:
+                if str(session.course.academic_year) == year:
+                    data.append(d)
+            else:
+                data.append(d)
+    df = DataFrame(data)
+    sum_hours = df.pivot_table(index='course',
+                               values='seconds',
+                               aggfunc='sum',
+                               margins=True).apply(lambda x: (x / 3600.0)).fillna('')
+    years = sorted(years)
+    return render_template('eduqa/QA/hours_summary.html',
+                           year=year,
+                           instructor=instructor,
+                           sum_hours=sum_hours,
+                           years=years)
+
+
