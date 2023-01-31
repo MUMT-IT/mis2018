@@ -8,6 +8,8 @@ from flask import url_for, render_template, redirect, flash, request, jsonify
 from flask_login import current_user, login_required
 from pytz import timezone
 
+from ..models import DataFile
+
 tz = timezone('Asia/Bangkok')
 
 
@@ -337,8 +339,16 @@ def add_datafile():
     dataset = Dataset.query.filter_by(reference=dataset_ref).first()
     update_datetime = datetime.datetime.fromtimestamp(data_file['update_datetime'])
     create_datetime = datetime.datetime.fromtimestamp(data_file['create_datetime'])
-    new_file = DataFile(name=data_file['name'], dataset=dataset,
-                        created_at=create_datetime, updated_at=update_datetime)
-    db.session.add(new_file)
+    _file = DataFile.query.filter_by(url=data_file['url']).first()
+    if not _file:
+        new_file = DataFile(name=data_file['name'],
+                            dataset=dataset,
+                            url=data_file['url'],
+                            created_at=create_datetime,
+                            updated_at=update_datetime)
+        db.session.add(new_file)
+    else:
+        _file.updated_at = update_datetime
+        db.session.add(_file)
     db.session.commit()
     return jsonify({'message': 'success'}), 201
