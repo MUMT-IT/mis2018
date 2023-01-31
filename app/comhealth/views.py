@@ -368,6 +368,7 @@ def edit_record(record_id):
         emptype_id = int(request.form.get('emptype_id', 0))
         department_id = int(request.form.get('department_id', 0))
         record.customer.emptype_id = emptype_id
+        record.note = request.form.get('note')
         if department_id > 0:
             record.customer.dept_id = department_id
 
