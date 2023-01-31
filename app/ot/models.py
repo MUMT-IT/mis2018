@@ -62,6 +62,7 @@ class OtCompensationRate(db.Model):
                                info={'label': u'เบิกซ้ำกับอันอื่นได้'})
     is_role_required = db.Column('is_role_required', db.Boolean(), info={'label': u'จำเป็นต้องระบุรายละเอียดตำแหน่ง'})
     is_count_in_mins = db.Column('is_count_in_mins', db.Boolean(), info={'label': u'คำนวณเป็นนาที'})
+    topup = db.Column('topup', db.Numeric(), default=0.0, info={'label': u'ค่าผลัด/เงินเพิ่ม'})
 
     def to_dict(self):
         return {
@@ -79,7 +80,7 @@ class OtCompensationRate(db.Model):
             'is_role_required': self.is_role_required,
         }
     def __str__(self):
-        return self.role
+        return u'{}: {}-{}'.format(self.role, self.start_time, self.end_time)
 
 
 class OtDocumentApproval(db.Model):
