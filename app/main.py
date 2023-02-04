@@ -179,11 +179,11 @@ class KPIAdminModel(ModelView):
                    'updated_at', 'updated_by', 'name')
 
 
+from app.models import *
+
 from app.events import event_bp as event_blueprint
 
 app.register_blueprint(event_blueprint, url_prefix='/events')
-
-from app.models import KPI
 
 admin.add_views(KPIAdminModel(KPI, db.session, category='KPI'))
 
@@ -195,7 +195,7 @@ from app.food import foodbp as food_blueprint
 
 app.register_blueprint(food_blueprint, url_prefix='/food')
 from app.food.models import (Person, Farm, Produce, PesticideTest,
-                         BactTest, ParasiteTest)
+                             BactTest, ParasiteTest)
 
 admin.add_views(ModelView(Person, db.session, category='Food'))
 admin.add_views(ModelView(Farm, db.session, category='Food'))
@@ -359,10 +359,6 @@ from app.roles import admin_permission
 
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-from app.models import (Student, Class, ClassCheckIn,
-                    Org, Mission, IOCode, CostCenter,
-                    StudentCheckInRecord, Holidays)
-
 admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
 
 from app.line import linebot_bp as linebot_blueprint
@@ -371,19 +367,7 @@ app.register_blueprint(linebot_blueprint, url_prefix='/linebot')
 
 from app import database
 
-
-class StudentCheckInAdminModel(ModelView):
-    can_create = True
-    form_columns = ('id', 'classchk', 'check_in_time', 'check_in_status', 'elapsed_mins')
-    column_list = ('id', 'classchk', 'check_in_time', 'check_in_status', 'elapsed_mins')
-
-
 admin.add_view(ModelView(Student, db.session, category='Student Affairs'))
-admin.add_view(ModelView(ClassCheckIn, db.session, category='Student Affairs'))
-admin.add_view(ModelView(Class, db.session, category='Student Affairs'))
-admin.add_view(StudentCheckInAdminModel(
-    StudentCheckInRecord, db.session, category='Student Affairs'))
-
 admin.add_view(ModelView(Org, db.session, category='Organization'))
 admin.add_view(ModelView(Mission, db.session, category='Organization'))
 
@@ -519,8 +503,8 @@ from app.smartclass_scheduler import smartclass_scheduler_blueprint
 
 app.register_blueprint(smartclass_scheduler_blueprint, url_prefix='/smartclass')
 from app.smartclass_scheduler.models import (SmartClassOnlineAccount,
-                                         SmartClassResourceType,
-                                         SmartClassOnlineAccountEvent)
+                                             SmartClassResourceType,
+                                             SmartClassOnlineAccountEvent)
 
 admin.add_view(ModelView(SmartClassOnlineAccount, db.session, category='Smartclass'))
 admin.add_view(ModelView(SmartClassResourceType, db.session, category='Smartclass'))
@@ -590,6 +574,7 @@ from app.scb_payment_service.models import *
 
 admin.add_view(ModelView(ScbPaymentServiceApiClientAccount, db.session, category='SCB Payment Service'))
 admin.add_view(ModelView(ScbPaymentRecord, db.session, category='SCB Payment Service'))
+
 
 # Commands
 
@@ -713,7 +698,8 @@ def import_procurement_data():
         idx, row = record
         item = ProcurementDetail.query.filter_by(procurement_no=str(row['procurement_no'])).first()
         if row['purchasing_type_id']:
-            purchasing_type = ProcurementPurchasingType.query.filter_by(fund=int(str(row['purchasing_type_id'])[0])).first()
+            purchasing_type = ProcurementPurchasingType.query.filter_by(
+                fund=int(str(row['purchasing_type_id'])[0])).first()
         else:
             purchasing_type = None
         if not item:
@@ -888,28 +874,6 @@ def import_students(excelfile):
 
 
 app.cli.add_command(dbutils)
-
-
-@app.cli.command()
-def populate_classes():
-    klass = Class(refno='MTID101',
-                  th_class_name=u'การเรียนรู้เพื่อการเปลี่ยงแปลงสำหรับ MT',
-                  en_class_name='Transformative learning for MT',
-                  academic_year='2560')
-    db.session.add(klass)
-    db.session.commit()
-
-
-@app.cli.command()
-def populate_checkin():
-    class_checkin = ClassCheckIn(
-        class_id=1,
-        deadline='10:00:00',
-        late_mins=15,
-    )
-    db.session.add(class_checkin)
-    db.session.commit()
-
 
 from app.database import load_provinces, load_districts, load_subdistricts
 
@@ -1174,7 +1138,7 @@ def update_cumulative_leave_quota(year1, year2):
 
             start_fiscal_date = tz.localize(datetime(int(year1), 10, 1))
             end_fiscal_date = tz.localize(datetime(int(year2), 9, 30))
-            used_quota.pending_days = used_quota.staff.personal_info\
+            used_quota.pending_days = used_quota.staff.personal_info \
                 .get_total_pending_leaves_request(quota.id, start_fiscal_date, end_fiscal_date)
 
         db.session.add(used_quota)
@@ -1191,19 +1155,19 @@ def calculate_remain_leave_used_quota(currentdate):
             start_fiscal_date, end_fiscal_date = get_fiscal_date(date_time)
 
             quota = StaffLeaveQuota.query.filter_by(employment=staff.personal_info.employment,
-                                                        leave_type=type).first()
+                                                    leave_type=type).first()
             pending_days = staff.personal_info.get_total_pending_leaves_request(quota.id,
-                                                                                    tz.localize(start_fiscal_date),
-                                                                                    tz.localize(end_fiscal_date))
-            total_leave_days = staff.personal_info.get_total_leaves(quota.id,tz.localize(start_fiscal_date),
-                                                                        tz.localize(end_fiscal_date))
+                                                                                tz.localize(start_fiscal_date),
+                                                                                tz.localize(end_fiscal_date))
+            total_leave_days = staff.personal_info.get_total_leaves(quota.id, tz.localize(start_fiscal_date),
+                                                                    tz.localize(end_fiscal_date))
             delta = staff.personal_info.get_employ_period()
             max_cum_quota = staff.personal_info.get_max_cum_quota_per_year(quota)
             if delta.years > 0:
                 if max_cum_quota:
                     last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff,
-                                                                              fiscal_year=end_fiscal_date.year-1,
-                                                                              leave_type=type).first()
+                                                                          fiscal_year=end_fiscal_date.year - 1,
+                                                                          leave_type=type).first()
                     if last_used_quota:
                         remaining_days = last_used_quota.quota_days - last_used_quota.used_days
                     else:
@@ -1216,14 +1180,14 @@ def calculate_remain_leave_used_quota(currentdate):
                 quota_limit = quota.first_year
 
             used_quota = StaffLeaveUsedQuota(leave_type_id=type.id,
-                                                 staff_account_id=staff.id,
-                                                 fiscal_year=end_fiscal_date.year,
-                                                 used_days=total_leave_days + pending_days,
-                                                 pending_days=pending_days,
-                                                 quota_days=quota_limit)
+                                             staff_account_id=staff.id,
+                                             fiscal_year=end_fiscal_date.year,
+                                             used_days=total_leave_days + pending_days,
+                                             pending_days=pending_days,
+                                             quota_days=quota_limit)
             db.session.add(used_quota)
             db.session.commit()
-            print (used_quota.leave_type_id, used_quota.used_days, used_quota.pending_days, used_quota.quota_days)
+            print(used_quota.leave_type_id, used_quota.used_days, used_quota.pending_days, used_quota.quota_days)
 
 
 if __name__ == '__main__':
