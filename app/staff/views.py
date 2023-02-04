@@ -6,7 +6,7 @@ from flask_login import login_required, current_user
 from pandas import read_excel, isna, DataFrame
 from app.eduqa.models import EduQAInstructor, EduQACourseSession, EduQACurriculumnRevision
 
-from models import *
+from app.staff.models import *
 from . import staffbp as staff
 from app.main import db, get_weekdays, mail, app, csrf
 from app.models import Holidays, Org
@@ -26,7 +26,7 @@ import gviz_api
 import os
 from flask_mail import Message
 from flask_admin import BaseView, expose
-from itsdangerous import TimedJSONWebSignatureSerializer
+from itsdangerous import TimedSerializer as TimedJSONWebSignatureSerializer
 import qrcode
 from app.staff.forms import StaffSeminarForm, create_seminar_attend_form
 from app.roles import admin_permission, hr_permission

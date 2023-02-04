@@ -10,15 +10,15 @@ from . import docbp
 from flask_login import current_user, login_required
 from flask import render_template, url_for, request, flash, redirect, jsonify
 from pytz import timezone
-from forms import *
+from app.doc_circulation.forms import *
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from app.models import Org
-from ..auth.views import line_bot_api
+from app.auth.views import line_bot_api
 from linebot.models import *
 from flask_mail import Message
 
-from ..main import mail
+from app.main import mail
 
 bkk = timezone('Asia/Bangkok')
 

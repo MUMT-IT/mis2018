@@ -129,7 +129,6 @@ class ProcurementApprovalForm(ModelForm):
 
     checking_result = RadioField(u'ยืนยัน',
                          choices=[(c, c) for c in [u'ตรวจสอบครุภัณฑ์ถูกต้อง', u'ตรวจสอบครุภัณฑ์ไม่ถูกต้อง']],
-                         coerce=unicode,
                          validators=[DataRequired()])
 
 

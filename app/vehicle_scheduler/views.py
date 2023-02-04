@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
-
 import dateutil
 import requests
 from flask_login import login_required
-
 from . import vehiclebp as vehicle
 from datetime import datetime
 from flask import jsonify, render_template, redirect, flash, url_for, request, abort
-from models import *
+from app.vehicle_scheduler.models import *
 from .forms import VehicleBookingForm
 from google.oauth2.service_account import Credentials
 

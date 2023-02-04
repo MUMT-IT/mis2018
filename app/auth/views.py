@@ -11,7 +11,7 @@ from flask_login import login_user, current_user, logout_user, login_required
 from flask_principal import Identity, identity_changed, AnonymousIdentity, identity_loaded, UserNeed
 from app.staff.models import StaffAccount, StaffLeaveApprover
 from .forms import LoginForm, ForgotPasswordForm, ResetPasswordForm
-from itsdangerous import TimedJSONWebSignatureSerializer
+from itsdangerous import TimedSerializer as TimedJSONWebSignatureSerializer
 import requests
 from linebot import (LineBotApi, WebhookHandler)
 

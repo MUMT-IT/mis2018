@@ -1,7 +1,7 @@
 import secrets
 import string
 from sqlalchemy import func
-from werkzeug import generate_password_hash, check_password_hash
+from werkzeug.security import generate_password_hash
 
 from app.main import db
 

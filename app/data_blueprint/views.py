@@ -3,14 +3,13 @@ import datetime
 
 from . import data_bp
 from app.main import db, csrf
-from app.models import DataFile, DataTag
-from forms import *
+from app.data_blueprint.forms import *
 from flask import url_for, render_template, redirect, flash, request, jsonify
 from flask_login import current_user, login_required
 from pytz import timezone
 
-from ..models import DataFile, DataTag
-from ..staff.models import StaffAccount
+from app.models import DataFile, DataTag
+from app.staff.models import StaffAccount
 
 tz = timezone('Asia/Bangkok')
 

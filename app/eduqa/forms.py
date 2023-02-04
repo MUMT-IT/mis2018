@@ -4,8 +4,7 @@ from flask_wtf import FlaskForm
 from wtforms import SelectMultipleField, widgets, FieldList, FormField, IntegerField, HiddenField
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField, ModelFormField, \
     ModelFieldList
-from app.main import db
-from models import *
+from app.eduqa.models import *
 from app.staff.models import (StaffAcademicPositionRecord,
                               StaffAcademicPosition,
                               StaffEduDegree)

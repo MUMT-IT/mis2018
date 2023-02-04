@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 import textwrap
-from main import db, ma
+from app.main import db, ma
 from sqlalchemy.sql import func
 
 
@@ -201,7 +201,7 @@ class Subdistrict(db.Model):
                             db.ForeignKey('districts.id'))
 
 
-class KPISchema(ma.ModelSchema):
+class KPISchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = KPI
 
@@ -272,7 +272,7 @@ class IOCode(db.Model):
         }
 
 
-class OrgSchema(ma.ModelSchema):
+class OrgSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Org
 

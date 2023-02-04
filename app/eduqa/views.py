@@ -5,10 +5,9 @@ from datetime import datetime
 from flask import render_template, request, flash, redirect, url_for, session, jsonify
 from flask_login import current_user, login_required
 from sqlalchemy.orm import make_transient
-from wtforms import Label
 
 from . import eduqa_bp as edu
-from forms import *
+from app.eduqa.forms import *
 from ..staff.models import StaffPersonalInfo
 
 from pytz import timezone

@@ -3,7 +3,7 @@ import os
 import requests
 from flask import jsonify, request, render_template
 from flask_jwt_extended import (create_access_token, get_jwt_identity, jwt_required, get_current_user,
-                                create_refresh_token, jwt_refresh_token_required)
+                                create_refresh_token)
 from werkzeug.security import check_password_hash
 
 from . import scb_payment
@@ -70,7 +70,7 @@ def login():
 
 
 @scb_payment.route('/api/v1.0/refresh', methods=['POST'])
-@jwt_refresh_token_required
+@jwt_required(refresh=True)
 @csrf.exempt
 def refresh():
     current_user = get_jwt_identity()
@@ -81,7 +81,7 @@ def refresh():
 
 
 @scb_payment.route('/api/v1.0/qrcode/create', methods=['POST'])
-@jwt_required
+@jwt_required()
 @csrf.exempt
 def create_qrcode():
     # TODO: set expiration time to 60 minutes.
@@ -126,7 +126,7 @@ def confirm_payment():
 
 
 @scb_payment.route('/api/v1.0/test-login')
-@jwt_required  # jwt_required has changed to jwt_required() in >=4.0
+@jwt_required()  # jwt_required has changed to jwt_required() in >=4.0
 def test_login():
     current_user = get_current_user()  # return an account object from the user_loader_callback_loader
     return jsonify(logged_in_as=current_user.account_id), 200
