@@ -2,7 +2,7 @@
 
 {% block head %}
 {{ super() }}
-<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 
 {% block page_content %}
@@ -21,21 +21,21 @@
                     {{ form.hidden_tag() }}
                     <div class="field">
                         <label class="label">{{ form.status.label }}</label>
-                        <div class="select is-fullwidth is-info">
-                            {{ form.status() }}
+                        <div>
+                            {{ form.status(class="select") }}
                         </div>
                     </div>
                     <div class="field">
                         <label class="label">{{ form.location.label }}</label>
-                        <div class="select is-fullwidth is-info">
-                            {{ form.location() }}
+                        <div >
+                            {{ form.location(class="select") }}
                         </div>
                         <p class="help is-danger">Required</p>
                     </div>
                     <br>
                 <div class="buttons is-centered">
-                    <a href="{{ url_for('procurement.view_procurement') }}" class="button is-light">Back</a>
                     <input type="submit" class="button is-success" value="Submit"></input>
+                    <a href="{{ url_callback }}" class="button is-danger">ยกเลิก</a>
                 </div>
                  </form>
                 </div>
@@ -43,4 +43,16 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+       $(document).ready(() => {
+            $('select').select2({
+                  placeholder: 'select..',
+                  allowClear: true
+                });
+        });
+    </script>
 {% endblock %}

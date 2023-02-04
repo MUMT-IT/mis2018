@@ -5,6 +5,7 @@ from datetime import datetime
 from flask import render_template, request, flash, redirect, url_for, session, jsonify
 from flask_login import current_user, login_required
 from sqlalchemy.orm import make_transient
+from wtforms import Label
 
 from . import eduqa_bp as edu
 from forms import *
@@ -236,17 +237,21 @@ def show_revision_detail(revision_id):
         session['display_my_courses_only'] = display_my_courses_only
     revision = EduQACurriculumnRevision.query.get(revision_id)
     instructor = EduQAInstructor.query.filter_by(account=current_user).first()
-    print(display_my_courses_only)
     if instructor and display_my_courses_only == 'true':
         display_my_courses_only = True
-        courses = [c for c in revision.courses if c in instructor.courses]
+        courses = [c.course for c in EduQACourseInstructorAssociation.query.filter_by(instructor=instructor)
+                   if c.course in revision.courses]
     elif not instructor or display_my_courses_only == 'false':
         display_my_courses_only = False
         courses = revision.courses
+
+    my_courses = [c.course for c in EduQACourseInstructorAssociation.query.filter_by(instructor=instructor)
+                  if c.course in revision.courses]
     return render_template('eduqa/QA/curriculum_revision_detail.html',
                            revision=revision,
                            display_my_course_only=display_my_courses_only,
                            instructor=instructor,
+                           my_courses=my_courses,
                            courses=courses)
 
 
@@ -347,7 +352,19 @@ def copy_course(course_id):
 @login_required
 def show_course_detail(course_id):
     course = EduQACourse.query.get(course_id)
-    return render_template('eduqa/QA/course_detail.html', course=course)
+    admin = None
+    instructor = None
+    instructor_role = None
+    for asc in course.course_instructor_associations:
+        if asc.role and asc.role.admin:
+            admin = asc.instructor
+        if asc.instructor.account == current_user:
+            instructor = asc.instructor
+            instructor_role = asc.role
+    return render_template('eduqa/QA/course_detail.html', course=course,
+                           instructor=instructor,
+                           admin=admin,
+                           instructor_role=instructor_role)
 
 
 @edu.route('/qa/courses/<int:course_id>/instructors/add')
@@ -364,7 +381,7 @@ def add_instructor_to_list(course_id, account_id):
     instructor = EduQAInstructor.query.filter_by(account_id=account_id).first()
     if not instructor:
         instructor = EduQAInstructor(account_id=account_id)
-    course.instructors.append(instructor)
+    course.course_instructor_associations.append(EduQACourseInstructorAssociation(instructor=instructor))
     course.updater = current_user
     course.updated_at = localtz.localize(datetime.now())
     db.session.add(instructor)
@@ -373,6 +390,30 @@ def add_instructor_to_list(course_id, account_id):
     flash(u'เพิ่มรายชื่อผู้สอนเรียบร้อยแล้ว', 'success')
     return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
 
+
+@edu.route('/qa/courses/<int:course_id>/instructors/roles/assignment', methods=['GET', 'POST'])
+@login_required
+def assign_roles(course_id):
+    course = EduQACourse.query.get(course_id)
+    form = EduCourseInstructorRoleForm()
+    if form.validate_on_submit():
+        for form_field in form.roles:
+            course_inst = EduQACourseInstructorAssociation.query\
+                .filter_by(course_id=course_id).filter_by(instructor_id=int(form_field.instructor_id.data)).first()
+            course_inst.role = form_field.role.data
+            db.session.add(course_inst)
+        db.session.commit()
+        return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
+
+    for asc in course.course_instructor_associations:
+        form.roles.append_entry(asc)
+        if asc.instructor.account == current_user:
+            instructor = asc.instructor
+            instructor_role = asc.role
+        else:
+            instructor = None
+            instructor_role = None
+    return render_template('eduqa/QA/role_edit.html', course=course, instructor=instructor, form=form)
 
 @edu.route('/qa/courses/<int:course_id>/instructors/remove/<int:instructor_id>')
 @login_required
@@ -450,6 +491,34 @@ def edit_session(course_id, session_id):
     return render_template('eduqa/QA/session_edit.html', form=form, course=course, localtz=localtz)
 
 
+@edu.route('/qa/courses/<int:course_id>/sessions/<int:session_id>/duplicate', methods=['GET', 'POST'])
+@login_required
+def duplicate_session(course_id, session_id):
+    course = EduQACourse.query.get(course_id)
+    a_session = EduQACourseSession.query.get(session_id)
+    new_session = EduQACourseSession(
+            course_id=course_id,
+            start=a_session.start,
+            end=a_session.end,
+            type_=a_session.type_,
+            desc=a_session.desc,
+            instructors=a_session.instructors,
+            format=a_session.format,
+            )
+    for topic in a_session.topics:
+        new_topic = EduQACourseSessionTopic(
+                topic=topic.topic,
+                method=topic.method,
+                )
+        new_session.topics.append(new_topic)
+        db.session.add(new_topic)
+
+    db.session.add(new_session)
+    db.session.commit()
+    flash(u'เพิ่มรายการสอนเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('eduqa.show_course_detail', course_id=course.id))
+
+
 @edu.route('/qa/sessions/<int:session_id>')
 @login_required
 def delete_session(session_id):
@@ -464,10 +533,152 @@ def delete_session(session_id):
     return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
 
 
-@edu.route('/qa/hours/<int:instructor_id>')
-def show_hours_summary(instructor_id):
+@edu.route('/qa/courses/<int:course_id>/sessions/<int:session_id>/detail/add', methods=['GET', 'POST'])
+@login_required
+def add_session_detail(course_id, session_id):
+    course = EduQACourse.query.get(course_id)
+    a_session = EduQACourseSession.query.get(session_id)
+    session_detail = EduQACourseSessionDetail.query\
+        .filter_by(session_id=session_id, staff_id=current_user.id).first()
+    EduCourseSessionDetailForm = CourseSessionDetailFormFactory(a_session.type_)
+    factor = 1
+    if session_detail:
+        form = EduCourseSessionDetailForm(obj=session_detail)
+        factor = session_detail.factor if session_detail.factor else 1
+    else:
+        form = EduCourseSessionDetailForm()
+
+    if form.validate_on_submit():
+        if session_detail:
+            form.populate_obj(session_detail)
+            db.session.add(session_detail)
+            db.session.commit()
+            flash(u'แก้ไขรายละเอียดการสอนเรียบร้อยแล้ว', 'success')
+        else:
+            new_detail = EduQACourseSessionDetail()
+            form.populate_obj(new_detail)
+            new_detail.session_id = session_id
+            new_detail.staff_id = current_user.id
+            db.session.add(new_detail)
+            db.session.commit()
+            flash(u'เพิ่มรายละเอียดการสอนเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
+    return render_template('eduqa/QA/staff/session_detail_edit.html',
+                           form=form, course=course, a_session=a_session, factor=factor)
+
+
+@edu.route('/qa/courses/<int:course_id>/sessions/<int:session_id>/instructor/<int:instructor_id>/detail')
+@login_required
+def view_session_detail(session_id, course_id, instructor_id):
     instructor = EduQAInstructor.query.get(instructor_id)
-    return render_template('eduqa/QA/hours_summary.html', instructor=instructor)
+    a_session = EduQACourseSession.query.get(session_id)
+    course = EduQACourse.query.get(course_id)
+    session_detail = EduQACourseSessionDetail.query.filter_by(staff_id=current_user.id, session_id=session_id).first()
+    return render_template('eduqa/QA/staff/session_detail_view.html',
+                           instructor=instructor,
+                           course=course,
+                           session_detail=session_detail, a_session=a_session)
+
+
+@edu.route('/api/qa/courses/<int:course_id>/sessions/topics', methods=['POST'])
+@login_required
+def add_session_topic(course_id):
+    course = EduQACourse.query.get(course_id)
+    EduCourseSessionForm = create_instructors_form(course)
+    form = EduCourseSessionForm()
+    form.topics.append_entry()
+    topic_form = form.topics[-1]
+    template = u"""
+        <div class="field">
+            <label class="label">{} {}</label>
+            <div class="control">
+                {}
+            </div>
+        </div>
+    """
+    return template.format(topic_form.topic.label,
+                           len(form.topics),
+                           topic_form.topic(class_="input"))
+
+
+@edu.route('/api/qa/courses/<int:course_id>/sessions/topics', methods=['DELETE'])
+@login_required
+def delete_session_topic(course_id):
+    course = EduQACourse.query.get(course_id)
+    EduCourseSessionForm = create_instructors_form(course)
+    form = EduCourseSessionForm()
+    if len(form.topics) > 1:
+        form.topics.pop_entry()
+    template = ''
+    for n, topic in enumerate(form.topics, start=1):
+        template += u"""
+            <div class="field">
+                <label class="label">{} {}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+        """.format(topic.topic.label, n, topic.topic(class_="input"))
+    return template
+
+
+@edu.route('/api/qa/courses/<int:course_id>/sessions/<int:session_id>/roles', methods=['POST'])
+@login_required
+def add_session_role(course_id, session_id):
+    session = EduQACourseSession.query.get(session_id)
+    EduCourseSessionDetailForm = CourseSessionDetailFormFactory(session.type_)
+    form = EduCourseSessionDetailForm()
+    form.roles.append_entry()
+    role_form = form.roles[-1]
+    template = u"""
+        <div class="field">
+            <label class="label">{}</label>
+            <div class="select">
+                {}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{}</label>
+            <div class="control">
+                {}
+            </div>
+        </div>
+    """
+    return template.format(role_form.role_item.label,
+                           role_form.role_item(),
+                           role_form.detail.label,
+                           role_form.detail(class_="textarea"))
+
+
+@edu.route('/api/qa/courses/<int:course_id>/sessions/<int:session_id>/roles', methods=['DELETE'])
+@login_required
+def delete_session_role(course_id, session_id):
+    session = EduQACourseSession.query.get(session_id)
+    EduCourseSessionDetailForm = CourseSessionDetailFormFactory(session.type_)
+    form = EduCourseSessionDetailForm()
+    if len(form.roles) > 1:
+        form.roles.pop_entry()
+
+    template = ''
+    for n, role_form in enumerate(form.roles, start=1):
+        template += u"""
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="select">
+                    {}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+        """.format(role_form.role_item.label,
+                   role_form.role_item(),
+                   role_form.detail.label,
+                   role_form.detail(class_="textarea"))
+    return template
 
 
 @edu.route('/qa/revisions/<int:revision_id>/summary/hours')
@@ -476,9 +687,14 @@ def show_hours_summary_all(revision_id):
     data = []
     for session in EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id)).all():
         for instructor in session.instructors:
+            session_detail = session.details.filter_by(staff_id=instructor.account_id).first()
+            if session_detail:
+                factor = session_detail.factor if session_detail.factor else 1
+            else:
+                factor = 1
             d = {'course': session.course.en_code,
                  'instructor': instructor.account.personal_info.fullname,
-                 'seconds': session.total_seconds
+                 'seconds': session.total_seconds * factor
                  }
             data.append(d)
     df = pd.DataFrame(data)

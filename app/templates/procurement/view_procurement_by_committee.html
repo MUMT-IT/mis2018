@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+{% endblock %}
 {% block page_content %}
 <section class="section">
     {% include "messages.html" %}
@@ -16,6 +20,55 @@
                  </a></h1>
             </div>
         </div>
+{#        <div class="columns">#}
+{#                <div class="column is-half is-offset-one-quarter">#}
+{#                    <form method="post">#}
+{#                        {{ form.hidden_tag() }}#}
+{#                        <div class="field-body">#}
+{#                            <div class="field">#}
+{#                                <label class="label">วันเริ่มตรวจสอบ</label>#}
+{#                                <div class="control">#}
+{#                                    {{ form.updated_at(class="input") }}#}
+{#                                </div>#}
+{#                            </div>#}
+{#                            <div class="field">#}
+{#                                <label class="label">วันสิ้นสุดการตรวจสอบ</label>#}
+{#                                <div class="control">#}
+{#                                    {{ form.updated_at(class="input") }}#}
+{#                                </div>#}
+{#                            </div>#}
+{#                            <div class="field">#}
+{#                                <label class="label"></label><br>#}
+{#                                <div class="control">#}
+{#                                    <input class="button is-success" type="submit" value="ค้นหาข้อมูล">#}
+{#                                </div>#}
+{#                            </div>#}
+{#                        </div>#}
+{#                        <br>#}
+{#                        <div class="field is-grouped is-grouped-centered">#}
+{#                            <div class="control">#}
+{#                                <a class="button is-warning"#}
+{#                                        {% if start_date and end_date %}#}
+{#                                   href="{{ url_for('procurement.report_info_download', start_date=start_date.strftime('%Y-%m-%d'), end_date=end_date.strftime('%Y-%m-%d')) }}"#}
+{#                                        {% else %}#}
+{#                                   href="{{ url_for('procurement.report_info_download') }}"#}
+{#                                        {% endif %}#}
+{#                                >#}
+{#                                    <span class="icon"><i class="fas fa-download"></i></span>#}
+{#                                    <span>Download</span>#}
+{#                                </a>#}
+{#                            </div>#}
+{#                            <div class="control">#}
+{#                                <a class="button is-danger"#}
+{#                                   href="{{ url_for('procurement.view_procurement_by_committee') }}">#}
+{#                                    <span class="icon"><i class="fas fa-redo-alt"></i></span>#}
+{#                                    <span>Refresh</span>#}
+{#                                </a>#}
+{#                            </div>#}
+{#                        </div>#}
+{#                    </form>#}
+{#                </div>#}
+{#            </div>#}
         <div class="columns">
             <div class="column">
                 <table class="table is-fullwidth is-striped" id="proCommitteeTable">
@@ -23,9 +76,7 @@
                         <th>รายการ</th>
                         <th>รหัสครุภัณฑ์</th>
                         <th>ERP</th>
-                        <th>ปีงบประมาณ</th>
-                        <th>วันที่ได้รับ</th>
-                        <th>สถานะ</th>
+                        <th>วัน-เวลาที่ตรวจ</th>
                         <th>ผลการตรวจสอบ</th>
                         <th>ชื่อผู้ตรวจสอบ</th>
                         <th>สถานะ</th>
@@ -51,6 +102,8 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+
     <script>
         $(document).ready(function () {
             $('#proCommitteeTable').DataTable({
@@ -60,9 +113,7 @@
                     {data: 'name'},
                     {data: 'procurement_no'},
                     {data: 'erp_code'},
-                    {data: 'budget_year'},
-                    {data: 'received_date'},
-                    {data: 'available'},
+                    {data: 'updated_at'},
                     {data: 'checking_result'},
                     {data: 'approver'},
                     {data: 'status'},
@@ -72,4 +123,22 @@
             });
         });
     </script>
+    <script>
+        $(document).ready(function () {
+            $('input[name="update_at"]').daterangepicker({
+                singleDatePicker: true,
+                locale: {
+                    format: 'DD-MM-YYYY'
+                }
+            })
+            $('input[name="update_at"]').daterangepicker({
+                singleDatePicker: true,
+                locale: {
+                    format: 'DD-MM-YYYY'
+                }
+            })
+        });
+    </script>
 {% endblock %}
+
+}

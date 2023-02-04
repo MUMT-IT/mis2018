@@ -82,21 +82,18 @@
             color: var(--textLight);
             margin-right: 1rem;
         }
+
     </style>
 {% endblock %}
 {% block page_content %}
+    <!DOCTYPE html>
     <section class="container">
         <div class="columns is-multiline">
             <div class="column is-8 is-offset-2 register">
-                <a href="/">
-                    <span class="icon">
-                        <i class="fas fa-chevron-circle-left"></i>
-                    </span>
-                </a>
                 <div class="columns">
                     <div class="column left">
                         <img src="{{ url_for('static', filename='img/vender_managment.jpg') }}" width="750"/>
-                        <h1 class="title is-1">Procurement</h1>
+                        <h2 class="title is-2">Procurement</h2>
                         <h2 class="subtitle colored is-4">ระบบครุภัณฑ์และซ่อมบำรุง</h2>
                     </div>
                     <div class="column">
@@ -134,7 +131,11 @@
                                     </a>
                                 </span>
                             </p>
+                            <div class="buttons is-right">
+                                <a href="/" class="button is-light">หน้าหลัก</a>
+                            </div>
                         </nav>
+                    </div>
                 </div>
             </div>
             <div class="column is-8 is-offset-2">

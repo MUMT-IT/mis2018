@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "staff/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column">
+              <h1 class="title has-text-centered">ตารางสอน</h1>
+              <div class="buttons is-centered">
+                <a class="button is-rounded is-light is-link" href="{{ url_for('eduqa.show_curriculums') }}">
+                    <span class="panel-icon">
+                      <i class="fas fa-pencil-alt has-text-link"></i>
+                    </span>
+                    <span class="is-size-5">บันทึกภาระงานสอน</span><br>
+                </a>
+              </div>
+              <div id="calendar"></div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <h1 class="title has-text-centered">ชั่วโมงสอน</h1>
+                <div class="field">
+                  <label class="label">ปีการศึกษา</label>
+                  <div class="select">
+                    <select id="academicYear">
+                      <option value="">All</option>
+                      {% for yr in years %}
+                      <option value={{ yr }} {% if year == yr %} selected {% endif %}>{{ yr }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+                <table class="table is-fullwidth is-striped" id="instructors">
+                    <thead>
+                      <th>รายวิชา</th>
+                      <th>จำนวนชั่วโมง</th>
+                    </thead>
+                    <tbody>
+                      {% for idx, row in sum_hours.iterrows() %}
+                      <tr>
+                          <td>{{ idx|safe }}</td>
+                          {% for c in row %}
+                          <td>{{ c }}</td>
+                          {% endfor %}
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{super()}}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.0.0/index.global.min.js"></script>
+<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  $(document).ready(function() {
+    $('#instructors').DataTable({
+        "pageLength": 20,
+    });
+    $('#academicYear').change(()=>{
+      window.location = '/staff/users/teaching-calendar?year=' + $('#academicYear').val()
+    })
+    let calendarEl = document.getElementById('calendar');
+    let calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      events: "{{url_for('staff.get_my_teaching_events')}}",
+      eventClick: function(info) {
+        Swal.fire({
+          title: info.event.title,
+          html: info.event.extendedProps.name + '<br>' + info.event.start.toLocaleString() + ' - ' + info.event.end.toLocaleString(),
+          footer: '<a href="/eduqa/qa/courses/' + info.event.extendedProps.course_id + '/sessions/' + info.event.id + '/detail/add">จัดการข้อมูลภาระงานสอน</a>'
+        })
+      }
+    });
+    calendar.render();
+  });
+  document.addEventListener('DOMContentLoaded', function() {
+  });
+</script>
+{% endblock %}

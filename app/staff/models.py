@@ -105,8 +105,8 @@ class StaffAccount(db.Model):
         return self.__password_hash != None
 
     @property
-    def is_active(self):
-        return self.personal_info.retired != True
+    def is_retired(self):
+        return self.personal_info.retired is True
 
     @property
     def password(self):
@@ -160,6 +160,7 @@ class StaffPersonalInfo(db.Model):
     finger_scan_id = db.Column('finger_scan_id', db.Integer)
     academic_staff = db.Column('academic_staff', db.Boolean())
     retired = db.Column('retired', db.Boolean(), default=False)
+    position = db.Column('position', db.String(), info={'label': u'ตำแหน่ง'})
 
     def __str__(self):
         return self.fullname
@@ -376,8 +377,10 @@ class StaffLeaveUsedQuota(db.Model):
     used_days = db.Column('used_days', db.Float())
     pending_days = db.Column('pending_days', db.Float(), default=0)
     quota_days = db.Column('quota_days', db.Float())
-    staff = db.relationship('StaffAccount', backref=db.backref('leave_used_quota'), foreign_keys=[staff_account_id])
+    staff = db.relationship('StaffAccount', backref=db.backref('leave_used_quota', lazy='dynamic'),
+                            foreign_keys=[staff_account_id])
     leave_type = db.relationship('StaffLeaveType', backref=db.backref('type_used_quota'))
+
 
 class StaffLeaveRequest(db.Model):
     __tablename__ = 'staff_leave_requests'

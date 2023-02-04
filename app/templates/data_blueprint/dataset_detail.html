@@ -22,6 +22,16 @@
                         <td>{{ dataset.desc }}</td>
                     </tr>
                     <tr>
+                        <td>คำสำคัญ</td>
+                        <td>
+                          {% for tag in dataset.tags %}
+                          <span class="tag is-light is-info is-medium is-rounded">
+                            {{tag.tag}}
+                          </span>
+                          {% endfor %}
+                        </td>
+                    </tr>
+                    <tr>
                         <td>ข้อมูลส่วนบุคคล</td>
                         <td>
                             {% if dataset.personal %}
@@ -102,6 +112,27 @@
                                     </div>
                                 </div>
                             </form>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>รายการไฟล์</td>
+                        <td>
+                            <table>
+                                <thead>
+                                <th>Name</th>
+                                <th>Updated At</th>
+                                <th>Created At</th>
+                                <th>URL</th>
+                                </thead>
+                                {% for fn in dataset.files %}
+                                <tr>
+                                    <td>{{ fn.name }}</td>
+                                    <td>{{ fn.updated_at|localdatetime }}</td>
+                                    <td>{{ fn.created_at|localdatetime }}</td>
+                                    <td></td>
+                                </tr>
+                                {% endfor %}
+                            </table>
                         </td>
                     </tr>
                 </table>

@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+import base64
 import os
 import click
 import arrow
@@ -20,6 +21,8 @@ from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
 from wtforms.validators import InputRequired
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
 from flask_mail import Mail
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -83,7 +86,8 @@ def create_app():
     app.config['MAIL_USE_TLS'] = True
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-    app.config['MAIL_DEFAULT_SENDER'] = ('MUMT-MIS', os.environ.get('MAIL_USERNAME'))
+    app.config['MAIL_DEFAULT_SENDER'] = ('MUMT-MIS',
+                                         os.environ.get('MAIL_USERNAME'))
 
     db.init_app(app)
     ma.init_app(app)
@@ -110,18 +114,13 @@ def user_lookup_callback(identity):
     return ScbPaymentServiceApiClientAccount.get_account_by_id(identity)
 
 
-@app.errorhandler(403)
-def page_not_found(e):
-    return render_template('errors/403.html', error=e), 404
-
-
 @app.errorhandler(404)
 def page_not_found(e):
     return render_template('errors/404.html', error=e), 404
 
 
 @app.errorhandler(500)
-def page_not_found(e):
+def internal_server_error(e):
     return render_template('errors/500.html', error=e), 500
 
 
@@ -242,9 +241,17 @@ from receipt_printing import receipt_printing_bp as receipt_printing_blueprint
 app.register_blueprint(receipt_printing_blueprint, url_prefix='/receipt_printing')
 from app.receipt_printing.models import *
 
-admin.add_views(ModelView(ElectronicReceiptCashier, db.session, category='ReceiptPrinting'))
+
+class ElectronicReceiptGLModel(ModelView):
+    can_create = True
+    form_columns = ('gl', 'receive_name', 'items_gl')
+    column_list = ('gl', 'receive_name', 'items_gl')
+
+
 admin.add_views(ModelView(ElectronicReceiptDetail, db.session, category='ReceiptPrinting'))
 admin.add_views(ModelView(ElectronicReceiptItem, db.session, category='ReceiptPrinting'))
+admin.add_views(ModelView(ElectronicReceiptRequest, db.session, category='ReceiptPrinting'))
+admin.add_views(ElectronicReceiptGLModel(ElectronicReceiptGL, db.session, category='ReceiptPrinting'))
 
 from staff import staffbp as staff_blueprint
 
@@ -416,6 +423,11 @@ from eduqa.models import *
 app.register_blueprint(eduqa_blueprint, url_prefix='/eduqa')
 admin.add_view(ModelView(EduQACourseCategory, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQACourse, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAProgram, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQACurriculum, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQACurriculumnRevision, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAInstructorRole, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQACourseSessionDetailRoleItem, db.session, category='EduQA'))
 
 from chemdb import chemdbbp as chemdb_blueprint
 import chemdb.models
@@ -576,6 +588,8 @@ app.register_blueprint(scb_payment_blueprint)
 
 from scb_payment_service.models import *
 
+admin.add_view(ModelView(ScbPaymentServiceApiClientAccount, db.session, category='SCB Payment Service'))
+admin.add_view(ModelView(ScbPaymentRecord, db.session, category='SCB Payment Service'))
 
 # Commands
 
@@ -718,6 +732,47 @@ def import_procurement_data():
         item.purchasing_type = purchasing_type
         db.session.add(item)
     db.session.commit()
+
+
+def initialize_gdrive():
+    gauth = GoogleAuth()
+    scope = ['https://www.googleapis.com/auth/drive']
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scope)
+    return GoogleDrive(gauth)
+
+
+@dbutils.command('import-procurement-image')
+@click.argument('index')
+@click.argument('limit')
+def import_procurement_image(index, limit):
+    sheetid = '16A6yb_W-GcWRLbpqV-9cAnpqgh7nQsZogsNlzz_73ds'
+    print('Authorizing with Google sheet..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("Asset")
+    drive = initialize_gdrive()
+    img_name = 'temp_image.jpg'
+    for n, rec in enumerate(sheet.get_all_records(), start=1):
+        if n >= int(index) and n < int(limit) + int(index):
+            print(n)
+            asset_code = str(rec['AssetCode'])
+            item = ProcurementDetail.query.filter_by(procurement_no=asset_code).first()
+            if item:
+                if not item.image:
+                    print(rec['Picture'])
+                    query = u"title = '{}'".format(rec['Picture'])
+                    for file_list in drive.ListFile({'q': query, 'spaces': 'drive'}):
+                        if file_list:
+                            print(query)
+                            for fi in file_list:
+                                fi.GetContentFile(img_name)
+                                with open(img_name, "rb") as img_file:
+                                    item.image = base64.b64encode(img_file.read())
+                                    db.session.add(item)
+                                print('The image has been added to item with Asset code={}'.format(item.procurement_no))
+                            db.session.commit()
+            else:
+                print(u'\tItem with Asset code={} not found..'.format(rec['AssetCode']))
 
 
 @dbutils.command('add-update-staff-gsheet')
@@ -886,6 +941,23 @@ def import_chem_items(excel_file):
     database.load_chem_items(excel_file)
 
 
+@app.template_filter('total_hours')
+def cal_total_hours(instructor, course_id):
+    total_seconds = []
+    for session in instructor.sessions.filter_by(course_id=course_id):
+        detail = EduQACourseSessionDetail.query.filter_by(session_id=session.id,
+                                                          staff_id=instructor.account.id).first()
+        if detail:
+            factor = detail.factor if detail.factor else 1
+            seconds = session.total_seconds * factor
+            total_seconds.append(seconds)
+        else:
+            total_seconds.append(session.total_seconds)
+    hours = sum(total_seconds) // 3600
+    mins = (sum(total_seconds) // 60) % 60
+    return u'{} ชม. {} นาที'.format(hours, mins)
+
+
 @app.template_filter("moneyformat")
 def money_format(value):
     return '{:,.2f}'.format(value)
@@ -1014,7 +1086,7 @@ def calculate_leave_quota(date_time):
     """Calculate used quota for the fiscal year from a given date.
 
     """
-    # date_time = '30/09/2022'
+    # date_time = '2022/09/30'
     print('Calculating leave quota from all requests...')
     date_time = datetime.strptime(date_time, '%Y/%m/%d')
     start_fiscal_date, end_fiscal_date = get_fiscal_date(date_time)
@@ -1093,6 +1165,8 @@ def update_cumulative_leave_quota(year1, year2):
                 if max_cum_quota:
                     before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
                     quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                else:
+                    quota_limit = quota.max_per_year
             else:
                 quota_limit = quota.first_year
 
@@ -1105,6 +1179,51 @@ def update_cumulative_leave_quota(year1, year2):
 
         db.session.add(used_quota)
         db.session.commit()
+
+
+@dbutils.command('calculate_remain_leave_used_quota')
+@click.argument("currentdate")
+def calculate_remain_leave_used_quota(currentdate):
+    # currentdate format '2022/09/30'
+    for staff in StaffAccount.query.filter(StaffPersonalInfo.retired != True):
+        for type in StaffLeaveType.query.all():
+            date_time = datetime.strptime(currentdate, '%Y/%m/%d')
+            start_fiscal_date, end_fiscal_date = get_fiscal_date(date_time)
+
+            quota = StaffLeaveQuota.query.filter_by(employment=staff.personal_info.employment,
+                                                        leave_type=type).first()
+            pending_days = staff.personal_info.get_total_pending_leaves_request(quota.id,
+                                                                                    tz.localize(start_fiscal_date),
+                                                                                    tz.localize(end_fiscal_date))
+            total_leave_days = staff.personal_info.get_total_leaves(quota.id,tz.localize(start_fiscal_date),
+                                                                        tz.localize(end_fiscal_date))
+            delta = staff.personal_info.get_employ_period()
+            max_cum_quota = staff.personal_info.get_max_cum_quota_per_year(quota)
+            if delta.years > 0:
+                if max_cum_quota:
+                    last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff,
+                                                                              fiscal_year=end_fiscal_date.year-1,
+                                                                              leave_type=type).first()
+                    if last_used_quota:
+                        remaining_days = last_used_quota.quota_days - last_used_quota.used_days
+                    else:
+                        remaining_days = max_cum_quota
+                    before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
+                    quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                else:
+                    quota_limit = quota.max_per_year
+            else:
+                quota_limit = quota.first_year
+
+            used_quota = StaffLeaveUsedQuota(leave_type_id=type.id,
+                                                 staff_account_id=staff.id,
+                                                 fiscal_year=end_fiscal_date.year,
+                                                 used_days=total_leave_days + pending_days,
+                                                 pending_days=pending_days,
+                                                 quota_days=quota_limit)
+            db.session.add(used_quota)
+            db.session.commit()
+            print (used_quota.leave_type_id, used_quota.used_days, used_quota.pending_days, used_quota.quota_days)
 
 
 if __name__ == '__main__':

@@ -1,10 +1,17 @@
 {% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    {#    <script src="sweetalert2.all.min.js"></script>#}
+    {#    <script src="sweetalert2.min.js"></script>#}
+    {#    <link rel="stylesheet" href="sweetalert2.min.css">#}
+{% endblock %}
 {% block page_content %}
     <section class="section">
         <div class="container">
+            {% include "messages.html" %}
             <div class="columns">
                 <div class="column box is-half is-offset-one-quarter">
-                    {% include "messages.html" %}
                     <div class="has-text-centered">
                         <h2 class="title is-size-2">ใบเสร็จรับเงิน</h2>
                         <h3 class="title is-size-3"></h3>
@@ -12,101 +19,122 @@
                     </div>
                     <form method="post">
                         {{ form.hidden_tag() }}
-                        <p>
-                            {% for i in form.items %}
-                                <div class="field">
-                                    <label class="label">รายการ</label>
-                                    <div class="control">
-                                        {{ i.item(class="input") }}
-                                    </div>
-                                </div>
-                                <div class="field-body">
-                                    <div class="field">
-                                        <label class="label">ราคา</label>
-                                        <div class="control">
-                                            {{ i.price(class="input", placeholder="฿") }}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">หมายเหตุ</label>
-                                    <div class="control">
-                                        {{ i.comment(class="input") }}
-                                    </div>
-                                </div>
-                            {% endfor %}
-                        </p>
-                        <div id="items"></div>
-                        <button type="button" hx-post="{{ url_for('receipt_printing.list_add_items') }}"
-                                hx-target="#items" hx-swap="beforeend">เพิ่มรายการ
-                        </button>
-                        <div class="field-body">
-                            <div class="field">
-                                <label class="label">ช่องทางการชำระเงิน</label>
-                                <div class="select is-fullwidth">
-                                    {{ form.payment_method(class="input") }}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">จำนวนเงิน</label>
-                                <div class="control">
-                                    {{ form.paid_amount(class="input") }}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.card_number.label }}</label>
-                            <div class="control">
-                                {{ form.card_number(class="input", id="card-no") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">เช็คเลขที่</label>
-                            <div class="control">
-                                {{ form.cheque_number(class="input", id="cheque-no") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">ช่องทางการชำระเงินอื่นๆ</label>
-                            <div class="control">
-                                {{ form.other_payment_method(class="input") }}
-                            </div>
-                        </div>
                         <div class="field">
                             <label class="label">ได้รับเงินจาก</label>
                             <div class="control">
-                                {{ form.received_from(class="input") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">หมายเหตุรายละเอียด</label>
-                            <div class="control">
-                                {{ form.comment(class="input") }}
+                                {{ form.received_from(class="input is-danger") }}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">ที่อยู่ในใบเสร็จรับเงิน</label>
                             <div class="control">
-                                {{ form.address(class="textarea") }}
+                                {{ form.address(class="textarea is-danger") }}
+                            </div>
+                        </div>
+                        <div id="items">
+                            {% for i in form.items %}
+                                <div class="field">
+                                    <label class="label">รายการ</label>
+                                    <div class="control">
+                                        {{ i.item(class="input is-danger") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">จำนวนเงิน</label>
+                                    <div class="control">
+                                        {{ i.price(class="input is-danger", placeholder="฿", **{'hx-post': url_for("receipt_printing.update_amount"),
+                                        'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}) }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">GL</label>
+                                    {{ i.gl(class="select is-danger") }}
+                                </div>
+                                <div class="field">
+                                    <label class="label">Cost Center</label>
+                                    {{ i.cost_center(class="select is-danger") }}
+                                </div>
+                                <div class="field">
+                                    <label class="label">Internal Order/IO</label>
+                                    {{ i.internal_order_code(class="select is-danger") }}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <br>
+                        <div class="field is-grouped">
+                            <div class="control">
+                                <button class="button is-small is-info"
+                                        hx-post="{{ url_for('receipt_printing.list_add_items') }}"
+                                        hx-target="#items" hx-swap="beforeend">เพิ่มรายการ
+                                </button>
+                            </div>
+                            <div class="control">
+                                <button class="button is-small is-danger"
+                                        hx-post="{{ url_for('receipt_printing.delete_items') }}"
+                                        hx-target="#items" hx-swap="innerHTML"
+                                        hx-confirm="Are you sure to delete?">ลบรายการ
+                                </button>
+                            </div>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">ช่องทางการชำระเงิน</label>
+                                <div class="select is-fullwidth">
+                                    {{ form.payment_method(class="input is-danger") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">จำนวนเงิน</label>
+                                <div class="control">
+                                    {{ form.paid_amount(class="input", readonly=True) }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field" id="card-no">
+                            <label class="label">{{ form.card_number.label }}</label>
+                            <div class="control">
+                                {{ form.card_number(class="input is-danger", id="card-no") }}
+                            </div>
+                            <label class="label">{{ form.bank_name.label }}</label>
+                            <div class="control">
+                                {{ form.bank_name(class="input is-danger", id="card-no") }}
+                            </div>
+                        </div>
+                        <div class="field" id="cheque-no">
+                            <label class="label">เช็คเลขที่</label>
+                            <div class="control">
+                                {{ form.cheque_number(class="input is-danger", id="cheque-no") }}
+                            </div>
+                            <label class="label">{{ form.bank_name.label }}</label>
+                            <div class="control">
+                                {{ form.bank_name(class="input is-danger", id="cheque-no") }}
+                            </div>
+                        </div>
+                        <div class="field" id="other_payment_method">
+                            <label class="label">ช่องทางการชำระเงินอื่นๆ</label>
+                            <div class="control">
+                                {{ form.other_payment_method(class="input is-danger", id="other_payment_method") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">หมายเหตุรายละเอียด</label>
+                            <div class="control">
+                                {{ form.comment(class="textarea") }}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">ผู้ออกใบเสร็จ</label>
-                            <div class="select">
-                                {{ form.issuer() }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">ผู้รับเงิน</label>
-                            <div class="select">
-                                {{ form.cashier() }}
+                            <div class="control">
+                                {{ current_user.personal_info.fullname }}
                             </div>
                         </div>
 
-                        <div class="field is-grouped is-grouped-centered"><br><br>
-                            <div class="buttons">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
                                 <button class="button is-success" type="submit" value="submit">Submit</button>
-                                <a href="{{ url_for('receipt_printing.landing') }}" class="button is-danger">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_callback }}" class="button is-danger">Cancel</a>
                             </div>
                         </div>
                     </form>
@@ -117,42 +145,80 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    {#    <script>#}
-    {#        $(document).ready(function () {#}
-    {#            var max_input_fields = 10;#}
-    {#            var add_input = $('.add-item');#}
-    {#            var input_ = $('.input');#}
-    {#            var new_input = '<div><input type="text" name="field[]" value=""/><a href="javascript:void(0);" ' +#}
-    {#                'class="remove-input" title="Remove input"></a></div>';#}
-    {#            var add_input_count = 1;#}
-    {#            $(add_input).click(function () {#}
-    {#                if (add_input_count < max_input_fields) {#}
-    {#                    add_input_count++;#}
-    {#                    $(input_).append(new_input);#}
-    {#                }#}
-    {#            });#}
-    {#            $(input_).on('click', '.remove-input', function (e) {#}
-    {#                e.preventDefault();#}
-    {#                $(this).parent('div').remove();#}
-    {#                add_input_count--;#}
-    {#            });#}
-    {#        });#}
-    {#    </script>#}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    {#    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>#}
+    <script>
+        $.ajaxSetup({
+            headers:
+                {'X-CSRF-TOKEN': "{{ csrf_token() }}"}
+        });
+
+        function delete_warning() {
+            alert("The form needs at least one entry.")
+        }
+
+        document.addEventListener('delete_warning', delete_warning)
+
+        function update_amount() {
+            let total_amount = 0.0
+            $('[id$=price]').each(function () {
+                total_amount += Number($(this).val())
+            })
+            $('#paid_amount').val(total_amount)
+        }
+
+        document.addEventListener('update_amount', update_amount)
+
+    </script>
     <script>
         $(document).ready(() => {
             $('#card-no').hide()
             $('#cheque-no').hide()
             $('#other_payment_method').hide()
             $('#payment_method').change(e => {
-                if ($('#payment_method').val() !== null) {
+                $('#card-no').hide()
+                $('#cheque-no').hide()
+                $('#other_payment_method').hide()
+                if ($('#payment_method').val() === "Credit Card") {
                     $('#card-no').show()
                 } else {
                     $('#card-no').hide()
                 }
+                if ($('#payment_method').val() === "Cheque") {
+                    $('#cheque-no').show()
+                } else {
+                    $('#cheque-no').hide()
+                }
+                if ($('#payment_method').val() === "Other") {
+                    $('#other_payment_method').show()
+                } else {
+                    $('#other_payment_method').hide()
+                }
             })
-            if ($('#payment_method').val() === null) {
-                $('#card-no').show()
-            }
         })
     </script>
+    <script>
+        $(document).ready(() => {
+            $('select[id^="items-"]').select2({
+                width: '400px',
+
+            });
+        });
+    </script>
+    {#    <script>#}
+    {#    Swal.fire({#}
+    {#      title: 'Do you want to save the changes?',#}
+    {#      showDenyButton: true,#}
+    {#      showCancelButton: true,#}
+    {#      confirmButtonText: 'Save',#}
+    {#      denyButtonText: `Don't save`,#}
+    {#    }).then((result) => {#}
+    {#      /* Read more about isConfirmed, isDenied below */#}
+    {#      if (result.isConfirmed) {#}
+    {#        Swal.fire('Saved!', '', 'success')#}
+    {#      } else if (result.isDenied) {#}
+    {#        Swal.fire('Changes are not saved', '', 'info')#}
+    {#      }#}
+    {#    })#}
+    {#    </script>#}
 {% endblock %}

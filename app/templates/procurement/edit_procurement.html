@@ -199,10 +199,10 @@
                                 </div>
                             </div>
                             <div class="field-body">
-                                {% for record in form.records %}
+                                {% set record = form.records[-1] %}
                                     <div class="field">
                                         <label class="label">เพิ่มผู้ดูแลครุภัณฑ์</label>
-                                        <div>
+                                        <div id="record_form">
                                             {{ record.staff_responsible(class='select') }}
                                         </div>
                                     </div>
@@ -212,18 +212,17 @@
                                                 <i class="far fa-plus-square"></i>
                                             </a>
                                         </label>
-                                        <div class="select is-fullwidth">
-                                            {{ record.status() }}
+                                        <div>
+                                            {{ record.status(class='select') }}
                                         </div>
                                     </div>
+                                 </div>
                                     <div class="field">
                                         <label class="label">{{ record.location.label }}</label>
-                                        <div class="select is-fullwidth">
-                                            {{ record.location() }}
+                                        <div>
+                                            {{ record.location(class='select') }}
                                         </div>
                                     </div>
-                                    </div>
-                                {% endfor %}
                             <br>
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="buttons">
@@ -313,7 +312,7 @@
     </script>
     <script>
         $(document).ready(() => {
-            $('#records-0-staff_responsible').select2({
+            $('select[id^="records-"]').select2({
                 width: '400px',
 
             });

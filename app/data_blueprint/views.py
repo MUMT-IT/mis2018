@@ -2,11 +2,15 @@
 import datetime
 
 from . import data_bp
-from app.main import db
+from app.main import db, csrf
+from app.models import DataFile, DataTag
 from forms import *
-from flask import url_for, render_template, redirect, flash, request
+from flask import url_for, render_template, redirect, flash, request, jsonify
 from flask_login import current_user, login_required
 from pytz import timezone
+
+from ..models import DataFile, DataTag
+from ..staff.models import StaffAccount
 
 tz = timezone('Asia/Bangkok')
 
@@ -108,6 +112,8 @@ def process_form(process_id=None):
 @data_bp.route('/kpi/<int:kpi_id>/edit', methods=['GET', 'POST'])
 @login_required
 def kpi_form(kpi_id=None):
+    accounts = [("", u"โปรดระบุชื่อ")] + [(u.email, u.fullname)
+                                          for u in StaffAccount.query.all() if not u.is_retired]
     section = request.args.get('section', 'general')
     process_id = request.args.get('process_id', type=int)
     service_id = request.args.get('service_id', type=int)
@@ -126,6 +132,21 @@ def kpi_form(kpi_id=None):
         form = Form(obj=data_)
     else:
         form = Form()
+    if section == 'general':
+        form.keeper.choices = accounts
+    elif section == 'target':
+        form.target_account.choices = accounts
+        form.target_reporter.choices = accounts
+        form.target_setter.choices = accounts
+    elif section == 'report':
+        form.account.choices = accounts
+        form.pfm_account.choices = accounts
+        form.pfm_responsible.choices = accounts
+        form.pfm_consult.choices = accounts
+        form.pfm_informed.choices = accounts
+        form.reporter.choices = accounts
+        form.consult.choices = accounts
+        form.informed.choices = accounts
     if request.method == 'POST':
         if form.validate_on_submit():
             if not kpi_id:
@@ -142,7 +163,6 @@ def kpi_form(kpi_id=None):
                 db.session.add(data_)
             db.session.commit()
             flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
-            return redirect(url_for('data_bp.index'))
         else:
             flash(form.errors, 'danger')
     if section == 'general':
@@ -196,6 +216,7 @@ def dataset_form(data_id, dataset_id=None):
         form = createDatasetForm(data_id=data_id)(obj=dataset)
     else:
         form = createDatasetForm(data_id=data_id)()
+        dataset = None
     if request.method == 'POST':
         if form.validate_on_submit():
             if not dataset_id:
@@ -209,11 +230,19 @@ def dataset_form(data_id, dataset_id=None):
                 return redirect(url_for('data_bp.data_detail', data_id=data_id))
             else:
                 form.populate_obj(dataset)
+                new_tags = []
+                for text in request.form.getlist('tags'):
+                    tag = DataTag.query.filter_by(tag=text).first()
+                    if tag is None:
+                        tag = DataTag(tag=text)
+                    new_tags.append(tag)
+
+                dataset.tags = new_tags
                 db.session.add(dataset)
                 db.session.commit()
                 flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
                 return render_template('data_blueprint/dataset_detail.html', dataset=dataset)
-    return render_template('data_blueprint/dataset_form.html', form=form)
+    return render_template('data_blueprint/dataset_form.html', form=form, dataset=dataset)
 
 
 @data_bp.route('/datasets/<int:dataset_id>', methods=['GET'])
@@ -327,3 +356,25 @@ def add_subject(ropa_id):
         flash(u'เพิ่มรายการเรียบร้อยแล้ว', 'success')
         return redirect(url_for('data_bp.edit_ropa', ropa_id=ropa.id, dataset_id=ropa.dataset.id))
     return render_template('data_blueprint/data_subject_form.html', form=form, ropa_id=ropa_id)
+
+
+@data_bp.route('api/v1.0/data-file', methods=['POST'])
+@csrf.exempt
+def add_datafile():
+    data_file = request.get_json()
+    dataset_ref = data_file['dataset_ref']
+    dataset = Dataset.query.filter_by(reference=dataset_ref).first()
+    update_datetime = datetime.datetime.fromtimestamp(data_file['update_datetime'])
+    create_datetime = datetime.datetime.fromtimestamp(data_file['create_datetime'])
+    new_file = DataFile(name=data_file['name'], dataset=dataset, url=data_file['url'],
+                        created_at=create_datetime, updated_at=update_datetime)
+    db.session.add(new_file)
+    db.session.commit()
+    return jsonify({'message': 'success'}), 201
+
+
+@data_bp.route('api/v1.0/tags', methods=['GET'])
+@csrf.exempt
+def get_all_tags():
+    tags = [tag.to_dict() for tag in DataTag.query.all()]
+    return jsonify({'results': tags})

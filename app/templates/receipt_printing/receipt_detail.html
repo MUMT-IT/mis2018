@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container box" id="receipt">
+            <div class="columns">
+                <div class="column">
+                    <p class="has-text-info">999 ถนนพุทธมณฑลสาย 4 ต.ศาลายา</p>
+                    <p class="has-text-info">อ.พุทธมณฑล จ.นครปฐม 73170</p>
+                    <p class="has-text-info">999 PUTTAMONTHON 4 ROAD,</p>
+                    <p class="has-text-info">SALAYA, NAKHONPATHOM, 73170 THAILAND</p>
+                    <p class="has-text-info">เลขประจำตัวผู้เสียภาษี/ Tax ID Number 0994000158378</p>
+                    <br>
+                    <p><strong>ชื่อ</strong> {{ receipt.received_from or '' }}</p>
+                    {% if receipt.issued_for %}
+                    <p><strong>ออกใบเสร็จในนาม</strong> {{ receipt.issued_for }}</p>
+                    {% endif %}
+                    {% if receipt.address %}
+                    <p><strong>ที่อยู่ในใบเสร็จรับเงิน</strong> {{ receipt.address }}</p>
+                    {% endif %}
+                </div>
+                <div class="column has-text-centered is-one-third">
+                    <img width="100" src="{{ url_for('static', filename='img/MUlogo72dpi.jpg')}}">
+                    <h4 class="title is-size-4">คณะเทคนิคการแพทย์ <br/>มหาวิทยาลัยมหิดล</h4>
+                    <h1 class="title is-size-3">ใบเสร็จรับเงิน / RECEIPT</h1>
+                </div>
+                <div class="column">
+                    <div class="has-text-right">
+                    <p>พิมพ์ไปแล้ว {{ receipt.print_number }} ครั้ง</p>
+                    <p>เล่มที่ {{ receipt.book_number }}</p>
+                    <p>เลขที่ {{ receipt.number }}</p>
+                    <p>วันที่ {{ receipt.created_datetime|localdate }}</p>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-bordered">
+                        <thead style="background-color: #ededed;">
+                        <th>ลำดับ</th>
+                        <th>รายการ</th>
+                        <th>ราคา (บาท)</th>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            {% for n, item in enumerate(receipt.items, start=1) %}
+                                <td>{{ n }}</td>
+                                <td>{{ item.item }}</td>
+                                <td>{{ item.price }}</td>
+                            {% endfor %}
+                            <td colspan="2"></td>
+                        </tr>
+                        <tr style="background-color: #ededed;">
+                            <td></td>
+                            <td><strong>รวม</strong></td>
+                            <td class="has-text-right"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <hr>
+                    <table class="table">
+                        <tr>
+                            <td>
+                                <strong>รวมเงิน (ตัวอักษร) </strong>
+                            </td>
+                            <td>
+                                <strong>รวมทั้งสิ้น  บาท</strong>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="is-size-4">
+                                {% if receipt.payment_method == 'cash' %}
+                                <span class="icon has-text-success">
+                                    <i class="fas fa-dollar-sign"></i>
+                                </span>
+                                <span class="has-text-success">ชำระด้วยเงินสด</span>
+                                {% elif receipt.payment_method == 'card' %}
+                                <span class="icon has-text-success">
+                                    <i class="far fa-credit-card"></i>
+                                </span>
+                                <span class="has-text-success">ชำระด้วยบัตรเครดิตลงท้าย {{ receipt.card_number[-4:] }}</span>
+                                {% endif %}
+                            </td>
+                            <td></td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2 has-text-centered">
+            <div class="buttons is-centered">
+                <a class="button is-light" href="{{ url_for('receipt_printing.view_receipt_by_list_type') }}">
+                    <span class="icon">
+                        <i class="fas fa-chevron-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+                <a class="button is-danger"
+                   {% if not receipt.cancelled %}
+                       href="{{ url_for('receipt_printing.confirm_cancel_receipt', receipt_id=receipt.id) }}"
+                   {% else %}
+                        disabled
+                   {% endif %}
+                >
+                <span class="icon">
+                    <i class="fas fa-times"></i>
+                </span>
+                <span>ยกเลิกใบเสร็จนี้</span>
+                </a>
+                <button class="button is-info" @click="printReceipt()">
+                        <span class="icon">
+                            <i class="fas fa-print"></i>
+                        </span>
+                    <span>พิมพ์ใบเสร็จ</span>
+                </button>
+            </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript">
+        var vm = new Vue({
+            el: "#app",
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    print_number: {{ receipt.print_number }},
+
+                }
+            },
+            methods: {
+                printReceipt: function() {
+                    if (this.print_number < 1) {
+                        printJS('{{url_for('receipt_printing.export_receipt_pdf', receipt_id=receipt.id)}}');
+                    } else {
+                        alert('Print quota exceeds the maximum of 1 copies.');
+                    }
+                }
+            },
+        });
+    </script>
+{% endblock %}

@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Add/Edit KPI{% endblock %}
 {% include "data_blueprint/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
 {% block page_content %}
 <section class="section">
     <div class="container">
@@ -19,17 +23,15 @@
                 <div class="column">
                     <div class="field">
                         <label class="label">{{form.account.label}}</label>
-                        <div class="control">
-                            {{form.account(class="input", pattern="\w+\.\w{3}")}}
+                        <div>
+                            {{form.account(class="select js-example-basic-single")}}
                         </div>
-                        <p class="help">เช่น likit.pre</p>
                     </div>
                     <div class="field">
                         <label class="label">{{form.reporter.label}}</label>
-                        <div class="control">
-                            {{form.reporter(class="input", pattern="\w+\.\w{3}")}}
+                        <div>
+                            {{form.reporter(class="select js-example-basic-single")}}
                         </div>
-                        <p class="help">เช่น likit.pre</p>
                     </div>
                     <div class="field">
                         <label class="label">{{form.reportlink.label}}</label>
@@ -40,46 +42,40 @@
                     </div>
                     <div class="field">
                         <label class="label">{{form.consult.label}}</label>
-                        <div class="control">
-                            {{form.consult(class="input", pattern="\w+\.\w{3}")}}
+                        <div>
+                            {{form.consult(class="select js-example-basic-single")}}
                         </div>
-                        <p class="help">เช่น likit.pre</p>
                     </div>
                     <div class="field">
                         <label class="label">{{form.informed.label}}</label>
-                        <div class="control">
-                            {{form.informed(class="input", pattern="\w+\.\w{3}")}}
+                        <div>
+                            {{form.informed(class="select js-example-basic-single")}}
                         </div>
-                        <p class="help">เช่น likit.pre</p>
                     </div>
                 </div>
                 <div class="column">
                     <div class="field">
                         <label class="label">{{form.pfm_account.label}}</label>
-                        <div class="control">
-                            {{form.pfm_account(class="input", pattern="\w+\.\w{3}")}}
-                            <p class="help">เช่น likit.pre</p>
+                        <div>
+                            {{form.pfm_account(class="select js-example-basic-single")}}
                         </div>
                     </div>
                     <div class="field">
                         <label class="label">{{form.pfm_responsible.label}}</label>
-                        <div class="control">
-                            {{form.pfm_responsible(class="input", pattern="\w+\.\w{3}")}}
-                            <p class="help">เช่น likit.pre</p>
+                        <div>
+                            {{form.pfm_responsible(class="select js-example-basic-single")}}
                         </div>
                     </div>
                     <div class="field">
                         <label class="label">{{form.pfm_consult.label}}</label>
-                        <div class="control">
-                            {{form.pfm_consult(class="input", pattern="\w+\.\w{3}")}}
-                            <p class="help">เช่น likit.pre</p>
+                        <div>
+                            {{form.pfm_consult(class="select js-example-basic-single")}}
                         </div>
                     </div>
                     <div class="field">
                         <label class="label">{{form.pfm_informed.label}}</label>
-                        <div class="control">
-                            {{form.pfm_informed(class="input", pattern="\w+\.\w{3}")}}
-                            <p class="help">เช่น likit.pre</p>
+                        <div>
+                            {{form.pfm_informed(class="select js-example-basic-single", pattern="\w+\.\w{3}")}}
                         </div>
                     </div>
                     <div class="field is-grouped is-grouped-centered">
@@ -97,11 +93,12 @@
 </section>
 {% endblock %}
 {% block scripts %}
-{{super()}}
-<script type="text/javascript">
-</script>
-</section>
+    {{super()}}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('.js-example-basic-single').select2();
+        });
+    </script>
+    </section>
 {% endblock %}
-
-
-

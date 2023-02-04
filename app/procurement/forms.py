@@ -30,14 +30,13 @@ class ProcurementRecordForm(ModelForm):
         model = ProcurementRecord
         exclude = ['updated_at']
 
-    location = QuerySelectField(u'สถานที่', query_factory=lambda: RoomResource.query.all(),
+    location = QuerySelectField(u'สถานที่', query_factory=lambda: RoomResource.query.order_by(RoomResource.number.asc()),
                                 blank_text='Select location..', allow_blank=False)
     status = QuerySelectField(u'สถานะ', query_factory=lambda: ProcurementStatus.query.all(),
                                 blank_text='Select status..', allow_blank=False)
     staff_responsible = QuerySelectField(u'ผู้ดูแลครุภัณฑ์', query_factory=lambda: StaffAccount.get_active_accounts(),
                                          get_label='fullname',
-                                         blank_text='Select staff'
-                                         )
+                                         blank_text='Select staff', allow_blank=True)
 
 
 class DatePickerField(Field):
@@ -82,7 +81,8 @@ class ProcurementUpdateRecordForm(ModelForm):
     class Meta:
         model = ProcurementRecord
 
-    location = QuerySelectField(u'สถานที่', query_factory=lambda: RoomResource.query.all(),
+    location = QuerySelectField(u'สถานที่',
+                                query_factory=lambda: RoomResource.query.order_by(RoomResource.number.asc()),
                                 blank_text='Select location..', allow_blank=False)
     status = QuerySelectField(u'สถานะ', query_factory=lambda: ProcurementStatus.query.all(),
                               blank_text='Select status..', allow_blank=False)
@@ -140,3 +140,7 @@ class ProcurementAddImageForm(ModelForm):
 
     image_upload = FileField(u'อัพโหลดรูปภาพ')
 
+
+class ProcurementRoomForm(ModelForm):
+    class Meta:
+        model = RoomResource

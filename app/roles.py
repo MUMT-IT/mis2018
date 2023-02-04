@@ -17,6 +17,8 @@ with app.app_context():
         procurement_committee_role = Role.query.filter_by(role_need='procurement_committee',
                                                           action_need=None,
                                                           resource_id=None).first()
+        head_finance_role = Role.query.filter_by(role_need='head_finance', action_need=None, resource_id=None).first()
+
     except ProgrammingError:
         admin_permission = Permission()
         hr_permission = Permission()
@@ -25,6 +27,7 @@ with app.app_context():
         # ot_secretary_permission = Permission()
         finance_procurement_permission = finance_permission.union(procurement_permission)
         procurement_committee_permission = Permission()
+        finance_head_permission = Permission()
     else:
         admin_permission = Permission(admin_role.to_tuple())
         hr_permission = Permission(hr_role.to_tuple())
@@ -33,4 +36,4 @@ with app.app_context():
         finance_procurement_permission = finance_permission.union(procurement_permission)
         # ot_secretary_permission = Permission(ot_secretary.to_tuple())
         procurement_committee_permission = Permission(procurement_committee_role.to_tuple())
-
+        finance_head_permission = Permission(head_finance_role.to_tuple())
