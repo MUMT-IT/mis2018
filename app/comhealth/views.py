@@ -123,7 +123,7 @@ def api_finance_record(service_id):
     record_schema = ComHealthRecordSchema(many=True,
                                           only=('labno', 'customer', 'id',
                                                 'checkin_datetime', 'finance_contact',
-                                                'receipts'))
+                                                'receipts','note'))
     return jsonify(record_schema.dump(records).data)
 
 
@@ -185,7 +185,6 @@ def index():
 
 
 @comhealth.route('/api/services/<int:service_id>/search')
-@login_required
 def search_service_customer(service_id):
     #TODO: search should be done at the backend
     service = ComHealthService.query.get(service_id)
@@ -381,14 +380,14 @@ def edit_record(record_id):
     profile_item_cost = Decimal(0.0)
     for profile in record.service.profiles:
         ordered_profile_tests = set(profile.test_items).intersection(record.ordered_tests)
-        if len(ordered_profile_tests) == len(profile.test_items):
-            # if all tests are ordered, the quote price is used.
-            profile_item_cost += profile.quote
-        elif len(ordered_profile_tests) < len(profile.test_items):
-            # if some tests in the profile are ordered,
-            # subtract the price of the tests that are not ordered
-            for test_item in ordered_profile_tests:
-                profile_item_cost += test_item.price
+        if len(ordered_profile_tests) != 0:
+            if profile.quote > 0:
+                #if profiletest have price quote use quote
+                profile_item_cost += profile.quote
+            else:
+                #if profiletest price quote = 0 use sum each test price
+                for test_item in ordered_profile_tests:
+                    profile_item_cost += test_item.price
         special_tests.difference_update(set(profile.test_items))
 
     group_item_cost = sum([item.price for item in record.ordered_tests if item.group])
@@ -654,6 +653,11 @@ def save_test_profile(profile_id):
                 test_item.price = float(request.form.get(test))
                 db.session.add(test_item)
                 print(test_item.test.name, test_item.price, request.form.get(test))
+        if request.form.get('quote') == '':
+            profile.quote = 0
+        else:
+            profile.quote = float(request.form.get('quote'))
+        db.session.add(profile)
         db.session.commit()
     flash('Change has been saved.')
     return redirect(url_for('comhealth.test_profile', profile_id=profile_id))
@@ -1226,6 +1230,15 @@ def add_employee(org_id):
             flash(form.errors, 'warning')
     return render_template('comhealth/edit_customer_data.html', form=form)
 
+@comhealth.route('/note/<int:record_id>/edit', methods=['GET', 'POST'])
+def edit_note_data(record_id):
+    record = ComHealthRecord.query.get(record_id)
+    if request.method == 'POST':
+        record.note = request.form.get('note')
+        db.session.add(record)
+        db.session.commit()
+        return redirect(request.args.get('next'))
+    return render_template('comhealth/edit_note.html',record=record)
 
 @comhealth.route('/customers/<int:customer_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -1579,6 +1592,15 @@ def add_many_employees(orgid):
                     db.session.commit()
                     new_customer.generate_hn()
                     db.session.add(new_customer)
+                    db.session.commit()
+                else:
+                    customer_.emp_id = emp_id
+                    customer_.dept=department
+                    customer_.division=division
+                    customer_.unit=unit
+                    customer_.emptype=emptype
+                    customer_.phone = phone
+                    db.session.add(customer_)
                     db.session.commit()
 
                 # temporarily disable creation of a new record with predefined labno
