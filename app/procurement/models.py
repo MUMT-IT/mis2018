@@ -217,6 +217,9 @@ class ProcurementInfoComputer(db.Model):
                                       backref=db.backref('windows_ver_of_computers', lazy='dynamic'))
     username_id = db.Column('username_id', db.ForeignKey('staff_account.id'))
     username = db.relationship(StaffAccount, foreign_keys=[username_id])
+    survey_id = db.Column('survey_id', db.ForeignKey('procurement_survey_computers.id'))
+    survey = db.relationship('ProcurementSurveyComputer', foreign_keys=[survey_id],
+                                      backref=db.backref('survey_info_computers', lazy='dynamic'))
 
 
 class ProcurementInfoCPU(db.Model):
@@ -312,3 +315,4 @@ class ProcurementSurveyComputer(db.Model):
                                                                          (u'ยังไม่เรียบร้อย', u'ยังไม่เรียบร้อย')
                                                                          ]})
     requirement = db.Column('requirement', db.Text(), info={'label': u'ความต้องการเพิ่มเติมหรือข้อเสนอแนะ'})
+    survey_date = db.Column('survey_date', db.DateTime(timezone=True), server_default=func.now())
