@@ -217,9 +217,6 @@ class ProcurementInfoComputer(db.Model):
                                       backref=db.backref('windows_ver_of_computers', lazy='dynamic'))
     username_id = db.Column('username_id', db.ForeignKey('staff_account.id'))
     username = db.relationship(StaffAccount, foreign_keys=[username_id])
-    survey_id = db.Column('survey_id', db.ForeignKey('procurement_survey_computers.id'))
-    survey = db.relationship('ProcurementSurveyComputer', foreign_keys=[survey_id],
-                                      backref=db.backref('survey_info_computers', lazy='dynamic'))
 
 
 class ProcurementInfoCPU(db.Model):
@@ -230,6 +227,12 @@ class ProcurementInfoCPU(db.Model):
     def __str__(self):
         return u'{}'.format(self.cpu)
 
+    def to_dict(self):
+        return {
+            'id': self.cpu,
+            'text': self.cpu
+        }
+
 
 class ProcurementInfoRAM(db.Model):
     __tablename__ = 'procurement_info_rams'
@@ -238,6 +241,12 @@ class ProcurementInfoRAM(db.Model):
 
     def __str__(self):
         return u'{}'.format(self.ram)
+
+    def to_dict(self):
+        return {
+            'id': self.ram,
+            'text': self.ram
+        }
 
 
 class ProcurementInfoWindowsVersion(db.Model):
@@ -248,6 +257,12 @@ class ProcurementInfoWindowsVersion(db.Model):
     def __str__(self):
         return u'{}'.format(self.windows_version)
 
+    def to_dict(self):
+        return {
+            'id': self.windows_version,
+            'text': self.windows_version
+        }
+
 
 class ProcurementSurveyComputer(db.Model):
     __tablename__ = 'procurement_survey_computers'
@@ -255,14 +270,11 @@ class ProcurementSurveyComputer(db.Model):
     surveyor_id = db.Column('surveyor_id', db.ForeignKey('staff_account.id'))
     surveyor = db.relationship(StaffAccount, foreign_keys=[surveyor_id])
     satisfaction_with_speed_of_use = db.Column('satisfaction_with_speed_of_use', db.String(),
-                                               info={
-                                                   'label': u'ความพึงพอใจในสภาพความพร้อมใช้ของเครื่องคอมพิวเตอร์[ความเร็วในการใช้งาน]'})
+                                               info={'label': u'ความพึงพอใจในสภาพความพร้อมใช้ของเครื่องคอมพิวเตอร์[ความเร็วในการใช้งาน]'})
     satisfaction_with_continuous_work = db.Column('satisfaction_with_continuous_work', db.String(),
-                                                  info={
-                                                      'label': u'ความพึงพอใจในสภาพความพร้อมใช้ของเครื่องคอมพิวเตอร์[การทำงานต่อเนื่อง, ไม่ล่ม หรือค้าง]'})
+                                                  info={'label': u'ความพึงพอใจในสภาพความพร้อมใช้ของเครื่องคอมพิวเตอร์[การทำงานต่อเนื่อง, ไม่ล่ม หรือค้าง]'})
     satisfaction_with_enough_space = db.Column('satisfaction_with_enough_space', db.String(),
-                                               info={
-                                                   'label': u'ความพึงพอใจในสภาพความพร้อมใช้ของเครื่องคอมพิวเตอร์[พื้นที่พอเพียง]'})
+                                               info={'label': u'ความพึงพอใจในสภาพความพร้อมใช้ของเครื่องคอมพิวเตอร์[พื้นที่พอเพียง]'})
     personal_info = db.Column('personal_info', db.Boolean(), default=False,
                               info={'label': u'มีการจัดเก็บและประมวลผลข้อมูลส่วนบุคคลในเครื่องคอมพิวเตอร์'})
     check_back_up_file = db.Column('check_back_up_file', db.String(),
@@ -275,8 +287,12 @@ class ProcurementSurveyComputer(db.Model):
                                                      (u'มีการใช้งานอยู่ประจำ', u'มีการใช้งานอยู่ประจำ'),
                                                      (u'มีการใช้งานเยอะมาก', u'มีการใช้งานเยอะมาก')]})
     reason_no_backup_file = db.Column('reason_no_backup_file', db.String(),
-                                      info={
-                                          'label': u'สาเหตุที่ไม่มีการใช้งานแฟ้มข้อมูลสำหรับการสำรองข้อมูลไปยัง NAS Server'})
+                                      info={'label': u'สาเหตุที่ไม่มีการใช้งานแฟ้มข้อมูลสำหรับการสำรองข้อมูลไปยัง NAS Server',
+                                         'choices': [('None', u'--เลือกรายละเอียดการใช้งาน--'),
+                                                     (u'ไม่ทราบ', u'ไม่ทราบ'),
+                                                     (u'ไม่สะดวก', u'ไม่สะดวก'),
+                                                     (u'ใช้งานไม่เป็น', u'ใช้งานไม่เป็น'),
+                                                     (u'อื่นๆ', u'อื่นๆ')]})
     check_anti_virus_update = db.Column('check_anti_virus_update', db.String(),
                                         info={'label': u'ตรวจสอบ Anti-Virus Update',
                                               'choices': [('None', u'--เลือกรายละเอียด Anti-Virus Update--'),
@@ -316,3 +332,4 @@ class ProcurementSurveyComputer(db.Model):
                                                                          ]})
     requirement = db.Column('requirement', db.Text(), info={'label': u'ความต้องการเพิ่มเติมหรือข้อเสนอแนะ'})
     survey_date = db.Column('survey_date', db.DateTime(timezone=True), server_default=func.now())
+
