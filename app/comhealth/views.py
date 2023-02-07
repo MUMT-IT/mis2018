@@ -1068,29 +1068,36 @@ def scan_container(service_id, container_id):
         .filter(ComHealthSpecimensCheckinRecord.container.has(id=container_id))\
         .filter(ComHealthSpecimensCheckinRecord.record.has(service_id=service_id))\
         .order_by(ComHealthSpecimensCheckinRecord.checkin_datetime.desc())
-
+    check_is_container = 0
     if request.method == 'POST':
         specimens_no = request.form.get('specimens_no')
-        labno = u'{}{}'.format(str(datetime.today().year)[-1], specimens_no[3:])
+        labno = u'{}{}'.format(str(datetime.today().year)[-1], specimens_no[-9:])
         record = ComHealthRecord.query.filter_by(labno=labno).first()
-        checkin_record = ComHealthSpecimensCheckinRecord.query \
-            .filter_by(record_id=record.id, container_id=container_id).first()
-        if checkin_record:
-            checkin_record.checkin_datetime = datetime.now(tz=bangkok)
-            db.session.add(checkin_record)
-            db.session.commit()
+        if record:
+            containers = set([item.test.container for item in record.ordered_tests])
+            for cts in containers:
+                if cts.id == container_id:
+                    checkin_record = ComHealthSpecimensCheckinRecord.query \
+                    .filter_by(record_id=record.id, container_id=container_id).first()
+                    if checkin_record:
+                        checkin_record.checkin_datetime = datetime.now(tz=bangkok)
+                        db.session.add(checkin_record)
+                        db.session.commit()
+                    else:
+                        checkin_record = ComHealthSpecimensCheckinRecord(
+                                            record.id, container_id, datetime.now(tz=bangkok))
+                        record.container_checkins.append(checkin_record)
+                        db.session.add(record)
+                        db.session.commit()
+                    return render_template('comhealth/scan_container.html', service=service,
+                                       container=container, specimens_no=specimens_no,
+                                       checkin_record=checkin_record, recents=recents)
+                    check_is_container = 1
+                    break
+            if check_is_container == 0:
+                flash(specimens_no + ' The container no longer exists.', 'danger')
         else:
-            if record:
-                checkin_record = ComHealthSpecimensCheckinRecord(
-                                        record.id, container_id, datetime.now(tz=bangkok))
-                record.container_checkins.append(checkin_record)
-                db.session.add(record)
-                db.session.commit()
-            else:
-                flash('The container no longer exists.', 'danger')
-        return render_template('comhealth/scan_container.html', service=service,
-                               container=container, specimens_no=specimens_no,
-                               checkin_record=checkin_record, recents=recents)
+            flash(specimens_no + '  no register.', 'danger')
 
     return render_template('comhealth/scan_container.html', service=service, container=container, recents=recents)
 
