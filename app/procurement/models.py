@@ -332,4 +332,7 @@ class ProcurementSurveyComputer(db.Model):
                                                                          ]})
     requirement = db.Column('requirement', db.Text(), info={'label': u'ความต้องการเพิ่มเติมหรือข้อเสนอแนะ'})
     survey_date = db.Column('survey_date', db.DateTime(timezone=True), server_default=func.now())
+    computer_info_id = db.Column('computer_info_id', db.ForeignKey('procurement_info_computers.id'))
+    computer_info = db.relationship('ProcurementInfoComputer', foreign_keys=[computer_info_id],
+                             backref=db.backref('survey_records', lazy='dynamic'))
 
