@@ -285,10 +285,21 @@ def edit_record(record_id):
 
     if request.method == 'GET':
         if not record.checkin_datetime:
+            group_preregister=[]
+            for group in record.service.groups:
+                for item in group.test_items:
+                    if item in record.ordered_tests:
+                        is_preregister=True
+                        break
+                    else:
+                        is_preregister=False
+                if is_preregister:
+                    group_preregister.append(group.id)
             return render_template('comhealth/edit_record.html',
                                    finance_contact_reasons=finance_contact_reasons,
                                    record=record,
-                                   emptypes=emptypes)
+                                   emptypes=emptypes,
+                                   group_preregister=group_preregister)
     containers = set()
     group_item_cost = Decimal(0.0)
     if request.method == 'POST':
