@@ -255,7 +255,7 @@ def pre_register_tests(service_id, record_id):
     record = ComHealthRecord.query.get(record_id)
 
     if request.method == 'POST':
-        print(request.form)
+        record.ordered_tests = []
         for field in request.form:
             if field.startswith('test_'):
                 _, test_id = field.split('_')  # name=test_34
