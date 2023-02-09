@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="{{ url_for("procurement.search_erp_code") }}">ดูข้อมูลการตรวจสอบ</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">เพิ่มข้อมูล</a></li>
+                </ul>
+            </nav>
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">เพิ่มรายละเอียดคอมพิวเตอร์</h1>
+                    <h2 class="subtitle">รหัสครุภัณฑ์: {{ procurement_no }}</h2>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-10 is-offset-1">
+                    <div class="box">
+                        <form method="post">
+                            {{ form.hidden_tag() }}
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.computer_name.label }}</label>
+                                    <div class="control">
+                                        {{ form.computer_name(class="input is-danger") }}
+                                    </div>
+                                    <p class="help is-danger">Required</p>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.mac_address.label }}</label>
+                                    <div class="control">
+                                        {{ form.mac_address(class="input is-danger") }}
+                                    </div>
+                                    <p class="help is-danger">Required</p>
+                                </div>
+                            </div>
+                            <div class="field-body">
+                                <div class="field" id="records">
+                                    <label class="label">ชื่อผู้ใช้งานหลัก</label>
+                                    <div>
+                                        {{ form.user(class='select') }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">รุ่นของระบบปฏิบัติการ Windows</label>
+                                    <div class="control">
+                                        <div>
+                                            {{ form.windows_version(class='select') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">CPU</label>
+                                    <div class="control">
+                                        <div>
+                                            {{ form.cpu(class='select') }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">RAM ชนิด ความจุ</label>
+                                    <div class="control">
+                                        <div>
+                                            {{ form.ram(class='select') }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <br>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="buttons">
+                                    <button class="button is-success" type="submit" value="submit">บันทึก</button>
+                                    <a href="{{ url_for('procurement.search_erp_code') }}" class="button is-danger">ยกเลิก</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(() => {
+            $('.select').select2({
+                width: '100%',
+                tags: true
+            });
+        });
+    </script>
+{% endblock %}
