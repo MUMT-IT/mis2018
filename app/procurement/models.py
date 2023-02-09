@@ -215,9 +215,18 @@ class ProcurementInfoComputer(db.Model):
     windows_version_id = db.Column('windows_version_id', db.ForeignKey('procurement_info_windows_versions.id'))
     windows_version = db.relationship('ProcurementInfoWindowsVersion', foreign_keys=[windows_version_id],
                                       backref=db.backref('windows_ver_of_computers', lazy='dynamic'))
-    username_id = db.Column('username_id', db.ForeignKey('staff_account.id'))
-    username = db.relationship(StaffAccount, foreign_keys=[username_id])
+    user_id = db.Column('username_id', db.ForeignKey('staff_account.id'))
+    user = db.relationship(StaffAccount, foreign_keys=[user_id])
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'mac_address': self.mac_address,
+            'computer_name': self.computer_name,
+            'cpu': self.cpu.cpu,
+            'ram': self.ram.ram,
+            'windows_version': self.windows_version.windows_version
+        }
 
 class ProcurementInfoCPU(db.Model):
     __tablename__ = 'procurement_info_cpus'
@@ -226,12 +235,6 @@ class ProcurementInfoCPU(db.Model):
 
     def __str__(self):
         return u'{}'.format(self.cpu)
-
-    def to_dict(self):
-        return {
-            'id': self.cpu,
-            'text': self.cpu
-        }
 
 
 class ProcurementInfoRAM(db.Model):
@@ -242,12 +245,6 @@ class ProcurementInfoRAM(db.Model):
     def __str__(self):
         return u'{}'.format(self.ram)
 
-    def to_dict(self):
-        return {
-            'id': self.ram,
-            'text': self.ram
-        }
-
 
 class ProcurementInfoWindowsVersion(db.Model):
     __tablename__ = 'procurement_info_windows_versions'
@@ -256,12 +253,6 @@ class ProcurementInfoWindowsVersion(db.Model):
 
     def __str__(self):
         return u'{}'.format(self.windows_version)
-
-    def to_dict(self):
-        return {
-            'id': self.windows_version,
-            'text': self.windows_version
-        }
 
 
 class ProcurementSurveyComputer(db.Model):
