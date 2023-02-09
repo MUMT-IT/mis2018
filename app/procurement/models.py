@@ -225,7 +225,8 @@ class ProcurementInfoComputer(db.Model):
             'computer_name': self.computer_name,
             'cpu': self.cpu.cpu,
             'ram': self.ram.ram,
-            'windows_version': self.windows_version.windows_version
+            'windows_version': self.windows_version.windows_version,
+            'user': self.user.personal_info.fullname
         }
 
 class ProcurementInfoCPU(db.Model):
@@ -286,7 +287,7 @@ class ProcurementSurveyComputer(db.Model):
                                                      (u'อื่นๆ', u'อื่นๆ')]})
     check_anti_virus_update = db.Column('check_anti_virus_update', db.String(),
                                         info={'label': u'ตรวจสอบ Anti-Virus Update',
-                                              'choices': [('None', u'--เลือกรายละเอียดการติดตั้ง-'),
+                                              'choices': [('None', u'--เลือกรายละเอียดการติดตั้ง--'),
                                                           (u'ไม่มีการติดตั้งระบบ', u'ไม่มีการติดตั้งระบบ'),
                                                           (u'มีการติดตั้งและอัพเดตระบบล่าสุด',
                                                            u'มีการติดตั้งและอัพเดตระบบล่าสุด'),
