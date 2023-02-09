@@ -867,12 +867,12 @@ def search_erp_code():
 
 @procurement.route('api/erp-code/search')
 def get_procurement_search_erp_code():
-    query = ProcurementDetail.query
+    query = ProcurementDetail.query.filter(ProcurementDetail.erp_code.contains("41000"))
     search = request.args.get('search[value]')
     query = query.filter(db.or_(
-        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
-        ProcurementDetail.name.like(u'%{}%'.format(search)),
-        ProcurementDetail.erp_code.like(u'%{}%'.format(search))
+        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.name.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search))
     ))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
@@ -901,7 +901,7 @@ def get_check_computer():
     query = ProcurementInfoComputer.query
     search = request.args.get('search[value]')
     query = query.filter(db.or_(
-        ProcurementInfoComputer.computer_name.like(u'%{}%'.format(search))
+        ProcurementInfoComputer.computer_name.ilike(u'%{}%'.format(search))
     ))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
@@ -930,7 +930,7 @@ def qrcode_scan_to_survey():
 def add_survey_computer_info():
     form = ProcurementSurveyComputerForm()
     if form.validate_on_submit():
-        survey_com = ProcurementInfoComputer()
+        survey_com = ProcurementSurveyComputer()
         form.populate_obj(survey_com)
         survey_com.surveyor = current_user
         survey_com.survey_date = bangkok.localize(datetime.now())
