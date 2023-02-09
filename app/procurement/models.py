@@ -286,7 +286,7 @@ class ProcurementSurveyComputer(db.Model):
                                                      (u'อื่นๆ', u'อื่นๆ')]})
     check_anti_virus_update = db.Column('check_anti_virus_update', db.String(),
                                         info={'label': u'ตรวจสอบ Anti-Virus Update',
-                                              'choices': [('None', u'--เลือกรายละเอียด Anti-Virus Update--'),
+                                              'choices': [('None', u'--เลือกรายละเอียดการติดตั้ง-'),
                                                           (u'ไม่มีการติดตั้งระบบ', u'ไม่มีการติดตั้งระบบ'),
                                                           (u'มีการติดตั้งและอัพเดตระบบล่าสุด',
                                                            u'มีการติดตั้งและอัพเดตระบบล่าสุด'),
@@ -295,28 +295,27 @@ class ProcurementSurveyComputer(db.Model):
                                                           ]})
     check_windows_update = db.Column('check_windows_update', db.String(),
                                      info={'label': u'ตรวจสอบ Windows Update',
-                                           'choices': [('None', u'--เลือก Check Windows Update--'),
-                                                       (u'ไม่มีการอัพเดตเป็นรุ่นล่าสุด',
-                                                        u'ไม่มีการอัพเดตเป็นรุ่นล่าสุด'),
+                                           'choices': [('None', u'--เลือกการอัพเดต--'),
+                                                       (u'ไม่มีการอัพเดตเป็นรุ่นล่าสุด', u'ไม่มีการอัพเดตเป็นรุ่นล่าสุด'),
                                                        (u'มีการอัพเดตเป็นรุ่นล่าสุด', u'มีการอัพเดตเป็นรุ่นล่าสุด')
                                                        ]})
     list_software = db.Column('list_software', db.String(),
                               info={'label': u'รายชื่อ Software ที่มีลิขสิทธิ์ไม่ถูกต้อง'})
     setting_user_login = db.Column('setting_user_login', db.String(),
                                    info={'label': u'จัดการตั้งค่ารหัสผ่านสำหรับ User login',
-                                         'choices': [('None', u'--เลือก--'),
+                                         'choices': [('None', u'--เลือกการจัดการ--'),
                                                      (u'จัดการเรียบร้อยแล้ว', u'จัดการเรียบร้อยแล้ว'),
                                                      (u'ยังไม่เรียบร้อย', u'ยังไม่เรียบร้อย')
                                                      ]})
     setting_screen_saver = db.Column('setting_screen_saver', db.String(),
                                      info={'label': u'จัดการตั้งค่ารหัสผ่านการป้องกัน Screen saver',
-                                           'choices': [('None', u'--เลือก--'),
+                                           'choices': [('None', u'--เลือกการจัดการ--'),
                                                        (u'จัดการเรียบร้อยแล้ว', u'จัดการเรียบร้อยแล้ว'),
                                                        (u'ยังไม่เรียบร้อย', u'ยังไม่เรียบร้อย')
                                                        ]})
     check_ms_office_and_windows_activation = db.Column('check_ms_office_and_windows_activation', db.String(),
                                                        info={'label': u'ตรวจสอบ MS-Office and Windows activation',
-                                                             'choices': [('None', u'--เลือก--'),
+                                                             'choices': [('None', u'--เลือกการจัดการ--'),
                                                                          (u'จัดการเรียบร้อยแล้ว',
                                                                           u'จัดการเรียบร้อยแล้ว'),
                                                                          (u'ยังไม่เรียบร้อย', u'ยังไม่เรียบร้อย')
