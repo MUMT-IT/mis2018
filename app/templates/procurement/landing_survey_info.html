@@ -1,8 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
-{{ super() }}
+    {{ super() }}
     <title>Cover - Free Bulma template</title>
-    <link rel="shortcut icon" href="../images/fav_icon.png" type="image/x-icon">
     <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
     <style type="text/css">
         html,
@@ -14,7 +13,7 @@
             padding: 5px;
             border: 1px solid #ccc;
         }
-</style>
+    </style>
 {% endblock %}
 {% block page_content %}
     <section class="hero is-fullheight is-default is-bold">
@@ -23,7 +22,8 @@
                 <div class="columns is-vcentered">
                     <div class="column is-5">
                         <figure class="image is-4by3">
-                            <img src="https://picsum.photos/800/600/?random" alt="Description">
+                            <img src="{{ url_for('static', filename='img/Computer-Information-Systems.jpg') }}"
+                                 width="750">
                         </figure>
                     </div>
                     <div class="column is-6 is-offset-1">
@@ -35,16 +35,20 @@
                         </h2>
                         <br>
                         <p class="has-text-centered">
-                            <a class="button is-medium is-warning is-outlined" href="{{ url_for('procurement.information_technology_first_page') }}">
+                            <a class="button is-medium is-danger is-outlined"
+                               href="{{ url_for('procurement.information_technology_first_page') }}">
                                 Home
                             </a>
-                            <a class="button is-medium is-primary is-outlined" href="{{ url_for('procurement.search_erp_code') }}">
+                            <a class="button is-medium is-primary is-outlined"
+                               href="{{ url_for('procurement.search_erp_code') }}">
                                 Check Computer
                             </a>
-                            <a class="button is-medium is-info is-outlined" href="{{ url_for('procurement.view_all_check_computer') }}">
+                            <a class="button is-medium is-info is-outlined"
+                               href="{{ url_for('procurement.view_all_check_computer') }}">
                                 View Checking
                             </a>
-                            <a class="button is-medium is-info is-outlined" href="{{ url_for('procurement.view_all_check_computer') }}">
+                            <a class="button is-medium is-info is-outlined"
+                               href="{{ url_for('procurement.view_all_check_computer') }}">
                                 View Survey
                             </a>
                         </p>
@@ -53,8 +57,8 @@
             </div>
         </div>
     </section>
-    {% endblock %}
+{% endblock %}
 {% block scripts %}
-{{ super() }}
+    {{ super() }}
     <script src="../js/bulma.js"></script>
 {% endblock %}
