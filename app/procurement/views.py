@@ -819,8 +819,9 @@ def landing_survey_info():
     return render_template('procurement/landing_survey_info.html')
 
 
-@procurement.route('computer/<string:procurement_no>/checking/new', methods=['GET', 'POST'])
-def new_checking_computer_info(procurement_no):
+@procurement.route('computer/<int:procurement_id>/checking/new', methods=['GET', 'POST'])
+def new_checking_computer_info(procurement_id):
+    procurement = ProcurementDetail.query.get(procurement_id)
     form = ProcurementComputerInfoForm()
     if form.validate_on_submit():
         check_com = ProcurementInfoComputer()
@@ -846,7 +847,7 @@ def new_checking_computer_info(procurement_no):
             db.session.add(windows_version)
             db.session.commit()
 
-        # erp_code
+        check_com.detail_id = procurement_id
         db.session.add(check_com)
         db.session.commit()
         flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
@@ -857,7 +858,7 @@ def new_checking_computer_info(procurement_no):
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('procurement/new_checking_computer_info.html',
                            form=form,
-                           procurement_no=procurement_no)
+                           procurement_id=procurement_id, procurement_no=procurement.procurement_no)
 
 
 @procurement.route('erp-code/search', methods=['GET', 'POST'])
@@ -882,7 +883,7 @@ def get_procurement_search_erp_code():
     for item in query:
         item_data = item.to_dict()
         item_data['check'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">ตรวจสอบ</a>'.format(
-            url_for('procurement.new_checking_computer_info', procurement_no=item.procurement_no))
+            url_for('procurement.new_checking_computer_info', procurement_id=item.id))
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
@@ -911,7 +912,7 @@ def get_check_computer():
     for item in query:
         item_data = item.to_dict()
         item_data['survey_record'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">Survey</a>'.format(
-            url_for('procurement.add_survey_computer_info'))
+            url_for('procurement.add_survey_computer_info', procurement_no=item.detail.procurement_no))
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
@@ -926,8 +927,9 @@ def qrcode_scan_to_survey():
     return render_template('procurement/qr_code_scan_to_survey.html')
 
 
-@procurement.route('computer/survey/add', methods=['GET', 'POST'])
-def add_survey_computer_info():
+@procurement.route('/computer/survey/add/<string:procurement_no>', methods=['GET', 'POST'])
+def add_survey_computer_info(procurement_no):
+    procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
     form = ProcurementSurveyComputerForm()
     if form.validate_on_submit():
         survey_com = ProcurementSurveyComputer()
@@ -937,10 +939,9 @@ def add_survey_computer_info():
         db.session.add(survey_com)
         db.session.commit()
         flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        return redirect(url_for('procurement.add_survey_computer_info', form=form))
         # Check Error
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('procurement/add_survey_computer_info.html',
-                           form=form)
+                           form=form, procurement=procurement)
