@@ -203,19 +203,19 @@ class ProcurementInfoComputer(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     mac_address = db.Column('mac_address', db.String(), info={'label': 'MAC Address'})
     computer_name = db.Column('computer_name', db.String(), info={'label': u'ชื่อคอมพิวเตอร์'})
-    erp_code_id = db.Column('erp_code_id', db.ForeignKey('procurement_details.id'))
-    erp_code = db.relationship('ProcurementDetail', foreign_keys=[erp_code_id],
+    detail_id = db.Column('detail_id', db.ForeignKey('procurement_details.id'))
+    detail = db.relationship('ProcurementDetail',
                                backref=db.backref('info_computers', lazy='dynamic'))
     cpu_id = db.Column('cpu_id', db.ForeignKey('procurement_info_cpus.id'))
-    cpu = db.relationship('ProcurementInfoCPU', foreign_keys=[cpu_id],
+    cpu = db.relationship('ProcurementInfoCPU',
                           backref=db.backref('cpu_of_computers', lazy='dynamic'))
     ram_id = db.Column('ram_id', db.ForeignKey('procurement_info_rams.id'))
-    ram = db.relationship('ProcurementInfoRAM', foreign_keys=[ram_id],
+    ram = db.relationship('ProcurementInfoRAM',
                           backref=db.backref('ram_of_computers', lazy='dynamic'))
     windows_version_id = db.Column('windows_version_id', db.ForeignKey('procurement_info_windows_versions.id'))
-    windows_version = db.relationship('ProcurementInfoWindowsVersion', foreign_keys=[windows_version_id],
+    windows_version = db.relationship('ProcurementInfoWindowsVersion',
                                       backref=db.backref('windows_ver_of_computers', lazy='dynamic'))
-    user_id = db.Column('username_id', db.ForeignKey('staff_account.id'))
+    user_id = db.Column('user_id', db.ForeignKey('staff_account.id'))
     user = db.relationship(StaffAccount, foreign_keys=[user_id])
 
     def to_dict(self):
