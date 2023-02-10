@@ -79,7 +79,7 @@
                 async onDecode(content) {
                     console.log(content)
                     this.info.procurementNo = content
-                    window.location.replace("/procurement/computer/survey/add" + content)
+                    window.location.replace("/procurement/computer/survey/add/" + content)
                     this.turnCameraOff()
                 },
                 logErrors(promise) {
