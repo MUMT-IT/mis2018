@@ -168,10 +168,7 @@ class ProcurementSurveyComputerForm(ModelForm):
         model = ProcurementSurveyComputer
         exclude = ['survey_date']
 
-    personal_info = RadioField(u'มีการจัดเก็บและประมวลผลข้อมูลส่วนบุคคลในเครื่องคอมพิวเตอร์',
-                               choices=[(c, c) for c in [u'มี', u'ไม่มี']],
-                               coerce=unicode,
-                               validators=[DataRequired()])
+
     satisfaction_with_speed_of_use = RadioField(u'ความเร็วในการทำงาน',
                                                 choices=[(c, c) for c in [u'ไม่พอใจมาก', u'พอใจ', u'พอใจมาก']],
                                                 coerce=unicode,
