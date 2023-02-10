@@ -18,7 +18,7 @@ class ProcurementDetail(db.Model):
     erp_code = db.Column('erp_code', db.String(22), unique=True, info={'label': u'Inventory Number/ERP'})
     serial_no = db.Column('serial_no', db.String(), info={'label': u'Serial Number'})
     bought_by = db.Column('bought_by', db.String(),
-                          info={'label': u'วิธีการจัดซื้อ', 'choices': [('None', u'--โปรดเลือกวิธีการจัดซื้อ--'),
+                          info={'label': u'วิธีการจัดซื้อ', 'choices': [('None', 'Select how to purchase..'),
                                                                         (u'ประกาศเชิญชวนทั่วไป(E-Bidding)',
                                                                          u'ประกาศเชิญชวนทั่วไป(E-Bidding)'),
                                                                         (u'วิธีคัดเลือก', u'วิธีคัดเลือก'),
