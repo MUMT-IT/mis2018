@@ -255,7 +255,7 @@ def pre_register_tests(service_id, record_id):
     record = ComHealthRecord.query.get(record_id)
 
     if request.method == 'POST':
-        print(request.form)
+        record.ordered_tests = []
         for field in request.form:
             if field.startswith('test_'):
                 _, test_id = field.split('_')  # name=test_34
@@ -285,10 +285,21 @@ def edit_record(record_id):
 
     if request.method == 'GET':
         if not record.checkin_datetime:
+            group_preregister=[]
+            for group in record.service.groups:
+                for item in group.test_items:
+                    if item in record.ordered_tests:
+                        is_preregister=True
+                        break
+                    else:
+                        is_preregister=False
+                if is_preregister:
+                    group_preregister.append(group.id)
             return render_template('comhealth/edit_record.html',
                                    finance_contact_reasons=finance_contact_reasons,
                                    record=record,
-                                   emptypes=emptypes)
+                                   emptypes=emptypes,
+                                   group_preregister=group_preregister)
     containers = set()
     group_item_cost = Decimal(0.0)
     if request.method == 'POST':
@@ -368,6 +379,7 @@ def edit_record(record_id):
         emptype_id = int(request.form.get('emptype_id', 0))
         department_id = int(request.form.get('department_id', 0))
         record.customer.emptype_id = emptype_id
+        record.note = request.form.get('note')
         if department_id > 0:
             record.customer.dept_id = department_id
 
@@ -1003,16 +1015,20 @@ def list_tests_in_container(service_id, container_id):
         test_items = ComHealthTestItem.query.join(test_item_record_table)\
             .filter(and_(ComHealthTestItem.test.has(container_id=container_id),
                     test_item_record_table.c.record_id.in_(checked_in_records))).all()
+        checkincount = 0
         for test_item in test_items:
             for rec in test_item.records:
                 if rec.id in checked_in_records:
                     tests[rec].append(test_item.test.code)
         records = sorted(tests.keys(), key=lambda x: x.labno)
+        for rec1 in records:
+            if rec1.get_container_checkin(container.id):
+                checkincount += 1
     else:
         flash('The service no longer exists.', 'danger')
     return render_template('comhealth/container_tests.html',
                            records=records, tests=tests,
-                           service=service, container=container)
+                           service=service, container=container, labnocount=len(records),checkincount=checkincount)
 
 
 @comhealth.route('/services/<int:service_id>/records/<int:record_id>/containers/<int:container_id>/check')
@@ -1063,29 +1079,36 @@ def scan_container(service_id, container_id):
         .filter(ComHealthSpecimensCheckinRecord.container.has(id=container_id))\
         .filter(ComHealthSpecimensCheckinRecord.record.has(service_id=service_id))\
         .order_by(ComHealthSpecimensCheckinRecord.checkin_datetime.desc())
-
+    check_is_container = 0
     if request.method == 'POST':
         specimens_no = request.form.get('specimens_no')
-        labno = u'{}{}'.format(str(datetime.today().year)[-1], specimens_no[3:])
+        labno = u'{}{}'.format(str(datetime.today().year)[-1], specimens_no[-9:])
         record = ComHealthRecord.query.filter_by(labno=labno).first()
-        checkin_record = ComHealthSpecimensCheckinRecord.query \
-            .filter_by(record_id=record.id, container_id=container_id).first()
-        if checkin_record:
-            checkin_record.checkin_datetime = datetime.now(tz=bangkok)
-            db.session.add(checkin_record)
-            db.session.commit()
+        if record:
+            containers = set([item.test.container for item in record.ordered_tests])
+            for cts in containers:
+                if cts.id == container_id:
+                    checkin_record = ComHealthSpecimensCheckinRecord.query \
+                    .filter_by(record_id=record.id, container_id=container_id).first()
+                    if checkin_record:
+                        checkin_record.checkin_datetime = datetime.now(tz=bangkok)
+                        db.session.add(checkin_record)
+                        db.session.commit()
+                    else:
+                        checkin_record = ComHealthSpecimensCheckinRecord(
+                                            record.id, container_id, datetime.now(tz=bangkok))
+                        record.container_checkins.append(checkin_record)
+                        db.session.add(record)
+                        db.session.commit()
+                    return render_template('comhealth/scan_container.html', service=service,
+                                       container=container, specimens_no=specimens_no,
+                                       checkin_record=checkin_record, recents=recents)
+                    check_is_container = 1
+                    break
+            if check_is_container == 0:
+                flash(specimens_no + ' The container no longer exists.', 'danger')
         else:
-            if record:
-                checkin_record = ComHealthSpecimensCheckinRecord(
-                                        record.id, container_id, datetime.now(tz=bangkok))
-                record.container_checkins.append(checkin_record)
-                db.session.add(record)
-                db.session.commit()
-            else:
-                flash('The container no longer exists.', 'danger')
-        return render_template('comhealth/scan_container.html', service=service,
-                               container=container, specimens_no=specimens_no,
-                               checkin_record=checkin_record, recents=recents)
+            flash(specimens_no + '  no register.', 'danger')
 
     return render_template('comhealth/scan_container.html', service=service, container=container, recents=recents)
 
