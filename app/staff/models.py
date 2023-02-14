@@ -128,7 +128,7 @@ class StaffAccount(db.Model):
         return False
 
     def get_id(self):
-        return unicode(self.id)
+        return str(self.id)
 
     def __str__(self):
         return u'{}'.format(self.email)

@@ -179,13 +179,13 @@ class KPIAdminModel(ModelView):
                    'updated_at', 'updated_by', 'name')
 
 
-from app.models import *
+from app import models
 
 from app.events import event_bp as event_blueprint
 
 app.register_blueprint(event_blueprint, url_prefix='/events')
 
-admin.add_views(KPIAdminModel(KPI, db.session, category='KPI'))
+admin.add_views(KPIAdminModel(models.KPI, db.session, category='KPI'))
 
 from app.studs import studbp as stud_blueprint
 
@@ -367,9 +367,9 @@ app.register_blueprint(linebot_blueprint, url_prefix='/linebot')
 
 from app import database
 
-admin.add_view(ModelView(Student, db.session, category='Student Affairs'))
+admin.add_view(ModelView(models.Student, db.session, category='Student Affairs'))
 admin.add_view(ModelView(Org, db.session, category='Organization'))
-admin.add_view(ModelView(Mission, db.session, category='Organization'))
+admin.add_view(ModelView(models.Mission, db.session, category='Organization'))
 
 from app.asset import assetbp as asset_blueprint
 
@@ -386,7 +386,7 @@ class IOCodeAdminModel(ModelView):
     column_list = ('id', 'cost_center', 'mission', 'org', 'name')
 
 
-admin.add_view(IOCodeAdminModel(IOCode, db.session, category='Finance'))
+admin.add_view(IOCodeAdminModel(models.IOCode, db.session, category='Finance'))
 
 
 class CostCenterAdminModel(ModelView):
@@ -395,7 +395,7 @@ class CostCenterAdminModel(ModelView):
     column_list = ('id',)
 
 
-admin.add_view(CostCenterAdminModel(CostCenter, db.session, category='Finance'))
+admin.add_view(CostCenterAdminModel(models.CostCenter, db.session, category='Finance'))
 
 from app.lisedu import lisedu as lis_blueprint
 
