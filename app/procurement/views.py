@@ -819,77 +819,31 @@ def landing_survey_info():
     return render_template('procurement/landing_survey_info.html')
 
 
-@procurement.route('computer/<int:procurement_id>/checking/new', methods=['GET', 'POST'])
+@procurement.route('computer/<int:procurement_id>/checking/edit', methods=['GET', 'POST'])
 def new_checking_computer_info(procurement_id):
     procurement = ProcurementDetail.query.get(procurement_id)
-    form = ProcurementComputerInfoForm()
+    if procurement.computer_info:
+        computer_info = procurement.computer_info
+        form = ProcurementComputerInfoForm(obj=computer_info)
+    else:
+        form = ProcurementComputerInfoForm()
+        computer_info = None
     if form.validate_on_submit():
-        check_com = ProcurementInfoComputer()
-        form.populate_obj(check_com)
-        cpu = request.form.get('cpu')
-        ram = request.form.get('ram')
-        windows_version = request.form.get('windows_version')
-        cpu = ProcurementInfoCPU.query.filter_by(cpu=cpu).first()
-        if not cpu:
-            cpu = ProcurementInfoCPU(cpu=cpu)
-            db.session.add(cpu)
-            db.session.commit()
-
-        ram = ProcurementInfoRAM.query.filter_by(ram=ram).first()
-        if not ram:
-            ram = ProcurementInfoRAM(ram=ram)
-            db.session.add(ram)
-            db.session.commit()
-
-        windows_version = ProcurementInfoWindowsVersion.query.filter_by(windows_version=windows_version).first()
-        if not windows_version:
-            windows_version = ProcurementInfoWindowsVersion(windows_version=windows_version)
-            db.session.add(windows_version)
-            db.session.commit()
-
-        check_com.detail_id = procurement_id
-        db.session.add(check_com)
+        if not computer_info:
+            computer_info = ProcurementInfoComputer()
+        form.populate_obj(computer_info)
+        computer_info.detail_id = procurement_id
+        db.session.add(computer_info)
         db.session.commit()
         flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        return redirect(url_for('procurement.view_all_check_computer'))
-        # Check Error
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('procurement/new_checking_computer_info.html',
-                           form=form,
-                           procurement_id=procurement_id, procurement_no=procurement.procurement_no)
-
-
-@procurement.route('erp-code/search', methods=['GET', 'POST'])
-def search_erp_code():
-    return render_template('procurement/search_by_erp_code.html')
-
-
-@procurement.route('api/erp-code/search')
-def get_procurement_search_erp_code():
-    query = ProcurementDetail.query.filter(ProcurementDetail.erp_code.contains("41000"))
-    search = request.args.get('search[value]')
-    query = query.filter(db.or_(
-        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
-        ProcurementDetail.name.ilike(u'%{}%'.format(search)),
-        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search))
-    ))
-    start = request.args.get('start', type=int)
-    length = request.args.get('length', type=int)
-    total_filtered = query.count()
-    query = query.offset(start).limit(length)
-    data = []
-    for item in query:
-        item_data = item.to_dict()
-        item_data['check'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">ตรวจสอบ</a>'.format(
-            url_for('procurement.new_checking_computer_info', procurement_id=item.id))
-        data.append(item_data)
-    return jsonify({'data': data,
-                    'recordsFiltered': total_filtered,
-                    'recordsTotal': ProcurementDetail.query.count(),
-                    'draw': request.args.get('draw', type=int),
-                    })
+                           form=form, procurement_id=procurement_id,
+                           procurement_no=procurement.procurement_no,
+                           computer_info=computer_info,
+                           procurement=procurement)
 
 
 @procurement.route('computer/check', methods=['GET', 'POST'])
@@ -913,6 +867,11 @@ def get_check_computer():
         item_data = item.to_dict()
         item_data['survey_record'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">Survey</a>'.format(
             url_for('procurement.add_survey_computer_info', procurement_no=item.detail.procurement_no))
+        item_data[
+            'view_survey'] = '<a href="{}" class="button is-small is-rounded is-primary is-outlined">View</a>'.format(
+            url_for('procurement.view_survey_computer_info', procurement_id=item.id))
+        item_data['erp_code'] = u'{}'.format(item.detail.erp_code)
+        item_data['procurement_no'] = u'{}'.format(item.detail.procurement_no)
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
@@ -936,12 +895,42 @@ def add_survey_computer_info(procurement_no):
         form.populate_obj(survey_com)
         survey_com.surveyor = current_user
         survey_com.survey_date = bangkok.localize(datetime.now())
+        survey_com.computer_info = procurement.computer_info
         db.session.add(survey_com)
         db.session.commit()
         flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-        # Check Error
+        return redirect(url_for('procurement.new_checking_computer_info', procurement_id=procurement.id))
     else:
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('procurement/add_survey_computer_info.html',
-                           form=form, procurement=procurement)
+                           form=form, procurement=procurement, url_callback=request.referrer)
+
+
+@procurement.route('/info-tests/view/<int:survey_id>')
+def view_survey_computer_info(survey_id):
+    survey = ProcurementSurveyComputer.query.get(survey_id)
+    return render_template('procurement/view_survey_computer_info.html', survey=survey)
+
+
+@procurement.route('/computer/erp_code/search')
+@login_required
+def computer_search_by_erp_code():
+    return render_template('procurement/computer_search_by_erp_code.html')
+
+
+@procurement.route('/list', methods=['POST', 'GET'])
+@login_required
+def computer_list():
+    if request.method == 'GET':
+        computers_detail = ProcurementDetail.query.filter(ProcurementDetail.erp_code.contains("41000"))
+    else:
+        erp_code = request.form.get('erp_code', None)
+        if erp_code:
+            computers_detail = ProcurementDetail.query.filter(ProcurementDetail.erp_code.like('%{}%'.format(erp_code)))
+        else:
+            computers_detail = []
+        if request.headers.get('HX-Request') == 'true':
+            return render_template('procurement/partials/computer_list.html', computers_detail=computers_detail)
+
+    return render_template('procurement/computer_list.html', computers_detail=computers_detail)

@@ -8,14 +8,14 @@
         <div class="container">
             <nav class="breadcrumb" aria-label="breadcrumbs">
                 <ul>
-                    <li><a href="{{ url_for("procurement.search_erp_code") }}">ดูข้อมูลการสำรวจ</a></li>
-                    <li class="is-active"><a href="#" aria-current="page">เพิ่มข้อมูล</a></li>
+                    <li><a href="{{ url_for("procurement.computer_search_by_erp_code") }}">ดูข้อมูลคอมพิวเตอร์</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">เพิ่มรายละเอียดการสำรวจ</a></li>
                 </ul>
             </nav>
             {% include "messages.html" %}
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="title">เพิ่มรายละเอียดการสำรวจ</h1>
+                    <h1 class="title">เพิ่มรายละเอียดการสำรวจ: {{ procurement.erp_code }}</h1>
                 </div>
             </div>
             <div class="columns">
@@ -43,26 +43,23 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="field-body">
                                 <div class="field">
-                                    <label class="label">{{ form.personal_info.label }}</label>
-                                    <div class="control">
-                                        {{ form.personal_info() }}
-                                    </div>
+                                    <label class="label">{{ form.personal_info() }} {{ form.personal_info.label }}</label>
                                 </div>
+                            <div class="field-body">
                                 <div class="field">
                                     <label class="label">{{ form.check_back_up_file.label }}</label>
                                     <div class="select is-fullwidth">
                                         {{ form.check_back_up_file() }}
                                     </div>
                                 </div>
-                            </div>
                             <div class="field">
                                     <label class="label">{{ form.reason_no_backup_file.label }}</label>
                                     <div class="select is-fullwidth">
                                         {{ form.reason_no_backup_file() }}
                                     </div>
                                 </div>
+                            </div>
                             <div class="field-body">
                                 <div class="field">
                                     <label class="label">{{ form.check_anti_virus_update.label }}</label>
@@ -112,7 +109,7 @@
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="buttons">
                                     <button class="button is-success" type="submit" value="submit">บันทึก</button>
-                                    <a href="{{ url_for('procurement.view_all_check_computer') }}" class="button is-danger">ยกเลิก</a>
+                                    <a href="{{ url_for('procurement.new_checking_computer_info', procurement_id=procurement.id) }}" class="button is-danger">ยกเลิก</a>
                                 </div>
                             </div>
                         </form>
