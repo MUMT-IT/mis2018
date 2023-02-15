@@ -8,7 +8,20 @@
         <div class="container">
             <nav class="breadcrumb" aria-label="breadcrumbs">
                 <ul>
-                    <li><a href="{{ url_for("procurement.search_erp_code") }}">ดูข้อมูลการตรวจสอบ</a></li>
+                    <li><a href="{{ url_for("procurement.computer_search_by_erp_code") }}">
+                        <span class="icon is-small">
+                              <i class="fas fa-list" aria-hidden="true"></i>
+                            </span>
+                        <span>View Computer List</span>
+                    </a></li>
+                    <li>
+                        <a href="{{ url_for('procurement.qrcode_scan_to_survey') }}">
+                            <span class="icon is-small">
+                              <i class="fas fa-qrcode" aria-hidden="true"></i>
+                            </span>
+                            <span>Scan QR Code</span>
+                        </a>
+                    </li>
                     <li class="is-active"><a href="#" aria-current="page">เพิ่มข้อมูล</a></li>
                 </ul>
             </nav>
@@ -16,7 +29,17 @@
             <div class="columns">
                 <div class="column has-text-centered">
                     <h1 class="title">เพิ่มรายละเอียดคอมพิวเตอร์</h1>
-                    <h2 class="subtitle">รหัสครุภัณฑ์: {{ procurement_no }}</h2>
+                    <h2 class="subtitle">Inventory Number/ERP: {{ procurement.erp_code }}<br>รหัสครุภัณฑ์: {{ procurement.procurement_no }}
+                        รายการ: {{ procurement.name }}</h2>
+                    <div class="buttons is-centered">
+                        <a class="button is-info"
+                           href="{{ url_for("procurement.add_survey_computer_info", procurement_no=procurement_no) }}">
+                            <span class="icon">
+                               <i class="fas fa-plus"></i>
+                            </span>
+                            <span>เพิ่มการสำรวจ</span>
+                        </a>
+                    </div>
                 </div>
             </div>
             <div class="columns">
@@ -78,10 +101,68 @@
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="buttons">
                                     <button class="button is-success" type="submit" value="submit">บันทึก</button>
-                                    <a href="{{ url_for('procurement.search_erp_code') }}" class="button is-danger">ยกเลิก</a>
+                                    <a href="{{ url_for('procurement.erp_code_search_info') }}" class="button is-danger">ยกเลิก</a>
                                 </div>
                             </div>
                         </form>
+                    </div>
+                </div>
+            </div>
+            <hr>
+            <div class="columns">
+                <div class="column column is-10 is-offset-1">
+                    <div class="columns">
+                        <div class="column has-text-centered">
+                            <h1 class="title">All Survey Information</h1>
+                            <h2 class="subtitle">ผลการสำรวจคอมพิวเตอร์ทั้งหมด</h2>
+                        </div>
+                    </div>
+                    <div class="box">
+                        <div class="container">
+                            <div class="columns">
+                                <div class="column">
+                                    <table id="data" class="table is-striped" style="width:100%">
+                                        <thead>
+                                        <th></th>
+                                        <th>ชื่อผู้สำรวจ</th>
+                                        <th>วันที่สำรวจ</th>
+
+                                        </thead>
+                                        <tbody>
+                                        {% if computer_info %}
+                                            {% for survey in computer_info.survey_records %}
+                                                <tr>
+                                                    <td>
+                                                        <a class="button is-small is-rounded is-primary is-outlined"
+                                                           href="{{ url_for("procurement.view_survey_computer_info", survey_id=survey.id) }}">
+                                                            <span class="icon">
+                                                               <i class="fas fa-eye"></i>
+                                                            </span>
+                                                        <span>ดูการสำรวจ</span>
+                                                        </a>
+                                                    </td>
+                                                    <td>{{ survey.surveyor.fullname }}</td>
+                                                    <td>{{ survey.survey_date|localdatetime }}</td>
+
+                                                </tr>
+                                            {% endfor %}
+                                        {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="columns">
+                                <div class="column">
+                                    <a href="{{ url_for('procurement.computer_search_by_erp_code') }}"
+                                       class="button is-rounded is-info is-light">
+                                        <span class="icon">
+                                            <i class="fas fa-arrow-left"></i>
+                                        </span>
+                                        <span>กลับ</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
