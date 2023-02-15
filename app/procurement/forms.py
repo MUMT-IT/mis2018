@@ -2,8 +2,8 @@
 import datetime
 
 from flask_wtf import FlaskForm
-from wtforms import SelectMultipleField, widgets, FileField, IntegerField, RadioField, SelectField, FieldList, \
-    FormField, Field, DateField
+from wtforms import SelectMultipleField, widgets, FileField, RadioField, SelectField, FieldList, \
+    FormField, Field, SubmitField, StringField
 from wtforms.validators import DataRequired
 from wtforms.widgets import TextInput
 from wtforms_alchemy import (model_form_factory, QuerySelectField)

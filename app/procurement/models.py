@@ -205,7 +205,7 @@ class ProcurementInfoComputer(db.Model):
     computer_name = db.Column('computer_name', db.String(), info={'label': u'ชื่อคอมพิวเตอร์'})
     detail_id = db.Column('detail_id', db.ForeignKey('procurement_details.id'))
     detail = db.relationship('ProcurementDetail',
-                               backref=db.backref('info_computers', lazy='dynamic'))
+                               backref=db.backref('computer_info', uselist=False))
     cpu_id = db.Column('cpu_id', db.ForeignKey('procurement_info_cpus.id'))
     cpu = db.relationship('ProcurementInfoCPU',
                           backref=db.backref('cpu_of_computers', lazy='dynamic'))
@@ -228,6 +228,7 @@ class ProcurementInfoComputer(db.Model):
             'windows_version': self.windows_version.windows_version,
             'user': self.user.personal_info.fullname
         }
+
 
 class ProcurementInfoCPU(db.Model):
     __tablename__ = 'procurement_info_cpus'
