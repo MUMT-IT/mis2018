@@ -1,9 +1,8 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <title>Cover - Free Bulma template</title>
     <link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet">
-    <style type="text/css">
+    <style>
         html,
         body {
             font-family: 'Open Sans';
@@ -34,31 +33,40 @@
                             Click to select button. A feature and service consist of...
                         </h2>
                         <br>
-                        <p class="has-text-centered">
-                            <a class="button is-medium is-danger is-outlined"
-                               href="{{ url_for('procurement.information_technology_first_page') }}">
-                                Home
-                            </a>
-                            <a class="button is-medium is-primary is-outlined"
-                               href="{{ url_for('procurement.search_erp_code') }}">
-                                Check Computer
-                            </a>
-                            <a class="button is-medium is-info is-outlined"
-                               href="{{ url_for('procurement.view_all_check_computer') }}">
-                                View Checking
-                            </a>
-                            <a class="button is-medium is-info is-outlined"
-                               href="{{ url_for('procurement.view_all_check_computer') }}">
-                                View Survey
-                            </a>
-                        </p>
+                        <div class="column ">
+                            <div class="box">
+                                <a href="{{ url_for('procurement.computer_search_by_erp_code') }}">
+                                    <span class="icon is-large"><i class="fas fa-search fa-4x"></i></span><br><br>
+                                    <span class="is-size-4">Search</span>
+                                </a>
+                            </div>
+                        </div>
+                        <div class="column ">
+                            <div class="box">
+                                <a href="{{ url_for('procurement.qrcode_scan_to_survey') }}">
+                                    <span class="icon is-large"><i class="fas fa-qrcode fa-4x"></i></span><br><br>
+                                    <span class="is-size-4">Scan QR Code</span>
+                                </a>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            </div>
+        </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('procurement.information_technology_first_page') }}"
+                   class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
             </div>
         </div>
     </section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="../js/bulma.js"></script>
 {% endblock %}
