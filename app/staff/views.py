@@ -2162,14 +2162,6 @@ class LoginDataUploadView(BaseView):
         return 'Done'
 
 
-@staff.route('/for-hr/seminar-report/<int:seminar_id>', methods=['GET'])
-@hr_permission.require()
-@login_required
-def seminar_report(seminar_id):
-    seminar = StaffSeminar.query.get(seminar_id)
-    return render_template('staff/seminar_report.html', seminar=seminar)
-
-
 @staff.route('/for-hr/<int:seminar_id>/attend/download', methods=['GET'])
 def attend_download(seminar_id):
     records = []
