@@ -104,6 +104,10 @@ class StaffAccount(db.Model):
         return self.personal_info.fullname
 
     @property
+    def en_fullname(self):
+        return self.personal_info.en_fullname
+
+    @property
     def has_password(self):
         return self.__password_hash != None
 
@@ -175,20 +179,61 @@ class StaffPersonalInfo(db.Model):
         try:
             academic_position = self.academic_positions[0]
         except IndexError:
-            th_position = u'อาจารย์'
-            en_position = u'Lecturer'
+            if self.academic_staff:
+                th_position = u'อาจารย์'
+                en_position = u'Lecturer'
+            else:
+                th_position = None
+                en_position = None
         else:
-            th_position = str(academic_position)
-            en_position = academic_position.shortname_en
+            th_position = academic_position.position.shortname_th
+            en_position = academic_position.position.shortname_en
 
         if self.th_firstname or self.th_lastname:
-            return u'{} {}{} {}'.format(th_position,
-                                        self.th_title, self.th_firstname, self.th_lastname)
+            if th_position:
+                if self.th_title == u'ดร.':
+                    return u'{} {}{} {}'.format(th_position, self.th_title or '', self.th_firstname, self.th_lastname)
+                else:
+                    return u'{} {} {}'.format(th_position, self.th_firstname, self.th_lastname)
+            else:
+                return u'{}{} {}'.format(self.th_title or '', self.th_firstname, self.th_lastname)
         else:
-            return u'{} {}{} {}'.format(en_position,
-                                        self.en_title or '',
-                                        self.en_firstname,
-                                        self.en_lastname)
+            if en_position:
+                if self.en_title == u'Dr.':
+                    return u'{} {}{} {}'.format(en_position,
+                                                self.en_title or '',
+                                                self.en_firstname,
+                                                self.en_lastname)
+                else:
+                    return u'{} {} {}'.format(en_position, self.en_firstname, self.en_lastname)
+            else:
+                return u'{}{} {}'.format(self.en_title or '', self.en_firstname, self.en_lastname)
+
+    @property
+    def en_fullname(self):
+        try:
+            academic_position = self.academic_positions[0]
+        except IndexError:
+            if self.academic_staff:
+                en_position = u'Lecturer'
+            else:
+                en_position = None
+        else:
+            en_position = academic_position.position.shortname_en
+
+        if en_position:
+            if self.en_title == u'Dr.':
+                return u'{} {}{} {}'.format(en_position,
+                                            self.en_title,
+                                            self.en_firstname,
+                                            self.en_lastname)
+            else:
+                return u'{} {} {}'.format(en_position, self.en_firstname, self.en_lastname)
+        else:
+            if self.en_title == u'Dr.':
+                return u'{}{} {}'.format(self.en_title, self.en_firstname, self.en_lastname)
+            else:
+                return u'{}{} {}'.format(self.en_title or '', self.en_firstname, self.en_lastname)
 
     def get_employ_period(self):
         today = datetime.now().date()
@@ -333,6 +378,9 @@ class StaffAcademicPositionRecord(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
     position_id = db.Column(db.ForeignKey('staff_academic_position.id'))
     position = db.relationship(StaffAcademicPosition, backref=db.backref('records'))
+
+    def __str__(self):
+        return self.position.fullname_th
 
 
 class StaffEmployment(db.Model):
