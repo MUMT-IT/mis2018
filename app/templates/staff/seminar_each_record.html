@@ -44,8 +44,9 @@
                             <td>
                                 <label class="label">ด้าน</label>
                             </td>
-                            <td>
-                                {{ attend.seminar.mission }}
+                            <td>{% for mission in attend.missions %}
+                                {{ mission.mission }}
+                                {% endfor %}
                             </td>
                         </tr>
                         <tr>
@@ -60,8 +61,9 @@
                             <td>
                                 <label class="label">ดำเนินการภายใต้</label>
                             </td>
-                            <td>
-                                {{ attend.objective }}
+                            <td>{% for obj in attend.objectives %}
+                                {{ obj.objective }}
+                                {% endfor %}
                             </td>
                         </tr>
                         <tr>
