@@ -2043,6 +2043,51 @@ def login_scan():
     return render_template('staff/login_scan.html')
 
 
+@staff.route('/api/login-records')
+@login_required
+def get_login_records():
+    date = request.args.get('date')
+    dept_id = request.args.get('dept_id', int)
+    print(date, dept_id)
+    if not date:
+        date = datetime.today()
+    else:
+        date = datetime.strptime(date, '%d/%m/%Y')
+    events = []
+    staff_list = {}
+    for rec in StaffWorkLogin.query.filter(cast(StaffWorkLogin.start_datetime, Date)==date):
+        if rec.staff_id not in staff_list:
+            s = StaffAccount.query.get(rec.staff_id)
+            if s.personal_info.org_id != int(dept_id):
+                continue
+            staff_list[rec.staff_id] = s.fullname
+            name = s.fullname
+        else:
+            name = staff_list[rec.staff_id]
+
+        if rec.start_datetime and rec.qrcode_in_exp_datetime:
+            start_expired = rec.start_datetime > rec.qrcode_in_exp_datetime
+        else:
+            start_expired = None
+        if rec.end_datetime and rec.qrcode_in_exp_datetime:
+            end_expired = rec.end_datetime > rec.qrcode_out_exp_datetime
+        else:
+            end_expired = None
+        lat = float(rec.lat) if rec.lat else ''
+        lon = float(rec.long) if rec.long else ''
+        events.append({
+                'staff_name': name,
+                'start': rec.start_datetime.astimezone(tz).isoformat() if rec.start_datetime else '',
+                'end': rec.end_datetime.astimezone(tz).isoformat() if rec.end_datetime else '',
+                'lat': lat,
+                'lon': lon,
+                'start_expired': start_expired,
+                'end_expired': end_expired,
+                'location': '<a href="https://maps.google.com/?q={},{}">Click</a>'.format(lat, lon) if lat and lon else '',
+            })
+    return jsonify({'data': events})
+
+
 @staff.route('/login-activity-scan/<int:seminar_id>', methods=['GET', 'POST'])
 @csrf.exempt
 @hr_permission.require()
