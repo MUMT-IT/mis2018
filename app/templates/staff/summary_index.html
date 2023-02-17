@@ -102,14 +102,14 @@
         </div>
         <table class="table is-fullwidth is-striped" id="timeTable">
             <thead>
-            <th>Name</th>
-            <th>Start</th>
-            <th>Start expired</th>
-            <th>End</th>
-            <th>End expired</th>
-            <th>Latitude</th>
-            <th>Longitude</th>
-            <th>Location</th>
+            <th>ชื่อ</th>
+            <th>เข้างาน</th>
+            <th>QR Code หมดอายุ</th>
+            <th>ออกงาน</th>
+            <th>QR Code หมดอายุ</th>
+            <th>พิกัดละติจูด</th>
+            <th>พิกัดลองจิจูด</th>
+            <th>ตำแหน่งที่สร้าง QR Code</th>
             </thead>
             <tbody>
             </tbody>
@@ -189,6 +189,7 @@
                 table.ajax.url(apiUrl + '&date=' + start.format('L')).load()
             }
         );
+        table.ajax.url(apiUrl + '&date=' + moment().format('L')).load()
     });
 </script>
 {% endblock %}
