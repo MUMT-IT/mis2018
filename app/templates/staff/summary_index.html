@@ -108,7 +108,7 @@
             <th>ออกงาน</th>
             <th>QR Code หมดอายุ</th>
             <th>พิกัดละติจูด</th>
-            <th>พิกัดลองติจูด</th>
+            <th>พิกัดลองจิจูด</th>
             <th>ตำแหน่งที่สร้าง QR Code</th>
             </thead>
             <tbody>
@@ -189,6 +189,7 @@
                 table.ajax.url(apiUrl + '&date=' + start.format('L')).load()
             }
         );
+        table.ajax.url(apiUrl + '&date=' + moment().format('L')).load()
     });
 </script>
 {% endblock %}
