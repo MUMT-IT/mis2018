@@ -42,7 +42,7 @@ seminar_approval_attend_assoc_table = db.Table('seminar_approval_attend_assoc',
                                                )
 
 staff_seminar_mission_assoc_table = db.Table('staff_seminar_mission_assoc',
-                                   db.Column('seminar_id', db.ForeignKey('staff_seminar.id')),
+                                   db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id')),
                                    db.Column('seminar_mission_id', db.ForeignKey('staff_seminar_missions.id')),
                                    )
 
@@ -629,7 +629,6 @@ class StaffSeminar(db.Model):
     location = db.Column('location', db.String(), info={'label': u'สถานที่จัด'})
     is_online = db.Column('is_online', db.Boolean(), default=False, info={'label': u'จัดแบบ Online'})
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
-    missions = db.relationship('StaffSeminarMission', secondary=staff_seminar_mission_assoc_table)
 
     def __str__(self):
         return u'{}'.format(self.topic)
@@ -678,6 +677,7 @@ class StaffSeminarAttend(db.Model):
                             backref=db.backref('seminar_attends', lazy='dynamic'))
     seminar = db.relationship('StaffSeminar', backref=db.backref('attends'), foreign_keys=[seminar_id])
     objectives = db.relationship('StaffSeminarObjective', secondary=staff_seminar_objective_assoc_table)
+    missions = db.relationship('StaffSeminarMission', secondary=staff_seminar_mission_assoc_table)
 
     def __str__(self):
         return u'{}'.format(self.seminar)
