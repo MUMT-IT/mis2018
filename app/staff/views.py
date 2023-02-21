@@ -2619,7 +2619,6 @@ def seminar_add_approval(attend_id):
 
 
 @staff.route('/seminar/create', methods=['GET', 'POST'])
-@hr_permission.require()
 @login_required
 def create_seminar():
     form = StaffSeminarForm()
