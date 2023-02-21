@@ -6,7 +6,7 @@
         {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">
-                <h1 class="title">บันทึกประชุม อบรม สัมมนา</h1>
+                <h1 class="title">บันทึกรายละเอียดประชุม อบรม สัมมนา</h1>
             </div>
         </div>
         <div class="columns">
@@ -29,7 +29,7 @@
                                 {{ form.topic(class="input") }}
                             </div>
                         </div>
-                        <b-field label="เวลาเริ่มต้น">
+                        <b-field label="เวลาเริ่มต้นการจัดอบรม">
                             <b-datetimepicker
                                     required
                                     v-model="startDateTime"
@@ -42,7 +42,7 @@
                             </b-datetimepicker>
                         </b-field>
                         {{ form.start_datetime(type='hidden', **{'v-model': 'formattedStartDateTime'}) }}
-                        <b-field label="เวลาสิ้นสุด">
+                        <b-field label="เวลาสิ้นสุดการจัดอบรม">
                             <b-datetimepicker
                                     required
                                     v-model="endDateTime"
@@ -59,12 +59,6 @@
                             <label class="label">{{ form.organize_by.label }}</label>
                             <div class="control">
                                 {{ form.organize_by(class="input") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.missions.label }}</label>
-                            <div class="control">
-                                {{ form.missions() }}
                             </div>
                         </div>
                         <div class="field">

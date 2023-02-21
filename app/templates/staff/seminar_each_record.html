@@ -10,7 +10,33 @@
                     <table class="table is-fullwidth">
                         <tr>
                             <td>
-                               <label class="label">ระยะเวลางานสัมมนา</label>
+                               <label class="label">ผู้ไปอบรม</label>
+                            </td>
+                            <td>
+                                <p class="is-size-5"><strong>{{ attend.staff.personal_info }}</strong></p>
+                            </td>
+                        </tr>
+                        {% if attend.head_account_id %}
+                        <tr>
+                            <td>
+                               <label>ผู้บังคับบัญชา</label>
+                            </td>
+                            <td>
+                                {{ attend.head_account.personal_info }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td>
+                               <label class="label">เรื่อง</label>
+                            </td>
+                            <td>
+                                <p class="is-size-5"><strong>{{ attend.seminar.topic }}</strong></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label>ระยะเวลางานสัมมนา</label>
                             </td>
                             <td>
                                 {{ attend.seminar.start_datetime|localdatetime }} - {{ attend.seminar.end_datetime|localdatetime }}
@@ -26,18 +52,18 @@
                         </tr>
                         <tr>
                             <td>
-                               <label class="label">ผู้ไปอบรม</label>
+                                <label>ประเภท</label>
                             </td>
                             <td>
-                                <p class="is-size-5"><strong>{{ attend.staff.personal_info }}</strong></p>
+                                {{ attend.seminar.topic_type }}
                             </td>
                         </tr>
                         <tr>
                             <td>
-                               <label class="label">เรื่อง</label>
+                               <label class="label">บทบาท</label>
                             </td>
                             <td>
-                                <p class="is-size-5"><strong>{{ attend.seminar.topic }}</strong></p>
+                                {{ attend.role }}
                             </td>
                         </tr>
                         <tr>
@@ -51,27 +77,11 @@
                         </tr>
                         <tr>
                             <td>
-                                <label class="label">ประเภท</label>
-                            </td>
-                            <td>
-                                {{ attend.seminar.topic_type }}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
                                 <label class="label">ดำเนินการภายใต้</label>
                             </td>
                             <td>{% for obj in attend.objectives %}
                                 {{ obj.objective }}
                                 {% endfor %}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                               <label class="label">บทบาท</label>
-                            </td>
-                            <td>
-                                {{ attend.role }}
                             </td>
                         </tr>
                         <tr>
