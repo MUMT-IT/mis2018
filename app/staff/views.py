@@ -2172,15 +2172,18 @@ def attend_download(seminar_id):
     attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
     for attend in attends:
         records.append({
+            u'เรื่อง': u"{}".format(attend.seminar.topic),
             u'ชื่อ-นามสกุล': u"{}".format(attend.staff.personal_info.fullname),
-            'Email': u"{}".format(attend.staff.email),
+            u'ประเภท': u"สายวิชาการ" if attend.staff.personal_info.academic_staff is True else u"สายสนับสนุน",
             u'หน่วยงาน/ภาควิชา': u"{}".format(attend.staff.personal_info.org.name),
-            u'ประเภทการเข้าร่วม': u"{}".format(attend.role),
-            u'วัน-เวลา': u"{}".format(attend.start_datetime.astimezone(tz).isoformat()),
+            u'ประเภทที่ไป': u"{}".format(attend.role),
+            u'วันที่เริ่มต้น': u"{}".format(attend.start_datetime.date()),
+            u'วันที่สิ้นสุด': u"{}".format(attend.end_datetime.date()
+                                           if attend.end_datetime else attend.start_datetime.date()),
         })
     df = DataFrame(records)
     df.to_excel('attend_summary.xlsx')
-    return send_from_directory(os.getcwd(), filename='attend_summary.xlsx')
+    return send_from_directory(os.getcwd(), 'attend_summary.xlsx')
 
 
 @staff.route('/api/summary')
@@ -2663,18 +2666,49 @@ def seminar_attend_info(seminar_id):
 @staff.route('/seminar/all-seminars', methods=['GET', 'POST'])
 @login_required
 def seminar_records():
-    seminar_list = []
-    seminar_query = StaffSeminar.query.filter(StaffSeminar.cancelled_at == None).all()
-    for seminar in seminar_query:
-        record = {}
-        record["id"] = seminar.id
-        record["topic_type"] = seminar.topic_type
-        record["name"] = seminar.topic
-        record["start"] = seminar.start_datetime
-        record["end"] = seminar.end_datetime
-        record["organize_by"] = seminar.organize_by
-        seminar_list.append(record)
-    return render_template('staff/seminar_records.html', seminar_list=seminar_list)
+    if request.method == "POST":
+        form = request.form
+        start_t = "00:00"
+        end_t = "23:59"
+        start_d, end_d = form.get('dates').split(' - ')
+        start_dt = '{} {}'.format(start_d, start_t)
+        end_dt = '{} {}'.format(end_d, end_t)
+        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
+        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
+        records = []
+        attends = StaffSeminarAttend.query.filter(and_(StaffSeminarAttend.start_datetime >= start_datetime,
+                                                          StaffSeminarAttend.start_datetime <= end_datetime))
+        columns = [u'ชื่อ-นามสกุล', u'ประเภท', u'ประเภทที่ไป', u'เรื่อง',
+                   u'ประเภทแหล่งเงิน', u'จำนวนเงิน', u'วันที่เริ่มต้น', u'วันที่สิ้นสุด', u'สถานที่']
+        for attend in attends:
+            records.append({
+                columns[0]: u"{}".format(attend.staff.personal_info.fullname),
+                columns[1]: u"สายวิชาการ" if attend.staff.personal_info.academic_staff is True else u"สายสนับสนุน",
+                columns[2]: u"{}".format(attend.role),
+                columns[3]: u"{}".format(attend.seminar.topic),
+                columns[4]: u"{}".format(attend.budget_type if attend.budget_type else ""),
+                columns[5]: u"{}".format(attend.budget if attend.budget else ""),
+                columns[6]: u"{}".format(attend.start_datetime.date()),
+                columns[7]: u"{}".format(attend.end_datetime.date()
+                                                   if attend.end_datetime else attend.start_datetime.date()),
+                columns[8]: u"{}".format(attend.seminar.location),
+            })
+        df = DataFrame(records, columns=columns)
+        df.to_excel('attend_summary.xlsx',index=False, columns=columns)
+        return send_from_directory(os.getcwd(), 'attend_summary.xlsx')
+    else:
+        seminar_list = []
+        seminar_query = StaffSeminar.query.filter(StaffSeminar.cancelled_at == None).all()
+        for seminar in seminar_query:
+            record = {}
+            record["id"] = seminar.id
+            record["topic_type"] = seminar.topic_type
+            record["name"] = seminar.topic
+            record["start"] = seminar.start_datetime
+            record["end"] = seminar.end_datetime
+            record["organize_by"] = seminar.organize_by
+            seminar_list.append(record)
+        return render_template('staff/seminar_records.html', seminar_list=seminar_list)
 
 
 @staff.route('/seminar/create-record/<int:seminar_id>', methods=['GET', 'POST'])
@@ -2685,7 +2719,6 @@ def seminar_create_record(seminar_id):
     form = MyStaffSeminarAttendForm()
     seminar = StaffSeminar.query.get(seminar_id)
     if form.validate_on_submit():
-        #TODO: recheck objective and mission ว่าเข้าใน db ไหม
         attend = StaffSeminarAttend()
         form.populate_obj(attend)
         attend.start_datetime = tz.localize(form.start_datetime.data)

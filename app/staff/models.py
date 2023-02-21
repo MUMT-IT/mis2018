@@ -645,6 +645,7 @@ class StaffSeminarObjective(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     objective = db.Column('objective', db.String())
 
+
 class StaffSeminarAttend(db.Model):
     __tablename__ = 'staff_seminar_attends'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -671,6 +672,8 @@ class StaffSeminarAttend(db.Model):
     attend_online = db.Column('attend_online', db.Boolean(), default=False, info={'label': u'เข้าร่วมผ่านช่องทาง online'})
     contact_no = db.Column('contact_no', db.Integer(), info={'label': u'เบอร์โทรภายใน'})
     head_account_id = db.Column('head_account_id', db.ForeignKey('staff_account.id'))
+    head_account = db.relationship('StaffAccount', foreign_keys=[head_account_id],
+                            backref=db.backref('seminar_head_attends', lazy='dynamic'))
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     document_no = db.Column('document_no', db.String())
     staff = db.relationship('StaffAccount', foreign_keys=[staff_account_id],
