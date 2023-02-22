@@ -75,7 +75,6 @@ class ProcurementDetail(db.Model):
             'erp_code': self.erp_code,
             'budget_year': self.budget_year,
             'received_date': self.received_date,
-            'purchasing_type': self.purchasing_type.purchasing_type,
             'available': self.available
         }
 
