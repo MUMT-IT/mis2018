@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
+{% endblock %}
+
+{% block page_content %}
+<section class="section" id="app">
+    <div class="columns">
+        <div class="column">
+            <h1 class="title">ตารางการเข้าปฏิบัติงาน</h1>
+        </div>
+        <div class="column is-narrow">
+            <a class="button is-info" href="{{ url_for('staff.create_shift_schedule') }}">
+                <span class="icon">
+                    <i class="fas fa-plus"></i>
+                </span>
+                <span>เพิ่มข้อมูลเวลาปฏิบัติงาน</span>
+            </a>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <div class="container has-text-centered">
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+    <p class="subtitle has-text-centered">หมายเหตุ:
+        <span class="tag is-warning is-medium">ปฏิบัติงาน</span>
+        <span class="tag is-light is-medium">ลาปฏิบัติงาน</span>
+    </p>
+    <div class="columns">
+        <div class="column">
+            <a class="button is-info is-light" href="{{ url_for('ot.document_approvals_list_for_create_ot') }}">
+                     <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                <span>หน้าขอเบิกค่าล่วงเวลา</span>
+            </a>
+        </div>
+        <div class="column is-narrow">
+            <a class="button is-info is-light" href="{{ url_for('staff.show_time_report') }}">
+                <span>หน้าข้อมูลการเข้าออกงาน</span>
+                <span class="icon">
+                    <i class="fas fa-arrow-right"></i>
+                </span>
+            </a>
+        </div>
+    </div>
+    <p class="title has-text-centered"></p>
+
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
+<script>
+    $(function() {
+        $('#calendar').fullCalendar({
+            schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
+        header: {
+            left: 'title',
+        },
+        events: {{ all|tojson|safe }}
+    })
+        $('#prev_btn').on('click', function() {
+            $('#calendar').fullCalendar('prev');
+        });
+        $('#next_btn').on('click', function() {
+            $('#calendar').fullCalendar('next');
+        });
+    });
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+    });
+</script>
+{% endblock %}

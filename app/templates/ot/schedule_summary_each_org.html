@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link ref="//cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="table-container">
+            <h4 class="subtitle">รายการที่ต้องการเบิกค่าล่วงเวลา ของ
+                {{ current_user.personal_info.org.name }}
+            </h4>
+        </div>
+        <table id="otSummaryTable" class="table is-striped is-fullwidth">
+            <thead>
+            <th>
+                สำหรับเบิกเดือนที่/ปี
+            </th>
+            <th>
+                ประกาศ
+            </th>
+            </thead>
+            <tbody>
+            {% for id,title,month,year in documents %}
+            <tr>
+                <td>
+                    {{ month }}/{{ year }}
+                </td>
+                <td>
+                    <a href="{{ url_for('ot.summary_ot_each_document', document_id=id, month=month, year=year) }}">
+                        <span class="icon">
+                            <i class="fas fa-calendar-alt"></i>
+                        </span>
+                        <span>
+                           {{ title }}
+                        </span>
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <div class="columns">
+            <div class="column">
+                <div class="container has-text-centered">
+                    <div class="box">
+                        <a href="{{ url_for('ot.round_request_status') }}">
+                        <span class="icon is-large">
+                            <i class="far fa-clock fa-2x"></i>
+                        </span>
+                            <span class="is-size-4">ประวัติการเบิก</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a class="button is-info is-light" href="{{ url_for('ot.document_approvals_list_for_create_ot') }}">
+                     <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready( function () {
+        $('#otSummaryTable').DataTable(
+            {
+                "pageLength": 5
+            }
+        );
+    });
+</script>
+{% endblock %}
+
+

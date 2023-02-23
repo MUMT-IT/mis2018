@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">เพิ่มรายชื่อ</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">{{ form.topic.label }}</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.topic(class="input") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">{{ form.announce_at.label }}</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.announce_at(class="input", type="text") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">{{ form.start_datetime.label }}</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control">
+                                        {{ form.start_datetime(class="input", type="text") }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="is-normal">
+                            <label class="label">ชื่อไฟล์ที่อัพโหลด ควรเป็นภาษาอังกฤษ</label>
+                        </div>
+                        <div class="field">
+                            <div class="file">
+                                <label class="file-label">
+                                    {{ form.upload(class="file-input") }}
+                                    <span class="file-cta">
+                              <span class="file-icon">
+                                <i class="fas fa-upload"></i>
+                              </span>
+                              <span class="file-label">
+                                Choose a file…
+                              </span>
+                            </span>
+                                    <span class="file-name" id="filename"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <input type="submit" value="submit" class="button is-primary"/>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('ot.announcement') }}" class="button is-danger">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    // set up the daterangepicker so that it starts off empty
+    // because not all documents have a deadline date.
+    $('input[name="announce_at"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: false,
+        autoUpdateInput: false,
+        locale: {
+            cancelLabel: 'Clear',
+            format: 'YYYY-MM-DD'
+        }
+    }, function(start, end, label) {
+        $(this.element).val(start.format('YYYY-MM-DD HH:mm:ss'))
+    });
+    $('input[name="start_datetime"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: false,
+        autoUpdateInput: false,
+        locale: {
+            cancelLabel: 'Clear',
+            format: 'YYYY-MM-DD'
+        }
+    }, function(start, end, label) {
+        $(this.element).val(start.format('YYYY-MM-DD HH:mm:ss'))
+    });
+
+</script>
+<script>
+    $(document).ready(()=>{
+        $('#filename').text("{{ form.file_name.data }}");
+    })
+    $('#upload').change(function(e) {
+        let fileName = e.target.files[0].name;
+        $('#filename').text(fileName);
+    });
+</script>
+{% endblock %}
+
+
+

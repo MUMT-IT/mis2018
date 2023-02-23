@@ -19,6 +19,10 @@ class Org(db.Model):
     def __repr__(self):
         return self.name
 
+    @property
+    def active_staff(self):
+        return [s for s in self.staff if s.retired is not True]
+
 
 class Strategy(db.Model):
     __tablename__ = 'strategies'
@@ -310,6 +314,15 @@ kpi_process_assoc = db.Table('kpi_process_assoc',
                              )
 
 
+pdpa_coordinators = db.Table('pdpa_coordinators',
+                        db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id'), primary_key=True),
+                        db.Column('db_core_service_id', db.Integer, db.ForeignKey('db_core_services.id'), primary_key=True)
+                        )
+
+
+from app.staff.models import StaffAccount
+
+
 class CoreService(db.Model):
     __tablename__ = 'db_core_services'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
@@ -326,6 +339,11 @@ class CoreService(db.Model):
                            backref=db.backref('core_services', lazy=True))
     datasets = db.relationship('Dataset', secondary=dataset_service_assoc, lazy='subquery',
                                backref=db.backref('core_services', lazy=True))
+    pdpa_coordinators = db.relationship(StaffAccount, secondary=pdpa_coordinators, lazy='subquery',
+                           backref=db.backref('pdpa_services', lazy=True))
+
+    def __str__(self):
+        return u'{}'.format(self.service)
 
 
 class Data(db.Model):
@@ -401,8 +419,6 @@ class DataStorage(db.Model):
                                                                               u'อื่น ๆ']]})
     desc = db.Column('desc', db.String(), info={'label': u'รายละเอียด'})
 
-
-from app.staff.models import StaffAccount
 
 
 class ROPA(db.Model):

@@ -27,7 +27,11 @@
                                 <label class="label">กำหนดส่งงาน</label>
                             </td>
                             <td>
+                                {% if wfhreq.deadline_date %}
                                 {{ wfhreq.deadline_date|localdate }}
+                                {% else %}
+                                    ไม่ระบุ
+                                {% endif %}
                             </td>
                         </tr>
                         <tr>
@@ -55,8 +59,7 @@
                                 <p>
                                     <b-input type="textarea"
                                              name="overall_result"
-                                             placeholder="โปรดระบุผลการดำเนินงาน"
-                                             required>
+                                             placeholder="โปรดระบุเช่น สำเร็จตามแผนที่วางไว้">
                                     </b-input>
                                 </p>
                                 </div>

@@ -47,9 +47,75 @@
                         </label>
                     </div>
                     <div class="field">
+                        <label class="label checkbox">
+                            {{ form.is_primary_data() }}
+                            {{ form.is_primary_data.label }}
+                        </label>
+                    </div>
+                    <div class="field">
                         <label class="label">{{ form.amount.label }}</label>
                         <div class="control">
                             {{ form.amount(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.law_basis.label }}</label>
+                        <div class="select">
+                            {{ form.law_basis() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.source.label }}</label>
+                        <div class="control">
+                            {{ form.source(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.format.label }}</label>
+                        <div class="control">
+                            {{ form.format(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.storage.label }}</label>
+                        <div class="control">
+                            {{ form.storage(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.duration.label }}</label>
+                        <div class="control">
+                            {{ form.duration(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.destroy_method.label }}</label>
+                        <div class="control">
+                            {{ form.destroy_method(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.inside_sharing.label }}</label>
+                        <div class="control">
+                            {{ form.inside_sharing(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.outside_sharing.label }}</label>
+                        <div class="control">
+                            {{ form.outside_sharing(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.intl_sharing.label }}</label>
+                        <div class="control">
+                            {{ form.intl_sharing(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.security_measure.label }}</label>
+                        <div class="control">
+                            {{ form.security_measure(class="textarea") }}
                         </div>
                     </div>
                     <div class="field">

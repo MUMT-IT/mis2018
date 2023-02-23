@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link ref="//cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                <div class="has-text-centered">
+                    <h1 class="title">รายการที่ดำเนินการขอเบิกค่าล่วงเวลา</h1>
+                </div>
+                <table id="myTable" class="table is-striped is-fullwidth">
+                    <thead>
+                    <th>
+                        วันที่ยื่น
+                    </th>
+                    <th>
+                        รหัส
+                    </th>
+                    <th>
+                        สถานะ
+                    </th>
+                    <th>
+                        สรุปการเบิก
+                    </th>
+                    </thead>
+                    <tbody>
+                    {% for round in rounds %}
+                    <tr>
+                        <td>
+                            {{ round.created_at|localdatetime }}
+                        </td>
+                        <td>
+                            {{ round.round_no }}
+                        </td>
+                        <td>
+                            {% if not round.approval_at %}
+                            ยังไม่ได้รับการอนุมัติจากหัวหน้า
+                            {% else %}
+                            {{ round.approval_by.personal_info.fullname }} ได้อนุมัติเมื่อ {{ round.approval_at|localdatetime }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if round.approval_at %}
+                            <a href="{{ url_for('ot.round_request_info', round_id=round.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-check-square has-text-success"></i>
+                                </span>
+                            </a>
+                            {% else %}
+                            <a href="{{ url_for('ot.round_request_info', round_id=round.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-square has-text-dark"></i>
+                                </span>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a class="button is-info is-light" href="{{ url_for('ot.summary_ot_each_org') }}">
+                     <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready( function () {
+        $('#myTable').DataTable(
+            {
+                "pageLength": 5
+            }
+        );
+    });
+</script>
+{% endblock %}

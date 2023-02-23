@@ -5,27 +5,14 @@
 {{ super() }}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
 {% endblock %}
 
 {% block page_content %}
 <section class="section" id="app">
     <div class="columns">
         <div class="column">
-            <h1 class="title">สรุปข้อมูลบุคลากรประจำปีงบประมาณ {{ fiscal_year+543 }}</h1>
-        </div>
-        <div class="column is-narrow">
-            <b-dropdown hoverable aria-role="list">
-                <button class="button is-link" slot="trigger">
-                    <span>ปีงบประมาณอื่น</span>
-                    <b-icon icon="menu-down"></b-icon>
-                </button>
-                {% for fy in fiscal_years %}
-                <b-dropdown-item aria-role="listitem" href="{{ url_for('staff.summary_index',
-                                            curr_dept_id=curr_dept_id, tab=tab, fiscal_year=fy) }}">
-                    ปีงบประมาณ {{ fy+543 }}
-                </b-dropdown-item>
-                {% endfor %}
-            </b-dropdown>
+            <h1 class="title">สรุปข้อมูลบุคลากร</h1>
         </div>
     </div>
     <div class="columns">
@@ -64,7 +51,7 @@
         </div>
         <div class="column">
             <div class="container has-text-centered">
-                <div class="tabs">
+                <div class="tabs is-boxed is-centered">
                     <ul>
                         <li {% if tab =="all" %} class="is-active" {% endif %}>
                             <a href="{{ url_for('staff.summary_index', tab='all', curr_dept_id=curr_dept_id,
@@ -72,7 +59,7 @@
                                 ทั้งหมด
                             </a>
                         </li>
-                        <li {% if tab =="wfh" %} class="is-active" {% endif %}>
+                        <li {% if tab =="login" %} class="is-active" {% endif %}>
                             <a href="{{ url_for('staff.summary_index', tab='login', curr_dept_id=curr_dept_id, fiscal_year=fiscal_year) }}">
                                 แสกนเข้าทำงาน
                             </a>
@@ -106,24 +93,39 @@
 {% block scripts %}
 {{ super() }}
 <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
+<script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(function() {
+        moment.updateLocale('th');
         $('#calendar').fullCalendar({
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
-            defaultDate: new Date({{ init_date|tojsdatetime(single=True)}}),
             header: {
                 left: 'title',
             },
-            events: {{ all|tojson|safe }},
+            events: {{ url_for("staff.send_summary_data", tab=tab, curr_dept_id=curr_dept_id)|tojson|safe }},
+            displayEventEnd: true,
+            timeFormat: 'H(:mm)',
             eventClick: function(calEvent, jsEvent, view) {
+                if(calEvent.type === 'login') {
+                    let status = calEvent.status === 'Done' ? 'success': 'warning'
+                    if (calEvent.end === null) {
+                        end = 'not logged out'
+                    } else {
+                        end = moment(calEvent.end).calendar()
+                    }
+                    Swal.fire(calEvent.title, moment(calEvent.start).format('lll') + ' - ' + end, status)
+                }
                 if(calEvent.type === 'leave') {
-                    window.location = '/staff/leave/requests/approval/pending/' + calEvent.id;
+                    let status = calEvent.status === 'Approved' ? 'success': 'warning'
+                    Swal.fire(calEvent.title, moment(calEvent.start).format('lll') + ' - ' + moment(calEvent.end).format('lll'), status)
                 }
                 if(calEvent.type === 'wfh') {
-                    window.location = '/staff/wfh/requests/approval/pending/' + calEvent.id;
+                    let status = calEvent.status === 'Approved' ? 'success': 'warning'
+                    Swal.fire(calEvent.title, moment(calEvent.start).format('lll') + ' - ' + moment(calEvent.end).format('lll'), status)
                 }
                 if(calEvent.type === 'smr') {
-                    window.location = '/staff/seminar/info/' + calEvent.id + '/staff/' + calEvent.staff_id ;
+                    let status = calEvent.status === 'Approved' ? 'success': 'warning'
+                    Swal.fire(calEvent.title, moment(calEvent.start).format('lll') + ' - ' + moment(calEvent.end).format('lll'), status)
                 }
             }
         })
@@ -133,10 +135,6 @@
         $('#next_btn').on('click', function() {
             $('#calendar').fullCalendar('next');
         });
-    });
-    new Vue({
-        el: '#app',
-        delimiters: ['<%', '%>'],
     });
 </script>
 {% endblock %}

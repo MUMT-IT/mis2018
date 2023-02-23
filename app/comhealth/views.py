@@ -123,7 +123,7 @@ def api_finance_record(service_id):
     record_schema = ComHealthRecordSchema(many=True,
                                           only=('labno', 'customer', 'id',
                                                 'checkin_datetime', 'finance_contact',
-                                                'receipts'))
+                                                'receipts','note'))
     return jsonify(record_schema.dump(records).data)
 
 
@@ -185,7 +185,6 @@ def index():
 
 
 @comhealth.route('/api/services/<int:service_id>/search')
-@login_required
 def search_service_customer(service_id):
     #TODO: search should be done at the backend
     service = ComHealthService.query.get(service_id)
@@ -256,7 +255,7 @@ def pre_register_tests(service_id, record_id):
     record = ComHealthRecord.query.get(record_id)
 
     if request.method == 'POST':
-        print(request.form)
+        record.ordered_tests = []
         for field in request.form:
             if field.startswith('test_'):
                 _, test_id = field.split('_')  # name=test_34
@@ -286,10 +285,21 @@ def edit_record(record_id):
 
     if request.method == 'GET':
         if not record.checkin_datetime:
+            group_preregister=[]
+            for group in record.service.groups:
+                for item in group.test_items:
+                    if item in record.ordered_tests:
+                        is_preregister=True
+                        break
+                    else:
+                        is_preregister=False
+                if is_preregister:
+                    group_preregister.append(group.id)
             return render_template('comhealth/edit_record.html',
                                    finance_contact_reasons=finance_contact_reasons,
                                    record=record,
-                                   emptypes=emptypes)
+                                   emptypes=emptypes,
+                                   group_preregister=group_preregister)
     containers = set()
     group_item_cost = Decimal(0.0)
     if request.method == 'POST':
@@ -369,6 +379,7 @@ def edit_record(record_id):
         emptype_id = int(request.form.get('emptype_id', 0))
         department_id = int(request.form.get('department_id', 0))
         record.customer.emptype_id = emptype_id
+        record.note = request.form.get('note')
         if department_id > 0:
             record.customer.dept_id = department_id
 
@@ -381,14 +392,14 @@ def edit_record(record_id):
     profile_item_cost = Decimal(0.0)
     for profile in record.service.profiles:
         ordered_profile_tests = set(profile.test_items).intersection(record.ordered_tests)
-        if len(ordered_profile_tests) == len(profile.test_items):
-            # if all tests are ordered, the quote price is used.
-            profile_item_cost += profile.quote
-        elif len(ordered_profile_tests) < len(profile.test_items):
-            # if some tests in the profile are ordered,
-            # subtract the price of the tests that are not ordered
-            for test_item in ordered_profile_tests:
-                profile_item_cost += test_item.price
+        if len(ordered_profile_tests) != 0:
+            if profile.quote > 0:
+                #if profiletest have price quote use quote
+                profile_item_cost += profile.quote
+            else:
+                #if profiletest price quote = 0 use sum each test price
+                for test_item in ordered_profile_tests:
+                    profile_item_cost += test_item.price
         special_tests.difference_update(set(profile.test_items))
 
     group_item_cost = sum([item.price for item in record.ordered_tests if item.group])
@@ -654,6 +665,11 @@ def save_test_profile(profile_id):
                 test_item.price = float(request.form.get(test))
                 db.session.add(test_item)
                 print(test_item.test.name, test_item.price, request.form.get(test))
+        if request.form.get('quote') == '':
+            profile.quote = 0
+        else:
+            profile.quote = float(request.form.get('quote'))
+        db.session.add(profile)
         db.session.commit()
     flash('Change has been saved.')
     return redirect(url_for('comhealth.test_profile', profile_id=profile_id))
@@ -999,16 +1015,20 @@ def list_tests_in_container(service_id, container_id):
         test_items = ComHealthTestItem.query.join(test_item_record_table)\
             .filter(and_(ComHealthTestItem.test.has(container_id=container_id),
                     test_item_record_table.c.record_id.in_(checked_in_records))).all()
+        checkincount = 0
         for test_item in test_items:
             for rec in test_item.records:
                 if rec.id in checked_in_records:
                     tests[rec].append(test_item.test.code)
         records = sorted(tests.keys(), key=lambda x: x.labno)
+        for rec1 in records:
+            if rec1.get_container_checkin(container.id):
+                checkincount += 1
     else:
         flash('The service no longer exists.', 'danger')
     return render_template('comhealth/container_tests.html',
                            records=records, tests=tests,
-                           service=service, container=container)
+                           service=service, container=container, labnocount=len(records),checkincount=checkincount)
 
 
 @comhealth.route('/services/<int:service_id>/records/<int:record_id>/containers/<int:container_id>/check')
@@ -1059,29 +1079,36 @@ def scan_container(service_id, container_id):
         .filter(ComHealthSpecimensCheckinRecord.container.has(id=container_id))\
         .filter(ComHealthSpecimensCheckinRecord.record.has(service_id=service_id))\
         .order_by(ComHealthSpecimensCheckinRecord.checkin_datetime.desc())
-
+    check_is_container = 0
     if request.method == 'POST':
         specimens_no = request.form.get('specimens_no')
-        labno = u'{}{}'.format(str(datetime.today().year)[-1], specimens_no[3:])
+        labno = u'{}{}'.format(str(datetime.today().year)[-1], specimens_no[-9:])
         record = ComHealthRecord.query.filter_by(labno=labno).first()
-        checkin_record = ComHealthSpecimensCheckinRecord.query \
-            .filter_by(record_id=record.id, container_id=container_id).first()
-        if checkin_record:
-            checkin_record.checkin_datetime = datetime.now(tz=bangkok)
-            db.session.add(checkin_record)
-            db.session.commit()
+        if record:
+            containers = set([item.test.container for item in record.ordered_tests])
+            for cts in containers:
+                if cts.id == container_id:
+                    checkin_record = ComHealthSpecimensCheckinRecord.query \
+                    .filter_by(record_id=record.id, container_id=container_id).first()
+                    if checkin_record:
+                        checkin_record.checkin_datetime = datetime.now(tz=bangkok)
+                        db.session.add(checkin_record)
+                        db.session.commit()
+                    else:
+                        checkin_record = ComHealthSpecimensCheckinRecord(
+                                            record.id, container_id, datetime.now(tz=bangkok))
+                        record.container_checkins.append(checkin_record)
+                        db.session.add(record)
+                        db.session.commit()
+                    return render_template('comhealth/scan_container.html', service=service,
+                                       container=container, specimens_no=specimens_no,
+                                       checkin_record=checkin_record, recents=recents)
+                    check_is_container = 1
+                    break
+            if check_is_container == 0:
+                flash(specimens_no + ' The container no longer exists.', 'danger')
         else:
-            if record:
-                checkin_record = ComHealthSpecimensCheckinRecord(
-                                        record.id, container_id, datetime.now(tz=bangkok))
-                record.container_checkins.append(checkin_record)
-                db.session.add(record)
-                db.session.commit()
-            else:
-                flash('The container no longer exists.', 'danger')
-        return render_template('comhealth/scan_container.html', service=service,
-                               container=container, specimens_no=specimens_no,
-                               checkin_record=checkin_record, recents=recents)
+            flash(specimens_no + '  no register.', 'danger')
 
     return render_template('comhealth/scan_container.html', service=service, container=container, recents=recents)
 
@@ -1146,6 +1173,17 @@ def add_customer_to_service_org(service_id, org_id):
             dob = date(int(y) - 543, int(m), int(d))  # convert to Thai Buddhist year
         else:
             dob = None
+        department = ComHealthDepartment.query.filter_by(parent_id=org_id, name=form.dept.data).first()
+        if not department:
+            department = ComHealthDepartment(parent_id=org_id, name=form.dept.data)
+            division = ComHealthDivision(parent=department, name=form.division.data)
+            db.session.add(department)
+            db.session.add(division)
+        else:
+            division = ComHealthDepartment.query.filter_by(parent=department, name=form.division.data).first()
+            if not division:
+                division = ComHealthDivision(parent_id=department.id, name=form.division.data)
+                db.session.add(division)
         customer = ComHealthCustomer(title=form.title.data,
                                      firstname=form.firstname.data,
                                      lastname=form.lastname.data,
@@ -1153,6 +1191,10 @@ def add_customer_to_service_org(service_id, org_id):
                                      emptype_id=form.emptype.data,
                                      phone=form.phone.data,
                                      dob=dob,
+                                     emp_id=form.emp_id.data,
+                                     dept=department,
+                                     division=division,
+                                     unit=form.unit.data,
                                      org_id=org_id)
         new_record = ComHealthRecord(service_id=service_id, customer=customer)
         db.session.add(customer)
@@ -1211,6 +1253,15 @@ def add_employee(org_id):
             flash(form.errors, 'warning')
     return render_template('comhealth/edit_customer_data.html', form=form)
 
+@comhealth.route('/note/<int:record_id>/edit', methods=['GET', 'POST'])
+def edit_note_data(record_id):
+    record = ComHealthRecord.query.get(record_id)
+    if request.method == 'POST':
+        record.note = request.form.get('note')
+        db.session.add(record)
+        db.session.commit()
+        return redirect(request.args.get('next'))
+    return render_template('comhealth/edit_note.html',record=record)
 
 @comhealth.route('/customers/<int:customer_id>/edit', methods=['GET', 'POST'])
 @login_required
@@ -1507,21 +1558,31 @@ def add_many_employees(orgid):
                     lastname = None
                 if isna(firstname) and isna(lastname):
                     continue
-                department= ComHealthDepartment.query.filter_by(parent_id=orgid,name=department_name).first()
-                if not department:
-                    department = ComHealthDepartment(parent_id=orgid,name=department_name)
-                    division = ComHealthDivision(parent=department, name=division_name)
-                    db.session.add(department)
-                    db.session.add(division)
-                else:
-                    division = ComHealthDepartment.query.filter_by(parent=department, name=division_name).first()
-                    if not division:
-                        division = ComHealthDivision(parent_id=department.id,name=division_name)
+                if not isna(department_name):
+                    department= ComHealthDepartment.query.filter_by(parent_id=orgid,name=department_name).first()
+                    if not department:
+                        department = ComHealthDepartment(parent_id=orgid,name=department_name)
+                        division = ComHealthDivision(parent=department, name=division_name)
+                        db.session.add(department)
                         db.session.add(division)
-                emptype = ComHealthCustomerEmploymentType.query.filter_by(name=emptype_name).first()
-                if not emptype:
-                    emptype = ComHealthCustomerEmploymentType(name=emptype_name)
-                    db.session.add(emptype)
+                    else:
+                        if not isna(division_name):
+                            division = ComHealthDepartment.query.filter_by(parent=department, name=division_name).first()
+                            if not division:
+                                division = ComHealthDivision(parent_id=department.id,name=division_name)
+                                db.session.add(division)
+                        else:
+                            division = None
+                else:
+                    department = None
+                    division = None
+                if not isna(emptype_name):
+                    emptype = ComHealthCustomerEmploymentType.query.filter_by(name=emptype_name).first()
+                    if not emptype:
+                        emptype = ComHealthCustomerEmploymentType(name=emptype_name)
+                        db.session.add(emptype)
+                else:
+                    emptype = None
                 try:
                     day, month, year = map(int, dob.split('/'))
                 except Exception as e:
@@ -1554,6 +1615,15 @@ def add_many_employees(orgid):
                     db.session.commit()
                     new_customer.generate_hn()
                     db.session.add(new_customer)
+                    db.session.commit()
+                else:
+                    customer_.emp_id = emp_id
+                    customer_.dept=department
+                    customer_.division=division
+                    customer_.unit=unit
+                    customer_.emptype=emptype
+                    customer_.phone = phone
+                    db.session.add(customer_)
                     db.session.commit()
 
                 # temporarily disable creation of a new record with predefined labno

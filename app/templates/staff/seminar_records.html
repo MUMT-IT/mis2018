@@ -29,6 +29,7 @@
                         <th>ชื่อกิจกรรม</th>
                         <th>วันที่เริ่มต้น</th>
                         <th>วันที่สิ้นสุด</th>
+                        <th>หน่วยงานที่จัด</th>
                         <th>แก้ไข</th>
                         <th>ลบ</th>
                     </thead>
@@ -39,7 +40,7 @@
                             {{ record["topic_type"] }}
                         </td>
                         <td>
-                            <a href="{{ url_for('staff.seminar_attend_info', seminar_id=record['id']) }}">
+                            <a href="{{ url_for('staff.seminar_attend_info_for_hr', seminar_id=record['id']) }}">
                             {{ record["name"] }}
                                 <span class="icon">
                                     <i class="fas fa-user-plus"></i>
@@ -51,6 +52,9 @@
                         </td>
                         <td>
                             {{ record["end"]|localdatetime }}
+                        </td>
+                        <td>
+                            {{ record["organize_by"] }}
                         </td>
                         <td>
                             <span>

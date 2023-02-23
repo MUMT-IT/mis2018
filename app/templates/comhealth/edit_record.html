@@ -85,6 +85,22 @@
                                         <p class="is-size-4">
                                             {% if record.customer.gender == 1 %}ชาย (Male) {% else %} หญิง (Female){% endif %}
                                         </p>
+                                        <br>
+                                        <p class="label"><strong>รหัสพนักงาน</strong></p>
+                                        <p>
+                                            {{ record.customer.emp_id }}
+                                        </p>
+                                        <br>
+                                        <p class="label"><strong>Department</strong></p>
+                                        <p>
+                                            {{ record.customer.dept }}
+                                        </p>
+                                        <p>
+                                            {{ record.customer.division }}
+                                        </p>
+                                        <p>
+                                            {{ record.customer.unit }}
+                                        </p>
                                     </div>
                                     <div class="column">
                                         <p class="label"><strong>สังกัด / Affiliation</strong></p>
@@ -156,6 +172,14 @@
                                             <div class="control">
                                                 <input class="input" name='phone' type="text"
                                                        value='{{ record.customer.phone or "" }}'
+                                                />
+                                            </div>
+                                        </div>
+                                        <div class="field">
+                                            <label class="label">Note</label>
+                                            <div class="control">
+                                                <input class="input" name='note' type="text"
+                                                       value='{{ record.note or "" }}'
                                                 />
                                             </div>
                                         </div>
@@ -248,7 +272,13 @@
                     <div class="column">
                         <h1 class="title is-size-4">รายการตรวจพิเศษ (Special Tests)</h1>
                 {% for group in record.service.groups %}
-                <b-collapse class="card" animation="slide" :open="false" aria-id="contentIdForA11y3">
+                <b-collapse class="card" animation="slide"
+                            {% if group.id in group_preregister %}
+                                :open="open"
+                            {% else %}
+                                :open="false"
+                            {% endif %}
+                            aria-id="contentIdForA11y3">
                     <div
                             slot="trigger"
                             open="false"

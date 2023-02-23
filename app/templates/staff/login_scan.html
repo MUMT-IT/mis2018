@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+{% endblock %}
+
+{% block page_content %}
+        <div class="container" id="app">
+            <div class="notification is-light is-link">
+                <h1 class="title has-text-centered has-text-link">ระบบบันทึกเวลาทำงานของบุคลากร</h1>
+                <h1 class="subtitle has-text-centered">คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล</h1>
+                <h1 class="title has-text-centered" id="clock"></h1>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <b-loading v-model="loading"></b-loading>
+                    <qrcode-stream :key="_uid"
+                                   :camera="camera"
+                                   @decode="onDecode"
+                                   :track="paintOutline" @init="onInit" />
+                </div>
+                <div class="column is-one-third">
+                    <div class="has-text-centered">
+                        <span class="icon is-large">
+                            <i class="fas fa-qrcode fa-4x"></i>
+                        </span>
+                    </div>
+                    <h1 class="title is-size-4 has-text-centered has-text-link">
+                        ขั้นตอนการแสกน
+                    </h1>
+                    <div class="content">
+                        <ol>
+                            <li>เปิด QR Code จาก We Mahidol App หรือระบบ MUMT-MIS หรือจาก MUMT Connect</li>
+                            <li>หัน QR Code เข้าหากล้องจนมีกรอบสีแดงปรากฎรอบ QR Code</li>
+                            <li>รอข้อความแสดงการแสกนเสร็จเรียบร้อย</li>
+                        </ol>
+                    </div>
+                    <p>
+                        <strong>หมายเหตุ</strong> ระบบจะบันทึกการแสกนครั้งแรกของวันเป็นเวลาเข้างานและการแสกนครั้งสุดท้ายของวันเป็นเวลาเลิกงาน หากแสกนซ้ำมากกว่าหนึ่งครั้ง ระบบจะบันทึกเฉพาะครั้งสุดท้าย
+                    </p>
+                    <br>
+                    <div class="notification is-danger is-light">
+                        <h1 class="title is-size-5">
+                            โปรแกรมนี้กำลังอยู่ในช่วงทดสอบการใช้งาน
+                        </h1>
+                    </div>
+                </div>
+            </div>
+        </div>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://unpkg.com/vue-qrcode-reader/dist/VueQrcodeReader.umd.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    $(document).ready(()=>{
+        window.setInterval(function () {
+            $('#clock').html(moment().format('MM/DD/y H:mm:ss'))
+        }, 1000);
+    })
+    </script>
+    <script>
+        new Vue({
+            el: '#app',
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    numScans: 0,
+                    loading: false,
+                    result: null,
+                    camera: 'auto',
+                    staff: null,
+                    time: null,
+                    info: {
+                        id: null,
+                        lat: null,
+                        long: null,
+                        thTitle: null,
+                        enTitle: null,
+                        thName: null,
+                        thAffil: null,
+                        enName: null,
+                        enAffil: null,
+                        checkedInAt: null,
+                    }
+                }
+            },
+            methods: {
+                reset() {
+                    this.numScans = 0,
+                    this.staff = null
+                    this.time = null
+                    this.info = {
+                        id: null,
+                        lat: null,
+                        long: null,
+                        thTitle: null,
+                        enTitle: null,
+                        thName: null,
+                        thAffil: null,
+                        enName: null,
+                        enAffil: null,
+                        checkedInAt: null,
+                    }
+                },
+                paintOutline(detectedCodes, ctx) {
+                    for (const detectedCode of detectedCodes) {
+                        const [firstPoint, ...otherPoints] = detectedCode.cornerPoints
+                        ctx.strokeStyle = "red";
+                        ctx.beginPath();
+                        ctx.moveTo(firstPoint.x, firstPoint.y);
+                        for (const {x, y} of otherPoints) {
+                            ctx.lineTo(x, y);
+                        }
+                        ctx.lineTo(firstPoint.x, firstPoint.y);
+                        ctx.closePath();
+                        ctx.stroke();
+                    }
+                },
+                async onInit(promise) {
+                    this.loading = true
+                    try {
+                        await promise
+                    } catch (error) {
+                        console.error(error)
+                    } finally {
+                        this.loading = false
+                    }
+                },
+                async onDecode(content) {
+                    let result = content.split("|")
+                    console.log(result)
+                    this.info.id = result[0]
+                    this.info.lat = result[1]
+                    this.info.long = result[2]
+                    this.info.qrCodeExpDateTime = result[4] + ' ' + result[3]
+                    this.info.thTitle = result[6]
+                    this.info.thName = result[7]
+                    this.info.enTitle = result[9]
+                    this.info.enName = result[10]
+                    this.info.thAffil = result[11]
+                    this.info.enAffil = result[12]
+                    this.turnCameraOff()
+                    axios.post("{{ url_for('staff.login_scan') }}", {
+                        data: this.info
+                    }).then(async (resp)=>{
+                        this.time = moment(resp.data.time).format('DD/MM/YYYY H:mm:ss')
+                        this.staff = resp.data.name
+                        this.numScans = resp.data.numScans
+                        Swal.fire({
+                            title: 'สวัสดีคุณ ' + this.staff,
+                            timer: 3000,
+                            showConfirmButton: false,
+                            timerProgressBar: true,
+                            icon: 'success',
+                            text: 'เวลาแสกน ' + this.time
+                        })
+                        this.reset()
+                        this.turnCameraOn()
+                    }).catch(async (error)=>{
+                        console.log(error.toString())
+                        Swal.fire({
+                            title: 'ระบบเกิดความผิดพลาด',
+                            timer: 3000,
+                            timerProgressBar: true,
+                            icon: 'error',
+                            text: 'ขออภัยในความไม่สะดวก กรุณาแจ้งหน่วยสารสนเทศ'
+                        })
+                        this.reset()
+                        this.turnCameraOn()
+                    })
+                },
+                logErrors(promise) {
+                    promise.catch(console.error)
+                },
+                turnCameraOn() {
+                    this.camera = 'auto'
+                },
+                turnCameraOff() {
+                    this.camera = 'off'
+                },
+                timeout(ms) {
+                    return new Promise(resolve => {
+                        window.setTimeout(resolve, ms)
+                    })
+                }
+            }
+        })
+    </script>
+{% endblock %}

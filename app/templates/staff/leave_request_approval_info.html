@@ -3,9 +3,7 @@
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
-        {% for msg in get_flashed_messages() %}
-        <p class="notification is-warning">{{ msg }}</p>
-        {% endfor %}
+        {% include "messages.html" %}
         {% if current_user.line_id %}
         <div class="has-text-right">
             <input type="hidden" name="lineNotified" v-model="lineNotified">
@@ -19,6 +17,7 @@
                     <tbody>
                     {% for approver in requesters %}
                     {% if approver.is_active %}
+                    {% if not approver.requester.personal_info.retired %}
                     {% if not
                     approver.requester.leave_requests|sort(attribute='start_datetime')|checkallapprovals(approver.id) %}
                     <tr style="border-bottom: 2.2pt solid darkgray">
@@ -37,7 +36,7 @@
                             {{ leave_req.created_at|localdatetime}}
                         </td>
                         <td>
-                            [{{ leave_req.quota.leave_type}}] ตั้งแต่ {{ leave_req.start_datetime|localdatetime }} ({{
+                            [{{ leave_req.quota.leave_type}}] ตั้งแต่ {{ leave_req.start_datetime|localdatetime }} - {{ leave_req.end_datetime|localdatetime }} ({{
                             leave_req.total_leave_days }} วัน)
                         </td>
                         {% if leave_req.approvals|length  %}
@@ -63,19 +62,22 @@
                         </td>
                         {% endif %}
                         <td>
-                            <a href="{{ url_for('staff.pending_leave_approval', req_id=leave_req.id) }}"
-                               class="button is-info is-rounded is-light">รายละเอียด</a>
-                            <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id, approved='yes') }}"
-                               class="button is-rounded is-success">อนุมัติ</a>
+                            <div class="buttons">
+                                <a href="{{ url_for('staff.pending_leave_approval', req_id=leave_req.id) }}"
+                                   class="button is-small is-info is-rounded is-light">รายละเอียด</a>
+                                <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id, approved='yes') }}"
+                                   class="button is-small is-rounded is-success">อนุมัติ</a>
 
-                            <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id, approved='no') }}"
-                               class="button is-rounded is-danger">ไม่อนุมัติ</a>
+                                <a href="{{ url_for('staff.leave_approve', req_id=leave_req.id,approver_id=approver.id, approved='no') }}"
+                                   class="button is-small is-rounded is-danger">ไม่อนุมัติ</a>
+                            </div>
                         </td>
                     </tr>
                     {% endif %}
                     {% endif %}
                     {% endif %}
                     {% endfor %}
+                    {% endif %}
                     {% endif %}
                     {% endif %}
                     {% endfor %}
@@ -96,6 +98,7 @@
                     <tbody>
                     {% for requester in requester_cum_periods|sort(attribute='staff_account_id') %}
                     {% if requester.is_active %}
+                    {% if not requester.requester.personal_info.retired %}
                     <tr>
                         <td>
                             <a href="{{ url_for('staff.show_leave_approval_info_each_person', requester_id=requester.requester.id) }}">
@@ -106,6 +109,7 @@
                         <td>{{ requester_cum_periods[requester][leave_type] }}</td>
                         {% endfor %}
                     </tr>
+                    {% endif %}
                     {% endif %}
                     {% endfor %}
                     </tbody>

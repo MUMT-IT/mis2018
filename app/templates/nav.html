@@ -16,12 +16,17 @@
                        ลงชื่อเข้าใช้
                    </a>
                    {% else %}
+                   <a class="navbar-item">
+                       <span>
+                           {{ current_user.personal_info.fullname }}
+                       </span>
+                   </a>
                    <a class="navbar-item" href="{{ url_for('auth.account') }}">
                        <span class="icon">
                            <i class="fas fa-user-circle"></i>
                        </span>
                        <span>
-                           {{ current_user.email }}
+                           ข้อมูลส่วนตัว
                        </span>
                    </a>
                    <a class="navbar-item" href="{{ url_for('auth.logout') }}">

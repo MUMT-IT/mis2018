@@ -113,6 +113,14 @@
                                 </span>
                                 </a>
                             </b-table-column>
+                            <b-table-column field="note" label="Note Info" centered>
+                                <a class="button is-rounded is-light"
+                                   v-bind:href="'/comhealth/note/' + props.row.id + '/edit?next=' + requestUrl">
+                                <span class="icon">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </span>
+                                </a>
+                            </b-table-column>
                         </template>
                         <template slot="empty">
                             <section class="section">

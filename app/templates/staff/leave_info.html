@@ -4,6 +4,15 @@
 <section class="section" id="app">
     <div class="container">
         {% include "messages.html" %}
+        <div class="notification is-light is-info">
+            การลาของท่านจะได้รับการพิจารณาและอนุมัติโดยผู้บังคับบัญชาได้แก่
+            <strong>
+                {% for approver in current_user.leave_requesters %}
+                    {{ loop.index }}. {{ approver.account.personal_info.fullname }}
+                {% endfor %}
+            </strong>
+            อย่างน้อยหนึ่งท่าน หากสายงานการบังคับบัญชาไม่ถูกต้องกรุณาติดต่อเจ้าหน้าที่หน่วยสารสนเทศเพื่อแก้ไข
+        </div>
         <div class="columns">
             <div class="column is-offset-2 is-two-thirds has-text-centered">
                 <h1 class="title">
@@ -58,6 +67,7 @@
                             <span class="subtitle has-text-dark is-size-6">วัน (days)</span>
                         </td>
                     </tr>
+                    {% if quota.can_request %}
                     <tr style="height: 40px">
                         <td class="has-text-centered">
                             <hr>
@@ -72,11 +82,21 @@
                             </div>
                         </td>
                     </tr>
+                    {% endif %}
                 </table>
             </div>
             {% endfor %}
         </div>
-        {% if approver %}
+        <div class="has-text-centered">
+            <span>พบปัญหาเกี่ยวกับระบบ
+                <br>ติดต่อ napatsakorn.pis@mahidol.ac.th หรือโทรศัพท์ภายใน 2845
+            </span>
+        </div>
+    </div>
+    </div>
+    {% if approver %}
+        <hr>
+        <h1 class="title is-size-4 has-text-danger has-text-centered">สำหรับหัวหน้าส่วนงาน/ผู้บริหาร</h1>
         <div class="columns">
             <div class="column">
                 <div class="has-text-centered">
@@ -85,19 +105,12 @@
                         <span class="icon">
                            <i class="fas fa-users"></i>
                         </span>
-                        <span>ดูข้อมูลลาของบุคลากรในสังกัด</span>
+                        <span>ข้อมูลลาของบุคลากรในสังกัด</span>
                     </a>
                 </div>
             </div>
         </div>
-        {% endif %}
-        <div class="has-text-centered">
-            <span>พบปัญหาเกี่ยวกับระบบ
-                <br>ติดต่อ napatsakorn.pis@mahidol.ac.th หรือโทรศัพท์ภายใน 2845
-            </span>
-        </div>
-    </div>
-    </div>
+    {% endif %}
 </section>
 <section class="section">
     <div class="container">

@@ -5,8 +5,10 @@ from . import authbp as auth
 from app.main import db, mail
 from app.main import app
 from flask_mail import Message
-from flask import render_template, redirect, request, url_for, flash, abort, session, jsonify
+from flask import (render_template, redirect, request,
+                   url_for, flash, abort, session, current_app)
 from flask_login import login_user, current_user, logout_user, login_required
+from flask_principal import Identity, identity_changed, AnonymousIdentity, identity_loaded, UserNeed
 from app.staff.models import StaffAccount, StaffLeaveApprover
 from .forms import LoginForm, ForgotPasswordForm, ResetPasswordForm
 from itsdangerous import TimedJSONWebSignatureSerializer
@@ -25,6 +27,22 @@ handler = WebhookHandler(LINE_MESSAGE_API_CLIENT_SECRET)
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
     mail.send(message)
+
+
+@identity_loaded.connect_via(app)
+def on_identity_loaded(sender, identity):
+    # Set the identity user object
+    identity.user = current_user
+
+    # Add the UserNeed to the identity
+    if hasattr(current_user, 'id'):
+        identity.provides.add(UserNeed(current_user.id))
+
+    # Assuming the User model has a list of roles, update the
+    # identity with the roles that the user provides
+    if hasattr(current_user, 'roles'):
+        for role in current_user.roles:
+            identity.provides.add(role.to_tuple())
 
 
 @auth.route('/login', methods=['GET', 'POST'])
@@ -48,6 +66,7 @@ def login():
             pwd = form.password.data
             if user.verify_password(pwd):
                 status = login_user(user, form.remember_me.data)
+                identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
                 # session.pop('_flashes', None)  # this line clears all unconsumed flash messages.
                 next = request.args.get('next')
                 if not is_safe_url(next):
@@ -120,6 +139,12 @@ def reset_password():
 @login_required
 def logout():
     logout_user()
+    # Remove session keys set by Flask-Principal
+    for key in ('identity.name', 'identity.auth_type'):
+        session.pop(key, None)
+
+    # Tell Flask-Principal the user is anonymous
+    identity_changed.send(current_app._get_current_object(), identity=AnonymousIdentity())
     session.pop('line_profile', None)
     flash(u'Logged out successfully. ออกจากระบบเรียบร้อย', 'success')
     return redirect(url_for('auth.login'))
@@ -233,3 +258,16 @@ def link_line_account():
         return redirect(url_for('auth.login', linking_line='yes', next=request.url))
 
 
+@auth.route('/line/account/unlink')
+@login_required
+def unlink_line_account():
+    if current_user.line_id:
+        current_user.line_id = ''
+        db.session.add(current_user)
+        db.session.commit()
+        del session['line_profile']
+        flash(u'ระบบได้ทำการยกเลิกการเชื่อมบัญชีไลน์ของคุณแล้ว', 'success')
+        return redirect(url_for('auth.account'))
+    else:
+        flash(u'บัญชีของท่านไม่ได้เชื่อมต่อกับไลน์', 'warning')
+        return redirect(url_for('auth.account'))

@@ -45,7 +45,11 @@
                                 <label class="label">กำหนดส่งงาน</label>
                             </td>
                             <td>
+                                {% if req.deadline_date %}
                                 {{ req.deadline_date|localdate }}
+                                {% else %}
+                                    ไม่ระบุ
+                                {% endif %}
                             </td>
                         </tr>
                         <tr>

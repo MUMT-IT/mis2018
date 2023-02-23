@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link ref="//cdn.datatables.net/1.10.24/css/jquery.dataTables.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                <div class="has-text-centered">
+                    <h1 class="title">เลือกอนุมัติในหลักการ เพื่อขอเบิก OT</h1>
+                </div>
+                <table id="myTable" class="table is-striped is-fullwidth">
+                    <thead>
+                    <th>
+                        เรื่อง
+                    </th>
+                    <th>
+                        หน่วยงาน
+                    </th>
+                    <th>
+                        เริ่มต้น
+                    </th>
+                    <th>
+                        สิ้นสุด
+                    </th>
+                    <th>
+                        Cost center
+                    </th>
+                    <th>
+                        IO โครงการ
+                    </th>
+                    <th>
+                        เพิ่มข้อมูล
+                    </th>
+                    </thead>
+                    <tbody>
+                    {% for document in documents %}
+                    {% if not document.cancelled_at  %}
+                    <tr>
+                        <td>
+                            {% if document.upload_file_url %}
+                            <a href="{{ upload_file_url }}">
+                                <span class="icon">
+                                    <i class="far fa-eye"></i>
+                                </span>
+                                {{ document.title }}
+                            </a>
+                            {% else %}
+                            {{ document.title }}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ document.org.name }}
+                        </td>
+                        <td>
+                            {{ document.start_datetime }}
+                        </td>
+                        <td>
+                            {{ document.end_datetime }}
+                        </td>
+                        <td>
+                            cost center
+                        </td>
+                        <td>
+                            รหัส IO โครงการ...
+                        </td>
+                        <td>
+                            <a href="{{ url_for('ot.add_schedule', document_id=document.id) }}">
+                                <span class="icon">
+                                        <i class="fas fa-pencil-alt"></i>
+                                </span>
+                                <span>
+                                    เพิ่มข้อมูล OT
+                                </span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="container has-text-centered">
+                    <div class="box">
+                        <a href="{{ url_for('ot.summary_ot_each_org') }}">
+                        <span class="icon is-large">
+                            <i class="fas fa-list fa-2x"></i>
+                        </span>
+                            <span class="is-size-4">สรุปรายการเบิก</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="column">
+                <div class="container has-text-centered">
+                    <div class="box">
+                        <a href="{{ url_for('ot.summary_index') }}">
+                        <span class="icon is-large">
+                            <i class="far fa-calendar-alt fa-2x"></i>
+                        </span>
+                            <span class="is-size-4">ตารางภาพรวม</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="notification is-info is-light">
+                    <span><b>เมื่อสิ้นสุดการปฏิบัติงานประจำวันให้รวบรวม(ข้อมูลการปฏิบัติงานนอกเวลาราชการ)
+                        <em>ส่งหน่วยการเงินและบัญชีทุกวันหรืออย่างช้าภายในวันถัดไป</em>
+                        </b>
+                    [แนวทางปฏิบัติในการเบิกเงินค่าตอบแทนการปฏิบัติงานนอกเวลาราชการฯ หนังสือเลขที่ ศธ 0517.04/1569]</span>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a class="button is-info is-light" href="{{ url_for('ot.index') }}">
+                     <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="//cdn.datatables.net/1.10.24/js/jquery.dataTables.min.js"></script>
+<script>
+    $(document).ready( function () {
+        $('#myTable').DataTable(
+            {
+                "pageLength": 5
+            },
+            eventClick: function(calEvent, jsEvent, view) {
+            window.location = '/staff/shift-schedule/edit/' + calEvent.id;
+            }
+        );
+    });
+</script>
+{% endblock %}
