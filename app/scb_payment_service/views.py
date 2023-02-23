@@ -45,6 +45,8 @@ def generate_qrcode(amount, ref1, ref2, ref3):
         'ref1': ref1,
         'ref2': ref2,
         'ref3': ref3,
+        'expiryDate': '2023-11-30 23:35:33',
+        'numberOfTimes': 1
     })
     if qrcode_resp.status_code == 200:
         qr_image = qrcode_resp.json()['data']['qrImage']
