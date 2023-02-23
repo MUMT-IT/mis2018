@@ -327,3 +327,32 @@ class ProcurementSurveyComputer(db.Model):
     computer_info = db.relationship('ProcurementInfoComputer', foreign_keys=[computer_info_id],
                              backref=db.backref('survey_records', lazy='dynamic'))
 
+
+class ProcurementBorrowDetail(db.Model):
+    __tablename__ = 'procurement_borrow_details'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    number = db.Column('number', db.String(), info={'label': u'เลขที่หนังสือ'})
+    book_date = db.Column('book_date', db.Date(), info={'label': u'วันที่หนังสือ'})
+    borrower_id = db.Column('borrower_id', db.ForeignKey('staff_account.id'))
+    borrower = db.relationship(StaffAccount)
+    type_of_purpose = db.Column('type_of_purpose', db.String(), info={'label': u'ความประสงค์ของยืมพัสดุ'})
+    purpose = db.Column('purpose', db.String(), info={'label': u'เพื่อใช้ในงาน'})
+    reason = db.Column('reason', db.String(), nullable=False, info={'label': u'ระบุเหตุผลความจำเป็น'})
+    location_of_use = db.Column('location_of_use', db.String(), nullable=False, info={'label': u'สถานที่นำไปใช้งาน'})
+    address_number = db.Column('address_number', db.String(), info={'label': u'เลขที่'})
+    moo = db.Column('moo', db.String(), info={'label': u'หมู่ที่'})
+    road = db.Column('road', db.String(), info={'label': u'ถนน'})
+    sub_district = db.Column('sub_district', db.String(), info={'label': u'ตำบล/แขวง'})
+    district = db.Column('district', db.String(), info={'label': u'อำเภอ/เขต'})
+    province = db.Column('province', db.String(), info={'label': u'จังหวัด'})
+    postal_code = db.Column('postal_code', db.Integer(), info={'label': u'รหัสไปรษณีย์'})
+    start_date = db.Column('start_date', db.Date(), nullable=False, info={'label': u'วันที่เริ่มยืม'})
+    end_date = db.Column('end_date', db.Date(), nullable=False, info={'label': u'วันที่สิ้นสุดยืม'})
+    item_id = db.Column('item_id', db.ForeignKey('procurement_details.id'))
+    item = db.relationship('ProcurementDetail',
+                           backref=db.backref('borrow_details', lazy='dynamic'))
+    quantity = db.Column('quantity', db.Integer(), info={'label': u'จำนวน'})
+    unit = db.Column('unit', db.String(), info={'label': u'หน่วยนับ'})
+    note = db.Column('note', db.Text(), info={'label': u'หมายเหตุ'})
+    status_return_procurement = db.Column('status_return_procurement', db.String(), info={'label': u'ขอส่งพัสดุคืน'})
+    created_date = db.Column('created_date', db.DateTime(timezone=True), server_default=func.now())
