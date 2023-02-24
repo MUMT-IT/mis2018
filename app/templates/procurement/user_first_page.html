@@ -28,9 +28,9 @@
             <div class="column is-half is-offset-3">
                 <nav class="panel is-danger">
                     <p class="panel-heading">อยู่ระหว่างการทดสอบ</p>
-                    <a href="" class="panel-block">
+                    <a href="{{ url_for('procurement.add_borrow_detail') }}" class="panel-block">
                         <span class="panel-icon"><i class="fas fa-bookmark"></i></span>
-                        <span class="is-size-5">ระบบยืมครุภัณฑ์</span><br>
+                        <span class="is-size-5">ระบบยืม-คืนพัสดุ</span><br>
                     </a>
                     <a class="panel-block"
                        href="{{ url_for('procurement.require_maintenance') }}">
