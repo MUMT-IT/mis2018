@@ -358,3 +358,17 @@ class ProcurementBorrowDetail(db.Model):
             return u'เกินกำหนด'
         else:
             return u'คืนเรียบร้อย'
+
+
+class ProcurementBorrowItem(db.Model):
+    __tablename__ = 'electronic_borrow_items'
+    id = db.Column('id', db.Integer(), autoincrement=True, primary_key=True)
+    borrow_detail_id = db.Column('borrow_detail_id', db.ForeignKey('procurement_borrow_details.id'))
+    borrow_detail= db.relationship('ProcurementBorrowDetail', backref=db.backref('detail_borrow_items', lazy='dynamic'))
+    procurement_detail_id = db.Column('item_id', db.ForeignKey('procurement_details.id'))
+    procurement_detail = db.relationship('ProcurementDetail', backref=db.backref('procurement_borrow_items', lazy='dynamic'))
+    item = db.Column('item', db.String(), info={'label': u'รายการ'})
+    quantity = db.Column('quantity', db.Integer(), info={'label': u'จำนวน'})
+    unit = db.Column('unit', db.String(), info={'label': u'หน่วยนับ'})
+    note = db.Column('note', db.Text(), info={'label': u'หมายเหตุ'})
+

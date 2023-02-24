@@ -231,6 +231,7 @@ admin.add_views(ModelView(ProcurementInfoRAM, db.session, category='Procurement'
 admin.add_views(ModelView(ProcurementInfoWindowsVersion, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementSurveyComputer, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementBorrowDetail, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementBorrowItem, db.session, category='Procurement'))
 
 from purchase_tracker import purchase_tracker_bp as purchase_tracker_blueprint
 
