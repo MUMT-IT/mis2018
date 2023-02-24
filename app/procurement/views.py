@@ -3,7 +3,8 @@ import cStringIO
 import os, requests
 from base64 import b64decode
 
-from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify, session
+from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify, session, \
+    make_response
 from flask_login import current_user, login_required
 from pandas import DataFrame
 from reportlab.lib.units import mm
@@ -934,3 +935,144 @@ def computer_list():
             return render_template('procurement/partials/computer_list.html', computers_detail=computers_detail)
 
     return render_template('procurement/computer_list.html', computers_detail=computers_detail)
+
+
+@procurement.route('/borrow-return/detail/add', methods=['GET', 'POST'])
+def add_borrow_detail():
+    form = ProcurementBorrowDetailForm()
+    if form.validate_on_submit():
+        borrow_detail = ProcurementBorrowDetail()
+        form.populate_obj(borrow_detail)
+        borrow_detail.borrower = current_user
+        db.session.add(borrow_detail)
+        db.session.commit()
+        flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
+        return redirect(url_for('procurement.view_borrow_detail'))
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('procurement/add_borrow_detail.html',
+                           form=form, url_callback=request.referrer)
+
+
+@procurement.route('/list/add-items', methods=['POST', 'GET'])
+def list_add_items():
+    form = ProcurementBorrowDetailForm()
+    form.items.append_entry()
+    item_form = form.items[-1]
+    form_text = u'''
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    <div class="field-body">
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    '''.format(item_form.item.label, item_form.item(class_="input"),
+               item_form.quantity.label, item_form.quantity(class_="input"),
+               item_form.unit.label, item_form.unit(class_="input"),
+               item_form.note.label, item_form.note(class_="textarea")
+               )
+    resp = make_response(form_text)
+    return resp
+
+
+@procurement.route('/list/delete-items', methods=['POST', 'GET'])
+def delete_items():
+    form = ProcurementBorrowDetailForm()
+    if len(form.items.entries) > 1:
+        form.items.pop_entry()
+        alert = False
+    else:
+        alert = True
+    form_text = ''
+    for item_form in form.items.entries:
+        form_text += u'''
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+             <div class="field-body">
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+            </div>
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+            '''.format(item_form.item.label, item_form.item(class_="input"),
+                       item_form.quantity.label, item_form.quantity(class_="input"),
+                       item_form.unit.label, item_form.unit(class_="input"),
+                       item_form.note.label, item_form.note(class_="textarea")
+                       )
+    resp = make_response(form_text)
+    if alert:
+        resp.headers['HX-Trigger-After-Swap'] = 'delete_warning'
+    return resp
+
+
+@procurement.route('detail/borrow', methods=['GET', 'POST'])
+def view_borrow_detail():
+    return render_template('procurement/view_borrow_detail.html')
+
+
+@procurement.route('api/detail/borrow')
+def get_borrow_detail():
+    query = ProcurementBorrowItem.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementBorrowItem.item.ilike(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        # item_data['view_record'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
+        #     url_for('procurement.add_survey_computer_info', procurement_no=item.detail.procurement_no))
+        # item_data['print_record'] = '<a href="{}" class="button is-small is-rounded is-primary is-outlined">Print</a>'.format(
+        #     url_for('procurement.view_survey_computer_info', procurement_id=item.id))
+        item_data['erp_code'] = u'{}'.format(item.procurement_detail.erp_code)
+        item_data['purpose'] = u'{}'.format(item.borrow_detail.purpose)
+        item_data['location_of_use'] = u'{}'.format(item.borrow_detail.location_of_use)
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementBorrowItem.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
