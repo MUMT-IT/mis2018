@@ -348,11 +348,13 @@ class ProcurementBorrowDetail(db.Model):
     postal_code = db.Column('postal_code', db.Integer(), info={'label': u'รหัสไปรษณีย์'})
     start_date = db.Column('start_date', db.Date(), nullable=False, info={'label': u'วันที่เริ่มยืม'})
     end_date = db.Column('end_date', db.Date(), nullable=False, info={'label': u'วันที่สิ้นสุดยืม'})
-    item_id = db.Column('item_id', db.ForeignKey('procurement_details.id'))
-    item = db.relationship('ProcurementDetail',
-                           backref=db.backref('borrow_details', lazy='dynamic'))
-    quantity = db.Column('quantity', db.Integer(), info={'label': u'จำนวน'})
-    unit = db.Column('unit', db.String(), info={'label': u'หน่วยนับ'})
-    note = db.Column('note', db.Text(), info={'label': u'หมายเหตุ'})
-    status_return_procurement = db.Column('status_return_procurement', db.String(), info={'label': u'ขอส่งพัสดุคืน'})
     created_date = db.Column('created_date', db.DateTime(timezone=True), server_default=func.now())
+
+    @property
+    def borrow_status(self):
+        if self.start_date:
+            return u'อยู่ระหว่างการยืม'
+        elif len(self.end_date) > 7:
+            return u'เกินกำหนด'
+        else:
+            return u'คืนเรียบร้อย'
