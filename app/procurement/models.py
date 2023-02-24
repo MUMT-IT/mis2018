@@ -359,6 +359,15 @@ class ProcurementBorrowDetail(db.Model):
         else:
             return u'คืนเรียบร้อย'
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'number': self.number,
+            'book_date': self.book_date,
+            'purpose': self.purpose,
+            'location_of_use': self.location_of_use
+        }
+
 
 class ProcurementBorrowItem(db.Model):
     __tablename__ = 'electronic_borrow_items'
@@ -372,3 +381,11 @@ class ProcurementBorrowItem(db.Model):
     unit = db.Column('unit', db.String(), info={'label': u'หน่วยนับ'})
     note = db.Column('note', db.Text(), info={'label': u'หมายเหตุ'})
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'item': self.item,
+            'quantity': self.quantity,
+            'unit': self.unit,
+            'note': self.note
+        }
