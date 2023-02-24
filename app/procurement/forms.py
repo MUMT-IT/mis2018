@@ -181,3 +181,22 @@ class ProcurementSurveyComputerForm(ModelForm):
                                                 choices=[(c, c) for c in [u'ไม่พอใจมาก', u'พอใจ', u'พอใจมาก']],
                                                 coerce=unicode,
                                                 validators=[DataRequired()])
+
+
+class ProcurementBorrowItemForm(ModelForm):
+    class Meta:
+        model = ProcurementBorrowItem
+
+
+class ProcurementBorrowDetailForm(ModelForm):
+    class Meta:
+        model = ProcurementBorrowDetail
+        exclude = ['created_date']
+
+    type_of_purpose = RadioField(u'ความประสงค์ของยืมพัสดุ',
+                                 choices=[(c, c) for c in [u'ยืมระหว่างส่วนงาน', u'บุคลากรยืม-ใช้ภายในพื้นที่ของมหาวิทยาลัย',
+                                                           u'บุคลากรยืม-ใช้นอกพื้นที่ของมหาวิทยาลัย', u'บุคลากรหรือหน่วยงานภายนอกยืมใช้']],
+                                 coerce=unicode,
+                                 validators=[DataRequired()])
+    items = FieldList(FormField(ProcurementBorrowItemForm, default=ProcurementBorrowItem), min_entries=1)
+
