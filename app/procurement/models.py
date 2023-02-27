@@ -370,16 +370,19 @@ class ProcurementBorrowDetail(db.Model):
 
 
 class ProcurementBorrowItem(db.Model):
-    __tablename__ = 'electronic_borrow_items'
+    __tablename__ = 'procurement_borrow_items'
     id = db.Column('id', db.Integer(), autoincrement=True, primary_key=True)
     borrow_detail_id = db.Column('borrow_detail_id', db.ForeignKey('procurement_borrow_details.id'))
-    borrow_detail= db.relationship('ProcurementBorrowDetail', backref=db.backref('detail_borrow_items', lazy='dynamic'))
-    procurement_detail_id = db.Column('item_id', db.ForeignKey('procurement_details.id'))
-    procurement_detail = db.relationship('ProcurementDetail', backref=db.backref('procurement_borrow_items', lazy='dynamic'))
+    borrow_detail= db.relationship('ProcurementBorrowDetail', backref=db.backref('items', lazy='dynamic'))
+    procurement_detail_id = db.Column('procurement_detail_id', db.ForeignKey('procurement_details.id'))
+    procurement_detail = db.relationship('ProcurementDetail', backref=db.backref('borrow_items', lazy='dynamic'))
     item = db.Column('item', db.String(), info={'label': u'รายการ'})
     quantity = db.Column('quantity', db.Integer(), info={'label': u'จำนวน'})
     unit = db.Column('unit', db.String(), info={'label': u'หน่วยนับ'})
     note = db.Column('note', db.Text(), info={'label': u'หมายเหตุ'})
+
+    def __str__(self):
+        return u'{}: {}'.format(self.borrow_detail.number, self.borrow_detail.book_date)
 
     def to_dict(self):
         return {
