@@ -689,6 +689,19 @@ class StaffSeminarAttend(db.Model):
         return u'{}'.format(self.seminar)
 
 
+class StaffSeminarProposal(db.Model):
+    __tablename__ = 'staff_seminar_proposals'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    seminar_attend_id = db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id'))
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True),default=datetime.now())
+    is_approved = db.Column('is_approved', db.Boolean(), default=True)
+    comment = db.Column('approval_comment', db.String())
+    proposer_account_id = db.Column('proposer_account_id', db.ForeignKey('staff_account.id'))
+    proposer = db.relationship('StaffAccount', foreign_keys=[proposer_account_id],
+                                           backref=db.backref('seminar_proposer', lazy='dynamic'))
+    previous_proposal_id = db.Column('previous_proposal_id', db.Integer())
+
+
 class StaffSeminarApproval(db.Model):
     __tablename__ = 'staff_seminar_approvals'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
