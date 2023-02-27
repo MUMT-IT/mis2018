@@ -168,6 +168,8 @@ class StaffPersonalInfo(db.Model):
     academic_staff = db.Column('academic_staff', db.Boolean())
     retired = db.Column('retired', db.Boolean(), default=False)
     position = db.Column('position', db.String(), info={'label': u'ตำแหน่ง'})
+    mobile_phone = db.Column('mobile_phone', db.String(), info={'label': u'มือถือ'})
+    telephone = db.Column('telephone', db.String(), info={'label': u'โทร'})
     retirement_date = db.Column('retirement_date', db.Date(), nullable=True)
     resignation_date = db.Column('resignation_date', db.Date(), nullable=True)
 
