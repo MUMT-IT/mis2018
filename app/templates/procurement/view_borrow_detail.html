@@ -25,10 +25,10 @@
                 <div class="column">
                     <table id="data" class="table is-striped" style="width:100%">
                         <thead>
-                        <th>List</th>
-                        <th>ERP Code</th>
-                        <th>Purpose</th>
-                        <th>Location</th>
+                        <th>รายการ</th>
+{#                        <th>ERP Code</th>#}
+                        <th>เพื่อใช้ในงาน</th>
+                        <th>สถานที่นำไปใช้งาน</th>
 {#                        <th>View</th>#}
 {#                        <th>Print</th>#}
                         </thead>
@@ -60,7 +60,7 @@
                 serverSide: true,
                 columns: [
                     {data: 'item'},
-                    {data: 'erp_code'},
+                    {#{data: 'erp_code'},#}
                     {data: 'purpose'},
                     {data: 'location_of_use'},
                     {#{data: 'view_record'},#}
