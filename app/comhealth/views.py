@@ -357,7 +357,7 @@ def edit_record(record_id):
             else:
                 flash(u'หมายเลข lab number ไม่ถูกต้อง', 'warning')
                 return redirect(url_for('comhealth.edit_record', record_id=record_id))
-
+        record.ordered_tests = []
         for field in request.form:
             if field.startswith('test_'):
                 _, test_id = field.split('_')
