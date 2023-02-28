@@ -8,13 +8,17 @@ from flask import render_template, request, flash, redirect, url_for, send_file,
 from flask_login import current_user, login_required
 from pandas import DataFrame
 from reportlab.lib.units import mm
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from sqlalchemy import cast, Date
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
 from datetime import datetime
 from pytz import timezone
-from reportlab.platypus import (SimpleDocTemplate, Paragraph, PageBreak)
+from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak, TableStyle, Table, Spacer
+from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.platypus import Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -937,13 +941,15 @@ def computer_list():
     return render_template('procurement/computer_list.html', computers_detail=computers_detail)
 
 
-@procurement.route('/borrow-return/detail/add', methods=['GET', 'POST'])
-def add_borrow_detail():
+@procurement.route('/borrow-return/detail/add/<string:procurement_no>', methods=['GET', 'POST'])
+def add_borrow_detail(procurement_no):
+    procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
     form = ProcurementBorrowDetailForm()
     if form.validate_on_submit():
         borrow_detail = ProcurementBorrowDetail()
         form.populate_obj(borrow_detail)
         borrow_detail.borrower = current_user
+        borrow_detail.items = procurement.borrow_items
         db.session.add(borrow_detail)
         db.session.commit()
         flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
@@ -952,7 +958,7 @@ def add_borrow_detail():
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('procurement/add_borrow_detail.html',
-                           form=form, url_callback=request.referrer)
+                           form=form, url_callback=request.referrer, procurement_no=procurement_no)
 
 
 @procurement.route('/list/add-items', methods=['POST', 'GET'])
@@ -1044,6 +1050,12 @@ def delete_items():
     return resp
 
 
+@procurement.route('/scan-qrcode/borrow', methods=['GET'])
+@csrf.exempt
+def qrcode_scan_to_borrow():
+    return render_template('procurement/qr_code_scan_to_borrow.html')
+
+
 @procurement.route('detail/borrow', methods=['GET', 'POST'])
 def view_borrow_detail():
     return render_template('procurement/view_borrow_detail.html')
@@ -1067,7 +1079,7 @@ def get_borrow_detail():
         #     url_for('procurement.add_survey_computer_info', procurement_no=item.detail.procurement_no))
         # item_data['print_record'] = '<a href="{}" class="button is-small is-rounded is-primary is-outlined">Print</a>'.format(
         #     url_for('procurement.view_survey_computer_info', procurement_id=item.id))
-        item_data['erp_code'] = u'{}'.format(item.procurement_detail.erp_code)
+        # item_data['erp_code'] = u'{}'.format(item.procurement_detail.erp_code)
         item_data['purpose'] = u'{}'.format(item.borrow_detail.purpose)
         item_data['location_of_use'] = u'{}'.format(item.borrow_detail.location_of_use)
         data.append(item_data)
@@ -1076,3 +1088,230 @@ def get_borrow_detail():
                     'recordsTotal': ProcurementBorrowItem.query.count(),
                     'draw': request.args.get('draw', type=int),
                     })
+
+# sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
+# pdfmetrics.registerFont(sarabun_font)
+# style_sheet = getSampleStyleSheet()
+# style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
+# style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
+# style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
+#
+#
+# @procurement.route('/borrow-form/pdf/<int:borrow_id>')
+# def export_borrow_form_pdf(borrow_id):
+#     borrow_detail = ProcurementBorrowDetail.query.get(borrow_id)
+#
+#     def all_page_setup(canvas, doc):
+#         canvas.saveState()
+#         logo_image = ImageReader('app/static/img/logo-MU_black-white-2-1.png')
+#         canvas.drawImage(logo_image, 200, 200, mask='auto')
+#         canvas.restoreState()
+#
+#     doc = SimpleDocTemplate("app/borrow_form.pdf",
+#                             rightMargin=20,
+#                             leftMargin=20,
+#                             topMargin=20,
+#                             bottomMargin=10,
+#                             )
+#     no = borrow_detail.number
+#     booking_date = borrow_detail.book_date
+#     data = []
+#
+#     borrow_info = '''<font size=15>
+#     {original}</font><br/><br/>
+#     <font size=11>
+#     เลขที่ {no}<br/>
+#     วันที่ {booking_date}
+#     </font>
+#     '''
+#     borrow_info_ori = borrow_info.format(original=u'ต้นฉบับ<br/>(Original)'.encode('utf-8'),
+#                                            no=no,
+#                                            booking_date=booking_date
+#                                            )
+#
+#     header_content_ori = [[Paragraph(borrow_info_ori, style=style_sheet['ThaiStyle'])]]
+#
+#     header_styles = TableStyle([
+#         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+#         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+#     ])
+#
+#     header_ori = Table(header_content_ori, colWidths=[150, 200, 50, 100])
+#
+#     header_ori.hAlign = 'CENTER'
+#     header_ori.setStyle(header_styles)
+#
+#     form_borrow_detail = '''<para><font size=12>
+#     ข้าพเจ้า {borrower}<br/>
+#     ตำแหน่ง {position}
+#     สังกัด คณะ/สถาบัน/ภาควิชา/หน่วยงาน {org}
+#     โทร {telephone}
+#     มือถือ {mobile_phone}
+#     มีความประสงค์ขอยืมพัสดุของ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+#     {}<br/>
+#     เพื่อใช้ในงาน {}<br/>
+#     ระบุเหตุผลความจำเป็น {}<br/>
+#     สถานที่นำไปใช้งาน {} เลขที่ {} หมู่ที่ {} ถนน {} ตำบล/แขวง {} อำเภอ/เขต {} จังหวัด {} รหัสไปรษณีย์ {}
+#     โดยมีกำหนดการยืมคืนในระหว่างวันที่ {} ถึง {}
+#     &nbsp;และข้าพเจ้าขอนำส่งพัสดุในสภาพที่ใช้การได้ตามปกติ ภายใน 7 วันนับแต่วันที่ครบกำหนดการยืมโดยเป็นไปตามประกาศ มหาวิทยาลัยมหิดล
+#     เรื่องหลักเกณฑ์และวิธีการยืมพัสดุของมหาวิทยาลัยมหิดล พ.ศ. 2563 ดังมีรายการยืมดังต่อไปนี้
+#     </font></para>
+#     '''.format(borrower=borrow_detail.borrower.encode('utf-8'),
+#                position=borrow_detail.borrower.personal_info.position.encode('utf-8'),
+#                org=borrow_detail.borrower.personal_info.org.encode('utf-8'),
+#                telephone=borrow_detail.borrower.personal_info.telephone.encode('utf-8'),
+#                mobile_phone=borrow_detail.borrower.personal_info.mobile_phone.encode('utf-8'),
+#                type_of_purpose=borrow_detail.type_of_purpose.encode('utf-8'),
+#                purpose=borrow_detail.purpose.encode('utf-8'),
+#                reason=borrow_detail.reason.encode('utf-8'),
+#                location_of_use=borrow_detail.location_of_use.encode('utf-8'),
+#                address_number=borrow_detail.address_number.encode('utf-8'),
+#                moo=borrow_detail.moo.encode('utf-8'),
+#                road=borrow_detail.road.encode('utf-8'),
+#                sub_district=borrow_detail.sub_district.encode('utf-8'),
+#                district=borrow_detail.district.encode('utf-8'),
+#                province=borrow_detail.province.encode('utf-8'),
+#                postal_code=borrow_detail.postal_code.encode('utf-8'),
+#                start_date=borrow_detail.start_date.encode('utf-8'),
+#                end_date=borrow_detail.end_date.encode('utf-8')
+#                )
+#
+#     form_detail = Table([[Paragraph(form_borrow_detail, style=style_sheet['ThaiStyle']),
+#                     ]],
+#                      colWidths=[580, 200]
+#                      )
+#     form_detail.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+#                                   ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+#     items = [[Paragraph('<font size=10>ลำดับ</font>', style=style_sheet['ThaiStyleCenter']),
+#               Paragraph('<font size=10>รายการ</font>', style=style_sheet['ThaiStyleCenter']),
+#               Paragraph('<font size=10>รหัสพัสดุ</font>', style=style_sheet['ThaiStyleCenter']),
+#               Paragraph('<font size=10>จำนวน</font>', style=style_sheet['ThaiStyleCenter']),
+#               Paragraph('<font size=10>หน่วยนับ</font>', style=style_sheet['ThaiStyleCenter']),
+#               Paragraph('<font size=10>หมายเหตุ</font>', style=style_sheet['ThaiStyleCenter']),
+#               ]]
+#
+#     for n, item in enumerate(borrow_detail.items, start=1):
+#         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
+#                 Paragraph('<font size=12>{}</font>'.format(item.item.encode('utf-8')), style=style_sheet['ThaiStyle']),
+#                 Paragraph('<font size=12>{}</font>'.format(item.erp_code.encode('utf-8')), style=style_sheet['ThaiStyle']),
+#                 Paragraph('<font size=12>{}</font>'.format(item.quantity.encode('utf-8')), style=style_sheet['ThaiStyle']),
+#                 Paragraph('<font size=12>{}</font>'.format(item.unit.encode('utf-8')), style=style_sheet['ThaiStyle']),
+#                 Paragraph('<font size=12>{}</font>'.format(item.note.encode('utf-8')), style=style_sheet['ThaiStyle']),
+#                 ]
+#         items.append(item_record)
+#
+#     n = len(items)
+#     for i in range(5-n):
+#         items.append([
+#             Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
+#             Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+#             Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+#         ])
+#     item_table = Table(items, colWidths=[50, 450, 75])
+#     item_table.setStyle(TableStyle([
+#         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
+#         ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
+#         ('BOX', (0, 0), (0, -1), 0.25, colors.black),
+#         ('BOX', (1, 0), (1, -1), 0.25, colors.black),
+#         ('BOX', (2, 0), (2, -1), 0.25, colors.black),
+#         ('BOX', (3, 0), (3, -1), 0.25, colors.black),
+#         ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+#         ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+#         ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
+#         ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
+#     ]))
+#     item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
+#     item_table.setStyle([('SPAN', (0, -1), (1, -1))])
+   # # ผู้ยืม
+   #  sign_text = Paragraph(
+   #      '<br/><font size=12>............................................................................ ผู้ยืม<br/></font>',
+   #      style=style_sheet['ThaiStyle'])
+   #  borrower = [[sign_text,
+   #              Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+   #              Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  borrower_officer = Table(borrower, colWidths=[0, 80, 20])
+   #  fullname = Paragraph(
+   #      '<font size=12>({})<br/></font>'.format(borrow_detail.borrower.personal_info.fullname.encode('utf-8')),
+   #      style=style_sheet['ThaiStyle'])
+   #  personal_info = [[fullname,
+   #                    Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  borrower_personal_info = Table(personal_info, colWidths=[0, 30, 20])
+   #  # หัวหน้าหน่วยงานผู้ยืม
+   #  sign_text = Paragraph(
+   #      '<br/><font size=12>............................................................................ หัวหน้าหน่วยงานผู้ยืม<br/></font>',
+   #      style=style_sheet['ThaiStyle'])
+   #  receive = [[sign_text,
+   #              Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+   #              Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  receive_officer = Table(receive, colWidths=[0, 80, 20])
+   #  fullname = Paragraph(
+   #      '<font size=12>({})<br/></font>'.format(borrow_detail.borrower.personal_info.fullname.encode('utf-8')),
+   #      style=style_sheet['ThaiStyle'])
+   #  personal_info = [[fullname,
+   #                    Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  hrad_borrower_personal_info = Table(personal_info, colWidths=[0, 30, 20])
+   #
+   #  position = Paragraph('<font size=12>..............{}..................... ตำแหน่ง / POSITION </font>'.format(
+   #      borrow_detail.borrower.personal_info.position.encode('utf-8')),
+   #                       style=style_sheet['ThaiStyle'])
+   #  position_info = [[position,
+   #                    Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  hrad_borrower_position = Table(position_info, colWidths=[0, 80, 20])
+   #
+   #  notice_text = '''<para align=left><font size=10>
+   #  ส่วนที่ 2 สำหรับผู้อนุมัติ : หัวหน้าส่วนงาน </font></para>
+   #  '''
+   #  notice = Table([[Paragraph(notice_text, style=style_sheet['ThaiStyle'])]])
+   #  #หัวหน้าส่วนงาน
+   #  sign_text = Paragraph('<br/><font size=12>............................................................................ หัวหน้าหน่วยพัสดุ<br/></font>',
+   #                        style=style_sheet['ThaiStyle'])
+   #  receive = [[sign_text,
+   #                    Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+   #                    Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  receive_officer = Table(receive, colWidths=[0, 80, 20])
+   #
+   #  fullname = Paragraph('<font size=12>({})<br/></font>'.format(borrow_detail.borrower.personal_info.fullname.encode('utf-8')),
+   #                       style=style_sheet['ThaiStyle'])
+   #  personal_info = [[fullname,
+   #              Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  head_personal_info = Table(personal_info, colWidths=[0, 30, 20])
+   #
+   #  position = Paragraph('<font size=12>..............{}..................... ตำแหน่ง / POSITION </font>'.format(borrow_detail.borrower.personal_info.position.encode('utf-8')),
+   #                       style=style_sheet['ThaiStyle'])
+   #  position_info = [[position,
+   #                    Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  head_position = Table(position_info, colWidths=[0, 80, 20])
+   #  # หัวหน้าหน่วยพัสดุ
+   #  sign_text = Paragraph(
+   #      '<br/><font size=12>............................................................................ หัวหน้าหน่วยพัสดุ<br/></font>',
+   #      style=style_sheet['ThaiStyle'])
+   #  receive = [[sign_text,
+   #              Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+   #              Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  receive_officer = Table(receive, colWidths=[0, 80, 20])
+   #
+   #  fullname = Paragraph(
+   #      '<font size=12>({})<br/></font>'.format(borrow_detail.borrower.personal_info.fullname.encode('utf-8')),
+   #      style=style_sheet['ThaiStyle'])
+   #  personal_info = [[fullname,
+   #                    Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  head_procurement_personal_info = Table(personal_info, colWidths=[0, 30, 20])
+   #
+   #  position = Paragraph('<font size=12>..............{}..................... ตำแหน่ง / POSITION </font>'.format(
+   #      borrow_detail.borrower.personal_info.position.encode('utf-8')),
+   #                       style=style_sheet['ThaiStyle'])
+   #  position_info = [[position,
+   #                    Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  head_procurementposition = Table(position_info, colWidths=[0, 80, 20])
+
+    # data.append(form_detail)
+    # data.append(Spacer(1, 12))
+    # data.append(Spacer(1, 6))
+    # data.append(item_table)
+    # data.append(Spacer(1, 6))
+    # data.append(Spacer(1, 12))
+    # data.append(PageBreak())
+    # doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+    #
+    # return send_file('borrow_form.pdf')
+
