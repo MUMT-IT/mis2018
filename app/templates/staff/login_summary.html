@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+
+{% block page_content %}
+<section class="section" id="app">
+    <div class="columns">
+        <div class="column">
+            <h1 class="title">สรุปข้อมูลการเข้าปฏิบัติงานของบุคลากร</h1>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <div class="container has-text-centered">
+                <div id="calendar"></div>
+            </div>
+        </div>
+    </div>
+</section>
+<section class="section">
+    <div class="container">
+        <table class="table is-fullwidth is-striped" id="timeTable">
+            <thead>
+            <th>ชื่อ</th>
+            <th>เข้างาน</th>
+            <th>QR Code หมดอายุ</th>
+            <th>ออกงาน</th>
+            <th>QR Code หมดอายุ</th>
+            <th>พิกัดละติจูด</th>
+            <th>พิกัดลองจิจูด</th>
+            <th>ตำแหน่งที่สร้าง QR Code</th>
+            </thead>
+            <tbody>
+            </tbody>
+        </table>
+    </div>
+</section>
+<section class="section">
+    <div class="container">
+        <h1 class="title has-text-centered">Data Export</h1>
+        <p>คลิกเพื่อเลือกช่วงวันที่ต้องการนำออก</p>
+        <form method="post" action="{{ url_for('staff.export_login_summary') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="field">
+                <div class="control has-icons-left">
+                    <input class="input" name="datePicker" id="datePicker">
+                    <span class="icon is-small is-left">
+                        <i class="far fa-calendar-alt"></i>
+                    </span>
+                </div>
+            </div>
+            <div class="field">
+                <div class="control">
+                    <input type="submit" class="button is-info" value="Download">
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/locale-all.js" integrity="sha512-vTlIpCig7Yl48kFM3fyxWwW7t+cf+U7Bi22g/o2D4hbGKXnN//6hNZYtIZKSmXQJ5BTdr1jMBz6BUZV030LmuQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    moment.locale('th');
+    let apiUrl = "{{ url_for('staff.get_login_records', dept_id=curr_dept_id) }}";
+    $(function() {
+        let table = $('#timeTable').DataTable({
+            ajax: "{{ url_for('staff.get_login_records') }}",
+            dataSrc: "data",
+            columns: [
+                { data: 'staff_name' },
+                {
+                    data: 'start',
+                    render: function(data, type, row) {
+                        if (data !== '') {
+                            let d = moment(data)
+                            return d.format('lll')
+                        } else {
+                            return '-'
+                        }
+                    }
+                },
+                { data: 'start_expired' },
+                {
+                    data: 'end',
+                    render: function(data, type, row) {
+                        if (data !== '') {
+                            let d = moment(data)
+                            return d.format('lll')
+                        } else {
+                            return '-'
+                        }
+                    }
+                },
+                { data: 'end_expired' },
+                { data: 'lat' },
+                { data: 'lon' },
+                { data: 'location' }
+            ],
+        });
+        $('#datePicker').daterangepicker({
+                singleDatePicker: false,
+                startDate: moment()
+            }
+        );
+        $('#calendar').fullCalendar({
+            schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
+            header: {
+                left: 'title',
+            },
+            locale: 'th',
+            events: {{ url_for("staff.send_summary_data", tab=tab, curr_dept_id=curr_dept_id)|tojson|safe }},
+            displayEventEnd: true,
+            timeFormat: 'H(:mm)',
+            navLinks: true,
+            navLinkDayClick: function(date, jsEvent) {
+                table.ajax.url(apiUrl + '&date=' + date.format('L')).load()
+            },
+            viewRender: function(view, element) {
+                let d = $('#calendar').fullCalendar('getDate');
+                table.ajax.url(apiUrl + '&date=' + d.format('L')).load()
+                $('#datePicker').data('daterangepicker').setStartDate(d);
+            }
+        });
+        table.ajax.url(apiUrl + '&date=' + moment().format('L')).load()
+    });
+</script>
+{% endblock %}

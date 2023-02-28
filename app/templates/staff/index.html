@@ -8,7 +8,7 @@
     <div class="columns">
         <div class="column is-half is-offset-3">
             <nav class="panel is-info">
-                <p class="panel-heading">Personal</p>
+                <p class="panel-heading">สำหรับบุคลากร</p>
                 <a class="panel-block" href="{{ url_for('auth.account') }}">
                     <span class="panel-icon">
                         <i class="fas fa-user-circle"></i>
@@ -39,7 +39,7 @@
             </nav>
             {% if current_user.personal_info.org.head == current_user.email %}
             <nav class="panel is-link">
-                <p class="panel-heading">สำหรับหัวหน้างาน</p>
+                <p class="panel-heading">สำหรับหัวหน้าส่วนงาน</p>
                 <a class="panel-block" href="{{ url_for('staff.summary_index') }}">
                     <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
                     <span class="is-size-5">ข้อมูลสรุปวันทำงาน</span>
@@ -53,6 +53,17 @@
                     <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
                     <span class="is-size-5">ข้อมูล WFH</span>
                     <span class="tag is-rounded is-danger">{{ new_wfh_requests }}</span>
+                </a>
+            </nav>
+            {% endif %}
+            {% if secretary_permission.can() %}
+            <nav class="panel is-success">
+                <p class="panel-heading">สำหรับธุรการหน่วยงาน</p>
+                <a href="{{ url_for('staff.login_summary') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-circle"></i>
+                        </span>
+                    <span class="is-size-5">ข้อมูลสรุปบันทึกการเข้าปฏิบัติงานของบุคลากร</span><br>
                 </a>
             </nav>
             {% endif %}
