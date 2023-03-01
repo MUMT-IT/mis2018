@@ -345,6 +345,14 @@ class ComHealthRecord(db.Model):
         if checkins:
             return checkins[0]
 
+    def to_dict(self):
+        return {
+            'labno': self.labno,
+            'firstname': self.customer.firstname,
+            'lastname': self.customer.lastname,
+            'checkin_datetime': self.checkin_datetime
+        }
+
 
 class ComHealthTestItem(db.Model):
     __tablename__ = 'comhealth_test_items'

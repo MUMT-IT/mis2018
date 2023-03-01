@@ -8,6 +8,8 @@ from flask_cors import cross_origin
 from pandas import read_excel, isna
 from bahttext import bahttext
 from decimal import Decimal
+
+from sqlalchemy import or_
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql import and_
 from flask import (render_template, flash, redirect,
@@ -224,9 +226,42 @@ def register_customer_to_service_org(service_id, org_id):
 @comhealth.route('/services/<int:service_id>')
 @login_required
 def display_service_customers(service_id):
-    service = ComHealthService.query.get(service_id)
-    return render_template('comhealth/service_customers.html', service=service)
+    return render_template('comhealth/service_customers.html', service_id=service_id)
 
+
+@comhealth.route('api/services/<int:service_id>/customers')
+@login_required
+def get_services_customers(service_id):
+    query = ComHealthRecord.query.filter_by(service_id=service_id)
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    query = query.join(ComHealthCustomer,aliased=True).filter(or_(
+        ComHealthCustomer.firstname.contains(search),
+        ComHealthCustomer.lastname.contains(search),
+        ComHealthRecord.labno.contains(search)))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        if item.checkin_datetime != None:
+            item_data['check_in_time'] = '<a href="{}" <i class="fas fa-user-check has-text-success"></i>Check in</a>'.format(
+            url_for('comhealth.edit_record',record_id=item.id))
+        else:
+            item_data['check_in_time'] = '<a href="{}" <i class="fas fa-user"></i>Check in</a>'.format(
+                url_for('comhealth.edit_record', record_id=item.id))
+        item_data['customer_info']= '<a href="{}" <i class="fas fa-pencil-alt"></i></a>'.format(
+            url_for('comhealth.edit_customer_data',customer_id=item.customer_id))
+        item_data['note_info'] = '<a href="{}" <i class="far fa-book"></i></a>'.format(
+            url_for('comhealth.edit_note_data',record_id=item.customer_id))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': records_total,
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 @comhealth.route('/services/<int:service_id>/pre-register')
 def pre_register(service_id):

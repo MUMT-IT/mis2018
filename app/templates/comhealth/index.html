@@ -30,6 +30,7 @@
                     <b-table :data="services" :paginated="true" :per-page="10" default-sort="date" default-sort-direction="dsc">
                         <template slot-scope="props">
                             <b-table-column field="date" label="Date" centered>
+                                <% services[1].id %>
                                 <% moment(props.row.date).format('ll') %>
                             </b-table-column>
                             <b-table-column field="location" label="Location" sortable>
@@ -43,6 +44,7 @@
                             </b-table-column>
                             <b-table-column field="" label="Detail">
                                 <div class="buttons">
+{#                                    <a class="button is-small is-rounded" href="{{ url_for('comhealth.display_service_customers', service_id=service.id) }}">customers</a>#}
                                     <a class="button is-small is-rounded" v-bind:href="'/comhealth/services/'+props.row.id">
                                         <span class="icon">
                                             <i class="fas fa-user"></i>
