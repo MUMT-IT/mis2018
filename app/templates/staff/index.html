@@ -56,9 +56,9 @@
                 </a>
             </nav>
             {% endif %}
-            {% if secretary_permission.can() %}
+            {% if secretary_permission.can() or manager_permission.can() %}
             <nav class="panel is-success">
-                <p class="panel-heading">สำหรับธุรการหน่วยงาน</p>
+                <p class="panel-heading">สำหรับผู้จัดการหรือเจ้าหน้าที่ธุรการส่วนงาน</p>
                 <a href="{{ url_for('staff.login_summary') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-circle"></i>

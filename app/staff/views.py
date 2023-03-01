@@ -5,8 +5,7 @@ import pandas as pd
 from dateutil import parser
 from flask_login import login_required, current_user
 from pandas import read_excel, isna, DataFrame
-from app.eduqa.models import EduQAInstructor, EduQACourseSession, EduQACurriculumnRevision
-
+from app.eduqa.models import EduQAInstructor
 from models import *
 from . import staffbp as staff
 from app.main import db, get_weekdays, mail, app, csrf
@@ -30,7 +29,7 @@ from flask_admin import BaseView, expose
 from itsdangerous import TimedJSONWebSignatureSerializer
 import qrcode
 from app.staff.forms import StaffSeminarForm, create_seminar_attend_form
-from app.roles import admin_permission, hr_permission, secretary_permission
+from app.roles import admin_permission, hr_permission, secretary_permission, manager_permission
 
 from ..comhealth.views import allowed_file
 
@@ -44,6 +43,8 @@ tz = pytz.timezone('Asia/Bangkok')
 
 # TODO: remove hardcoded annual quota soon
 LEAVE_ANNUAL_QUOTA = 10
+
+manager_or_secretary_permission = manager_permission.union(secretary_permission)
 
 
 def get_fiscal_date(date):
@@ -99,7 +100,8 @@ def index():
     return render_template('staff/index.html',
                            new_leave_requests=new_leave_requests,
                            new_wfh_requests=new_wfh_requests,
-                           secretary_permission=secretary_permission
+                           secretary_permission=secretary_permission,
+                           manager_permission=manager_permission,
                            )
 
 
@@ -2380,7 +2382,7 @@ def summary_index():
 
 
 @staff.route('/summary/logins')
-@secretary_permission.require()
+@manager_or_secretary_permission.require()
 @login_required
 def login_summary():
     return render_template('staff/login_summary.html',
@@ -2389,7 +2391,7 @@ def login_summary():
 
 
 @staff.route('/summary/logins/export', methods=['POST'])
-@secretary_permission.require()
+@manager_or_secretary_permission.require()
 @login_required
 def export_login_summary():
     start_date, end_date = request.form.get('datePicker').split('-')
@@ -2399,7 +2401,7 @@ def export_login_summary():
         cast(StaffWorkLogin.start_datetime, Date) >= start_date,
         cast(StaffWorkLogin.end_datetime, Date) <= end_date
     ))
-    query = query.join(StaffAccount, aliased=True)\
+    query = query.join(StaffAccount, aliased=True) \
         .filter(StaffAccount.personal_info.has(org_id=current_user.personal_info.org_id))
     records = []
     for rec in query:
