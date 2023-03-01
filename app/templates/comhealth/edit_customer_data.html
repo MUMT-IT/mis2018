@@ -12,7 +12,7 @@
         <h1 class="title has-text-centered">แก้ไขข้อมูลผู้รับบริการ</h1>
         <div class="columns">
             <div class="column is-two-thirds is-offset-1">
-                <form method="post">
+                <form method="post" action="{{ url_for('comhealth.edit_customer_data',customer_id=customer.id, next=request.referrer)}}">
                     {{ form.hidden_tag() }}
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
@@ -104,7 +104,7 @@
                             <div class="field">
                                 <div class="control">
                                     <div class="buttons is-centered">
-                                    <a class="button is-light" href="{{ request.referrer }}">Cancel</a>
+                                    <a class="button is-light" href="{{ request.referrer or url_for('comhealth.edit_customer_data',customer_id=customer.id) }}">Cancel</a>
                                     <button class="button is-success" type="submit">Save</button>
                                     </div>
                                 </div>

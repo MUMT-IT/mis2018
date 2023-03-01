@@ -247,15 +247,15 @@ def get_services_customers(service_id):
     for item in query:
         item_data = item.to_dict()
         if item.checkin_datetime != None:
-            item_data['check_in_time'] = '<a href="{}" <i class="fas fa-user-check has-text-success"></i>Check in</a>'.format(
+            item_data['check_in_time'] = '<a class="button is-rounded is-light" href="{}" <div><span class="icon"><i class="fas fa-user-check has-text-success"></i></span><span>Check in</span></div></a>'.format(
             url_for('comhealth.edit_record',record_id=item.id))
         else:
-            item_data['check_in_time'] = '<a href="{}" <i class="fas fa-user"></i>Check in</a>'.format(
+            item_data['check_in_time'] = '<a class="button is-rounded is-light" href="{}" <div><span class="icon"><i class="fas fa-user"></i></span><span>Check in</span></div></a>'.format(
                 url_for('comhealth.edit_record', record_id=item.id))
-        item_data['customer_info']= '<a href="{}" <i class="fas fa-pencil-alt"></i></a>'.format(
+        item_data['customer_info']= '<a class="button is-rounded is-light" href="{}" <span class="icon"><i class="fas fa-pencil-alt"></i></span></a>'.format(
             url_for('comhealth.edit_customer_data',customer_id=item.customer_id))
-        item_data['note_info'] = '<a href="{}" <i class="far fa-book"></i></a>'.format(
-            url_for('comhealth.edit_note_data',record_id=item.customer_id))
+        item_data['note_info'] = '<a class="button is-rounded is-light" href="{}" <span class="icon"><i class="fas fa-book"></span></i></a>'.format(
+            url_for('comhealth.edit_note_data',record_id=item.id))
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
@@ -1295,7 +1295,7 @@ def edit_note_data(record_id):
         record.note = request.form.get('note')
         db.session.add(record)
         db.session.commit()
-        return redirect(request.args.get('next'))
+        return redirect(request.args.get('next',url_for('comhealth.get_services_customers',service_id=record.service_id)))
     return render_template('comhealth/edit_note.html',record=record)
 
 @comhealth.route('/customers/<int:customer_id>/edit', methods=['GET', 'POST'])
@@ -1345,7 +1345,7 @@ def edit_customer_data(customer_id):
     else:
         flash('Customer not found.', 'warning')
         return redirect(request.args.get('next'))
-    return render_template('comhealth/edit_customer_data.html', form=form)
+    return render_template('comhealth/edit_customer_data.html', form=form, customer=customer)
 
 
 # TODO: export the price of tests
