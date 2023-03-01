@@ -3,6 +3,23 @@ from app.main import db
 from app.staff.models import StaffAccount, StaffPersonalInfo
 
 
+class DocSendOut(db.Model):
+    __tablename__ = 'doc_send_out'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    running_no = db.Column('running_no', db.Integer)
+    title = db.Column('title', db.String)
+    send_to = db.Column('send_to', db.String)
+    created_at = db.Column('created_at', db.DateTime(timezone=True))
+    org_id = db.Column('org_id', db.Integer(), db.ForeignKey('orgs.id'), nullable=False)
+
+
+class DocOrg(db.Model):
+    __tablename__ = 'doc_orgs'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    org_document_code = db.Column('org_document_code', db.Integer())
+    org_id = db.Column('org_id', db.Integer(), db.ForeignKey('orgs.id'), nullable=False)
+
+
 class DocCategory(db.Model):
     __tablename__ = 'doc_categories'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
