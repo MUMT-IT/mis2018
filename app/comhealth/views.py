@@ -235,10 +235,20 @@ def get_services_customers(service_id):
     query = ComHealthRecord.query.filter_by(service_id=service_id)
     records_total = query.count()
     search = request.args.get('search[value]')
+    col_idx = request.args.get('order[0][column]')
+    direction = request.args.get('order[0][dir]')
+    col_name = request.args.get('columns[{}][data]'.format(col_idx))
     query = query.join(ComHealthCustomer,aliased=True).filter(or_(
         ComHealthCustomer.firstname.contains(search),
         ComHealthCustomer.lastname.contains(search),
         ComHealthRecord.labno.contains(search)))
+    try:
+        column = getattr(ComHealthCustomer,col_name)
+    except AttributeError:
+        column = getattr(ComHealthRecord, col_name)
+    if direction == 'desc':
+        column = column.desc()
+    query = query.order_by(column)
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
     total_filtered = query.count()
