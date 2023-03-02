@@ -749,6 +749,7 @@ def show_hours_summary_by_year(revision_id):
         return render_template('eduqa/QA/mtc/summary_hours_all_courses.html',
                                sum_hours=sum_hours,
                                year=year,
+                               years=all_years,
                                revision=revision,
                                revision_id=revision_id)
     return 'No data available.'
