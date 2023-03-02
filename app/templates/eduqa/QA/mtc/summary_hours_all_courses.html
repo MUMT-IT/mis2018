@@ -14,6 +14,17 @@
     <div class="container">
         <h1 class="title has-text-centered">จำนวนชั่วโมงสอนตามตารางสอนรายวิชา</h1>
         <h1 class="subtitle has-text-centered">ปี {{ year + 543 }}</h1>
+        <div class="tabs is-boxed">
+          <ul>
+              {% for y in years %}
+                <li {% if y == year %} class="is-active" {% endif %}>
+                    <a href="{{ url_for('eduqa.show_hours_summary_by_year', revision_id=revision_id, year=y) }}">
+                        {{ y + 543 }}
+                    </a>
+                </li>
+              {% endfor %}
+          </ul>
+        </div>
     <div class="columns">
         <div class="column container">
             <table class="table is-striped" id="myTable">
@@ -42,7 +53,7 @@
         <div class="column">
             <div class="buttons is-centered">
                 <a class="button is-light"
-                   href="{{ url_for('eduqa.show_revision_detail', revision_id=revision_id) }}">
+                   href="{{ request.referrer or url_for('eduqa.teaching_hours_index', revision_id=revision_id) }}">
                     Back
                 </a>
             </div>
