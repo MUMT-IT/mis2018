@@ -53,7 +53,7 @@
         <div class="column">
             <div class="buttons is-centered">
                 <a class="button is-light"
-                   href="{{ request.referrer or url_for('eduqa.teaching_hours_index', revision_id=revision_id) }}">
+                   href="{{ url_for('eduqa.teaching_hours_index', revision_id=revision_id) }}">
                     Back
                 </a>
             </div>
