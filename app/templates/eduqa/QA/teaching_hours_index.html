@@ -1,10 +1,45 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Teaching Hours Index Page {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                {% include 'messages.html' %}
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth">
+                    <thead>
+                    <th>สาขา</th>
+                    <th>ระดับ</th>
+                    <th>หลักสูตร</th>
+                    <th>Curiculum</th>
+                    <th>ฉบับ</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for rec in records %}
+                    <tr>
+                        <td>{{ rec.curriculum.program.degree }}</td>
+                        <td>{{ rec.curriculum.program.name }}</td>
+                        <td>{{ rec.curriculum.th_name }}</td>
+                        <td>{{ rec.curriculum.en_name }}</td>
+                        <td>{{ rec.buddhist_year }}</td>
+                        <td>
+                            <a class="button is-rounded is-link"
+                               href="{{ url_for('eduqa.show_hours_summary_by_year', revision_id=rec.id) }}">
+                                <span>ดูข้อมูล</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
