@@ -693,6 +693,8 @@ class StaffSeminarProposal(db.Model):
     __tablename__ = 'staff_seminar_proposals'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     seminar_attend_id = db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id'))
+    seminar_attend = db.relationship('StaffSeminarAttend', foreign_keys=[seminar_attend_id],
+                                     backref=db.backref('proposal'))
     approved_at = db.Column('approved_at', db.DateTime(timezone=True),default=datetime.now())
     is_approved = db.Column('is_approved', db.Boolean(), default=True)
     comment = db.Column('approval_comment', db.String())
@@ -700,6 +702,7 @@ class StaffSeminarProposal(db.Model):
     proposer = db.relationship('StaffAccount', foreign_keys=[proposer_account_id],
                                            backref=db.backref('seminar_proposer', lazy='dynamic'))
     previous_proposal_id = db.Column('previous_proposal_id', db.Integer())
+    upload_file_url = db.Column('upload_file_url', db.String())
 
 
 class StaffSeminarApproval(db.Model):
