@@ -2064,14 +2064,14 @@ def login_scan():
 def get_login_records():
     date = request.args.get('date')
     dept_id = request.args.get('dept_id', int)
-    print(date, dept_id)
     if not date:
         date = datetime.today()
     else:
         date = datetime.strptime(date, '%d/%m/%Y')
     events = []
     staff_list = {}
-    for rec in StaffWorkLogin.query.filter(cast(StaffWorkLogin.start_datetime, Date) == date):
+    for rec in StaffWorkLogin.query.filter(
+            cast(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime), Date) == date):
         if rec.staff_id not in staff_list:
             s = StaffAccount.query.get(rec.staff_id)
             if s.personal_info.org_id != int(dept_id):
@@ -2247,7 +2247,6 @@ def send_summary_data():
     cal_end = request.args.get('end')
     curr_dept_id = request.args.get('curr_dept_id', type=int)
     tab = request.args.get('tab')
-    print(tab)
     if cal_start:
         cal_start = parser.isoparse(cal_start)
     if cal_end:
@@ -2261,7 +2260,8 @@ def send_summary_data():
         if tab in ['login', 'all']:
             # TODO: recheck staff login model
             for rec in StaffWorkLogin.query.filter_by(staff=emp.staff_account) \
-                    .filter(StaffWorkLogin.start_datetime.between(cal_start, cal_end)):
+                    .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime)
+                                                           .between(cal_start, cal_end)):
                 end = None if rec.end_datetime is None else rec.end_datetime.astimezone(tz)
                 border_color = '#ffffff' if end else '#f56956'
                 text_color = '#ffffff'
@@ -2296,7 +2296,8 @@ def send_summary_data():
 
         if tab in ['leave', 'all']:
             for leave_req in StaffLeaveRequest.query.filter_by(staff=emp.staff_account) \
-                    .filter(StaffLeaveRequest.start_datetime.between(cal_start, cal_end)):
+                    .filter(func.timezone('Asia/Bangkok', StaffLeaveRequest.start_datetime)
+                                                                 .between(cal_start, cal_end)):
                 if not leave_req.cancelled_at:
                     if leave_req.get_approved:
                         text_color = '#ffffff'
@@ -2321,8 +2322,10 @@ def send_summary_data():
                     })
 
         if tab in ['wfh', 'all']:
-            for wfh_req in StaffWorkFromHomeRequest.query.filter_by(staff=emp.staff_account).filter(
-                    StaffWorkFromHomeRequest.start_datetime.between(cal_start, cal_end)):
+            for wfh_req in StaffWorkFromHomeRequest.query\
+                    .filter_by(staff=emp.staff_account)\
+                    .filter(func.timezone('Asia/Bangkok', StaffWorkFromHomeRequest.start_datetime)
+                                                               .between(cal_start, cal_end)):
                 if not wfh_req.cancelled_at and not wfh_req.get_unapproved:
                     if wfh_req.get_approved:
                         text_color = '#989898'
@@ -2346,8 +2349,9 @@ def send_summary_data():
                         'type': 'wfh'
                     })
         if tab in ['smr', 'all']:
-            for smr in emp.staff_account.seminar_attends.filter(
-                    StaffSeminarAttend.start_datetime.between(cal_start, cal_end)):
+            for smr in emp.staff_account.seminar_attends\
+                    .filter(func.timezone('Asia/Bangkok', StaffSeminarAttend.start_datetime)
+                                                           .between(cal_start, cal_end)):
                 text_color = '#ffffff'
                 bg_color = '#FF33A5'
                 border_color = '#ffffff'
@@ -2397,10 +2401,8 @@ def export_login_summary():
     start_date, end_date = request.form.get('datePicker').split('-')
     start_date = datetime.strptime(start_date.strip(), '%d/%m/%Y')
     end_date = datetime.strptime(end_date.lstrip(), '%d/%m/%Y')
-    query = StaffWorkLogin.query.filter(and_(
-        cast(StaffWorkLogin.start_datetime, Date) >= start_date,
-        cast(StaffWorkLogin.end_datetime, Date) <= end_date
-    ))
+    query = StaffWorkLogin.query.filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime)
+                                        .between(start_date, end_date))
     query = query.join(StaffAccount, aliased=True) \
         .filter(StaffAccount.personal_info.has(org_id=current_user.personal_info.org_id))
     records = []
@@ -2958,7 +2960,8 @@ def send_time_report_data():
     if cal_end:
         cal_end = parser.isoparse(cal_end)
     records = []
-    for rec in StaffWorkLogin.query.filter(StaffWorkLogin.start_datetime.between(cal_start, cal_end)) \
+    for rec in StaffWorkLogin.query\
+            .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime).between(cal_start, cal_end))\
             .filter_by(staff=current_user):
         # The event object is a dict object with a 'summary' key.
         text_color = '#ffffff'
