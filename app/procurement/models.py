@@ -50,6 +50,7 @@ class ProcurementDetail(db.Model):
     sub_number = db.Column('sub_number', db.Integer(), info={'label': 'Sub Number'})
     curr_acq_value = db.Column('curr_acq_value', db.Float(), info={'label': u'มูลค่าที่ได้มา(>10,000)'})
     cost_center = db.Column('cost_center', db.String(8), info={'label': u'ศูนย์ต้นทุน'})
+    is_reserved = db.Column('is_reserved', db.Boolean(), default=False)
 
     def __str__(self):
         return u'{}: {}'.format(self.name, self.procurement_no)
