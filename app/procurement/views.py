@@ -3,6 +3,7 @@ import cStringIO
 import os, requests
 from base64 import b64decode
 
+import dateutil
 from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify, session, \
     make_response
 from flask_login import current_user, login_required
@@ -939,6 +940,99 @@ def computer_list():
             return render_template('procurement/partials/computer_list.html', computers_detail=computers_detail)
 
     return render_template('procurement/computer_list.html', computers_detail=computers_detail)
+
+
+@procurement.route('/borrow-return/index')
+def index_borrow_detail():
+    return render_template('procurement/borrow_detail_index.html', list_type='default')
+
+
+@procurement.route('/borrow-return/available/<list_type>')
+def procurement_available_list(list_type='timelineDay'):
+    return render_template('procurement/procurement_available_list.html', list_type=list_type)
+
+
+# @procurement.route('/api/procurements')
+# def get_procurements():
+#     start = request.args.get('start')
+#     end = request.args.get('end')
+#     if start:
+#         start = dateutil.parser.isoparse(start)
+#     if end:
+#         end = dateutil.parser.isoparse(end)
+#     procurements = ProcurementDetail.query.filter(ProcurementDetail.start >= start) \
+#         .filter(ProcurementDetail.end <= end)
+#     all_procurements = []
+#     for procurement in procurements:
+#         if procurement.is_closed:
+#             text_color = '#ffffff'
+#             bg_color = '#066b02'
+#             border_color = '#ffffff'
+#         elif procurement.cancelled_at:
+#             text_color = '#ffffff'
+#             bg_color = '#ff6666'
+#             border_color = '#ffffff'
+#         elif procurement.approved:
+#             text_color = '#000000'
+#             bg_color = '#62c45e'
+#             border_color = '#ffffff'
+#         else:
+#             text_color = '#000000'
+#             bg_color = '#f0f0f5'
+#             border_color = '#ffffff'
+#         evt = procurement.to_dict()
+#         evt['resourceId'] = procurement.vehicle.license
+#         evt['borderColor'] = border_color
+#         evt['backgroundColor'] = bg_color
+#         evt['textColor'] = text_color
+#         all_procurements.append(evt)
+#     return jsonify(all_procurements)
+
+@procurement.route('/reservation/new')
+def new_reservation():
+    return render_template('procurement/new_reservation.html')
+
+
+@procurement.route('/list/search', methods=['POST', 'GET'])
+def procurement_list():
+    erp_code = request.form.get('erp_code', None)
+    if erp_code:
+        procurements = ProcurementDetail.query.filter_by(erp_code=erp_code)
+    else:
+        procurements = []
+
+    return render_template('procurement/procurement_list.html', procurements=procurements)
+
+
+@procurement.route('procurement_list/all', methods=['GET', 'POST'])
+def view_all_procurement_to_borrow():
+    return render_template('procurement/view_all_procurement_to_borrow.html')
+
+
+@procurement.route('api/procurement_list/all')
+def get_procurement_list():
+    query = ProcurementDetail.query.filter_by(is_reserved=True)
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.name.ilike(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['reserve'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">จอง</a>'.format(
+            url_for('procurement.add_borrow_detail', procurement_no=item.procurement_no))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementInfoComputer.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 
 @procurement.route('/borrow-return/detail/add/<string:procurement_no>', methods=['GET', 'POST'])
