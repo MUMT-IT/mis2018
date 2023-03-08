@@ -278,6 +278,30 @@ def pre_register(service_id):
     service = ComHealthService.query.get(service_id)
     return render_template('comhealth/pre_register.html', service=service)
 
+@comhealth.route('api/services/<int:service_id>/pre-register')
+@login_required
+def get_services_pre_register(service_id):
+    query = ComHealthRecord.query.filter_by(service_id=service_id)
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    query = query.join(ComHealthCustomer,aliased=True).filter(or_(
+        ComHealthCustomer.firstname.contains(search),
+        ComHealthCustomer.lastname.contains(search)))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['customer_pre_register'] = '<a class="button is-light is-link" href="{}" <span>ลงทะเบียน</span></a>'.format(
+            url_for('comhealth.pre_register_login', service_id=service_id,record_id=item.id))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': records_total,
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 @comhealth.route('/services/<int:service_id>/pre-register/<int:record_id>/login', methods=['GET', 'POST'])
 def pre_register_login(service_id, record_id):
