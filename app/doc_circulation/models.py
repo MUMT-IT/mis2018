@@ -11,6 +11,8 @@ class DocSendOut(db.Model):
     send_to = db.Column('send_to', db.String)
     created_at = db.Column('created_at', db.DateTime(timezone=True))
     org_id = db.Column('org_id', db.Integer(), db.ForeignKey('orgs.id'), nullable=False)
+    file_name = db.Column(db.String(255))
+    url = db.Column(db.String(255))
 
 
 class DocOrg(db.Model):
