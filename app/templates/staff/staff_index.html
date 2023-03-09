@@ -3,9 +3,7 @@
 {% block page_content %}
 <section class="section" id="app">
     <h1 class="title">ข้อมูลบุคลากร</h1>
-    {% for msg in get_flashed_messages() %}
-        <p class="notification is-warning">{{ msg }}</p>
-        {% endfor %}
+    {% include "messages.html" %}
     <div class="columns">
         <div class="column">
             <div class="container has-text-centered">
