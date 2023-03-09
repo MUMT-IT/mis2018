@@ -3,9 +3,7 @@
 {% block page_content %}
 <section class="section" id="app">
     <div class="container">
-        {% for msg in get_flashed_messages() %}
-        <p class="notification is-warning">{{ msg }}</p>
-        {% endfor %}
+        {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">
                 <h1 class="title">ข้อมูล {{ staff.fullname }}</h1>
@@ -126,16 +124,44 @@
                             {{ staff.org.name }}
                         </div>
                     </div>
+                    {% if staff.resignation_date %}
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">วันที่ลาออก</label>
+                        </div>
+                        <div class="field-body">
+                            {{ staff.resignation_date }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% if staff.retirement_date %}
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">วันที่เกษียณอายุ</label>
+                        </div>
+                        <div class="field-body">
+                            {{ staff.retirement_date }}
+                        </div>
+                    </div>
+                    {% endif %}
                     <div class="field is-grouped is-grouped-centered">
                         <a class="button is-rounded is-info" href="{{ url_for('staff.staff_add_requester',
                         requester_id=staff.staff_account.id) }}">
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
                             <span>เพิ่มผู้อนุมัติการลา</span>
                         </a>
                     </div>
                     <br>
                     <div class="field is-grouped is-grouped-centered">
                         <a class="button is-rounded is-info is-light" href="{{ url_for('staff.staff_index') }}">
-                            <span>กลับหน้าบุคลากร</span>
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>
+                                กลับหน้าจัดการข้อมูลบุคลากร
+                            </span>
                         </a>
                     </div>
                 </div>

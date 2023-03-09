@@ -3144,10 +3144,12 @@ def staff_search_info():
         staff_id = request.form.get('staffname')
         staff = StaffPersonalInfo.query.get(staff_id)
         emp_date = staff.employed_date
+        resign_date = staff.resignation_date
+        retired_date = staff.retirement_date
         employments = StaffEmployment.query.all()
         departments = Org.query.all()
-        return render_template('staff/staff_edit_info.html', staff=staff, emp_date=emp_date, employments=employments,
-                               departments=departments)
+        return render_template('staff/staff_edit_info.html', staff=staff, emp_date=emp_date, retired_date=retired_date,
+                               resign_date=resign_date, employments=employments, departments=departments)
     return render_template('staff/staff_find_name_to_edit.html')
 
 
@@ -3170,6 +3172,10 @@ def staff_edit_info(staff_id):
             db.session.add(createstaff)
         start_d = form.get('employed_date')
         start_date = datetime.strptime(start_d, '%d/%m/%Y') if start_d else None
+        resign_date = datetime.strptime(form.get('resignation_date'), '%d/%m/%Y') \
+                      if form.get('resignation_date') else None
+        retired_date = datetime.strptime(form.get('retirement_date'), '%d/%m/%Y') \
+            if form.get('retirement_date') else None
         staff.th_title = form.get('th_title')
         staff.en_title = form.get('en_title')
         staff.en_firstname = form.get('en_firstname')
@@ -3178,6 +3184,8 @@ def staff_edit_info(staff_id):
         staff.th_lastname = form.get('th_lastname')
         staff.position = form.get('position')
         staff.employed_date = tz.localize(start_date) if start_date else None
+        staff.resignation_date = tz.localize(resign_date) if resign_date else None
+        staff.retirement_date = tz.localize(retired_date) if retired_date else None
         if form.get('finger_scan_id'):
             staff.finger_scan_id = form.get('finger_scan_id')
         staff.employment_id = form.get('employment_id')
