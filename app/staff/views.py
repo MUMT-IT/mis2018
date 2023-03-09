@@ -1096,12 +1096,12 @@ def show_leave_approval(req_id):
 @login_required
 def request_cancel_leave_request(req_id):
     req = StaffLeaveRequest.query.get(req_id)
-    if req.get_last_cancel_request_from_now > 1 or not req.last_cancel_requested_at:
+    if req.get_last_cancel_request_from_now > 3 or not req.last_cancel_requested_at:
         req.last_cancel_requested_at = datetime.now(tz)
         db.session.add(req)
         db.session.commit()
         for approval in StaffLeaveApproval.query.filter_by(request_id=req_id):
-            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'), expires_in=86400)
+            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'), expires_in=259200)
             token = serializer.dumps({'approver_id': approval.approver_id, 'req_id': req.id})
             req_to_cancel_msg = u'{} ยื่นคำขอยกเลิก {} วันที่ {} ถึง {}\nคลิกที่ Link {} เพื่อยกเลิกการลา' \
                                 u'\n\n\n หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
@@ -1123,7 +1123,7 @@ def request_cancel_leave_request(req_id):
         flash(u'ส่งคำขอยกเลิกการลาของท่านเรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.request_for_leave_info', quota_id=req.leave_quota_id))
     else:
-        flash(u'ไม่สามารถส่งคำขอซ้ำภายใน 1 วันได้', 'warning')
+        flash(u'ไม่สามารถส่งคำขอซ้ำภายใน 3 วันได้', 'warning')
     return redirect(url_for('staff.show_leave_info'))
 
 
@@ -2907,6 +2907,42 @@ def seminar_add_attendee(seminar_id):
             )
             db.session.add(attend)
             db.session.commit()
+            # approval = StaffSeminarApproval(
+            #     seminar_attend_id=attend.id,
+            #     update_at=,
+            #     is_approved=,
+            #     approval_comment=,
+            #     final_approver_account_id=,
+            #     recorded_account_id=current_user.id,
+            #
+            # )
+            # db.session.add(approval)
+            # db.session.commit()
+            # if form.get('approval') == True:
+            #     req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n {}อนุมัติเรียบร้อยแล้ว' \
+            #               u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+            #         format(attend.seminar.topic_type, attend.seminar.topic,
+            #                attend.start_datetime, attend.end_datetime, approval.approver.personal_info)
+            # elif form.get('approval') == False:
+            #     req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n {}ไม่อนุมัติคำขอของท่าน' \
+            #               u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+            #         format(attend.seminar.topic_type, attend.seminar.topic,
+            #                attend.start_datetime, attend.end_datetime, approval.approver.personal_info)
+            # else:
+            #     req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n {}อนุมัติแบบมีเงื่อนไข {}' \
+            #               u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+            #         format(attend.seminar.topic_type, attend.seminar.topic,
+            #                attend.start_datetime, attend.end_datetime,
+            #                approval.approver.personal_info, approval.approval_comment)
+            # req_title = u'ทดสอบแจ้งผลการขออนุมัติ' + attend.seminar.topic_type
+            # requester_email = attend.staff.email
+            # line_id = attend.staff.line_id
+            # if os.environ["FLASK_ENV"] == "production":
+            #     send_mail([requester_email + "@mahidol.ac.th"], req_title, req_msg)
+            #     if line_id:
+            #         line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+            # else:
+            #     print(req_msg, requester_email, line_id)
         attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
         flash(u'เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
         return render_template('staff/seminar_attend_info_for_hr.html', seminar=seminar, attends=attends)

@@ -168,7 +168,7 @@
         <div class="columns">
             <div class="column">
                 <div class="notification is-warning is-light">
-                    <span>*กรณีขอยกเลิกการลา สามารถคลิกเพื่อส่งคำขอซ้ำได้หลังจาก 1 วันที่ส่งคำขอครั้งล่าสุด</span><br>
+                    <span>*กรณีขอยกเลิกการลา สามารถคลิกเพื่อส่งคำขอซ้ำได้หลังจาก 3 วันที่ส่งคำขอครั้งล่าสุด</span><br>
                     <span>*A request for cancellation is limited to one time per day.</span>
                 </div>
             </div>
@@ -222,7 +222,7 @@
                 this.$buefy.dialog.confirm({
                     title: 'ยื่นคำร้องยกเลิกคำขอที่' + req_id,
                     message: 'แน่ใจหรือไม่ที่จะ<b>ยกเลิก</b>การลาครั้งนี้ คำขอจะส่งไปยังผู้อนุมัติการลาครั้งนี้ ' +
-                        'และมีระยะเวลาการขอยกเลิก <b>1 วัน</b> นับตั้งแต่ส่งคำขอ',
+                        'และมีระยะเวลาการขอยกเลิก <b>3 วัน</b> นับตั้งแต่ส่งคำขอ',
                     confirmText: 'Send request',
                     type: 'is-danger',
                     hasIcon: true,
