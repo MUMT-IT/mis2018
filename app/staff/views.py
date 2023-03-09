@@ -2588,7 +2588,7 @@ def seminar_add_approval(attend_id):
         #     db.session.commit()
 
         flash(u'UPDATE การอนุมัติเรียบร้อยแล้ว', 'success')
-        
+
         # mails = []
         # req_title = u'แจ้งการอนุมัติ' + createleave.quota.leave_type.type_
         # req_msg = u'การขออนุมัติ{} ของ{} ระหว่างวันที่ {} ถึงวันที่ {}\nเจ้าหน้าที่หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่ได้ทำการบันทึกลงระบบเรียบร้อยแล้ว' \
@@ -2727,19 +2727,147 @@ def seminar_create_record(seminar_id):
         if form.invited_document_date.data:
             attend.invited_document_date = form.invited_document_date.data
         if form.approver.data:
-            # staff_leave_approver_id = StaffLeaveApprover.query.filter_by(id=form.approver.data.id).first()
-            attend.head_account_id = form.approver.data.account.id
-        if form.contact_no.data:
-            attend.contact_no = form.contact_no.data
+            attend.lower_level_approver_account_id = form.approver.data.account.id
+        # if form.contact_no.data:
+        #     attend.contact_no = form.contact_no.data
             attend.document_title = form.document_title.data
         db.session.add(attend)
         db.session.commit()
 
+        req_title = u'ทดสอบแจ้งการขออนุมัติ' + attend.seminar.topic_type
+        req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
+                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+            format(attend.staff.personal_info, attend.seminar.topic_type, attend.seminar.topic,
+                   attend.start_datetime, attend.end_datetime,
+                   url_for("staff.seminar_request_for_proposal", seminar_attend_id=attend.id, _external=True))
+        if attend.lower_level_approver_account_id:
+            approver = StaffLeaveApprover.query.filter_by(
+                approver_account_id=attend.lower_level_approver_account_id).first()
+            approver_email = approver.account.email
+            is_notify_line = approver.notified_by_line
+            line_id = approver.account.line_id
+            if os.environ["FLASK_ENV"] == "production":
+                send_mail([approver_email + "@mahidol.ac.th"], req_title, req_msg)
+                if is_notify_line and line_id:
+                    line_bot_api.push_message(to=line_id,messages=TextSendMessage(text=req_msg))
+            else:
+                print(req_msg, line_id)
+            flash(u'ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
+        else:
+            flash(u'เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
         attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
-        flash(u'เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
         return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
     print (form.errors)
     return render_template('staff/seminar_create_record.html', seminar=seminar, form=form)
+
+
+@staff.route('/seminar/requests/proposal/info')
+@login_required
+def show_seminar_proposal_info():
+    leave_approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
+    if not leave_approver:
+        return redirect(url_for('staff.seminar_attends_each_person', staff_id=current_user.id))
+    lower_level_requests = StaffSeminarAttend.query.filter_by(lower_level_approver=current_user).all()
+    middle_level_requests = StaffSeminarAttend.query.filter_by(middle_level_approver=current_user).all()
+    last_two_month = datetime.now() - timedelta(60)
+    pending_proposal = StaffSeminarProposal.query.filter_by(proposer=current_user)\
+                                            .filter(StaffSeminarProposal.approved_at >= last_two_month).all()
+    return render_template('staff/seminar_request_for_proposal.html', lower_level_requests=lower_level_requests,
+                           middle_level_requests=middle_level_requests, pending_proposal=pending_proposal)
+
+
+@staff.route('/seminar/request/proposal/detail/<int:seminar_attend_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_request_for_proposal(seminar_attend_id):
+    seminar_attend = StaffSeminarAttend.query.get(seminar_attend_id)
+    another_proposer = StaffLeaveApprover.query.filter_by(staff_account_id=seminar_attend.staff_account_id).filter(
+                                        StaffLeaveApprover.approver_account_id != current_user.id).all()
+    #TODO: if the request have IDP objective, show personal's IDP information
+    # TODO: generate document no
+    if request.method == 'POST':
+        form = request.form
+        is_previous_proposer = StaffSeminarProposal.query.filter_by(seminar_attend_id=seminar_attend_id).first()
+        proposal = StaffSeminarProposal(
+            seminar_attend_id=seminar_attend_id,
+            approved_at=tz.localize(datetime.today()),
+            is_approved=True if form.get('status') == 'yes' else False,
+            comment=form.get('comment') if form.get('comment') else None,
+            proposer_account_id=current_user.id,
+            previous_proposal_id=is_previous_proposer.id if is_previous_proposer else None
+        )
+        db.session.add(proposal)
+        db.session.commit()
+        if form.get('status') == 'yes':
+            if form.get('another_proposer_id'):
+                middle_level_approver_account_id = form.get('another_proposer_id')
+                seminar_attend.middle_level_approver_account_id = middle_level_approver_account_id
+                db.session.add(seminar_attend)
+                db.session.commit()
+
+                if seminar_attend.middle_level_approver_account_id:
+                    req_title = u'ทดสอบแจ้งการขออนุมัติ' + seminar_attend.seminar.topic_type
+                    req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
+                              u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                        format(seminar_attend.staff.personal_info, seminar_attend.seminar.topic_type,
+                               seminar_attend.seminar.topic, seminar_attend.start_datetime, seminar_attend.end_datetime,
+                               url_for("staff.seminar_request_for_proposal",
+                                       seminar_attend_id=seminar_attend.id, _external=True))
+                    approver = StaffLeaveApprover.query.filter_by(approver_account_id=middle_level_approver_account_id).first()
+                    approver_email = approver.account.email
+                    is_notify_line = approver.notified_by_line
+                    line_id = approver.account.line_id
+                    if os.environ["FLASK_ENV"] == "production":
+                        send_mail([approver_email + "@mahidol.ac.th"], req_title, req_msg)
+                        if is_notify_line and line_id:
+                            line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+                    else:
+                        print(req_msg, approver_email, line_id)
+                    flash(u'ส่งคำขอต่อไปยังรองคณบดีเรียบร้อยแล้ว ', 'success')
+            else:
+                flash(u'ระบบบันทึกการอนุมัติของท่านแล้ว กรุณาเซ็นเอกสารและ Upload เข้าระบบต่อไป', 'success')
+        else:
+            req_title = u'ทดสอบแจ้งผลการขออนุมัติ' + seminar_attend.seminar.topic_type
+            req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n ผู้บังคับบัญชาขั้นต้นไม่อนุมัติเนื่องจาก {} ' \
+                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                format(seminar_attend.seminar.topic_type, seminar_attend.seminar.topic,
+                       seminar_attend.start_datetime, seminar_attend.end_datetime, seminar_attend.proposal.comment)
+            requester_email = seminar_attend.staff.email
+            line_id = seminar_attend.staff.line_id
+            if os.environ["FLASK_ENV"] == "production":
+                send_mail([requester_email + "@mahidol.ac.th"], req_title, req_msg)
+                if line_id:
+                    line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+            else:
+                print(req_msg, requester_email, line_id)
+        return redirect(url_for('staff.show_seminar_proposal_info'))
+    return render_template('staff/seminar_request_for_proposal_detail.html', seminar_attend=seminar_attend,
+                           another_proposer=another_proposer)
+
+
+@staff.route('/seminar/request/upload/<int:seminar_attend_id>/<int:proposal_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_upload_proposal(seminar_attend_id, proposal_id):
+    proposal = StaffSeminarProposal.query.filter_by(seminar_attend_id=seminar_attend_id).all()
+    this_proposal = StaffSeminarProposal.query.get(proposal_id)
+    if request.method == 'POST':
+        upload_file = request.files.get('document')
+        if upload_file:
+            upload_file_name = secure_filename(upload_file.filename)
+            upload_file.save(upload_file_name)
+            file_drive = drive.CreateFile({'title': upload_file_name})
+            file_drive.SetContentFile(upload_file_name)
+            file_drive.Upload()
+            permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
+            upload_file_url = file_drive['id']
+            flash(u'Upload File เรียบร้อยแล้ว', 'success')
+        else:
+            upload_file_url = None
+            flash(u'Upload File ไม่สำเร็จ', 'warning')
+        this_proposal.upload_file_url = upload_file_url
+        db.session.add(this_proposal)
+        db.session.commit()
+        return redirect(url_for('staff.show_seminar_proposal_info'))
+    return render_template('staff/seminar_upload_proposal.html', proposal=proposal, this_proposal=this_proposal)
 
 
 @staff.route('/seminar/add-attend/add-attendee/<int:seminar_id>', methods=['GET', 'POST'])
@@ -2861,8 +2989,9 @@ def seminar_attends_each_person(staff_id):
     seminar_query = StaffSeminar.query.filter(StaffSeminar.cancelled_at == None).all()
     for seminars in seminar_query:
         seminar_records.append(seminars)
+    approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
     return render_template('staff/seminar_records_each_person.html', seminar_list=seminar_list,
-                           attend_name=attend_name ,seminar_records=seminar_records)
+                           attend_name=attend_name ,seminar_records=seminar_records, approver=approver)
 
 
 @staff.route('/api/time-report')

@@ -285,6 +285,7 @@ admin.add_views(ModelView(StaffShiftRole, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminarApproval, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminarMission, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminarObjective, db.session, category='Staff'))
+admin.add_views(ModelView(StaffSeminarProposal, db.session, category='Staff'))
 
 
 class StaffLeaveApprovalModelView(ModelView):
@@ -362,7 +363,7 @@ from app.roles import admin_permission
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
 from models import (Student, Class, ClassCheckIn,
-                    Org, Mission, IOCode, CostCenter,
+                    Org, HeadOrg, Mission, IOCode, CostCenter,
                     StudentCheckInRecord, Holidays)
 
 admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
@@ -387,6 +388,7 @@ admin.add_view(StudentCheckInAdminModel(
     StudentCheckInRecord, db.session, category='Student Affairs'))
 
 admin.add_view(ModelView(Org, db.session, category='Organization'))
+admin.add_view(ModelView(HeadOrg, db.session, category='Organization'))
 admin.add_view(ModelView(Mission, db.session, category='Organization'))
 
 from asset import assetbp as asset_blueprint
@@ -579,6 +581,8 @@ admin.add_view(ModelView(DocCategory, db.session, category='Docs Circulation'))
 admin.add_view(ModelView(DocDocument, db.session, category='Docs Circulation'))
 admin.add_view(ModelView(DocDocumentReach, db.session, category='Docs Circulation'))
 admin.add_view(ModelView(DocReceiveRecord, db.session, category='Docs Circulation'))
+admin.add_view(ModelView(DocSendOut, db.session, category='Docs Circulation'))
+admin.add_view(ModelView(DocOrg, db.session, category='Docs Circulation'))
 
 from data_blueprint import data_bp as data_blueprint
 

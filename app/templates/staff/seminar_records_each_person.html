@@ -148,6 +148,23 @@
                 </table>
             </div>
         </div>
+        {% if approver %}
+        <hr>
+        <h1 class="title is-size-4 has-text-danger has-text-centered">สำหรับหัวหน้าส่วนงาน/ผู้บริหาร</h1>
+        <div class="columns">
+            <div class="column">
+                <div class="has-text-centered">
+                    <a href="{{ url_for('staff.show_seminar_proposal_info') }}"
+                       class="button is-danger is-light">
+                        <span class="icon">
+                           <i class="fas fa-users"></i>
+                        </span>
+                        <span>ข้อมูลขออนุมัติของบุคลากรในสังกัด</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">

@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <div class="box">
+                        <h1 class="title has-text-centered">ส่งหนังสือการขออนุมัติเข้าร่วม{{ this_proposal.seminar_attend.seminar.topic_type }}</h1>
+                        <form method="post">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        <div class="columns">
+                            <div class="column">
+                                <table class="table is-fullwidth">
+                                    <tr>
+                                        <td>
+                                            <label class="label">ผู้ขออนุมัติ</label>
+                                        </td>
+                                        <td>
+                                            <p class="is-size-5">
+                                                <strong>{{ this_proposal.seminar_attend.staff.personal_info }}</strong>
+                                            </p>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <label class="label">เรื่อง</label>
+                                        </td>
+                                        <td>
+                                            {{ this_proposal.seminar_attend.seminar.topic }}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td>
+                                            <label class="label">ช่วงเวลาที่เข้าร่วม</label>
+                                        </td>
+                                        <td>
+                                            {{ this_proposal.seminar_attend.start_datetime|localdatetime }} -
+                                            {{ this_proposal.seminar_attend.end_datetime|localdatetime }}
+                                        </td>
+                                    </tr>
+                                    {% for proposer in proposal %}
+                                    <tr>
+                                        <td>
+                                            <label class="label">อนุมัติโดย</label>
+                                        </td>
+                                        <td>
+                                            {{ proposer.proposer.personal_info }}
+                                            <br>
+                                            ({{ proposer.approved_at|localdatetime }})
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </table>
+                                <b-field class="file is-centered">
+                                    <b-upload v-model="file" name="document">
+                                        <a class="button is-primary">
+                                            <b-icon icon="upload"></b-icon>
+                                            <span>Click เพื่อ Upload file ที่เซ็นเรียบร้อยแล้ว</span>
+                                        </a>
+                                    </b-upload>
+                                    <span class="file-name"
+                                                  v-if="file">
+                                        <% file.name %>
+                                    </span>
+                                </b-field>
+                            </div>
+                        </div>
+                        <div class="columns">
+                            <div class="column is-half is-offset-one-quarter">
+                                <div class="field is-grouped is-grouped-centered">
+                                    <div class="control">
+                                        <a href="{{ url_for('staff.show_seminar_proposal_info') }}"
+                                           class="button is-light">Cancel</a>
+                                    </div>
+                                    <div class="control" v-if="file">
+                                        <input type="submit" value="Submit" class="button is-primary"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                file: null,
+            }
+        },
+    });
+</script>
+{% endblock %}

@@ -202,6 +202,8 @@
                                          required>
                                 </b-input>
                             </b-field>
+                            <hr>
+                            <br>
                             <div class="field">
                                 <div class="field">
                                     <label class="label">ต้องการดาวน์โหลดแบบฟอร์มขออนุมัติอบรม</label>
@@ -211,33 +213,39 @@
                                     <b-radio native-value="dontwant" v-model="wantdocument" name="wantdocument">ไม่ต้องการ</b-radio>
                                 </div>
                             </div>
-                            <b-field label="เบอร์โทรฯ ภายใน" v-if="wantdocument === 'want'">
+                            <br>
+                            <div class="field" v-if="wantdocument === 'want'">
+                                <div class="field is-horizontal">
+                                    <div class="field is-normal">
+                                        <label class="label">ผู้บังคับบัญชาชั้นต้น</label>
+                                    </div>
+                                    <div class="field-body">
+                                        <div class="control">
+                                            <div class="field">
+                                                <div class="select">
+                                                    {{ form.approver() }}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {#<b-field label="เบอร์โทรฯ ภายใน" v-if="wantdocument === 'want'">
                                 <b-input type="text"
                                          name="contact_no"
                                          icon-pack="far"
                                          placeholder="เช่น 2845"
                                          required>
                                 </b-input>
-                            </b-field>
-                            <b-field label="ชื่อเรื่องในหนังสือ" v-if="wantdocument === 'want'">
-                                <b-input type="text"
-                                         name="document_title"
-                                         icon-pack="far"
-                                         placeholder="เช่น ขออนุมัติเข้าร่วมอบรม"
-                                         required>
-                                </b-input>
-                            </b-field>
-                            <div class="field is-horizontal" v-if="wantdocument === 'want'">
-                                <div class="field-label is-normal">
-                                    <label class="label">ผู้บังคับบัญชา</label>
-                                </div>
-                                <div class="field-body">
-                                    <div class="control">
-                                        <div class="field">
-                                            <div class="select">
-                                                {{ form.approver() }}
-                                            </div>
-                                        </div>
+                            </b-field>#}
+                            <div class="columns">
+                                <div class="column">
+                                    <div class="notification is-warning is-light">
+                                        <span>
+                                            หมายเหตุ: รองคณบดีจะยังไม่ได้รับการแจ้งเตือนการขออนุมัติไปอบรม<br>
+                                            จนกว่าผู้บังคับบัญชาชั้นต้นจะอนุมัติเรียบร้อยแล้ว
+                                        </span>
+                                        <br>
                                     </div>
                                 </div>
                             </div>
