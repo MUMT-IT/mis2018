@@ -260,6 +260,12 @@ admin.add_views(ModelView(ElectronicReceiptItem, db.session, category='ReceiptPr
 admin.add_views(ModelView(ElectronicReceiptRequest, db.session, category='ReceiptPrinting'))
 admin.add_views(ElectronicReceiptGLModel(ElectronicReceiptGL, db.session, category='ReceiptPrinting'))
 
+from instruments import instrumentsbp as instruments_blueprint
+
+app.register_blueprint(instruments_blueprint, url_prefix='/instruments')
+
+from instruments.models import *
+
 from staff import staffbp as staff_blueprint
 
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
