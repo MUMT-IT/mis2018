@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
 {% endblock head %}
+{% include "procurement/nav_for_borrow_scheduler.html" %}
 {% block page_content %}
 <section class="section">
     <h1 class="title"><a href="{{ url_for('procurement.index_borrow_detail') }}">Borrow-Return Scheduler</a></h1>

@@ -24,6 +24,7 @@
                 {% include "messages.html" %}
                 <div class="column has-text-centered">
                     <h1 class="title">เพิ่มข้อมูลการยืม-คืนพัสดุ</h1>
+                    <h2 class="subtitle"> {{ procurement.name }} : {{ procurement.erp_code }} </h2>
                 </div>
             </div>
             <div class="columns">
@@ -41,7 +42,7 @@
                                 <div class="field">
                                     <label class="label">{{ form.book_date.label }}</label>
                                     <div class="control">
-                                        {{ form.book_date(class="input") }}
+                                        {{ form.book_date(class="input", type="text", readonly=True) }}
                                     </div>
                                 </div>
                             </div>
@@ -119,13 +120,13 @@
                                 <div class="field">
                                     <label class="label">{{ form.start_date.label }}</label>
                                     <div class="control">
-                                        {{ form.start_date(class="input") }}
+                                        {{ form.start_date(class="input", type="text", readonly=True) }}
                                     </div>
                                 </div>
                                 <div class="field">
                                     <label class="label">{{ form.end_date.label }}</label>
                                     <div class="control">
-                                        {{ form.end_date(class="input") }}
+                                        {{ form.end_date(class="input", type="text", readonly=True) }}
                                     </div>
                                 </div>
                             </div>
@@ -179,7 +180,7 @@
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="buttons">
                                     <button class="button is-success" type="submit" value="submit">บันทึก</button>
-                                    <a href="{{ url_for('procurement.user_first') }}"
+                                    <a href="{{ request.referrer }}"
                                        class="button is-danger">ยกเลิก</a>
                                 </div>
                             </div>

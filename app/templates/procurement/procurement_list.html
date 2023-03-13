@@ -46,7 +46,7 @@
                         <td>{{ procurement.procurement_no }}</td>
                         <td>{{ procurement.name }}</td>
                         <td>
-                            <a href="{{ url_for('procurement.add_borrow_detail', procurement_no=procurement_no) }}"
+                            <a href="{{ url_for('procurement.add_borrow_detail', procurement_no=procurement.procurement_no) }}"
                                class="button is-rounded is-info">
                                 <strong>จอง</strong>
                             </a>

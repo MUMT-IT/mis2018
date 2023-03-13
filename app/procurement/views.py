@@ -580,9 +580,6 @@ def get_procurement_data_qrcode_list():
         item_data = item.to_dict()
         item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
             'received_date'] else ''
-        item_data['select_item'] = (
-            '<input class="is-checkradio" id="pro_no{}" type="checkbox" name="selected_items" value="{}">'
-            '<label for="pro_no{}"></label>').format(item.id, item.id, item.id)
         item_data['print'] = '<a href="{}"><i class="fas fa-print"></i></a>'.format(
             url_for('procurement.export_qrcode_pdf', procurement_id=item.id))
         data.append(item_data)
@@ -1043,7 +1040,6 @@ def add_borrow_detail(procurement_no):
         borrow_detail = ProcurementBorrowDetail()
         form.populate_obj(borrow_detail)
         borrow_detail.borrower = current_user
-        borrow_detail.items = procurement.borrow_items
         db.session.add(borrow_detail)
         db.session.commit()
         flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
@@ -1052,7 +1048,43 @@ def add_borrow_detail(procurement_no):
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('procurement/add_borrow_detail.html',
-                           form=form, url_callback=request.referrer, procurement_no=procurement_no)
+                           form=form, url_callback=request.referrer,
+                           procurement_no=procurement_no,
+                           procurement=procurement)
+
+
+@procurement.route('procurement_list/reserve/all', methods=['GET', 'POST'])
+def view_all_procurement_to_reserve():
+    return render_template('procurement/view_all_procurement_to_reserve.html')
+
+
+@procurement.route('api/procurement_list/reserve/all')
+def get_procurement_to_reserve():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.name.ilike(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['add'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">Add</a>'.format(
+            url_for('procurement.add_borrow_detail', procurement_no=item.procurement_no))
+        item_data['add_item'] = (
+            '<input class="is-checkradio" id="pro_no{}" type="checkbox" name="add_items" value="{}">'
+            '<label for="pro_no{}"></label>').format(item.id, item.id, item.id)
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementInfoComputer.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 
 @procurement.route('/list/add-items', methods=['POST', 'GET'])
