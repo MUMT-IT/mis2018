@@ -52,6 +52,7 @@ class ProcurementDetail(db.Model):
     cost_center = db.Column('cost_center', db.String(8), info={'label': u'ศูนย์ต้นทุน'})
     is_reserved = db.Column('is_reserved', db.Boolean(), default=False)
     company_support = db.Column('company_support', db.String(), info={'label': u'ติดต่อบริษัท'})
+    is_instruments = db.Column('is_instruments', db.Boolean(), default=False)
 
     def __str__(self):
         return u'{}: {}'.format(self.name, self.procurement_no)
