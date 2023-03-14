@@ -1206,7 +1206,7 @@ def approver_cancel_leave_request(req_id, cancelled_account_id):
         db.session.add(new_used_quota)
         db.session.commit()
 
-    cancelled_msg = u'คำขออนุมัติ{} วันที่ใน {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
+    cancelled_msg = u'คำขออนุมัติ{} วันที่ {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
                     u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
                                                                                           req.start_datetime,
                                                                                           req.end_datetime,
@@ -1286,7 +1286,7 @@ def cancel_leave_request(req_id, cancelled_account_id):
         db.session.commit()
 
 
-    cancelled_msg = u'การขออนุมัติ{} วันที่ใน {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
+    cancelled_msg = u'การขออนุมัติ{} วันที่ {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
                     u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
                                                                                           req.start_datetime,
                                                                                           req.end_datetime,
@@ -1321,8 +1321,11 @@ def record_each_request_leave_request(request_id):
         upload_file_url = upload_file.get('embedLink')
     else:
         upload_file_url = None
+    all_hr = StaffSpecialGroup.query.filter_by(group_code='hr').first()
+    for hr in all_hr.staffs:
+        is_hr = True if hr.id == current_user.id else False
     return render_template('staff/leave_record_info.html', req=req, approvers=approvers,
-                           upload_file_url=upload_file_url)
+                           upload_file_url=upload_file_url, is_hr=is_hr)
 
 
 @staff.route('/leave/requests/search')
@@ -3547,83 +3550,83 @@ def add_leave_request_by_hr(staff_id):
                            leave_types=leave_types)
 
 
-# @staff.route('/for-hr/cancel-leave-requests/<int:req_id>')
-# @hr_permission.require()
-# def cancel_leave_request_by_hr(req_id):
-#     req = StaffLeaveRequest.query.get(req_id)
-#     req.cancelled_at = tz.localize(datetime.today())
-#     req.cancelled_account_id = current_user.id
-#     db.session.add(req)
-#     db.session.commit()
-#
-#     _, END_FISCAL_DATE = get_fiscal_date(req.start_datetime)
-#     is_used_quota = StaffLeaveUsedQuota.query.filter_by(leave_type_id=req.quota.leave_type_id,
-#                                                         staff_account_id=req.staff_account_id,
-#                                                         fiscal_year=END_FISCAL_DATE.year).first()
-#     quota = req.quota
-#     used_quota = req.staff.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
-#                                                              tz.localize(END_FISCAL_DATE))
-#     pending_days = req.staff.personal_info.get_total_pending_leaves_request \
-#         (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
-#     delta = req.staff.personal_info.get_employ_period()
-#     max_cum_quota = req.staff.personal_info.get_max_cum_quota_per_year(quota)
-#
-#     if delta.years > 0:
-#         if max_cum_quota:
-#             is_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=req.staff,
-#                                                                 leave_type=req.quota.leave_type,
-#                                                                 fiscal_year=END_FISCAL_DATE.year).first()
-#             is_last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=req.staff,
-#                                                                      leave_type=req.quota.leave_type,
-#                                                                      fiscal_year=END_FISCAL_DATE.year - 1).first()
-#             if not is_used_quota:
-#                 if is_last_used_quota:
-#                     last_remain_quota = is_last_used_quota.quota_days - is_last_used_quota.used_days
-#                 else:
-#                     last_remain_quota = max_cum_quota
-#                 before_cut_max_quota = last_remain_quota + LEAVE_ANNUAL_QUOTA
-#                 quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
-#             else:
-#                 quota_limit = is_used_quota.quota_days
-#         else:
-#             quota_limit = quota.max_per_year
-#
-#     else:
-#         quota_limit = req.quota.first_year
-#
-#     if is_used_quota:
-#         new_used=is_used_quota.used_days-req.total_leave_days
-#         is_used_quota.used_days = new_used
-#         is_used_quota.pending_days = is_used_quota.pending_days-req.total_leave_days
-#         db.session.add(is_used_quota)
-#         db.session.commit()
-#     else:
-#         new_used_quota = StaffLeaveUsedQuota(
-#             leave_type_id=req.quota.leave_type_id,
-#             staff_account_id=req.staff_account_id,
-#             fiscal_year=END_FISCAL_DATE.year,
-#             used_days=used_quota,
-#             pending_days=pending_days,
-#             quota_days=quota_limit
-#         )
-#         db.session.add(new_used_quota)
-#         db.session.commit()
-#
-#     cancelled_msg = u'การลา{} วันที่ใน {} ถึง {} ถูกยกเลิกโดย {} เจ้าหน้าที่หน่วย HR เรียบร้อยแล้ว' \
-#                     u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
-#                                                                                           req.start_datetime,
-#                                                                                           req.end_datetime,
-#                                                                                           req.cancelled_by.personal_info
-#                                                                                           , _external=True)
-#     if req.notify_to_line and req.staff.line_id:
-#         if os.environ["FLASK_ENV"] == "production":
-#             line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=cancelled_msg))
-#         else:
-#             print(cancelled_msg, req.staff.id)
-#     cancelled_title = u'แจ้งยกเลิกการขอ' + req.quota.leave_type.type_ + u'โดยเจ้าหน้าที่หน่วย HR'
-#     if os.environ["FLASK_ENV"] == "production":
-#         send_mail([req.staff.email + "@mahidol.ac.th"], cancelled_title, cancelled_msg)
-#     return redirect(request.referrer)
+@staff.route('/for-hr/cancel-leave-requests/<int:req_id>')
+@hr_permission.require()
+def cancel_leave_request_by_hr(req_id):
+    req = StaffLeaveRequest.query.get(req_id)
+    req.cancelled_at = tz.localize(datetime.today())
+    req.cancelled_account_id = current_user.id
+    db.session.add(req)
+    db.session.commit()
+
+    _, END_FISCAL_DATE = get_fiscal_date(req.start_datetime)
+    is_used_quota = StaffLeaveUsedQuota.query.filter_by(leave_type_id=req.quota.leave_type_id,
+                                                        staff_account_id=req.staff_account_id,
+                                                        fiscal_year=END_FISCAL_DATE.year).first()
+    quota = req.quota
+    used_quota = req.staff.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
+                                                             tz.localize(END_FISCAL_DATE))
+    pending_days = req.staff.personal_info.get_total_pending_leaves_request \
+        (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
+    delta = req.staff.personal_info.get_employ_period()
+    max_cum_quota = req.staff.personal_info.get_max_cum_quota_per_year(quota)
+
+    if delta.years > 0:
+        if max_cum_quota:
+            is_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=req.staff,
+                                                                leave_type=req.quota.leave_type,
+                                                                fiscal_year=END_FISCAL_DATE.year).first()
+            is_last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=req.staff,
+                                                                     leave_type=req.quota.leave_type,
+                                                                     fiscal_year=END_FISCAL_DATE.year - 1).first()
+            if not is_used_quota:
+                if is_last_used_quota:
+                    last_remain_quota = is_last_used_quota.quota_days - is_last_used_quota.used_days
+                else:
+                    last_remain_quota = max_cum_quota
+                before_cut_max_quota = last_remain_quota + LEAVE_ANNUAL_QUOTA
+                quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+            else:
+                quota_limit = is_used_quota.quota_days
+        else:
+            quota_limit = quota.max_per_year
+
+    else:
+        quota_limit = req.quota.first_year
+
+    if is_used_quota:
+        new_used=is_used_quota.used_days-req.total_leave_days
+        is_used_quota.used_days = new_used
+        is_used_quota.pending_days = is_used_quota.pending_days-req.total_leave_days
+        db.session.add(is_used_quota)
+        db.session.commit()
+    else:
+        new_used_quota = StaffLeaveUsedQuota(
+            leave_type_id=req.quota.leave_type_id,
+            staff_account_id=req.staff_account_id,
+            fiscal_year=END_FISCAL_DATE.year,
+            used_days=used_quota,
+            pending_days=pending_days,
+            quota_days=quota_limit
+        )
+        db.session.add(new_used_quota)
+        db.session.commit()
+
+    cancelled_msg = u'การลา{} ในวันที่ {} ถึง {} ถูกยกเลิกโดย {} เจ้าหน้าที่หน่วย HR แล้ว' \
+                    u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
+                                                                                          req.start_datetime,
+                                                                                          req.end_datetime,
+                                                                                          req.cancelled_by.personal_info
+                                                                                          , _external=True)
+    if req.notify_to_line and req.staff.line_id:
+        if os.environ["FLASK_ENV"] == "production":
+            line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=cancelled_msg))
+        else:
+            print(cancelled_msg, req.staff.id)
+    cancelled_title = u'แจ้งยกเลิกการขอ' + req.quota.leave_type.type_ + u'โดยเจ้าหน้าที่หน่วย HR'
+    if os.environ["FLASK_ENV"] == "production":
+        send_mail([req.staff.email + "@mahidol.ac.th"], cancelled_title, cancelled_msg)
+    return redirect(request.referrer)
 
 
 @staff.route('/for-hr/organizations')

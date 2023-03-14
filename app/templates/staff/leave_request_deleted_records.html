@@ -21,10 +21,12 @@
                                     <i class="far fa-calendar-alt"></i>
                                 </a>
                             </span>
+                            <a href="{{ url_for('staff.record_each_request_leave_request', request_id=request.id) }}">
                             <span class="title is-size-6 has-text-grey">
                                 {{ request.start_datetime|localdatetime }} - {{ request.end_datetime|localdatetime }}
                                 ({{ request.total_leave_days }} วัน)
                             </span>
+                            </a>
                         </div>
                     </div>
                     <div class="media-right">
