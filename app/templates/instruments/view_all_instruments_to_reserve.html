@@ -5,7 +5,7 @@
         <nav class="breadcrumb" aria-label="breadcrumbs">
             <ul>
                 <li>
-                    <a href="{{ url_for('instruments.index') }}">
+                    <a href="{{ url_for('instruments.index_of_instruments') }}">
                     <span class="icon is-small">
                       <i class="fas fa-home" aria-hidden="true"></i>
                     </span>
@@ -33,9 +33,13 @@
                 <div class="column">
                     <table id="data" class="table is-striped" style="width:100%">
                         <thead>
-                        <th>รายการ</th>
-                        <th>รหัสครุภัณฑ์</th>
+                        <th>Room</th>
+                        <th>Instruments</th>
+                        <th>Model</th>
                         <th>Inventory Number/ERP</th>
+                        <th>Sale Company</th>
+                        <th>Contact</th>
+                        <th>Personal in charge</th>
                         <th></th>
                         </thead>
                         <tbody>
@@ -45,7 +49,7 @@
             </div>
             <div class="columns">
                 <div class="column">
-                    <a href="" class="button is-rounded is-info is-light">
+                    <a href="{{ url_for('instruments.index_of_instruments') }}" class="button is-rounded is-info is-light">
                     <span class="icon">
                         <i class="fas fa-arrow-left"></i>
                     </span>
@@ -65,9 +69,13 @@
                 ajax: '{{ url_for("instruments.get_instruments_to_reserve") }}',
                 serverSide: true,
                 columns: [
+                    {data: 'location'},
                     {data: 'name'},
-                    {data: 'procurement_no'},
+                    {data: 'model'},
                     {data: 'erp_code'},
+                    {data: 'guarantee'},
+                    {data: 'company_support'},
+                    {data: 'staff_responsible'},
                     {data: 'reserve'}
 
                 ],
