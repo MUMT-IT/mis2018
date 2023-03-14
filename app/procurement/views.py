@@ -1027,7 +1027,7 @@ def get_procurement_list():
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
-                    'recordsTotal': ProcurementInfoComputer.query.count(),
+                    'recordsTotal': ProcurementDetail.query.count(),
                     'draw': request.args.get('draw', type=int),
                     })
 
@@ -1082,7 +1082,7 @@ def get_procurement_to_reserve():
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
-                    'recordsTotal': ProcurementInfoComputer.query.count(),
+                    'recordsTotal': ProcurementDetail.query.count(),
                     'draw': request.args.get('draw', type=int),
                     })
 
@@ -1441,3 +1441,36 @@ def get_borrow_detail():
     #
     # return send_file('borrow_form.pdf')
 
+
+@procurement.route('check-instruments/all', methods=['GET', 'POST'])
+def view_all_procurement_to_check_instruments():
+    return render_template('procurement/view_all_procurement_to_check_instruments.html')
+
+
+@procurement.route('api/check-instruments/all')
+def get_procurement_to_check_instruments():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.name.ilike(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['add'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">Add</a>'.format(
+            url_for('procurement.add_borrow_detail', procurement_no=item.procurement_no))
+        item_data['add_item'] = (
+            '<input class="is-checkradio" id="pro_no{}" type="checkbox" name="add_items" value="{}">'
+            '<label for="pro_no{}"></label>').format(item.id, item.id, item.id)
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
