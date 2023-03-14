@@ -171,6 +171,39 @@
                             </td>
                         </tr>
                         {% endif %}
+                        {% if attend.middle_level_approver %}
+                        <tr>
+                            <td>
+                                การอนุมัติ
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.lower_level_approver %}
+                        <tr>
+                            {% if attend.middle_level_approver %}
+                            <td>
+                                ผู้บังคับบัญชาชั้นต้น
+                            </td>
+                            {% else %}
+                            <td>
+                                ผู้บังคับบัญชา
+                            </td>
+                            {% endif %}
+                            <td>
+                                {{ attend.lower_level_approver.personal_info }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if attend.middle_level_approver %}
+                        <tr>
+                            <td>
+                                รองคณบดีที่เกี่ยวข้อง
+                            </td>
+                            <td>
+                                {{ attend.middle_level_approver.personal_info }}
+                            </td>
+                        </tr>
+                        {% endif %}
                     </table>
                 </div>
                 <div class="columns">

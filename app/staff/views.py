@@ -1128,6 +1128,7 @@ def request_cancel_leave_request(req_id):
 
 
 @staff.route('/leave/requests/cancel-approved/info')
+@login_required
 def info_request_cancel_leave_request():
     token = request.args.get('token')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
@@ -1144,6 +1145,7 @@ def info_request_cancel_leave_request():
 
 
 @staff.route('/leave/requests/<int:req_id>/cancel/by/<int:cancelled_account_id>')
+@login_required
 def approver_cancel_leave_request(req_id, cancelled_account_id):
     req = StaffLeaveRequest.query.get(req_id)
     req.cancelled_at = tz.localize(datetime.today())
@@ -2870,6 +2872,17 @@ def seminar_upload_proposal(seminar_attend_id, proposal_id):
     return render_template('staff/seminar_upload_proposal.html', proposal=proposal, this_proposal=this_proposal)
 
 
+@staff.route('/seminar/all-proposal')
+@login_required
+def seminar_proposal():
+    seminar_attend_list = []
+    attend_query = StaffSeminarAttend.query.all()
+    for attend in attend_query:
+        if attend.is_approved_by(current_user):
+            seminar_attend_list.append(attend)
+    return render_template('staff/seminar_all_proposal.html', seminar_attend_list=seminar_attend_list)
+
+
 @staff.route('/seminar/add-attend/add-attendee/<int:seminar_id>', methods=['GET', 'POST'])
 @login_required
 def seminar_add_attendee(seminar_id):
@@ -3532,6 +3545,85 @@ def add_leave_request_by_hr(staff_id):
         return redirect(url_for('staff.record_each_request_leave_request', request_id=createleave.id))
     return render_template('staff/leave_request_add_by_hr.html', staff=staff, approvers=approvers,
                            leave_types=leave_types)
+
+
+# @staff.route('/for-hr/cancel-leave-requests/<int:req_id>')
+# @hr_permission.require()
+# def cancel_leave_request_by_hr(req_id):
+#     req = StaffLeaveRequest.query.get(req_id)
+#     req.cancelled_at = tz.localize(datetime.today())
+#     req.cancelled_account_id = current_user.id
+#     db.session.add(req)
+#     db.session.commit()
+#
+#     _, END_FISCAL_DATE = get_fiscal_date(req.start_datetime)
+#     is_used_quota = StaffLeaveUsedQuota.query.filter_by(leave_type_id=req.quota.leave_type_id,
+#                                                         staff_account_id=req.staff_account_id,
+#                                                         fiscal_year=END_FISCAL_DATE.year).first()
+#     quota = req.quota
+#     used_quota = req.staff.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
+#                                                              tz.localize(END_FISCAL_DATE))
+#     pending_days = req.staff.personal_info.get_total_pending_leaves_request \
+#         (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
+#     delta = req.staff.personal_info.get_employ_period()
+#     max_cum_quota = req.staff.personal_info.get_max_cum_quota_per_year(quota)
+#
+#     if delta.years > 0:
+#         if max_cum_quota:
+#             is_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=req.staff,
+#                                                                 leave_type=req.quota.leave_type,
+#                                                                 fiscal_year=END_FISCAL_DATE.year).first()
+#             is_last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=req.staff,
+#                                                                      leave_type=req.quota.leave_type,
+#                                                                      fiscal_year=END_FISCAL_DATE.year - 1).first()
+#             if not is_used_quota:
+#                 if is_last_used_quota:
+#                     last_remain_quota = is_last_used_quota.quota_days - is_last_used_quota.used_days
+#                 else:
+#                     last_remain_quota = max_cum_quota
+#                 before_cut_max_quota = last_remain_quota + LEAVE_ANNUAL_QUOTA
+#                 quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+#             else:
+#                 quota_limit = is_used_quota.quota_days
+#         else:
+#             quota_limit = quota.max_per_year
+#
+#     else:
+#         quota_limit = req.quota.first_year
+#
+#     if is_used_quota:
+#         new_used=is_used_quota.used_days-req.total_leave_days
+#         is_used_quota.used_days = new_used
+#         is_used_quota.pending_days = is_used_quota.pending_days-req.total_leave_days
+#         db.session.add(is_used_quota)
+#         db.session.commit()
+#     else:
+#         new_used_quota = StaffLeaveUsedQuota(
+#             leave_type_id=req.quota.leave_type_id,
+#             staff_account_id=req.staff_account_id,
+#             fiscal_year=END_FISCAL_DATE.year,
+#             used_days=used_quota,
+#             pending_days=pending_days,
+#             quota_days=quota_limit
+#         )
+#         db.session.add(new_used_quota)
+#         db.session.commit()
+#
+#     cancelled_msg = u'การลา{} วันที่ใน {} ถึง {} ถูกยกเลิกโดย {} เจ้าหน้าที่หน่วย HR เรียบร้อยแล้ว' \
+#                     u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
+#                                                                                           req.start_datetime,
+#                                                                                           req.end_datetime,
+#                                                                                           req.cancelled_by.personal_info
+#                                                                                           , _external=True)
+#     if req.notify_to_line and req.staff.line_id:
+#         if os.environ["FLASK_ENV"] == "production":
+#             line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=cancelled_msg))
+#         else:
+#             print(cancelled_msg, req.staff.id)
+#     cancelled_title = u'แจ้งยกเลิกการขอ' + req.quota.leave_type.type_ + u'โดยเจ้าหน้าที่หน่วย HR'
+#     if os.environ["FLASK_ENV"] == "production":
+#         send_mail([req.staff.email + "@mahidol.ac.th"], cancelled_title, cancelled_msg)
+#     return redirect(request.referrer)
 
 
 @staff.route('/for-hr/organizations')

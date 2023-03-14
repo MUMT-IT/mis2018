@@ -688,14 +688,17 @@ class StaffSeminarAttend(db.Model):
     def __str__(self):
         return u'{}'.format(self.seminar)
 
+    def is_approved_by(self, user):
+        return self.proposal.filter_by(proposer=user).first()
+
 
 class StaffSeminarProposal(db.Model):
     __tablename__ = 'staff_seminar_proposals'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     seminar_attend_id = db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id'))
     seminar_attend = db.relationship('StaffSeminarAttend', foreign_keys=[seminar_attend_id],
-                                     backref=db.backref('proposal'))
-    approved_at = db.Column('approved_at', db.DateTime(timezone=True),default=datetime.now())
+                                     backref=db.backref('proposal', lazy='dynamic'))
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     is_approved = db.Column('is_approved', db.Boolean(), default=True)
     comment = db.Column('approval_comment', db.String())
     proposer_account_id = db.Column('proposer_account_id', db.ForeignKey('staff_account.id'))
