@@ -266,6 +266,17 @@ app.register_blueprint(instruments_blueprint, url_prefix='/instruments')
 
 from instruments.models import *
 
+admin.add_views(ModelView(InstrumentsBooking, db.session, category='Instruments'))
+
+
+from alumni import alumnibp as alumni_blueprint
+
+app.register_blueprint(alumni_blueprint, url_prefix='/alumni')
+
+from alumni.models import *
+
+admin.add_views(ModelView(AlumniInformation, db.session, category='Alumni'))
+
 from staff import staffbp as staff_blueprint
 
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
