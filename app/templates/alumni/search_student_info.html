@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="section">
+        {% include "messages.html" %}
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="{{ url_for('alumni.landing') }}">หน้าหลัก</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">ดูข้อมูล</a></li>
+                </ul>
+            </nav>
+            <div class="columns">
+                <div class="column has-text-left">
+                    <h1 class="title">Alumni Information
+                    <a class="button is-rounded is-light is-link" href="{{ url_for('alumni.add_alumni') }}">
+                        <span class="panel-icon">
+                          <i class="fas fa-plus-square"></i>
+                        </span>
+                        <span class="is-size-5">เพิ่มข้อมูล</span><br>
+                    </a>
+                    <a class="button is-rounded is-light is-primary" href="{{ url_for('alumni.add_many_alumni') }}">
+                        <span class="panel-icon">
+                          <i class="fas fa-upload"></i>
+                        </span>
+                        <span class="is-size-5">นำเข้าข้อมูล</span><br>
+                    </a>
+                        </h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table id="data" class="table is-fullwidth is-striped">
+                        <thead>
+                        <th>รหัสนักศึกษา</th>
+                        <th>คำนำหน้า</th>
+                        <th>ชื่อ</th>
+                        <th>นามสกุล</th>
+                        <th>ช่องทางการติดต่อ</th>
+                        <th>อาชีพ</th>
+                        <th>สถานที่ทำงาน</th>
+                        <th>จังหวัดที่ทำงาน</th>
+
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <a href="{{ url_for('alumni.landing') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#data').DataTable({
+                searchDelay: 350,
+                ajax: '{{ url_for("alumni.get_student_search_data") }}',
+                serverSide: true,
+                columns: [
+                    {data: 'student_id'},
+                    {data: 'th_title'},
+                    {data: 'th_firstname'},
+                    {data: 'th_lastname'},
+                    {data: 'contact'},
+                    {data: 'occupation'},
+                    {data: 'workplace'},
+                    {data: 'province'}
+
+                ],
+            });
+        });
+    </script>
+{% endblock %}
