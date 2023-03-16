@@ -1163,7 +1163,7 @@ def update_cumulative_leave_quota(year1, year2):
 
         if last_used_quota:
             remaining_days = last_used_quota.quota_days - last_used_quota.used_days
-            if delta.years > 0:
+            if delta.years > 0 or delta.months > 5:
                 if max_cum_quota:
                     before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
                     quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
