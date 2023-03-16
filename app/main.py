@@ -1196,6 +1196,9 @@ def update_leave_information(current_date, staff_email):
 
         quota = StaffLeaveQuota.query.filter_by(employment=staff.personal_info.employment,
                                                 leave_type=type_).first()
+        if not quota and not staff.is_retired:
+            print(staff.id, staff.email, staff.personal_info.employment, 'Quota not found.')
+            return
         pending_days = staff.personal_info.get_total_pending_leaves_request(quota.id,
                                                                             tz.localize(start_fiscal_date),
                                                                             tz.localize(end_fiscal_date))
@@ -1239,10 +1242,10 @@ def update_leave_information(current_date, staff_email):
         # print (used_quota.leave_type_id, used_quota.used_days, used_quota.pending_days, used_quota.quota_days)
 
 
-@dbutils.command('calculate_remain_leave_used_quota')
+@dbutils.command('update-staff-leave-info')
 @click.argument('staff_email')
 @click.argument('currentdate')
-def calculate_remain_leave_used_quota(currentdate, staff_email=None):
+def update_staff_leave_info(currentdate, staff_email=None):
     # currentdate format '2022/09/30'
     if staff_email != 'all':
         update_leave_information(currentdate, staff_email)
