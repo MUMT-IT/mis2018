@@ -2551,8 +2551,11 @@ def seminar_add_approval(attend_id):
         db.session.add(approval)
         db.session.commit()
         attends = StaffSeminarAttend.query.get(attend_id)
-        if form.get('document_no'):
-            attends.document_no = form.get('document_no')
+        if form.get('document_id'):
+            document_id = form.get('document_id')
+            document_no = form.get('document_no')
+            document = u'อว.{}/{}'.format(document_id, document_no)
+            attends.document_no = document
         attends.registration_fee = form.get('registration_fee')
         attends.budget_type = form.get('budget_type')
         attends.budget = form.get('budget')

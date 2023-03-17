@@ -26,15 +26,21 @@
                 <div class="column">
                     <div class="field">
                         <div class="field">
-                            <label class="label">เลขที่หนังสือ {{ attend.document_no }}</label>
+                            <label class="label">เลขที่หนังสือ</label>
                         </div>
                         <div class="field-body">
                             <div class="control">
                                 <div class="field">
+                                    อว.
+                                    <div class="control">
+                                        <input class="input"
+                                               name="document_id" type="text"
+                                               required>
+                                    </div>
+                                    /
                                     <div class="control">
                                         <input class="input"
                                                name="document_no" type="text"
-                                               value="{{ attend.document_no }}"
                                                required>
                                     </div>
                                 </div>
