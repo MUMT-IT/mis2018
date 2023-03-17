@@ -4,6 +4,7 @@ import os, requests
 from base64 import b64decode
 
 import dateutil
+import pandas as pd
 from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify, session, \
     make_response
 from flask_login import current_user, login_required
@@ -12,7 +13,7 @@ from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from sqlalchemy import cast, Date
+from sqlalchemy import cast, Date, and_
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
@@ -129,9 +130,9 @@ def get_procurement_data_to_committee():
     query = ProcurementDetail.query
     search = request.args.get('search[value]')
     query = query.filter(db.or_(
-        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
-        ProcurementDetail.name.like(u'%{}%'.format(search)),
-        ProcurementDetail.erp_code.like(u'%{}%'.format(search))
+        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.name.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search))
     ))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
@@ -154,60 +155,50 @@ def get_procurement_data_to_committee():
                     })
 
 
-@procurement.route('/info/by-committee/download', methods=['GET'])
-def report_info_download():
-    records = []
-    procurement_query = ProcurementDetail.query
+@procurement.route('/by-committee/export', methods=['POST'])
+@login_required
+def export_by_committee_summary():
+    start_date, end_date = request.form.get('datePicker').split('-')
+    start_date = datetime.strptime(start_date.strip(), '%d/%m/%Y')
+    end_date = datetime.strptime(end_date.lstrip(), '%d/%m/%Y')
+    if not start_date == end_date:
+        query = ProcurementCommitteeApproval.query.filter(func.timezone('Asia/Bangkok', ProcurementCommitteeApproval.updated_at)
+            .between(start_date, end_date))
+    else:
+        query = ProcurementCommitteeApproval.query.filter(cast(func.timezone('Asia/Bangkok', ProcurementCommitteeApproval.updated_at), Date) == start_date)
 
-    for item in procurement_query:
-        current_record = item.current_record
-        if current_record and current_record.approval:
-            records.append({
-            u'ศูนย์ต้นทุน': u"{}".format(item.cost_center),
-            u'Inventory Number/ERP': u"{}".format(item.erp_code),
-            u'เลขครุภัณฑ์': u"{}".format(item.procurement_no),
-            u'Sub Number': u"{}".format(item.sub_number),
-            u'ชื่อครุภัณฑ์': u"{}".format(item.name),
-            u'จัดซื้อด้วยเงิน': u"{}".format(item.purchasing_type),
-            u'มูลค่าที่ได้มา': u"{}".format(item.curr_acq_value),
-            u'Original value': u"{}".format(item.price),
-            u'สภาพของสินทรัพย์': u"{}".format(item.available),
-            u'วันที่ได้รับ': u"{}".format(item.received_date),
-            u'ปีงบประมาณ': u"{}".format(item.budget_year),
-            u'วัน-เวลาที่ตรวจ': u"{}".format(
-                current_record.approval.updated_at),
-            u'ผลการตรวจสอบ': u"{}".format(
-                current_record.approval.checking_result),
-            u'ผู้ตรวจสอบ': u"{}".format(
-                current_record.approval.approver.personal_info.fullname),
-            u'สถานะ': u"{}".format(
-                current_record.approval.asset_status),
-            u'Comment': u"{}".format(
-                current_record.approval.approval_comment)
+    records = []
+    columns = [
+        u'รายการ',
+        u'Inventory Number/ERP',
+        u'วัน-เวลาที่ตรวจ',
+        u'ผลการตรวจสอบ',
+        u'ผู้ตรวจสอบ',
+        u'สถานะ',
+        u'Comment'
+    ]
+    for approval in query:
+        current_record = approval.record
+
+        records.append({
+        columns[0]: u"{}".format(current_record.item.name),
+        columns[1]: u"{}".format(current_record.item.erp_code),
+        columns[2]: u"{}".format(approval.updated_at),
+        columns[3]: u"{}".format(approval.checking_result),
+        columns[4]: u"{}".format(approval.approver.personal_info.fullname),
+        columns[5]: u"{}".format(approval.asset_status),
+        columns[6]: u"{}".format(approval.approval_comment)
         })
-    df = DataFrame(records)
-    df.to_excel('report.xlsx',
-                header=True,
-                columns=[u'ศูนย์ต้นทุน',
-                         u'Inventory Number/ERP',
-                         u'เลขครุภัณฑ์',
-                         u'Sub Number',
-                         u'ชื่อครุภัณฑ์',
-                         u'จัดซื้อด้วยเงิน',
-                         u'มูลค่าที่ได้มา',
-                         u'Original value',
-                         u'สภาพของสินทรัพย์',
-                         u'วันที่ได้รับ',
-                         u'ปีงบประมาณ',
-                         u'วัน-เวลาที่ตรวจ',
-                         u'ผลการตรวจสอบ',
-                         u'ผู้ตรวจสอบ',
-                         u'สถานะ',
-                         u'Comment'
-                         ],
+    if records:
+        df = pd.DataFrame(records)
+    else:
+        df = pd.DataFrame(columns=columns)
+
+    df.to_excel('committee_summary.xlsx',
                 index=False,
+                columns=columns,
                 encoding='utf-8')
-    return send_from_directory(os.getcwd(), filename='report.xlsx')
+    return send_from_directory(os.getcwd(), filename='committee_summary.xlsx', as_attachment=True)
 
 
 @procurement.route('/for-committee/search-info', methods=['GET', 'POST'])
