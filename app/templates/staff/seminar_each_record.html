@@ -39,7 +39,8 @@
                                <label>ระยะเวลางานสัมมนา</label>
                             </td>
                             <td>
-                                {{ attend.seminar.start_datetime|localdatetime }} - {{ attend.seminar.end_datetime|localdatetime }}
+                                {{ attend.seminar.start_datetime|localdatetime }} -
+                                {{ attend.seminar.end_datetime|localdatetime }}
                             </td>
                         </tr>
                         <tr>
@@ -178,43 +179,50 @@
                             </td>
                         </tr>
                         {% endif %}
-                        {% if attend.lower_level_approver %}
-                        <tr>
-                            {% if attend.middle_level_approver %}
+                        {% if proposal %}
+                        {% for proposal in proposal %}
+                            <tr>
                             <td>
-                                ผู้บังคับบัญชาชั้นต้น
+
                             </td>
-                            {% else %}
                             <td>
-                                ผู้บังคับบัญชา
-                            </td>
-                            {% endif %}
-                            <td>
-                                {{ attend.lower_level_approver.personal_info }}
+                                {{ proposal.proposer.personal_info }} {{ proposal.approved_at|localdatetime }}
                             </td>
                         </tr>
-                        {% endif %}
-                        {% if attend.middle_level_approver %}
+                        {% endfor %}
                         <tr>
                             <td>
-                                รองคณบดีที่เกี่ยวข้อง
+                                คณบดี/รักษาการฯ
                             </td>
                             <td>
-                                {{ attend.middle_level_approver.personal_info }}
+                                {{ approval.approver.personal_info }} {{ approval.updated_at|localdatetime }}
                             </td>
                         </tr>
                         {% endif %}
                     </table>
                 </div>
                 <div class="columns">
-                    <div class="column">
-                        <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}" class="button is-rounded is-info is-light">
-                            <span class="icon">
-                                <i class="fas fa-arrow-left"></i>
-                            </span>
-                            <span>กลับหน้าสรุปรายการอบรม</span>
-                        </a>
-                    </div>
+                    {% if is_hr %}
+                        <div class="column">
+                            <a href="{{ url_for('staff.seminar_approval_records') }}"
+                               class="button is-rounded is-info is-light">
+                                <span class="icon">
+                                    <i class="fas fa-arrow-left"></i>
+                                </span>
+                                <span>กลับ</span>
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="column">
+                            <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}"
+                               class="button is-rounded is-info is-light">
+                                <span class="icon">
+                                    <i class="fas fa-arrow-left"></i>
+                                </span>
+                                <span>กลับหน้าสรุปรายการอบรม</span>
+                            </a>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

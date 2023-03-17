@@ -26,21 +26,15 @@
                 <div class="column">
                     <div class="field">
                         <div class="field">
-                            <label class="label">เลขที่หนังสือ</label>
+                            <label class="label">เลขที่หนังสือ {{ attend.document_no }}</label>
                         </div>
                         <div class="field-body">
                             <div class="control">
                                 <div class="field">
-                                    อว.
-                                    <div class="control">
-                                        <input class="input"
-                                               name="document_id" type="text"
-                                               required>
-                                    </div>
-                                    /
                                     <div class="control">
                                         <input class="input"
                                                name="document_no" type="text"
+                                               value="{{ attend.document_no }}"
                                                required>
                                     </div>
                                 </div>
@@ -71,14 +65,14 @@
                         <b-select placeholder="เลือกประเภท" name="approval" id="approval" required>
                             <option value="True">อนุมัติตามที่เสนอ</option>
                             <option value="False">ไม่อนุมัติ</option>
-                            <option value="">อนุมัติแบบมีเงื่อนไข</option>
+                            <option value="Other">อนุมัติแบบมีเงื่อนไข</option>
                         </b-select>
                     </b-field>
                     <b-field>
                         <b-input id="other_approval"
                                  type="text"
                                  name="other_approval"
-                                 placeholder="โปรดระบุ"
+                                 placeholder="โปรดระบุข้อคิดเห็นของคณบดี"
                         >
                         </b-input>
                     </b-field>
@@ -140,6 +134,9 @@
                     </div>
                 </div>
                 <div class="column box" id="edit_payment">
+                    <div class="column is-half is-offset-3 has-text-centered">
+                        <label class="label">แก้ไขข้อมูล</label>
+                    </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
                             <label class="label">ค่าลงทะเบียน</label>
@@ -149,7 +146,7 @@
                                 <div class="control">
                                     <input class="input"
                                            name="topic" type="text"
-                                           value="{{ attend.registration_fee }}" required>
+                                           value="{{ attend.registration_fee }}">
                                 </div>
                             </div>
                         </div>
@@ -163,7 +160,7 @@
                                 <div class="control">
                                     <input class="input"
                                            name="topic" type="text"
-                                           value="{{ attend.accommodation_cost }}" required>
+                                           value="{{ attend.accommodation_cost }}">
                                 </div>
                             </div>
                         </div>
@@ -177,7 +174,7 @@
                                 <div class="control">
                                     <input class="input"
                                            name="topic" type="text"
-                                           value="{{ attend.fuel_cost }}" required>
+                                           value="{{ attend.fuel_cost }}">
                                 </div>
                             </div>
                         </div>
@@ -191,7 +188,7 @@
                                 <div class="control">
                                     <input class="input"
                                            name="topic" type="text"
-                                           value="{{ attend.train_ticket_cost }}" required>
+                                           value="{{ attend.train_ticket_cost }}">
                                 </div>
                             </div>
                         </div>
@@ -205,7 +202,7 @@
                                 <div class="control">
                                     <input class="input"
                                            name="topic" type="text"
-                                           value="{{ attend.taxi_cost }}" required>
+                                           value="{{ attend.taxi_cost }}">
                                 </div>
                             </div>
                         </div>
@@ -219,7 +216,7 @@
                                 <div class="control">
                                     <input class="input"
                                            name="topic" type="text"
-                                           value="{{ attend.flight_ticket_cost }}" required>
+                                           value="{{ attend.flight_ticket_cost }}">
                                 </div>
                             </div>
                         </div>
@@ -233,7 +230,7 @@
                                 <div class="control">
                                     <input class="input"
                                            name="topic" type="text"
-                                           value="{{ attend.transaction_fee }}" required>
+                                           value="{{ attend.transaction_fee }}">
                                 </div>
                             </div>
                         </div>
@@ -254,7 +251,7 @@
                     </div>
                 </div>
             </div>
-            <div class="columns" id="attendees">
+            {#<div class="columns" id="attendees">
                 <div class="column">
                     <label class="label">รายชื่อผู้ที่เข้าร่วมกิจกรรมนี้</label>
                     <table class="table is-striped" id="attendTable">
@@ -312,7 +309,7 @@
                         </tbody>
                     </table>
                 </div>
-            </div>
+            </div>#}
             <div class="columns">
                 <div class="column is-half is-offset-one-quarter">
                     <div class="field is-grouped is-grouped-centered">
@@ -366,7 +363,7 @@
         $('#other_approval').hide()
         $('#edit_payment').hide()
         $('#approval').change(e=>{
-            if ($('#approval').val() === "") {
+            if ($('#approval').val() === "Other") {
                 $('#other_approval').show()
                 $('#attendees').hide()
                 $('#edit_payment').show()

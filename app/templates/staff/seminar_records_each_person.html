@@ -122,8 +122,7 @@
                             {{ record.seminar.topic_type }}
                         </td>
                         <td>
-                            <a href="{{ url_for('staff.show_seminar_info_each_person', record_id=record.id
-                                                    , staff_id=current_user.id) }}">
+                            <a href="{{ url_for('staff.show_seminar_info_each_person', record_id=record.id) }}">
                                 {{ record.seminar.topic }}
                             </a>
                         </td>
