@@ -2057,6 +2057,62 @@ def login_scan():
     return render_template('staff/login_scan.html')
 
 
+@staff.route('/login-scan/gj', methods=['GET', 'POST'])
+@csrf.exempt
+@admin_permission.require()
+@login_required
+def login_scan_gj():
+    DATETIME_FORMAT = '%d/%m/%Y %H:%M:%S'
+
+    if request.method == 'POST':
+        req_data = request.get_json()
+        lat = req_data['data'].get('lat', '0.0')
+        long = req_data['data'].get('long', '0.0')
+        th_name = req_data['data'].get('thName')
+        en_name = req_data['data'].get('enName')
+        qrcode_exp_datetime = datetime.strptime(req_data['data'].get('qrCodeExpDateTime'), DATETIME_FORMAT)
+        qrcode_exp_datetime = qrcode_exp_datetime.replace(tzinfo=tz)
+        if th_name:
+            name = th_name.split(' ')
+            # some lastnames contain spaces
+            fname, lname = name[0], ' '.join(name[1:])
+            lname = lname.lstrip()
+            person = StaffPersonalInfo.query \
+                .filter_by(th_firstname=fname, th_lastname=lname).first()
+        elif en_name:
+            fname, lname = en_name.split(' ')
+            lname = lname.lstrip()
+            person = StaffPersonalInfo.query \
+                .filter_by(en_firstname=fname, en_lastname=lname).first()
+        else:
+            return jsonify({'message': 'The QR Code is not valid.'}), 400
+
+        if person:
+            now = datetime.now(pytz.utc)
+            date_id = StaffWorkLogin.generate_date_id(now.astimezone(tz))
+            record = StaffWorkLogin(
+                date_id=date_id,
+                staff=person.staff_account,
+                lat=float(lat),
+                long=float(long),
+                start_datetime=now,
+                num_scans=1,
+                qrcode_in_exp_datetime=qrcode_exp_datetime.astimezone(pytz.utc)
+            )
+            db.session.add(record)
+            db.session.commit()
+            return jsonify({'message': 'success',
+                            'activity': 'checked in',
+                            'name': person.fullname,
+                            'time': now.isoformat(),
+                            'numScans': 1}
+                           )
+        else:
+            return jsonify({'message': u'The staff with the name {} not found.'.format(fname + ' ' + lname)}), 404
+
+    return render_template('staff/login_scan_gj.html')
+
+
 @staff.route('/api/login-records')
 @login_required
 def get_login_records():
@@ -2405,7 +2461,7 @@ def export_login_summary():
     end_date = datetime.strptime(end_date.lstrip(), '%d/%m/%Y')
     query = StaffWorkLogin.query.filter(and_(
         cast(StaffWorkLogin.start_datetime, Date) >= start_date,
-        cast(StaffWorkLogin.end_datetime, Date) <= end_date
+        cast(StaffWorkLogin.start_datetime, Date) <= end_date
     ))
     query = query.join(StaffAccount, aliased=True)\
         .filter(StaffAccount.personal_info.has(org_id=current_user.personal_info.org_id))
@@ -2423,14 +2479,19 @@ def export_login_summary():
         lon = float(rec.long) if rec.long else ''
         records.append({
             'staff_name': rec.staff.fullname,
-            'start': rec.start_datetime.astimezone(tz).strftime('%Y-%m-%d %H:%M:%S') if rec.start_datetime else '',
-            'end': rec.end_datetime.astimezone(tz).strftime('%Y-%m-%d %H:%M:%S') if rec.end_datetime else '',
+            'startdate': rec.start_datetime.astimezone(tz).strftime('%Y-%m-%d') if rec.start_datetime else '',
+            'starttime': rec.start_datetime.astimezone(tz).strftime('%H:%M:%S') if rec.start_datetime else '',
+            'enddate': rec.end_datetime.astimezone(tz).strftime('%Y-%m-%d') if rec.end_datetime else '',
+            'endtime': rec.end_datetime.astimezone(tz).strftime('%H:%M:%S') if rec.end_datetime else '',
             'lat': lat,
             'lon': lon,
             'start_expired': start_expired,
             'end_expired': end_expired,
         })
-    columns = ['staff_name', 'start', 'start_expired', 'end', 'end_expired', 'lat', 'lon']
+    columns = [
+        'staff_name', 'startdate', 'starttime', 'start_expired', 'enddate',
+        'endtime', 'end_expired', 'lat', 'lon'
+    ]
     if records:
         df = pd.DataFrame(records)
     else:
