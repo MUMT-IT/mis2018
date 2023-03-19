@@ -18,7 +18,12 @@
                     <br>
                     <span class="has-text-link">กรุณากดอนุญาตหากโปรแกรมขอสิทธิในการเข้าถึงข้อมูล GPS</span>
                 </div>
-                <p v-else>Latitude = <% lat %>, longitude = <% lon %></p>
+                <div class="notification is-success is-light" v-else>
+                    <span class="icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </span>
+                    <span>พิกัด GPS <% lat %>, <% lon %></span>
+                </div>
                 <nav class="panel is-success">
                   <p class="panel-heading">
                       Locations
