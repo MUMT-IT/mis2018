@@ -1990,8 +1990,6 @@ def hr_login_summary_report():
 @admin_permission.require()
 @login_required
 def login_scan():
-    office_starttime = '09:00'
-    office_endtime = '16:30'
     DATETIME_FORMAT = '%d/%m/%Y %H:%M:%S'
 
     if request.method == 'POST':
@@ -2325,7 +2323,7 @@ def send_summary_data():
             # TODO: recheck staff login model
             for rec in StaffWorkLogin.query.filter_by(staff=emp.staff_account) \
                     .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime)
-                                                           .between(cal_start, cal_end)):
+                                    .between(cal_start, cal_end)):
                 end = None if rec.end_datetime is None else rec.end_datetime.astimezone(tz)
                 border_color = '#ffffff' if end else '#f56956'
                 text_color = '#ffffff'
@@ -2361,7 +2359,7 @@ def send_summary_data():
         if tab in ['leave', 'all']:
             for leave_req in StaffLeaveRequest.query.filter_by(staff=emp.staff_account) \
                     .filter(func.timezone('Asia/Bangkok', StaffLeaveRequest.start_datetime)
-                                                                 .between(cal_start, cal_end)):
+                                    .between(cal_start, cal_end)):
                 if not leave_req.cancelled_at:
                     if leave_req.get_approved:
                         text_color = '#ffffff'
@@ -2386,10 +2384,10 @@ def send_summary_data():
                     })
 
         if tab in ['wfh', 'all']:
-            for wfh_req in StaffWorkFromHomeRequest.query\
-                    .filter_by(staff=emp.staff_account)\
+            for wfh_req in StaffWorkFromHomeRequest.query \
+                    .filter_by(staff=emp.staff_account) \
                     .filter(func.timezone('Asia/Bangkok', StaffWorkFromHomeRequest.start_datetime)
-                                                               .between(cal_start, cal_end)):
+                                    .between(cal_start, cal_end)):
                 if not wfh_req.cancelled_at and not wfh_req.get_unapproved:
                     if wfh_req.get_approved:
                         text_color = '#989898'
@@ -2413,9 +2411,9 @@ def send_summary_data():
                         'type': 'wfh'
                     })
         if tab in ['smr', 'all']:
-            for smr in emp.staff_account.seminar_attends\
+            for smr in emp.staff_account.seminar_attends \
                     .filter(func.timezone('Asia/Bangkok', StaffSeminarAttend.start_datetime)
-                                                           .between(cal_start, cal_end)):
+                                    .between(cal_start, cal_end)):
                 text_color = '#ffffff'
                 bg_color = '#FF33A5'
                 border_color = '#ffffff'
@@ -3029,8 +3027,8 @@ def send_time_report_data():
     if cal_end:
         cal_end = parser.isoparse(cal_end)
     records = []
-    for rec in StaffWorkLogin.query\
-            .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime).between(cal_start, cal_end))\
+    for rec in StaffWorkLogin.query \
+            .filter(func.timezone('Asia/Bangkok', StaffWorkLogin.start_datetime).between(cal_start, cal_end)) \
             .filter_by(staff=current_user):
         # The event object is a dict object with a 'summary' key.
         text_color = '#ffffff'
@@ -3626,6 +3624,60 @@ def create_qrcode(account_id):
 @login_required
 def show_qrcode():
     return render_template('staff/qrcode.html')
+
+
+@staff.route('/users/geo-checkin', methods=['GET', 'POST'])
+@login_required
+def geo_checkin():
+    if request.method == 'POST':
+        req_data = request.get_json()
+        place = req_data['data'].get('place', '0.0')
+        lat = req_data['data'].get('lat', '0.0')
+        lon = req_data['data'].get('lon', '0.0')
+        now = datetime.now(pytz.utc)
+        date_id = StaffWorkLogin.generate_date_id(now.astimezone(tz))
+
+        if place == 'mtc':
+            num_scans = 1
+            record = StaffWorkLogin(
+                date_id=date_id,
+                staff=current_user,
+                lat=float(lat),
+                long=float(lon),
+                start_datetime=now,
+                num_scans=num_scans,
+            )
+            activity = ''
+        else:
+            # use the first login of the day as the checkin time.
+            # use the last login of the day as the checkout time.
+            record = StaffWorkLogin.query.filter_by(date_id=date_id, staff=current_user).first()
+
+            if not record:
+                num_scans = 1
+                record = StaffWorkLogin(
+                    date_id=date_id,
+                    staff=current_user,
+                    lat=float(lat),
+                    long=float(lon),
+                    start_datetime=now,
+                    num_scans=num_scans,
+                )
+                activity = 'checked in'
+            else:
+                num_scans = record.num_scans + 1 if record.num_scans else 1
+                record.end_datetime = now
+                record.num_scans = num_scans
+                activity = 'checked out'
+        db.session.add(record)
+        db.session.commit()
+        return jsonify({'message': 'success',
+                        'activity': activity,
+                        'name': current_user.fullname,
+                        'time': now.isoformat(),
+                        'numScans': num_scans
+                        })
+    return render_template('staff/geo_checkin.html')
 
 
 @staff.route('/users/pa_index')
