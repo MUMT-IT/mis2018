@@ -1171,7 +1171,7 @@ def scan_container(service_id, container_id):
                         db.session.commit()
                     return render_template('comhealth/scan_container.html', service=service,
                                        container=container, specimens_no=specimens_no,
-                                       checkin_record=checkin_record, recents=recents)
+                                       checkin_record=checkin_record, recents=recents[:5])
                     check_is_container = 1
                     break
             if check_is_container == 0:
@@ -1179,7 +1179,7 @@ def scan_container(service_id, container_id):
         else:
             flash(specimens_no + '  no register.', 'danger')
 
-    return render_template('comhealth/scan_container.html', service=service, container=container, recents=recents)
+    return render_template('comhealth/scan_container.html', service=service, container=container, recents=recents[:5])
 
 
 @comhealth.route('/organizations')
