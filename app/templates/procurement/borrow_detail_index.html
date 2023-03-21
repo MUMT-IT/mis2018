@@ -58,15 +58,15 @@
         $(function() {
             $('#reserve_calendar').fullCalendar({
                 header: {
-                    left: 'title',
+                    left: 'borrower',
                 },
-                events: "",
+                events: "{{ url_for('procurement.get_events') }}",
                 lazyFetching: true,
                 eventLimit: true,
-                resources: "",
+                resources: "{{ url_for('procurement.get_procurement_to_reserved') }}",
                 resourceLabelText: 'Procurement',
                 eventClick: function(calEvent, jsEvent, view) {
-                    window.location = '/procurement/procurements/' + calEvent.id;
+                    window.location = '/procurement/events/' + calEvent.id;
                 }
             });
         });
