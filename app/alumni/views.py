@@ -64,35 +64,34 @@ def add_alumni():
 @alumni.route('/file/upload', methods=['GET', 'POST'])
 def add_many_alumni():
     form = AlumniInformationForm()
-    if request.method == 'POST':
-        filename = ''
-        if not filename or (form.upload.data.filename != filename):
+    if form.validate_on_submit():
+        if form.upload.data:
             upfile = form.upload.data
             filename = secure_filename(upfile.filename)
             upfile.save(filename)
-        if upfile and allowed_file(upfile.filename):
-            df = read_excel(upfile)
-            df = df.fillna("")
-            for idx, rec in df.iterrows():
-                no, student_id, th_title, th_firstname, th_lastname, contact, occupation, workplace, province = rec
-
-                alumni = AlumniInformation.query.filter_by(student_id=student_id).first()
-                if not alumni:
-                    new_alumni = AlumniInformation(
-                        student_id=student_id,
-                        th_title=th_title,
-                        th_firstname=th_firstname,
-                        th_lastname=th_lastname,
-                        contact=contact,
-                        occupation=occupation,
-                        workplace=workplace,
-                        province=province,
-
-                    )
-                    db.session.add(new_alumni)
-                    db.session.commit()
-            flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
-            return redirect(url_for('alumni.search_student_info'))
+            print(request.files['upload'])
+            if allowed_file(upfile.filename):
+                df = read_excel(request.files['upload'])
+                print(df.head())
+                df = df.fillna("")
+                for idx, rec in df.iterrows():
+                    no, student_id, th_title, th_firstname, th_lastname, contact, occupation, workplace, province = rec
+                    alumni = AlumniInformation.query.filter_by(student_id=student_id).first()
+                    if not alumni:
+                        new_alumni = AlumniInformation(
+                            student_id=student_id,
+                            th_title=th_title,
+                            th_firstname=th_firstname,
+                            th_lastname=th_lastname,
+                            contact=contact,
+                            occupation=occupation,
+                            workplace=workplace,
+                            province=province,
+                        )
+                        db.session.add(new_alumni)
+                db.session.commit()
+                flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
+                return redirect(url_for('alumni.search_student_info'))
     else:
         for er in form.errors:
             flash(er, 'danger')
