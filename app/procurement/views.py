@@ -5,6 +5,8 @@ from base64 import b64decode
 
 import dateutil
 import pandas as pd
+from dateutil import parser
+import pytz
 from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify, session, \
     make_response
 from flask_login import current_user, login_required
@@ -41,6 +43,7 @@ FOLDER_ID = "1JYkU2kRvbvGnmpQ1Tb-TcQS-vWQKbXvy"
 json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 
 bangkok = timezone('Asia/Bangkok')
+tz = pytz.timezone('Asia/Bangkok')
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
@@ -940,41 +943,54 @@ def procurement_available_list(list_type='timelineDay'):
     return render_template('procurement/procurement_available_list.html', list_type=list_type)
 
 
-# @procurement.route('/api/procurements')
-# def get_procurements():
-#     start = request.args.get('start')
-#     end = request.args.get('end')
-#     if start:
-#         start = dateutil.parser.isoparse(start)
-#     if end:
-#         end = dateutil.parser.isoparse(end)
-#     procurements = ProcurementDetail.query.filter(ProcurementDetail.start >= start) \
-#         .filter(ProcurementDetail.end <= end)
-#     all_procurements = []
-#     for procurement in procurements:
-#         if procurement.is_closed:
-#             text_color = '#ffffff'
-#             bg_color = '#066b02'
-#             border_color = '#ffffff'
-#         elif procurement.cancelled_at:
-#             text_color = '#ffffff'
-#             bg_color = '#ff6666'
-#             border_color = '#ffffff'
-#         elif procurement.approved:
-#             text_color = '#000000'
-#             bg_color = '#62c45e'
-#             border_color = '#ffffff'
-#         else:
-#             text_color = '#000000'
-#             bg_color = '#f0f0f5'
-#             border_color = '#ffffff'
-#         evt = procurement.to_dict()
-#         evt['resourceId'] = procurement.vehicle.license
-#         evt['borderColor'] = border_color
-#         evt['backgroundColor'] = bg_color
-#         evt['textColor'] = text_color
-#         all_procurements.append(evt)
-#     return jsonify(all_procurements)
+@procurement.route('/events/<int:borrow_id>', methods=['POST', 'GET'])
+def show_detail_to_reserve(borrow_id=None):
+    tz = pytz.timezone('Asia/Bangkok')
+    if borrow_id:
+        event = ProcurementBorrowDetail.query.get(borrow_id)
+        if event:
+            event.start_date = event.start_date.astimezone(tz)
+            event.end_date = event.end_date.astimezone(tz)
+            return render_template('procurement/borrow_event_detail.html', event=event)
+    else:
+        return 'No event ID specified.'
+
+
+@procurement.route('/api/events')
+def get_events():
+    cal_start = request.args.get('start_date')
+    cal_end = request.args.get('end_date')
+    if cal_start:
+        cal_start = parser.isoparse(cal_start)
+    if cal_end:
+        cal_end = parser.isoparse(cal_end)
+    all_events = []
+    for event in ProcurementBorrowDetail.query.filter(ProcurementBorrowDetail.start_date == cal_start)\
+            .filter(ProcurementBorrowDetail.end_date == cal_end):
+        start = event.start_date
+        end = event.end_date
+        borrower = event.borrower
+        if event.start_date:
+            text_color = '#ffffff'
+            bg_color = '#2b8c36'
+            border_color = '#ffffff'
+        else:
+            text_color = '#000000'
+            bg_color = '#f0f0f5'
+            border_color = '#ff4d4d'
+        evt = {
+            'borrower': borrower.fullname,
+            'start': start.astimezone(tz).isoformat(),
+            'end': end.astimezone(tz).isoformat(),
+            'resourceId': borrower.fullname,
+            'borderColor': border_color,
+            'backgroundColor': bg_color,
+            'textColor': text_color,
+            'id': event.id,
+        }
+        all_events.append(evt)
+    return jsonify(all_events)
+
 
 @procurement.route('/reservation/new')
 def new_reservation():
@@ -1076,6 +1092,19 @@ def get_procurement_to_reserve():
                     'recordsTotal': ProcurementDetail.query.count(),
                     'draw': request.args.get('draw', type=int),
                     })
+
+
+@procurement.route('/api/procurements/reserved')
+def get_procurement_to_reserved():
+    procurement = ProcurementDetail.query.filter_by(is_reserved=True)
+    resources = []
+    for pc in procurement:
+        resources.append({
+            'id': pc.id,
+            'title': pc.name,
+            'erp':pc.erp_code
+        })
+    return jsonify(resources)
 
 
 @procurement.route('/list/add-items', methods=['POST', 'GET'])
