@@ -22,17 +22,14 @@ credentials = Credentials.from_service_account_info(service_account_info)
 
 @instruments.route('/api/instruments')
 def get_instruments():
-    instruments = ProcurementDetail.query.all()
+    instruments = ProcurementDetail.query.filter_by(is_instruments=True)
     resources = []
     for ins in instruments:
         resources.append({
             'id': ins.id,
-            'title': ins.title,
-            'businessHours': {
-                'start': ins.business_hour_start.strftime('%H:%M'),
-                'end': ins.business_hour_end.strftime('%H:%M'),
-            }
+            'title': ins.name
         })
+        print(resources)
     return jsonify(resources)
 
 
