@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/scheduler.min.css') }}">
 <style>
-    #room_calendar {
+    #reserve_calendar {
         max-width: 1200px;
         margin: 0 auto;
     }
@@ -25,7 +25,7 @@
 
 </style>
 {% endblock head %}
-{% include "scheduler/nav.html" %}
+{% include "procurement/nav_for_borrow_scheduler.html" %}
 {% block page_content %}
 <section class="section">
      <h1 class="title"><a href="{{ url_for('procurement.index_borrow_detail') }}">Borrow Scheduler</a></h1>
@@ -34,7 +34,7 @@
         <div class="column has-text-centered">
             {% include "messages.html" %}
             <div class="buttons is-centered">
-                <a id="add_evt_btn" class="button is-info" href="">
+                <a id="add_evt_btn" class="button is-info" href="{{ url_for('procurement.new_reservation') }}">
                     <span class="icon"><i class="far fa-calendar-plus"></i></span>
                     <span>เพิ่มรายการจอง</span>
                 </a>
@@ -84,28 +84,25 @@
             header: {
                 left: 'title',
             },
-            events: '',
-            resources: '',
+            events: "{{ url_for('procurement.get_events') }}",
+            resources: "{{ url_for('procurement.get_procurement_to_reserved') }}",
             eventLimit: true,
             lazyFetching: true,
-            resourceLabelText: 'Procurement',
-            resourceGroupField: 'location',
-            minTime: '00:00:00',
-            maxTime: '24:00:00',
-            resourceAreaWidth: '10%',
+            resourceLabelText: 'ครุภัณฑ์ที่สามารถจองได้',
+            resourceAreaWidth: '15%',
             resourceColumns: [
                 {
-                    labelText: 'Procurement',
+                    labelText: 'รายการ',
                     field: 'title'
                 },
                 {
-                    labelText: 'Occupancy',
-                    field: 'occupancy'
+                    labelText: 'Inventory Number/ERP',
+                    field: 'erp'
                 }
             ],
             slotWidth: 5,
             eventClick: function(calEvent, jsEvent, view) {
-                window.location = '/procurement/procurements/' + calEvent.id;
+                window.location = '/procurement/events/' + calEvent.id;
             }
         });
         $('#prev_btn').on('click', function() {
