@@ -249,7 +249,7 @@ class StaffPersonalInfo(db.Model):
         period = self.get_employ_period()
         if period.years > 0:
             return True
-        elif period.years == 0 and period.months > minmonth:
+        elif period.years == 0 and period.months >= minmonth:
             return True
         else:
             return False
