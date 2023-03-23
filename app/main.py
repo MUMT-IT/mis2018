@@ -1218,7 +1218,7 @@ def update_leave_information(current_date, staff_email):
                 before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
                 quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
             else:
-                quota_limit = quota.max_per_year
+                quota_limit = quota.max_per_year or quota.first_year
         else:
             quota_limit = quota.first_year
 
