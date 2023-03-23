@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">ข้อมูล Internal Order/IO ทั้งหมด</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="iocodetable">
+                    <thead>
+                        <th>Internal Order/IO</th>
+                        <th>Mission</th>
+                        <th>Org</th>
+                        <th>Name</th>
+                        <th>Active</th>
+                    </thead>
+                    <tbody>
+                    {% for record in io_code_list %}
+                    <tr>
+                        <td>
+                            {{ record["id"] }}
+                        </td>
+                        <td>
+                            {{ record["mission_id"] }}
+                        </td>
+                        <td>
+                            {{ record["org_id"] }}
+                        </td>
+                        <td>
+                            {{ record["name"] }}
+                        </td>
+                        <td>
+                            {{ record["is_active"] }}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('receipt_printing.select_btw_io_code_and_cost_center') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#iocodetable').DataTable();
+    });
+</script>
+{% endblock %}

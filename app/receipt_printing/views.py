@@ -667,4 +667,39 @@ def view_receipt_by_list_type(receipt_id=None):
 @receipt_printing.route('/receipt/detail/show/<int:receipt_id>', methods=['GET', 'POST'])
 def show_receipt_detail(receipt_id):
     receipt = ElectronicReceiptDetail.query.get(receipt_id)
-    return render_template('receipt_printing/receipt_detail.html', receipt=receipt, enumerate=enumerate)
+    # total = sum(receipt.items.price)
+    # total_thai = bahttext(total)
+    return render_template('receipt_printing/receipt_detail.html',
+                           receipt=receipt,
+                           enumerate=enumerate)
+
+
+@receipt_printing.route('/io_code_and_cost_center/select')
+def select_btw_io_code_and_cost_center():
+    return render_template('receipt_printing/select_io_code_and_cost_center.html', name=current_user)
+
+
+@receipt_printing.route('/cost_center/show')
+def show_cost_center():
+    cost_center_list = []
+    cost_center = CostCenter.query.all()
+    for cc in cost_center:
+        record = {}
+        record["id"] = cc.id
+        cost_center_list.append(record)
+    return render_template('receipt_printing/show_cost_center.html', cost_center_list=cost_center_list)
+
+
+@receipt_printing.route('/io_code/show')
+def show_io_code():
+    io_code_list = []
+    io_code = IOCode.query.all()
+    for ic in io_code:
+        record = {}
+        record["id"] = ic.id
+        record["mission_id"] = ic.mission.name
+        record["org_id"] = ic.org.name
+        record["name"] = ic.name
+        record["is_active"] = ic.is_active
+        io_code_list.append(record)
+    return render_template('receipt_printing/show_io_code.html', io_code_list=io_code_list)
