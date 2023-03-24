@@ -1,11 +1,12 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import FormField, FieldList, FileField, StringField
+from wtforms import FormField, FieldList, FileField, StringField, RadioField
+from wtforms.validators import DataRequired
 from wtforms_alchemy import model_form_factory, QuerySelectField
 
 from app.main import db
-from app.models import CostCenter, IOCode
+from app.models import CostCenter, IOCode, Mission, Org
 from app.receipt_printing.models import *
 
 BaseModelForm = model_form_factory(FlaskForm)
@@ -53,6 +54,25 @@ class ReportDateForm(FlaskForm):
    created_datetime = StringField(u'วันที่ใบเสร็จ')
 
 
+class CostCenterForm(ModelForm):
+    class Meta:
+        model = CostCenter
+
+
+class IOCodeForm(ModelForm):
+    class Meta:
+        model = IOCode
+
+    is_active = RadioField(u'สถานะ',
+                         choices=[(c, c) for c in [u'Active', u'Inactive']],
+                         coerce=unicode,
+                         validators=[DataRequired()])
+    mission = QuerySelectField('mission', query_factory=lambda: Mission.query.all(),
+                               get_label='name', blank_text='Select Mission..', allow_blank=True)
+    org = QuerySelectField(query_factory=lambda: Org.query.all(),
+                           get_label='name',
+                           label=u'ภาควิชา/หน่วยงาน',
+                           blank_text='Select Org..', allow_blank=True)
 
 
 
