@@ -675,31 +675,60 @@ def show_receipt_detail(receipt_id):
 
 
 @receipt_printing.route('/io_code_and_cost_center/select')
+@finance_head_permission.require()
 def select_btw_io_code_and_cost_center():
     return render_template('receipt_printing/select_io_code_and_cost_center.html', name=current_user)
 
 
 @receipt_printing.route('/cost_center/show')
 def show_cost_center():
-    cost_center_list = []
     cost_center = CostCenter.query.all()
-    for cc in cost_center:
-        record = {}
-        record["id"] = cc.id
-        cost_center_list.append(record)
-    return render_template('receipt_printing/show_cost_center.html', cost_center_list=cost_center_list)
+    return render_template('receipt_printing/show_cost_center.html', cost_center=cost_center)
 
 
 @receipt_printing.route('/io_code/show')
 def show_io_code():
-    io_code_list = []
     io_code = IOCode.query.all()
-    for ic in io_code:
-        record = {}
-        record["id"] = ic.id
-        record["mission_id"] = ic.mission.name
-        record["org_id"] = ic.org.name
-        record["name"] = ic.name
-        record["is_active"] = ic.is_active
-        io_code_list.append(record)
-    return render_template('receipt_printing/show_io_code.html', io_code_list=io_code_list)
+    return render_template('receipt_printing/show_io_code.html', io_code=io_code)
+
+
+@receipt_printing.route('/cost_center/new', methods=['POST', 'GET'])
+def new_cost_center():
+    form = CostCenterForm()
+    if form.validate_on_submit():
+        cost_center_detail = CostCenter()
+        db.session.add(cost_center_detail)
+        db.session.commit()
+        flash(u'บันทึกสำเร็จ.', 'success')
+        return redirect(url_for('receipt_printing.show_cost_center'))
+    # Check Error
+    else:
+        for er in form.errors:
+            flash("{}:{}".format(er, form.errors[er]), 'danger')
+    return render_template('receipt_printing/new_cost_center.html', form=form, url_callback=request.referrer)
+
+
+@receipt_printing.route('/io_code/new', methods=['POST', 'GET'])
+def new_IOCode():
+    form = IOCodeForm()
+    if form.validate_on_submit():
+        IOCode_detail = IOCode()
+        db.session.add(IOCode_detail)
+        db.session.commit()
+        flash(u'บันทึกสำเร็จ.', 'success')
+        return redirect(url_for('receipt_printing.show_io_code'))
+    # Check Error
+    else:
+        for er in form.errors:
+            flash("{}:{}".format(er, form.errors[er]), 'danger')
+    return render_template('receipt_printing/new_IOCode.html', form=form, url_callback=request.referrer)
+
+
+@receipt_printing.route('/io_code/<string:iocode_id>/change-active-status')
+def io_code_change_active_status(iocode_id):
+    iocode_query = IOCode.query.filter_by(id=iocode_id).first()
+    iocode_query.is_active = True if not iocode_query.is_active else False
+    db.session.add(iocode_query)
+    db.session.commit()
+    flash(u'แก้ไขสถานะเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('receipt_printing.show_io_code'))
