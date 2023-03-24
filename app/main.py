@@ -424,8 +424,8 @@ admin.add_view(ModelView(AssetItem, db.session, category='Asset'))
 
 class IOCodeAdminModel(ModelView):
     can_create = True
-    form_columns = ('id', 'cost_center', 'mission', 'org', 'name')
-    column_list = ('id', 'cost_center', 'mission', 'org', 'name')
+    form_columns = ('id', 'cost_center', 'mission', 'org', 'name', 'is_active')
+    column_list = ('id', 'cost_center', 'mission', 'org', 'name', 'is_active')
 
 
 admin.add_view(IOCodeAdminModel(IOCode, db.session, category='Finance'))
