@@ -2044,6 +2044,46 @@ def login_scan():
     return render_template('staff/login_scan.html')
 
 
+# @staff.route('/clockin-clockout-request/<int:staff_id>')
+# @login_required
+# def request_for_clockin_clockout(staff_id):
+#     mails = []
+#     req_title = u'ทดสอบแจ้งการขออนุมัติเวลาเข้า-ออกงาน'
+#     req_msg = u'{} ขออนุมัติรับรองการเข้า-ออกงาน ในวันที่ {}\n' \
+#               u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+#         format(current_user.personal_info.fullname, start_datetime,
+#                url_for("staff.pending_wfh_request_for_approval"))
+#
+#     if len(current_user.wfh_requesters) == 0:
+#         print('no approver found, assign head of the organization')
+#         org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
+#         #approver = StaffWorkFromHomeApprover(requester=current_user, account=org_head)
+#         db.session.add(approver)
+#         db.session.commit()
+#
+#     for approver in current_user.wfh_requesters:
+#         if approver.is_active:
+#             if approver.notified_by_line and approver.account.line_id:
+#                 if os.environ["FLASK_ENV"] == "production":
+#                     line_bot_api.push_message(to=approver.account.line_id,
+#                                               messages=TextSendMessage(text=req_msg))
+#                 else:
+#                     print(req_msg, approver.account.id)
+#             mails.append(approver.account.email + "@mahidol.ac.th")
+#     if os.environ["FLASK_ENV"] == "production":
+#         send_mail(mails, req_title, req_msg)
+#     else:
+#         print([approver.account.email + 'mahidol.ac.th'], req_title, req_msg)
+#     return render_template('staff/seminar_report.html')
+#
+#
+# @staff.route('/clockin-clockout-approved/<int:request_id>')
+# @login_required
+# def approved_for_clockin_clockout(request_id):
+#
+#     return render_template('staff/seminar_report.html')
+
+
 @staff.route('/login-activity-scan/<int:seminar_id>', methods=['GET', 'POST'])
 @csrf.exempt
 @hr_permission.require()
@@ -3202,6 +3242,46 @@ def staff_show_info(staff_id):
     return render_template('staff/staff_show_info.html', staff=staff)
 
 
+@staff.route('/api/academic-records')
+@staff.route('/api/academic-records/<int:personal_id>')
+@login_required
+def get_academic_records(personal_id=None):
+    results = []
+    if not personal_id:
+        return jsonify({'data': results})
+
+    for rec in StaffAcademicPositionRecord.query.filter_by(personal_info_id=personal_id).all():
+        results.append({
+            "fullname": rec.personal_info.fullname,
+            "appointed_at": rec.appointed_at,
+            "position": rec.position.fullname_th
+         })
+    print(results)
+    return jsonify({'data': results})
+
+
+@staff.route('/for-hr/add-academic-position/', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def staff_add_academic_position():
+    position = StaffAcademicPosition.query.all()
+    if request.method == 'POST':
+        appoint_d = request.form.get('appointed_date')
+        appoint_date = datetime.strptime(appoint_d, '%d/%m/%Y')
+        add_position = StaffAcademicPositionRecord(
+            personal_info_id=request.form.get('staff'),
+            position_id=request.form.get('position_id'),
+            appointed_at=tz.localize(appoint_date),
+            updated_at=datetime.now(tz)
+        )
+        db.session.add(add_position)
+        db.session.commit()
+        flash(u'เพิ่มตำแหน่งทางวิชาการเรียบร้อยแล้ว', 'success')
+        staff = StaffPersonalInfo.query.get(int(request.form.get('staff')))
+        return render_template('staff/staff_show_info.html', staff=staff)
+    return render_template('staff/staff_add_academic_position.html', position=position)
+
+
 @staff.route('/for-hr/staff-info/search-account', methods=['GET', 'POST'])
 @login_required
 def staff_search_to_change_pwd():
@@ -3616,8 +3696,12 @@ def list_org_staff(org_id):
 @login_required
 def get_all_employees():
     search_term = request.args.get('term', '')
+    group = request.args.get('group')
     results = []
-    for staff in StaffPersonalInfo.query.all():
+    query = StaffPersonalInfo.query
+    if group == 'academic':
+        query = query.filter_by(academic_staff=True)
+    for staff in query.all():
         if (search_term in staff.fullname or search_term in staff.staff_account.email) \
                 and staff.retired is not True:
             results.append({
