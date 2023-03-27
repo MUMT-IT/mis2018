@@ -1483,14 +1483,19 @@ def get_procurement_to_check_instruments():
     data = []
     for item in query:
         item_data = item.to_dict()
-        item_data['add'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">Add</a>'.format(
-            url_for('procurement.add_borrow_detail', procurement_no=item.procurement_no))
-        item_data['add_item'] = (
-            '<input class="is-checkradio" id="pro_no{}" type="checkbox" name="add_items" value="{}">'
-            '<label for="pro_no{}"></label>').format(item.id, item.id, item.id)
+        item_data['add'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
+            url_for('procurement.view_desc_procurement_to_check_instruments', procurement_id=item.id))
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
                     'recordsTotal': ProcurementDetail.query.count(),
                     'draw': request.args.get('draw', type=int),
                     })
+
+
+@procurement.route('/instruments/view/<int:procurement_id>')
+def view_desc_procurement_to_check_instruments(procurement_id):
+    item = ProcurementDetail.query.get(procurement_id)
+    return render_template('procurement/view_desc_procurement_to_check_instruments.html',
+                           model=ProcurementRecord,
+                           item=item)
