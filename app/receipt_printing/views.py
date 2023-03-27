@@ -719,7 +719,7 @@ def new_IOCode():
         IOCode_detail.org = form.org.data
         db.session.add(IOCode_detail)
         db.session.commit()
-        flash(u'บันทึกสำเร็จ.', 'success')
+        flash(u'บันทึกเรียบร้อย.', 'success')
         return redirect(url_for('receipt_printing.show_io_code'))
     # Check Error
     else:
