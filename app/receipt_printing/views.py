@@ -697,9 +697,10 @@ def new_cost_center():
     form = CostCenterForm()
     if form.validate_on_submit():
         cost_center_detail = CostCenter()
+        cost_center_detail.id = form.cost_center.data
         db.session.add(cost_center_detail)
         db.session.commit()
-        flash(u'บันทึกสำเร็จ.', 'success')
+        flash(u'บันทึกเรียบร้อย.', 'success')
         return redirect(url_for('receipt_printing.show_cost_center'))
     # Check Error
     else:

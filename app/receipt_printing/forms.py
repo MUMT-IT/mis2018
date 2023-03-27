@@ -57,6 +57,7 @@ class ReportDateForm(FlaskForm):
 class CostCenterForm(ModelForm):
     class Meta:
         model = CostCenter
+    cost_center = StringField(u'Cost Center')
 
 
 class IOCodeForm(ModelForm):
