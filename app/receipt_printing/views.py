@@ -713,6 +713,10 @@ def new_IOCode():
     form = IOCodeForm()
     if form.validate_on_submit():
         IOCode_detail = IOCode()
+        IOCode_detail.id = form.io.data
+        IOCode_detail.mission = form.mission.data
+        IOCode_detail.name = form.name.data
+        IOCode_detail.org = form.org.data
         db.session.add(IOCode_detail)
         db.session.commit()
         flash(u'บันทึกสำเร็จ.', 'success')
