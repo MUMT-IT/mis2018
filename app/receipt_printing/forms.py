@@ -73,6 +73,7 @@ class IOCodeForm(ModelForm):
                            get_label='name',
                            label=u'ภาควิชา/หน่วยงาน',
                            blank_text='Select Org..', allow_blank=True)
+    io = StringField(u'Internal Order/IO')
 
 
 
