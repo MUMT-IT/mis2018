@@ -1497,5 +1497,14 @@ def get_procurement_to_check_instruments():
 def view_desc_procurement_to_check_instruments(procurement_id):
     item = ProcurementDetail.query.get(procurement_id)
     return render_template('procurement/view_desc_procurement_to_check_instruments.html',
-                           model=ProcurementRecord,
                            item=item)
+
+
+@procurement.route('/instruments/<int:procurement_id>/change-instruments-status')
+def instruments_change_status(procurement_id):
+    procurement_query = ProcurementDetail.query.filter_by(id=procurement_id).first()
+    procurement_query.is_instruments = True if not procurement_query.is_instruments else False
+    db.session.add(procurement_query)
+    db.session.commit()
+    flash(u'แก้ไขสถานะเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('procurement.view_all_procurement_to_check_instruments'))

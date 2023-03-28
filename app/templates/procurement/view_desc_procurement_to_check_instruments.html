@@ -161,8 +161,12 @@
 
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="buttons">
-                                    <a href="{{ url_for('procurement.view_all_procurement_to_check_instruments') }}" class="button is-light">กลับ</a>
-                                    <a href="" class="button is-success">เพิ่มครุภัณฑ์นี้เป็นเครื่องมือวิจัย</a>
+                                    <a href="{{ url_for('procurement.view_all_procurement_to_check_instruments')}}" class="button is-light">กลับ</a>
+                                    {% if item.is_instruments == True %}
+                                    <a href="{{ url_for('procurement.instruments_change_status', procurement_id=item.id) }}" class="button is-success">ครุภัณฑ์นี้สามารถจองได้</a>
+                                    {% else %}
+                                    <a href="{{ url_for('procurement.instruments_change_status', procurement_id=item.id) }}" class="button is-danger">ครุภัณฑ์นี้ยังไม่ได้จอง</a>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
