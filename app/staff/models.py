@@ -751,6 +751,24 @@ class StaffWorkLogin(db.Model):
         return date.strftime('%Y%m%d')
 
 
+class StaffRequestWorkLogin(db.Model):
+    __tablename__ = 'staff_request_work_logins'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', backref=db.backref('request_work_logins', lazy='dynamic'),
+                            foreign_keys=[staff_account_id])
+    reason = db.Column('reason', db.String())
+    requested_at = db.Column('requested_at', db.DateTime(timezone=True))
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+    date_id = db.Column('date_id', db.String())
+    start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
+    end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
+    checkin_mins = db.Column('checkin_mins', db.Integer())
+    checkout_mins = db.Column('checkout_mins', db.Integer())
+    num_scans = db.Column('num_scans', db.Integer(), default=0)
+
+
 class StaffShiftSchedule(db.Model):
     __tablename__ = 'staff_shift_schedule'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
