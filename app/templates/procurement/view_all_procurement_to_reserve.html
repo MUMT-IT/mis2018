@@ -33,7 +33,6 @@
                 <div class="column">
                     <table id="data" class="table is-striped" style="width:100%">
                         <thead>
-                        <th></th>
                         <th>Name</th>
                         <th>Inventory Number/ERP</th>
                         <th></th>
@@ -65,7 +64,6 @@
                 ajax: '{{ url_for("procurement.get_procurement_to_reserve") }}',
                 serverSide: true,
                 columns: [
-                    {data: 'add_item'},
                     {data: 'name'},
                     {data: 'erp_code'},
                     {data: 'add'}

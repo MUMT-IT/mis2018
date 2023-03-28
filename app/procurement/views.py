@@ -1081,17 +1081,31 @@ def get_procurement_to_reserve():
     data = []
     for item in query:
         item_data = item.to_dict()
-        item_data['add'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">Add</a>'.format(
-            url_for('procurement.add_borrow_detail', procurement_no=item.procurement_no))
-        item_data['add_item'] = (
-            '<input class="is-checkradio" id="pro_no{}" type="checkbox" name="add_items" value="{}">'
-            '<label for="pro_no{}"></label>').format(item.id, item.id, item.id)
+        item_data['add'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
+            url_for('procurement.view_desc_procurement_to_borrow', procurement_id=item.id))
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
                     'recordsTotal': ProcurementDetail.query.count(),
                     'draw': request.args.get('draw', type=int),
                     })
+
+
+@procurement.route('/desc/view/<int:procurement_id>')
+def view_desc_procurement_to_borrow(procurement_id):
+    item = ProcurementDetail.query.get(procurement_id)
+    return render_template('procurement/view_desc_procurement_to_borrow.html',
+                           item=item)
+
+
+@procurement.route('/borrow/<int:procurement_id>/add')
+def add_procurement_to_borrow(procurement_id):
+    procurement_query = ProcurementDetail.query.filter_by(id=procurement_id).first()
+    procurement_query.is_reserved = True if not procurement_query.is_reserved else False
+    db.session.add(procurement_query)
+    db.session.commit()
+    flash(u'แก้ไขสถานะเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('procurement.view_all_procurement_to_reserve'))
 
 
 @procurement.route('/api/procurements/reserved')
@@ -1508,3 +1522,6 @@ def instruments_change_status(procurement_id):
     db.session.commit()
     flash(u'แก้ไขสถานะเรียบร้อยแล้ว', 'success')
     return redirect(url_for('procurement.view_all_procurement_to_check_instruments'))
+
+
+
