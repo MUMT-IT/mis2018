@@ -762,11 +762,6 @@ class StaffRequestWorkLogin(db.Model):
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     date_id = db.Column('date_id', db.String())
-    start_datetime = db.Column('start_datetime', db.DateTime(timezone=True))
-    end_datetime = db.Column('end_datetime', db.DateTime(timezone=True))
-    checkin_mins = db.Column('checkin_mins', db.Integer())
-    checkout_mins = db.Column('checkout_mins', db.Integer())
-    num_scans = db.Column('num_scans', db.Integer(), default=0)
 
 
 class StaffShiftSchedule(db.Model):
