@@ -761,10 +761,14 @@ class StaffRequestWorkLogin(db.Model):
     requested_at = db.Column('requested_at', db.DateTime(timezone=True))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     date_id = db.Column('date_id', db.String())
     work_datetime = db.Column('work_datetime', db.DateTime(timezone=True))
     is_checkin = db.Column('is_checkin', db.Boolean(), default=True)
 
+    @staticmethod
+    def generate_date_id(date):
+        return date.strftime('%Y%m%d')
 
 class StaffShiftSchedule(db.Model):
     __tablename__ = 'staff_shift_schedule'
