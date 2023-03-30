@@ -83,7 +83,8 @@ def list_add_items():
     form = ReceiptDetailForm()
     form.items.append_entry()
     item_form = form.items[-1]
-    form_text = u'''
+    form_text = '<table class="table is-bordered is-fullwidth is-narrow">'
+    form_text += u'''
     <div class="field">
         <label class="label">{}</label>
         <div class="control">
@@ -627,7 +628,7 @@ def get_require_receipt_data():
     data = []
     for r in query:
         record_data = r.to_dict()
-        record_data['created_datetime'] = record_data['created_datetime'].strftime('%d/%m/%Y')
+        record_data['created_datetime'] = record_data['created_datetime'].strftime('%d/%m/%Y %H:%M:%S')
         record_data['require_receipt'] = '<a href="{}"><i class="fas fa-receipt"></i></a>'.format(
             url_for('receipt_printing.require_new_receipt', receipt_id=r.id))
         record_data['cancelled'] = '<i class="fas fa-times has-text-danger"></i>' if r.cancelled else '<i class="far fa-check-circle has-text-success"></i>'
@@ -667,10 +668,12 @@ def view_receipt_by_list_type(receipt_id=None):
 @receipt_printing.route('/receipt/detail/show/<int:receipt_id>', methods=['GET', 'POST'])
 def show_receipt_detail(receipt_id):
     receipt = ElectronicReceiptDetail.query.get(receipt_id)
-    # total = sum(receipt.items.price)
-    # total_thai = bahttext(total)
+    total = sum([t.price for t in receipt.items])
+    total_thai = bahttext(total)
     return render_template('receipt_printing/receipt_detail.html',
                            receipt=receipt,
+                           total=total,
+                           total_thai=total_thai,
                            enumerate=enumerate)
 
 
