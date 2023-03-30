@@ -47,13 +47,13 @@
                                 <td>{{ n }}</td>
                                 <td>{{ item.item }}</td>
                                 <td>{{ item.price }}</td>
-                            {% endfor %}
-                            <td colspan="2"></td>
                         </tr>
+                        <tr></tr>
+                        {% endfor %}
                         <tr style="background-color: #ededed;">
                             <td></td>
                             <td><strong>รวม</strong></td>
-                            <td class="has-text-right"></td>
+                            <td class="has-text-right">{{ total }}</td>
                         </tr>
                         </tbody>
                     </table>
@@ -66,10 +66,10 @@
                     <table class="table">
                         <tr>
                             <td>
-                                <strong>รวมเงิน (ตัวอักษร) </strong>
+                                <strong>รวมเงิน (ตัวอักษร) {{ total_thai }}</strong>
                             </td>
                             <td>
-                                <strong>รวมทั้งสิ้น  บาท</strong>
+                                <strong>รวมทั้งสิ้น {{ total|moneyformat }}  บาท</strong>
                             </td>
                         </tr>
                         <tr>
