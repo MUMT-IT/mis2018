@@ -26,7 +26,7 @@ class ReceiptListForm(ModelForm):
                                    query_factory=lambda: CostCenter.query.all(),
                                    get_label='id', blank_text='Select Cost Center..', allow_blank=True)
     internal_order_code = QuerySelectField('Internal Order Code',
-                                      query_factory=lambda: IOCode.query.all(),
+                                      query_factory=lambda: IOCode.query.filter_by(is_active=True),
                                       blank_text='Select Internal Order/IO..', allow_blank=True)
     gl = QuerySelectField('GL',
                           query_factory=lambda: ElectronicReceiptGL.query.all(),
