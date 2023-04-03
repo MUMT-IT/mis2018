@@ -8,9 +8,7 @@
 {% block page_content %}
 <section class="section" id="app">
     <div class="container">
-        {% for msg in get_flashed_messages() %}
-        <p class="notification is-warning">{{ msg }}</p>
-        {% endfor %}
+        {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-centered">
                 <h1 class="title">เพิ่มประวัติตำแหน่งทางวิชาการ</h1>
@@ -32,19 +30,6 @@
                             </div>
                         </div>
                     </div>
-                    <div>
-                        <table class="table is-fullwidth is-striped" id="academicTable">
-                            <thead>
-                            <th>ชื่อ</th>
-                            <th>ตำแหน่งทางวิชาการ</th>
-                            <th>วันที่ได้รับแต่งตั้ง</th>
-                            </thead>
-                            <tbody>
-                            </tbody>
-                        </table>
-                    </div>
-                    </div>
-                    <div class="box">
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
                             <label class="label">ตำแหน่ง</label>
@@ -87,6 +72,20 @@
                         <div class="control">
                                 <input type="submit" value="บันทึก" class="button is-primary"/>
                         </div>
+                    </div>
+                    </div>
+                    <div class="box">
+                    <div>
+                        <table class="table is-fullwidth is-striped" id="academicTable">
+                            <thead>
+                            <th>ชื่อ</th>
+                            <th>ตำแหน่งทางวิชาการ</th>
+                            <th>วันที่ได้รับแต่งตั้ง</th>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
                     </div>
                 </form>
                 </div>
