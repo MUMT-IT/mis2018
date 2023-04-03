@@ -2044,44 +2044,135 @@ def login_scan():
     return render_template('staff/login_scan.html')
 
 
-# @staff.route('/clockin-clockout-request/<int:staff_id>')
-# @login_required
-# def request_for_clockin_clockout(staff_id):
-#     mails = []
-#     req_title = u'ทดสอบแจ้งการขออนุมัติเวลาเข้า-ออกงาน'
-#     req_msg = u'{} ขออนุมัติรับรองการเข้า-ออกงาน ในวันที่ {}\n' \
-#               u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
-#         format(current_user.personal_info.fullname, start_datetime,
-#                url_for("staff.pending_wfh_request_for_approval"))
-#
-#     if len(current_user.wfh_requesters) == 0:
-#         print('no approver found, assign head of the organization')
-#         org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
-#         #approver = StaffWorkFromHomeApprover(requester=current_user, account=org_head)
-#         db.session.add(approver)
-#         db.session.commit()
-#
-#     for approver in current_user.wfh_requesters:
-#         if approver.is_active:
-#             if approver.notified_by_line and approver.account.line_id:
-#                 if os.environ["FLASK_ENV"] == "production":
-#                     line_bot_api.push_message(to=approver.account.line_id,
-#                                               messages=TextSendMessage(text=req_msg))
-#                 else:
-#                     print(req_msg, approver.account.id)
-#             mails.append(approver.account.email + "@mahidol.ac.th")
-#     if os.environ["FLASK_ENV"] == "production":
-#         send_mail(mails, req_title, req_msg)
-#     else:
-#         print([approver.account.email + 'mahidol.ac.th'], req_title, req_msg)
-#     return render_template('staff/seminar_report.html')
-#
-#
-# @staff.route('/clockin-clockout-approved/<int:request_id>')
-# @login_required
-# def approved_for_clockin_clockout(request_id):
-#
-#     return render_template('staff/seminar_report.html')
+@staff.route('/clockin-clockout/request/', methods=['GET', 'POST'])
+@login_required
+def request_for_clockin_clockout():
+    #post from /staff/users/geo-checkin function
+    if request.method == 'POST':
+        #TODO: check server time
+        today = datetime.today()
+        reason = request.form.get('reason')
+        work_datetime = datetime.strptime(request.form.get('workdatetime'), '%d/%m/%Y %H:%M')
+        date_id = StaffRequestWorkLogin.generate_date_id(tz.localize(work_datetime))
+        # TODO: check duplicate request
+        #checkin_request = StaffRequestWorkLogin.query.filter_by(date_id=date_id, staff=current_user).first()
+        if work_datetime < today:
+            checkin_request = StaffRequestWorkLogin(
+                date_id=date_id,
+                staff=current_user,
+                reason=reason,
+                requested_at=datetime.now(pytz.utc),
+                work_datetime=work_datetime,
+                is_checkin=True if request.form.get('clock') == 'checkin' else False
+            )
+
+            if len(current_user.wfh_requesters) == 0:
+                print('no approver found, assign head of the organization')
+                org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
+                approver = StaffWorkFromHomeApprover(requester=current_user, account=org_head)
+                db.session.add(approver)
+                db.session.commit()
+            wfh_approver = StaffWorkFromHomeApprover.query.filter_by(
+                staff_account_id=checkin_request.staff_account_id).first()
+            checkin_request.approver_id = wfh_approver.approver_account_id
+            db.session.add(checkin_request)
+            db.session.commit()
+
+            if request.form.get('clock') == 'checkin':
+                req_title = u'ทดสอบแจ้งการขอรับรองเวลาเข้างาน'
+                req_msg = u'{} ขออนุมัติรับรองการเข้างาน วันที่ {} เนื่องจาก {}\n' \
+                            u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                            format(current_user.personal_info.fullname, checkin_request.work_datetime,
+                                    checkin_request.reason,
+                                    url_for("staff.approved_for_clockin_clockout", request_id=checkin_request.id))
+            else:
+                req_title = u'ทดสอบแจ้งการขอรับรองเวลากลับ'
+                req_msg = u'{} ขออนุมัติรับรองการทำงาน ในเวลากลับ วันที่ {} เนื่องจาก {}\n' \
+                            u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                            format(current_user.personal_info.fullname, checkin_request.work_datetime,
+                                    checkin_request.reason,
+                                    url_for("staff.approved_for_clockin_clockout", request_id=checkin_request.id))
+
+            if wfh_approver:
+                if wfh_approver.is_active:
+                    if os.environ["FLASK_ENV"] == "production":
+                        send_mail([wfh_approver.approver.email + "@mahidol.ac.th"], req_title, req_msg)
+                        if wfh_approver.notified_by_line and wfh_approver.account.line_id:
+                            line_bot_api.push_message(to=wfh_approver.account.line_id,
+                                                      messages=TextSendMessage(text=req_msg))
+                        else:
+                            print(req_msg, wfh_approver.account.id)
+                    else:
+                        print(wfh_approver.account.email, req_title, req_msg)
+                flash(u'ส่งคำขอเรียบร้อยแล้ว', 'success')
+            else:
+                flash(u'ไม่สามารถส่งคำขอได้ เนื่องจากไม่พบผู้บังคับบัญชาชั้นต้น', 'danger')
+            return render_template('staff/checkin_request.html')
+            #return render_template('staff/geo_checkin.html')
+        else:
+            flash(u'ไม่สามารถส่งคำขอก่อนเวลาปัจจุบันได้', 'warning')
+            return render_template('staff/checkin_request.html')
+    return render_template('staff/checkin_request.html')
+
+
+@staff.route('/clockin-clockout/request-list')
+@login_required
+def list_for_clockin_clockout():
+    all_requests = StaffRequestWorkLogin.query.filter_by(approver_id=current_user.id).all()
+    return render_template('staff/checkin_all_requests.html', all_requests=all_requests)
+
+
+@staff.route('/clockin-clockout/approved/<int:request_id>')
+@login_required
+def approved_for_clockin_clockout(request_id):
+    clock_request = StaffRequestWorkLogin.query.get(request_id)
+    approved = request.args.get("approved")
+    if approved:
+        if approved == 'yes':
+            clock_request.approved_at = datetime.now(pytz.utc)
+
+            approval = StaffWorkLogin(
+                date_id=clock_request.date_id,
+                staff=clock_request.staff
+            )
+            if clock_request.is_checkin:
+                approval.start_datetime = clock_request.work_datetime
+            else:
+                approval.end_datetime = clock_request.work_datetime
+                #TODO: added num_scans
+            db.session.add(approval)
+            db.session.commit()
+        else:
+            clock_request.cancelled_at = datetime.now(pytz.utc)
+        db.session.add(clock_request)
+        db.session.commit()
+        flash(u'บันทึกการขอรับรองการทำงานเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที', 'success')
+
+        title = u'เข้างาน' if clock_request.is_checkin else u'กลับบ้าน'
+        if clock_request.approved_at:
+            approve_msg = u'การขอรับรอง{} ในวันที่ {} ได้รับการรับรองโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
+                          u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                title, clock_request.work_datetime, clock_request.approver.fullname,
+                url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
+                        approver_id=clock_request.approver_id, _external=True))
+        else:
+            approve_msg = u'การขอรับรอง{} ในวันที่ {} ไม่ถูกอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
+                          u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                title, clock_request.work_datetime, clock_request.approver.fullname,
+                url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
+                        approver_id=clock_request.approver_id, _external=True))
+        if clock_request.staff.line_id:
+            if os.environ["FLASK_ENV"] == "production":
+                line_bot_api.push_message(to=clock_request.staff.line_id,
+                                          messages=TextSendMessage(text=approve_msg))
+            else:
+                print(approve_msg, clock_request.staff.id)
+        approve_title = u'แจ้งสถานะรับรองการทำงาน'
+        if os.environ["FLASK_ENV"] == "production":
+            send_mail([clock_request.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
+        all_requests = StaffRequestWorkLogin.query.all()
+        return render_template('staff/checkin_all_requests.html', all_requests=all_requests)
+    return render_template('staff/checkin_approval.html', clock_request=clock_request)
 
 
 @staff.route('/login-activity-scan/<int:seminar_id>', methods=['GET', 'POST'])

@@ -760,6 +760,8 @@ class StaffRequestWorkLogin(db.Model):
     reason = db.Column('reason', db.String())
     requested_at = db.Column('requested_at', db.DateTime(timezone=True))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
+    approver = db.relationship('StaffAccount', backref=db.backref('approver_work_logins', lazy='dynamic'),
+                            foreign_keys=[approver_id])
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     date_id = db.Column('date_id', db.String())
