@@ -23,6 +23,15 @@
                         </span>
                     </a>
                     <a class="panel-block"
+                       href="{{ url_for('staff.geo_checkin') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ลงชื่อเข้างานด้วย GPS
+                        </span>
+                    </a>
+                    <a class="panel-block"
                        href="{{ url_for('staff.show_qrcode') }}">
                         <span class="panel-icon">
                             <i class="fas fa-qrcode"></i>
@@ -213,6 +222,12 @@
                             <i class="fas fa-user-clock"></i>
                         </span>
                         <span class="is-size-5">ระบบบันทึกเวลาเข้างาน</span>
+                    </a>
+                    <a href="{{ url_for('staff.login_scan_gj') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-clock"></i>
+                        </span>
+                        <span class="is-size-5">ระบบบันทึกเวลาเข้างานศูนย์การแพทย์ฯ</span>
                     </a>
                     <a href="{{ url_for('staff.for_hr') }}" class="panel-block">
                         <span class="panel-icon">

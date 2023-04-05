@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+{% endblock %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                <div v-if="isLoading">
+                    <span class="icon is-large" v-if="isLoading">
+                        <i class="fas fa-pulse fa-4x fa-spinner has-text-link"></i>
+                    </span>
+                    <br>
+                    <br>
+                    <span class="has-text-link">กรุณากดอนุญาตหากโปรแกรมขอสิทธิในการเข้าถึงข้อมูล GPS</span>
+                </div>
+                <div class="notification is-success is-light" v-else>
+                    <span class="icon">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </span>
+                    <span>พิกัด GPS <% lat %>, <% lon %></span>
+                </div>
+                <nav class="panel is-success">
+                  <p class="panel-heading">
+                      Locations
+                  </p>
+                  <a class="panel-block" @click="checkin('salaya')">
+                    <span class="panel-icon">
+                      <i class="fas fa-book" aria-hidden="true"></i>
+                    </span>
+                    ศาลายา
+                  </a>
+                  <a class="panel-block" @click="checkin('siriraj')">
+                    <span class="panel-icon">
+                      <i class="fas fa-book" aria-hidden="true"></i>
+                    </span>ศิริราช
+                  </a>
+                  <a class="panel-block" @click="checkin('gj')">
+                    <span class="panel-icon">
+                      <i class="fas fa-book" aria-hidden="true"></i>
+                    </span>
+                      ศูนย์การแพทย์กาญจนาภิเษก
+                  </a>
+                </nav>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        window.axios.defaults.headers.common['X-CSRF-TOKEN'] = "{{ csrf_token() }}"
+        new Vue({
+            el: '#app',
+            delimiters: ['<%', '%>'],
+            data () {
+                return {
+                    isLoading: true,
+                    lat: '',
+                    lon: '',
+                    location: {
+                        salaya: { lat: 13.798807859072065, lon: 100.32312238370811 },
+                        gj: { lat: 13.78719247243879, lon: 100.32144635840142 },
+                        siriraj: { lat: 13.757932973700862, lon: 100.48625575304426 },
+                        mtc: { lat: 13.847562146803229, lon: 100.53027985396552 }
+                    }
+                }
+            },
+            methods: {
+                checkin(place) {
+                    let self = this
+                    let distance = self.calcDistance(self.lat, self.lon,
+                        self.location[place].lat, self.location[place].lon)
+                    if (distance < 1.0) {
+                        axios.post("{{ url_for('staff.geo_checkin') }}", {
+                            data: {
+                                lat: self.lat,
+                                lon: self.lon,
+                                place: place
+                            }
+                        }).then(async (resp)=>{
+                            self.time = moment(resp.data.time).format('DD/MM/YYYY H:mm:ss')
+                            self.staff = resp.data.name
+                            self.numScans = resp.data.numScans
+                            Swal.fire({
+                                title: 'สวัสดี ' + self.staff,
+                                timer: 3000,
+                                showConfirmButton: false,
+                                timerProgressBar: true,
+                                icon: 'success',
+                                text: 'เวลาแสกน ' + self.time
+                            })
+                        }).catch(async (error)=>{
+                            Swal.fire({
+                                title: 'ระบบเกิดความผิดพลาด',
+                                timer: 3000,
+                                timerProgressBar: true,
+                                icon: 'error',
+                                text: 'ขออภัยในความไม่สะดวก กรุณาแจ้งหน่วยสารสนเทศ'
+                            })
+                        })
+                    } else {
+                        Swal.fire({
+                            text: 'ท่านอยู่นอกขอบเขตในการลงชื่อเข้าปฏิบัติงานในพื้นที่',
+                            timer: 3000,
+                            timerProgressBar: true,
+                            icon: 'error',
+                            title: 'ระยะห่างรัศมี ' + distance.toFixed(2) + 'km.',
+                        })
+                    }
+                },
+                degreesToRadians(degrees) {
+                    let radians = (degrees * Math.PI)/180;
+                    return radians;
+                },
+                calcDistance (startLat, startLon, destLat, destLon) {
+                    let startingLat = this.degreesToRadians(startLat);
+                    let startingLong = this.degreesToRadians(startLon);
+                    let destinationLat = this.degreesToRadians(destLat);
+                    let destinationLong = this.degreesToRadians(destLon);
+                    // Radius of the Earth in kilometers
+                    let radius = 6571;
+
+                    // Haversine equation
+                    let distanceInKilometers = Math.acos(Math.sin(startingLat) * Math.sin(destinationLat) +
+                        Math.cos(startingLat) * Math.cos(destinationLat) *
+                        Math.cos(startingLong - destinationLong)) * radius;
+                    return distanceInKilometers;
+                },
+                get_qrcode_data () {
+                    axios.get("{{ url_for('staff.create_qrcode', account_id=current_user.id) }}",
+                        { params: {'lat': this.lat, 'long': this.lon}}).then((resp)=>{
+                        this.qrcode_base64 = resp.data.qrcode
+                        this.expireDateTime = resp.data.expDateTime
+                        this.isLoading = false
+                    })
+                }
+            },
+            mounted () {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition((position)=>{
+                        this.lat = position.coords.latitude
+                        this.lon = position.coords.longitude
+                        this.isLoading = false
+                        this.get_qrcode_data()
+                    },
+                    (error)=>{
+                        alert('GPS failed')
+                        this.message = 'ไม่สามารถค้นหาตำแหน่งของคุณได้แต่คุณยังสามารถใช้ QR Code ในการแสกนได้'
+                        this.get_qrcode_data()
+                    },
+                    {timeout: 9000, enableHighAccuracy: true});
+                } else {
+                    alert('Geolocation not supported.')
+                    this.get_qrcode_data()
+                }
+            }
+        })
+    </script>
+{% endblock %}
