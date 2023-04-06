@@ -2139,7 +2139,7 @@ def get_login_records():
             start_expired = rec.start_datetime > rec.qrcode_in_exp_datetime
         else:
             start_expired = None
-        if rec.end_datetime and rec.qrcode_in_exp_datetime:
+        if rec.end_datetime and rec.qrcode_out_exp_datetime:
             end_expired = rec.end_datetime > rec.qrcode_out_exp_datetime
         else:
             end_expired = None
