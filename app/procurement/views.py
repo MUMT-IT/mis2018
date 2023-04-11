@@ -1449,4 +1449,10 @@ def instruments_change_status(procurement_id):
     return redirect(url_for('procurement.view_all_procurement_to_check_instruments'))
 
 
+@procurement.route('/repair_landing')
+@login_required
+def repair_landing():
+    return render_template('procurement/repair_landing.html')
+
+
 
