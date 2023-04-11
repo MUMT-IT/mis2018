@@ -3755,6 +3755,47 @@ def cancel_leave_request_by_hr(req_id):
     return redirect(request.referrer)
 
 
+@staff.route('/api/holidays')
+@login_required
+def send_holidays_data():
+    records = []
+    for rec in Holidays.query.all():
+        # The event object is a dict object with a 'summary' key.
+        text_color = '#ffffff'
+        bg_color = '#4da6ff'
+        border_color = '#ffffff'
+        records.append({
+            'id': rec.id,
+            'start': rec.holiday_date.astimezone(tz).isoformat(),
+            'end': rec.holiday_date.astimezone(tz).isoformat(),
+            'title': u'{}'.format(rec.holiday_name),
+            'backgroundColor': bg_color,
+            'borderColor': border_color,
+            'textColor': text_color,
+            'type': 'login'
+        })
+    return jsonify(records)
+
+
+@staff.route('/for-hr/holiday', methods=['GET', 'POST'])
+@hr_permission.require()
+@login_required
+def add_holiday():
+    holiday = Holidays.query.all()
+    if request.method == 'POST':
+        holiday_d = request.form.get('holiday_date')
+        holiday_date = datetime.strptime(holiday_d, '%d/%m/%Y')
+        holiday = Holidays(
+            holiday_name=request.form.get('holiday_name'),
+            holiday_date=tz.localize(holiday_date),
+        )
+        db.session.add(holiday)
+        db.session.commit()
+        flash(u'เพิ่มวันหยุดเรียบร้อยแล้ว', 'success')
+        return render_template('staff/add_Holiday.html', holiday=holiday)
+    return render_template('staff/add_Holiday.html', holiday=holiday)
+
+
 @staff.route('/for-hr/organizations')
 @hr_permission.require()
 @login_required
