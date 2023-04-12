@@ -58,7 +58,6 @@ def landing():
 def create_receipt():
     form = ReceiptDetailForm()
     receipt_book = ComHealthReceiptID.query.filter_by(code='MTG').first()
-    form_list = ReceiptListForm()
     if form.validate_on_submit():
         receipt_detail = ElectronicReceiptDetail()
         receipt_detail.issuer = current_user
@@ -75,81 +74,52 @@ def create_receipt():
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
-    return render_template('receipt_printing/new_receipt.html', form=form, form_list=form_list)
+    return render_template('receipt_printing/new_receipt.html', form=form)
 
 
-@receipt_printing.route('/receipt/add-items', methods=['POST'])
+@receipt_printing.route('/receipt/create/add-items', methods=['POST', 'GET'])
 def list_add_items():
-    form = ReceiptListForm()
-    if form.validate_on_submit():
-        return u'''
-        <tr>
-            <td>{}</td>
-            <td>{}</td>
-            <td>{}</td>
-            <td>{}</td>
-            <td>{}</td>
-        </tr>
-    '''.format(form.item.data,
-               form.price.data,
-               form.gl.data,
-               form.cost_center.data,
-               form.internal_order_code.data
-               # form.item(class_="input", hidden=True),
-               # form.price(class_="input", placeholder=u"฿", hidden=True),
-               # form.gl(class_="select", hidden=True),
-               # form.cost_center(class_="select", hidden=True),
-               # form.internal_order_code(class_="select", hidden=True)
+    form = ReceiptDetailForm()
+    form.items.append_entry()
+    item_form = form.items[-1]
+    form_text = '<table class="table is-bordered is-fullwidth is-narrow">'
+    form_text += u'''
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+            {}
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+            {}
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+            {}
+    </div>
+    '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label,
+               item_form.price(class_="input", placeholder=u"฿",
+                               **{'hx-post': url_for("receipt_printing.update_amount"),
+                                  'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount',
+                                  'hx-swap': 'outerHTML'}),
+               item_form.gl.label, item_form.gl(),
+               item_form.cost_center.label, item_form.cost_center(),
+               item_form.internal_order_code.label, item_form.internal_order_code()
                )
-# @receipt_printing.route('/receipt/create/add-items', methods=['POST', 'GET'])
-# def list_add_items():
-#     form = ReceiptDetailForm()
-#     form.items.append_entry()
-#     item_form = form.items[-1]
-#     form_text = '<table class="table is-bordered is-fullwidth is-narrow">'
-#     form_text += u'''
-#     <div class="field">
-#         <label class="label">{}</label>
-#         <div class="control">
-#             {}
-#         </div>
-#     </div>
-#     <div class="field">
-#         <label class="label">{}</label>
-#         <div class="control">
-#             {}
-#         </div>
-#     </div>
-#     <div class="field">
-#         <label class="label">{}</label>
-#         <div class="select">
-#             {}
-#         </div>
-#     </div>
-#     <div class="field">
-#         <label class="label">{}</label>
-#         <div class="select">
-#             {}
-#         </div>
-#     </div>
-#     <div class="field">
-#         <label class="label">{}</label>
-#         <div class="select">
-#             {}
-#         </div>
-#     </div>
-#     '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label,
-#                item_form.price(class_="input", placeholder=u"฿",
-#                                **{'hx-post': url_for("receipt_printing.update_amount"),
-#                                   'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount',
-#                                   'hx-swap': 'outerHTML'}),
-#                item_form.gl.label, item_form.gl(class_="select"),
-#                item_form.cost_center.label, item_form.cost_center(class_="select"),
-#                item_form.internal_order_code.label, item_form.internal_order_code(class_="select")
-#                )
-#     resp = make_response(form_text)
-#     resp.headers['HX-Trigger-After-Swap'] = 'update_amount'
-#     return resp
+    resp = make_response(form_text)
+    resp.headers['HX-Trigger-After-Swap'] = 'update_amount'
+    return resp
 
 
 @receipt_printing.route('/receipt/create/update-amount', methods=['POST'])
@@ -161,72 +131,54 @@ def update_amount():
     return form.paid_amount(class_="input", readonly=True, value=total_amount)
 
 
-# @receipt_printing.route('/receipt/create/items-delete', methods=['POST', 'GET'])
-# def delete_items():
-#     form = ReceiptDetailForm()
-#     if len(form.items.entries) > 1:
-#         form.items.pop_entry()
-#         alert = False
-#     else:
-#         alert = True
-#     form_text = ''
-#     for item_form in form.items.entries:
-#         form_text += u'''
-#     <div class="field">
-#         <label class="label">{}</label>
-#         <div class="control">
-#             {}
-#         </div>
-#     </div>
-#     <div class="field">
-#         <label class="label">{}</label>
-#         <div class="control">
-#             {}
-#         </div>
-#     </div>
-#     <div class="field">
-#         <label class="label">{}</label>
-#         <div class="select">
-#             {}
-#         </div>
-#     </div>
-#     <div class="field">
-#         <label class="label">{}</label>
-#         <div class="select">
-#             {}
-#         </div>
-#     </div>
-#     <div class="field">
-#         <label class="label">{}</label>
-#         <div class="select">
-#             {}
-#         </div>
-#     </div>
-#     '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label,
-#                item_form.price(class_="input", placeholder=u"฿",
-#                                **{'hx-post': url_for("receipt_printing.update_amount"), 'hx-trigger': 'keyup changed delay:500ms',
-#                                   'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}),
-#                item_form.gl.label, item_form.gl(class_="select"),
-#                item_form.cost_center.label, item_form.cost_center(class_="select"),
-#                item_form.internal_order_code.label, item_form.internal_order_code(class_="select")
-#                )
-#
-#     resp = make_response(form_text)
-#     if alert:
-#         resp.headers['HX-Trigger-After-Swap'] = 'delete_warning'
-#     else:
-#         resp.headers['HX-Trigger-After-Swap'] = 'update_amount'
-#     return resp
+@receipt_printing.route('/receipt/create/items-delete', methods=['POST', 'GET'])
+def delete_items():
+    form = ReceiptDetailForm()
+    if len(form.items.entries) > 1:
+        form.items.pop_entry()
+        alert = False
+    else:
+        alert = True
+    form_text = ''
+    for item_form in form.items.entries:
+        form_text += u'''
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+            {}
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+            {}
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+            {}
+    </div>
+    '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label,
+               item_form.price(class_="input", placeholder=u"฿"),
+               item_form.gl.label, item_form.gl(),
+               item_form.cost_center.label, item_form.cost_center(),
+               item_form.internal_order_code.label, item_form.internal_order_code()
+               )
 
+    resp = make_response(form_text)
+    if alert:
+        resp.headers['HX-Trigger-After-Swap'] = 'delete_warning'
+    resp.headers['HX-Trigger-After-Swap'] = 'update_amount'
+    return resp
 
-@receipt_printing.route('/items/<int:item_id>/delete')
-def delete_items(item_id):
-    if item_id:
-        item = ElectronicReceiptItem.query.get(item_id)
-        flash(u'The items has been removed.')
-        db.session.delete(item)
-        db.session.commit()
-        return redirect(url_for('receipt_printing.create_receipt', item_id=item_id))
 
 # @receipt_printing.route('/list/receipts', methods=['GET'])
 # def list_all_receipts():
