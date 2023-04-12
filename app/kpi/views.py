@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy.sql import select
 from flask import request
 from flask import jsonify, render_template, Response
+from flask_login import login_required
 import pandas as pd
 from pandas import DataFrame
 import numpy as np
@@ -1782,6 +1783,7 @@ def show_boardeval():
 
 
 @kpi.route('/dashboard')
+@login_required
 def dashboard_index():
     dashboard = Dashboard.query.all()
     return render_template('kpi/dashboard/index.html', dashboard=dashboard)
