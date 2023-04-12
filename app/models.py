@@ -511,3 +511,14 @@ class ROPA(db.Model):
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
     updater_id = db.Column('updater_id', db.ForeignKey('staff_account.id'))
     updater = db.relationship(StaffAccount)
+
+
+class Dashboard(db.Model):
+    __tablename__ = 'dashboard'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    name = db.Column('name', db.String(), nullable=False)
+    description = db.Column('description', db.String(), nullable=False)
+    created_at = db.Column('created_at', db.DateTime(timezone=True), default=func.now())
+    url = db.Column('url', db.String())
+    mission_id = db.Column('mission_id', db.Integer(), db.ForeignKey('missions.id'), nullable=False)
+    mission = db.relationship('Mission', backref=db.backref('dashboard'))
