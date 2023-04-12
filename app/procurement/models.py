@@ -53,6 +53,7 @@ class ProcurementDetail(db.Model):
     is_reserved = db.Column('is_reserved', db.Boolean(), default=False)
     company_support = db.Column('company_support', db.String(), info={'label': u'ติดต่อบริษัท'})
     is_instruments = db.Column('is_instruments', db.Boolean(), default=False)
+    is_audio_visual_equipment = db.Column('is_audio_visual_equipment', db.Boolean(), default=False)
 
     def __str__(self):
         return u'{}: {}'.format(self.name, self.procurement_no)
