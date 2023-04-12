@@ -11,7 +11,7 @@ from dateutil.relativedelta import relativedelta
 from . import kpibp as kpi
 from ..main import db, json_keyfile
 from ..models import (Org, KPI, Strategy, StrategyTactic,
-                      StrategyTheme, StrategyActivity, KPISchema)
+                      StrategyTheme, StrategyActivity, KPISchema, Dashboard)
 
 import gspread
 import sys
@@ -1783,4 +1783,5 @@ def show_boardeval():
 
 @kpi.route('/dashboard')
 def dashboard_index():
-    return render_template('kpi/dashboard/index.html')
+    dashboard = Dashboard.query.all()
+    return render_template('kpi/dashboard/index.html', dashboard=dashboard)

@@ -40,6 +40,19 @@
         </nav>
       </div>
     </div>
-  </div>
+    <div class="columns">
+        <div class="column is-half is-offset-one-quarter">
+            <nav class="panel is-primary">
+                <p class="panel-heading">Power BI dashboard</p>
+                {% for d in dashboard %}
+                <a href="{{ d.url }}" target="_blank" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fas fa-tachometer-alt"></i>
+                    </span>
+                    <span>{{ d.name }}</span>
+                </a>
+                {% endfor %}
+        </div>
+    </div>
 </section>
 {% endblock %}
