@@ -188,7 +188,9 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#receipt_data').DataTable({})
+            $('#receipt_data').DataTable({
+                order: [[1, 'desc']]
+            })
         });
     </script>
 
