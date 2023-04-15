@@ -640,13 +640,48 @@ def view_require_receipt():
 def view_receipt_by_list_type(receipt_id=None):
     list_type = request.args.get('list_type')
     if list_type == "myAccount" or list_type is None:
-        record= ElectronicReceiptDetail.query.filter_by(issuer_id=current_user.id).all()
+        record = ElectronicReceiptDetail.query.filter_by(issuer_id=current_user.id).all()
     elif list_type == "ourAccount":
         org = current_user.personal_info.org
         record = [receipt for receipt in ElectronicReceiptDetail.query.all()
                     if receipt.issuer.personal_info.org == org]
     return render_template('receipt_printing/list_all_receipts.html',
                            receipt_id=receipt_id, record=record, list_type=list_type)
+
+
+@receipt_printing.route('api/receipt-data/all')
+def get_receipt_by_list_type():
+    query = ElectronicReceiptDetail.query
+    search = request.args.get('search[value]')
+    col_idx = request.args.get('order[0][column]')
+    direction = request.args.get('order[0][dir]')
+    col_name = request.args.get('columns[{}][data]'.format(col_idx))
+    query = query.filter(db.or_(
+        ElectronicReceiptDetail.number.ilike(u'%{}%'.format(search)),
+        ElectronicReceiptDetail.comment.ilike(u'%{}%'.format(search))
+    ))
+    column = getattr(ElectronicReceiptDetail, col_name)
+    if direction == 'desc':
+        column = column.desc()
+    query = query.order_by(column)
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['preview'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">Preview</a>'.format(
+            url_for('receipt_printing.show_receipt_detail', receipt_id=item.id))
+        item_data['created_datetime'] = item_data['created_datetime'].strftime('%d/%m/%Y, %H:%M:%S')
+        item_data['status'] = '<i class="fas fa-times has-text-danger"></i>' if item.cancelled else '<i class="far fa-check-circle has-text-success"></i>'
+
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ElectronicReceiptDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 
 @receipt_printing.route('/receipt/detail/show/<int:receipt_id>', methods=['GET', 'POST'])

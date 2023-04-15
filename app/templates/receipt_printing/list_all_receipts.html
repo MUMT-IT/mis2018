@@ -105,7 +105,7 @@
                         <th>เล่มที่</th>
                         <th>เลขที่</th>
                         <th>ออกวันที่</th>
-                        <th>จำนวนรายการ</th>
+{#                        <th>จำนวนรายการ</th>#}
                         <th>ครั้งที่พิมพ์</th>
                         <th>รายละเอียด</th>
 {#                        <th>พิมพ์ใบเสร็จ</th>#}
@@ -113,57 +113,9 @@
                         <th>หมายเหตุ</th>
                         <th>สถานะ</th>
                         <th>สาเหตุของการยกเลิก</th>
-                        <th>สร้างโดย</th>
+{#                        <th>สร้างโดย</th>#}
                         </thead>
                         <tbody>
-                        {% for r in record %}
-                            <tr>
-                                <td>{{ r.book_number }}</td>
-                                <td>{{ r.number }}</td>
-                                <td>{{ r.created_datetime|localdatetime }}</td>
-                                <td>{{ r.items|length }}</td>
-                                <td>{{ r.print_number}}</td>
-                                <td>
-                                    <a href="{{ url_for('receipt_printing.show_receipt_detail', receipt_id=r.id) }}">
-                                        <span class="icon">
-                                            <i class="fas fa-eye"></i>
-                                        </span>
-                                    <span>preview</span>
-                                    </a>
-                                </td>
-{#                                <td><a#}
-{#                                        {% if not r.cancelled and r.print_number<1 %}#}
-{#                                        href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=r.id) }}"#}
-{#                                        {% else %}#}
-{#                                        disabled#}
-{#                                        {% endif %}#}
-{#                                        >#}
-{#                                        <span class="icon">#}
-{#                                            <i class="fas fa-print"></i>#}
-{#                                        </span>#}
-{#                                </a>#}
-{#                                </td>#}
-{#                                <td><a href="{{ url_for('receipt_printing.confirm_cancel_receipt', receipt_id=r.id) }}">#}
-{#                                        <span class="icon">#}
-{#                                            <i class="far fa-times-circle has-text-danger"></i>#}
-{#                                        </span>#}
-{#                                    <span>cancel</span>#}
-{#                                </a>#}
-{#                                </td>#}
-                                <td>{{ r.comment or '' }}</td>
-                                <td>
-                                    <span class="icon">
-                                    {% if r.cancelled %}
-                                        <i class="fas fa-times has-text-danger"></i>
-                                    {% else %}
-                                        <i class="far fa-check-circle has-text-success"></i>
-                                    {% endif %}
-                                    </span>
-                                </td>
-                                <td>{{ r.cancel_comment or '' }}</td>
-                                <td>{{ r.issuer.personal_info.fullname }}</td>
-                            </tr>
-                        {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -189,7 +141,23 @@
     <script>
         $(document).ready(function () {
             $('#receipt_data').DataTable({
-                order: [[1, 'desc']]
+                order: [[1, 'desc']],
+                searchDelay: 350,
+                ajax: '{{ url_for("receipt_printing.get_receipt_by_list_type") }}',
+                serverSide: true,
+                columns: [
+                    {data: 'book_number'},
+                    {data: 'number'},
+                    {data: 'created_datetime'},
+                    {#{data: 'items|length'},#}
+                    {data: 'print_number'},
+                    {data: 'preview'},
+                    {data: 'comment'},
+                    {data: 'status'},
+                    {data: 'cancel_comment'},
+                    {#{data: 'issuer'}#}
+
+                ],
             })
         });
     </script>
