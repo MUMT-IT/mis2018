@@ -883,15 +883,15 @@ def show_detail_to_reserve(borrow_id=None):
 
 @procurement.route('/api/events')
 def get_events():
-    cal_start = request.args.get('start_date')
-    cal_end = request.args.get('end_date')
+    cal_start = request.args.get('start')
+    cal_end = request.args.get('end')
     if cal_start:
         cal_start = parser.isoparse(cal_start)
     if cal_end:
         cal_end = parser.isoparse(cal_end)
     all_events = []
-    for event in ProcurementBorrowDetail.query.filter(ProcurementBorrowDetail.start_date == cal_start)\
-            .filter(ProcurementBorrowDetail.end_date == cal_end):
+    for event in ProcurementBorrowDetail.query.filter(ProcurementBorrowDetail.start_date.between(cal_start, cal_end )):
+        print(event)
         start = event.start_date
         end = event.end_date
         borrower = event.borrower
@@ -904,9 +904,9 @@ def get_events():
             bg_color = '#f0f0f5'
             border_color = '#ff4d4d'
         evt = {
-            'borrower': borrower.fullname,
-            'start': start.astimezone(tz).isoformat(),
-            'end': end.astimezone(tz).isoformat(),
+            'title': event.items.first().procurement_detail.name,
+            'start': start.isoformat(),
+            'end': end.isoformat(),
             'resourceId': borrower.fullname,
             'borderColor': border_color,
             'backgroundColor': bg_color,

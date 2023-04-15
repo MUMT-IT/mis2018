@@ -60,10 +60,10 @@
                 header: {
                     left: 'borrower',
                 },
-                events: "{{ url_for('procurement.get_events') }}",
+                events: {{ url_for('procurement.get_events')|tojson|safe }},
                 lazyFetching: true,
                 eventLimit: true,
-                resources: "{{ url_for('procurement.get_procurement_to_reserved') }}",
+                resources: {{ url_for('procurement.get_procurement_to_reserved')|tojson|safe }},
                 resourceLabelText: 'Procurement',
                 eventClick: function(calEvent, jsEvent, view) {
                     window.location = '/procurement/events/' + calEvent.id;
