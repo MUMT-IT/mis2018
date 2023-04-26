@@ -17,13 +17,15 @@ class ProcurementDetail(db.Model):
     document_no = db.Column('document_no', db.String(), info={'label': u'เอกสารสั่งซื้อเลขที่'})
     erp_code = db.Column('erp_code', db.String(22), unique=True, info={'label': u'Inventory Number/ERP'})
     serial_no = db.Column('serial_no', db.String(), info={'label': u'Serial Number'})
-    bought_by = db.Column('bought_by', db.String(), info={'label': u'วิธีการจัดซื้อ', 'choices': [('None', u'--โปรดเลือกวิธีการจัดซื้อ--'),
-                                                                                            (u'ประกาศเชิญชวนทั่วไป(E-Bidding)',
-                                                                                             u'ประกาศเชิญชวนทั่วไป(E-Bidding)'),
-                                                                                            (u'วิธีคัดเลือก', u'วิธีคัดเลือก'),
-                                                                                            (u'วิธีเฉพาะเจาะจง',u'วิธีเฉพาะเจาะจง'),
-                                                                                            (u'รับบริจาค/รับโอน', u'รับบริจาค/รับโอน'),
-                                                                                            (u'สำรวจเจอ/แจ้งขึ้นทะเบียน', u'สำรวจเจอ/แจ้งขึ้นทะเบียน')]})
+    bought_by = db.Column('bought_by', db.String(),
+                          info={'label': u'วิธีการจัดซื้อ', 'choices': [('None', 'Select how to purchase..'),
+                                                                        (u'ประกาศเชิญชวนทั่วไป(E-Bidding)',
+                                                                         u'ประกาศเชิญชวนทั่วไป(E-Bidding)'),
+                                                                        (u'วิธีคัดเลือก', u'วิธีคัดเลือก'),
+                                                                        (u'วิธีเฉพาะเจาะจง', u'วิธีเฉพาะเจาะจง'),
+                                                                        (u'รับบริจาค/รับโอน', u'รับบริจาค/รับโอน'),
+                                                                        (u'สำรวจเจอ/แจ้งขึ้นทะเบียน',
+                                                                         u'สำรวจเจอ/แจ้งขึ้นทะเบียน')]})
     budget_year = db.Column('budget_year', db.String(), info={'label': u'ปีงบประมาณ'})
     price = db.Column('price', db.String(), info={'label': 'Original value(<=10,000)'})
     received_date = db.Column('received_date', db.Date(), info={'label': u'วันที่ได้รับ'})
@@ -73,7 +75,6 @@ class ProcurementDetail(db.Model):
             'erp_code': self.erp_code,
             'budget_year': self.budget_year,
             'received_date': self.received_date,
-            'purchasing_type': self.purchasing_type.purchasing_type,
             'available': self.available
         }
 
@@ -143,10 +144,10 @@ class ProcurementCommitteeApproval(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     record_id = db.Column('record_id', db.ForeignKey('procurement_records.id'))
     record = db.relationship('ProcurementRecord',
-                               backref=db.backref('approval', uselist=False))
+                             backref=db.backref('approval', uselist=False))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
     approver = db.relationship('StaffAccount',
-                              backref=db.backref('staff_approvers'))
+                               backref=db.backref('staff_approvers'))
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     approval_comment = db.Column('approval_comment', db.Text(), info={'label': u'ระบุรายละเอียด'})
@@ -164,7 +165,7 @@ class ProcurementRequire(db.Model):
     staff = db.relationship(StaffAccount)
     service_id = db.Column('service_id', db.ForeignKey('procurement_details.id'))
     service = db.relationship('ProcurementDetail',
-                           backref=db.backref('details', lazy='dynamic'))
+                              backref=db.backref('details', lazy='dynamic'))
     record_id = db.Column('record_id', db.ForeignKey('procurement_records.id'))
     record = db.relationship('ProcurementRecord', backref=db.backref('records'))
     desc = db.Column('desc', db.Text(), info={'label': u'คำอธิบาย'})
@@ -194,4 +195,135 @@ class ProcurementMaintenance(db.Model):
                                                       'choices': [(c, c) for c in
                                                                   [u'ต้องการเบิกอะไหล่', u'ไม่ต้องการเบิกอะไหล่',
                                                                    u'อื่นๆ']]})
+
+
+class ProcurementInfoComputer(db.Model):
+    __tablename__ = 'procurement_info_computers'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    mac_address = db.Column('mac_address', db.String(), info={'label': 'MAC Address'})
+    computer_name = db.Column('computer_name', db.String(), info={'label': u'ชื่อคอมพิวเตอร์'})
+    detail_id = db.Column('detail_id', db.ForeignKey('procurement_details.id'))
+    detail = db.relationship('ProcurementDetail',
+                               backref=db.backref('computer_info', uselist=False))
+    cpu_id = db.Column('cpu_id', db.ForeignKey('procurement_info_cpus.id'))
+    cpu = db.relationship('ProcurementInfoCPU',
+                          backref=db.backref('cpu_of_computers', lazy='dynamic'))
+    ram_id = db.Column('ram_id', db.ForeignKey('procurement_info_rams.id'))
+    ram = db.relationship('ProcurementInfoRAM',
+                          backref=db.backref('ram_of_computers', lazy='dynamic'))
+    windows_version_id = db.Column('windows_version_id', db.ForeignKey('procurement_info_windows_versions.id'))
+    windows_version = db.relationship('ProcurementInfoWindowsVersion',
+                                      backref=db.backref('windows_ver_of_computers', lazy='dynamic'))
+    user_id = db.Column('user_id', db.ForeignKey('staff_account.id'))
+    user = db.relationship(StaffAccount, foreign_keys=[user_id])
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'mac_address': self.mac_address,
+            'computer_name': self.computer_name,
+            'cpu': self.cpu.cpu,
+            'ram': self.ram.ram,
+            'windows_version': self.windows_version.windows_version,
+            'user': self.user.personal_info.fullname
+        }
+
+
+class ProcurementInfoCPU(db.Model):
+    __tablename__ = 'procurement_info_cpus'
+    id = db.Column('id', db.Integer, primary_key=True, autoincrement=True)
+    cpu = db.Column('cpu', db.String(), info={'label': 'CPU'})
+
+    def __str__(self):
+        return u'{}'.format(self.cpu)
+
+
+class ProcurementInfoRAM(db.Model):
+    __tablename__ = 'procurement_info_rams'
+    id = db.Column('id', db.Integer, primary_key=True, autoincrement=True)
+    ram = db.Column('ram', db.String(), info={'label': 'RAM(GB)'})
+
+    def __str__(self):
+        return u'{}'.format(self.ram)
+
+
+class ProcurementInfoWindowsVersion(db.Model):
+    __tablename__ = 'procurement_info_windows_versions'
+    id = db.Column('id', db.Integer, primary_key=True, autoincrement=True)
+    windows_version = db.Column('windows_version', db.String(), info={'label': 'Windows Version'})
+
+    def __str__(self):
+        return u'{}'.format(self.windows_version)
+
+
+class ProcurementSurveyComputer(db.Model):
+    __tablename__ = 'procurement_survey_computers'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    surveyor_id = db.Column('surveyor_id', db.ForeignKey('staff_account.id'))
+    surveyor = db.relationship(StaffAccount, foreign_keys=[surveyor_id])
+    satisfaction_with_speed_of_use = db.Column('satisfaction_with_speed_of_use', db.String(),
+                                               info={'label': u'ความพึงพอใจในสภาพความพร้อมใช้ของเครื่องคอมพิวเตอร์[ความเร็วในการใช้งาน]'})
+    satisfaction_with_continuous_work = db.Column('satisfaction_with_continuous_work', db.String(),
+                                                  info={'label': u'ความพึงพอใจในสภาพความพร้อมใช้ของเครื่องคอมพิวเตอร์[การทำงานต่อเนื่อง, ไม่ล่ม หรือค้าง]'})
+    satisfaction_with_enough_space = db.Column('satisfaction_with_enough_space', db.String(),
+                                               info={'label': u'ความพึงพอใจในสภาพความพร้อมใช้ของเครื่องคอมพิวเตอร์[พื้นที่พอเพียง]'})
+    personal_info = db.Column('personal_info', db.Boolean(), default=False,
+                              info={'label': u'มีการจัดเก็บและประมวลผลข้อมูลส่วนบุคคลในเครื่องคอมพิวเตอร์'})
+    check_back_up_file = db.Column('check_back_up_file', db.String(),
+                                   info={'label': u'ตรวจสอบการใช้งานแฟ้มข้อมูลสำหรับสำรองข้อมูลใน NAS Server',
+                                         'choices': [('None', u'--เลือกรายละเอียดการใช้งาน--'),
+                                                     (u'ไม่มีการใช้งาน', u'ไม่มีการใช้งาน'),
+                                                     (u'ไม่พบ', u'ไม่พบ'),
+                                                     (u'มีการใช้งานเล็กน้อย', u'มีการใช้งานเล็กน้อย'),
+                                                     (u'มีการใช้งานอยู่ปกติ', u'มีการใช้งานอยู่ปกติ'),
+                                                     (u'มีการใช้งานอยู่ประจำ', u'มีการใช้งานอยู่ประจำ'),
+                                                     (u'มีการใช้งานเยอะมาก', u'มีการใช้งานเยอะมาก')]})
+    reason_no_backup_file = db.Column('reason_no_backup_file', db.String(),
+                                      info={'label': u'สาเหตุที่ไม่มีการใช้งานแฟ้มข้อมูลสำหรับการสำรองข้อมูลไปยัง NAS Server',
+                                         'choices': [('None', u'--เลือกรายละเอียดการใช้งาน--'),
+                                                     (u'ไม่ทราบ', u'ไม่ทราบ'),
+                                                     (u'ไม่สะดวก', u'ไม่สะดวก'),
+                                                     (u'ใช้งานไม่เป็น', u'ใช้งานไม่เป็น'),
+                                                     (u'อื่นๆ', u'อื่นๆ')]})
+    check_anti_virus_update = db.Column('check_anti_virus_update', db.String(),
+                                        info={'label': u'ตรวจสอบ Anti-Virus Update',
+                                              'choices': [('None', u'--เลือกรายละเอียดการติดตั้ง--'),
+                                                          (u'ไม่มีการติดตั้งระบบ', u'ไม่มีการติดตั้งระบบ'),
+                                                          (u'มีการติดตั้งและอัพเดตระบบล่าสุด',
+                                                           u'มีการติดตั้งและอัพเดตระบบล่าสุด'),
+                                                          (u'มีการติดตั้งแต่ไม่ได้อัพเดตระบบล่าสุด',
+                                                           u'มีการติดตั้งแต่ไม่ได้อัพเดตระบบล่าสุด')
+                                                          ]})
+    check_windows_update = db.Column('check_windows_update', db.String(),
+                                     info={'label': u'ตรวจสอบ Windows Update',
+                                           'choices': [('None', u'--เลือกการอัพเดต--'),
+                                                       (u'ไม่มีการอัพเดตเป็นรุ่นล่าสุด', u'ไม่มีการอัพเดตเป็นรุ่นล่าสุด'),
+                                                       (u'มีการอัพเดตเป็นรุ่นล่าสุด', u'มีการอัพเดตเป็นรุ่นล่าสุด')
+                                                       ]})
+    list_software = db.Column('list_software', db.String(),
+                              info={'label': u'รายชื่อ Software ที่มีลิขสิทธิ์ไม่ถูกต้อง'})
+    setting_user_login = db.Column('setting_user_login', db.String(),
+                                   info={'label': u'จัดการตั้งค่ารหัสผ่านสำหรับ User login',
+                                         'choices': [('None', u'--เลือกการจัดการ--'),
+                                                     (u'จัดการเรียบร้อยแล้ว', u'จัดการเรียบร้อยแล้ว'),
+                                                     (u'ยังไม่เรียบร้อย', u'ยังไม่เรียบร้อย')
+                                                     ]})
+    setting_screen_saver = db.Column('setting_screen_saver', db.String(),
+                                     info={'label': u'จัดการตั้งค่ารหัสผ่านการป้องกัน Screen saver',
+                                           'choices': [('None', u'--เลือกการจัดการ--'),
+                                                       (u'จัดการเรียบร้อยแล้ว', u'จัดการเรียบร้อยแล้ว'),
+                                                       (u'ยังไม่เรียบร้อย', u'ยังไม่เรียบร้อย')
+                                                       ]})
+    check_ms_office_and_windows_activation = db.Column('check_ms_office_and_windows_activation', db.String(),
+                                                       info={'label': u'ตรวจสอบ MS-Office and Windows activation',
+                                                             'choices': [('None', u'--เลือกการจัดการ--'),
+                                                                         (u'จัดการเรียบร้อยแล้ว',
+                                                                          u'จัดการเรียบร้อยแล้ว'),
+                                                                         (u'ยังไม่เรียบร้อย', u'ยังไม่เรียบร้อย')
+                                                                         ]})
+    requirement = db.Column('requirement', db.Text(), info={'label': u'ความต้องการเพิ่มเติมหรือข้อเสนอแนะ'})
+    survey_date = db.Column('survey_date', db.DateTime(timezone=True), server_default=func.now())
+    computer_info_id = db.Column('computer_info_id', db.ForeignKey('procurement_info_computers.id'))
+    computer_info = db.relationship('ProcurementInfoComputer', foreign_keys=[computer_info_id],
+                             backref=db.backref('survey_records', lazy='dynamic'))
 

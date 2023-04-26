@@ -234,6 +234,11 @@ admin.add_views(ModelView(ProcurementRequire, db.session, category='Procurement'
 admin.add_views(ModelView(ProcurementMaintenance, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementPurchasingType, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementCommitteeApproval, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementInfoComputer, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementInfoCPU, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementInfoRAM, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementInfoWindowsVersion, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementSurveyComputer, db.session, category='Procurement'))
 
 from purchase_tracker import purchase_tracker_bp as purchase_tracker_blueprint
 
