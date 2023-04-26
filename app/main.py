@@ -173,8 +173,13 @@ from kpi import kpibp as kpi_blueprint
 app.register_blueprint(kpi_blueprint, url_prefix='/kpi')
 
 from app.complaint_tracker import complaint_tracker
+from app.complaint_tracker.models import *
 
 app.register_blueprint(complaint_tracker)
+
+admin.add_views(ModelView(ComplaintTopic, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintCategory, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintAdmin, db.session, category='Complaint'))
 
 
 class KPIAdminModel(ModelView):
