@@ -172,6 +172,10 @@ from kpi import kpibp as kpi_blueprint
 
 app.register_blueprint(kpi_blueprint, url_prefix='/kpi')
 
+from app.complaint_tracker import complaint_tracker
+
+app.register_blueprint(complaint_tracker)
+
 
 class KPIAdminModel(ModelView):
     can_create = True
