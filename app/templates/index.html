@@ -211,6 +211,12 @@
                 </nav>
                 <nav class="panel is-light">
                     <p class="panel-heading">Administrator</p>
+                    <a href="{{ url_for('comp_tracker.admin_index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-clock"></i>
+                        </span>
+                        <span class="is-size-5">ระบบบริหารข้อร้องเรียน</span>
+                    </a>
                     <a href="{{ url_for('staff.login_scan') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-clock"></i>

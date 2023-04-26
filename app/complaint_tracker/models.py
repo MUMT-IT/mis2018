@@ -74,11 +74,11 @@ class ComplaintActionRecord(db.Model):
     __tablename__ = 'complaint_action_records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     record_id = db.Column('record_id', db.ForeignKey('complaint_records.id'))
-    record = db.relationship(ComplaintRecord, backref=db.backref('action_records', cascade='all, delete-orphan'))
+    record = db.relationship(ComplaintRecord, backref=db.backref('actions', cascade='all, delete-orphan'))
     reviewer_id = db.Column('reviewer_id', db.ForeignKey('complaint_admins.id'))
-    reviewer = db.relationship(ComplaintAdmin, backref=db.backref('action_records', cascade='all, delete-orphan'),
+    reviewer = db.relationship(ComplaintAdmin, backref=db.backref('actions', cascade='all, delete-orphan'),
                                foreign_keys=[reviewer_id])
-    review_comment = db.Column('review_comment', db.Text())
+    review_comment = db.Column('review_comment', db.Text(), info={'label': u'บันทึกจากผู้รีวิว'})
     approver_id = db.Column('approver_id', db.ForeignKey('complaint_admins.id'))
     approver = db.relationship(ComplaintAdmin, foreign_keys=[approver_id])
     approved = db.Column('approved', db.DateTime(timezone=True))

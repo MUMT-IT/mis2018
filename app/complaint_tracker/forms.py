@@ -1,5 +1,8 @@
+# -*- coding:utf-8 -*-
+
 from flask_wtf import FlaskForm
-from wtforms_alchemy import model_form_factory
+from wtforms import FormField, FieldList
+from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.complaint_tracker.models import *
 
 
@@ -12,6 +15,14 @@ class ModelForm(BaseModelForm):
         return db.session
 
 
+class ComplaitActionRecordForm(ModelForm):
+    class Meta:
+        model = ComplaintActionRecord
+
+
 class ComplaintRecordForm(ModelForm):
     class Meta:
         model = ComplaintRecord
+    status = QuerySelectField(u'สถานะ', query_factory=lambda: ComplaintStatus.query.all())
+    priority = QuerySelectField(u'ระดับความสำคัญ', query_factory=lambda: ComplaintPriority.query.all())
+    actions = FieldList(FormField(ComplaitActionRecordForm, default=ComplaintActionRecord), min_entries=1)
