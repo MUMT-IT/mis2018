@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        {% include 'messages.html' %}
+        <div class="columns">
+            <div class="column">
+                <h1 class="title has-text-centered">ระบบบริหารจัดการข้อร้องเรียน</h1>
+                <div class="box">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">หมวด</label>
+                            <div class="control">
+                                <input class="input" readonly value="{{ record.topic.category }}">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">หัวข้อ</label>
+                            <div class="control">
+                                <input class="input" readonly value="{{ record.topic.topic }}">
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.desc.label }}</label>
+                            <div class="control">
+                                {{ form.desc(class="textarea is-danger", readonly=True) }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.status.label }}</label>
+                            <div class="select">
+                                {{ form.status() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.priority.label }}</label>
+                            <div class="select">
+                                {{ form.priority() }}
+                            </div>
+                        </div>
+                        {% for action_form in form.actions %}
+                            <div class="field">
+                                <label class="label">{{ action_form.review_comment.label }}</label>
+                                <div class="control">
+                                    {{ action_form.review_comment(class="textarea") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ action_form.deadline.label }}</label>
+                                <div class="control">
+                                    {{ action_form.deadline(class="input", type="text") }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                        <div class="field">
+                            <div class="control">
+                                <a class="button is-light" href="{{ url_for('comp_tracker.admin_index') }}">Back</a>
+                                <input class="button is-primary" type="submit" value="Submit">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    $('input[name$="deadline"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: true,
+        timePickerIncrement: 15,
+        timePicker24Hour: true,
+        locale: {
+            format: 'YYYY-MM-DD HH:mm:ss'
+        }
+    });
+</script>
+{% endblock %}
