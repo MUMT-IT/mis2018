@@ -49,18 +49,18 @@
                                     <p class="help is-danger">Required</p>
                                 </div>
                             </div>
-                            <div class="field-body">
-                                <div class="field">
-                                    <label class="label">{{ form.category.label }}
-                                        <a href="{{ url_for('procurement.add_category_ref') }}">
-                                            <i class="far fa-plus-square"></i>
-                                        </a>
-                                    </label>
-                                    <div class="select is-fullwidth is-danger">
-                                        {{ form.category() }}
-                                    </div>
-                                    <p class="help is-danger">Required</p>
+                            <div class="field">
+                                <label class="label">{{ form.category.label }}
+                                    <a href="{{ url_for('procurement.add_category_ref') }}">
+                                        <i class="far fa-plus-square"></i>
+                                    </a>
+                                </label>
+                                <div>
+                                    {{ form.category(class="select") }}
                                 </div>
+                                <p class="help is-danger">Required</p>
+                            </div>
+                            <div class="field-body">
                                 <div class="field">
                                     <label class="label">{{ form.serial_no.label }}</label>
                                     <div class="control">
@@ -76,8 +76,8 @@
                                 </div>
                                 <div class="field">
                                     <label class="label">วิธีการจัดซื้อ</label>
-                                    <div class="select is-fullwidth">
-                                        {{ form.bought_by() }}
+                                    <div>
+                                        {{ form.bought_by(class="select") }}
                                     </div>
                                 </div>
                             </div>
@@ -138,9 +138,9 @@
                                     <p class="help is-danger">Required</p>
                                 </div>
                                 <div class="field">
-                                    <label class="label">{{ form.available.label }}</label>
-                                    <div class="select is-fullwidth is-danger">
-                                        {{ form.available() }}
+                                    <label class="label">{{ form.budget_year.label }}</label>
+                                    <div class="control">
+                                        {{ form.budget_year(class="input is-danger") }}
                                     </div>
                                     <p class="help is-danger">Required</p>
                                 </div>
@@ -148,15 +148,8 @@
                             <div class="field-body">
                                 <div class="field">
                                     <label class="label">{{ form.purchasing_type.label }}</label>
-                                    <div class="select is-fullwidth is-danger">
-                                        {{ form.purchasing_type() }}
-                                    </div>
-                                    <p class="help is-danger">Required</p>
-                                </div>
-                                <div class="field">
-                                    <label class="label">{{ form.budget_year.label }}</label>
-                                    <div class="control">
-                                        {{ form.budget_year(class="input is-danger") }}
+                                    <div>
+                                        {{ form.purchasing_type(class="select") }}
                                     </div>
                                     <p class="help is-danger">Required</p>
                                 </div>
@@ -172,7 +165,13 @@
                                     <div class="control">
                                         {{ form.curr_acq_value(class="input is-danger", placeholder="฿") }}
                                     </div>
-
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.available.label }}</label>
+                                    <div>
+                                        {{ form.available(class="select") }}
+                                    </div>
+                                    <p class="help is-danger">Required</p>
                                 </div>
                             </div>
                             <br>
@@ -191,8 +190,8 @@
                             </div>
                             <div class="field">
                                 <label class="label">{{ form.org.label }}</label>
-                                <div class="select is-fullwidth">
-                                    {{ form.org() }}
+                                <div>
+                                    {{ form.org(class="select") }}
                                 </div>
                             </div>
                             <div class="field">
@@ -306,18 +305,18 @@
         };
     </script>
     <script>
-    $(document).ready(()=>{
-        $('#filename').text("None");
-    })
-    $('#image_file_upload').change(function(e) {
-        let fileName = e.target.files[0].name;
-        $('#filename').text(fileName);
-    });
+        $(document).ready(() => {
+            $('#filename').text("None");
+        })
+        $('#image_file_upload').change(function (e) {
+            let fileName = e.target.files[0].name;
+            $('#filename').text(fileName);
+        });
     </script>
     <script>
-       $(document).ready(() => {
-            $('select[id^="records-"]').select2({
-                width: '400px',
+        $(document).ready(() => {
+            $('.select').select2({
+                width: '100%',
 
             });
         });

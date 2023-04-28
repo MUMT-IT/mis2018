@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">รายละเอียดการสำรวจ</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered is-two-thirds is-offset-2">
+                <div class="card">
+                    <div class="card-content">
+                        <table class="table is-striped is-bordered is-fullwidth">
+                            <colgroup>
+                                <col span="1" style="width: 25%;">
+                                <col span="1" style="width: 75%;">
+                            </colgroup>
+                            <tr>
+                                <td><label class="label">ผู้สำรวจ</label></td>
+                                <td>{{ survey.surveyor.fullname }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ความพึงพอใจในสภาพความพร้อมใช้ของเครื่องคอมพิวเตอร์[ความเร็วในการใช้งาน]</label></td>
+                                <td>{{ survey.satisfaction_with_speed_of_use }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ความพึงพอใจในสภาพความพร้อมใช้ของเครื่องคอมพิวเตอร์[การทำงานต่อเนื่อง, ไม่ล่ม หรือค้าง]</label></td>
+                                <td>{{ survey.satisfaction_with_continuous_work }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ความพึงพอใจในสภาพความพร้อมใช้ของเครื่องคอมพิวเตอร์[พื้นที่พอเพียง]</label></td>
+                                <td>{{ survey.satisfaction_with_enough_space }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">มีการจัดเก็บและประมวลผลข้อมูลส่วนบุคคลในเครื่องคอมพิวเตอร์</label></td>
+                                <td>{{ survey.personal_info }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ตรวจสอบการใช้งานแฟ้มข้อมูลสำหรับสำรองข้อมูลใน NAS Server</label></td>
+                                <td>{{ survey.check_back_up_file }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">สาเหตุที่ไม่มีการใช้งานแฟ้มข้อมูลสำหรับการสำรองข้อมูลไปยัง NAS Server</label></td>
+                                <td>{{ survey.reason_no_backup_file }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ตรวจสอบ Anti-Virus Update</label></td>
+                                <td>{{ survey.check_anti_virus_update }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ตรวจสอบ Windows Update</label></td>
+                                <td>{{ survey.check_windows_update }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">รายชื่อ Software ที่มีลิขสิทธิ์ไม่ถูกต้อง</label></td>
+                                <td>{{ survey.list_softwaret }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">จัดการตั้งค่ารหัสผ่านสำหรับ User login</label></td>
+                                <td>{{ survey.setting_user_login }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">จัดการตั้งค่ารหัสผ่านการป้องกัน Screen saver</label></td>
+                                <td>{{ survey.setting_screen_saver }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ตรวจสอบ MS-Office and Windows activation</label></td>
+                                <td>{{ survey.check_ms_office_and_windows_activation }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ความต้องการเพิ่มเติมหรือข้อเสนอแนะ</label></td>
+                                <td>{{ survey.requirement }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">วันที่สำรวจ</label></td>
+                                <td>{{ survey.survey_date|localdatetime }}</td>
+                            </tr>
+                        </table>
+                        <div class="buttons is-centered">
+                            <a href="{{ url_for('procurement.new_checking_computer_info', procurement_id=survey.computer_info.detail.id) }}" class="button is-light">กลับ</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super }}
+
+{% endblock %}

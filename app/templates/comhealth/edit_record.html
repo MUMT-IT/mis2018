@@ -175,6 +175,14 @@
                                                 />
                                             </div>
                                         </div>
+                                        <div class="field">
+                                            <label class="label">Note</label>
+                                            <div class="control">
+                                                <input class="input" name='note' type="text"
+                                                       value='{{ record.note or "" }}'
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -264,7 +272,13 @@
                     <div class="column">
                         <h1 class="title is-size-4">รายการตรวจพิเศษ (Special Tests)</h1>
                 {% for group in record.service.groups %}
-                <b-collapse class="card" animation="slide" :open="false" aria-id="contentIdForA11y3">
+                <b-collapse class="card" animation="slide"
+                            {% if group.id in group_preregister %}
+                                :open="open"
+                            {% else %}
+                                :open="false"
+                            {% endif %}
+                            aria-id="contentIdForA11y3">
                     <div
                             slot="trigger"
                             open="false"

@@ -326,6 +326,7 @@ class ComHealthRecord(db.Model):
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     urgent = db.Column('urgent', db.Boolean(), default=False)
     comment = db.Column('comment', db.Text())
+    note = db.Column('note', db.Text())
     finance_contact_id = db.Column('finance_contact_id',
                                    db.ForeignKey('comhealth_finance_contact_reason.id'))
     finance_contact = db.relationship(ComHealthFinanceContactReason, backref=db.backref('records'))

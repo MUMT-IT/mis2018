@@ -39,14 +39,17 @@ seminar_approval_attend_assoc_table = db.Table('seminar_approval_attend_assoc',
                                                )
 
 staff_seminar_mission_assoc_table = db.Table('staff_seminar_mission_assoc',
-                                   db.Column('seminar_id', db.ForeignKey('staff_seminar.id')),
-                                   db.Column('seminar_mission_id', db.ForeignKey('staff_seminar_missions.id')),
-                                   )
+                                             db.Column('seminar_id', db.ForeignKey('staff_seminar.id')),
+                                             db.Column('seminar_mission_id',
+                                                       db.ForeignKey('staff_seminar_missions.id')),
+                                             )
 
 staff_seminar_objective_assoc_table = db.Table('staff_seminar_objective_assoc',
-                                             db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id')),
-                                             db.Column('seminar_objective_id', db.ForeignKey('staff_seminar_objectives.id')),
-                                             )
+                                               db.Column('seminar_attend_id',
+                                                         db.ForeignKey('staff_seminar_attends.id')),
+                                               db.Column('seminar_objective_id',
+                                                         db.ForeignKey('staff_seminar_objectives.id')),
+                                               )
 
 
 def local_datetime(dt):
@@ -96,6 +99,10 @@ class StaffAccount(db.Model):
     @property
     def fullname(self):
         return self.personal_info.fullname
+
+    @property
+    def en_fullname(self):
+        return self.personal_info.en_fullname
 
     @property
     def has_password(self):
@@ -158,16 +165,72 @@ class StaffPersonalInfo(db.Model):
     academic_staff = db.Column('academic_staff', db.Boolean())
     retired = db.Column('retired', db.Boolean(), default=False)
     position = db.Column('position', db.String(), info={'label': u'ตำแหน่ง'})
+    retirement_date = db.Column('retirement_date', db.Date(), nullable=True)
+    resignation_date = db.Column('resignation_date', db.Date(), nullable=True)
 
     def __str__(self):
         return self.fullname
 
     @property
     def fullname(self):
-        if self.th_firstname or self.th_lastname:
-            return u'{}{} {}'.format(self.th_title or u'คุณ', self.th_firstname, self.th_lastname)
+        try:
+            academic_position = self.academic_positions[0]
+        except IndexError:
+            if self.academic_staff:
+                th_position = u'อาจารย์'
+                en_position = u'Lecturer'
+            else:
+                th_position = None
+                en_position = None
         else:
-            return u'{}{} {}'.format(self.en_title or '', self.en_firstname, self.en_lastname)
+            th_position = academic_position.position.shortname_th
+            en_position = academic_position.position.shortname_en
+
+        if self.th_firstname or self.th_lastname:
+            if th_position:
+                if self.th_title == u'ดร.':
+                    return u'{} {}{} {}'.format(th_position, self.th_title or '', self.th_firstname, self.th_lastname)
+                else:
+                    return u'{} {} {}'.format(th_position, self.th_firstname, self.th_lastname)
+            else:
+                return u'{}{} {}'.format(self.th_title or '', self.th_firstname, self.th_lastname)
+        else:
+            if en_position:
+                if self.en_title == u'Dr.':
+                    return u'{} {}{} {}'.format(en_position,
+                                                self.en_title or '',
+                                                self.en_firstname,
+                                                self.en_lastname)
+                else:
+                    return u'{} {} {}'.format(en_position, self.en_firstname, self.en_lastname)
+            else:
+                return u'{}{} {}'.format(self.en_title or '', self.en_firstname, self.en_lastname)
+
+    @property
+    def en_fullname(self):
+        try:
+            academic_position = self.academic_positions[0]
+        except IndexError:
+            if self.academic_staff:
+                en_position = u'Lecturer'
+            else:
+                en_position = None
+        else:
+            en_position = academic_position.position.shortname_en
+
+        if en_position:
+            if self.en_title == u'Dr.':
+                return u'{} {}{} {}'.format(en_position,
+                                            self.en_title,
+                                            self.en_firstname,
+                                            self.en_lastname)
+            else:
+                return u'{} {} {}'.format(en_position, self.en_firstname, self.en_lastname)
+        else:
+            if self.en_title == u'Dr.':
+                return u'{}{} {}'.format(self.en_title, self.en_firstname, self.en_lastname)
+            else:
+                return u'{}{} {}'.format(self.en_title or '', self.en_firstname, self.en_lastname)
 
     def get_employ_period(self):
         today = datetime.now().date()
@@ -183,7 +246,7 @@ class StaffPersonalInfo(db.Model):
         period = self.get_employ_period()
         if period.years > 0:
             return True
-        elif period.years == 0 and period.months > minmonth:
+        elif period.years == 0 and period.months >= minmonth:
             return True
         else:
             return False
@@ -293,9 +356,12 @@ class StaffAcademicPosition(db.Model):
                       info={'label': u'',
                             'choices': ((0, u'อาจารย์'),
                                         (1, u'ผู้ช่วยศาสตราจารย์'),
-                                        (2, u'รองศาสตรจารย์'),
-                                        (3, u'ศาสตรจารย์'))
+                                        (2, u'รองศาสตราจารย์'),
+                                        (3, u'ศาสตราจารย์'))
                             })
+
+    def __str__(self):
+        return self.shortname_th
 
 
 class StaffAcademicPositionRecord(db.Model):
@@ -309,6 +375,9 @@ class StaffAcademicPositionRecord(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
     position_id = db.Column(db.ForeignKey('staff_academic_position.id'))
     position = db.relationship(StaffAcademicPosition, backref=db.backref('records'))
+
+    def __str__(self):
+        return self.position.fullname_th
 
 
 class StaffEmployment(db.Model):
@@ -461,6 +530,7 @@ class StaffLeaveApprover(db.Model):
     @property
     def approver_name(self):
         return self.account.personal_info.fullname
+
     def __str__(self):
         return "{}->{}".format(self.account.email, self.requester.email)
 
@@ -617,7 +687,7 @@ class StaffSeminar(db.Model):
                            default=datetime.now())
     topic_type = db.Column('topic_type', db.String(),
                            info={'label': u'ประเภท',
-                               'choices': [(c, c) for c in [u'อบรม', u'สัมมนา', u'ประชุม', u'ประชุมวิชาการ']]})
+                                 'choices': [(c, c) for c in [u'อบรม', u'สัมมนา', u'ประชุม', u'ประชุมวิชาการ']]})
     topic = db.Column('topic', db.String(), info={'label': u'หัวข้อ'})
     organize_by = db.Column('organize_by', db.String(), info={'label': u'หน่วยงานที่จัด'})
     location = db.Column('location', db.String(), info={'label': u'สถานที่จัด'})
@@ -640,6 +710,7 @@ class StaffSeminarObjective(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     objective = db.Column('objective', db.String())
 
+
 class StaffSeminarAttend(db.Model):
     __tablename__ = 'staff_seminar_attends'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -653,7 +724,8 @@ class StaffSeminarAttend(db.Model):
     registration_fee = db.Column('registration_fee', db.Float(), info={'label': u'ค่าลงทะเบียน (บาท)'})
     invited_document_id = db.Column('document_id', db.String(), info={'label': u'เลขที่หนังสือเชิญ'})
     invited_organization = db.Column('invited_organization', db.String(), info={'label': u'หน่วยงานที่เชิญ'})
-    invited_document_date = db.Column('invited_document_date', db.DateTime(timezone=True), info={'label': u'ลงวันที่หนังสือ'})
+    invited_document_date = db.Column('invited_document_date', db.DateTime(timezone=True),
+                                      info={'label': u'ลงวันที่หนังสือ'})
     document_title = db.Column('document_title', db.String(), info={'label': u'ชื่อเรื่องหนังสือ'})
     taxi_cost = db.Column('taxi_cost', db.Float(), info={'label': u'ค่า Taxi (บาท)'})
     train_ticket_cost = db.Column('train_ticket_cost', db.Float(), info={'label': u'ค่าตั๋วรถไฟ (บาท)'})
@@ -663,7 +735,8 @@ class StaffSeminarAttend(db.Model):
     budget_type = db.Column('budget_type', db.String(), info={'label': u'แหล่งทุน'})
     transaction_fee = db.Column('transaction_fee', db.Float(), info={'label': u'ค่าธรรมเนียมการโอน (บาท)'})
     budget = db.Column('budget', db.Float(), info={'label': u'ค่าใช้จ่ายรวมทั้งหมด (บาท)'})
-    attend_online = db.Column('attend_online', db.Boolean(), default=False, info={'label': u'เข้าร่วมผ่านช่องทาง online'})
+    attend_online = db.Column('attend_online', db.Boolean(), default=False,
+                              info={'label': u'เข้าร่วมผ่านช่องทาง online'})
     contact_no = db.Column('contact_no', db.Integer(), info={'label': u'เบอร์โทรภายใน'})
     head_account_id = db.Column('head_account_id', db.ForeignKey('staff_account.id'))
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))

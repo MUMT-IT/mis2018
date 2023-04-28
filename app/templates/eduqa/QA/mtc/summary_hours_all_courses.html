@@ -6,10 +6,6 @@
 {{ super() }}
 <style>
     th, td { white-space: nowrap; }
-    div.dataTables_wrapper {
-        width: 1000px;
-        margin: 0 auto;
-    }
 </style>
 {% endblock %}
 
@@ -17,32 +13,52 @@
 <section class="section" id="app">
     <div class="container">
         <h1 class="title has-text-centered">จำนวนชั่วโมงสอนตามตารางสอนรายวิชา</h1>
-        <table style="width: 100%" class="stripe row-border order-column" id="myTable">
-            <thead>
-            <th>ผู้สอน</th>
-            {% for col in sum_hours.columns %}
-            <th>{{ col }}</th>
-            {% endfor %}
-            </thead>
-            <tbody>
-            {% for idx, row in sum_hours.iterrows() %}
-            {% if row.name != 'All' %}
-            <tr>
-                <td>{{ row.name }}</td>
-                {% for c in row %}
-                <td>{{ c }}</td>
-                {% endfor %}
-            </tr>
-            {% endif %}
-            {% endfor %}
-            </tbody>
-        </table>
-        <div class="buttons is-centered">
-            <a class="button is-light"
-               href="{{ url_for('eduqa.show_revision_detail', revision_id=revision_id) }}">
-                Back
-            </a>
+        <h1 class="subtitle has-text-centered">ปี {{ year + 543 }}</h1>
+        <div class="tabs is-boxed">
+          <ul>
+              {% for y in years %}
+                <li {% if y == year %} class="is-active" {% endif %}>
+                    <a href="{{ url_for('eduqa.show_hours_summary_by_year', revision_id=revision_id, year=y) }}">
+                        {{ y + 543 }}
+                    </a>
+                </li>
+              {% endfor %}
+          </ul>
         </div>
+    <div class="columns">
+        <div class="column container">
+            <table class="table is-striped" id="myTable">
+                <thead>
+                <th>ผู้สอน</th>
+                {% for col in sum_hours.columns %}
+                    <th>{{ col }}</th>
+                {% endfor %}
+                </thead>
+                <tbody>
+                {% for idx, row in sum_hours.iterrows() %}
+                    {% if row.name != 'All' %}
+                        <tr>
+                            <td>{{ row.name }}</td>
+                            {% for c in row %}
+                                <td>{{ c }}</td>
+                            {% endfor %}
+                        </tr>
+                    {% endif %}
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <div class="buttons is-centered">
+                <a class="button is-light"
+                   href="{{ url_for('eduqa.teaching_hours_index', revision_id=revision_id) }}">
+                    Back
+                </a>
+            </div>
+        </div>
+    </div>
     </div>
 </section>
 {% endblock %}
@@ -52,10 +68,14 @@
 <script>
     $(document).ready(function() {
     let table = $('#myTable').DataTable( {
-        scrollY:        "600px",
         scrollX:        true,
         scrollCollapse: true,
-        paging:         false,
+        paging:         true,
+        pageLength: 10,
+        ordering: true,
+        fixedColumns: {
+            leftColumns: 1
+        }
         } );
     });
 </script>

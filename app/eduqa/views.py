@@ -5,6 +5,7 @@ from datetime import datetime
 from flask import render_template, request, flash, redirect, url_for, session, jsonify
 from flask_login import current_user, login_required
 from sqlalchemy.orm import make_transient
+from sqlalchemy import extract
 
 from . import eduqa_bp as edu
 from app.eduqa.forms import *
@@ -705,3 +706,50 @@ def show_hours_summary_all(revision_id):
     return render_template('eduqa/QA/mtc/summary_hours_all_courses.html',
                            sum_hours=sum_hours,
                            revision_id=revision_id)
+
+
+@edu.route('/qa/teaching-hours-summary')
+def teaching_hours_index():
+    records = []
+    for rev in EduQACurriculumnRevision.query.all():
+        records.append(rev)
+    return render_template('eduqa/QA/teaching_hours_index.html', records=records)
+
+
+@edu.route('/qa/revisions/<int:revision_id>/summary/yearly')
+def show_hours_summary_by_year(revision_id):
+    year = request.args.get('year', type=int)
+    revision = EduQACurriculumnRevision.query.get(revision_id)
+    data = []
+    all_years = EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id))\
+        .with_entities(extract('year', EduQACourseSession.start)).distinct()
+    all_years = sorted([int(y[0]) for y in all_years])
+    if all_years:
+        if not year:
+            year = all_years[0]
+        for session in EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id))\
+                .filter(extract('year', EduQACourseSession.start) == year):
+            for instructor in session.instructors:
+                session_detail = session.details.filter_by(staff_id=instructor.account_id).first()
+                if session_detail:
+                    factor = session_detail.factor if session_detail.factor else 1
+                else:
+                    factor = 1
+                d = {'course': session.course.en_code,
+                     'instructor': instructor.account.personal_info.fullname,
+                     'seconds': session.total_seconds * factor
+                     }
+                data.append(d)
+        df = pd.DataFrame(data)
+        sum_hours = df.pivot_table(index='instructor',
+                                   columns='course',
+                                   values='seconds',
+                                   aggfunc='sum',
+                                   margins=True).apply(lambda x: (x // 3600)).fillna('')
+        return render_template('eduqa/QA/mtc/summary_hours_all_courses.html',
+                               sum_hours=sum_hours,
+                               year=year,
+                               years=all_years,
+                               revision=revision,
+                               revision_id=revision_id)
+    return 'No data available.'
