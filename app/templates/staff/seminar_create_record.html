@@ -65,13 +65,19 @@
                                     {{ form.role() }}
                                 </div>
                             </div>
-                            <div class="field">
-                                <b-field>
-                                    <b-checkbox value="yes" name="attend_online">
-                                        เข้าร่วมผ่านช่องทาง online
-                                    </b-checkbox>
-                                </b-field>
-                            </div>
+                        </div>
+                        <div class="field">
+                                <label class="label">อบรมผ่านช่องทาง online</label>
+                        </div>
+                        <div class="field-body">
+                            <label class="checkbox">
+                                <input type="checkbox" name="is_online"
+                                       {% if seminar.is_online %}
+                                            checked
+                                       {% endif %}>
+                                เข้าร่วมผ่านช่องทาง online
+                            </label>
+                        </div>
                             <div class="field" v-if="status === 'wanttogo'">
                                 <label class="label">{{ form.objectives.label }}</label>
                                 <div class="control">
@@ -282,8 +288,9 @@
             return {
                 startDateTime: new Date({{ seminar.start_datetime.isoformat()|tojson|safe }}),
                 endDateTime: new Date({{ seminar.end_datetime.isoformat()|tojson|safe }}),
-                documentDateTime: new Date({{ seminar.start_datetime.isoformat()|tojson|safe }}),
+                documentDateTime: null,
                 status: "wanttogo",
+                is_online: "no",
                 wantdocument: "want",
                 payment: "unpaid",
                 objective: "others",
@@ -298,19 +305,19 @@
         computed: {
             formattedStartDateTime: function(){
                 if (this.startDateTime){
-                    return new moment(this.startDateTime.toISOString()).format('YYYY-MM-DD hh:mm:ss')
+                    return new moment(this.startDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
                 }
                 return null
             },
             formattedEndDateTime: function(){
                 if (this.endDateTime){
-                    return new moment(this.endDateTime.toISOString()).format('YYYY-MM-DD hh:mm:ss')
+                    return new moment(this.endDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
                 }
                 return null
             },
             formattedDocumentDateTime: function(){
                 if (this.documentDateTime){
-                    return new moment(this.documentDateTime.toISOString()).format('YYYY-MM-DD hh:mm:ss')
+                    return new moment(this.documentDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
                 }
                 return null
             }

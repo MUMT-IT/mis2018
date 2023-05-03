@@ -107,13 +107,13 @@
         computed: {
             formattedStartDateTime: function(){
                 if (this.startDateTime){
-                    return new moment(this.startDateTime.toISOString()).format('YYYY-MM-DD hh:mm:ss')
+                    return new moment(this.startDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
                 }
                 return null
             },
             formattedEndDateTime: function(){
                 if (this.endDateTime){
-                    return new moment(this.endDateTime.toISOString()).format('YYYY-MM-DD hh:mm:ss')
+                    return new moment(this.endDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
                 }
                 return null
             }

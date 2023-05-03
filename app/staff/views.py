@@ -2845,12 +2845,13 @@ def seminar_create_record(seminar_id):
         attend.end_datetime = tz.localize(form.end_datetime.data)
         attend.staff = current_user
         attend.seminar = seminar
-        if form.invited_document_date.data:
+        if form.invited_document_id.data:
+            attend.invited_document_id = form.invited_document_id.data
+            attend.invited_organization = form.invited_organization.data
             attend.invited_document_date = form.invited_document_date.data
+        attend.attend_online = True if request.form.get('is_online') else False
         if form.approver.data:
             attend.lower_level_approver_account_id = form.approver.data.account.id
-        # if form.contact_no.data:
-        #     attend.contact_no = form.contact_no.data
             attend.document_title = form.document_title.data
         db.session.add(attend)
         db.session.commit()
@@ -2903,6 +2904,19 @@ def seminar_request_for_proposal(seminar_attend_id):
     seminar_attend = StaffSeminarAttend.query.get(seminar_attend_id)
     another_proposer = StaffLeaveApprover.query.filter_by(staff_account_id=seminar_attend.staff_account_id).filter(
                                         StaffLeaveApprover.approver_account_id != current_user.id).all()
+    registration_fee = seminar_attend.registration_fee if seminar_attend.registration_fee else '-'
+    transaction_fee = u'ค่าธรรมเนียมการโอนเงิน(ถ้ามี) {} บาท '.format(
+        seminar_attend.transaction_fee) if seminar_attend.transaction_fee else ''
+    budget = seminar_attend.budget if seminar_attend.budget else '-'
+    accommodation_cost = u'ค่าที่พัก {} บาท '.format(
+        seminar_attend.accommodation_cost) if seminar_attend.accommodation_cost else ''
+    flight_ticket_cost = u'ค่าตั๋วเครื่องบิน {} บาท '.format(
+        seminar_attend.flight_ticket_cost) if seminar_attend.flight_ticket_cost else ''
+    train_ticket_cost = u'ค่ารถไฟ {} บาท '.format(
+        seminar_attend.train_ticket_cost) if seminar_attend.train_ticket_cost else ''
+    taxi_cost = u'ค่าแท็กซี่ {} บาท '.format(seminar_attend.taxi_cost) if seminar_attend.taxi_cost else ''
+    fuel_cost = u'ค่าน้ำมัน {} บาท '.format(seminar_attend.fuel_cost) if seminar_attend.fuel_cost else ''
+    attend_online = u' เข้าร่วมผ่านช่องทางออนไลน์' if seminar_attend.attend_online else ''
     #TODO: if the request have IDP objective, show personal's IDP information
     # TODO: generate document no
     if request.method == 'POST':
@@ -2943,15 +2957,19 @@ def seminar_request_for_proposal(seminar_attend_id):
                             line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
                     else:
                         print(req_msg, approver_email, line_id)
-                    flash(u'ส่งคำขอต่อไปยังรองคณบดีเรียบร้อยแล้ว ', 'success')
+                    flash(u'ส่งคำขอต่อไปยังรองคณบดี/ผู้ช่วยคณบดีเรียบร้อยแล้ว ', 'success')
+                    return redirect(url_for('staff.show_seminar_proposal_info'))
+
             else:
-                flash(u'ระบบบันทึกการอนุมัติของท่านแล้ว กรุณาเซ็นเอกสารและ Upload เข้าระบบต่อไป', 'success')
+                flash(u'ระบบบันทึกการอนุมัติของท่านแล้ว กรุณา Downloadเอกสาร และ Uploadเมื่อท่านลงลายเซนต์ เข้าระบบต่อไป', 'success')
+                return redirect(url_for('staff.seminar_upload_proposal', seminar_attend_id=seminar_attend_id,
+                                                                          proposal_id=proposal.id))
         else:
             req_title = u'ทดสอบแจ้งผลการขออนุมัติ' + seminar_attend.seminar.topic_type
             req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n ผู้บังคับบัญชาขั้นต้นไม่อนุมัติเนื่องจาก {} ' \
                       u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                 format(seminar_attend.seminar.topic_type, seminar_attend.seminar.topic,
-                       seminar_attend.start_datetime, seminar_attend.end_datetime, seminar_attend.proposal.comment)
+                       seminar_attend.start_datetime, seminar_attend.end_datetime, proposal.comment)
             requester_email = seminar_attend.staff.email
             line_id = seminar_attend.staff.line_id
             if os.environ["FLASK_ENV"] == "production":
@@ -2960,9 +2978,13 @@ def seminar_request_for_proposal(seminar_attend_id):
                     line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
             else:
                 print(req_msg, requester_email, line_id)
-        return redirect(url_for('staff.show_seminar_proposal_info'))
+            flash(u'ระบบบันทึกการอนุมัติของท่านแล้ว', 'success')
+            return redirect(url_for('staff.show_seminar_proposal_info'))
     return render_template('staff/seminar_request_for_proposal_detail.html', seminar_attend=seminar_attend,
-                           another_proposer=another_proposer)
+                           another_proposer=another_proposer, registration_fee=registration_fee,
+                           transaction_fee=transaction_fee, budget=budget, accommodation_cost=accommodation_cost,
+                           flight_ticket_cost=flight_ticket_cost, train_ticket_cost=train_ticket_cost,
+                           taxi_cost=taxi_cost, fuel_cost=fuel_cost, attend_online=attend_online)
 
 
 @staff.route('/seminar/request/upload/<int:seminar_attend_id>/<int:proposal_id>', methods=['GET', 'POST'])
@@ -2970,6 +2992,24 @@ def seminar_request_for_proposal(seminar_attend_id):
 def seminar_upload_proposal(seminar_attend_id, proposal_id):
     proposal = StaffSeminarProposal.query.filter_by(seminar_attend_id=seminar_attend_id).all()
     this_proposal = StaffSeminarProposal.query.get(proposal_id)
+    seminar_attend = StaffSeminarAttend.query.get(seminar_attend_id)
+    if seminar_attend.staff.personal_info.org.parent:
+        org_name = seminar_attend.staff.personal_info.org.parent.name
+    else:
+        org_name = seminar_attend.staff.personal_info.org.name
+    registration_fee = seminar_attend.registration_fee if seminar_attend.registration_fee else '-'
+    transaction_fee = u'ค่าธรรมเนียมการโอนเงิน(ถ้ามี) {} บาท '.format(
+        seminar_attend.transaction_fee) if seminar_attend.transaction_fee else ''
+    budget = seminar_attend.budget if seminar_attend.budget else '-'
+    accommodation_cost = u'ค่าที่พัก {} บาท '.format(
+        seminar_attend.accommodation_cost) if seminar_attend.accommodation_cost else ''
+    flight_ticket_cost = u'ค่าตั๋วเครื่องบิน {} บาท '.format(
+        seminar_attend.flight_ticket_cost) if seminar_attend.flight_ticket_cost else ''
+    train_ticket_cost = u'ค่ารถไฟ {} บาท '.format(
+        seminar_attend.train_ticket_cost) if seminar_attend.train_ticket_cost else ''
+    taxi_cost = u'ค่าแท็กซี่ {} บาท '.format(seminar_attend.taxi_cost) if seminar_attend.taxi_cost else ''
+    fuel_cost = u'ค่าน้ำมัน {} บาท '.format(seminar_attend.fuel_cost) if seminar_attend.fuel_cost else ''
+    attend_online = u' เข้าร่วมผ่านช่องทางออนไลน์' if seminar_attend.attend_online else ''
     if request.method == 'POST':
         upload_file = request.files.get('document')
         if upload_file:
@@ -2988,7 +3028,11 @@ def seminar_upload_proposal(seminar_attend_id, proposal_id):
         db.session.add(this_proposal)
         db.session.commit()
         return redirect(url_for('staff.show_seminar_proposal_info'))
-    return render_template('staff/seminar_upload_proposal.html', proposal=proposal, this_proposal=this_proposal)
+    return render_template('staff/seminar_upload_proposal.html', proposal=proposal, this_proposal=this_proposal,
+                           registration_fee=registration_fee, seminar_attend=seminar_attend,
+                           transaction_fee=transaction_fee, budget=budget, accommodation_cost=accommodation_cost,
+                           flight_ticket_cost=flight_ticket_cost, train_ticket_cost=train_ticket_cost,
+                           taxi_cost=taxi_cost, fuel_cost=fuel_cost, org_name=org_name, attend_online=attend_online)
 
 
 @staff.route('/seminar/all-proposal')
@@ -3077,23 +3121,18 @@ def edit_seminar_info(seminar_id):
         form = request.form
         start_datetime = datetime.strptime(form.get('start_datetime'), '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(form.get('end_datetime'), '%d/%m/%Y %H:%M')
-        timedelta = end_datetime - start_datetime
-        if timedelta.days < 0 or timedelta.seconds == 0:
-            flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
-            return render_template('staff/seminar_edit_seminar_info.html', seminar=seminar)
-        else:
-            seminar.start_datetime = tz.localize(start_datetime)
-            seminar.end_datetime = tz.localize(end_datetime)
-            seminar.topic_type = form.get('topic_type')
-            seminar.topic = form.get('topic')
-            seminar.mission = form.get('mission')
-            seminar.location = form.get('location')
-            seminar.country = form.get('country')
-            seminar.is_online = True if form.getlist("online") else False
-            db.session.add(seminar)
-            db.session.commit()
-            flash(u'การแก้ไขถูกบันทึกเรียบร้อย', 'success')
-            return redirect(url_for('staff.seminar_records'))
+        seminar.start_datetime = tz.localize(start_datetime)
+        seminar.end_datetime = tz.localize(end_datetime)
+        seminar.topic_type = form.get('topic_type')
+        seminar.topic = form.get('topic')
+        seminar.organize_by = form.get('organize_by')
+        seminar.location = form.get('location')
+        seminar.country = form.get('country')
+        seminar.is_online = True if form.getlist("online") else False
+        db.session.add(seminar)
+        db.session.commit()
+        flash(u'การแก้ไขถูกบันทึกเรียบร้อย', 'success')
+        return redirect(url_for('staff.seminar_records'))
 
     return render_template('staff/seminar_edit_seminar_info.html', seminar=seminar)
 

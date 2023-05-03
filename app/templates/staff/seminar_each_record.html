@@ -190,6 +190,7 @@
                             </td>
                         </tr>
                         {% endfor %}
+                        {% if approval.approver %}
                         <tr>
                             <td>
                                 คณบดี/รักษาการฯ
@@ -198,6 +199,7 @@
                                 {{ approval.approver.personal_info }} {{ approval.updated_at|localdatetime }}
                             </td>
                         </tr>
+                        {% endif %}
                         {% endif %}
                     </table>
                 </div>

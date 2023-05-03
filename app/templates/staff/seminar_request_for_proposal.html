@@ -5,7 +5,7 @@
     <div class="container">
         {% include "messages.html" %}
         {% if lower_level_requests %}
-        <h4 class="title">รายการขออนุมัติ</h4>
+        <h4 class="subtitle">รายการขออนุมัติ</h4>
         <div class="columns">
             <div class="column box">
                 <table class="table is-fullwidth is-striped">
@@ -23,7 +23,7 @@
                                 {{ req.staff.personal_info }}
                             </td>
                             <td>
-                                ขออนุมัติเข้าร่วม{{ req.seminar.topic_type }}
+                                {{ req.seminar.topic_type }} {{ req.seminar.topic }}
                             </td>
                             <td>
                                 {{ req.start_datetime|localdatetime }} - {{ req.end_datetime|localdatetime }}
@@ -47,7 +47,7 @@
         </div>
         {% endif %}
         {% if middle_level_requests %}
-        <h4 class="title">รายการขอเสนออนุมัติจากหัวหน้างาน</h4>
+        <h4 class="subtitle">รายการขอเสนออนุมัติจากหัวหน้างาน</h4>
         <div class="columns">
             <div class="column box">
                 <table class="table is-fullwidth is-striped">
@@ -65,7 +65,7 @@
                                 {{ req.staff.personal_info }}
                             </td>
                             <td>
-                                ขออนุมัติเข้าร่วม{{ req.seminar.topic_type }}
+                                {{ req.seminar.topic_type }} {{ req.seminar.topic }}
                             </td>
                             <td>
                                 {{ req.start_datetime|localdatetime }} - {{ req.end_datetime|localdatetime }}
@@ -99,6 +99,7 @@
                     <tbody>
                     {% for req in pending_proposal %}
                         {% if not req.upload_file_url %}
+                        {% if not req.comment %}
                         <tr>
                             <td>
                                 {{ req.id }}
@@ -115,11 +116,12 @@
                                         <span class="icon">
                                             <i class="fas fa-upload"></i>
                                         </span>
-                                        <span> upload file ที่เซ็นแล้ว</span>
+                                        <span>Download เอกสาร/upload file ที่เซ็นแล้ว</span>
                                     </a>
                                 </div>
                             </td>
                         </tr>
+                        {% endif %}
                         {% endif %}
                     {% endfor %}
                     </tbody>
