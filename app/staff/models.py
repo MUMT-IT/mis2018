@@ -670,7 +670,6 @@ class StaffSeminarAttend(db.Model):
     transaction_fee = db.Column('transaction_fee', db.Float(), info={'label': u'ค่าธรรมเนียมการโอน (บาท)'})
     budget = db.Column('budget', db.Float(), info={'label': u'ค่าใช้จ่ายรวมทั้งหมด (บาท)'})
     attend_online = db.Column('attend_online', db.Boolean(), default=False, info={'label': u'เข้าร่วมผ่านช่องทาง online'})
-    contact_no = db.Column('contact_no', db.Integer(), info={'label': u'เบอร์โทรภายใน'})
     middle_level_approver_account_id = db.Column('middle_level_approver_account_id', db.ForeignKey('staff_account.id'))
     middle_level_approver = db.relationship('StaffAccount', foreign_keys=[middle_level_approver_account_id],
                                            backref=db.backref('seminar_middle_approver_attends', lazy='dynamic'))
@@ -690,6 +689,14 @@ class StaffSeminarAttend(db.Model):
 
     def is_approved_by(self, user):
         return self.proposal.filter_by(proposer=user).first()
+
+    @property
+    def mission_list(self):
+        return [m.mission for m in self.missions]
+
+    @property
+    def objective_list(self):
+        return [o.objective for o in self.objectives]
 
 
 class StaffSeminarProposal(db.Model):
