@@ -1455,4 +1455,26 @@ def repair_landing():
     return render_template('procurement/repair_landing.html')
 
 
+@procurement.route('/repair/erp_code/search')
+@login_required
+def search_by_erp_code_with_repair_online():
+    return render_template('procurement/search_by_erp_code_with_repair_online.html')
+
+
+@procurement.route('/repair/erp_code/search/list', methods=['POST', 'GET'])
+@login_required
+def erp_code_procurement_list():
+    if request.method == 'GET':
+        procurement_detail = ProcurementDetail.query.all()
+    else:
+        erp_code = request.form.get('erp_code', None)
+        if erp_code:
+            procurement_detail = ProcurementDetail.query.filter(ProcurementDetail.erp_code.like('%{}%'.format(erp_code)))
+        else:
+            procurement_detail = []
+        if request.headers.get('HX-Request') == 'true':
+            return render_template('procurement/partials/erp_code_procurement_list.html', procurement_detail=procurement_detail)
+    return render_template('procurement/erp_code_procurement_list.html', procurement_detail=procurement_detail)
+
+
 

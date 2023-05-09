@@ -1,0 +1,13 @@
+{% for procurement in procurement_detail %}
+    <tr>
+        <td>{{ procurement.erp_code }}</td>
+        <td>{{ procurement.procurement_no }}</td>
+        <td>{{ procurement.name }}</td>
+        <td>
+            <a href=""
+               class="button is-rounded is-info">
+                <strong>แจ้งซ่อม</strong>
+            </a>
+        </td>
+    </tr>
+{% endfor %}
