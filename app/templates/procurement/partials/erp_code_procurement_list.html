@@ -4,7 +4,7 @@
         <td>{{ procurement.procurement_no }}</td>
         <td>{{ procurement.name }}</td>
         <td>
-            <a href=""
+            <a href="{{ url_for('procurement.add_repair_online_service', procurement_id=procurement.id) }}"
                class="button is-rounded is-info">
                 <strong>แจ้งซ่อม</strong>
             </a>
