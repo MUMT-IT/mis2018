@@ -106,11 +106,12 @@ class ProcurementRequireForm(ModelForm):
     class Meta:
         model = ProcurementRequire
 
-    procurement_no = QuerySelectField(query_factory=lambda: ProcurementDetail.query.all(),
-                                      get_label='procurement_no',
-                                      label=u'เลขครุภัณฑ์')
-    location = QuerySelectField(u'สถานที่ให้บริการ', query_factory=lambda: RoomResource.query.all(),
-                                blank_text='Select location..', allow_blank=False)
+    format_service = RadioField(u'รูปแบบการให้บริการ',
+                                 choices=[(c, c) for c in [u'นำเครื่องมาด้วย', u'ไม่ได้นำเครื่องมาด้วย', u'การให้บริการอื่นๆ']],
+                                 coerce=unicode,
+                                 validators=[DataRequired()])
+    staff = QuerySelectField(u'ผู้ใช้งานหลัก', query_factory=lambda: StaffAccount.get_active_accounts(),
+                            get_label='personal_info', allow_blank=True)
 
 
 class ProcurementApprovalForm(ModelForm):
