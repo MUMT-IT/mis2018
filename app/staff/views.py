@@ -2917,6 +2917,7 @@ def seminar_request_for_proposal(seminar_attend_id):
     taxi_cost = u'ค่าแท็กซี่ {} บาท '.format(seminar_attend.taxi_cost) if seminar_attend.taxi_cost else ''
     fuel_cost = u'ค่าน้ำมัน {} บาท '.format(seminar_attend.fuel_cost) if seminar_attend.fuel_cost else ''
     attend_online = u' เข้าร่วมผ่านช่องทางออนไลน์' if seminar_attend.attend_online else ''
+    position = StaffHeadPosition.query.filter_by(staff_account_id=current_user.id).all()
     #TODO: if the request have IDP objective, show personal's IDP information
     # TODO: generate document no
     if request.method == 'POST':
@@ -2928,7 +2929,8 @@ def seminar_request_for_proposal(seminar_attend_id):
             is_approved=True if form.get('status') == 'yes' else False,
             comment=form.get('comment') if form.get('comment') else None,
             proposer_account_id=current_user.id,
-            previous_proposal_id=is_previous_proposer.id if is_previous_proposer else None
+            previous_proposal_id=is_previous_proposer.id if is_previous_proposer else None,
+            proposer_head_position_id=form.get('position_id'),
         )
         db.session.add(proposal)
         db.session.commit()
@@ -2984,7 +2986,7 @@ def seminar_request_for_proposal(seminar_attend_id):
                            another_proposer=another_proposer, registration_fee=registration_fee,
                            transaction_fee=transaction_fee, budget=budget, accommodation_cost=accommodation_cost,
                            flight_ticket_cost=flight_ticket_cost, train_ticket_cost=train_ticket_cost,
-                           taxi_cost=taxi_cost, fuel_cost=fuel_cost, attend_online=attend_online)
+                           taxi_cost=taxi_cost, fuel_cost=fuel_cost, attend_online=attend_online, position=position)
 
 
 @staff.route('/seminar/request/upload/<int:seminar_attend_id>/<int:proposal_id>', methods=['GET', 'POST'])

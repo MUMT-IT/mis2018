@@ -18,6 +18,7 @@
                     <tbody>
                     {% for req in lower_level_requests %}
                         {% if not req.middle_level_approver %}
+                            {% if not req.is_approved_by(current_user) %}
                         <tr>
                             <td>
                                 {{ req.staff.personal_info }}
@@ -38,7 +39,7 @@
                                 </div>
                             </td>
                         </tr>
-
+                            {% endif %}
                         {% endif %}
                     {% endfor %}
                     </tbody>

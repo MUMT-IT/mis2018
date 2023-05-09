@@ -724,6 +724,8 @@ class StaffSeminarProposal(db.Model):
     previous_proposal_id = db.Column('previous_proposal_id', db.Integer())
     upload_file_url = db.Column('upload_file_url', db.String())
     proposer_head_position_id = db.Column('proposer_head_position_id', db.ForeignKey('staff_head_positions.id'))
+    head_position = db.relationship('StaffHeadPosition', foreign_keys=[proposer_head_position_id],
+                               backref=db.backref('proposer_head_position'))
 
 
 class StaffSeminarApproval(db.Model):

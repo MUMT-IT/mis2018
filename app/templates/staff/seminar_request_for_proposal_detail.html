@@ -4,7 +4,7 @@
     <section class="section" id="app">
         <div class="container">
             <div class="columns">
-                <div class="column is-half is-offset-one-quarter">
+                <div class="column">
                 <div class="box">
                     <h1 class="title has-text-centered">รายละเอียดการอบรม สัมมนา</h1>
                         <div class="columns">
@@ -74,13 +74,15 @@
                             </div>
                         {% endif %}
                 </div>
+                </div>
+
+            <div class="column">
                 <div class="box">
                         <form method="post">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <div class="field">
                                 <div class="field">
-                                    <label class="label">อนุมัติให้{{ seminar_attend.staff.personal_info }}
-                                        เข้าร่วม{{ seminar_attend.seminar.topic }}
+                                    <label class="label">อนุมัติให้{{ seminar_attend.staff.personal_info }}เข้าร่วม{{ seminar_attend.seminar.topic }}
                                     </label>
                                 </div>
                                 <div class="block">
@@ -103,7 +105,13 @@
                                             ก่อนการส่งคำขอไปยังคณบดีหรือไม่
                                         </label>
                                     </div>
-                                    <div class="columns">
+                                    <div class="block">
+                                        <b-radio native-value="no" v-model="forward" name="forward">ไม่</b-radio>
+                                        <b-radio native-value="yes" v-model="forward" name="forward">ใช่
+                                            ส่งต่อไปยังรองคณบดี/ผู้ช่วยคณบดี
+                                        </b-radio>
+                                    </div>
+                                <div class="columns">
                                         <div class="column">
                                             <div class="notification is-warning is-light">
                                             <span>คำชี้แจง:
@@ -115,17 +123,35 @@
                                             </div>
                                         </div>
                                     </div>
-                                    <div class="block">
-                                        <b-radio native-value="no" v-model="forward" name="forward">ไม่</b-radio>
-                                        <b-radio native-value="yes" v-model="forward" name="forward">ใช่
-                                            ส่งต่อไปยังรองคณบดี/ผู้ช่วยคณบดี
-                                        </b-radio>
+                                </div>
+                                <div class="field" v-if="forward === 'no' && status === 'yes'">
+                                    <div class="field is-horizontal">
+                                        <div class="field is-normal">
+                                            <label class="label">เลือกตำแหน่งที่เกี่ยวข้องกับผู้ขออนุมัติ(กรณีดำรงตำแหน่งมากกว่า1)</label>
+                                        </div>
+                                    </div>
+                                    <div class="field is-horizontal">
+                                        <div class="field-body">
+                                            <div class="control">
+                                                <div class="field">
+                                                    <div class="select">
+                                                        <select name="position_id">
+                                                            {% for p in position %}
+                                                                <option value="{{ p.id }}">
+                                                                    {{ p.position }}
+                                                                </option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <div class="field" v-if="forward === 'yes'">
                                     <div class="field is-horizontal">
                                         <div class="field is-normal">
-                                            <label class="label">กรุณาเลือกรอง/ผู้ช่วยคณบดีที่เกี่ยวข้องขั้นต่อไป</label>
+                                            <label class="label">เลือกรองคณบดีที่เกี่ยวข้องขั้นต่อไป</label>
                                         </div>
                                     </div>
                                     <div class="field is-horizontal">

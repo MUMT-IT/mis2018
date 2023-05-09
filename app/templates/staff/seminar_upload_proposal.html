@@ -208,7 +208,7 @@
                         headerRow: 0,
                         widths: [230,'*',5],
                         body: [
-                            ['', {text: '\n\nผู้ช่วยศาสตรจารย์ '+"{{ current_user.personal_info }}"+'\n ตำแหน่ง',
+                            ['', {text: '\n\nผู้ช่วยศาสตรจารย์ '+"{{ current_user.personal_info }}"+'\n'+ "{{ this_proposal.head_position.position }}",
                                 fontSize:17, alignment: 'center'},''],
                         ],
                     }

@@ -266,6 +266,7 @@ admin.add_views(ModelView(StaffEduDegree, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPositionRecord, db.session, category='Staff'))
 admin.add_views(ModelView(StaffEmployment, db.session, category='Staff'))
+admin.add_views(ModelView(StaffHeadPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveType, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveQuota, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveApprover, db.session, category='Staff'))
@@ -364,7 +365,7 @@ from app.roles import admin_permission
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
 from models import (Student, Class, ClassCheckIn,
-                    Org, HeadOrg, Mission, IOCode, CostCenter,
+                    Org, Mission, IOCode, CostCenter,
                     StudentCheckInRecord, Holidays, Dashboard)
 
 admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
@@ -389,7 +390,6 @@ admin.add_view(StudentCheckInAdminModel(
     StudentCheckInRecord, db.session, category='Student Affairs'))
 
 admin.add_view(ModelView(Org, db.session, category='Organization'))
-admin.add_view(ModelView(HeadOrg, db.session, category='Organization'))
 admin.add_view(ModelView(Mission, db.session, category='Organization'))
 admin.add_view(ModelView(Dashboard, db.session, category='Organization'))
 
