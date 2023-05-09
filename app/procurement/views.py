@@ -1477,4 +1477,22 @@ def erp_code_procurement_list():
     return render_template('procurement/erp_code_procurement_list.html', procurement_detail=procurement_detail)
 
 
+@procurement.route('/repair/<int:procurement_id>/add', methods=['GET', 'POST'])
+@login_required
+def add_repair_online_service(procurement_id):
+    form = ProcurementRequireForm()
+    item = ProcurementDetail.query.get(procurement_id)
+    repair_record = ProcurementRequire.query.all()
+    if form.validate_on_submit():
+        add_record = ProcurementRequire()
+        form.populate_obj(add_record)
+        add_record.detail_id = procurement_id
+        add_record.notice_date = bangkok.localize(datetime.now())
+        db.session.add(add_record)
+        db.session.commit()
+        flash(u'บันทึกการแจ้งซ่อมเรียบร้อย', 'success')
+    return render_template('procurement/add_repair_online_service.html',
+                           form=form, procurement_id=procurement_id,
+                           item=item, url_next=url_for('procurement.search_by_erp_code_with_repair_online'),
+                           repair_record=repair_record)
 

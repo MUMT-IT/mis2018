@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="{{ url_for('procurement.landing') }}">หน้าหลัก</a></li>
+                    <li><a href="">ดูข้อมูล</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">ข้อมูล</a></li>
+                </ul>
+            </nav>
+            <div class="columns">
+                {% include "messages.html" %}
+                <div class="column has-text-centered">
+                    <h1 class="title">รายละเอียดครุภัณฑ์</h1>
+                    <div class="columns">
+                        <div class="column has-text-centered">
+                            <div class="buttons is-centered">
+                                <a class="button is-info"
+                                   href="#repair_service">
+                                            <span class="icon">
+                                               <i class="fas fa-plus"></i>
+                                            </span>
+                                    <span>เพิ่มการแจ้งซ่อม</span>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column has-text-centered is-two-thirds is-offset-2">
+                    <div class="card">
+                        <div class="card-content">
+                            <table class="table is-striped is-bordered is-fullwidth">
+                                <colgroup>
+                                    <col span="1" style="width: 25%;">
+                                    <col span="1" style="width: 75%;">
+                                </colgroup>
+                                <tr>
+                                    <td><label class="label">หมวดหมู่ / ประเภท </label></td>
+                                    <td>{{ item.category }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ชื่อครุภัณฑ์</label></td>
+                                    <td>{{ item.name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">เลขครุภัณฑ์</label></td>
+                                    <td>{{ item.procurement_no }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">เอกสารสั่งซื้อเลขที่</label></td>
+                                    <td>{{ item.document_no }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">Inventory Number / ERP</label></td>
+                                    <td>{{ item.erp_code }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">Serial Number</label></td>
+                                    <td>{{ item.serial_no }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">จัดซื้อด้วยเงิน</label></td>
+                                    <td>{{ item.purchasing_type.purchasing_type }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">วิธีการจัดซื้อ</label></td>
+                                    <td>{{ item.bought_by }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ปีงบประมาณ</label></td>
+                                    <td>{{ item.budget_year }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ราคา</label></td>
+                                    <td>
+                                        {% if item.price=="-"or""or item.price %}
+                                            {{ item.price }}
+                                        {% else %}
+                                            {{ item.curr_acq_value }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">วันที่ได้รับ</label></td>
+                                    <td>{{ item.received_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">สภาพของสินทรัพย์</label></td>
+                                    <td>{{ item.available }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ประกัน</label></td>
+                                    <td>{{ item.guarantee }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">วันที่เริ่มประกัน</label></td>
+                                    <td>{{ item.start_guarantee_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">วันที่สิ้นสุดประกัน</label></td>
+                                    <td>{{ item.end_guarantee_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">รุ่น</label></td>
+                                    <td>{{ item.model }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ยี่ห้อ</label></td>
+                                    <td>{{ item.maker }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ขนาด</label></td>
+                                    <td>{{ item.size }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">หมายเหตุ</label></td>
+                                    <td>{{ item.comment }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ภาควิชา / หน่วยงาน</label></td>
+                                    <td>{{ item.org }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">Location</label></td>
+                                    <td>{{ item.current_record.location }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="columns" id="repair_service">
+                <div class="column is-two-thirds is-offset-2">
+                    <div class="box">
+                        {% include "messages.html" %}
+                         <a name="#repair_service"></a>
+                        <div class="column has-text-centered">
+                            <h3 class="title is-3">แจ้งซ่อมออนไลน์</h3>
+                        </div>
+                        <form method="post">
+                            {{ form.hidden_tag() }}
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.format_service(class="radio") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.desc.label }}</label>
+                                <div class="control">
+                                    {{ form.desc(class="textarea is-danger") }}
+                                </div>
+                                <p class="help is-danger">Required</p>
+                            </div>
+                            <div class="field">
+                                <label class="label">ชื่อผู้ใช้งานหลัก</label>
+                                <div>
+                                    {{ form.staff(class='select') }}
+                                </div>
+                            </div>
+                            <br>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="buttons">
+                                    <button class="button is-success" type="submit" value="submit">
+                                        บันทึก
+                                    </button>
+                                    <a href="{{ url_next }}"
+                                       class="button is-danger">ยกเลิก</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        <div class="columns">
+                <div class="column column is-two-thirds is-offset-2">
+                    <div class="columns">
+                        <div class="column has-text-centered">
+                            <h1 class="title">All Repair Information</h1>
+                            <h2 class="subtitle">ประวัติการแจ้งซ่อม</h2>
+                        </div>
+                    </div>
+                    <div class="box">
+                        <div class="container">
+                            <div class="columns">
+                                <div class="column">
+                                    <table id="data" class="table is-striped" style="width:100%">
+                                        <thead>
+                                        <th></th>
+                                        <th>ชื่อผู้แจ้ง</th>
+                                        <th>วันที่แจ้ง</th>
+
+                                        </thead>
+                                        <tbody>
+                                        {% if repair_record %}
+                                            {% for repair in repair_record  %}
+                                                <tr>
+                                                    <td>
+                                                        <a class="button is-small is-rounded is-primary is-outlined"
+                                                           href="">
+                                                            <span class="icon">
+                                                               <i class="fas fa-eye"></i>
+                                                            </span>
+                                                        <span>ดูรายละเอียด</span>
+                                                        </a>
+                                                    </td>
+                                                    <td>{{ repair.staff.fullname }}</td>
+                                                    <td>{{ repair.notice_date }}</td>
+
+                                                </tr>
+                                            {% endfor %}
+                                        {% endif %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                            <div class="columns">
+                                <div class="column">
+                                    <a href="{{ url_next }}"
+                                       class="button is-rounded is-info is-light">
+                                        <span class="icon">
+                                            <i class="fas fa-arrow-left"></i>
+                                        </span>
+                                        <span>กลับ</span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(() => {
+            $('.select').select2({
+                width: '100%',
+                tags: true
+            });
+        });
+    </script>
+{% endblock %}
