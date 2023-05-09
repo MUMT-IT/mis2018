@@ -723,6 +723,7 @@ class StaffSeminarProposal(db.Model):
                                            backref=db.backref('seminar_proposer', lazy='dynamic'))
     previous_proposal_id = db.Column('previous_proposal_id', db.Integer())
     upload_file_url = db.Column('upload_file_url', db.String())
+    proposer_head_position_id = db.Column('proposer_head_position_id', db.ForeignKey('staff_head_positions.id'))
 
 
 class StaffSeminarApproval(db.Model):
