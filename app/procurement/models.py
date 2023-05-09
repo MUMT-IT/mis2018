@@ -167,12 +167,10 @@ class ProcurementRequire(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'), nullable=False)
     staff = db.relationship(StaffAccount)
-    service_detail_id = db.Column('service_id', db.ForeignKey('procurement_details.id'))
-    service_detail = db.relationship('ProcurementDetail',
+    detail_id = db.Column('service_id', db.ForeignKey('procurement_details.id'))
+    detail = db.relationship('ProcurementDetail',
                               backref=db.backref('details', lazy='dynamic'))
-    record_id = db.Column('record_id', db.ForeignKey('procurement_records.id'))
-    record = db.relationship('ProcurementRecord', backref=db.backref('records'))
-    desc = db.Column('desc', db.Text(), info={'label': u'คำอธิบาย'})
+    desc = db.Column('desc', db.Text(), info={'label': u'รายละเอียดที่ต้องการให้บริการหรือปัญหาต่างๆ'})
     notice_date = db.Column('notice_date', db.Date(), nullable=True, info={'label': u'วันที่แจ้งซ่อม'})
     format_service = db.Column('format_service', db.String(), info={'label': u'รูปแบบการให้บริการ'})
 
