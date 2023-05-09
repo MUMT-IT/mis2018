@@ -335,6 +335,16 @@ class StaffSpecialGroup(db.Model):
                              secondary=staff_group_assoc_table)
 
 
+class StaffHeadPosition(db.Model):
+    __tablename__ = 'staff_head_positions'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    position = db.Column('position', db.String(), nullable=False)
+    org_id = db.Column('org_id', db.Integer(), db.ForeignKey('orgs.id'))
+    org = db.relationship(Org, backref=db.backref('head_position_org'))
+    staff = db.relationship('StaffAccount', backref=db.backref('head_position_staff'))
+
+
 class StaffLeaveType(db.Model):
     __tablename__ = 'staff_leave_types'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
