@@ -3012,6 +3012,15 @@ def seminar_upload_proposal(seminar_attend_id, proposal_id):
     taxi_cost = u'ค่าแท็กซี่ {} บาท '.format(seminar_attend.taxi_cost) if seminar_attend.taxi_cost else ''
     fuel_cost = u'ค่าน้ำมัน {} บาท '.format(seminar_attend.fuel_cost) if seminar_attend.fuel_cost else ''
     attend_online = u' เข้าร่วมผ่านช่องทางออนไลน์' if seminar_attend.attend_online else ''
+    academic_position = StaffAcademicPositionRecord.query.filter_by\
+                            (personal_info_id=current_user.personal_info.id).first()
+    if academic_position:
+        prefix_position = academic_position.position.fullname_th
+    elif current_user.personal_info.academic_staff:
+        prefix_position = u'อาจารย์'
+    else:
+        prefix_position = ''
+
     if request.method == 'POST':
         upload_file = request.files.get('document')
         if upload_file:
@@ -3034,7 +3043,8 @@ def seminar_upload_proposal(seminar_attend_id, proposal_id):
                            registration_fee=registration_fee, seminar_attend=seminar_attend,
                            transaction_fee=transaction_fee, budget=budget, accommodation_cost=accommodation_cost,
                            flight_ticket_cost=flight_ticket_cost, train_ticket_cost=train_ticket_cost,
-                           taxi_cost=taxi_cost, fuel_cost=fuel_cost, org_name=org_name, attend_online=attend_online)
+                           taxi_cost=taxi_cost, fuel_cost=fuel_cost, org_name=org_name, attend_online=attend_online,
+                           prefix_position=prefix_position)
 
 
 @staff.route('/seminar/all-proposal')

@@ -157,7 +157,7 @@
 			        ul: [
 				        {text: '\nที่  ' ,fontSize:17},
 				        {text: 'วันที่' ,fontSize:17},
-                        {text: 'เรื่อง   ขออนุมัติเข้าร่วม ขออนุญาติให้บุคลากรในสังกัดเข้าร่วม' + {{ seminar_attend.seminar.topic_type|tojson|safe }} ,fontSize:17},
+                        {text: 'เรื่อง   ขออนุมัติเข้าร่วม' + {{ seminar_attend.seminar.topic_type|tojson|safe }} ,fontSize:17},
                         {text: ' ' ,fontSize:8},
                         {text: 'เรียน   คณบดีคณะเทคนิคการแพทย์', fontSize:17},
                         {text: ' ' ,fontSize:8},
@@ -208,7 +208,7 @@
                         headerRow: 0,
                         widths: [230,'*',5],
                         body: [
-                            ['', {text: '\n\nผู้ช่วยศาสตรจารย์ '+"{{ current_user.personal_info }}"+'\n'+ "{{ this_proposal.head_position.position }}",
+                            ['', {text: '\n\n'+"{{ prefix_position }} "+"{{ current_user.personal_info }}"+'\n'+ "{{ this_proposal.head_position.position }}",
                                 fontSize:17, alignment: 'center'},''],
                         ],
                     }

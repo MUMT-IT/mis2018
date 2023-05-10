@@ -124,6 +124,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                {% if position %}
                                 <div class="field" v-if="forward === 'no' && status === 'yes'">
                                     <div class="field is-horizontal">
                                         <div class="field is-normal">
@@ -148,6 +149,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                {% endif %}
                                 <div class="field" v-if="forward === 'yes'">
                                     <div class="field is-horizontal">
                                         <div class="field is-normal">
