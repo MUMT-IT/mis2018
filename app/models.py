@@ -31,7 +31,7 @@ class Org(db.Model):
 
 
 class OrgStructure(db.Model):
-    __tablename__ = 'org_administration'
+    __tablename__ = 'org_structure'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     position = db.Column('position', db.String(), nullable=False)
     position_en = db.Column('position_en', db.String())
