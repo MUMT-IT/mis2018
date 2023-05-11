@@ -15,7 +15,7 @@ from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from sqlalchemy import cast, Date, and_
+from sqlalchemy import cast, Date, and_, or_
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
@@ -1504,4 +1504,41 @@ def view_repair_info(repair_id, procurement_id):
     return render_template('procurement/view_repair_info.html',
                            repair_record=repair_record,
                            procurement_id=procurement_id)
+
+
+@procurement.route('repair/all', methods=['GET', 'POST'])
+def view_all_repair_online_history():
+    return render_template('procurement/view_all_repair_online_history.html')
+
+
+@procurement.route('api/repair_online_history/all')
+def get_repair_online_history():
+    query = ProcurementRequire.query.filter_by(staff_id=current_user.id)
+    search = request.args.get('search[value]')
+    query = query.join(ProcurementDetail, aliased=True).filter(or_(
+        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.name.ilike(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['name'] = u'{}'.format(item.detail.name)
+        item_data['erp_code'] = u'{}'.format(item.detail.erp_code)
+        item_data['procurement_no'] = u'{}'.format(item.detail.procurement_no)
+        item_data['notice_date'] = item_data['notice_date'].strftime('%d/%m/%Y') if item_data[
+            'notice_date'] else ''
+        item_data['status'] = u"รอดำเนินการ"
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementRequire.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
 
