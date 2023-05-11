@@ -1574,3 +1574,39 @@ def view_procurement_to_repair_online(procurement_no=None):
                            procurement_no=item.procurement_no, url_callback=request.referrer)
 
 
+@procurement.route('repair/for-information-technology-and-maintenance/all', methods=['GET', 'POST'])
+def view_all_repair_online_history_by_it_and_maintenance():
+    return render_template('procurement/view_all_repair_online_history_by_it_and_maintenance.html')
+
+
+@procurement.route('api/repair_online_history/for-information-technology-and-maintenance/all')
+def get_repair_online_history_by_it_and_maintenance():
+    query = ProcurementRequire.query
+    search = request.args.get('search[value]')
+    query = query.join(ProcurementDetail, aliased=True).filter(or_(
+        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.name.ilike(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['name'] = u'{}'.format(item.detail.name)
+        item_data['erp_code'] = u'{}'.format(item.detail.erp_code)
+        item_data['procurement_no'] = u'{}'.format(item.detail.procurement_no)
+        item_data['notice_date'] = item_data['notice_date'].strftime('%d/%m/%Y') if item_data[
+            'notice_date'] else ''
+        item_data['status'] = u"รอดำเนินการ"
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementRequire.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
+

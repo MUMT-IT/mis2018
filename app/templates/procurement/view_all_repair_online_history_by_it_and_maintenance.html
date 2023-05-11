@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% include "procurement/nav_for_borrow_scheduler.html" %}
+{% block page_content %}
+    <section class="section">
+        {% include "messages.html" %}
+        <div class="container">
+            <div class="columns">
+                <div class="column has-text-left">
+                    <h1 class="title">ข้อมูลแจ้งซ่อมทั้งหมด</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table id="data" class="table is-fullwidth is-striped">
+                        <thead>
+                        <th>รายการ</th>
+                        <th>รหัสครุภัณฑ์</th>
+                        <th>Inventory Number/ERP</th>
+                        <th>รายละเอียดที่ต้องการให้บริการหรือปัญหาต่างๆ</th>
+                        <th>วันที่แจ้งซ่อม</th>
+                        <th>รูปแบบการให้บริการ</th>
+                        <th>สถานะ</th>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <a href="{{ url_for('procurement.repair_landing') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#data').DataTable({
+                searchDelay: 350,
+                ajax: '{{ url_for("procurement.get_repair_online_history_by_it_and_maintenance") }}',
+                serverSide: true,
+                columns: [
+                    {data: 'name'},
+                    {data: 'procurement_no'},
+                    {data: 'erp_code'},
+                    {data: 'desc'},
+                    {data: 'notice_date'},
+                    {data: 'format_service'},
+                    {data: 'status'}
+
+                ],
+            });
+        });
+    </script>
+{% endblock %}
