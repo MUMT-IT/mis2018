@@ -174,6 +174,14 @@ class ProcurementRequire(db.Model):
     notice_date = db.Column('notice_date', db.Date(), nullable=True, info={'label': u'วันที่แจ้งซ่อม'})
     format_service = db.Column('format_service', db.String(), info={'label': u'รูปแบบการให้บริการ'})
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'desc': self.desc,
+            'notice_date': self.notice_date,
+            'format_service': self.format_service
+        }
+
 
 class ProcurementInfoComputer(db.Model):
     __tablename__ = 'procurement_info_computers'
