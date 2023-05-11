@@ -1495,7 +1495,7 @@ def add_repair_online_service(procurement_id):
     return render_template('procurement/add_repair_online_service.html',
                            form=form, procurement_id=procurement_id,
                            item=item, url_next=url_for('procurement.search_by_erp_code_with_repair_online'),
-                           repair_records=repair_records)
+                           repair_records=repair_records, url_callback=request.referrer)
 
 
 @procurement.route('/repair/<int:procurement_id>/view/<int:repair_id>')
@@ -1540,5 +1540,37 @@ def get_repair_online_history():
                     'draw': request.args.get('draw', type=int),
                     })
 
+
+@procurement.route('repair/qrcode/scan')
+@login_required
+def scan_qrcode_to_repair_online():
+    return render_template('procurement/scan_qrcode_to_repair_online.html')
+
+
+@procurement.route('/<string:procurement_no>/sub-procurements')
+@login_required
+def view_sub_procurements(procurement_no):
+    sub_procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).all()
+    next_view = request.args.get('next_view')
+    return render_template('procurement/view_sub_procurements.html', next_view=next_view, sub_procurement=sub_procurement,
+                           request_args=request.args, procurement_no=procurement_no)
+
+
+@procurement.route('/scan-qrcode/info/repair')
+@procurement.route('/scan-qrcode/info/repair/procurement_no/<string:procurement_no>')
+def view_procurement_to_repair_online(procurement_no=None):
+    procurement_id = request.args.get('procurement_id')
+    if procurement_id:
+        item = ProcurementDetail.query.get(procurement_id)
+    if procurement_no:
+        item_count = ProcurementDetail.query.filter_by(procurement_no=procurement_no).count()
+        if item_count > 1:
+            return redirect(url_for('procurement.view_sub_procurements', procurement_no=procurement_no,
+                                    next_view="procurement.view_procurement_to_repair_online"))
+        else:
+            item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+
+    return render_template('procurement/view_procurement_info_to_repair_online.html', item=item,
+                           procurement_no=item.procurement_no, url_callback=request.referrer)
 
 
