@@ -1482,7 +1482,8 @@ def erp_code_procurement_list():
 def add_repair_online_service(procurement_id):
     form = ProcurementRequireForm()
     item = ProcurementDetail.query.get(procurement_id)
-    repair_record = ProcurementRequire.query.all()
+    if item.repair_records:
+        repair_records = item.repair_records
     if form.validate_on_submit():
         add_record = ProcurementRequire()
         form.populate_obj(add_record)
@@ -1494,5 +1495,13 @@ def add_repair_online_service(procurement_id):
     return render_template('procurement/add_repair_online_service.html',
                            form=form, procurement_id=procurement_id,
                            item=item, url_next=url_for('procurement.search_by_erp_code_with_repair_online'),
-                           repair_record=repair_record)
+                           repair_records=repair_records)
+
+
+@procurement.route('/repair/<int:procurement_id>/view/<int:repair_id>')
+def view_repair_info(repair_id, procurement_id):
+    repair_record = ProcurementRequire.query.get(repair_id)
+    return render_template('procurement/view_repair_info.html',
+                           repair_record=repair_record,
+                           procurement_id=procurement_id)
 

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">รายละเอียดการแจ้งซ่อม</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered is-two-thirds is-offset-2">
+                <div class="card">
+                    <div class="card-content">
+                        <table class="table is-striped is-bordered is-fullwidth">
+                            <colgroup>
+                                <col span="1" style="width: 25%;">
+                                <col span="1" style="width: 75%;">
+                            </colgroup>
+                            <tr>
+                                <td><label class="label">ผู้แจ้งซ่อม</label></td>
+                                <td>{{ repair_record.staff.fullname }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">รายการ</label></td>
+                                <td>{{ repair_record.detail.name }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">รายละเอียดที่ต้องการให้บริการหรือปัญหาต่างๆ</label></td>
+                                <td>{{ repair_record.desc }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">วันที่แจ้งซ่อม</label></td>
+                                <td>{{ repair_record.notice_date }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">รูปแบบการให้บริการ</label></td>
+                                <td>{{ repair_record.format_service }}</td>
+                            </tr>
+                        </table>
+                        <div class="buttons is-centered">
+                            <a href="{{ url_for('procurement.add_repair_online_service', procurement_id=procurement_id) }}" class="button is-light">กลับ</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

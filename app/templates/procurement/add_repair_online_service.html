@@ -195,15 +195,14 @@
                                         <th></th>
                                         <th>ชื่อผู้แจ้ง</th>
                                         <th>วันที่แจ้ง</th>
-
                                         </thead>
                                         <tbody>
-                                        {% if repair_record %}
-                                            {% for repair in repair_record  %}
+                                        {% if repair_records %}
+                                            {% for repair in item.repair_records  %}
                                                 <tr>
                                                     <td>
                                                         <a class="button is-small is-rounded is-primary is-outlined"
-                                                           href="">
+                                                           href="{{ url_for('procurement.view_repair_info', repair_id=repair.id, procurement_id=procurement_id) }}">
                                                             <span class="icon">
                                                                <i class="fas fa-eye"></i>
                                                             </span>
@@ -212,7 +211,6 @@
                                                     </td>
                                                     <td>{{ repair.staff.fullname }}</td>
                                                     <td>{{ repair.notice_date }}</td>
-
                                                 </tr>
                                             {% endfor %}
                                         {% endif %}
