@@ -30,6 +30,13 @@ class Org(db.Model):
         return [s for s in self.staff if s.retired is not True]
 
 
+class OrgStructure(db.Model):
+    __tablename__ = 'org_administration'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    position = db.Column('position', db.String(), nullable=False)
+    position_en = db.Column('position_en', db.String())
+
+
 class Strategy(db.Model):
     __tablename__ = 'strategies'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
