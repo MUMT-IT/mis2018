@@ -343,6 +343,7 @@ class StaffHeadPosition(db.Model):
     org_id = db.Column('org_id', db.Integer(), db.ForeignKey('orgs.id'))
     org_structure_id = db.Column('org_structure_id', db.Integer(), db.ForeignKey('org_structure.id'))
     org = db.relationship(Org, backref=db.backref('head_position_org'))
+    org_structure = db.relationship(OrgStructure, backref=db.backref('head_position_org_structure'))
     staff = db.relationship('StaffAccount', backref=db.backref('head_position_staff'))
 
 
@@ -640,6 +641,7 @@ class StaffSeminar(db.Model):
     location = db.Column('location', db.String(), info={'label': u'สถานที่จัด'})
     is_online = db.Column('is_online', db.Boolean(), default=False, info={'label': u'จัดแบบ Online'})
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    upload_file_url = db.Column('upload_file_url', db.String())
 
     def __str__(self):
         return u'{}'.format(self.topic)
