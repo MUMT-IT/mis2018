@@ -133,7 +133,6 @@ class ProcurementApprovalForm(ModelForm):
 
     checking_result = RadioField(u'ยืนยัน',
                                  choices=[(c, c) for c in [u'ตรวจสอบครุภัณฑ์ถูกต้อง', u'ตรวจสอบครุภัณฑ์ไม่ถูกต้อง']],
-                                 coerce=unicode,
                                  validators=[DataRequired()])
 
 
@@ -171,13 +170,10 @@ class ProcurementSurveyComputerForm(ModelForm):
 
     satisfaction_with_speed_of_use = RadioField(u'ความเร็วในการทำงาน',
                                                 choices=[(c, c) for c in [u'ไม่พอใจมาก', u'พอใจ', u'พอใจมาก']],
-                                                coerce=unicode,
                                                 validators=[DataRequired()])
     satisfaction_with_continuous_work = RadioField(u'การทำงานต่อเนื่อง ไม่ล่ม หรือค้าง',
                                                    choices=[(c, c) for c in [u'ไม่พอใจมาก', u'พอใจ', u'พอใจมาก']],
-                                                   coerce=unicode,
                                                    validators=[DataRequired()])
     satisfaction_with_enough_space = RadioField(u'พื้นที่พอเพียง',
                                                 choices=[(c, c) for c in [u'ไม่พอใจมาก', u'พอใจ', u'พอใจมาก']],
-                                                coerce=unicode,
                                                 validators=[DataRequired()])

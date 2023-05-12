@@ -1230,7 +1230,6 @@ def update_staff_leave_info(currentdate, staff_email=None):
         for staff in StaffAccount.query.all():
             if not staff.is_retired:
                 update_leave_information(currentdate, staff.email)
->>>>>>> master
 
 
 if __name__ == '__main__':

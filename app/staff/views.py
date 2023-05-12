@@ -6,7 +6,7 @@ from dateutil import parser
 from flask_login import login_required, current_user
 from pandas import read_excel, isna, DataFrame
 from app.eduqa.models import EduQAInstructor
-from models import *
+from app.models import *
 from . import staffbp as staff
 from app.main import db, get_weekdays, mail, app, csrf
 from app.models import Holidays, Org
