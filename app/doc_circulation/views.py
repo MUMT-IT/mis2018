@@ -518,7 +518,7 @@ def send_document(doc_id):
 @login_required
 def send_round_for_review(round_id):
     form = RoundSendForm()
-    select_orgs = (4, 6, 7, 8, 10)
+    select_orgs = (4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 27, 28, 29, 30, 31)
     form.targets.choices = [(org.id, org.name) for org in Org.query.all() if org.id in select_orgs]
     n_dept = 0
     if request.method == 'POST':
