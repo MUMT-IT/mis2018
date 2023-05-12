@@ -39,7 +39,6 @@ class RoomResource(db.Model):
     availability_id = db.Column('availability_id',
                                 db.ForeignKey('scheduler_room_avails.id'))
     type_id = db.Column('type_id', db.ForeignKey('scheduler_room_types.id'))
-    reservations = db.relationship('RoomEvent', backref='room')
     equipments = db.relationship(AssetItem, backref=db.backref('room'))
 
     def __str__(self):
@@ -65,6 +64,9 @@ class RoomEvent(db.Model):
                    autoincrement=True)
     room_id = db.Column('room_id', db.ForeignKey('scheduler_room_resources.id'),
                         nullable=False)
+    room = db.relationship(RoomResource, backref=db.backref('reservations',
+                                                            lazy='dynamic',
+                                                            cascade='all, delete-orphan'))
     category_id = db.Column('category_id',
                             db.ForeignKey('scheduler_event_categories.id'))
     category = db.relationship('EventCategory', backref=db.backref('events'))
@@ -79,6 +81,7 @@ class RoomEvent(db.Model):
     approved = db.Column('approved', db.Boolean(), default=True)
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     created_by = db.Column('created_by', db.ForeignKey('staff_account.id'))
+    creator = db.relationship('StaffAccount', foreign_keys=[created_by])
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), server_default=None)
     updated_by = db.Column('updated_by', db.ForeignKey('staff_account.id'))
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True), server_default=None)

@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Add New Event{% endblock %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
 {% include "scheduler/nav.html" %}
 {% block page_content %}
 <section class="section" id="app">
@@ -16,6 +20,7 @@
                     <p class="has-text-danger">หมายเหตุ ท่านจะสามารถใช้ห้องนี้ได้หลังจากได้รับการอนุมัติแล้วเท่านั้น</p>
                 {% endif %}
                 <form method="post">
+                    {{ form.hidden_tag() }}
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
                             <label class="label">ห้อง</label>
@@ -50,11 +55,7 @@
                             <div class="control">
                                 <div class="field">
                                     <div class="select">
-                                        <select name="category_id">
-                                            {% for cat in categories %}
-                                                <option value="{{ cat.id }}">{{ cat.category }}</option>
-                                            {% endfor %}
-                                        </select>
+                                        {{ form.category() }}
                                     </div>
                                 </div>
                             </div>
@@ -67,8 +68,7 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input is-danger" v-model="title"
-                                        name="title" type="text" placeholder="จุดประสงค์การใช้ห้อง หัวข้อกิจกรรม">
+                                    {{ form.title(class='input is-danger', placeholder='จุดประสงค์') }}
                                 </div>
                             </div>
                         </div>
@@ -80,11 +80,8 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <v-date-picker mode="dateTime" @input="checkDate"
-                                                   v-model="startdate" is24hr :minute-increment="30">
-                                    </v-date-picker>
+                                    {{ form.start(class='input') }}
                                 </div>
-                                <input name="startdate" :value="startdate.toISOString()" type="hidden">
                             </div>
                         </div>
                     </div>
@@ -95,10 +92,7 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <v-date-picker mode="dateTime" @input="checkDate"
-                                                   v-model="enddate" is24hr :minute-increment="30">
-                                    </v-date-picker>
-                                    <input name="enddate" :value="enddate.toISOString()" type="hidden">
+                                    {{ form.end(class='input') }}
                                 </div>
                             </div>
                         </div>
@@ -110,8 +104,7 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    <input class="input" type="number"
-                                        v-model.number="participant" name="participants" @change="checkParticipant()">
+                                    {{ form.occupancy(class='input') }}
                                 </div>
                             </div>
                         </div>
@@ -145,9 +138,8 @@
                             </div>
                         </div>
                     </div>
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <div class="buttons is-centered">
-                        <button type="submit" class="button is-success" :disabled="isNotReady()">
+                        <button type="submit" class="button is-success">
                             <strong>Submit</strong>
                         </button>
                     </div>
@@ -160,65 +152,43 @@
 
 {% block scripts %}
 {{super()}}
-<script src='https://unpkg.com/v-calendar'></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script type="text/javascript">
-    let vm = new Vue({
-        el: '#app',
-        delimiters: ['<%', '%>'],
-        data() {
-            return {
-                data: [],
-                ioquery: '',
-                iocode: '',
-                isFetching: false,
-                title: '',
-                startdate: new Date(),
-                enddate: new Date(),
-                participant: 1,
-                food: 0,
-                equipments: [],
-                filteredEquipments: [],
-                selected_equips : []
-            }
-        },
-        computed: {
-            datedelta: function() {
-                if (this.startdate !== undefined && this.enddate !== undefined) {
-                    return this.enddate - this.startdate
-                } else {
-                    return 0
-                }
-            }
-        },
-        methods: {
-            checkDate: function() {
-                if (this.datedelta < 0) {
-                    this.$buefy.toast.open({
-                        duration: 2000,
-                        message: 'วันสิ้นสุดต้องมาหลังวันเริ่มต้น',
-                        position: 'is-bottom',
-                        type: 'is-danger'
-                    })
-                } 
-            },
-            checkParticipant: function() {
-                if (this.participant < 1) {
-                    this.$buefy.toast.open({
-                        duration: 2000,
-                        message: 'ผู้ใช้งานห้องต้องมีจำนวนอย่างน้อยหนึ่งคน',
-                        position: 'is-bottom',
-                        type: 'is-danger'
-                    })
-                }
-            },
-            isNotReady: function() {
-                if(this.datedelta > 0 && this.title !== '' && this.participant >= 1) {
-                    return false
-                } else {
-                    return true
-                }
-            },
+    $('input[name="start"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: true,
+        timePickerIncrement: 15,
+        timePicker24Hour: true,
+        buttonClasses: 'button is-small',
+        applyButtonClasses: 'is-info',
+        cancelButtonClasses: 'is-text',
+        showDropdowns: true,
+        {% if not form.start.data %}
+        startDate: moment().startOf('hour'),
+        {% else %}
+            startDate: moment({{ form.start.data.isoformat()|tojson|safe }}).format('DD-MM-YYYY HH:mm:ss'),
+        {% endif %}
+        locale: {
+            format: 'DD-MM-YYYY HH:mm:ss'
         }
-    })
+    });
+    $('input[name="end"]').daterangepicker({
+        showDropdowns: true,
+        singleDatePicker: true,
+        timePicker: true,
+        timePickerIncrement: 15,
+        timePicker24Hour: true,
+        buttonClasses: 'button is-small',
+        applyButtonClasses: 'is-info',
+        cancelButtonClasses: 'is-text',
+        {% if not form.end.data %}
+            startDate: moment().startOf('hour').add(1, 'hour'),
+        {% else %}
+            startDate: moment({{ form.end.data.isoformat()|tojson|safe }}).format('DD-MM-YYYY HH:mm:ss'),
+        {% endif %}
+        locale: {
+            format: 'DD-MM-YYYY HH:mm:ss'
+        }
+    });
 </script>
 {% endblock %}

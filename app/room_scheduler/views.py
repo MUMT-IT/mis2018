@@ -1,12 +1,12 @@
 # -*- coding: utf8 -*-
 
-import requests
-import os
 import pytz
 from datetime import datetime
 from dateutil import parser
 from flask import render_template, jsonify, request, flash, redirect, url_for
 from flask_login import login_required, current_user
+
+from .forms import RoomEventForm
 from ..main import db
 from . import roombp as room
 from .models import RoomResource, RoomEvent, EventCategory
@@ -148,67 +148,22 @@ def approve_event(event_id):
 @room.route('/events/edit/<int:event_id>', methods=['POST', 'GET'])
 @login_required
 def edit_detail(event_id):
-    if request.method == 'POST':
-        event_id = request.form.get('event_id')
-        category_id = request.form.get('category_id')
-        event = RoomEvent.query.get(int(event_id))
-        title = request.form.get('title', '')
-        startdt = request.form.get('startdate')
-        enddt = request.form.get('enddate')
-        iocode_id = request.form.get('iocode')
-        desc = request.form.get('request', '')
-        occupancy = request.form.get('occupancy', 0)
-        refreshment = request.form.get('refreshment', 0)
-        note = request.form.get('note', '')
-        extra_items = request.form.get('extra_items', '')
-        if extra_items:
-            extra_items = extra_items.split('|')[:-1]
-
-        if iocode_id:
-            iocode_id = int(iocode_id)
-
-        event.category_id = int(category_id)
-        if title:
-            event.title = title
-        if startdt:
-            startdatetime = parser.isoparse(startdt)
-            startdatetime = startdatetime.astimezone(tz)
-        else:
-            startdatetime = None
-        if enddt:
-            enddatetime = parser.isoparse(enddt)
-            enddatetime = enddatetime.astimezone(tz)
-        else:
-            enddatetime = None
-        event.start = startdatetime
-        event.end = enddatetime
-        event.occupancy = occupancy
-        event.refreshment = int(refreshment)
-        event.iocode_id = iocode_id
-        event.request = desc
-        event.extra_items = extra_items
-        event.note = note
+    event = RoomEvent.query.get(event_id)
+    form = RoomEventForm(obj=event)
+    if form.validate_on_submit():
+        form.populate_obj(event)
+        event.start = form.start.data.astimezone(tz)
+        event.end = form.end.data.astimezone(tz)
+        event.updated_at = datetime.utcnow().astimezone(tz)
         event.updated_by = current_user.id
-        event.updated_at = tz.localize(datetime.utcnow())
         db.session.add(event)
         db.session.commit()
-
         flash(u'อัพเดตรายการเรียบร้อย', 'success')
         return redirect(url_for('room.index'))
-
-    if event_id:
-        event = RoomEvent.query.get(event_id)
-        categories = EventCategory.query.all()
-        if event:
-            event.start = event.start.astimezone(tz)
-            event.end = event.end.astimezone(tz)
-            event.extra_items = event.extra_items.split('|') if event.extra_items else []
-            iocode = event.iocode.to_dict() if event.iocode_id else {'id': ''}
-            return render_template('scheduler/event_edit.html',
-                                   iocode=iocode,
-                                   event=event, categories=categories)
     else:
-        return 'No room ID specified.'
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+    return render_template('scheduler/reserve_form.html', event=event, form=form, room=event.room)
 
 
 @room.route('/list', methods=['POST', 'GET'])
@@ -232,49 +187,41 @@ def room_list():
 @room.route('/reserve/<room_id>', methods=['GET', 'POST'])
 @login_required
 def room_reserve(room_id):
-    if request.method == 'POST':
-        category_id = request.form.get('category_id', None)
-        startdt = request.form.get('startdate', None)
-        enddt = request.form.get('enddate', None)
-        title = request.form.get('title', ''),
-        desc = request.form.get('desc', '')
-        participants = request.form.get('participants', 0)
-
-        room = RoomResource.query.get(room_id)
-        tz = pytz.timezone('Asia/Bangkok')
-        if startdt:
-            startdatetime = parser.isoparse(startdt)
-            startdatetime = startdatetime.astimezone(tz)
+    form = RoomEventForm()
+    room = RoomResource.query.get(room_id)
+    if form.validate_on_submit():
+        new_event = RoomEvent()
+        if form.start.data:
+            startdatetime = form.start.data.astimezone(tz)
         else:
             startdatetime = None
-        if enddt:
-            enddatetime = parser.isoparse(enddt)
-            enddatetime = enddatetime.astimezone(tz)
+        if form.end.data:
+            enddatetime = form.end.data.astimezone(tz)
         else:
             enddatetime = None
 
         if room_id and startdatetime and enddatetime:
             approval_needed = True if room.availability_id == 3 else False
 
-            new_event = RoomEvent(room_id=room.id,
-                                  start=startdatetime,
-                                  end=enddatetime,
-                                  created_at=tz.localize(datetime.utcnow()),
-                                  created_by=current_user.id,
-                                  request=desc,
-                                  title=title,
-                                  occupancy=int(participants),
-                                  approved=approval_needed,
-                                  category_id=int(category_id))
+            form.populate_obj(new_event)
+            new_event.start = startdatetime
+            new_event.end = enddatetime
+            new_event.approved = approval_needed
+            new_event.created_at = tz.localize(datetime.utcnow())
+            new_event.creator = current_user
+            new_event.room_id = room.id
 
             db.session.add(new_event)
             db.session.commit()
             flash(u'บันทึกการจองห้องเรียบร้อยแล้ว', 'success')
             return redirect(url_for('room.show_event_detail', event_id=new_event.id))
+    else:
+        print(request.form.get('start'))
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+        flash(f'{form.start.data}', 'warning')
 
-    if room_id:
-        room = RoomResource.query.get(room_id)
-        categories = EventCategory.query.all()
-        if room:
-            return render_template('scheduler/reserve_form.html',
-                                   room=room, categories=categories)
+    if room:
+        return render_template('scheduler/reserve_form.html', room=room, form=form)
+    else:
+        flash('Room not found.', 'danger')
