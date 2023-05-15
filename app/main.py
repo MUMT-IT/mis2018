@@ -365,7 +365,7 @@ from app.roles import admin_permission
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
 from models import (Student, Class, ClassCheckIn,
-                    Org, Mission, IOCode, CostCenter,
+                    Org, OrgStructure, Mission, IOCode, CostCenter,
                     StudentCheckInRecord, Holidays, Dashboard)
 
 admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
@@ -392,6 +392,7 @@ admin.add_view(StudentCheckInAdminModel(
 admin.add_view(ModelView(Org, db.session, category='Organization'))
 admin.add_view(ModelView(Mission, db.session, category='Organization'))
 admin.add_view(ModelView(Dashboard, db.session, category='Organization'))
+admin.add_view(ModelView(OrgStructure, db.session, category='Organization'))
 
 from asset import assetbp as asset_blueprint
 
