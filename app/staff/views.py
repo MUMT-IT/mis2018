@@ -3067,19 +3067,19 @@ def seminar_upload_proposal(seminar_attend_id, proposal_id):
         else:
             upload_file_url = None
 
-        req_title = u'หนังสือขออนุมัติอบรมเรื่องใหม่มาแล้ว' + seminar_attend.seminar.topic_type
-        req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n โดย{}เป็นผู้อนุมัติขั้นสุดท้าย \nคลิกที่ Link เพื่อดูเอกสาร{}' \
+        req_title = u'หนังสือขออนุมัติอบรมเรื่องใหม่มาแล้ว'
+        req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n โดย{}เป็นผู้บังคับบัญชาชั้นต้น \nคลิกที่ Link เพื่อดูเอกสาร{}' \
                   u'\n\n\nหน่วยIT \nคณะเทคนิคการแพทย์'. \
                    format(seminar_attend.staff.personal_info, seminar_attend.seminar.topic_type,
                           seminar_attend.seminar.topic, seminar_attend.start_datetime, seminar_attend.end_datetime,
                           this_proposal.proposer.personal_info, upload_file_url)
-        hr_account = StaffAccount.query.filter_by(email='kanjana.kle').first()
+        general_account = StaffAccount.query.filter_by(email='natchaya.rit').first()
         if os.environ["FLASK_ENV"] == "production":
-            send_mail([hr_account.email + "@mahidol.ac.th"], req_title, req_msg)
-            if hr_account.line_id:
-                line_bot_api.push_message(to=hr_account.line_id, messages=TextSendMessage(text=req_msg))
+            send_mail([general_account.email + "@mahidol.ac.th"], req_title, req_msg)
+            if general_account.line_id:
+                line_bot_api.push_message(to=general_account.line_id, messages=TextSendMessage(text=req_msg))
         else:
-            print(req_msg, hr_account.email)
+            print(req_msg, general_account.email)
         flash(u'ระบบบันทึกการอนุมัติของท่านแล้ว', 'success')
         return redirect(url_for('staff.show_seminar_proposal_info'))
     return render_template('staff/seminar_upload_proposal.html', proposal=proposal, this_proposal=this_proposal,
