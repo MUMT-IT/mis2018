@@ -70,6 +70,20 @@
                             </td>
                         </tr>
                         {% endif %}
+                        {% if upload_file_url %}
+                        <tr>
+                            <td>
+                                 เอกสารรายละเอียด
+                            </td>
+                            <td>
+                                <a href="{{ upload_file_url }}">
+                                   <span class="icon">
+                                    <i class="fas fa-book-open"></i>
+                                </span>
+                                คลิกเพื่อดู</a>
+                            </td>
+                        </tr>
+                        {% endif %}
                     </table>
                 </div>
                 <div class="columns">

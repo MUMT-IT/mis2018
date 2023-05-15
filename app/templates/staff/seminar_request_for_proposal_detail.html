@@ -66,6 +66,14 @@
                                 </label>
                             </div>
                         </div>
+                        {% if upload_file_url %}
+                        <div class="columns">
+                            <div class="column">
+                                เอกสารแนบ
+                                <label class="label"><a href="{{ upload_file_url }}">คลิกเพื่อดู</a></label>
+                            </div>
+                        </div>
+                        {% endif %}
                         {% if seminar_attend.middle_level_approver %}
                             <div class="columns">
                                 <div class="column">

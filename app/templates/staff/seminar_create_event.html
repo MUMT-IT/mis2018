@@ -15,7 +15,7 @@
                     <b-notification type="is-warning is-light" aria-close-label="Close notification" role="alert">
                         หากวันอบรมอยู่ในช่วง2ปีงบฯ ให้บันทึกครั้งเดียว
                     </b-notification>
-                    <form method="post">
+                    <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         <div class="field">
                             <label class="label">{{ form.topic_type.label }}</label>
@@ -67,12 +67,27 @@
                                 {{ form.location(class="input") }}
                             </div>
                         </div>
-                            <div class="field">
-                               <label class="checkbox">
-                                   {{ form.is_online() }}
-                                        จัดผ่านช่องทาง Online
-                               </label>
+                        <div class="field">
+                            <label class="checkbox">
+                                {{ form.is_online() }}
+                                จัดผ่านช่องทาง Online
+                            </label>
+                        </div>
+                        <div class="columns">
+                            <div class="column">
+                                <b-field class="file">
+                                    <b-upload v-model="file" name="document">
+                                        <a class="button is-primary">
+                                            <b-icon icon="upload"></b-icon>
+                                            <span>Click เพื่อ Upload file ที่เซ็นเรียบร้อยแล้ว</span>
+                                        </a>
+                                    </b-upload>
+                                    <span class="file-name" v-if="file">
+                                        <% file.name %>
+                                    </span>
+                                </b-field>
                             </div>
+                        </div>
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
                                 <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}" class="button is-light">Cancel</a>
@@ -101,7 +116,8 @@
                 data: [],
                 timepicker: {
                     incrementMinutes: 15
-                }
+                },
+                file: null,
         }
         },
         computed: {

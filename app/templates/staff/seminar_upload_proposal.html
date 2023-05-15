@@ -66,19 +66,18 @@
                                 </div>
                             </div>
                     </div>
-                        <form method="post">
+                        <form method="post" enctype="multipart/form-data">
                                 <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                             <div class="columns">
-                            <div class="column is-half is-offset-one-quarter">
-                                <b-field class="file is-centered">
+                            <div class="column">
+                                <b-field class="file">
                                     <b-upload v-model="file" name="document">
                                         <a class="button is-primary">
                                             <b-icon icon="upload"></b-icon>
                                             <span>Click เพื่อ Upload file ที่เซ็นเรียบร้อยแล้ว</span>
                                         </a>
                                     </b-upload>
-                                    <span class="file-name"
-                                                  v-if="file">
+                                    <span class="file-name" v-if="file">
                                         <% file.name %>
                                     </span>
                                 </b-field>

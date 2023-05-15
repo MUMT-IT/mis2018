@@ -172,7 +172,7 @@
                             </td>
                         </tr>
                         {% endif %}
-                        {% if attend.middle_level_approver %}
+                        {% if attend.lower_level_approver %}
                         <tr>
                             <td>
                                 การอนุมัติ
@@ -186,7 +186,13 @@
 
                             </td>
                             <td>
-                                {{ proposal.proposer.personal_info }} {{ proposal.approved_at|localdatetime }}
+                                {{ proposal.proposer.personal_info }}
+                                {% if proposal.is_approved == True %}
+                                    อนุมัติ
+                                {% else %}
+                                    ไม่อนุมัติ เนื่องจาก {{ proposal.comment }}
+                                {% endif %}
+                                {{ proposal.approved_at|localdatetime }}
                             </td>
                         </tr>
                         {% endfor %}
@@ -200,6 +206,16 @@
                             </td>
                         </tr>
                         {% endif %}
+                        {% endif %}
+                        {% if upload_file_url %}
+                        <tr>
+                            <td>
+                                หนังสือขออนุมัติ
+                            </td>
+                            <td>
+                                <a href="{{ upload_file_url }}">คลิกเพื่อดู</a>
+                            </td>
+                        </tr>
                         {% endif %}
                     </table>
                 </div>
