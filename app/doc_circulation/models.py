@@ -19,7 +19,6 @@ class DocOrg(db.Model):
     __tablename__ = 'doc_orgs'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     org_document_code = db.Column('org_document_code', db.Integer())
-    org_id = db.Column('org_id', db.Integer(), db.ForeignKey('orgs.id'), nullable=False)
 
 
 class DocCategory(db.Model):
