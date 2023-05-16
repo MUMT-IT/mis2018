@@ -40,6 +40,8 @@ class RoomResource(db.Model):
                                 db.ForeignKey('scheduler_room_avails.id'))
     type_id = db.Column('type_id', db.ForeignKey('scheduler_room_types.id'))
     equipments = db.relationship(AssetItem, backref=db.backref('room'))
+    coordinator_id = db.Column('coordinator_id', db.ForeignKey('staff_account.id'))
+    coordinator = db.relationship('StaffAccount', backref=db.backref('rooms'))
 
     def __str__(self):
         return u'Room: {} {} {}'.format(self.number, self.location, self.desc)
