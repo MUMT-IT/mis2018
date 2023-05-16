@@ -364,7 +364,12 @@ from app.vehicle_scheduler import vehiclebp as vehicle_blueprint
 app.register_blueprint(vehicle_blueprint, url_prefix='/vehicle')
 from app.vehicle_scheduler.models import *
 
-admin.add_views(ModelView(RoomResource, db.session, category='Physicals'))
+
+class RoomModelView(ModelView):
+    can_view_details = True
+    form_excluded_columns = ['items', 'reservations', 'equipments']
+
+admin.add_views(RoomModelView(RoomResource, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomEvent, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomType, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomAvailability, db.session, category='Physicals'))
