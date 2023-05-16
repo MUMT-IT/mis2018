@@ -3228,6 +3228,12 @@ def seminar_attends_each_person(staff_id):
     seminar_records = []
     seminar_query = StaffSeminar.query.filter(StaffSeminar.cancelled_at == None).all()
     for seminars in seminar_query:
+        if seminars.upload_file_url:
+            upload_file = drive.CreateFile({'id': seminars.upload_file_url})
+            upload_file.FetchMetadata()
+            seminars.upload_file_url = upload_file.get('embedLink')
+        else:
+            seminars.upload_file_url = None
         seminar_records.append(seminars)
     approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
     return render_template('staff/seminar_records_each_person.html', seminar_list=seminar_list,

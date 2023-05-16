@@ -30,6 +30,7 @@
                     <th>วันที่เริ่มต้น</th>
                     <th>วันที่สิ้นสุด</th>
                     <th>หน่วยงานที่จัด</th>
+                    <th>เอกสารโครงการ</th>
                     </thead>
                     <tbody>
                     {% for records in seminar_records|sort(attribute='start_datetime') %}
@@ -53,6 +54,11 @@
                         </td>
                         <td>
                             {{ records.organize_by }}
+                        </td>
+                        <td>
+                            {% if records.upload_file_url %}
+                            <a href="{{ records.upload_file_url }}">คลิกเพื่อดู</a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
