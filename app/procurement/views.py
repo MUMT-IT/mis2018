@@ -499,6 +499,9 @@ def get_procurement_data_qrcode_list():
         item_data = item.to_dict()
         item_data['received_date'] = item_data['received_date'].strftime('%d/%m/%Y') if item_data[
             'received_date'] else ''
+        item_data['select_item'] = (
+            '<input class="is-checkradio" id="pro_no{}" type="checkbox" name="selected_items" value="{}">'
+            '<label for="pro_no{}"></label>').format(item.id, item.id, item.id)
         item_data['print'] = '<a href="{}"><i class="fas fa-print"></i></a>'.format(
             url_for('procurement.export_qrcode_pdf', procurement_id=item.id))
         data.append(item_data)
