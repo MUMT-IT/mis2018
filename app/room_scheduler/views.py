@@ -225,3 +225,33 @@ def room_reserve(room_id):
         return render_template('scheduler/reserve_form.html', room=room, form=form)
     else:
         flash('Room not found.', 'danger')
+
+
+@room.route('/api/admin/events')
+@login_required
+def get_room_event_list():
+    query = RoomEvent.query.order_by(RoomEvent.start.desc())
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    # search filter
+    search = request.args.get('search[value]')
+    room = RoomResource.query.filter_by(number=search).first()
+    if search:
+        query = query.filter(db.or_(
+            RoomEvent.room.has(RoomEvent.room == room),
+            RoomEvent.title.like(f'%{search}%')
+        ))
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    return {
+        'data': [event.to_dict() for event in query],
+        'recordsFiltered': total_filtered,
+        'recordsTotal': RoomEvent.query.count(),
+        'draw': request.args.get('draw', type=int),
+    }
+
+
+@room.route('/events')
+@login_required
+def room_event_list():
+    return render_template('scheduler/room_event_list.html')

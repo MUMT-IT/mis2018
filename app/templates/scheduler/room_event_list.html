@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% include "scheduler/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+<div class="columns">
+    <div class="column">
+        <table id="data" class="table is-fullwidth">
+            <thead>
+            <th>Number</th>
+            <th>Location</th>
+            <th>Creator</th>
+            <th>Title</th>
+            <th>Start</th>
+            <th>End</th>
+            <th>Cancelled At</th>
+            <th>Category</th>
+            </thead>
+        </table>
+    </div>
+</div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#data').DataTable({
+                ajax: '{{ url_for('room.get_room_event_list') }}',
+                order: [[4, 'desc']],
+                serverSide: true,
+                processing: true,
+                columns: [
+                    { data: 'room_number' },
+                    { data: 'room_location' },
+                    { data: 'creator' },
+                    { data: 'title' },
+                    {
+                        data: 'start',
+                        render: function(data, type) {
+                            return moment(data).format('lll')
+                        }
+                    },
+                    {
+                        data: 'end',
+                        render: function(data, type) {
+                            return moment(data).format('lll')
+                        }
+                    },
+                    {
+                        data: 'cancelled_at',
+                        render: function(data, type) {
+                            if (data !== null) {
+                                return moment(data).format('lll')
+                            } else {
+                                return null
+                            }
+                        }
+                    },
+                    { data: 'category' },
+                ],
+            });
+        });
+    </script>
+{% endblock %}

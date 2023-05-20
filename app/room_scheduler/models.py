@@ -95,3 +95,15 @@ class RoomEvent(db.Model):
     iocode = db.relationship('IOCode', backref=db.backref('events' , lazy='dynamic'))
     google_event_id = db.Column('google_event_id', db.String(64))
     google_calendar_id = db.Column('google_calendar_id', db.String(255))
+
+    def to_dict(self):
+        return {
+            'room_number': self.room.number,
+            'room_location': self.room.location,
+            'title': self.title,
+            'start': self.start.isoformat(),
+            'cancelled_at': self.cancelled_at.isoformat() if self.cancelled_at else None,
+            'end': self.end.isoformat(),
+            'creator': self.creator.fullname if self.creator else None,
+            'category': self.category.category,
+        }
