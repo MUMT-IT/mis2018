@@ -4,17 +4,32 @@
 {% block page_content %}
 <section class="section">
 <div class="columns">
+    <div class="column has-text-centered box">
+        <p>ตัวกรองรายการ</p>
+        <div class="field">
+            <label class="radio">
+                <input type="radio" name="toggle" value="all" checked="true">
+                ทั้งหมด
+            </label>
+            <label class="radio">
+                <input type="radio" name="toggle" value="some">
+                ห้องที่ดูแล
+            </label>
+        </div>
+    </div>
+</div>
+<div class="columns">
     <div class="column">
         <table id="data" class="table is-fullwidth">
             <thead>
-            <th>Number</th>
-            <th>Location</th>
-            <th>Creator</th>
-            <th>Title</th>
-            <th>Start</th>
-            <th>End</th>
-            <th>Cancelled At</th>
-            <th>Category</th>
+            <th>หมายเลข</th>
+            <th>วิทยาเขต</th>
+            <th>ผู้จอง</th>
+            <th>จุดประสงค์</th>
+            <th>เริ่ม</th>
+            <th>สิ้นสุด</th>
+            <th>ยกเลิกเมื่อ</th>
+            <th>ประเภท</th>
             </thead>
         </table>
     </div>
@@ -25,7 +40,7 @@
     {{ super() }}
     <script>
         $(document).ready(function () {
-            $('#data').DataTable({
+            let table = $('#data').DataTable({
                 ajax: '{{ url_for('room.get_room_event_list') }}',
                 order: [[4, 'desc']],
                 serverSide: true,
@@ -60,6 +75,11 @@
                     { data: 'category' },
                 ],
             });
+            $('input[name="toggle"]').change(function() {
+                let selected_value = $("input[name='toggle']:checked").val();
+                let url = '/room/api/admin/events' + '?query=' + selected_value
+                table.ajax.url(url).load()
+            })
         });
     </script>
 {% endblock %}

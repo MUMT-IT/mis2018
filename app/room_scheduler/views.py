@@ -1,12 +1,15 @@
 # -*- coding: utf8 -*-
+import os
 
 import pytz
 from datetime import datetime
 from dateutil import parser
 from flask import render_template, jsonify, request, flash, redirect, url_for
 from flask_login import login_required, current_user
+from linebot.models import TextSendMessage
 
 from .forms import RoomEventForm
+from ..auth.views import line_bot_api
 from ..main import db
 from . import roombp as room
 from .models import RoomResource, RoomEvent, EventCategory
@@ -54,20 +57,15 @@ def get_events():
     if cal_end:
         cal_end = parser.isoparse(cal_end)
     all_events = []
-    for event in RoomEvent.query.filter(RoomEvent.start >= cal_start)\
+    for event in RoomEvent.query.filter(RoomEvent.start >= cal_start) \
             .filter(RoomEvent.end <= cal_end).filter_by(cancelled_at=None):
         # The event object is a dict object with a 'summary' key.
         start = event.start
         end = event.end
         room = event.room
-        if event.approved:
-            text_color = '#ffffff'
-            bg_color = '#2b8c36'
-            border_color = '#ffffff'
-        else:
-            text_color = '#000000'
-            bg_color = '#f0f0f5'
-            border_color = '#ff4d4d'
+        text_color = '#ffffff'
+        bg_color = '#2b8c36'
+        border_color = '#ffffff'
         evt = {
             'location': room.number,
             'title': u'(Rm{}) {}'.format(room.number, event.title),
@@ -128,6 +126,13 @@ def cancel(event_id=None):
     event.cancelled_by = current_user.id
     db.session.add(event)
     db.session.commit()
+    msg = f'{new_event.creator} ได้ยกเลิกการจอง {room} สำหรับ {new_event.title} เวลา {new_event.start} - {new_event.end}.'
+    if os.environ["FLASK_ENV"] == "production":
+        if event.room.coordinator and event.room.coordinator.line_id:
+            line_bot_api.push_message(to=event.room.coordinator.line_id,
+                                      messages=TextSendMessage(text=msg))
+    else:
+        print(msg, event.room.coordinator)
 
     return redirect(url_for('room.index'))
 
@@ -201,18 +206,22 @@ def room_reserve(room_id):
             enddatetime = None
 
         if room_id and startdatetime and enddatetime:
-            approval_needed = True if room.availability_id == 3 else False
-
             form.populate_obj(new_event)
             new_event.start = startdatetime
             new_event.end = enddatetime
-            new_event.approved = approval_needed
             new_event.created_at = tz.localize(datetime.utcnow())
             new_event.creator = current_user
             new_event.room_id = room.id
 
             db.session.add(new_event)
             db.session.commit()
+            msg = f'{new_event.creator.fullname} ได้จองห้อง {room} สำหรับ {new_event.title} เวลา {new_event.start} - {new_event.end}.'
+            if os.environ["FLASK_ENV"] == "production":
+                if room.coordinator and room.coordinator.line_id:
+                    line_bot_api.push_message(to=room.coordinator.line_id,
+                                              messages=TextSendMessage(text=msg))
+            else:
+                print(msg, room.coordinator)
             flash(u'บันทึกการจองห้องเรียบร้อยแล้ว', 'success')
             return redirect(url_for('room.show_event_detail', event_id=new_event.id))
     else:
@@ -230,12 +239,15 @@ def room_reserve(room_id):
 @room.route('/api/admin/events')
 @login_required
 def get_room_event_list():
-    query = RoomEvent.query.order_by(RoomEvent.start.desc())
+    room_query = request.args.get('query', 'all')
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
+    query = RoomEvent.query.order_by(RoomEvent.start.desc())
     # search filter
     search = request.args.get('search[value]')
     room = RoomResource.query.filter_by(number=search).first()
+    if room_query == 'some':
+        query = RoomEvent.query.filter(RoomEvent.room.has(coordinator=current_user))
     if search:
         query = query.filter(db.or_(
             RoomEvent.room.has(RoomEvent.room == room),
@@ -243,8 +255,9 @@ def get_room_event_list():
         ))
     total_filtered = query.count()
     query = query.offset(start).limit(length)
+
     return {
-        'data': [event.to_dict() for event in query],
+        'data': [d.to_dict() for d in query],
         'recordsFiltered': total_filtered,
         'recordsTotal': RoomEvent.query.count(),
         'draw': request.args.get('draw', type=int),
