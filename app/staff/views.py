@@ -1,21 +1,19 @@
 # -*- coding:utf-8 -*-
-import time
 
 import pandas as pd
 from dateutil import parser
 from flask_login import login_required, current_user
 from pandas import read_excel, isna, DataFrame
 from app.eduqa.models import EduQAInstructor
-from app.models import *
 from . import staffbp as staff
-from app.main import db, get_weekdays, mail, app, csrf
-from app.models import Holidays, Org
+from app.main import get_weekdays, mail, app, csrf
+from app.models import Holidays
 from flask import jsonify, render_template, request, redirect, url_for, flash, session, send_from_directory, \
     make_response
-from datetime import date, datetime
+from datetime import date, timedelta
 from collections import defaultdict, namedtuple
 import pytz
-from sqlalchemy import and_, desc, func, cast, Date, or_
+from sqlalchemy import and_, desc, cast, Date, or_
 from werkzeug.utils import secure_filename
 from app.auth.views import line_bot_api
 from linebot.models import TextSendMessage
@@ -30,8 +28,9 @@ from itsdangerous import TimedSerializer as TimedJSONWebSignatureSerializer
 import qrcode
 from app.staff.forms import StaffSeminarForm, create_seminar_attend_form
 from app.roles import admin_permission, hr_permission, secretary_permission, manager_permission
+from app.staff.models import *
 
-from ..comhealth.views import allowed_file
+from app.comhealth.views import allowed_file
 
 gauth = GoogleAuth()
 keyfile_dict = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
@@ -157,7 +156,7 @@ def show_leave_info():
         used_quota = current_user.personal_info.get_total_leaves(req.quota.id,
                                                                  tz.localize(START_FISCAL_DATE),
                                                                  tz.localize(END_FISCAL_DATE))
-        leave_type = unicode(req.quota.leave_type)
+        leave_type = str(req.quota.leave_type)
         cum_days[leave_type] = used_quota
         pending_day = current_user.personal_info.get_total_pending_leaves_request \
             (req.quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
