@@ -28,6 +28,7 @@
             <th>จุดประสงค์</th>
             <th>เริ่ม</th>
             <th>สิ้นสุด</th>
+            <th>หมายเหตุ</th>
             <th>ยกเลิกเมื่อ</th>
             <th>ประเภท</th>
             </thead>
@@ -62,6 +63,7 @@
                             return moment(data).format('lll')
                         }
                     },
+                    { data: 'note' },
                     {
                         data: 'cancelled_at',
                         render: function(data, type) {

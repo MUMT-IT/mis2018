@@ -106,4 +106,5 @@ class RoomEvent(db.Model):
             'end': self.end.isoformat(),
             'creator': self.creator.fullname if self.creator else None,
             'category': self.category.category,
+            'note': self.note
         }
