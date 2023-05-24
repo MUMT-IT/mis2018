@@ -8,14 +8,21 @@ from flask import render_template, jsonify, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from linebot.models import TextSendMessage
 
+from app.main import mail
 from .forms import RoomEventForm
 from ..auth.views import line_bot_api
 from ..main import db
 from . import roombp as room
 from .models import RoomResource, RoomEvent, EventCategory
 from ..models import IOCode
+from flask_mail import Message
 
 tz = pytz.timezone('Asia/Bangkok')
+
+
+def send_mail(recp, title, message):
+    message = Message(subject=title, body=message, recipients=recp)
+    mail.send(message)
 
 
 @room.route('/api/iocodes')
@@ -126,7 +133,7 @@ def cancel(event_id=None):
     event.cancelled_by = current_user.id
     db.session.add(event)
     db.session.commit()
-    msg = f'{new_event.creator} ได้ยกเลิกการจอง {room} สำหรับ {new_event.title} เวลา {new_event.start} - {new_event.end}.'
+    msg = f'{event.creator} ได้ยกเลิกการจอง {room} สำหรับ {event.title} เวลา {event.start} - {event.end}.'
     if os.environ["FLASK_ENV"] == "production":
         if event.room.coordinator and event.room.coordinator.line_id:
             line_bot_api.push_message(to=event.room.coordinator.line_id,
@@ -214,16 +221,27 @@ def room_reserve(room_id):
             new_event.created_at = tz.localize(datetime.utcnow())
             new_event.creator = current_user
             new_event.room_id = room.id
-            if new_event.partipants:
-                new_event.occupancy = len(new_event.partipants)
+            if new_event.participants:
+                new_event.occupancy = len(new_event.participants)
 
             db.session.add(new_event)
             db.session.commit()
-            msg = f'{new_event.creator.fullname} ได้จองห้อง {room} สำหรับ {new_event.title} เวลา {new_event.start} - {new_event.end}.'
+
+            print(new_event.participants, new_event.notify_participants)
+            if new_event.participants and new_event.notify_participants:
+                participant_emails = [f'{account.email}@mahidol.ac.th' for account in new_event.participants]
+                title = f'แจ้งนัดหมาย{new_event.category}'
+                message = f'ท่านได้รับเชิญให้เข้าร่วม {new_event.title}'
+                message += f' เวลา {new_event.start.strftime("%d/%m/%Y %H:%M")} - {new_event.end.strftime("%d/%m/%Y %H:%M")}'
+                message += f' ณ ห้อง {room.number} {room.location}'
+                message += f'\n\nขอความอนุเคราะห์เข้าร่วมในวันและเวลาดังกล่าว'
+                send_mail(participant_emails, title, message)
+                print('The email has been sent to the participants.')
+
+            msg = f'{new_event.creator.fullname} ได้จองห้อง {room} สำหรับ {new_event.title} เวลา {new_event.start.strftime("%d/%m/%Y %H:%M")} - {new_event.end.strftime("%d/%m/%Y %H:%M")}.'
             if os.environ["FLASK_ENV"] == "production":
                 if room.coordinator and room.coordinator.line_id:
-                    line_bot_api.push_message(to=room.coordinator.line_id,
-                                              messages=TextSendMessage(text=msg))
+                    line_bot_api.push_message(to=room.coordinator.line_id, messages=TextSendMessage(text=msg))
             else:
                 print(msg, room.coordinator)
             flash(u'บันทึกการจองห้องเรียบร้อยแล้ว', 'success')

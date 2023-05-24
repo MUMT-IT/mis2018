@@ -49,10 +49,10 @@ class RoomResource(db.Model):
     coordinator = db.relationship('StaffAccount', backref=db.backref('rooms'))
 
     def __str__(self):
-        return u'Room: {} {} {}'.format(self.number, self.location, self.desc)
+        return u'{} {} {}'.format(self.number, self.location, self.desc)
 
     def __repr__(self):
-        return u'Room: {}, ID: {}'.format(self.number, self.id)
+        return u'{}, ID: {}'.format(self.number, self.id)
 
 
 class EventCategory(db.Model):
@@ -100,8 +100,9 @@ class RoomEvent(db.Model):
     iocode = db.relationship('IOCode', backref=db.backref('events' , lazy='dynamic'))
     google_event_id = db.Column('google_event_id', db.String(64))
     google_calendar_id = db.Column('google_calendar_id', db.String(255))
-    partipants = db.relationship('StaffAccount', secondary=event_participant_assoc,
-                                 backref=db.backref('events', lazy='dynamic'))
+    participants = db.relationship('StaffAccount', secondary=event_participant_assoc,
+                                   backref=db.backref('events', lazy='dynamic'))
+    notify_participants = db.Column('notify_participants', db.Boolean(), default=True)
 
     def to_dict(self):
         return {

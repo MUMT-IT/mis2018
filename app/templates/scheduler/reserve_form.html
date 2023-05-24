@@ -117,8 +117,20 @@
                         <div class="field-body">
                             <div class="field">
                                 <div class="control">
-                                    {{ form.partipants(class='js-example-basic-multiple', multiple='multiple') }}
+                                    {{ form.participants(class='js-example-basic-multiple', multiple='multiple') }}
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.notify_participants() }}
+                                    แจ้งเตือนทางอีเมล
+                                </label>
                             </div>
                         </div>
                     </div>
