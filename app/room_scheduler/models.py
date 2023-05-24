@@ -3,6 +3,11 @@ from sqlalchemy.sql import func
 from ..asset.models import AssetItem
 
 
+event_participant_assoc = db.Table('event_participant_assoc',
+                             db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
+                             db.Column('event_id', db.Integer, db.ForeignKey('scheduler_room_reservations.id'))
+                             )
+
 class RoomType(db.Model):
     __tablename__ = 'scheduler_room_types'
     id = db.Column('id', db.Integer(), primary_key=True,
@@ -95,6 +100,8 @@ class RoomEvent(db.Model):
     iocode = db.relationship('IOCode', backref=db.backref('events' , lazy='dynamic'))
     google_event_id = db.Column('google_event_id', db.String(64))
     google_calendar_id = db.Column('google_calendar_id', db.String(255))
+    partipants = db.relationship('StaffAccount', secondary=event_participant_assoc,
+                                 backref=db.backref('events', lazy='dynamic'))
 
     def to_dict(self):
         return {
