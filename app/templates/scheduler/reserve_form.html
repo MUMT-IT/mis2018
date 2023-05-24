@@ -3,6 +3,7 @@
 {% block head %}
     {{ super() }}
     <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 {% endblock %}
 {% include "scheduler/nav.html" %}
 {% block page_content %}
@@ -110,6 +111,18 @@
                         </div>
                     </div>
                     <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ผู้เข้าร่วม</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.partipants(class='js-example-basic-multiple', multiple='multiple') }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
 <!--                        <div class="field-label is-normal">-->
 <!--                            <label class="label">อุปกรณ์ประจำ</label>-->
 <!--                        </div>-->
@@ -152,43 +165,49 @@
 
 {% block scripts %}
 {{super()}}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 <script type="text/javascript">
-    $('input[name="start"]').daterangepicker({
-        singleDatePicker: true,
-        timePicker: true,
-        timePickerIncrement: 15,
-        timePicker24Hour: true,
-        buttonClasses: 'button is-small',
-        applyButtonClasses: 'is-info',
-        cancelButtonClasses: 'is-text',
-        showDropdowns: true,
-        {% if not form.start.data %}
-        startDate: moment().startOf('hour'),
-        {% else %}
-            startDate: moment({{ form.start.data.isoformat()|tojson|safe }}).format('DD-MM-YYYY HH:mm:ss'),
-        {% endif %}
-        locale: {
-            format: 'DD-MM-YYYY HH:mm:ss'
-        }
-    });
-    $('input[name="end"]').daterangepicker({
-        showDropdowns: true,
-        singleDatePicker: true,
-        timePicker: true,
-        timePickerIncrement: 15,
-        timePicker24Hour: true,
-        buttonClasses: 'button is-small',
-        applyButtonClasses: 'is-info',
-        cancelButtonClasses: 'is-text',
-        {% if not form.end.data %}
-            startDate: moment().startOf('hour').add(1, 'hour'),
-        {% else %}
-            startDate: moment({{ form.end.data.isoformat()|tojson|safe }}).format('DD-MM-YYYY HH:mm:ss'),
-        {% endif %}
-        locale: {
-            format: 'DD-MM-YYYY HH:mm:ss'
-        }
+    $(document).ready(()=> {
+        $('.js-example-basic-multiple').select2({
+            width: '100%',
+        });
+        $('input[name="start"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: true,
+            timePickerIncrement: 15,
+            timePicker24Hour: true,
+            buttonClasses: 'button is-small',
+            applyButtonClasses: 'is-info',
+            cancelButtonClasses: 'is-text',
+            showDropdowns: true,
+            {% if not form.start.data %}
+                startDate: moment().startOf('hour'),
+            {% else %}
+                startDate: moment({{ form.start.data.isoformat()|tojson|safe }}).format('DD-MM-YYYY HH:mm:ss'),
+            {% endif %}
+            locale: {
+                format: 'DD-MM-YYYY HH:mm:ss'
+            }
+        });
+        $('input[name="end"]').daterangepicker({
+            showDropdowns: true,
+            singleDatePicker: true,
+            timePicker: true,
+            timePickerIncrement: 15,
+            timePicker24Hour: true,
+            buttonClasses: 'button is-small',
+            applyButtonClasses: 'is-info',
+            cancelButtonClasses: 'is-text',
+            {% if not form.end.data %}
+                startDate: moment().startOf('hour').add(1, 'hour'),
+            {% else %}
+                startDate: moment({{ form.end.data.isoformat()|tojson|safe }}).format('DD-MM-YYYY HH:mm:ss'),
+            {% endif %}
+            locale: {
+                format: 'DD-MM-YYYY HH:mm:ss'
+            }
+        });
     });
 </script>
 {% endblock %}

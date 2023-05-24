@@ -157,6 +157,8 @@ def edit_detail(event_id):
     form = RoomEventForm(obj=event)
     if form.validate_on_submit():
         form.populate_obj(event)
+        if event.partipants:
+            event.occupancy = len(event.partipants)
         event.start = form.start.data.astimezone(tz)
         event.end = form.end.data.astimezone(tz)
         event.updated_at = datetime.utcnow().astimezone(tz)
@@ -212,6 +214,8 @@ def room_reserve(room_id):
             new_event.created_at = tz.localize(datetime.utcnow())
             new_event.creator = current_user
             new_event.room_id = room.id
+            if new_event.partipants:
+                new_event.occupancy = len(new_event.partipants)
 
             db.session.add(new_event)
             db.session.commit()

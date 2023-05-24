@@ -5,7 +5,7 @@ from flask_wtf.file import FileField
 from wtforms import SelectMultipleField, widgets, BooleanField
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
 from app.room_scheduler.models import *
-
+from app.staff.models import StaffAccount
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -22,3 +22,5 @@ class RoomEventForm(ModelForm):
         datetime_format = '%d-%m-%Y %H:%M:%S'
 
     category = QuerySelectField(query_factory=lambda: EventCategory.query.all())
+    partipants = QuerySelectMultipleField(query_factory=lambda: StaffAccount.get_active_accounts(),
+                                          get_label='fullname')
