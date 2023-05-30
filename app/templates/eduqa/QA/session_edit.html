@@ -2,6 +2,7 @@
 {% block head %}
 {{ super() }}
 <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 {% endblock %}
 {% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
 {% include "eduqa/QA/nav.html" %}
@@ -18,6 +19,11 @@
                 <h1 class="title has-text-centered">New Course Session</h1>
                 <form method="post" class="box">
                     {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.event.room.label }}</label>
+                        {{ form.event.room(class="js-example-basic-single") }}
+                        <span id="room-availability"></span>
+                    </div>
                     <div class="field">
                         <label class="label">{{ form.start.label }}</label>
                         <div class="control">
@@ -105,39 +111,56 @@
 <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
 -->
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://unpkg.com/htmx.org@1.9.2"></script>
 <script>
-    moment.locale('th');
-    $('input[name="start"]').daterangepicker({
-        singleDatePicker: true,
-        timePicker: true,
-        timePickerIncrement: 15,
-        timePicker24Hour: true,
-        {% if form.start.data %}
-        startDate: {{ form.start.data.astimezone(localtz).isoformat()|tojson|safe }},
-        {% else %}
-        startDate: moment().startOf('hour'),
-        {% endif %}
-        locale: {
-            format: 'YYYY-MM-DD HH:mm:ss'
+    $(document).ready(function() {
+        moment.locale('th');
+        $('input[name="start"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: true,
+            timePickerIncrement: 15,
+            timePicker24Hour: true,
+            {% if form.start.data %}
+            startDate: {{ form.start.data.astimezone(localtz).isoformat()|tojson|safe }},
+            {% else %}
+            startDate: moment().startOf('hour'),
+            {% endif %}
+            locale: {
+                format: 'YYYY-MM-DD HH:mm:ss'
+            }
+        });
+        $('input[name="end"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: true,
+            timePickerIncrement: 15,
+            timePicker24Hour: true,
+            {% if form.end.data %}
+            startDate: {{ form.end.data.astimezone(localtz).isoformat()|tojson|safe }},
+            {% else %}
+            startDate: moment().startOf('hour'),
+            {% endif %}
+            locale: {
+                format: 'YYYY-MM-DD HH:mm:ss'
+            }
+        });
+        let checkAvailability = function () {
+            let room = $('#event-room').find(':selected').val()
+            let endDateTime = moment($('input[name="end"]').val())
+            let startDateTime = moment($('input[name="start"]').val())
+            htmx.ajax('GET', '{{ url_for("room.check_room_availability") }}', {target: '#room-availability', values: {'start': startDateTime.format(), 'end': endDateTime.format(), 'room': room}})
         }
+        $('input[name="start"]').change(function () {
+          $('input[name="end"]').data('daterangepicker').setStartDate($(this).val())
+          $('input[name="end"]').data('daterangepicker').setEndDate($(this).val())
+        })
+        $('input[name="end"]').change(function () {
+            checkAvailability()
+        })
+        $('#event-room').change(function () {
+            checkAvailability()
+        })
+        $('.js-example-basic-single').select2();
     });
-    $('input[name="end"]').daterangepicker({
-        singleDatePicker: true,
-        timePicker: true,
-        timePickerIncrement: 15,
-        timePicker24Hour: true,
-        {% if form.end.data %}
-        startDate: {{ form.end.data.astimezone(localtz).isoformat()|tojson|safe }},
-        {% else %}
-        startDate: moment().startOf('hour'),
-        {% endif %}
-        locale: {
-            format: 'YYYY-MM-DD HH:mm:ss'
-        }
-    });
-    $('input[name="start"]').change(function () {
-      $('input[name="end"]').data('daterangepicker').setStartDate($(this).val())
-      $('input[name="end"]').data('daterangepicker').setEndDate($(this).val())
-    })
 </script>
 {% endblock %}

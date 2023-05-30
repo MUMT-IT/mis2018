@@ -2,6 +2,7 @@
 from sqlalchemy.ext.associationproxy import association_proxy
 
 from app.main import db
+from app.room_scheduler.models import RoomEvent
 from app.staff.models import StaffAccount
 from pytz import timezone
 
@@ -187,6 +188,8 @@ class EduQACourseSession(db.Model):
                                   backref=db.backref('sessions', lazy='dynamic'))
     format = db.Column('format', db.String(),
                        info={'label': u'รูปแบบ', 'choices': [(c, c) for c in [u'ออนไซต์', u'ออนไลน์']]})
+    event_id = db.Column('event_id', db.ForeignKey('scheduler_room_reservations.id'))
+    event = db.relationship(RoomEvent, backref=db.backref('course_session', uselist=False))
 
     @property
     def total_hours(self):

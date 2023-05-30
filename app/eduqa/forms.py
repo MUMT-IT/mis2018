@@ -5,6 +5,7 @@ from wtforms import SelectMultipleField, widgets, FieldList, FormField, IntegerF
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField, ModelFormField, \
     ModelFieldList
 from app.eduqa.models import *
+from app.room_scheduler.models import RoomResource
 from app.staff.models import (StaffAcademicPositionRecord,
                               StaffAcademicPosition,
                               StaffEduDegree)
@@ -84,6 +85,13 @@ class EduCourseSessionTopicForm(ModelForm):
         model = EduQACourseSessionTopic
 
 
+class RoomEventForm(ModelForm):
+    class Meta:
+        model = RoomEvent
+        exclude = ['start', 'end', 'title']
+    room = QuerySelectField('ห้อง', query_factory=lambda: RoomResource.query.all())
+
+
 def create_instructors_form(course):
     class EduCourseSessionForm(ModelForm):
         class Meta:
@@ -96,6 +104,7 @@ def create_instructors_form(course):
                                                option_widget=widgets.CheckboxInput())
         topics = FieldList(FormField(EduCourseSessionTopicForm,
                                      default=EduQACourseSessionTopic), min_entries=1)
+        event = FormField(RoomEventForm, default=RoomEvent)
 
     return EduCourseSessionForm
 

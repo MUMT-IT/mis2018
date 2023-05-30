@@ -1,12 +1,14 @@
 # -*- coding: utf8 -*-
 import os
 
+import dateutil.parser
 import pytz
 from datetime import datetime
 from dateutil import parser
 from flask import render_template, jsonify, request, flash, redirect, url_for
 from flask_login import login_required, current_user
 from linebot.models import TextSendMessage
+from sqlalchemy import and_
 
 from app.main import mail
 from .forms import RoomEventForm
@@ -290,3 +292,34 @@ def get_room_event_list():
 @login_required
 def room_event_list():
     return render_template('scheduler/room_event_list.html')
+
+
+def get_overlaps(room_id, start, end):
+    query = RoomEvent.query.filter_by(room_id=room_id)
+    # check for inner overlaps
+    overlaps = query.filter(start >= RoomEvent.start, end <= RoomEvent.end).count()
+
+    # check for outer overlaps
+    overlaps += query.filter(and_(start <= RoomEvent.start,
+                                  end > RoomEvent.start,
+                                  end <= RoomEvent.end)).count()
+
+    overlaps += query.filter(and_(start >= RoomEvent.start,
+                                  end >= RoomEvent.end,
+                                  start < RoomEvent.end)).count()
+    return overlaps
+
+
+@room.route('/api/room-availability')
+@login_required
+def check_room_availability():
+    room_id = request.args.get('room')
+    start = request.args.get('start')
+    end = request.args.get('end')
+    start = dateutil.parser.isoparse(start)
+    end = dateutil.parser.isoparse(end)
+    print(get_overlaps(room_id, start, end))
+    if get_overlaps(room_id, start, end):
+        return '<span class="tag is-danger">ห้องไม่ว่าง</span>'
+    else:
+        return '<span class="tag is-success">ห้องว่าง</span>'
