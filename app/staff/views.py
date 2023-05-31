@@ -2969,7 +2969,8 @@ def seminar_request_for_proposal(seminar_attend_id):
                 return redirect(url_for('staff.show_seminar_proposal_info'))
             else:
                 req_title = u'ทดสอบแจ้งผลการขออนุมัติโดยผู้บังคับบัญชาขั้นต้น' + seminar_attend.seminar.topic_type
-                req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n ผู้บังคับบัญชาขั้นต้นอนุมัติเรียบร้อยแล้ว รายละเอียดคลิ๊ก {}' \
+                req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n ผู้บังคับบัญชาขั้นต้นอนุมัติแล้ว อยู่ในขั้นตอนเสนอคณบดีขออนุมัติต่อไป' \
+                          u'รายละเอียดคลิ๊ก {}' \
                           u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
                     format(seminar_attend.seminar.topic_type, seminar_attend.seminar.topic,
                            seminar_attend.start_datetime, seminar_attend.end_datetime, proposal.comment,
