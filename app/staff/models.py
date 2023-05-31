@@ -731,6 +731,16 @@ class StaffSeminarProposal(db.Model):
                                backref=db.backref('proposer_head_position'))
 
 
+class StaffSeminarDocument(db.Model):
+    __tablename__ = 'staff_seminar_documents'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    seminar_proposal_id = db.Column('seminar_proposal_id', db.ForeignKey('staff_seminar_proposals.id'))
+    proposal = db.relationship('StaffSeminarProposal', backref=db.backref('seminar_document')
+                                     , foreign_keys=[seminar_proposal_id])
+    document_no = db.Column('document_no', db.String)
+    #doc_internal_sending_id = db.Column('doc_internal_sending_id', db.ForeignKey('doc_internal_sending.id'))
+
+
 class StaffSeminarApproval(db.Model):
     __tablename__ = 'staff_seminar_approvals'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
