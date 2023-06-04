@@ -698,6 +698,8 @@ def remove_session_room_event(course_id):
                    event_form.request(class_="input")
                    )
         resp += template
+    if len(form.events.entries) == 0:
+        resp = '<p>ไม่มีการใช้ห้องสำหรับกิจกรรม</p>'
     resp = make_response(resp)
     return resp
 

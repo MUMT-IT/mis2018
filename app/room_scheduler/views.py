@@ -296,6 +296,7 @@ def room_event_list():
 
 def get_overlaps(room_id, start, end, session_id=None):
     query = RoomEvent.query.filter_by(room_id=room_id)
+    print('all', query.filter(start >= RoomEvent.start, end <= RoomEvent.end).count())
     if not session_id:
         # check for inner overlaps
         overlaps = query.filter(start >= RoomEvent.start, end <= RoomEvent.end).count()
@@ -313,6 +314,7 @@ def get_overlaps(room_id, start, end, session_id=None):
         overlaps = query.filter(start >= RoomEvent.start,
                                 end <= RoomEvent.end,
                                 session_id != RoomEvent.course_session_id).count()
+        print('inner', session_id, overlaps)
 
         # check for outer overlaps
         overlaps += query.filter(and_(start <= RoomEvent.start,
@@ -324,6 +326,7 @@ def get_overlaps(room_id, start, end, session_id=None):
                                       end >= RoomEvent.end,
                                       session_id != RoomEvent.course_session_id,
                                       start < RoomEvent.end)).count()
+        print('outer', session_id, overlaps)
     return overlaps
 
 
