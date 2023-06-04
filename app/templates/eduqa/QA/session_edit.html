@@ -15,15 +15,50 @@
             </div>
         </div>
         <div class="columns">
-            <div class="column is-two-thirds is-offset-2">
+            <div class="column">
                 <h1 class="title has-text-centered">New Course Session</h1>
                 <form method="post" class="box">
                     {{ form.hidden_tag() }}
-                    <div class="field">
-                        <label class="label">{{ form.event.room.label }}</label>
-                        {{ form.event.room(class="js-example-basic-single") }}
-                        <span id="room-availability"></span>
+                <div class="notification is-white">
+                <h1 class="title is-size-4 has-text-centered">จองห้องสำหรับกิจกรรม</h1>
+                    <div id="room_events">
+                        {% for event_form in form.events %}
+                            <div id="{{ event_form.name }}">
+                                <div class="field">
+                                    <label class="label">{{ event_form.room.label }}</label>
+                                    {{ event_form.room(class="js-example-basic-single") }}
+                                    <span id="{{ 'availability-' + event_form.room.name }}"></span>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ event_form.request.label }}</label>
+                                    <div class="control">
+                                        {{ event_form.request(class="input") }}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
                     </div>
+                    <div class="field has-addons">
+                        <div class="control">
+                            <button class="button is-small is-rounded"
+                                    hx-post="{{ url_for('eduqa.add_session_room_event', course_id=course.id) }}"
+                                    hx-target="#room_events" hx-swap="beforeend">
+                                <span class="icon">
+                                    <i class="fas fa-plus"></i>
+                                </span>
+                            </button>
+                        </div>
+                        <div class="control">
+                            <button class="button is-small is-rounded"
+                                    hx-delete="{{ url_for('eduqa.remove_session_room_event', course_id=course.id) }}"
+                                    hx-target="#room_events" hx-swap="innerHTML">
+                                <span class="icon">
+                                  <i class="far fa-trash-alt has-text-danger"></i>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
                     <div class="field">
                         <label class="label">{{ form.start.label }}</label>
                         <div class="control">
@@ -121,6 +156,7 @@
             timePicker: true,
             timePickerIncrement: 15,
             timePicker24Hour: true,
+            showDropdowns: true,
             {% if form.start.data %}
             startDate: {{ form.start.data.astimezone(localtz).isoformat()|tojson|safe }},
             {% else %}
@@ -135,6 +171,7 @@
             timePicker: true,
             timePickerIncrement: 15,
             timePicker24Hour: true,
+            showDropdowns: true,
             {% if form.end.data %}
             startDate: {{ form.end.data.astimezone(localtz).isoformat()|tojson|safe }},
             {% else %}
@@ -144,23 +181,61 @@
                 format: 'YYYY-MM-DD HH:mm:ss'
             }
         });
-        let checkAvailability = function () {
-            let room = $('#event-room').find(':selected').val()
+        $('input[name="start"]').change(function () {
+          $('input[name="end"]').data('daterangepicker').setStartDate(moment($(this).val()).add(1, 'hours'))
+        })
+        $('input[name="end"]').on('apply.daterangepicker', function () {
             let endDateTime = moment($('input[name="end"]').val())
             let startDateTime = moment($('input[name="start"]').val())
-            htmx.ajax('GET', '{{ url_for("room.check_room_availability") }}', {target: '#room-availability', values: {'start': startDateTime.format(), 'end': endDateTime.format(), 'room': room}})
+            if (startDateTime.format() == endDateTime.format()) {
+                alert('กรุณาตรวจสอบวันและเวลาเริ่มและสิ้นสุดอีกครั้ง')
+                $('input[name="end"]').data('daterangepicker').setStartDate(startDateTime.add(1, 'hours'))
+            }
+            $('.js-example-basic-single').each(function () { $(this).trigger('select2:select') })
+        })
+        let initializeSelect = function () {
+            $('.js-example-basic-single').each(function () {
+                $(this).select2()
+                $(this).on('select2:select', function(e) {
+                    let roomId = $(this).find(':selected').val()
+                    let endDateTime = moment($('input[name="end"]').val())
+                    let startDateTime = moment($('input[name="start"]').val())
+                    htmx.ajax('GET',
+                        '{{ url_for("room.check_room_availability") }}',
+                        {
+                            source: '#' + $(this).attr('id'),
+                            target: '#availability-' + $(this).attr('id'),
+                            values: {
+                                'start': startDateTime.format(),
+                                'end': endDateTime.format(),
+                                'room': roomId, 'session_id': {{session_id}}
+                            }
+                        })
+                })
+            })
         }
-        $('input[name="start"]').change(function () {
-          $('input[name="end"]').data('daterangepicker').setStartDate($(this).val())
-          $('input[name="end"]').data('daterangepicker').setEndDate($(this).val())
+        initializeSelect()
+        $('.js-example-basic-single').each(function () {
+            let roomId = $(this).find(':selected').val()
+            // let event = new Event('change')
+            // document.querySelector('#'+ $(this).attr('id')).dispatchEvent(event)
+            let endDateTime = moment($('input[name="end"]').val())
+            let startDateTime = moment($('input[name="start"]').val())
+            htmx.ajax('GET',
+                '{{ url_for("room.check_room_availability") }}',
+                {
+                    source: '#' + $(this).attr('id'),
+                    target: '#availability-' + $(this).attr('id'),
+                    values: {
+                        'start': startDateTime.format(),
+                        'end': endDateTime.format(),
+                        'room': roomId, 'session_id': {{session_id}}
+                    }
+                })
         })
-        $('input[name="end"]').change(function () {
-            checkAvailability()
+        document.addEventListener('activateSelect2js', function () {
+            initializeSelect()
         })
-        $('#event-room').change(function () {
-            checkAvailability()
-        })
-        $('.js-example-basic-single').select2();
-    });
+    })
 </script>
 {% endblock %}

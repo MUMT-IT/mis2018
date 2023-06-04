@@ -294,32 +294,49 @@ def room_event_list():
     return render_template('scheduler/room_event_list.html')
 
 
-def get_overlaps(room_id, start, end):
+def get_overlaps(room_id, start, end, session_id=None):
     query = RoomEvent.query.filter_by(room_id=room_id)
-    # check for inner overlaps
-    overlaps = query.filter(start >= RoomEvent.start, end <= RoomEvent.end).count()
+    if not session_id:
+        # check for inner overlaps
+        overlaps = query.filter(start >= RoomEvent.start, end <= RoomEvent.end).count()
 
-    # check for outer overlaps
-    overlaps += query.filter(and_(start <= RoomEvent.start,
-                                  end > RoomEvent.start,
-                                  end <= RoomEvent.end)).count()
+        # check for outer overlaps
+        overlaps += query.filter(and_(start <= RoomEvent.start,
+                                      end > RoomEvent.start,
+                                      end <= RoomEvent.end)).count()
 
-    overlaps += query.filter(and_(start >= RoomEvent.start,
-                                  end >= RoomEvent.end,
-                                  start < RoomEvent.end)).count()
+        overlaps += query.filter(and_(start >= RoomEvent.start,
+                                      end >= RoomEvent.end,
+                                      start < RoomEvent.end)).count()
+    else:
+        # check for inner overlaps
+        overlaps = query.filter(start >= RoomEvent.start,
+                                end <= RoomEvent.end,
+                                session_id != RoomEvent.course_session_id).count()
+
+        # check for outer overlaps
+        overlaps += query.filter(and_(start <= RoomEvent.start,
+                                      end > RoomEvent.start,
+                                      session_id != RoomEvent.course_session_id,
+                                      end <= RoomEvent.end)).count()
+
+        overlaps += query.filter(and_(start >= RoomEvent.start,
+                                      end >= RoomEvent.end,
+                                      session_id != RoomEvent.course_session_id,
+                                      start < RoomEvent.end)).count()
     return overlaps
 
 
 @room.route('/api/room-availability')
 @login_required
 def check_room_availability():
-    room_id = request.args.get('room')
+    session_id = request.args.get('session_id', type=int)
+    room_id = request.args.get('room', type=int)
     start = request.args.get('start')
     end = request.args.get('end')
     start = dateutil.parser.isoparse(start)
     end = dateutil.parser.isoparse(end)
-    print(get_overlaps(room_id, start, end))
-    if get_overlaps(room_id, start, end):
-        return '<span class="tag is-danger">ห้องไม่ว่าง</span>'
+    if get_overlaps(room_id, start, end, session_id):
+        return '<span class="tag is-danger">ห้องไม่ว่าง/จองซ้อน</span>'
     else:
         return '<span class="tag is-success">ห้องว่าง</span>'
