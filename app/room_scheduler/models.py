@@ -1,12 +1,13 @@
 from app.main import db, ma
 from sqlalchemy.sql import func
 from ..asset.models import AssetItem
-
+from ..eduqa.models import EduQACourseSession
 
 event_participant_assoc = db.Table('event_participant_assoc',
-                             db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
-                             db.Column('event_id', db.Integer, db.ForeignKey('scheduler_room_reservations.id'))
-                             )
+                                   db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
+                                   db.Column('event_id', db.Integer, db.ForeignKey('scheduler_room_reservations.id'))
+                                   )
+
 
 class RoomType(db.Model):
     __tablename__ = 'scheduler_room_types'
@@ -49,7 +50,11 @@ class RoomResource(db.Model):
     coordinator = db.relationship('StaffAccount', backref=db.backref('rooms'))
 
     def __str__(self):
-        return u'{} {} {}'.format(self.number, self.location, self.desc)
+        if self.desc:
+            return u'{} {} ({})'.format(self.number, self.location, self.desc)
+        else:
+            return u'{} {}'.format(self.number, self.location)
+
 
     def __repr__(self):
         return u'{}, ID: {}'.format(self.number, self.id)
@@ -84,7 +89,7 @@ class RoomEvent(db.Model):
     occupancy = db.Column('occupancy', db.Integer())
     # number of sets of food/refreshment requested
     refreshment = db.Column('refreshment', db.Integer(), default=0)
-    request = db.Column('request', db.Text())  # comma separated list of things
+    request = db.Column('request', db.Text(), info={'label': 'ความต้องการเพิ่มเติม'})  # comma separated list of things
     approved = db.Column('approved', db.Boolean(), default=True)
     created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     created_by = db.Column('created_by', db.ForeignKey('staff_account.id'))
@@ -97,12 +102,14 @@ class RoomEvent(db.Model):
     approved_at = db.Column('approved_at', db.DateTime(timezone=True), server_default=None)
     extra_items = db.Column('extra_items', db.JSON)
     note = db.Column('note', db.Text())
-    iocode = db.relationship('IOCode', backref=db.backref('events' , lazy='dynamic'))
+    iocode = db.relationship('IOCode', backref=db.backref('events', lazy='dynamic'))
     google_event_id = db.Column('google_event_id', db.String(64))
     google_calendar_id = db.Column('google_calendar_id', db.String(255))
     participants = db.relationship('StaffAccount', secondary=event_participant_assoc,
                                    backref=db.backref('events', lazy='dynamic'))
     notify_participants = db.Column('notify_participants', db.Boolean(), default=True)
+    course_session_id = db.Column('course_session_id', db.ForeignKey('eduqa_course_sessions.id'))
+    course_session = db.relationship(EduQACourseSession, backref=db.backref('events', cascade='all, delete-orphan'))
 
     def to_dict(self):
         return {
