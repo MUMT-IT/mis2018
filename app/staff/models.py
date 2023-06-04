@@ -177,8 +177,8 @@ class StaffPersonalInfo(db.Model):
             academic_position = self.academic_positions[0]
         except IndexError:
             if self.academic_staff:
-                th_position = u'อาจารย์'
-                en_position = u'Lecturer'
+                th_position = u'อ.'
+                en_position = u'Lect.'
             else:
                 th_position = None
                 en_position = None
