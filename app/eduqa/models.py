@@ -15,6 +15,13 @@ session_instructors = db.Table('eduqa_session_instructor_assoc',
                                )
 
 
+session_assignment_instructors = db.Table('eduqa_session_assignment_instructor_assoc',
+                               db.Column('session_assignment_id', db.Integer,
+                                         db.ForeignKey('eduqa_course_assignment_sessions.id')),
+                               db.Column('instructor_id', db.Integer,
+                                         db.ForeignKey('eduqa_course_instructors.id')),
+                               )
+
 class EduQACourseInstructorAssociation(db.Model):
     __tablename__ = 'eduqa_course_instructor_assoc'
 
@@ -214,6 +221,43 @@ class EduQACourseSession(db.Model):
                 'course_id': self.course.id,
                 'name': self.course.th_name
                 }
+
+
+class EduQACourseAssignmentSession(db.Model):
+    __tablename__ = 'eduqa_course_assignment_sessions'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    course_id = db.Column(db.ForeignKey('eduqa_courses.id'))
+    start = db.Column(db.DateTime(timezone=True), nullable=False, info={'label': 'เริ่ม'})
+    end = db.Column(db.DateTime(timezone=True), nullable=False, info={'label': 'สิ้นสุด'})
+    type_ = db.Column(db.String(255), info={'label': 'รูปแบบกิจกรรม',
+                                            'choices': [(c, c) for c in
+                                                        ('กรณีศึกษา', 'แบบทดสอบ', 'ทำรายงาน', 'ค้นหาข้อมูล')]})
+    desc = db.Column(db.Text())
+
+    course = db.relationship(EduQACourse, backref=db.backref('assignments', lazy='dynamic'))
+    instructors = db.relationship('EduQAInstructor',
+                                  secondary=session_assignment_instructors,
+                                  backref=db.backref('assignments', lazy='dynamic'))
+    format = db.Column('format', db.String(), info={'label': 'รูปแบบ',
+                                                    'choices': [(c, c) for c in ['งานเดี่ยว', 'งานกลุ่ม']]})
+    workhours = db.Column('workhours', db.Integer(), default=1)
+
+    @property
+    def topics(self):
+        topics = []
+        for detail in self.details:
+            topics += [topic for topic in detail.topics]
+        return topics
+
+    def to_event(self):
+        return {
+            'title': self.course.en_code if self.course else 'N/A',
+            'start': self.start.astimezone(bangkok).isoformat(),
+            'end': self.end.astimezone(bangkok).isoformat(),
+            'id': self.id,
+            'course_id': self.course.id,
+            'name': self.course.th_name
+        }
 
 
 class EduQACourseSessionTopic(db.Model):
