@@ -7,23 +7,28 @@
 {% endblock %}
 {% include "nav.html" %}
 {% block page_content %}
-<section class="hero is-dark is-fullheight-with-navbar" style="background-image: url('../../static/img/wallpaper.jpg');
+    <section class="hero is-dark is-fullheight-with-navbar" style="background-image: url('../../static/img/wallpaper.jpg');
                                                             background-size: cover; background-blend-mode: soft-light;
                                                             justify-content: center; align-items: center; display: flex;
                                                             background-position: bottom;background-repeat: no-repeat;">
-    <div class="hero-body">
-        <div class="container has-text-centered">
-            <div class="columns">
-                <div class="column">
-                    <div class="box">
-                        <a href="{{ url_for('receipt_printing.landing') }}">
-                            <span class="icon is-large"><i class="fas fa-user-cog fa-4x"></i></span><br><br>
-                            <span class="is-size-4">หน่วยการเงินและบัญชี MUMT</span>
-                        </a>
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <div class="columns">
+                    <div class="column">
+                        <div class="box">
+                            <a href="{{ url_for('receipt_printing.landing') }}">
+                                <span class="icon is-large"><i class="fas fa-user-cog fa-4x"></i></span><br><br>
+                                <span class="is-size-4">หน่วยการเงินและบัญชี MUMT</span>
+                            </a>
+                        </div>
+                        <div class="level-right">
+                            <small class="level-item" style="color: var(--textLight)">
+                                <i class="fas fa-cogs"></i>หากพบปัญหาด้านระบบสามารถติดต่อ IT (yada.boo@mahidol.ac.th)
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}

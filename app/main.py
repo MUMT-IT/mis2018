@@ -172,6 +172,19 @@ from kpi import kpibp as kpi_blueprint
 
 app.register_blueprint(kpi_blueprint, url_prefix='/kpi')
 
+from app.complaint_tracker import complaint_tracker
+from app.complaint_tracker.models import *
+
+app.register_blueprint(complaint_tracker)
+
+admin.add_views(ModelView(ComplaintTopic, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintCategory, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintAdmin, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintStatus, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintPriority, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintRecord, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint'))
+
 
 class KPIAdminModel(ModelView):
     can_create = True
@@ -222,9 +235,15 @@ admin.add_views(ModelView(ProcurementCategory, db.session, category='Procurement
 admin.add_views(ModelView(ProcurementStatus, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementRecord, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementRequire, db.session, category='Procurement'))
-admin.add_views(ModelView(ProcurementMaintenance, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementPurchasingType, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementCommitteeApproval, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementInfoComputer, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementInfoCPU, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementInfoRAM, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementInfoWindowsVersion, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementSurveyComputer, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementBorrowDetail, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementBorrowItem, db.session, category='Procurement'))
 
 from purchase_tracker import purchase_tracker_bp as purchase_tracker_blueprint
 
@@ -252,6 +271,23 @@ admin.add_views(ModelView(ElectronicReceiptDetail, db.session, category='Receipt
 admin.add_views(ModelView(ElectronicReceiptItem, db.session, category='ReceiptPrinting'))
 admin.add_views(ModelView(ElectronicReceiptRequest, db.session, category='ReceiptPrinting'))
 admin.add_views(ElectronicReceiptGLModel(ElectronicReceiptGL, db.session, category='ReceiptPrinting'))
+
+from instruments import instrumentsbp as instruments_blueprint
+
+app.register_blueprint(instruments_blueprint, url_prefix='/instruments')
+
+from instruments.models import *
+
+admin.add_views(ModelView(InstrumentsBooking, db.session, category='Instruments'))
+
+
+from alumni import alumnibp as alumni_blueprint
+
+app.register_blueprint(alumni_blueprint, url_prefix='/alumni')
+
+from alumni.models import *
+
+admin.add_views(ModelView(AlumniInformation, db.session, category='Alumni'))
 
 from staff import staffbp as staff_blueprint
 
@@ -405,8 +441,8 @@ admin.add_view(ModelView(AssetItem, db.session, category='Asset'))
 
 class IOCodeAdminModel(ModelView):
     can_create = True
-    form_columns = ('id', 'cost_center', 'mission', 'org', 'name')
-    column_list = ('id', 'cost_center', 'mission', 'org', 'name')
+    form_columns = ('id', 'cost_center', 'mission', 'org', 'name', 'is_active')
+    column_list = ('id', 'cost_center', 'mission', 'org', 'name', 'is_active')
 
 
 admin.add_view(IOCodeAdminModel(IOCode, db.session, category='Finance'))
@@ -1170,7 +1206,7 @@ def update_cumulative_leave_quota(year1, year2):
 
         if last_used_quota:
             remaining_days = last_used_quota.quota_days - last_used_quota.used_days
-            if delta.years > 0:
+            if delta.years > 0 or delta.months > 5:
                 if max_cum_quota:
                     before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
                     quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
@@ -1190,49 +1226,71 @@ def update_cumulative_leave_quota(year1, year2):
         db.session.commit()
 
 
-@dbutils.command('calculate_remain_leave_used_quota')
-@click.argument("currentdate")
-def calculate_remain_leave_used_quota(currentdate):
-    # currentdate format '2022/09/30'
-    for staff in StaffAccount.query.filter(StaffPersonalInfo.retired != True):
-        for type in StaffLeaveType.query.all():
-            date_time = datetime.strptime(currentdate, '%Y/%m/%d')
-            start_fiscal_date, end_fiscal_date = get_fiscal_date(date_time)
+def update_leave_information(current_date, staff_email):
+    for type_ in StaffLeaveType.query.all():
+        staff = StaffAccount.query.filter_by(email=staff_email).first()
+        date_time = datetime.strptime(current_date, '%Y/%m/%d')
+        start_fiscal_date, end_fiscal_date = get_fiscal_date(date_time)
 
-            quota = StaffLeaveQuota.query.filter_by(employment=staff.personal_info.employment,
-                                                        leave_type=type).first()
-            pending_days = staff.personal_info.get_total_pending_leaves_request(quota.id,
-                                                                                    tz.localize(start_fiscal_date),
-                                                                                    tz.localize(end_fiscal_date))
-            total_leave_days = staff.personal_info.get_total_leaves(quota.id,tz.localize(start_fiscal_date),
-                                                                        tz.localize(end_fiscal_date))
-            delta = staff.personal_info.get_employ_period()
-            max_cum_quota = staff.personal_info.get_max_cum_quota_per_year(quota)
-            if delta.years > 0:
-                if max_cum_quota:
-                    last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff,
-                                                                              fiscal_year=end_fiscal_date.year-1,
-                                                                              leave_type=type).first()
-                    if last_used_quota:
-                        remaining_days = last_used_quota.quota_days - last_used_quota.used_days
-                    else:
-                        remaining_days = max_cum_quota
-                    before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
-                    quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+        quota = StaffLeaveQuota.query.filter_by(employment=staff.personal_info.employment,
+                                                leave_type=type_).first()
+        if not quota and not staff.is_retired:
+            print(staff.id, staff.email, staff.personal_info.employment, 'Quota not found.')
+            return
+        pending_days = staff.personal_info.get_total_pending_leaves_request(quota.id,
+                                                                            tz.localize(start_fiscal_date),
+                                                                            tz.localize(end_fiscal_date))
+        total_leave_days = staff.personal_info.get_total_leaves(quota.id,tz.localize(start_fiscal_date),
+                                                                tz.localize(end_fiscal_date))
+        delta = staff.personal_info.get_employ_period()
+        max_cum_quota = staff.personal_info.get_max_cum_quota_per_year(quota)
+        if delta.years > 0 or delta.months > 5:
+            if max_cum_quota:
+                last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff,
+                                                                      fiscal_year=end_fiscal_date.year-1,
+                                                                      leave_type=type_).first()
+                if last_used_quota:
+                    remaining_days = last_used_quota.quota_days - last_used_quota.used_days
                 else:
-                    quota_limit = quota.max_per_year
+                    remaining_days = max_cum_quota
+                before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
+                quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
             else:
-                quota_limit = quota.first_year
+                quota_limit = quota.max_per_year or quota.first_year
+        else:
+            quota_limit = quota.first_year
 
-            used_quota = StaffLeaveUsedQuota(leave_type_id=type.id,
-                                                 staff_account_id=staff.id,
-                                                 fiscal_year=end_fiscal_date.year,
-                                                 used_days=total_leave_days + pending_days,
-                                                 pending_days=pending_days,
-                                                 quota_days=quota_limit)
-            db.session.add(used_quota)
-            db.session.commit()
-            print (used_quota.leave_type_id, used_quota.used_days, used_quota.pending_days, used_quota.quota_days)
+        used_quota = StaffLeaveUsedQuota.query.filter_by(leave_type_id=type_.id,
+                                                         staff_account_id=staff.id,
+                                                         fiscal_year=end_fiscal_date.year,
+                                                         ).first()
+        if used_quota:
+            used_quota.pending_days = pending_days
+            used_quota.quota_days = quota_limit
+            used_quota.used_days = total_leave_days + pending_days
+        else:
+            used_quota = StaffLeaveUsedQuota(leave_type_id=type_.id,
+                                             staff_account_id=staff.id,
+                                             fiscal_year=end_fiscal_date.year,
+                                             used_days=total_leave_days + pending_days,
+                                             pending_days=pending_days,
+                                             quota_days=quota_limit)
+        db.session.add(used_quota)
+        db.session.commit()
+        # print (used_quota.leave_type_id, used_quota.used_days, used_quota.pending_days, used_quota.quota_days)
+
+
+@dbutils.command('update-staff-leave-info')
+@click.argument('staff_email')
+@click.argument('currentdate')
+def update_staff_leave_info(currentdate, staff_email=None):
+    # currentdate format '2022/09/30'
+    if staff_email != 'all':
+        update_leave_information(currentdate, staff_email)
+    else:
+        for staff in StaffAccount.query.all():
+            if not staff.is_retired:
+                update_leave_information(currentdate, staff.email)
 
 
 if __name__ == '__main__':

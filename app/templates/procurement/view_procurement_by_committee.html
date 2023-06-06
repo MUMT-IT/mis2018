@@ -8,67 +8,29 @@
 <section class="section">
     {% include "messages.html" %}
     <div class="container">
+        <h1 class="title has-text-centered">Export Data</h1>
+        <p>คลิกเพื่อเลือกช่วงวันที่ต้องการนำออก</p>
+        <form method="post" action="{{ url_for('procurement.export_by_committee_summary') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="field">
+                <div class="control has-icons-left">
+                    <input class="input" name="datePicker" id="datePicker">
+                    <span class="icon is-small is-left">
+                        <i class="far fa-calendar-alt"></i>
+                    </span>
+                </div>
+            </div>
+            <div class="field">
+                <div class="control">
+                    <input type="submit" class="button is-info" value="Download">
+                </div>
+            </div>
+        </form>
         <div class="columns">
-            <div class="column has-text-left">
-                <h1 class="title">ข้อมูลครุภัณฑ์ทั้งหมด
-                    <a class="button is-warning"
-                    href="{{ url_for('procurement.report_info_download') }}">
-                     <span class="icon">
-                         <i class="fas fa-download"></i>
-                     </span>
-                     <span>Download รายงานประจำปี</span>
-                 </a></h1>
+            <div class="column has-text-centered">
+                <h3 class="title is-3">ข้อมูลครุภัณฑ์ทั้งหมด</h3>
             </div>
         </div>
-{#        <div class="columns">#}
-{#                <div class="column is-half is-offset-one-quarter">#}
-{#                    <form method="post">#}
-{#                        {{ form.hidden_tag() }}#}
-{#                        <div class="field-body">#}
-{#                            <div class="field">#}
-{#                                <label class="label">วันเริ่มตรวจสอบ</label>#}
-{#                                <div class="control">#}
-{#                                    {{ form.updated_at(class="input") }}#}
-{#                                </div>#}
-{#                            </div>#}
-{#                            <div class="field">#}
-{#                                <label class="label">วันสิ้นสุดการตรวจสอบ</label>#}
-{#                                <div class="control">#}
-{#                                    {{ form.updated_at(class="input") }}#}
-{#                                </div>#}
-{#                            </div>#}
-{#                            <div class="field">#}
-{#                                <label class="label"></label><br>#}
-{#                                <div class="control">#}
-{#                                    <input class="button is-success" type="submit" value="ค้นหาข้อมูล">#}
-{#                                </div>#}
-{#                            </div>#}
-{#                        </div>#}
-{#                        <br>#}
-{#                        <div class="field is-grouped is-grouped-centered">#}
-{#                            <div class="control">#}
-{#                                <a class="button is-warning"#}
-{#                                        {% if start_date and end_date %}#}
-{#                                   href="{{ url_for('procurement.report_info_download', start_date=start_date.strftime('%Y-%m-%d'), end_date=end_date.strftime('%Y-%m-%d')) }}"#}
-{#                                        {% else %}#}
-{#                                   href="{{ url_for('procurement.report_info_download') }}"#}
-{#                                        {% endif %}#}
-{#                                >#}
-{#                                    <span class="icon"><i class="fas fa-download"></i></span>#}
-{#                                    <span>Download</span>#}
-{#                                </a>#}
-{#                            </div>#}
-{#                            <div class="control">#}
-{#                                <a class="button is-danger"#}
-{#                                   href="{{ url_for('procurement.view_procurement_by_committee') }}">#}
-{#                                    <span class="icon"><i class="fas fa-redo-alt"></i></span>#}
-{#                                    <span>Refresh</span>#}
-{#                                </a>#}
-{#                            </div>#}
-{#                        </div>#}
-{#                    </form>#}
-{#                </div>#}
-{#            </div>#}
         <div class="columns">
             <div class="column">
                 <table class="table is-fullwidth is-striped" id="proCommitteeTable">
@@ -103,7 +65,6 @@
 {% block scripts %}
 {{ super() }}
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-
     <script>
         $(document).ready(function () {
             $('#proCommitteeTable').DataTable({
@@ -131,14 +92,14 @@
                     format: 'DD-MM-YYYY'
                 }
             })
-            $('input[name="update_at"]').daterangepicker({
-                singleDatePicker: true,
-                locale: {
-                    format: 'DD-MM-YYYY'
-                }
-            })
+             $('#datePicker').daterangepicker({
+                singleDatePicker: false,
+                startDate: moment()
+            }
+            )
         });
     </script>
+
 {% endblock %}
 
 }

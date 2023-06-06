@@ -23,6 +23,15 @@
                         </span>
                     </a>
                     <a class="panel-block"
+                       href="{{ url_for('staff.geo_checkin') }}">
+                        <span class="panel-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ลงชื่อเข้างานด้วย GPS
+                        </span>
+                    </a>
+                    <a class="panel-block"
                        href="{{ url_for('staff.show_qrcode') }}">
                         <span class="panel-icon">
                             <i class="fas fa-qrcode"></i>
@@ -113,6 +122,12 @@
                 </nav>
                 <nav class="panel is-danger">
                     <p class="panel-heading">Services (กำลังพัฒนาและทดลอง)</p>
+                    <a href="{{ url_for('comp_tracker.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="far fa-tired has-text-warning"></i>
+                        </span>
+                        <span class="is-size-5">ระบบบริหารจัดการข้อร้องเรียน</span>
+                    </a>
                     <a href="{{ url_for('procurement.first_page') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fa fa-exclamation-triangle has-text-warning"></i>
@@ -131,11 +146,35 @@
                         </span>
                         <span class="is-size-5">ระบบพิมพ์ใบเสร็จรับเงิน</span>
                     </a>
+                    <a href="{{ url_for('instruments.index_of_instruments') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                        <span class="is-size-5">ระบบจองเครื่องมือวิจัย</span>
+                    </a>
+                    <a href="{{ url_for('alumni.landing') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                        <span class="is-size-5">ระบบการจัดการข้อมูลศิษย์เก่า</span>
+                    </a>
+                    <a href="" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                        <span class="is-size-5">ระบบยืม-คืนโสตทัศนูปกรณ์</span>
+                    </a>
                     <a href="{{ url_for('data_bp.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fa fa-exclamation-triangle has-text-warning"></i>
                         </span>
                         <span class="is-size-5">Enterprise Blueprint</span>
+                    </a>
+                    <a href="{{ url_for('ot.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-exclamation-triangle has-text-warning"></i>
+                        </span>
+                        <span class="is-size-5">ระบบจัดการข้อมูล OT</span>
                     </a>
                     <a href="{{ url_for('pdpa.index') }}" class="panel-block">
                         <span class="panel-icon">
@@ -190,17 +229,35 @@
                 </nav>
                 <nav class="panel is-light">
                     <p class="panel-heading">Administrator</p>
+                    <a href="{{ url_for('comp_tracker.admin_index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-clock"></i>
+                        </span>
+                        <span class="is-size-5">ระบบบริหารข้อร้องเรียน</span>
+                    </a>
                     <a href="{{ url_for('staff.login_scan') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-clock"></i>
                         </span>
                         <span class="is-size-5">ระบบบันทึกเวลาเข้างาน</span>
                     </a>
+                    <a href="{{ url_for('staff.login_scan_gj') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-clock"></i>
+                        </span>
+                        <span class="is-size-5">ระบบบันทึกเวลาเข้างานศูนย์การแพทย์ฯ</span>
+                    </a>
                     <a href="{{ url_for('staff.for_hr') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-alt"></i>
                         </span>
                         <span class="is-size-5">ระบบงานทรัพยากรบุคคล</span>
+                    </a>
+                    <a href="{{ url_for('receipt_printing.select_btw_io_code_and_cost_center') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-alt"></i>
+                        </span>
+                        <span class="is-size-5">IO/Cost Center</span>
                     </a>
                     <a href="/admin" class="panel-block">
                         <span class="panel-icon">

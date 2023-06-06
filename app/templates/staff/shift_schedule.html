@@ -13,13 +13,22 @@
         <div class="column">
             <h1 class="title">ตารางการเข้าปฏิบัติงาน</h1>
         </div>
-        <div class="column is-narrow">
-            <a class="button is-info" href="{{ url_for('staff.create_shift_schedule') }}">
+        <div class="column">
+            <div class="buttons is-centered">
+                <a class="button is-info" href="{{ url_for('staff.create_shift_schedule') }}">
                 <span class="icon">
                     <i class="fas fa-plus"></i>
                 </span>
-                <span>เพิ่มข้อมูลเวลาปฏิบัติงาน</span>
-            </a>
+                    <span>เพิ่มข้อมูลเวลาปฏิบัติงาน</span>
+                </a>
+                <a class="button is-link" href="{{ url_for('staff.create_shift_schedule') }}">
+                <span class="icon">
+                    <i class="fas fa-plus"></i>
+                </span>
+                    <span>เพิ่มข้อมูลเวลาปฏิบัติงานศูนย์การแพทย์ฯ</span>
+                </a>
+
+            </div>
         </div>
     </div>
     <div class="columns">

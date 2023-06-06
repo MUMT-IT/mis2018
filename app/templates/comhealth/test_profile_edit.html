@@ -20,6 +20,11 @@
                 </div>
             </div>
             <div class="columns">
+                <div class="column has-text-centered">
+                    <h1>{{ profile.desc }}</h1>
+                </div>
+            </div>
+            <div class="columns">
                 <div class="column has-text-right">
                     <a class="button is-success"
                         href="{{ url_for('comhealth.profile_test_menu', profile_id=profile.id) }}">
@@ -72,6 +77,21 @@
                                     </td>
                                 </tr>
                             {% endfor %}
+                            <td>
+                                ราคาเสนอรวม
+                            </td>
+                            <td></td>
+                            <td></td>
+                            <td>
+                                <div class="field has-addons">
+                                    <div class="control">
+                                        <input type="number" class="input" name="quote" value="{{ profile.quote }}">
+                                    </div>
+                                    <div class="control">
+                                        <button class="button is-static">บาท</button>
+                                    </div>
+                                </div>
+                            </td>
                             </tbody>
                         </table>
                         <div class="buttons is-centered">

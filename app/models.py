@@ -262,6 +262,7 @@ class IOCode(db.Model):
     org_id = db.Column('org_id', db.Integer(), db.ForeignKey('orgs.id'), nullable=False)
     org = db.relationship('Org', backref=db.backref('iocodes'))
     name = db.Column('name', db.String(255), nullable=False)
+    is_active = db.Column('is_active', db.Boolean(), default=True)
 
     def __repr__(self):
         return u'{}:{}:{}:{}'.format(self.id, self.name, self.org.name, self.mission)

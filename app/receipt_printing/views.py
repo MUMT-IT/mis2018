@@ -58,7 +58,6 @@ def landing():
 def create_receipt():
     form = ReceiptDetailForm()
     receipt_book = ComHealthReceiptID.query.filter_by(code='MTG').first()
-
     if form.validate_on_submit():
         receipt_detail = ElectronicReceiptDetail()
         receipt_detail.issuer = current_user
@@ -75,7 +74,7 @@ def create_receipt():
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
-    return render_template('receipt_printing/new_receipt.html', form=form, url_callback=request.referrer)
+    return render_template('receipt_printing/new_receipt.html', form=form)
 
 
 @receipt_printing.route('/receipt/create/add-items', methods=['POST', 'GET'])
@@ -83,7 +82,8 @@ def list_add_items():
     form = ReceiptDetailForm()
     form.items.append_entry()
     item_form = form.items[-1]
-    form_text = u'''
+    form_text = '<table class="table is-bordered is-fullwidth is-narrow">'
+    form_text += u'''
     <div class="field">
         <label class="label">{}</label>
         <div class="control">
@@ -98,30 +98,24 @@ def list_add_items():
     </div>
     <div class="field">
         <label class="label">{}</label>
-        <div class="select">
-            {}            
-        </div>
+            {}
     </div>
     <div class="field">
         <label class="label">{}</label>
-        <div class="select">
             {}
-        </div>
     </div>
     <div class="field">
         <label class="label">{}</label>
-        <div class="select">
             {}
-        </div>
     </div>
     '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label,
                item_form.price(class_="input", placeholder=u"฿",
                                **{'hx-post': url_for("receipt_printing.update_amount"),
                                   'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount',
                                   'hx-swap': 'outerHTML'}),
-               item_form.gl.label, item_form.gl(class_="select"),
-               item_form.cost_center.label, item_form.cost_center(class_="select"),
-               item_form.internal_order_code.label, item_form.internal_order_code(class_="select")
+               item_form.gl.label, item_form.gl(),
+               item_form.cost_center.label, item_form.cost_center(),
+               item_form.internal_order_code.label, item_form.internal_order_code()
                )
     resp = make_response(form_text)
     resp.headers['HX-Trigger-After-Swap'] = 'update_amount'
@@ -162,36 +156,27 @@ def delete_items():
     </div>
     <div class="field">
         <label class="label">{}</label>
-        <div class="select">
-            {}            
-        </div>
+            {}
     </div>
     <div class="field">
         <label class="label">{}</label>
-        <div class="select">
             {}
-        </div>
     </div>
     <div class="field">
         <label class="label">{}</label>
-        <div class="select">
             {}
-        </div>
     </div>
     '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label,
-               item_form.price(class_="input", placeholder=u"฿",
-                               **{'hx-post': url_for("receipt_printing.update_amount"), 'hx-trigger': 'keyup changed delay:500ms',
-                                  'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}),
-               item_form.gl.label, item_form.gl(class_="select"),
-               item_form.cost_center.label, item_form.cost_center(class_="select"),
-               item_form.internal_order_code.label, item_form.internal_order_code(class_="select")
+               item_form.price(class_="input", placeholder=u"฿"),
+               item_form.gl.label, item_form.gl(),
+               item_form.cost_center.label, item_form.cost_center(),
+               item_form.internal_order_code.label, item_form.internal_order_code()
                )
 
     resp = make_response(form_text)
     if alert:
         resp.headers['HX-Trigger-After-Swap'] = 'delete_warning'
-    else:
-        resp.headers['HX-Trigger-After-Swap'] = 'update_amount'
+    resp.headers['HX-Trigger-After-Swap'] = 'update_amount'
     return resp
 
 
@@ -627,7 +612,7 @@ def get_require_receipt_data():
     data = []
     for r in query:
         record_data = r.to_dict()
-        record_data['created_datetime'] = record_data['created_datetime'].strftime('%d/%m/%Y')
+        record_data['created_datetime'] = record_data['created_datetime'].strftime('%d/%m/%Y %H:%M:%S')
         record_data['require_receipt'] = '<a href="{}"><i class="fas fa-receipt"></i></a>'.format(
             url_for('receipt_printing.require_new_receipt', receipt_id=r.id))
         record_data['cancelled'] = '<i class="fas fa-times has-text-danger"></i>' if r.cancelled else '<i class="far fa-check-circle has-text-success"></i>'
@@ -655,7 +640,7 @@ def view_require_receipt():
 def view_receipt_by_list_type(receipt_id=None):
     list_type = request.args.get('list_type')
     if list_type == "myAccount" or list_type is None:
-        record= ElectronicReceiptDetail.query.filter_by(issuer_id=current_user.id).all()
+        record = ElectronicReceiptDetail.query.filter_by(issuer_id=current_user.id).all()
     elif list_type == "ourAccount":
         org = current_user.personal_info.org
         record = [receipt for receipt in ElectronicReceiptDetail.query.all()
@@ -664,7 +649,113 @@ def view_receipt_by_list_type(receipt_id=None):
                            receipt_id=receipt_id, record=record, list_type=list_type)
 
 
+@receipt_printing.route('api/receipt-data/all')
+def get_receipt_by_list_type():
+    query = ElectronicReceiptDetail.query
+    search = request.args.get('search[value]')
+    col_idx = request.args.get('order[0][column]')
+    direction = request.args.get('order[0][dir]')
+    col_name = request.args.get('columns[{}][data]'.format(col_idx))
+    query = query.filter(db.or_(
+        ElectronicReceiptDetail.number.ilike(u'%{}%'.format(search)),
+        ElectronicReceiptDetail.comment.ilike(u'%{}%'.format(search))
+    ))
+    column = getattr(ElectronicReceiptDetail, col_name)
+    if direction == 'desc':
+        column = column.desc()
+    query = query.order_by(column)
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['preview'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">Preview</a>'.format(
+            url_for('receipt_printing.show_receipt_detail', receipt_id=item.id))
+        item_data['created_datetime'] = item_data['created_datetime'].strftime('%d/%m/%Y, %H:%M:%S')
+        item_data['status'] = '<i class="fas fa-times has-text-danger"></i>' if item.cancelled else '<i class="far fa-check-circle has-text-success"></i>'
+
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ElectronicReceiptDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
 @receipt_printing.route('/receipt/detail/show/<int:receipt_id>', methods=['GET', 'POST'])
 def show_receipt_detail(receipt_id):
     receipt = ElectronicReceiptDetail.query.get(receipt_id)
-    return render_template('receipt_printing/receipt_detail.html', receipt=receipt, enumerate=enumerate)
+    total = sum([t.price for t in receipt.items])
+    total_thai = bahttext(total)
+    return render_template('receipt_printing/receipt_detail.html',
+                           receipt=receipt,
+                           total=total,
+                           total_thai=total_thai,
+                           enumerate=enumerate)
+
+
+@receipt_printing.route('/io_code_and_cost_center/select')
+@finance_head_permission.require()
+def select_btw_io_code_and_cost_center():
+    return render_template('receipt_printing/select_io_code_and_cost_center.html', name=current_user)
+
+
+@receipt_printing.route('/cost_center/show')
+def show_cost_center():
+    cost_center = CostCenter.query.all()
+    return render_template('receipt_printing/show_cost_center.html', cost_center=cost_center)
+
+
+@receipt_printing.route('/io_code/show')
+def show_io_code():
+    io_code = IOCode.query.all()
+    return render_template('receipt_printing/show_io_code.html', io_code=io_code)
+
+
+@receipt_printing.route('/cost_center/new', methods=['POST', 'GET'])
+def new_cost_center():
+    form = CostCenterForm()
+    if form.validate_on_submit():
+        cost_center_detail = CostCenter()
+        cost_center_detail.id = form.cost_center.data
+        db.session.add(cost_center_detail)
+        db.session.commit()
+        flash(u'บันทึกเรียบร้อย.', 'success')
+        return redirect(url_for('receipt_printing.show_cost_center'))
+    # Check Error
+    else:
+        for er in form.errors:
+            flash("{}:{}".format(er, form.errors[er]), 'danger')
+    return render_template('receipt_printing/new_cost_center.html', form=form, url_callback=request.referrer)
+
+
+@receipt_printing.route('/io_code/new', methods=['POST', 'GET'])
+def new_IOCode():
+    form = IOCodeForm()
+    if form.validate_on_submit():
+        IOCode_detail = IOCode()
+        IOCode_detail.id = form.io.data
+        IOCode_detail.mission = form.mission.data
+        IOCode_detail.name = form.name.data
+        IOCode_detail.org = form.org.data
+        db.session.add(IOCode_detail)
+        db.session.commit()
+        flash(u'บันทึกเรียบร้อย.', 'success')
+        return redirect(url_for('receipt_printing.show_io_code'))
+    # Check Error
+    else:
+        for er in form.errors:
+            flash("{}:{}".format(er, form.errors[er]), 'danger')
+    return render_template('receipt_printing/new_IOCode.html', form=form, url_callback=request.referrer)
+
+
+@receipt_printing.route('/io_code/<string:iocode_id>/change-active-status')
+def io_code_change_active_status(iocode_id):
+    iocode_query = IOCode.query.filter_by(id=iocode_id).first()
+    iocode_query.is_active = True if not iocode_query.is_active else False
+    db.session.add(iocode_query)
+    db.session.commit()
+    flash(u'แก้ไขสถานะเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('receipt_printing.show_io_code'))

@@ -1,0 +1,13 @@
+{% for computer in computers_detail %}
+    <tr>
+        <td>{{ computer.erp_code }}</td>
+        <td>{{ computer.procurement_no }}</td>
+        <td>{{ computer.name }}</td>
+        <td>
+            <a href="{{ url_for('procurement.new_checking_computer_info', procurement_id=computer.id) }}"
+               class="button is-rounded is-info">
+                <strong>ใส่รายละเอียด</strong>
+            </a>
+        </td>
+    </tr>
+{% endfor %}

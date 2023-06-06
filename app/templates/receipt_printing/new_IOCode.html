@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block head %}
+    {{ super() }}
+
+{% endblock %}
+
+{% block page_content %}
+
+    <section class="section">
+        <div class="columns">
+            <div class="column is-one-third is-offset-4">
+                <form method="post" class="box">
+                    {{ form.hidden_tag() }}
+                    <h1 class="title has-text-centered">เพิ่มข้อมูล Internal Order/IO ใหม่</h1>
+                    <div class="field">
+                        <label class="label">Internal Order/IO</label>
+                        <div class="control">
+                            {{ form.io(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">พันธกิจ</label>
+                        <div class="select is-fullwidth">
+                            {{ form.mission(class="select") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">ภาควิชา/หน่วยงาน</label>
+                        <div class="select">
+                            {{ form.org(class="select") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.name.label }}</label>
+                        <div class="control">
+                            {{ form.name(class="input") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.is_active.label }}</label>
+                        <div class="radio">
+                            {{ form.is_active(class="radio") }}
+                        </div>
+                    </div>
+                    <div class="buttons is-centered">
+                        <input type="submit" class="button is-success" value="Submit"></input>
+                        <a href="{{ url_for('receipt_printing.show_io_code') }}" class="button is-danger">ยกเลิก</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+
+{% endblock %}

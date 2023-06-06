@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% include "procurement/nav_for_borrow_scheduler.html" %}
+
+{% block page_content %}
+<section class="section">
+    <h1 class="title">ระบบแจ้งซ่อมออนไลน์</h1>
+    <div class="columns">
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                <a href="{{ url_for('procurement.search_by_erp_code_with_repair_online') }}">
+                    <span class="icon is-large"><i class="fas fa-paper-plane fa-4x"></i></span><br><br>
+                    <span class="is-size-4">แจ้งซ่อมออนไลน์ <br> Repair Online</span>
+                    <p class="has-text-success">***User แจ้งซ่อมสามารถแจ้งผ่านระบบออนไลน์***</p>
+                </a>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('procurement.view_all_repair_online_history') }}">
+                            <span class="icon is-large"><i class="fas fa-history fa-4x"></i></span><br><br>
+                            <span class="is-size-4">ประวัติการซ่อม <br> Repair History</span>
+                        <p class="has-text-success">***สามารถตรวจสอบประวัติการซ่อมของเครื่องครุภัณฑ์และสามารถตรวจสอบสถานะการแจ้งอยู่สถานะใด***</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                <a href="">
+                    <span class="icon is-large"><i class="fas fa-chalkboard-teacher fa-4x"></i></span><br><br>
+                    <span class="is-size-4">แผนการบำรุงรักษา <br> PM maintenance plan</span>
+                    <p class="has-text-success">***สามารถวางแผนบำรุงรักษาครุภัณฑ์โดยกำหนดแผนเป็นรายเดือนและรายปี***</p>
+                </a>
+                </div>
+            </div>
+        </div>
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                    <a href="{{ url_for('procurement.scan_qrcode_to_repair_online') }}">
+                        <span class="icon is-large"><i class="fas fa-qrcode fa-4x"></i></span><br><br>
+                        <span class="is-size-4"> สแกน QR Code<br> Scan QR Code</span>
+                        <p class="has-text-success">***มี QR Code ประจำครุภัณฑ์และสามารถตรวจสอบรายละเอียดครุภัณฑ์และประวัติการซ่อมด้วยการ Scan QR Code***</p>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
