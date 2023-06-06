@@ -13,7 +13,7 @@
                 <h1 class="title">รายการประชุม อบรม สัมมนาทั้งหมด</h1>
             </div>
             <div class="column has-text-right">
-                <a href="{{ url_for('staff.create_seminar') }}" class="button is-rounded is-info">
+                <a href="{{ url_for('staff.create_seminar') }}" class="button is-rounded is-warning">
                     <span class="icon">
                         <i class="fas fa-plus"></i>
                     </span>
@@ -30,6 +30,7 @@
                     <th>วันที่เริ่มต้น</th>
                     <th>วันที่สิ้นสุด</th>
                     <th>หน่วยงานที่จัด</th>
+                    <th>เอกสารโครงการ</th>
                     </thead>
                     <tbody>
                     {% for records in seminar_records|sort(attribute='start_datetime') %}
@@ -54,6 +55,11 @@
                         <td>
                             {{ records.organize_by }}
                         </td>
+                        <td>
+                            {% if records.upload_file_url %}
+                            <a href="{{ records.upload_file_url }}">คลิกเพื่อดู</a>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                     </tbody>
@@ -68,7 +74,7 @@
                     </span>
                     <span>
                         1. ค้นหารายชื่ออบรมที่ต้องการ(หากไม่พบให้คลิ๊ก
-                        <a href="" class="button is-rounded is-info">
+                        <a href="" class="button is-rounded is-warning is-light">
                             <span class="icon">
                                 <i class="fas fa-plus"></i>
                             </span>
@@ -122,8 +128,7 @@
                             {{ record.seminar.topic_type }}
                         </td>
                         <td>
-                            <a href="{{ url_for('staff.show_seminar_info_each_person', record_id=record.id
-                                                    , staff_id=current_user.id) }}">
+                            <a href="{{ url_for('staff.show_seminar_info_each_person', record_id=record.id) }}">
                                 {{ record.seminar.topic }}
                             </a>
                         </td>
@@ -148,6 +153,23 @@
                 </table>
             </div>
         </div>
+        {% if approver %}
+        <hr>
+        <h1 class="title is-size-4 has-text-danger has-text-centered">สำหรับหัวหน้าส่วนงาน/ผู้บริหาร</h1>
+        <div class="columns">
+            <div class="column">
+                <div class="has-text-centered">
+                    <a href="{{ url_for('staff.show_seminar_proposal_info') }}"
+                       class="button is-danger is-light">
+                        <span class="icon">
+                           <i class="fas fa-users"></i>
+                        </span>
+                        <span>ข้อมูลขออนุมัติของบุคลากรในสังกัด</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">

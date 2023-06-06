@@ -54,6 +54,10 @@
                     <span class="is-size-5">ข้อมูล WFH</span>
                     <span class="tag is-rounded is-danger">{{ new_wfh_requests }}</span>
                 </a>
+                <a class="panel-block" href="{{ url_for('staff.show_seminar_proposal_info') }}">
+                    <span class="panel-icon"><i class="fas fa-user-shield"></i></span>
+                    <span class="is-size-5">ข้อมูลอบรม</span>
+                </a>
             </nav>
             {% endif %}
             {% if secretary_permission.can() or manager_permission.can() %}

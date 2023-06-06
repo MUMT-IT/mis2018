@@ -126,7 +126,10 @@
                                <label class="label">ความคิดเห็นหัวหน้างาน</label>
                             </td>
                             <td>
-                                {% for approver in approvers %}{{ approver.approver.account.personal_info }}: <strong>"{{ approver.approval_comment }}"</strong>, {% endfor %}
+                                {% for approver in approvers %}
+                                    {{ approver.approver.account.personal_info }}:
+                                    <strong>"{{ approver.approval_comment }}"</strong>,
+                                {% endfor %}
                             </td>
                         </tr>
                         {% if req.cancelled_at %}
@@ -136,14 +139,20 @@
                             </td>
                             <td>
                                 {% if req.cancelled_account_id %}
-                                {{ req.cancelled_by.personal_info }}
-                                {% else %}
-                                {{ current_user.personal_info }}
+                                {{ req.cancelled_by.personal_info }} {{ req.cancelled_at|localdatetime }}
                                 {% endif %}
                             </td>
                         </tr>
                         {% endif %}
                     </table>
+                    {% if is_hr %}
+                    {% if req.get_approved and not req.cancelled_at %}
+                        <div class="control">
+                            <a href="{{ url_for('staff.cancel_leave_request_by_hr', req_id=req.id) }}"
+                               class="button is-danger">ยกเลิกการลาครั้งนี้(เจ้าหน้าที่ HR)</a>
+                        </div>
+                    {% endif %}
+                    {% endif %}
                 </div>
             </div>
         </div>

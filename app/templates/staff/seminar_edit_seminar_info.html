@@ -94,25 +94,17 @@
                         <input type="hidden" name="end_datetime" v-model="formattedEndDateTime">
                         <div class="field is-horizontal">
                             <div class="field-label is-normal">
-                                <label class="label">ด้าน</label>
+                                <label class="label">หน่วยงานที่จัด</label>
                             </div>
                             <div class="field-body">
                                 <div class="field">
-                                    <b-select placeholder="เลือกด้าน" name="mission" v-model="mission" required>
-                                        <option value="การศึกษา">การศึกษา</option>
-                                        <option value="วิจัย">วิจัย</option>
-                                        <option value="บริการวิชาการ/บริการสุขภาพ">บริการวิชาการ/บริการสุขภาพ</option>
-                                        <option value="บริหารจัดการ">บริหารจัดการ</option>
-                                        <option value="ทำนุบำรุงศิลปวัฒนธรรม">ทำนุบำรุงศิลปวัฒนธรรม</option>
-                                        <option value="พัฒนาคุณภาพ">พัฒนาคุณภาพ</option>
-                                        <option value="วิชาการ">วิชาการ</option>
-                                        <option value="วิชาชีพเทคนิคการแพทย์">วิชาชีพเทคนิคการแพทย์</option>
-                                        <option value="วิชาชีพรังสีเทคนิค">วิชาชีพรังสีเทคนิค</option>
-                                        <option value="อื่นๆ">อื่นๆ</option>
-                                    </b-select>
+                                    <div class="control">
+                                        <input class="input"
+                                               name="organize_by" type="text"
+                                               value="{{ seminar.organize_by }}" required>
+                                    </div>
                                 </div>
                             </div>
-                            </b-field>
                         </div>
                         <div class="field is-horizontal">
                             <div class="field-label is-normal">

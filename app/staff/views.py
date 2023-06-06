@@ -1114,12 +1114,12 @@ def show_leave_approval(req_id):
 @login_required
 def request_cancel_leave_request(req_id):
     req = StaffLeaveRequest.query.get(req_id)
-    if req.get_last_cancel_request_from_now > 1 or not req.last_cancel_requested_at:
+    if req.get_last_cancel_request_from_now > 3 or not req.last_cancel_requested_at:
         req.last_cancel_requested_at = datetime.now(tz)
         db.session.add(req)
         db.session.commit()
         for approval in StaffLeaveApproval.query.filter_by(request_id=req_id):
-            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'), expires_in=86400)
+            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'), expires_in=259200)
             token = serializer.dumps({'approver_id': approval.approver_id, 'req_id': req.id})
             req_to_cancel_msg = u'{} ยื่นคำขอยกเลิก {} วันที่ {} ถึง {}\nคลิกที่ Link {} เพื่อยกเลิกการลา' \
                                 u'\n\n\n หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
@@ -1141,11 +1141,12 @@ def request_cancel_leave_request(req_id):
         flash(u'ส่งคำขอยกเลิกการลาของท่านเรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.request_for_leave_info', quota_id=req.leave_quota_id))
     else:
-        flash(u'ไม่สามารถส่งคำขอซ้ำภายใน 1 วันได้', 'warning')
+        flash(u'ไม่สามารถส่งคำขอซ้ำภายใน 3 วันได้', 'warning')
     return redirect(url_for('staff.show_leave_info'))
 
 
 @staff.route('/leave/requests/cancel-approved/info')
+@login_required
 def info_request_cancel_leave_request():
     token = request.args.get('token')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
@@ -1162,6 +1163,7 @@ def info_request_cancel_leave_request():
 
 
 @staff.route('/leave/requests/<int:req_id>/cancel/by/<int:cancelled_account_id>')
+@login_required
 def approver_cancel_leave_request(req_id, cancelled_account_id):
     req = StaffLeaveRequest.query.get(req_id)
     req.cancelled_at = tz.localize(datetime.today())
@@ -1222,7 +1224,7 @@ def approver_cancel_leave_request(req_id, cancelled_account_id):
         db.session.add(new_used_quota)
         db.session.commit()
 
-    cancelled_msg = u'คำขออนุมัติ{} วันที่ใน {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
+    cancelled_msg = u'คำขออนุมัติ{} วันที่ {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
                     u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
                                                                                           req.start_datetime,
                                                                                           req.end_datetime,
@@ -1301,7 +1303,7 @@ def cancel_leave_request(req_id, cancelled_account_id):
         db.session.add(new_used_quota)
         db.session.commit()
 
-    cancelled_msg = u'การขออนุมัติ{} วันที่ใน {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
+    cancelled_msg = u'การขออนุมัติ{} วันที่ {} ถึง {} ถูกยกเลิกโดย {} เรียบร้อยแล้ว' \
                     u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
                                                                                           req.start_datetime,
                                                                                           req.end_datetime,
@@ -1336,8 +1338,11 @@ def record_each_request_leave_request(request_id):
         upload_file_url = upload_file.get('embedLink')
     else:
         upload_file_url = None
+    all_hr = StaffSpecialGroup.query.filter_by(group_code='hr').first()
+    for hr in all_hr.staffs:
+        is_hr = True if hr.id == current_user.id else False
     return render_template('staff/leave_record_info.html', req=req, approvers=approvers,
-                           upload_file_url=upload_file_url)
+                           upload_file_url=upload_file_url, is_hr=is_hr)
 
 
 @staff.route('/leave/requests/search')
@@ -2057,6 +2062,137 @@ def login_scan():
     return render_template('staff/login_scan.html')
 
 
+@staff.route('/clockin-clockout/request/', methods=['GET', 'POST'])
+@login_required
+def request_for_clockin_clockout():
+    #post from /staff/users/geo-checkin function
+    if request.method == 'POST':
+        #TODO: check server time
+        today = datetime.today()
+        reason = request.form.get('reason')
+        work_datetime = datetime.strptime(request.form.get('workdatetime'), '%d/%m/%Y %H:%M')
+        date_id = StaffRequestWorkLogin.generate_date_id(tz.localize(work_datetime))
+        # TODO: check duplicate request
+        #checkin_request = StaffRequestWorkLogin.query.filter_by(date_id=date_id, staff=current_user).first()
+        if work_datetime < today:
+            checkin_request = StaffRequestWorkLogin(
+                date_id=date_id,
+                staff=current_user,
+                reason=reason,
+                requested_at=datetime.now(pytz.utc),
+                work_datetime=work_datetime,
+                is_checkin=True if request.form.get('clock') == 'checkin' else False
+            )
+
+            if len(current_user.wfh_requesters) == 0:
+                print('no approver found, assign head of the organization')
+                org_head = StaffAccount.query.filter_by(email=current_user.personal_info.org.head).first()
+                approver = StaffWorkFromHomeApprover(requester=current_user, account=org_head)
+                db.session.add(approver)
+                db.session.commit()
+            wfh_approver = StaffWorkFromHomeApprover.query.filter_by(
+                staff_account_id=checkin_request.staff_account_id).first()
+            checkin_request.approver_id = wfh_approver.approver_account_id
+            db.session.add(checkin_request)
+            db.session.commit()
+
+            if request.form.get('clock') == 'checkin':
+                req_title = u'ทดสอบแจ้งการขอรับรองเวลาเข้างาน'
+                req_msg = u'{} ขออนุมัติรับรองการเข้างาน วันที่ {} เนื่องจาก {}\n' \
+                            u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                            format(current_user.personal_info.fullname, checkin_request.work_datetime,
+                                    checkin_request.reason,
+                                    url_for("staff.approved_for_clockin_clockout", request_id=checkin_request.id))
+            else:
+                req_title = u'ทดสอบแจ้งการขอรับรองเวลากลับ'
+                req_msg = u'{} ขออนุมัติรับรองการทำงาน ในเวลากลับ วันที่ {} เนื่องจาก {}\n' \
+                            u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                            format(current_user.personal_info.fullname, checkin_request.work_datetime,
+                                    checkin_request.reason,
+                                    url_for("staff.approved_for_clockin_clockout", request_id=checkin_request.id))
+
+            if wfh_approver:
+                if wfh_approver.is_active:
+                    if os.environ["FLASK_ENV"] == "production":
+                        send_mail([wfh_approver.approver.email + "@mahidol.ac.th"], req_title, req_msg)
+                        if wfh_approver.notified_by_line and wfh_approver.account.line_id:
+                            line_bot_api.push_message(to=wfh_approver.account.line_id,
+                                                      messages=TextSendMessage(text=req_msg))
+                        else:
+                            print(req_msg, wfh_approver.account.id)
+                    else:
+                        print(wfh_approver.account.email, req_title, req_msg)
+                flash(u'ส่งคำขอเรียบร้อยแล้ว', 'success')
+            else:
+                flash(u'ไม่สามารถส่งคำขอได้ เนื่องจากไม่พบผู้บังคับบัญชาชั้นต้น', 'danger')
+            return render_template('staff/checkin_request.html')
+            #return render_template('staff/geo_checkin.html')
+        else:
+            flash(u'ไม่สามารถส่งคำขอก่อนเวลาปัจจุบันได้', 'warning')
+            return render_template('staff/checkin_request.html')
+    return render_template('staff/checkin_request.html')
+
+
+@staff.route('/clockin-clockout/request-list')
+@login_required
+def list_for_clockin_clockout():
+    all_requests = StaffRequestWorkLogin.query.filter_by(approver_id=current_user.id).all()
+    return render_template('staff/checkin_all_requests.html', all_requests=all_requests)
+
+
+@staff.route('/clockin-clockout/approved/<int:request_id>')
+@login_required
+def approved_for_clockin_clockout(request_id):
+    clock_request = StaffRequestWorkLogin.query.get(request_id)
+    approved = request.args.get("approved")
+    if approved:
+        if approved == 'yes':
+            clock_request.approved_at = datetime.now(pytz.utc)
+
+            approval = StaffWorkLogin(
+                date_id=clock_request.date_id,
+                staff=clock_request.staff
+            )
+            if clock_request.is_checkin:
+                approval.start_datetime = clock_request.work_datetime
+            else:
+                approval.end_datetime = clock_request.work_datetime
+                #TODO: added num_scans
+            db.session.add(approval)
+            db.session.commit()
+        else:
+            clock_request.cancelled_at = datetime.now(pytz.utc)
+        db.session.add(clock_request)
+        db.session.commit()
+        flash(u'บันทึกการขอรับรองการทำงานเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที', 'success')
+
+        title = u'เข้างาน' if clock_request.is_checkin else u'กลับบ้าน'
+        if clock_request.approved_at:
+            approve_msg = u'การขอรับรอง{} ในวันที่ {} ได้รับการรับรองโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
+                          u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                title, clock_request.work_datetime, clock_request.approver.fullname,
+                url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
+                        approver_id=clock_request.approver_id, _external=True))
+        else:
+            approve_msg = u'การขอรับรอง{} ในวันที่ {} ไม่ถูกอนุมัติโดย {} รายละเอียดเพิ่มเติม {}' \
+                          u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                title, clock_request.work_datetime, clock_request.approver.fullname,
+                url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
+                        approver_id=clock_request.approver_id, _external=True))
+        if clock_request.staff.line_id:
+            if os.environ["FLASK_ENV"] == "production":
+                line_bot_api.push_message(to=clock_request.staff.line_id,
+                                          messages=TextSendMessage(text=approve_msg))
+            else:
+                print(approve_msg, clock_request.staff.id)
+        approve_title = u'แจ้งสถานะรับรองการทำงาน'
+        if os.environ["FLASK_ENV"] == "production":
+            send_mail([clock_request.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
+        all_requests = StaffRequestWorkLogin.query.all()
+        return render_template('staff/checkin_all_requests.html', all_requests=all_requests)
+    return render_template('staff/checkin_approval.html', clock_request=clock_request)
+
+
 @staff.route('/login-scan/gj', methods=['GET', 'POST'])
 @csrf.exempt
 @admin_permission.require()
@@ -2283,15 +2419,18 @@ def attend_download(seminar_id):
     attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
     for attend in attends:
         records.append({
+            u'เรื่อง': u"{}".format(attend.seminar.topic),
             u'ชื่อ-นามสกุล': u"{}".format(attend.staff.personal_info.fullname),
-            'Email': u"{}".format(attend.staff.email),
+            u'ประเภท': u"สายวิชาการ" if attend.staff.personal_info.academic_staff is True else u"สายสนับสนุน",
             u'หน่วยงาน/ภาควิชา': u"{}".format(attend.staff.personal_info.org.name),
-            u'ประเภทการเข้าร่วม': u"{}".format(attend.role),
-            u'วัน-เวลา': u"{}".format(attend.start_datetime.astimezone(tz).isoformat()),
+            u'ประเภทที่ไป': u"{}".format(attend.role),
+            u'วันที่เริ่มต้น': u"{}".format(attend.start_datetime.date()),
+            u'วันที่สิ้นสุด': u"{}".format(attend.end_datetime.date()
+                                           if attend.end_datetime else attend.start_datetime.date()),
         })
     df = DataFrame(records)
     df.to_excel('attend_summary.xlsx')
-    return send_from_directory(os.getcwd(), filename='attend_summary.xlsx')
+    return send_from_directory(os.getcwd(), 'attend_summary.xlsx')
 
 
 @staff.route('/api/summary')
@@ -2659,42 +2798,40 @@ def edit_shift_schedule(schedule_id):
 
 
 @staff.route('/for-hr/seminar')
+@hr_permission.require()
 @login_required
 def seminar():
     return render_template('staff/seminar.html')
 
 
 @staff.route('/for-hr/seminar/approval')
+@hr_permission.require()
 @login_required
 def seminar_approval_records():
-    seminar_records = []
-    for seminars in StaffSeminarAttend.query.filter(StaffSeminar.cancelled_at == None).all():
-        if seminars.document_title:
-            seminar_records.append(seminars)
+    seminar_attend = []
+    for seminars in StaffSeminarAttend.query.filter(StaffSeminarAttend.id ==
+                                                    StaffSeminarProposal.seminar_attend_id).all():
+        seminar_attend.append(seminars)
 
     seminar_approval_records = []
     for seminar_approval in StaffSeminarAttend.query.filter(StaffSeminar.cancelled_at == None).all():
         if seminar_approval.seminar_approval:
             seminar_approval_records.append(seminar_approval)
     return render_template('staff/seminar_approval_info.html', seminar_records=seminar_records
-                           , seminar_approval_records=seminar_approval_records)
+                           , seminar_approval_records=seminar_approval_records, seminar_attend=seminar_attend)
 
 
 @staff.route('/for-hr/seminar/approval/add-approval/<int:attend_id>', methods=['GET', 'POST'])
+@hr_permission.require()
 @login_required
 def seminar_add_approval(attend_id):
-    attend = StaffSeminarAttend.query.filter_by(id=attend_id).all()
-    staff_attend_list = []
-    attend_first = StaffSeminarAttend.query.filter_by(id=attend_id).first()
-    attend_query = StaffSeminarAttend.query.filter_by(seminar_id=attend_first.seminar_id).all()
+    attend = StaffSeminarAttend.query.get(attend_id)
     management = StaffSpecialGroup.query.filter_by(group_code='management').first()
     approvers = management.staffs
-    for attend in attend_query:
-        if not attend.staff_account_id == attend_first.staff_account_id:
-            staff_attend_list.append(attend)
     if request.method == 'POST':
         form = request.form
         update_d = form.get('update_at')
+        #TODO: recheck update time
         update_t = "13:00"
         update_dt = '{} {}'.format(update_d, update_t)
         updated_at = datetime.strptime(update_dt, '%d/%m/%Y %H:%M')
@@ -2702,20 +2839,14 @@ def seminar_add_approval(attend_id):
             seminar_attend=attend,
             updated_at=tz.localize(updated_at),
             recorded_account_id=current_user.id,
-            final_approver_account_id=form.get('approver_id')
+            final_approver_account_id=form.get('approver_id'),
+            is_approved=False if form.get('approval') == 'False' else True,
+            approval_comment=form.get('other_approval') if form.get('other_approval') else ""
         )
-        if form.get('approval') is False:
-            approval.is_approved = False
-        if form.get('other_approval'):
-            approval.approval_comment = form.get('other_approval')
         db.session.add(approval)
         db.session.commit()
         attends = StaffSeminarAttend.query.get(attend_id)
-        if form.get('document_id'):
-            document_id = form.get('document_id')
-            document_no = form.get('document_no')
-            document = u'อว.{}/{}'.format(document_id, document_no)
-            attends.document_no = document
+        attends.document_no = form.get('document_no') if form.get('document_no') else ''
         attends.registration_fee = form.get('registration_fee')
         attends.budget_type = form.get('budget_type')
         attends.budget = form.get('budget')
@@ -2727,53 +2858,33 @@ def seminar_add_approval(attend_id):
         attends.transaction_fee = form.get('transaction_fee')
         db.session.add(attend)
         db.session.commit()
-        # for attend_id in form.getlist("attends"):
-        #     update_d = form.get('update_at')
-        #     update_t = "13:00"
-        #     update_dt = '{} {}'.format(update_d, update_t)
-        #     updated_at = datetime.strptime(update_dt, '%d/%m/%Y %H:%M')
-        #     approval = StaffSeminarApproval(
-        #         attend=[StaffSeminarAttend.query.get(int(attend_id)) for attend_id in form.getlist("attends")],
-        #         seminar_attend_id=attend.seminar_id,
-        #         updated_at=tz.localize(updated_at),
-        #         approval_comment=form.get('other_approval'),
-        #         recorded_account_id=current_user.id,
-        #         final_approver_account_id=form.get('approver_id')
-        #     )
-        #     if form.get('approval') is False:
-        #         approval.is_approved = False
-        #     db.session.add(approval)
-        #     db.session.commit()
-        #
-        #     attends = StaffSeminarAttend.query.get(attend_id)
-        #     attends.registration_fee=form.get('registration_fee'),
-        #     attends.budget_type=form.get('budget_type'),
-        #     attends.budget=form.get('budget'),
-        #     attends.accommodation_cost=form.get('accommodation_cost'),
-        #     attends.fuel_cost=form.get('fuel_cost'),
-        #     attends.taxi_cost=form.get('taxi_cost'),
-        #     attends.train_ticket_cost=form.get('train_ticket_cost'),
-        #     attends.flight_ticket_cost=form.get('flight_ticket_cost'),
-        #     attends.transaction_fee=form.get('transaction_fee'),
-        #     db.session.add(attend)
-        #     db.session.commit()
 
-        flash(u'UPDATE การอนุมัติเรียบร้อยแล้ว', 'success')
-
-        # mails = []
-        # req_title = u'แจ้งการอนุมัติ' + createleave.quota.leave_type.type_
-        # req_msg = u'การขออนุมัติ{} ของ{} ระหว่างวันที่ {} ถึงวันที่ {}\nเจ้าหน้าที่หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่ได้ทำการบันทึกลงระบบเรียบร้อยแล้ว' \
-        #           u'\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {}\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
-        #     format(createleave.quota.leave_type.type_, current_user.personal_info.fullname, start_datetime,
-        #            end_datetime,
-        #            url_for("staff.record_each_request_leave_request", request_id=createleave.id, _external=True))
-        # if os.environ["FLASK_ENV"] == "production":
-        #     line_bot_api.push_message(to=staff_id.line_id, messages=TextSendMessage(text=req_msg))
-        # else:
-        #     print(req_msg, staff_id.email)
-        # mails.append(staff_id.email + "@mahidol.ac.th")
-        # if os.environ["FLASK_ENV"] == "production":
-        #     send_mail(mails, req_title, req_msg)
+        if form.get('approval') == 'True':
+            req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n {}อนุมัติเรียบร้อยแล้ว' \
+                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                format(attend.seminar.topic_type, attend.seminar.topic,
+                       attend.start_datetime, attend.end_datetime, approval.approver.personal_info)
+        elif form.get('approval') == 'False':
+            req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n {}ไม่อนุมัติคำขอของท่าน' \
+                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                format(attend.seminar.topic_type, attend.seminar.topic,
+                       attend.start_datetime, attend.end_datetime, approval.approver.personal_info)
+        else:
+            req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n {}อนุมัติแบบมีเงื่อนไข {}' \
+                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                format(attend.seminar.topic_type, attend.seminar.topic,
+                       attend.start_datetime, attend.end_datetime,
+                       approval.approver.personal_info, approval.approval_comment)
+        req_title = u'ทดสอบแจ้งผลการขออนุมัติ' + attend.seminar.topic_type
+        requester_email = attend.staff.email
+        line_id = attend.staff.line_id
+        if os.environ["FLASK_ENV"] == "production":
+            send_mail([requester_email + "@mahidol.ac.th"], req_title, req_msg)
+            if line_id:
+                line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+        else:
+            print(req_msg, requester_email, line_id)
+        flash(u'update รายการอนุมัติเรียบร้อยแล้ว', 'success')
 
         seminar_records = []
         for seminars in StaffSeminarAttend.query.filter(StaffSeminar.cancelled_at == None).all():
@@ -2783,20 +2894,32 @@ def seminar_add_approval(attend_id):
         for seminar_approval in StaffSeminarAttend.query.filter(StaffSeminar.cancelled_at == None).all():
             if seminar_approval.seminar_approval:
                 seminar_approval_records.append(seminar_approval)
-        return render_template('staff/seminar_approval_info.html', seminar_records=seminar_records
-                               , seminar_approval_records=seminar_approval_records)
-    return render_template('staff/seminar_add_approval.html', attend=attend, staff_attend_list=staff_attend_list,
-                           approvers=approvers)
+        return render_template('staff/seminar_approval_info.html', seminar_records=seminar_records,
+                                                seminar_approval_records=seminar_approval_records)
+    return render_template('staff/seminar_add_approval.html', attend=attend, approvers=approvers)
 
 
 @staff.route('/seminar/create', methods=['GET', 'POST'])
-@hr_permission.require()
 @login_required
 def create_seminar():
     form = StaffSeminarForm()
     if form.validate_on_submit():
         seminar = StaffSeminar()
         form.populate_obj(seminar)
+        upload_file = request.files.get('document')
+        if upload_file:
+            upload_file_name = secure_filename(upload_file.filename)
+            upload_file.save(upload_file_name)
+            file_drive = drive.CreateFile({'title': upload_file_name})
+            file_drive.SetContentFile(upload_file_name)
+            file_drive.Upload()
+            permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
+            upload_file_url = file_drive['id']
+            flash(u'Upload File เรียบร้อยแล้ว', 'success')
+        else:
+            upload_file_url = None
+            flash(u'Upload File ไม่สำเร็จ', 'warning')
+        seminar.upload_file_url = upload_file_url
         timedelta = form.end_datetime.data - form.start_datetime.data
         if timedelta.days < 0 and timedelta.seconds == 0:
             flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
@@ -2822,7 +2945,15 @@ def create_seminar():
 def seminar_attend_info_for_hr(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
     attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
-    return render_template('staff/seminar_attend_info_for_hr.html', seminar=seminar, attends=attends)
+    upload_file_url = None
+    if seminar.upload_file_url:
+        upload_file = drive.CreateFile({'id': seminar.upload_file_url})
+        upload_file.FetchMetadata()
+        upload_file_url = upload_file.get('embedLink')
+    else:
+        upload_file_url = None
+    return render_template('staff/seminar_attend_info_for_hr.html', seminar=seminar, attends=attends,
+                                    upload_file_url=upload_file_url)
 
 
 @staff.route('/seminar/add-attend/<int:seminar_id>', methods=['GET', 'POST'])
@@ -2830,27 +2961,65 @@ def seminar_attend_info_for_hr(seminar_id):
 def seminar_attend_info(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
     attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
-    current_user_attended = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id,
-                                                               staff_account_id=current_user.id).first()
+    current_user_attended = StaffSeminarAttend.query.filter_by(
+        seminar_id=seminar_id, staff_account_id=current_user.id).first()
+    upload_file_url = None
+    if seminar.upload_file_url:
+        upload_file = drive.CreateFile({'id': seminar.upload_file_url})
+        upload_file.FetchMetadata()
+        upload_file_url = upload_file.get('embedLink')
+    else:
+        upload_file_url = None
     return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends,
-                           current_user_attended=current_user_attended)
+                             current_user_attended=current_user_attended, upload_file_url=upload_file_url)
 
 
 @staff.route('/seminar/all-seminars', methods=['GET', 'POST'])
 @login_required
 def seminar_records():
-    seminar_list = []
-    seminar_query = StaffSeminar.query.filter(StaffSeminar.cancelled_at == None).all()
-    for seminar in seminar_query:
-        record = {}
-        record["id"] = seminar.id
-        record["topic_type"] = seminar.topic_type
-        record["name"] = seminar.topic
-        record["start"] = seminar.start_datetime
-        record["end"] = seminar.end_datetime
-        record["organize_by"] = seminar.organize_by
-        seminar_list.append(record)
-    return render_template('staff/seminar_records.html', seminar_list=seminar_list)
+    if request.method == "POST":
+        form = request.form
+        start_t = "00:00"
+        end_t = "23:59"
+        start_d, end_d = form.get('dates').split(' - ')
+        start_dt = '{} {}'.format(start_d, start_t)
+        end_dt = '{} {}'.format(end_d, end_t)
+        start_datetime = datetime.strptime(start_dt, '%d/%m/%Y %H:%M')
+        end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
+        records = []
+        attends = StaffSeminarAttend.query.filter(and_(StaffSeminarAttend.start_datetime >= start_datetime,
+                                                          StaffSeminarAttend.start_datetime <= end_datetime))
+        columns = [u'ชื่อ-นามสกุล', u'ประเภท', u'ประเภทที่ไป', u'เรื่อง',
+                   u'ประเภทแหล่งเงิน', u'จำนวนเงิน', u'วันที่เริ่มต้น', u'วันที่สิ้นสุด', u'สถานที่']
+        for attend in attends:
+            records.append({
+                columns[0]: u"{}".format(attend.staff.personal_info.fullname),
+                columns[1]: u"สายวิชาการ" if attend.staff.personal_info.academic_staff is True else u"สายสนับสนุน",
+                columns[2]: u"{}".format(attend.role),
+                columns[3]: u"{}".format(attend.seminar.topic),
+                columns[4]: u"{}".format(attend.budget_type if attend.budget_type else ""),
+                columns[5]: u"{}".format(attend.budget if attend.budget else ""),
+                columns[6]: u"{}".format(attend.start_datetime.date()),
+                columns[7]: u"{}".format(attend.end_datetime.date()
+                                                   if attend.end_datetime else attend.start_datetime.date()),
+                columns[8]: u"{}".format(attend.seminar.location),
+            })
+        df = DataFrame(records, columns=columns)
+        df.to_excel('attend_summary.xlsx',index=False, columns=columns)
+        return send_from_directory(os.getcwd(), 'attend_summary.xlsx')
+    else:
+        seminar_list = []
+        seminar_query = StaffSeminar.query.filter(StaffSeminar.cancelled_at == None).all()
+        for seminar in seminar_query:
+            record = {}
+            record["id"] = seminar.id
+            record["topic_type"] = seminar.topic_type
+            record["name"] = seminar.topic
+            record["start"] = seminar.start_datetime
+            record["end"] = seminar.end_datetime
+            record["organize_by"] = seminar.organize_by
+            seminar_list.append(record)
+        return render_template('staff/seminar_records.html', seminar_list=seminar_list)
 
 
 @staff.route('/seminar/create-record/<int:seminar_id>', methods=['GET', 'POST'])
@@ -2861,29 +3030,250 @@ def seminar_create_record(seminar_id):
     form = MyStaffSeminarAttendForm()
     seminar = StaffSeminar.query.get(seminar_id)
     if form.validate_on_submit():
-        # TODO: recheck objective and mission ว่าเข้าใน db ไหม
         attend = StaffSeminarAttend()
         form.populate_obj(attend)
         attend.start_datetime = tz.localize(form.start_datetime.data)
         attend.end_datetime = tz.localize(form.end_datetime.data)
         attend.staff = current_user
         attend.seminar = seminar
-        if form.invited_document_date.data:
+        if form.invited_document_id.data:
+            attend.invited_document_id = form.invited_document_id.data
+            attend.invited_organization = form.invited_organization.data
             attend.invited_document_date = form.invited_document_date.data
+        attend.attend_online = True if request.form.get('is_online') else False
         if form.approver.data:
-            # staff_leave_approver_id = StaffLeaveApprover.query.filter_by(id=form.approver.data.id).first()
-            attend.head_account_id = form.approver.data.account.id
-        if form.contact_no.data:
-            attend.contact_no = form.contact_no.data
+            attend.lower_level_approver_account_id = form.approver.data.account.id
             attend.document_title = form.document_title.data
         db.session.add(attend)
         db.session.commit()
 
+        req_title = u'ทดสอบแจ้งการขออนุมัติ' + attend.seminar.topic_type
+        req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\nคลิกที่ Link เพื่อดูรายละเอียดเพิ่มเติม {} ' \
+                  u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+            format(attend.staff.personal_info, attend.seminar.topic_type, attend.seminar.topic,
+                   attend.start_datetime, attend.end_datetime,
+                   url_for("staff.seminar_request_for_proposal", seminar_attend_id=attend.id, _external=True))
+        if attend.lower_level_approver_account_id:
+            approver = StaffLeaveApprover.query.filter_by(
+                approver_account_id=attend.lower_level_approver_account_id).first()
+            approver_email = approver.account.email
+            is_notify_line = approver.notified_by_line
+            line_id = approver.account.line_id
+            if os.environ["FLASK_ENV"] == "production":
+                send_mail([approver_email + "@mahidol.ac.th"], req_title, req_msg)
+                if is_notify_line and line_id:
+                    line_bot_api.push_message(to=line_id,messages=TextSendMessage(text=req_msg))
+            else:
+                print(req_msg, line_id)
+            flash(u'ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
+        else:
+            flash(u'เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
         attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
-        flash(u'เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
         return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
     print (form.errors)
     return render_template('staff/seminar_create_record.html', seminar=seminar, form=form)
+
+
+@staff.route('/seminar/requests/proposal/info')
+@login_required
+def show_seminar_proposal_info():
+    leave_approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
+    if not leave_approver:
+        return redirect(url_for('staff.seminar_attends_each_person', staff_id=current_user.id))
+    lower_level_requests = StaffSeminarAttend.query.filter_by(lower_level_approver=current_user).all()
+    middle_level_requests = StaffSeminarAttend.query.filter_by(middle_level_approver=current_user).all()
+    last_two_month = datetime.now() - timedelta(60)
+    pending_proposal = StaffSeminarProposal.query.filter_by(proposer=current_user)\
+                                            .filter(StaffSeminarProposal.approved_at >= last_two_month).all()
+    return render_template('staff/seminar_request_for_proposal.html', lower_level_requests=lower_level_requests,
+                           middle_level_requests=middle_level_requests, pending_proposal=pending_proposal)
+
+
+@staff.route('/seminar/request/proposal/detail/<int:seminar_attend_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_request_for_proposal(seminar_attend_id):
+    seminar_attend = StaffSeminarAttend.query.get(seminar_attend_id)
+    another_proposer = StaffLeaveApprover.query.filter_by(staff_account_id=seminar_attend.staff_account_id).filter(
+                                        StaffLeaveApprover.approver_account_id != current_user.id).all()
+    registration_fee = seminar_attend.registration_fee if seminar_attend.registration_fee else '-'
+    transaction_fee = u'ค่าธรรมเนียมการโอนเงิน(ถ้ามี) {} บาท '.format(
+        seminar_attend.transaction_fee) if seminar_attend.transaction_fee else ''
+    budget = seminar_attend.budget if seminar_attend.budget else '-'
+    accommodation_cost = u'ค่าที่พัก {} บาท '.format(
+        seminar_attend.accommodation_cost) if seminar_attend.accommodation_cost else ''
+    flight_ticket_cost = u'ค่าตั๋วเครื่องบิน {} บาท '.format(
+        seminar_attend.flight_ticket_cost) if seminar_attend.flight_ticket_cost else ''
+    train_ticket_cost = u'ค่ารถไฟ {} บาท '.format(
+        seminar_attend.train_ticket_cost) if seminar_attend.train_ticket_cost else ''
+    taxi_cost = u'ค่าแท็กซี่ {} บาท '.format(seminar_attend.taxi_cost) if seminar_attend.taxi_cost else ''
+    fuel_cost = u'ค่าน้ำมัน {} บาท '.format(seminar_attend.fuel_cost) if seminar_attend.fuel_cost else ''
+    attend_online = u' เข้าร่วมผ่านช่องทางออนไลน์' if seminar_attend.attend_online else ''
+    position = StaffHeadPosition.query.filter_by(staff_account_id=current_user.id).all()
+    upload_file_url = None
+    if seminar_attend.seminar.upload_file_url:
+        upload_file = drive.CreateFile({'id': seminar_attend.seminar.upload_file_url})
+        upload_file.FetchMetadata()
+        upload_file_url = upload_file.get('embedLink')
+    else:
+        upload_file_url = None
+    #TODO: if the request have IDP objective, show personal's IDP information
+    # TODO: generate document no
+    if request.method == 'POST':
+        form = request.form
+        is_previous_proposer = StaffSeminarProposal.query.filter_by(seminar_attend_id=seminar_attend_id).first()
+        proposal = StaffSeminarProposal(
+            seminar_attend_id=seminar_attend_id,
+            approved_at=tz.localize(datetime.today()),
+            is_approved=True if form.get('status') == 'yes' else False,
+            comment=form.get('comment') if form.get('comment') else None,
+            proposer_account_id=current_user.id,
+            previous_proposal_id=is_previous_proposer.id if is_previous_proposer else None,
+            proposer_head_position_id=form.get('position_id'),
+        )
+        db.session.add(proposal)
+        db.session.commit()
+        if form.get('status') == 'yes':
+            #TODO: recheck process of approver level
+            if form.get('another_proposer_id'):
+                middle_level_approver_account_id = form.get('another_proposer_id')
+                seminar_attend.middle_level_approver_account_id = middle_level_approver_account_id
+                db.session.add(seminar_attend)
+                db.session.commit()
+                flash(u'ส่งคำขอต่อไปยังรองคณบดี/ผู้ช่วยคณบดีเรียบร้อยแล้ว ', 'success')
+                return redirect(url_for('staff.show_seminar_proposal_info'))
+            else:
+                req_title = u'ทดสอบแจ้งผลการขออนุมัติโดยผู้บังคับบัญชาขั้นต้น' + seminar_attend.seminar.topic_type
+                req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n ผู้บังคับบัญชาขั้นต้นอนุมัติแล้ว อยู่ในขั้นตอนเสนอคณบดีขออนุมัติต่อไป' \
+                          u'รายละเอียดคลิ๊ก {}' \
+                          u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                    format(seminar_attend.seminar.topic_type, seminar_attend.seminar.topic,
+                           seminar_attend.start_datetime, seminar_attend.end_datetime, proposal.comment,
+                           url_for("staff.show_seminar_info_each_person", record_id=seminar_attend.id, _external=True))
+                requester_email = seminar_attend.staff.email
+                line_id = seminar_attend.staff.line_id
+                if os.environ["FLASK_ENV"] == "production":
+                    send_mail([requester_email + "@mahidol.ac.th"], req_title, req_msg)
+                    if line_id:
+                        line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+                else:
+                    print(req_msg, requester_email, line_id)
+                flash(u'ระบบบันทึกการอนุมัติของท่านแล้ว กรุณา Downloadเอกสาร และ Uploadเมื่อท่านลงลายเซนต์ เข้าระบบต่อไป', 'success')
+                return redirect(url_for('staff.seminar_upload_proposal', seminar_attend_id=seminar_attend_id,
+                                                                          proposal_id=proposal.id))
+        else:
+            req_title = u'ทดสอบแจ้งผลการขออนุมัติโดยผู้บังคับบัญชาขั้นต้น' + seminar_attend.seminar.topic_type
+            req_msg = u'ตามที่ท่านขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n ผู้บังคับบัญชาขั้นต้นไม่อนุมัติเนื่องจาก {} รายละเอียดคลิ๊ก{}' \
+                      u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
+                format(seminar_attend.seminar.topic_type, seminar_attend.seminar.topic,
+                       seminar_attend.start_datetime, seminar_attend.end_datetime, proposal.comment,
+                       url_for("staff.show_seminar_info_each_person", record_id=seminar_attend.id, _external=True))
+            requester_email = seminar_attend.staff.email
+            line_id = seminar_attend.staff.line_id
+            if os.environ["FLASK_ENV"] == "production":
+                send_mail([requester_email + "@mahidol.ac.th"], req_title, req_msg)
+                if line_id:
+                    line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+            else:
+                print(req_msg, requester_email, line_id)
+            flash(u'ระบบบันทึกการอนุมัติของท่านแล้ว', 'success')
+            return redirect(url_for('staff.show_seminar_proposal_info'))
+    return render_template('staff/seminar_request_for_proposal_detail.html', seminar_attend=seminar_attend,
+                           another_proposer=another_proposer, upload_file_url=upload_file_url,
+                           registration_fee=registration_fee, transaction_fee=transaction_fee, budget=budget,
+                           accommodation_cost=accommodation_cost, flight_ticket_cost=flight_ticket_cost,
+                           train_ticket_cost=train_ticket_cost, taxi_cost=taxi_cost, fuel_cost=fuel_cost,
+                           attend_online=attend_online, position=position)
+
+
+@staff.route('/seminar/request/upload/<int:seminar_attend_id>/<int:proposal_id>', methods=['GET', 'POST'])
+@login_required
+def seminar_upload_proposal(seminar_attend_id, proposal_id):
+    proposal = StaffSeminarProposal.query.filter_by(seminar_attend_id=seminar_attend_id).all()
+    this_proposal = StaffSeminarProposal.query.get(proposal_id)
+    seminar_attend = StaffSeminarAttend.query.get(seminar_attend_id)
+    if seminar_attend.staff.personal_info.org.parent:
+        org_name = seminar_attend.staff.personal_info.org.parent.name
+    else:
+        org_name = seminar_attend.staff.personal_info.org.name
+    registration_fee = seminar_attend.registration_fee if seminar_attend.registration_fee else '-'
+    transaction_fee = u'ค่าธรรมเนียมการโอนเงิน(ถ้ามี) {} บาท '.format(
+        seminar_attend.transaction_fee) if seminar_attend.transaction_fee else ''
+    budget = seminar_attend.budget if seminar_attend.budget else '-'
+    accommodation_cost = u'ค่าที่พัก {} บาท '.format(
+        seminar_attend.accommodation_cost) if seminar_attend.accommodation_cost else ''
+    flight_ticket_cost = u'ค่าตั๋วเครื่องบิน {} บาท '.format(
+        seminar_attend.flight_ticket_cost) if seminar_attend.flight_ticket_cost else ''
+    train_ticket_cost = u'ค่ารถไฟ {} บาท '.format(
+        seminar_attend.train_ticket_cost) if seminar_attend.train_ticket_cost else ''
+    taxi_cost = u'ค่าแท็กซี่ {} บาท '.format(seminar_attend.taxi_cost) if seminar_attend.taxi_cost else ''
+    fuel_cost = u'ค่าน้ำมัน {} บาท '.format(seminar_attend.fuel_cost) if seminar_attend.fuel_cost else ''
+    attend_online = u' เข้าร่วมผ่านช่องทางออนไลน์' if seminar_attend.attend_online else ''
+    academic_position = StaffAcademicPositionRecord.query.filter_by\
+                            (personal_info_id=current_user.personal_info.id).first()
+    if academic_position:
+        prefix_position = academic_position.position.fullname_th
+    elif current_user.personal_info.academic_staff:
+        prefix_position = u'อาจารย์'
+    else:
+        prefix_position = ''
+
+    if request.method == 'POST':
+        upload_file = request.files.get('document')
+        if upload_file:
+            upload_file_name = secure_filename(upload_file.filename)
+            upload_file.save(upload_file_name)
+            file_drive = drive.CreateFile({'title': upload_file_name})
+            file_drive.SetContentFile(upload_file_name)
+            file_drive.Upload()
+            permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
+            upload_file_url = file_drive['id']
+            flash(u'Upload File เรียบร้อยแล้ว', 'success')
+        else:
+            upload_file_url = None
+            flash(u'Upload File ไม่สำเร็จ', 'warning')
+        this_proposal.upload_file_url = upload_file_url
+        db.session.add(this_proposal)
+        db.session.commit()
+
+        if this_proposal.upload_file_url:
+            upload_file = drive.CreateFile({'id': this_proposal.upload_file_url})
+            upload_file.FetchMetadata()
+            upload_file_url = upload_file.get('embedLink')
+        else:
+            upload_file_url = None
+
+        req_title = u'หนังสือขออนุมัติอบรมเรื่องใหม่มาแล้ว'
+        req_msg = u'{} ขออนุมัติ{} เรื่อง {} ระหว่างวันที่ {} ถึงวันที่ {}\n โดย{}เป็นผู้บังคับบัญชาชั้นต้น \nคลิกที่ Link เพื่อดูเอกสาร{}' \
+                  u'\n\n\nหน่วยIT \nคณะเทคนิคการแพทย์'. \
+                   format(seminar_attend.staff.personal_info, seminar_attend.seminar.topic_type,
+                          seminar_attend.seminar.topic, seminar_attend.start_datetime, seminar_attend.end_datetime,
+                          this_proposal.proposer.personal_info, upload_file_url)
+        general_account = StaffAccount.query.filter_by(email='natchaya.rit').first()
+        if os.environ["FLASK_ENV"] == "production":
+            send_mail([general_account.email + "@mahidol.ac.th"], req_title, req_msg)
+            if general_account.line_id:
+                line_bot_api.push_message(to=general_account.line_id, messages=TextSendMessage(text=req_msg))
+        else:
+            print(req_msg, general_account.email)
+        flash(u'ระบบบันทึกการอนุมัติของท่านแล้ว', 'success')
+        return redirect(url_for('staff.show_seminar_proposal_info'))
+    return render_template('staff/seminar_upload_proposal.html', proposal=proposal, this_proposal=this_proposal,
+                           registration_fee=registration_fee, seminar_attend=seminar_attend,
+                           transaction_fee=transaction_fee, budget=budget, accommodation_cost=accommodation_cost,
+                           flight_ticket_cost=flight_ticket_cost, train_ticket_cost=train_ticket_cost,
+                           taxi_cost=taxi_cost, fuel_cost=fuel_cost, org_name=org_name, attend_online=attend_online,
+                           prefix_position=prefix_position)
+
+
+@staff.route('/seminar/all-proposal')
+@login_required
+def seminar_proposal():
+    seminar_attend_list = []
+    attend_query = StaffSeminarAttend.query.all()
+    for attend in attend_query:
+        if attend.is_approved_by(current_user):
+            seminar_attend_list.append(attend)
+    return render_template('staff/seminar_all_proposal.html', seminar_attend_list=seminar_attend_list)
 
 
 @staff.route('/seminar/add-attend/add-attendee/<int:seminar_id>', methods=['GET', 'POST'])
@@ -2908,17 +3298,17 @@ def seminar_add_attendee(seminar_id):
                 staff_account_id=staff_id,
                 seminar_id=seminar_id,
                 role=form.get('role'),
-                registration_fee=form.get('registration_fee') if form.get("registration_fee") else None,
+                registration_fee=form.get('registration_fee') if form.get("registration_fee") else "",
                 budget_type=form.get('budget_type'),
                 budget=form.get('budget'),
                 start_datetime=tz.localize(start_datetime),
                 end_datetime=tz.localize(end_datetime),
                 attend_online=True if form.get("attend_online") else False,
-                accommodation_cost=form.get('accommodation_cost') if form.get("accommodation_cost") else None,
-                fuel_cost=form.get('fuel_cost') if form.get("fuel_cost") else None,
-                taxi_cost=form.get('taxi_cost') if form.get("taxi_cost") else None,
-                train_ticket_cost=form.get('train_ticket_cost') if form.get("train_ticket_cost") else None,
-                flight_ticket_cost=form.get('flight_ticket_cost') if form.get("flight_ticket_cost") else None,
+                accommodation_cost=form.get('accommodation_cost') if form.get("accommodation_cost") else "",
+                fuel_cost=form.get('fuel_cost') if form.get("fuel_cost") else "",
+                taxi_cost=form.get('taxi_cost') if form.get("taxi_cost") else "",
+                train_ticket_cost=form.get('train_ticket_cost') if form.get("train_ticket_cost") else "",
+                flight_ticket_cost=form.get('flight_ticket_cost') if form.get("flight_ticket_cost") else "",
                 objective=form.get('objective') if form.get('objective') != '' else form.get('other_objective')
             )
             db.session.add(attend)
@@ -2940,11 +3330,25 @@ def delete_participant(attend_id):
     return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
 
 
-@staff.route('/seminar/info/<int:record_id>/staff/<int:staff_id>')
+@staff.route('/seminar/info/<int:record_id>')
 @login_required
-def show_seminar_info_each_person(record_id, staff_id):
-    attend = StaffSeminarAttend.query.filter_by(id=record_id, staff_account_id=staff_id).first()
-    return render_template('staff/seminar_each_record.html', attend=attend)
+def show_seminar_info_each_person(record_id):
+    attend = StaffSeminarAttend.query.get(record_id)
+    proposal = StaffSeminarProposal.query.filter_by(seminar_attend_id=attend.id).all()
+    approval = StaffSeminarApproval.query.filter_by(seminar_attend_id=attend.id).first()
+    all_hr = StaffSpecialGroup.query.filter_by(group_code='hr').first()
+    for hr in all_hr.staffs:
+        is_hr = True if hr.id == current_user.id else False
+    upload_file_url = None
+    for p in proposal:
+        if p.upload_file_url:
+            upload_file = drive.CreateFile({'id': p.upload_file_url})
+            upload_file.FetchMetadata()
+            upload_file_url = upload_file.get('embedLink')
+        else:
+            upload_file_url = None
+    return render_template('staff/seminar_each_record.html', attend=attend, approval=approval,
+                           proposal=proposal, is_hr=is_hr, upload_file_url=upload_file_url)
 
 
 @staff.route('/seminar/edit-seminar/<int:seminar_id>', methods=['GET', 'POST'])
@@ -2955,23 +3359,18 @@ def edit_seminar_info(seminar_id):
         form = request.form
         start_datetime = datetime.strptime(form.get('start_datetime'), '%d/%m/%Y %H:%M')
         end_datetime = datetime.strptime(form.get('end_datetime'), '%d/%m/%Y %H:%M')
-        timedelta = end_datetime - start_datetime
-        if timedelta.days < 0 or timedelta.seconds == 0:
-            flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
-            return render_template('staff/seminar_edit_seminar_info.html', seminar=seminar)
-        else:
-            seminar.start_datetime = tz.localize(start_datetime)
-            seminar.end_datetime = tz.localize(end_datetime)
-            seminar.topic_type = form.get('topic_type')
-            seminar.topic = form.get('topic')
-            seminar.mission = form.get('mission')
-            seminar.location = form.get('location')
-            seminar.country = form.get('country')
-            seminar.is_online = True if form.getlist("online") else False
-            db.session.add(seminar)
-            db.session.commit()
-            flash(u'การแก้ไขถูกบันทึกเรียบร้อย', 'success')
-            return redirect(url_for('staff.seminar_records'))
+        seminar.start_datetime = tz.localize(start_datetime)
+        seminar.end_datetime = tz.localize(end_datetime)
+        seminar.topic_type = form.get('topic_type')
+        seminar.topic = form.get('topic')
+        seminar.organize_by = form.get('organize_by')
+        seminar.location = form.get('location')
+        seminar.country = form.get('country')
+        seminar.is_online = True if form.getlist("online") else False
+        db.session.add(seminar)
+        db.session.commit()
+        flash(u'การแก้ไขถูกบันทึกเรียบร้อย', 'success')
+        return redirect(url_for('staff.seminar_records'))
 
     return render_template('staff/seminar_edit_seminar_info.html', seminar=seminar)
 
@@ -3004,8 +3403,16 @@ def seminar_attends_each_person(staff_id):
     seminar_records = []
     seminar_query = StaffSeminar.query.filter(StaffSeminar.cancelled_at == None).all()
     for seminars in seminar_query:
+        if seminars.upload_file_url:
+            upload_file = drive.CreateFile({'id': seminars.upload_file_url})
+            upload_file.FetchMetadata()
+            seminars.upload_file_url = upload_file.get('embedLink')
+        else:
+            seminars.upload_file_url = None
         seminar_records.append(seminars)
+    approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
     return render_template('staff/seminar_records_each_person.html', seminar_list=seminar_list,
+                           attend_name=attend_name ,seminar_records=seminar_records, approver=approver)
                            attend_name=attend_name, seminar_records=seminar_records)
 
 
@@ -3124,10 +3531,12 @@ def staff_search_info():
         staff_id = request.form.get('staffname')
         staff = StaffPersonalInfo.query.get(staff_id)
         emp_date = staff.employed_date
+        resign_date = staff.resignation_date
+        retired_date = staff.retirement_date
         employments = StaffEmployment.query.all()
         departments = Org.query.all()
-        return render_template('staff/staff_edit_info.html', staff=staff, emp_date=emp_date, employments=employments,
-                               departments=departments)
+        return render_template('staff/staff_edit_info.html', staff=staff, emp_date=emp_date, retired_date=retired_date,
+                               resign_date=resign_date, employments=employments, departments=departments)
     return render_template('staff/staff_find_name_to_edit.html')
 
 
@@ -3150,6 +3559,10 @@ def staff_edit_info(staff_id):
             db.session.add(createstaff)
         start_d = form.get('employed_date')
         start_date = datetime.strptime(start_d, '%d/%m/%Y') if start_d else None
+        resign_date = datetime.strptime(form.get('resignation_date'), '%d/%m/%Y') \
+                      if form.get('resignation_date') else None
+        retired_date = datetime.strptime(form.get('retirement_date'), '%d/%m/%Y') \
+            if form.get('retirement_date') else None
         staff.th_title = form.get('th_title')
         staff.en_title = form.get('en_title')
         staff.en_firstname = form.get('en_firstname')
@@ -3158,6 +3571,8 @@ def staff_edit_info(staff_id):
         staff.th_lastname = form.get('th_lastname')
         staff.position = form.get('position')
         staff.employed_date = tz.localize(start_date) if start_date else None
+        staff.resignation_date = tz.localize(resign_date) if resign_date else None
+        staff.retirement_date = tz.localize(retired_date) if retired_date else None
         if form.get('finger_scan_id'):
             staff.finger_scan_id = form.get('finger_scan_id')
         staff.employment_id = form.get('employment_id')
@@ -3202,6 +3617,46 @@ def staff_edit_info(staff_id):
 def staff_show_info(staff_id):
     staff = StaffPersonalInfo.query.get(staff_id)
     return render_template('staff/staff_show_info.html', staff=staff)
+
+
+@staff.route('/api/academic-records')
+@staff.route('/api/academic-records/<int:personal_id>')
+@login_required
+def get_academic_records(personal_id=None):
+    results = []
+    if not personal_id:
+        return jsonify({'data': results})
+
+    for rec in StaffAcademicPositionRecord.query.filter_by(personal_info_id=personal_id).all():
+        results.append({
+            "fullname": rec.personal_info.fullname,
+            "appointed_at": rec.appointed_at,
+            "position": rec.position.fullname_th
+         })
+    print(results)
+    return jsonify({'data': results})
+
+
+@staff.route('/for-hr/add-academic-position/', methods=['GET', 'POST'])
+@login_required
+@hr_permission.require()
+def staff_add_academic_position():
+    position = StaffAcademicPosition.query.all()
+    if request.method == 'POST':
+        appoint_d = request.form.get('appointed_date')
+        appoint_date = datetime.strptime(appoint_d, '%d/%m/%Y')
+        add_position = StaffAcademicPositionRecord(
+            personal_info_id=request.form.get('staff'),
+            position_id=request.form.get('position_id'),
+            appointed_at=tz.localize(appoint_date),
+            updated_at=datetime.now(tz)
+        )
+        db.session.add(add_position)
+        db.session.commit()
+        flash(u'เพิ่มตำแหน่งทางวิชาการเรียบร้อยแล้ว', 'success')
+        staff = StaffPersonalInfo.query.get(int(request.form.get('staff')))
+        return render_template('staff/staff_show_info.html', staff=staff)
+    return render_template('staff/staff_add_academic_position.html', position=position)
 
 
 @staff.route('/for-hr/staff-info/search-account', methods=['GET', 'POST'])
@@ -3405,7 +3860,7 @@ def add_leave_request_by_hr(staff_id):
             )
             db.session.add(createmoreleaveapproval)
         if form.get('deanapprovedAt'):
-            dean = StaffAccount.query.filter_by(email='chartchalerm.isa').first()
+            dean = StaffAccount.query.filter_by(email='chotiros.pla').first()
             if not StaffLeaveApprover.query.filter_by(approver_account_id=dean.id).filter_by(
                     staff_account_id=staff_id.id).first():
                 createdeanapprover = StaffLeaveApprover(
@@ -3506,6 +3961,126 @@ def add_leave_request_by_hr(staff_id):
                            leave_types=leave_types)
 
 
+@staff.route('/for-hr/cancel-leave-requests/<int:req_id>')
+@hr_permission.require()
+def cancel_leave_request_by_hr(req_id):
+    req = StaffLeaveRequest.query.get(req_id)
+    req.cancelled_at = tz.localize(datetime.today())
+    req.cancelled_account_id = current_user.id
+    db.session.add(req)
+    db.session.commit()
+
+    _, END_FISCAL_DATE = get_fiscal_date(req.start_datetime)
+    is_used_quota = StaffLeaveUsedQuota.query.filter_by(leave_type_id=req.quota.leave_type_id,
+                                                        staff_account_id=req.staff_account_id,
+                                                        fiscal_year=END_FISCAL_DATE.year).first()
+    quota = req.quota
+    used_quota = req.staff.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
+                                                             tz.localize(END_FISCAL_DATE))
+    pending_days = req.staff.personal_info.get_total_pending_leaves_request \
+        (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
+    delta = req.staff.personal_info.get_employ_period()
+    max_cum_quota = req.staff.personal_info.get_max_cum_quota_per_year(quota)
+
+    if delta.years > 0:
+        if max_cum_quota:
+            is_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=req.staff,
+                                                                leave_type=req.quota.leave_type,
+                                                                fiscal_year=END_FISCAL_DATE.year).first()
+            is_last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=req.staff,
+                                                                     leave_type=req.quota.leave_type,
+                                                                     fiscal_year=END_FISCAL_DATE.year - 1).first()
+            if not is_used_quota:
+                if is_last_used_quota:
+                    last_remain_quota = is_last_used_quota.quota_days - is_last_used_quota.used_days
+                else:
+                    last_remain_quota = max_cum_quota
+                before_cut_max_quota = last_remain_quota + LEAVE_ANNUAL_QUOTA
+                quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+            else:
+                quota_limit = is_used_quota.quota_days
+        else:
+            quota_limit = quota.max_per_year
+
+    else:
+        quota_limit = req.quota.first_year
+
+    if is_used_quota:
+        new_used=is_used_quota.used_days-req.total_leave_days
+        is_used_quota.used_days = new_used
+        is_used_quota.pending_days = is_used_quota.pending_days-req.total_leave_days
+        db.session.add(is_used_quota)
+        db.session.commit()
+    else:
+        new_used_quota = StaffLeaveUsedQuota(
+            leave_type_id=req.quota.leave_type_id,
+            staff_account_id=req.staff_account_id,
+            fiscal_year=END_FISCAL_DATE.year,
+            used_days=used_quota,
+            pending_days=pending_days,
+            quota_days=quota_limit
+        )
+        db.session.add(new_used_quota)
+        db.session.commit()
+
+    cancelled_msg = u'การลา{} ในวันที่ {} ถึง {} ถูกยกเลิกโดย {} เจ้าหน้าที่หน่วย HR แล้ว' \
+                    u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(req.quota.leave_type.type_,
+                                                                                          req.start_datetime,
+                                                                                          req.end_datetime,
+                                                                                          req.cancelled_by.personal_info
+                                                                                          , _external=True)
+    if req.notify_to_line and req.staff.line_id:
+        if os.environ["FLASK_ENV"] == "production":
+            line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=cancelled_msg))
+        else:
+            print(cancelled_msg, req.staff.id)
+    cancelled_title = u'แจ้งยกเลิกการขอ' + req.quota.leave_type.type_ + u'โดยเจ้าหน้าที่หน่วย HR'
+    if os.environ["FLASK_ENV"] == "production":
+        send_mail([req.staff.email + "@mahidol.ac.th"], cancelled_title, cancelled_msg)
+    return redirect(request.referrer)
+
+
+@staff.route('/api/holidays')
+@login_required
+def send_holidays_data():
+    records = []
+    for rec in Holidays.query.all():
+        # The event object is a dict object with a 'summary' key.
+        text_color = '#ffffff'
+        bg_color = '#4da6ff'
+        border_color = '#ffffff'
+        records.append({
+            'id': rec.id,
+            'start': rec.holiday_date.astimezone(tz).isoformat(),
+            'end': rec.holiday_date.astimezone(tz).isoformat(),
+            'title': u'{}'.format(rec.holiday_name),
+            'backgroundColor': bg_color,
+            'borderColor': border_color,
+            'textColor': text_color,
+            'type': 'login'
+        })
+    return jsonify(records)
+
+
+@staff.route('/for-hr/holiday', methods=['GET', 'POST'])
+@hr_permission.require()
+@login_required
+def add_holiday():
+    holiday = Holidays.query.all()
+    if request.method == 'POST':
+        holiday_d = request.form.get('holiday_date')
+        holiday_date = datetime.strptime(holiday_d, '%d/%m/%Y')
+        holiday = Holidays(
+            holiday_name=request.form.get('holiday_name'),
+            holiday_date=tz.localize(holiday_date),
+        )
+        db.session.add(holiday)
+        db.session.commit()
+        flash(u'เพิ่มวันหยุดเรียบร้อยแล้ว', 'success')
+        return render_template('staff/add_Holiday.html', holiday=holiday)
+    return render_template('staff/add_Holiday.html', holiday=holiday)
+
+
 @staff.route('/for-hr/organizations')
 @hr_permission.require()
 @login_required
@@ -3538,8 +4113,12 @@ def list_org_staff(org_id):
 @login_required
 def get_all_employees():
     search_term = request.args.get('term', '')
+    group = request.args.get('group')
     results = []
-    for staff in StaffPersonalInfo.query.all():
+    query = StaffPersonalInfo.query
+    if group == 'academic':
+        query = query.filter_by(academic_staff=True)
+    for staff in query.all():
         if (search_term in staff.fullname or search_term in staff.staff_account.email) \
                 and staff.retired is not True:
             results.append({

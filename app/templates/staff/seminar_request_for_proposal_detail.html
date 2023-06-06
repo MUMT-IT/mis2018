@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column">
+                <div class="box">
+                    <h1 class="title has-text-centered">รายละเอียดการอบรม สัมมนา</h1>
+                        <div class="columns">
+                            <div class="column">
+                                เพื่อโปรดพิจารณาการเสนอขออนุมัติเข้าร่วม
+                                <label class="label">{{ seminar_attend.seminar.topic_type }}</label>
+                            </div>
+                        </div>
+                        <div class="columns">
+                            <div class="column">
+                                ผู้เสนอขออนุมัติ <label class="label">{{ seminar_attend.staff.personal_info }}</label>
+                            </div>
+                        </div>
+                        <div class="columns">
+                            <div class="column">
+                                หน่วยงานที่จัด <label class="label">{{ seminar_attend.seminar.organize_by }}</label>
+                            </div>
+                        </div>
+                        <div class="columns">
+                            <div class="column">
+                                ข้อมูลการขออนุมัติหัวข้อ <label class="label">{{ seminar_attend.seminar.topic }}</label>
+                            </div>
+                        </div>
+                        <div class="columns">
+                            <div class="column">
+                                ระยะเวลา
+                                <label class="label">
+                                {{ seminar_attend.start_datetime|localdatetime }} น. ถึง
+                                {{ seminar_attend.end_datetime|localdatetime  }} น.
+                                </label>
+                            </div>
+                        </div>
+                        <div class="columns">
+                            <div class="column">
+                                สถานที่จัด <label class="label">{{ seminar_attend.seminar.location }}
+                                {{ attend_online }}</label>
+                            </div>
+                        </div>
+                        <div class="columns">
+                            <div class="column">
+                                ค่าลงทะเบียน <label class="label">จำนวน {{ registration_fee }} บาท {{ transaction_fee }}
+                                {{ accommodation_cost }} {{ flight_ticket_cost }} {{ train_ticket_cost }}
+                                {{ taxi_cost }} {{ fuel_cost }} รวมทั้งสิ้น {{ budget }} บาท</label>
+                            </div>
+                        </div>
+                        <div class="columns">
+                            <div class="column">
+                                รายละเอียดการเข้าร่วม ดำเนินการภายใต้
+                                <label class="label">
+                                    {{ seminar_attend.objective_list|join(", ") }}
+                                </label>
+                            </div>
+                        </div>
+                        <div class="columns">
+                            <div class="column">
+                                เป็นการเข้าร่วมเพื่อพัฒนาในด้าน
+                                <label class="label">
+                                    {{ seminar_attend.mission_list|join(", ") }}
+                                </label>
+                            </div>
+                        </div>
+                        {% if upload_file_url %}
+                        <div class="columns">
+                            <div class="column">
+                                เอกสารแนบ
+                                <label class="label">
+                                    <span><i class="far fa-file-alt has-text-link"></i></span>
+                                    <a href="{{ upload_file_url }}">คลิกเพื่อดู</a>
+                                </label>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if seminar_attend.middle_level_approver %}
+                            <div class="columns">
+                                <div class="column">
+                                    ผู้อนุมัติเบื้องต้น: {{ seminar_attend.lower_level_approver.personal_info }}
+                                </div>
+                            </div>
+                        {% endif %}
+                </div>
+                </div>
+
+            <div class="column">
+                <div class="box">
+                        <form method="post">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="field">
+                                <div class="field">
+                                    <label class="label">อนุมัติให้{{ seminar_attend.staff.personal_info }}เข้าร่วม{{ seminar_attend.seminar.topic }}
+                                    </label>
+                                </div>
+                                <div class="block">
+                                    <b-radio native-value="yes" v-model="status" name="status">อนุมัติ</b-radio>
+                                    <b-radio native-value="no" v-model="status" name="status">ไม่อนุมัติ</b-radio>
+                                </div>
+                            </div>
+                            <b-field label="ข้อคิดเห็น ไม่อนุมัติเนื่องจาก" v-if="status === 'no'">
+                                <b-input type="text"
+                                         name="comment"
+                                         icon-pack="far"
+                                         icon="comment">
+                                </b-input>
+                            </b-field>
+                            <br>
+                            {% if not seminar_attend.middle_level_approver %}
+                                <div class="field" v-if="status === 'yes'">
+                                    <div class="field">
+                                        <label class="label">ต้องการส่งเรื่องต่อไปยังผู้บังคับบัญชาท่านอื่น
+                                            ก่อนการส่งคำขอไปยังคณบดีหรือไม่
+                                        </label>
+                                    </div>
+                                    <div class="block">
+                                        <b-radio native-value="no" v-model="forward" name="forward">ไม่</b-radio>
+                                        <b-radio native-value="yes" v-model="forward" name="forward">ใช่
+                                            ส่งต่อไปยังรองคณบดี/ผู้ช่วยคณบดี
+                                        </b-radio>
+                                    </div>
+                                <div class="columns">
+                                        <div class="column">
+                                            <div class="notification is-warning is-light">
+                                            <span>คำชี้แจง:
+                                                <br>กรณีหัวหน้าภาค/ศูนย์ กดปุ่ม "ไม่" เนื่องจากท่านสามารถลงนามเอกสารฉบับนี้
+                                                <br><br>
+                                                กรณีหัวหน้างาน กดปุ่ม "ใช่" เพื่อส่งต่อไปยังรองคณบดีที่เกี่ยวข้อง
+                                            </span>
+                                                <br>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% if position %}
+                                <div class="field" v-if="forward === 'no' && status === 'yes'">
+                                    <div class="field is-horizontal">
+                                        <div class="field is-normal">
+                                            <label class="label">เลือกตำแหน่งที่เกี่ยวข้องกับผู้ขออนุมัติ(กรณีดำรงตำแหน่งมากกว่า1)</label>
+                                        </div>
+                                    </div>
+                                    <div class="field is-horizontal">
+                                        <div class="field-body">
+                                            <div class="control">
+                                                <div class="field">
+                                                    <div class="select">
+                                                        <select name="position_id">
+                                                            {% for p in position %}
+                                                                <option value="{{ p.id }}">
+                                                                    {{ p.position }}
+                                                                </option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                <div class="field" v-if="forward === 'yes'">
+                                    <div class="field is-horizontal">
+                                        <div class="field is-normal">
+                                            <label class="label">เลือกรองคณบดีที่เกี่ยวข้องขั้นต่อไป</label>
+                                        </div>
+                                    </div>
+                                    <div class="field is-horizontal">
+                                        <div class="field-body">
+                                            <div class="control">
+                                                <div class="field">
+                                                    <div class="select">
+                                                        <select name="another_proposer_id">
+                                                            {% for proposer in another_proposer %}
+                                                                <option value="{{ proposer.approver_account_id }}">
+                                                                    {{ proposer.account.personal_info }}
+                                                                </option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <div class="columns">
+                                <div class="column is-half is-offset-one-quarter">
+                                    <div class="field is-grouped is-grouped-centered">
+                                        <div class="control">
+                                            <a href="{{ url_for('staff.show_seminar_proposal_info') }}"
+                                               class="button is-light">Cancel</a>
+                                        </div>
+                                        <div class="control">
+                                            <input type="submit" value="Submit" class="button is-primary"/>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    let vm = new Vue({
+        el: '#app',
+        data() {
+            return {
+                status: "yes",
+                forward: "no"
+            }
+        }
+    });
+</script>
+{% endblock %}
+
+

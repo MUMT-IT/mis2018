@@ -3,9 +3,7 @@
 {% block page_content %}
 <section class="section" id="app">
     <h1 class="title">ข้อมูลบุคลากร</h1>
-    {% for msg in get_flashed_messages() %}
-        <p class="notification is-warning">{{ msg }}</p>
-        {% endfor %}
+    {% include "messages.html" %}
     <div class="columns">
         <div class="column">
             <div class="container has-text-centered">
@@ -17,6 +15,18 @@
                 </div>
             </div>
         </div>
+        <div class="column">
+            <div class="container has-text-centered">
+                <div class="box">
+                <a href="{{ url_for('staff.staff_add_academic_position') }}">
+                    <span class="icon is-large"><i class="fas fa-school fa-4x"></i></span><br><br>
+                    <span class="is-size-4">เพิ่มตำแหน่งทางวิชาการ</span>
+                </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="columns">
         <div class="column">
             <div class="container has-text-centered">
                 <div class="box">

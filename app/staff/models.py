@@ -8,7 +8,7 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from marshmallow import fields
-from app.models import Org, OrgSchema
+from app.models import Org, OrgSchema, OrgStructure
 from datetime import datetime, timedelta
 from app.main import get_weekdays
 import numpy as np
@@ -42,10 +42,9 @@ seminar_approval_attend_assoc_table = db.Table('seminar_approval_attend_assoc',
                                                )
 
 staff_seminar_mission_assoc_table = db.Table('staff_seminar_mission_assoc',
-                                             db.Column('seminar_id', db.ForeignKey('staff_seminar.id')),
-                                             db.Column('seminar_mission_id',
-                                                       db.ForeignKey('staff_seminar_missions.id')),
-                                             )
+                                   db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id')),
+                                   db.Column('seminar_mission_id', db.ForeignKey('staff_seminar_missions.id')),
+                                   )
 
 staff_seminar_objective_assoc_table = db.Table('staff_seminar_objective_assoc',
                                                db.Column('seminar_attend_id',
@@ -403,6 +402,18 @@ class StaffSpecialGroup(db.Model):
                              secondary=staff_group_assoc_table)
 
 
+class StaffHeadPosition(db.Model):
+    __tablename__ = 'staff_head_positions'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    position = db.Column('position', db.String(), nullable=False)
+    org_id = db.Column('org_id', db.Integer(), db.ForeignKey('orgs.id'))
+    org_structure_id = db.Column('org_structure_id', db.Integer(), db.ForeignKey('org_structure.id'))
+    org = db.relationship(Org, backref=db.backref('head_position_org'))
+    org_structure = db.relationship(OrgStructure, backref=db.backref('head_position_org_structure'))
+    staff = db.relationship('StaffAccount', backref=db.backref('head_position_staff'))
+
+
 class StaffLeaveType(db.Model):
     __tablename__ = 'staff_leave_types'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -698,7 +709,7 @@ class StaffSeminar(db.Model):
     location = db.Column('location', db.String(), info={'label': u'สถานที่จัด'})
     is_online = db.Column('is_online', db.Boolean(), default=False, info={'label': u'จัดแบบ Online'})
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
-    missions = db.relationship('StaffSeminarMission', secondary=staff_seminar_mission_assoc_table)
+    upload_file_url = db.Column('upload_file_url', db.String())
 
     def __str__(self):
         return u'{}'.format(self.topic)
@@ -740,19 +751,63 @@ class StaffSeminarAttend(db.Model):
     budget_type = db.Column('budget_type', db.String(), info={'label': u'แหล่งทุน'})
     transaction_fee = db.Column('transaction_fee', db.Float(), info={'label': u'ค่าธรรมเนียมการโอน (บาท)'})
     budget = db.Column('budget', db.Float(), info={'label': u'ค่าใช้จ่ายรวมทั้งหมด (บาท)'})
-    attend_online = db.Column('attend_online', db.Boolean(), default=False,
-                              info={'label': u'เข้าร่วมผ่านช่องทาง online'})
-    contact_no = db.Column('contact_no', db.Integer(), info={'label': u'เบอร์โทรภายใน'})
-    head_account_id = db.Column('head_account_id', db.ForeignKey('staff_account.id'))
+    attend_online = db.Column('attend_online', db.Boolean(), default=False, info={'label': u'เข้าร่วมผ่านช่องทาง online'})
+    middle_level_approver_account_id = db.Column('middle_level_approver_account_id', db.ForeignKey('staff_account.id'))
+    middle_level_approver = db.relationship('StaffAccount', foreign_keys=[middle_level_approver_account_id],
+                                           backref=db.backref('seminar_middle_approver_attends', lazy='dynamic'))
+    lower_level_approver_account_id = db.Column('lower_level_approver_account_id', db.ForeignKey('staff_account.id'))
+    lower_level_approver = db.relationship('StaffAccount', foreign_keys=[lower_level_approver_account_id],
+                                           backref=db.backref('seminar_lower_approver_attends', lazy='dynamic'))
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     document_no = db.Column('document_no', db.String())
     staff = db.relationship('StaffAccount', foreign_keys=[staff_account_id],
                             backref=db.backref('seminar_attends', lazy='dynamic'))
     seminar = db.relationship('StaffSeminar', backref=db.backref('attends'), foreign_keys=[seminar_id])
     objectives = db.relationship('StaffSeminarObjective', secondary=staff_seminar_objective_assoc_table)
+    missions = db.relationship('StaffSeminarMission', secondary=staff_seminar_mission_assoc_table)
 
     def __str__(self):
         return u'{}'.format(self.seminar)
+
+    def is_approved_by(self, user):
+        return self.proposal.filter_by(proposer=user).first()
+
+    @property
+    def mission_list(self):
+        return [m.mission for m in self.missions]
+
+    @property
+    def objective_list(self):
+        return [o.objective for o in self.objectives]
+
+
+class StaffSeminarProposal(db.Model):
+    __tablename__ = 'staff_seminar_proposals'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    seminar_attend_id = db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id'))
+    seminar_attend = db.relationship('StaffSeminarAttend', foreign_keys=[seminar_attend_id],
+                                     backref=db.backref('proposal', lazy='dynamic'))
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+    is_approved = db.Column('is_approved', db.Boolean(), default=True)
+    comment = db.Column('approval_comment', db.String())
+    proposer_account_id = db.Column('proposer_account_id', db.ForeignKey('staff_account.id'))
+    proposer = db.relationship('StaffAccount', foreign_keys=[proposer_account_id],
+                                           backref=db.backref('seminar_proposer', lazy='dynamic'))
+    previous_proposal_id = db.Column('previous_proposal_id', db.Integer())
+    upload_file_url = db.Column('upload_file_url', db.String())
+    proposer_head_position_id = db.Column('proposer_head_position_id', db.ForeignKey('staff_head_positions.id'))
+    head_position = db.relationship('StaffHeadPosition', foreign_keys=[proposer_head_position_id],
+                               backref=db.backref('proposer_head_position'))
+
+
+class StaffSeminarDocument(db.Model):
+    __tablename__ = 'staff_seminar_documents'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    seminar_proposal_id = db.Column('seminar_proposal_id', db.ForeignKey('staff_seminar_proposals.id'))
+    proposal = db.relationship('StaffSeminarProposal', backref=db.backref('seminar_document')
+                                     , foreign_keys=[seminar_proposal_id])
+    document_no = db.Column('document_no', db.String)
+    #doc_internal_sending_id = db.Column('doc_internal_sending_id', db.ForeignKey('doc_internal_sending.id'))
 
 
 class StaffSeminarApproval(db.Model):
@@ -797,6 +852,27 @@ class StaffWorkLogin(db.Model):
     def generate_date_id(date):
         return date.strftime('%Y%m%d')
 
+
+class StaffRequestWorkLogin(db.Model):
+    __tablename__ = 'staff_request_work_logins'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', backref=db.backref('request_work_logins', lazy='dynamic'),
+                            foreign_keys=[staff_account_id])
+    reason = db.Column('reason', db.String())
+    requested_at = db.Column('requested_at', db.DateTime(timezone=True))
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
+    approver = db.relationship('StaffAccount', backref=db.backref('approver_work_logins', lazy='dynamic'),
+                            foreign_keys=[approver_id])
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    date_id = db.Column('date_id', db.String())
+    work_datetime = db.Column('work_datetime', db.DateTime(timezone=True))
+    is_checkin = db.Column('is_checkin', db.Boolean(), default=True)
+
+    @staticmethod
+    def generate_date_id(date):
+        return date.strftime('%Y%m%d')
 
 class StaffShiftSchedule(db.Model):
     __tablename__ = 'staff_shift_schedule'
