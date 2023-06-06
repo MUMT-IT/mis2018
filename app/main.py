@@ -235,7 +235,6 @@ admin.add_views(ModelView(ProcurementCategory, db.session, category='Procurement
 admin.add_views(ModelView(ProcurementStatus, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementRecord, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementRequire, db.session, category='Procurement'))
-admin.add_views(ModelView(ProcurementMaintenance, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementPurchasingType, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementCommitteeApproval, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementInfoComputer, db.session, category='Procurement'))
@@ -243,6 +242,8 @@ admin.add_views(ModelView(ProcurementInfoCPU, db.session, category='Procurement'
 admin.add_views(ModelView(ProcurementInfoRAM, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementInfoWindowsVersion, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementSurveyComputer, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementBorrowDetail, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementBorrowItem, db.session, category='Procurement'))
 
 from purchase_tracker import purchase_tracker_bp as purchase_tracker_blueprint
 
@@ -270,6 +271,23 @@ admin.add_views(ModelView(ElectronicReceiptDetail, db.session, category='Receipt
 admin.add_views(ModelView(ElectronicReceiptItem, db.session, category='ReceiptPrinting'))
 admin.add_views(ModelView(ElectronicReceiptRequest, db.session, category='ReceiptPrinting'))
 admin.add_views(ElectronicReceiptGLModel(ElectronicReceiptGL, db.session, category='ReceiptPrinting'))
+
+from instruments import instrumentsbp as instruments_blueprint
+
+app.register_blueprint(instruments_blueprint, url_prefix='/instruments')
+
+from instruments.models import *
+
+admin.add_views(ModelView(InstrumentsBooking, db.session, category='Instruments'))
+
+
+from alumni import alumnibp as alumni_blueprint
+
+app.register_blueprint(alumni_blueprint, url_prefix='/alumni')
+
+from alumni.models import *
+
+admin.add_views(ModelView(AlumniInformation, db.session, category='Alumni'))
 
 from staff import staffbp as staff_blueprint
 
@@ -418,8 +436,8 @@ admin.add_view(ModelView(AssetItem, db.session, category='Asset'))
 
 class IOCodeAdminModel(ModelView):
     can_create = True
-    form_columns = ('id', 'cost_center', 'mission', 'org', 'name')
-    column_list = ('id', 'cost_center', 'mission', 'org', 'name')
+    form_columns = ('id', 'cost_center', 'mission', 'org', 'name', 'is_active')
+    column_list = ('id', 'cost_center', 'mission', 'org', 'name', 'is_active')
 
 
 admin.add_view(IOCodeAdminModel(IOCode, db.session, category='Finance'))

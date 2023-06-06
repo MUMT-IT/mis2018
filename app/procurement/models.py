@@ -50,6 +50,10 @@ class ProcurementDetail(db.Model):
     sub_number = db.Column('sub_number', db.Integer(), info={'label': 'Sub Number'})
     curr_acq_value = db.Column('curr_acq_value', db.Float(), info={'label': u'มูลค่าที่ได้มา(>10,000)'})
     cost_center = db.Column('cost_center', db.String(8), info={'label': u'ศูนย์ต้นทุน'})
+    is_reserved = db.Column('is_reserved', db.Boolean(), default=False)
+    company_support = db.Column('company_support', db.String(), info={'label': u'ติดต่อบริษัท'})
+    is_instruments = db.Column('is_instruments', db.Boolean(), default=False)
+    is_audio_visual_equipment = db.Column('is_audio_visual_equipment', db.Boolean(), default=False)
 
     def __str__(self):
         return u'{}: {}'.format(self.name, self.procurement_no)
@@ -163,38 +167,20 @@ class ProcurementRequire(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'), nullable=False)
     staff = db.relationship(StaffAccount)
-    service_id = db.Column('service_id', db.ForeignKey('procurement_details.id'))
-    service = db.relationship('ProcurementDetail',
-                              backref=db.backref('details', lazy='dynamic'))
-    record_id = db.Column('record_id', db.ForeignKey('procurement_records.id'))
-    record = db.relationship('ProcurementRecord', backref=db.backref('records'))
-    desc = db.Column('desc', db.Text(), info={'label': u'คำอธิบาย'})
+    detail_id = db.Column('service_id', db.ForeignKey('procurement_details.id'))
+    detail = db.relationship('ProcurementDetail',
+                              backref=db.backref('repair_records', lazy='dynamic'))
+    desc = db.Column('desc', db.Text(), info={'label': u'รายละเอียดที่ต้องการให้บริการหรือปัญหาต่างๆ'})
     notice_date = db.Column('notice_date', db.Date(), nullable=True, info={'label': u'วันที่แจ้งซ่อม'})
+    format_service = db.Column('format_service', db.String(), info={'label': u'รูปแบบการให้บริการ'})
 
-
-class ProcurementMaintenance(db.Model):
-    __tablename__ = 'procurement_maintenances'
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'),
-                         nullable=False)
-    staff = db.relationship(StaffAccount)
-    repair_date = db.Column('repair_date', db.Date(), info={'label': u'วันที่ซ่อมแซม'})
-    detail = db.Column('detail', db.Text(), info={'label': u'รายละเอียด'})
-    note = db.Column('note', db.String(), info={'label': u'หมายเหตุ'})
-    type = db.Column('type', db.String(), info={'label': u'ลักษณะการซ่อม',
-                                                'choices': [(c, c) for c in
-                                                            [u'ซ่อมได้ทันที', u'ซ่อมได้ต้องรออะไหล่',
-                                                             u'ซ่อมค่อนข้างยาก', u'ส่งบริษัทซ่อม',
-                                                             u'ควรแทงจำหน่าย', u'อื่นๆ']]})
-    company_name = db.Column('company_name', db.String(255), info={'label': u'ชื่อบริษัทส่งซ่อม'})
-    contact_name = db.Column('contact_name', db.String(255), info={'label': u'ชื่อผู้ติดต่อ'})
-    tel = db.Column('tel', db.Integer(), info={'label': u'เบอร์ผู้ติดต่อ'})
-    cost = db.Column('cost', db.Integer(), info={'label': u'ราคาซ่อมที่เสนอ'})
-    company_des = db.Column('company_des', db.String(), info={'label': u'รายละเอียดการซ่อมจากบริษัท'})
-    require = db.Column('require', db.String(), info={'label': u'ความต้องการอะไหล่',
-                                                      'choices': [(c, c) for c in
-                                                                  [u'ต้องการเบิกอะไหล่', u'ไม่ต้องการเบิกอะไหล่',
-                                                                   u'อื่นๆ']]})
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'desc': self.desc,
+            'notice_date': self.notice_date,
+            'format_service': self.format_service
+        }
 
 
 class ProcurementInfoComputer(db.Model):
@@ -327,3 +313,68 @@ class ProcurementSurveyComputer(db.Model):
     computer_info = db.relationship('ProcurementInfoComputer', foreign_keys=[computer_info_id],
                              backref=db.backref('survey_records', lazy='dynamic'))
 
+
+class ProcurementBorrowDetail(db.Model):
+    __tablename__ = 'procurement_borrow_details'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    number = db.Column('number', db.String(), info={'label': u'เลขที่หนังสือ'})
+    book_date = db.Column('book_date', db.Date(), info={'label': u'วันที่หนังสือ'})
+    borrower_id = db.Column('borrower_id', db.ForeignKey('staff_account.id'))
+    borrower = db.relationship(StaffAccount)
+    type_of_purpose = db.Column('type_of_purpose', db.String(), info={'label': u'ความประสงค์ของยืมพัสดุ'})
+    purpose = db.Column('purpose', db.String(), info={'label': u'เพื่อใช้ในงาน'})
+    reason = db.Column('reason', db.String(), nullable=False, info={'label': u'ระบุเหตุผลความจำเป็น'})
+    location_of_use = db.Column('location_of_use', db.String(), nullable=False, info={'label': u'สถานที่นำไปใช้งาน'})
+    address_number = db.Column('address_number', db.String(), info={'label': u'เลขที่'})
+    moo = db.Column('moo', db.String(), info={'label': u'หมู่ที่'})
+    road = db.Column('road', db.String(), info={'label': u'ถนน'})
+    sub_district = db.Column('sub_district', db.String(), info={'label': u'ตำบล/แขวง'})
+    district = db.Column('district', db.String(), info={'label': u'อำเภอ/เขต'})
+    province = db.Column('province', db.String(), info={'label': u'จังหวัด'})
+    postal_code = db.Column('postal_code', db.Integer(), info={'label': u'รหัสไปรษณีย์'})
+    start_date = db.Column('start_date', db.Date(), nullable=False, info={'label': u'วันที่เริ่มยืม'})
+    end_date = db.Column('end_date', db.Date(), nullable=False, info={'label': u'วันที่สิ้นสุดยืม'})
+    created_date = db.Column('created_date', db.DateTime(timezone=True), server_default=func.now())
+
+    @property
+    def borrow_status(self):
+        if self.start_date:
+            return u'อยู่ระหว่างการยืม'
+        elif len(self.end_date) > 7:
+            return u'เกินกำหนด'
+        else:
+            return u'คืนเรียบร้อย'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'number': self.number,
+            'book_date': self.book_date,
+            'purpose': self.purpose,
+            'location_of_use': self.location_of_use
+        }
+
+
+class ProcurementBorrowItem(db.Model):
+    __tablename__ = 'procurement_borrow_items'
+    id = db.Column('id', db.Integer(), autoincrement=True, primary_key=True)
+    borrow_detail_id = db.Column('borrow_detail_id', db.ForeignKey('procurement_borrow_details.id'))
+    borrow_detail= db.relationship('ProcurementBorrowDetail', backref=db.backref('items', lazy='dynamic'))
+    procurement_detail_id = db.Column('procurement_detail_id', db.ForeignKey('procurement_details.id'))
+    procurement_detail = db.relationship('ProcurementDetail', backref=db.backref('borrow_items', lazy='dynamic'))
+    item = db.Column('item', db.String(), info={'label': u'รายการ'})
+    quantity = db.Column('quantity', db.Integer(), info={'label': u'จำนวน'})
+    unit = db.Column('unit', db.String(), info={'label': u'หน่วยนับ'})
+    note = db.Column('note', db.Text(), info={'label': u'หมายเหตุ'})
+
+    def __str__(self):
+        return u'{}: {}'.format(self.borrow_detail.number, self.borrow_detail.book_date)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'item': self.item,
+            'quantity': self.quantity,
+            'unit': self.unit,
+            'note': self.note
+        }

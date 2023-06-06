@@ -2,16 +2,13 @@
 {% block head %}
     {{ super() }}
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
-    {#    <script src="sweetalert2.all.min.js"></script>#}
-    {#    <script src="sweetalert2.min.js"></script>#}
-    {#    <link rel="stylesheet" href="sweetalert2.min.css">#}
 {% endblock %}
 {% block page_content %}
     <section class="section">
         <div class="container">
             {% include "messages.html" %}
             <div class="columns">
-                <div class="column box is-half is-offset-one-quarter">
+                <div class="column box is-two-thirds is-offset-2">
                     <div class="has-text-centered">
                         <h2 class="title is-size-2">ใบเสร็จรับเงิน</h2>
                         <h3 class="title is-size-3"></h3>
@@ -19,6 +16,47 @@
                     </div>
                     <form method="post">
                         {{ form.hidden_tag() }}
+                         <div id="items">
+                             {% for i in form.items %}
+                            <div class="field">
+                                <label class="label">รายการ</label>
+                                <div class="control">
+                                    {{ i.item(class="input is-danger") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">จำนวนเงิน</label>
+                                <div class="control">
+                                    {{ i.price(class="input is-danger", placeholder="฿") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">GL</label>
+                                {{ i.gl() }}
+                            </div>
+                            <div class="field">
+                                <label class="label">Cost Center</label>
+                                {{ i.cost_center() }}
+                            </div>
+                            <div class="field">
+                                <label class="label">Internal Order/IO</label>
+                                {{ i.internal_order_code() }}
+                            </div>
+                             {% endfor %}
+                         </div><br>
+                         <div class="field">
+                            <div class="buttons is-centered">
+                                <button class="button is-small is-info"
+                                        hx-post="{{ url_for('receipt_printing.list_add_items') }}"
+                                        hx-target="#items" hx-swap="beforeend">เพิ่มรายการ
+                                </button>
+                                <button class="button is-small is-danger"
+                                        hx-post="{{ url_for('receipt_printing.delete_items') }}"
+                                        hx-target="#items" hx-swap="innerHTML"
+                                        hx-confirm="Are you sure to delete?">ลบรายการ
+                                </button>
+                            </div>
+                         </div>
                         <div class="field">
                             <label class="label">ได้รับเงินจาก</label>
                             <div class="control">
@@ -31,55 +69,10 @@
                                 {{ form.address(class="textarea is-danger") }}
                             </div>
                         </div>
-                        <div id="items">
-                            {% for i in form.items %}
-                                <div class="field">
-                                    <label class="label">รายการ</label>
-                                    <div class="control">
-                                        {{ i.item(class="input is-danger") }}
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">จำนวนเงิน</label>
-                                    <div class="control">
-                                        {{ i.price(class="input is-danger", placeholder="฿", **{'hx-post': url_for("receipt_printing.update_amount"),
-                                        'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount', 'hx-swap': 'outerHTML'}) }}
-                                    </div>
-                                </div>
-                                <div class="field">
-                                    <label class="label">GL</label>
-                                    {{ i.gl(class="select is-danger") }}
-                                </div>
-                                <div class="field">
-                                    <label class="label">Cost Center</label>
-                                    {{ i.cost_center(class="select is-danger") }}
-                                </div>
-                                <div class="field">
-                                    <label class="label">Internal Order/IO</label>
-                                    {{ i.internal_order_code(class="select is-danger") }}
-                                </div>
-                            {% endfor %}
-                        </div>
-                        <br>
-                        <div class="field is-grouped">
-                            <div class="control">
-                                <button class="button is-small is-info"
-                                        hx-post="{{ url_for('receipt_printing.list_add_items') }}"
-                                        hx-target="#items" hx-swap="beforeend">เพิ่มรายการ
-                                </button>
-                            </div>
-                            <div class="control">
-                                <button class="button is-small is-danger"
-                                        hx-post="{{ url_for('receipt_printing.delete_items') }}"
-                                        hx-target="#items" hx-swap="innerHTML"
-                                        hx-confirm="Are you sure to delete?">ลบรายการ
-                                </button>
-                            </div>
-                        </div>
                         <div class="field-body">
                             <div class="field">
                                 <label class="label">ช่องทางการชำระเงิน</label>
-                                <div class="select is-fullwidth">
+                                <div class="control">
                                     {{ form.payment_method(class="input is-danger") }}
                                 </div>
                             </div>
@@ -128,13 +121,12 @@
                                 {{ current_user.personal_info.fullname }}
                             </div>
                         </div>
-
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
                                 <button class="button is-success" type="submit" value="submit">Submit</button>
                             </div>
                             <div class="control">
-                                <a href="{{ url_callback }}" class="button is-danger">Cancel</a>
+                                <a href="{{ url_for('receipt_printing.landing') }}" class="button is-danger">Cancel</a>
                             </div>
                         </div>
                     </form>
@@ -146,7 +138,6 @@
 {% block scripts %}
     {{ super() }}
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-    {#    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>#}
     <script>
         $.ajaxSetup({
             headers:
@@ -161,10 +152,13 @@
 
         function update_amount() {
             let total_amount = 0.0
-            $('[id$=price]').each(function () {
-                total_amount += Number($(this).val())
+            $(document).ready(() => {
+                $('[id$=price]').each(function () {
+                    total_amount += Number($(this).val())
+                })
+                $('#paid_amount').val(total_amount)
+                initSelect2Input();
             })
-            $('#paid_amount').val(total_amount)
         }
 
         document.addEventListener('update_amount', update_amount)
@@ -198,27 +192,27 @@
         })
     </script>
     <script>
+        let initSelect2Input = function () {
+            $('select').each(function () {
+                $(this).select2({
+                    width: '100%'
+                });
+            })
+        }
         $(document).ready(() => {
-            $('select[id^="items-"]').select2({
-                width: '400px',
-
-            });
+            initSelect2Input();
         });
     </script>
-    {#    <script>#}
-    {#    Swal.fire({#}
-    {#      title: 'Do you want to save the changes?',#}
-    {#      showDenyButton: true,#}
-    {#      showCancelButton: true,#}
-    {#      confirmButtonText: 'Save',#}
-    {#      denyButtonText: `Don't save`,#}
-    {#    }).then((result) => {#}
-    {#      /* Read more about isConfirmed, isDenied below */#}
-    {#      if (result.isConfirmed) {#}
-    {#        Swal.fire('Saved!', '', 'success')#}
-    {#      } else if (result.isDenied) {#}
-    {#        Swal.fire('Changes are not saved', '', 'info')#}
-    {#      }#}
-    {#    })#}
-    {#    </script>#}
+    <script>
+        function onClearInput() {
+            $('#item').val(null).trigger('change');
+            $('#price').val(null).trigger('change');
+            $('#gl').val(null).trigger('change');
+            $('#cost_center').val(null).trigger('change');
+            $('#internal_order_code').val(null).trigger('change');
+        }
+
+        document.addEventListener('clearInput', onClearInput)
+
+    </script>
 {% endblock %}

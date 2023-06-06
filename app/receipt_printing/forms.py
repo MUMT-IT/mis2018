@@ -1,11 +1,12 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import FormField, FieldList, FileField, StringField
+from wtforms import FormField, FieldList, FileField, StringField, RadioField
+from wtforms.validators import DataRequired
 from wtforms_alchemy import model_form_factory, QuerySelectField
 
 from app.main import db
-from app.models import CostCenter, IOCode
+from app.models import CostCenter, IOCode, Mission, Org
 from app.receipt_printing.models import *
 
 BaseModelForm = model_form_factory(FlaskForm)
@@ -25,7 +26,7 @@ class ReceiptListForm(ModelForm):
                                    query_factory=lambda: CostCenter.query.all(),
                                    get_label='id', blank_text='Select Cost Center..', allow_blank=True)
     internal_order_code = QuerySelectField('Internal Order Code',
-                                      query_factory=lambda: IOCode.query.all(),
+                                      query_factory=lambda: IOCode.query.filter_by(is_active=True),
                                       blank_text='Select Internal Order/IO..', allow_blank=True)
     gl = QuerySelectField('GL',
                           query_factory=lambda: ElectronicReceiptGL.query.all(),
@@ -53,6 +54,27 @@ class ReportDateForm(FlaskForm):
    created_datetime = StringField(u'วันที่ใบเสร็จ')
 
 
+class CostCenterForm(ModelForm):
+    class Meta:
+        model = CostCenter
+    cost_center = StringField(u'Cost Center')
+
+
+class IOCodeForm(ModelForm):
+    class Meta:
+        model = IOCode
+
+    is_active = RadioField(u'สถานะ',
+                         choices=[(c, c) for c in [u'Active', u'Inactive']],
+                         coerce=unicode,
+                         validators=[DataRequired()])
+    mission = QuerySelectField('mission', query_factory=lambda: Mission.query.all(),
+                               get_label='name', blank_text='Select Mission..', allow_blank=True)
+    org = QuerySelectField(query_factory=lambda: Org.query.all(),
+                           get_label='name',
+                           label=u'ภาควิชา/หน่วยงาน',
+                           blank_text='Select Org..', allow_blank=True)
+    io = StringField(u'Internal Order/IO')
 
 
 

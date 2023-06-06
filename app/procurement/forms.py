@@ -106,25 +106,12 @@ class ProcurementRequireForm(ModelForm):
     class Meta:
         model = ProcurementRequire
 
-    procurement_no = QuerySelectField(query_factory=lambda: ProcurementDetail.query.all(),
-                                      get_label='procurement_no',
-                                      label=u'เลขครุภัณฑ์')
-    location = QuerySelectField(u'สถานที่ให้บริการ', query_factory=lambda: RoomResource.query.all(),
-                                blank_text='Select location..', allow_blank=False)
-
-
-class ProcurementMaintenanceForm(ModelForm):
-    class Meta:
-        model = ProcurementMaintenance
-
-    service = QuerySelectField(query_factory=lambda: ProcurementRequire.query.all(),
-                               get_label='service',
-                               label=u'ชื่อเครื่อง/การบริการ')
-    procurement_no = QuerySelectField(query_factory=lambda: ProcurementDetail.query.all(),
-                                      get_label='procurement_no',
-                                      label=u'เลขครุภัณฑ์')
-    location = QuerySelectField(u'สถานที่ให้บริการ', query_factory=lambda: RoomResource.query.all(),
-                                blank_text='Select location..', allow_blank=False)
+    format_service = RadioField(u'รูปแบบการให้บริการ',
+                                 choices=[(c, c) for c in [u'นำเครื่องมาด้วย', u'ไม่ได้นำเครื่องมาด้วย', u'การให้บริการอื่นๆ']],
+                                 coerce=unicode,
+                                 validators=[DataRequired()])
+    staff = QuerySelectField(u'ผู้ใช้งานหลัก', query_factory=lambda: StaffAccount.get_active_accounts(),
+                            get_label='personal_info', allow_blank=True)
 
 
 class ProcurementApprovalForm(ModelForm):
@@ -181,3 +168,22 @@ class ProcurementSurveyComputerForm(ModelForm):
                                                 choices=[(c, c) for c in [u'ไม่พอใจมาก', u'พอใจ', u'พอใจมาก']],
                                                 coerce=unicode,
                                                 validators=[DataRequired()])
+
+
+class ProcurementBorrowItemForm(ModelForm):
+    class Meta:
+        model = ProcurementBorrowItem
+
+
+class ProcurementBorrowDetailForm(ModelForm):
+    class Meta:
+        model = ProcurementBorrowDetail
+        exclude = ['created_date']
+
+    type_of_purpose = RadioField(u'ความประสงค์ของยืมพัสดุ',
+                                 choices=[(c, c) for c in [u'ยืมระหว่างส่วนงาน', u'บุคลากรยืม-ใช้ภายในพื้นที่ของมหาวิทยาลัย',
+                                                           u'บุคลากรยืม-ใช้นอกพื้นที่ของมหาวิทยาลัย', u'บุคลากรหรือหน่วยงานภายนอกยืมใช้']],
+                                 coerce=unicode,
+                                 validators=[DataRequired()])
+    items = FieldList(FormField(ProcurementBorrowItemForm, default=ProcurementBorrowItem), min_entries=1)
+

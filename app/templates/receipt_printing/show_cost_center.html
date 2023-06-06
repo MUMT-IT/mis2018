@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% include "receipt_printing/nav.html" %}
+{% block head %}
+    {{ super() }}
+
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        {% include "messages.html" %}
+        <div class="container">
+            <h1 class="title has-text-centered">ข้อมูล Cost Center ทั้งหมด</h1>
+            <div class="buttons is-centered has-addons">
+                <a href="{{ url_for('receipt_printing.new_cost_center') }}"
+                   class="button is-rounded is-info">
+                      <span class="icon">
+                          <i class="fas fa-plus"></i>
+                      </span>
+                    <span>เพิ่ม Cost Center</span>
+                </a>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped" id="costcentertable">
+                        <thead>
+                        <th>Cost Center</th>
+                        </thead>
+                        <tbody>
+                        {% for record in cost_center %}
+                            <tr>
+                            <td>
+                                {{ record.id }}
+                            </td>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <a href="{{ url_for('receipt_printing.select_btw_io_code_and_cost_center') }}"
+                       class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#costcentertable').DataTable();
+        });
+    </script>
+{% endblock %}

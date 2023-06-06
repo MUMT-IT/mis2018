@@ -3,17 +3,26 @@ import cStringIO
 import os, requests
 from base64 import b64decode
 
-from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify, session
+import dateutil
+import pandas as pd
+from dateutil import parser
+import pytz
+from flask import render_template, request, flash, redirect, url_for, send_file, send_from_directory, jsonify, session, \
+    make_response
 from flask_login import current_user, login_required
 from pandas import DataFrame
 from reportlab.lib.units import mm
-from sqlalchemy import cast, Date
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from sqlalchemy import cast, Date, and_, or_
 from werkzeug.utils import secure_filename
 from . import procurementbp as procurement
 from .forms import *
 from datetime import datetime
 from pytz import timezone
-from reportlab.platypus import (SimpleDocTemplate, Paragraph, PageBreak)
+from reportlab.platypus import SimpleDocTemplate, Paragraph, PageBreak, TableStyle, Table, Spacer
+from reportlab.lib import colors
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 from reportlab.platypus import Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -34,6 +43,7 @@ FOLDER_ID = "1JYkU2kRvbvGnmpQ1Tb-TcQS-vWQKbXvy"
 json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
 
 bangkok = timezone('Asia/Bangkok')
+tz = pytz.timezone('Asia/Bangkok')
 
 ALLOWED_EXTENSIONS = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
@@ -123,9 +133,9 @@ def get_procurement_data_to_committee():
     query = ProcurementDetail.query
     search = request.args.get('search[value]')
     query = query.filter(db.or_(
-        ProcurementDetail.procurement_no.like(u'%{}%'.format(search)),
-        ProcurementDetail.name.like(u'%{}%'.format(search)),
-        ProcurementDetail.erp_code.like(u'%{}%'.format(search))
+        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.name.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search))
     ))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
@@ -148,60 +158,50 @@ def get_procurement_data_to_committee():
                     })
 
 
-@procurement.route('/info/by-committee/download', methods=['GET'])
-def report_info_download():
-    records = []
-    procurement_query = ProcurementDetail.query
+@procurement.route('/by-committee/export', methods=['POST'])
+@login_required
+def export_by_committee_summary():
+    start_date, end_date = request.form.get('datePicker').split('-')
+    start_date = datetime.strptime(start_date.strip(), '%d/%m/%Y')
+    end_date = datetime.strptime(end_date.lstrip(), '%d/%m/%Y')
+    if not start_date == end_date:
+        query = ProcurementCommitteeApproval.query.filter(func.timezone('Asia/Bangkok', ProcurementCommitteeApproval.updated_at)
+            .between(start_date, end_date))
+    else:
+        query = ProcurementCommitteeApproval.query.filter(cast(func.timezone('Asia/Bangkok', ProcurementCommitteeApproval.updated_at), Date) == start_date)
 
-    for item in procurement_query:
-        current_record = item.current_record
-        if current_record and current_record.approval:
-            records.append({
-            u'ศูนย์ต้นทุน': u"{}".format(item.cost_center),
-            u'Inventory Number/ERP': u"{}".format(item.erp_code),
-            u'เลขครุภัณฑ์': u"{}".format(item.procurement_no),
-            u'Sub Number': u"{}".format(item.sub_number),
-            u'ชื่อครุภัณฑ์': u"{}".format(item.name),
-            u'จัดซื้อด้วยเงิน': u"{}".format(item.purchasing_type),
-            u'มูลค่าที่ได้มา': u"{}".format(item.curr_acq_value),
-            u'Original value': u"{}".format(item.price),
-            u'สภาพของสินทรัพย์': u"{}".format(item.available),
-            u'วันที่ได้รับ': u"{}".format(item.received_date),
-            u'ปีงบประมาณ': u"{}".format(item.budget_year),
-            u'วัน-เวลาที่ตรวจ': u"{}".format(
-                current_record.approval.updated_at),
-            u'ผลการตรวจสอบ': u"{}".format(
-                current_record.approval.checking_result),
-            u'ผู้ตรวจสอบ': u"{}".format(
-                current_record.approval.approver.personal_info.fullname),
-            u'สถานะ': u"{}".format(
-                current_record.approval.asset_status),
-            u'Comment': u"{}".format(
-                current_record.approval.approval_comment)
+    records = []
+    columns = [
+        u'รายการ',
+        u'Inventory Number/ERP',
+        u'วัน-เวลาที่ตรวจ',
+        u'ผลการตรวจสอบ',
+        u'ผู้ตรวจสอบ',
+        u'สถานะ',
+        u'Comment'
+    ]
+    for approval in query:
+        current_record = approval.record
+
+        records.append({
+        columns[0]: u"{}".format(current_record.item.name),
+        columns[1]: u"{}".format(current_record.item.erp_code),
+        columns[2]: u"{}".format(approval.updated_at),
+        columns[3]: u"{}".format(approval.checking_result),
+        columns[4]: u"{}".format(approval.approver.personal_info.fullname),
+        columns[5]: u"{}".format(approval.asset_status),
+        columns[6]: u"{}".format(approval.approval_comment)
         })
-    df = DataFrame(records)
-    df.to_excel('report.xlsx',
-                header=True,
-                columns=[u'ศูนย์ต้นทุน',
-                         u'Inventory Number/ERP',
-                         u'เลขครุภัณฑ์',
-                         u'Sub Number',
-                         u'ชื่อครุภัณฑ์',
-                         u'จัดซื้อด้วยเงิน',
-                         u'มูลค่าที่ได้มา',
-                         u'Original value',
-                         u'สภาพของสินทรัพย์',
-                         u'วันที่ได้รับ',
-                         u'ปีงบประมาณ',
-                         u'วัน-เวลาที่ตรวจ',
-                         u'ผลการตรวจสอบ',
-                         u'ผู้ตรวจสอบ',
-                         u'สถานะ',
-                         u'Comment'
-                         ],
+    if records:
+        df = pd.DataFrame(records)
+    else:
+        df = pd.DataFrame(columns=columns)
+
+    df.to_excel('committee_summary.xlsx',
                 index=False,
+                columns=columns,
                 encoding='utf-8')
-    return send_from_directory(os.getcwd(), filename='report.xlsx')
+    return send_from_directory(os.getcwd(), filename='committee_summary.xlsx', as_attachment=True)
 
 
 @procurement.route('/for-committee/search-info', methods=['GET', 'POST'])
@@ -409,81 +409,6 @@ def add_status_ref():
             flash('New status has been added.', 'success')
             return redirect(url_for('procurement.add_procurement'))
     return render_template('procurement/status_ref.html', form=form, status=status, url_callback=request.referrer)
-
-
-@procurement.route('/service/maintenance/require')
-def require_maintenance():
-    return render_template('procurement/require_maintenance.html')
-
-
-@procurement.route('/service/list', methods=['POST', 'GET'])
-def list_maintenance():
-    if request.method == 'GET':
-        maintenance_query = ProcurementDetail.query.all()
-    else:
-        procurement_number = request.form.get('procurement_number', None)
-        users = request.form.get('users', 0)
-        if procurement_number:
-            maintenance_query = ProcurementDetail.query.filter(
-                ProcurementDetail.procurement_no.like('%{}%'.format(procurement_number)))
-        else:
-            maintenance_query = []
-        if request.headers.get('HX-Request') == 'true':
-            return render_template('procurement/partials/maintenance_list.html', maintenance_query=maintenance_query)
-
-    return render_template('procurement/maintenance_list.html', maintenance_query=maintenance_query)
-
-
-@procurement.route('/service/contact', methods=['GET', 'POST'])
-def contact_service():
-    return render_template('procurement/maintenance_contact.html')
-
-
-@procurement.route('/maintenance/all')
-@login_required
-def view_maintenance():
-    maintenance_list = []
-    maintenance_query = ProcurementRequire.query.all()
-    for maintenance in maintenance_query:
-        record = {}
-        record["id"] = maintenance.id
-        record["service"] = maintenance.service
-        record["notice_date"] = maintenance.notice_date
-        record["explan"] = maintenance.explan
-        maintenance_list.append(record)
-    return render_template('procurement/view_all_maintenance.html', maintenance_list=maintenance_list)
-
-
-@procurement.route('/maintenance/user/require')
-@login_required
-def view_require_service():
-    require_list = []
-    maintenance_query = ProcurementRequire.query.all()
-    for maintenance in maintenance_query:
-        record = {}
-        record["id"] = maintenance.id
-        record["service"] = maintenance.service
-        record["notice_date"] = maintenance.notice_date
-        # record["explan"] = maintenance.explan
-        require_list.append(record)
-    return render_template('procurement/view_by_ITxRepair.html', require_list=require_list)
-
-
-@procurement.route('/service/<int:service_id>/update', methods=['GET', 'POST'])
-@login_required
-def update_record(service_id):
-    form = ProcurementMaintenanceForm()
-    if request.method == 'POST':
-        if form.validate_on_submit():
-            update_record = ProcurementMaintenance()
-            form.populate_obj(update_record)
-            update_record.service_id = service_id
-            update_record.staff = current_user
-            db.session.add(update_record)
-            db.session.commit()
-            flash('Update record has been added.', 'success')
-            return redirect(url_for('procurement.view_require_service'))
-    return render_template('procurement/update_by_ITxRepair.html', form=form)
 
 
 @procurement.route('/qrcode/scanner')
@@ -934,3 +859,757 @@ def computer_list():
             return render_template('procurement/partials/computer_list.html', computers_detail=computers_detail)
 
     return render_template('procurement/computer_list.html', computers_detail=computers_detail)
+
+
+@procurement.route('/borrow-return/index')
+def index_borrow_detail():
+    return render_template('procurement/borrow_detail_index.html', list_type='default')
+
+
+@procurement.route('/borrow-return/available/<list_type>')
+def procurement_available_list(list_type='timelineDay'):
+    return render_template('procurement/procurement_available_list.html', list_type=list_type)
+
+
+@procurement.route('/events/<int:borrow_id>', methods=['POST', 'GET'])
+def show_detail_to_reserve(borrow_id=None):
+    tz = pytz.timezone('Asia/Bangkok')
+    if borrow_id:
+        event = ProcurementBorrowDetail.query.get(borrow_id)
+        if event:
+            event.start_date = event.start_date.astimezone(tz)
+            event.end_date = event.end_date.astimezone(tz)
+            return render_template('procurement/borrow_event_detail.html', event=event)
+    else:
+        return 'No event ID specified.'
+
+
+@procurement.route('/api/events')
+def get_events():
+    cal_start = request.args.get('start')
+    cal_end = request.args.get('end')
+    if cal_start:
+        cal_start = parser.isoparse(cal_start)
+    if cal_end:
+        cal_end = parser.isoparse(cal_end)
+    all_events = []
+    for event in ProcurementBorrowDetail.query.filter(ProcurementBorrowDetail.start_date.between(cal_start, cal_end )):
+        print(event)
+        start = event.start_date
+        end = event.end_date
+        borrower = event.borrower
+        if event.start_date:
+            text_color = '#ffffff'
+            bg_color = '#2b8c36'
+            border_color = '#ffffff'
+        else:
+            text_color = '#000000'
+            bg_color = '#f0f0f5'
+            border_color = '#ff4d4d'
+        evt = {
+            'title': event.items.first().procurement_detail.name,
+            'start': start.isoformat(),
+            'end': end.isoformat(),
+            'resourceId': borrower.fullname,
+            'borderColor': border_color,
+            'backgroundColor': bg_color,
+            'textColor': text_color,
+            'id': event.id,
+        }
+        all_events.append(evt)
+    return jsonify(all_events)
+
+
+@procurement.route('/reservation/new')
+def new_reservation():
+    return render_template('procurement/new_reservation.html')
+
+
+@procurement.route('/list/search', methods=['POST', 'GET'])
+def procurement_list():
+    erp_code = request.form.get('erp_code', None)
+    if erp_code:
+        procurements = ProcurementDetail.query.filter_by(erp_code=erp_code)
+    else:
+        procurements = []
+
+    return render_template('procurement/procurement_list.html', procurements=procurements)
+
+
+@procurement.route('procurement_list/all', methods=['GET', 'POST'])
+def view_all_procurement_to_borrow():
+    return render_template('procurement/view_all_procurement_to_borrow.html')
+
+
+@procurement.route('api/procurement_list/all')
+def get_procurement_list():
+    query = ProcurementDetail.query.filter_by(is_reserved=True)
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.name.ilike(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['reserve'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">จอง</a>'.format(
+            url_for('procurement.add_borrow_detail', procurement_no=item.procurement_no))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
+@procurement.route('/borrow-return/detail/add/<string:procurement_no>', methods=['GET', 'POST'])
+def add_borrow_detail(procurement_no):
+    procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+    form = ProcurementBorrowDetailForm()
+    if form.validate_on_submit():
+        borrow_detail = ProcurementBorrowDetail()
+        form.populate_obj(borrow_detail)
+        borrow_detail.borrower = current_user
+        db.session.add(borrow_detail)
+        db.session.commit()
+        flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
+        return redirect(url_for('procurement.view_borrow_detail'))
+    else:
+        for er in form.errors:
+            flash("{} {}".format(er, form.errors[er]), 'danger')
+    return render_template('procurement/add_borrow_detail.html',
+                           form=form, url_callback=request.referrer,
+                           procurement_no=procurement_no,
+                           procurement=procurement)
+
+
+@procurement.route('procurement_list/reserve/all', methods=['GET', 'POST'])
+def view_all_procurement_to_reserve():
+    return render_template('procurement/view_all_procurement_to_reserve.html')
+
+
+@procurement.route('api/procurement_list/reserve/all')
+def get_procurement_to_reserve():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.name.ilike(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['add'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
+            url_for('procurement.view_desc_procurement_to_borrow', procurement_id=item.id))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
+@procurement.route('/desc/view/<int:procurement_id>')
+def view_desc_procurement_to_borrow(procurement_id):
+    item = ProcurementDetail.query.get(procurement_id)
+    return render_template('procurement/view_desc_procurement_to_borrow.html',
+                           item=item)
+
+
+@procurement.route('/borrow/<int:procurement_id>/add')
+def add_procurement_to_borrow(procurement_id):
+    procurement_query = ProcurementDetail.query.filter_by(id=procurement_id).first()
+    procurement_query.is_reserved = True if not procurement_query.is_reserved else False
+    db.session.add(procurement_query)
+    db.session.commit()
+    flash(u'แก้ไขสถานะเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('procurement.view_all_procurement_to_reserve'))
+
+
+@procurement.route('/api/procurements/reserved')
+def get_procurement_to_reserved():
+    procurement = ProcurementDetail.query.filter_by(is_reserved=True)
+    resources = []
+    for pc in procurement:
+        resources.append({
+            'id': pc.id,
+            'title': pc.name,
+            'erp':pc.erp_code
+        })
+    return jsonify(resources)
+
+
+@procurement.route('/list/add-items', methods=['POST', 'GET'])
+def list_add_items():
+    form = ProcurementBorrowDetailForm()
+    form.items.append_entry()
+    item_form = form.items[-1]
+    form_text = u'''
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    <div class="field-body">
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    </div>
+    <div class="field">
+        <label class="label">{}</label>
+        <div class="control">
+            {}
+        </div>
+    </div>
+    '''.format(item_form.item.label, item_form.item(class_="input"),
+               item_form.quantity.label, item_form.quantity(class_="input"),
+               item_form.unit.label, item_form.unit(class_="input"),
+               item_form.note.label, item_form.note(class_="textarea")
+               )
+    resp = make_response(form_text)
+    return resp
+
+
+@procurement.route('/list/delete-items', methods=['POST', 'GET'])
+def delete_items():
+    form = ProcurementBorrowDetailForm()
+    if len(form.items.entries) > 1:
+        form.items.pop_entry()
+        alert = False
+    else:
+        alert = True
+    form_text = ''
+    for item_form in form.items.entries:
+        form_text += u'''
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+             <div class="field-body">
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+            </div>
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+            '''.format(item_form.item.label, item_form.item(class_="input"),
+                       item_form.quantity.label, item_form.quantity(class_="input"),
+                       item_form.unit.label, item_form.unit(class_="input"),
+                       item_form.note.label, item_form.note(class_="textarea")
+                       )
+    resp = make_response(form_text)
+    if alert:
+        resp.headers['HX-Trigger-After-Swap'] = 'delete_warning'
+    return resp
+
+
+@procurement.route('/scan-qrcode/borrow', methods=['GET'])
+@csrf.exempt
+def qrcode_scan_to_borrow():
+    return render_template('procurement/qr_code_scan_to_borrow.html')
+
+
+@procurement.route('detail/borrow', methods=['GET', 'POST'])
+def view_borrow_detail():
+    return render_template('procurement/view_borrow_detail.html')
+
+
+@procurement.route('api/detail/borrow')
+def get_borrow_detail():
+    query = ProcurementBorrowItem.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementBorrowItem.item.ilike(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        # item_data['view_record'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
+        #     url_for('procurement.add_survey_computer_info', procurement_no=item.detail.procurement_no))
+        # item_data['print_record'] = '<a href="{}" class="button is-small is-rounded is-primary is-outlined">Print</a>'.format(
+        #     url_for('procurement.view_survey_computer_info', procurement_id=item.id))
+        # item_data['erp_code'] = u'{}'.format(item.procurement_detail.erp_code)
+        item_data['purpose'] = u'{}'.format(item.borrow_detail.purpose)
+        item_data['location_of_use'] = u'{}'.format(item.borrow_detail.location_of_use)
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementBorrowItem.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+# sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
+# pdfmetrics.registerFont(sarabun_font)
+# style_sheet = getSampleStyleSheet()
+# style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
+# style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
+# style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
+#
+#
+# @procurement.route('/borrow-form/pdf/<int:borrow_id>')
+# def export_borrow_form_pdf(borrow_id):
+#     borrow_detail = ProcurementBorrowDetail.query.get(borrow_id)
+#
+#     def all_page_setup(canvas, doc):
+#         canvas.saveState()
+#         logo_image = ImageReader('app/static/img/logo-MU_black-white-2-1.png')
+#         canvas.drawImage(logo_image, 200, 200, mask='auto')
+#         canvas.restoreState()
+#
+#     doc = SimpleDocTemplate("app/borrow_form.pdf",
+#                             rightMargin=20,
+#                             leftMargin=20,
+#                             topMargin=20,
+#                             bottomMargin=10,
+#                             )
+#     no = borrow_detail.number
+#     booking_date = borrow_detail.book_date
+#     data = []
+#
+#     borrow_info = '''<font size=15>
+#     {original}</font><br/><br/>
+#     <font size=11>
+#     เลขที่ {no}<br/>
+#     วันที่ {booking_date}
+#     </font>
+#     '''
+#     borrow_info_ori = borrow_info.format(original=u'ต้นฉบับ<br/>(Original)'.encode('utf-8'),
+#                                            no=no,
+#                                            booking_date=booking_date
+#                                            )
+#
+#     header_content_ori = [[Paragraph(borrow_info_ori, style=style_sheet['ThaiStyle'])]]
+#
+#     header_styles = TableStyle([
+#         ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+#         ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+#     ])
+#
+#     header_ori = Table(header_content_ori, colWidths=[150, 200, 50, 100])
+#
+#     header_ori.hAlign = 'CENTER'
+#     header_ori.setStyle(header_styles)
+#
+#     form_borrow_detail = '''<para><font size=12>
+#     ข้าพเจ้า {borrower}<br/>
+#     ตำแหน่ง {position}
+#     สังกัด คณะ/สถาบัน/ภาควิชา/หน่วยงาน {org}
+#     โทร {telephone}
+#     มือถือ {mobile_phone}
+#     มีความประสงค์ขอยืมพัสดุของ คณะเทคนิคการแพทย์ มหาวิทยาลัยมหิดล<br/>
+#     {}<br/>
+#     เพื่อใช้ในงาน {}<br/>
+#     ระบุเหตุผลความจำเป็น {}<br/>
+#     สถานที่นำไปใช้งาน {} เลขที่ {} หมู่ที่ {} ถนน {} ตำบล/แขวง {} อำเภอ/เขต {} จังหวัด {} รหัสไปรษณีย์ {}
+#     โดยมีกำหนดการยืมคืนในระหว่างวันที่ {} ถึง {}
+#     &nbsp;และข้าพเจ้าขอนำส่งพัสดุในสภาพที่ใช้การได้ตามปกติ ภายใน 7 วันนับแต่วันที่ครบกำหนดการยืมโดยเป็นไปตามประกาศ มหาวิทยาลัยมหิดล
+#     เรื่องหลักเกณฑ์และวิธีการยืมพัสดุของมหาวิทยาลัยมหิดล พ.ศ. 2563 ดังมีรายการยืมดังต่อไปนี้
+#     </font></para>
+#     '''.format(borrower=borrow_detail.borrower.encode('utf-8'),
+#                position=borrow_detail.borrower.personal_info.position.encode('utf-8'),
+#                org=borrow_detail.borrower.personal_info.org.encode('utf-8'),
+#                telephone=borrow_detail.borrower.personal_info.telephone.encode('utf-8'),
+#                mobile_phone=borrow_detail.borrower.personal_info.mobile_phone.encode('utf-8'),
+#                type_of_purpose=borrow_detail.type_of_purpose.encode('utf-8'),
+#                purpose=borrow_detail.purpose.encode('utf-8'),
+#                reason=borrow_detail.reason.encode('utf-8'),
+#                location_of_use=borrow_detail.location_of_use.encode('utf-8'),
+#                address_number=borrow_detail.address_number.encode('utf-8'),
+#                moo=borrow_detail.moo.encode('utf-8'),
+#                road=borrow_detail.road.encode('utf-8'),
+#                sub_district=borrow_detail.sub_district.encode('utf-8'),
+#                district=borrow_detail.district.encode('utf-8'),
+#                province=borrow_detail.province.encode('utf-8'),
+#                postal_code=borrow_detail.postal_code.encode('utf-8'),
+#                start_date=borrow_detail.start_date.encode('utf-8'),
+#                end_date=borrow_detail.end_date.encode('utf-8')
+#                )
+#
+#     form_detail = Table([[Paragraph(form_borrow_detail, style=style_sheet['ThaiStyle']),
+#                     ]],
+#                      colWidths=[580, 200]
+#                      )
+#     form_detail.setStyle(TableStyle([('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+#                                   ('VALIGN', (0, 0), (-1, -1), 'TOP')]))
+#     items = [[Paragraph('<font size=10>ลำดับ</font>', style=style_sheet['ThaiStyleCenter']),
+#               Paragraph('<font size=10>รายการ</font>', style=style_sheet['ThaiStyleCenter']),
+#               Paragraph('<font size=10>รหัสพัสดุ</font>', style=style_sheet['ThaiStyleCenter']),
+#               Paragraph('<font size=10>จำนวน</font>', style=style_sheet['ThaiStyleCenter']),
+#               Paragraph('<font size=10>หน่วยนับ</font>', style=style_sheet['ThaiStyleCenter']),
+#               Paragraph('<font size=10>หมายเหตุ</font>', style=style_sheet['ThaiStyleCenter']),
+#               ]]
+#
+#     for n, item in enumerate(borrow_detail.items, start=1):
+#         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
+#                 Paragraph('<font size=12>{}</font>'.format(item.item.encode('utf-8')), style=style_sheet['ThaiStyle']),
+#                 Paragraph('<font size=12>{}</font>'.format(item.erp_code.encode('utf-8')), style=style_sheet['ThaiStyle']),
+#                 Paragraph('<font size=12>{}</font>'.format(item.quantity.encode('utf-8')), style=style_sheet['ThaiStyle']),
+#                 Paragraph('<font size=12>{}</font>'.format(item.unit.encode('utf-8')), style=style_sheet['ThaiStyle']),
+#                 Paragraph('<font size=12>{}</font>'.format(item.note.encode('utf-8')), style=style_sheet['ThaiStyle']),
+#                 ]
+#         items.append(item_record)
+#
+#     n = len(items)
+#     for i in range(5-n):
+#         items.append([
+#             Paragraph('<font size=12>&nbsp; </font>', style=style_sheet['ThaiStyleNumber']),
+#             Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+#             Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
+#         ])
+#     item_table = Table(items, colWidths=[50, 450, 75])
+#     item_table.setStyle(TableStyle([
+#         ('BOX', (0, 0), (-1, 0), 0.25, colors.black),
+#         ('BOX', (0, -1), (-1, -1), 0.25, colors.black),
+#         ('BOX', (0, 0), (0, -1), 0.25, colors.black),
+#         ('BOX', (1, 0), (1, -1), 0.25, colors.black),
+#         ('BOX', (2, 0), (2, -1), 0.25, colors.black),
+#         ('BOX', (3, 0), (3, -1), 0.25, colors.black),
+#         ('BOX', (4, 0), (4, -1), 0.25, colors.black),
+#         ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+#         ('BOTTOMPADDING', (0, -1), (-1, -1), 10),
+#         ('BOTTOMPADDING', (0, -2), (-1, -2), 10),
+#     ]))
+#     item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
+#     item_table.setStyle([('SPAN', (0, -1), (1, -1))])
+   # # ผู้ยืม
+   #  sign_text = Paragraph(
+   #      '<br/><font size=12>............................................................................ ผู้ยืม<br/></font>',
+   #      style=style_sheet['ThaiStyle'])
+   #  borrower = [[sign_text,
+   #              Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+   #              Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  borrower_officer = Table(borrower, colWidths=[0, 80, 20])
+   #  fullname = Paragraph(
+   #      '<font size=12>({})<br/></font>'.format(borrow_detail.borrower.personal_info.fullname.encode('utf-8')),
+   #      style=style_sheet['ThaiStyle'])
+   #  personal_info = [[fullname,
+   #                    Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  borrower_personal_info = Table(personal_info, colWidths=[0, 30, 20])
+   #  # หัวหน้าหน่วยงานผู้ยืม
+   #  sign_text = Paragraph(
+   #      '<br/><font size=12>............................................................................ หัวหน้าหน่วยงานผู้ยืม<br/></font>',
+   #      style=style_sheet['ThaiStyle'])
+   #  receive = [[sign_text,
+   #              Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+   #              Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  receive_officer = Table(receive, colWidths=[0, 80, 20])
+   #  fullname = Paragraph(
+   #      '<font size=12>({})<br/></font>'.format(borrow_detail.borrower.personal_info.fullname.encode('utf-8')),
+   #      style=style_sheet['ThaiStyle'])
+   #  personal_info = [[fullname,
+   #                    Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  hrad_borrower_personal_info = Table(personal_info, colWidths=[0, 30, 20])
+   #
+   #  position = Paragraph('<font size=12>..............{}..................... ตำแหน่ง / POSITION </font>'.format(
+   #      borrow_detail.borrower.personal_info.position.encode('utf-8')),
+   #                       style=style_sheet['ThaiStyle'])
+   #  position_info = [[position,
+   #                    Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  hrad_borrower_position = Table(position_info, colWidths=[0, 80, 20])
+   #
+   #  notice_text = '''<para align=left><font size=10>
+   #  ส่วนที่ 2 สำหรับผู้อนุมัติ : หัวหน้าส่วนงาน </font></para>
+   #  '''
+   #  notice = Table([[Paragraph(notice_text, style=style_sheet['ThaiStyle'])]])
+   #  #หัวหน้าส่วนงาน
+   #  sign_text = Paragraph('<br/><font size=12>............................................................................ หัวหน้าหน่วยพัสดุ<br/></font>',
+   #                        style=style_sheet['ThaiStyle'])
+   #  receive = [[sign_text,
+   #                    Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+   #                    Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  receive_officer = Table(receive, colWidths=[0, 80, 20])
+   #
+   #  fullname = Paragraph('<font size=12>({})<br/></font>'.format(borrow_detail.borrower.personal_info.fullname.encode('utf-8')),
+   #                       style=style_sheet['ThaiStyle'])
+   #  personal_info = [[fullname,
+   #              Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  head_personal_info = Table(personal_info, colWidths=[0, 30, 20])
+   #
+   #  position = Paragraph('<font size=12>..............{}..................... ตำแหน่ง / POSITION </font>'.format(borrow_detail.borrower.personal_info.position.encode('utf-8')),
+   #                       style=style_sheet['ThaiStyle'])
+   #  position_info = [[position,
+   #                    Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  head_position = Table(position_info, colWidths=[0, 80, 20])
+   #  # หัวหน้าหน่วยพัสดุ
+   #  sign_text = Paragraph(
+   #      '<br/><font size=12>............................................................................ หัวหน้าหน่วยพัสดุ<br/></font>',
+   #      style=style_sheet['ThaiStyle'])
+   #  receive = [[sign_text,
+   #              Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
+   #              Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  receive_officer = Table(receive, colWidths=[0, 80, 20])
+   #
+   #  fullname = Paragraph(
+   #      '<font size=12>({})<br/></font>'.format(borrow_detail.borrower.personal_info.fullname.encode('utf-8')),
+   #      style=style_sheet['ThaiStyle'])
+   #  personal_info = [[fullname,
+   #                    Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  head_procurement_personal_info = Table(personal_info, colWidths=[0, 30, 20])
+   #
+   #  position = Paragraph('<font size=12>..............{}..................... ตำแหน่ง / POSITION </font>'.format(
+   #      borrow_detail.borrower.personal_info.position.encode('utf-8')),
+   #                       style=style_sheet['ThaiStyle'])
+   #  position_info = [[position,
+   #                    Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
+   #  head_procurementposition = Table(position_info, colWidths=[0, 80, 20])
+
+    # data.append(form_detail)
+    # data.append(Spacer(1, 12))
+    # data.append(Spacer(1, 6))
+    # data.append(item_table)
+    # data.append(Spacer(1, 6))
+    # data.append(Spacer(1, 12))
+    # data.append(PageBreak())
+    # doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+    #
+    # return send_file('borrow_form.pdf')
+
+
+@procurement.route('check-instruments/all', methods=['GET', 'POST'])
+def view_all_procurement_to_check_instruments():
+    return render_template('procurement/view_all_procurement_to_check_instruments.html')
+
+
+@procurement.route('api/check-instruments/all')
+def get_procurement_to_check_instruments():
+    query = ProcurementDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.name.ilike(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['add'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
+            url_for('procurement.view_desc_procurement_to_check_instruments', procurement_id=item.id))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
+@procurement.route('/instruments/view/<int:procurement_id>')
+def view_desc_procurement_to_check_instruments(procurement_id):
+    item = ProcurementDetail.query.get(procurement_id)
+    return render_template('procurement/view_desc_procurement_to_check_instruments.html',
+                           item=item)
+
+
+@procurement.route('/instruments/<int:procurement_id>/change-instruments-status')
+def instruments_change_status(procurement_id):
+    procurement_query = ProcurementDetail.query.filter_by(id=procurement_id).first()
+    procurement_query.is_instruments = True if not procurement_query.is_instruments else False
+    db.session.add(procurement_query)
+    db.session.commit()
+    flash(u'แก้ไขสถานะเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('procurement.view_all_procurement_to_check_instruments'))
+
+
+@procurement.route('/repair_landing')
+@login_required
+def repair_landing():
+    return render_template('procurement/repair_landing.html')
+
+
+@procurement.route('/repair/erp_code/search')
+@login_required
+def search_by_erp_code_with_repair_online():
+    return render_template('procurement/search_by_erp_code_with_repair_online.html')
+
+
+@procurement.route('/repair/erp_code/search/list', methods=['POST', 'GET'])
+@login_required
+def erp_code_procurement_list():
+    if request.method == 'GET':
+        procurement_detail = ProcurementDetail.query.all()
+    else:
+        erp_code = request.form.get('erp_code', None)
+        if erp_code:
+            procurement_detail = ProcurementDetail.query.filter(ProcurementDetail.erp_code.like('%{}%'.format(erp_code)))
+        else:
+            procurement_detail = []
+        if request.headers.get('HX-Request') == 'true':
+            return render_template('procurement/partials/erp_code_procurement_list.html', procurement_detail=procurement_detail)
+    return render_template('procurement/erp_code_procurement_list.html', procurement_detail=procurement_detail)
+
+
+@procurement.route('/repair/<int:procurement_id>/add', methods=['GET', 'POST'])
+@login_required
+def add_repair_online_service(procurement_id):
+    form = ProcurementRequireForm()
+    item = ProcurementDetail.query.get(procurement_id)
+    if item.repair_records:
+        repair_records = item.repair_records
+    if form.validate_on_submit():
+        add_record = ProcurementRequire()
+        form.populate_obj(add_record)
+        add_record.detail_id = procurement_id
+        add_record.notice_date = bangkok.localize(datetime.now())
+        db.session.add(add_record)
+        db.session.commit()
+        flash(u'บันทึกการแจ้งซ่อมเรียบร้อย', 'success')
+    return render_template('procurement/add_repair_online_service.html',
+                           form=form, procurement_id=procurement_id,
+                           item=item, url_next=url_for('procurement.search_by_erp_code_with_repair_online'),
+                           repair_records=repair_records, url_callback=request.referrer)
+
+
+@procurement.route('/repair/<int:procurement_id>/view/<int:repair_id>')
+def view_repair_info(repair_id, procurement_id):
+    repair_record = ProcurementRequire.query.get(repair_id)
+    return render_template('procurement/view_repair_info.html',
+                           repair_record=repair_record,
+                           procurement_id=procurement_id)
+
+
+@procurement.route('repair/all', methods=['GET', 'POST'])
+def view_all_repair_online_history():
+    return render_template('procurement/view_all_repair_online_history.html')
+
+
+@procurement.route('api/repair_online_history/all')
+def get_repair_online_history():
+    query = ProcurementRequire.query.filter_by(staff_id=current_user.id)
+    search = request.args.get('search[value]')
+    query = query.join(ProcurementDetail, aliased=True).filter(or_(
+        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.name.ilike(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['name'] = u'{}'.format(item.detail.name)
+        item_data['erp_code'] = u'{}'.format(item.detail.erp_code)
+        item_data['procurement_no'] = u'{}'.format(item.detail.procurement_no)
+        item_data['notice_date'] = item_data['notice_date'].strftime('%d/%m/%Y') if item_data[
+            'notice_date'] else ''
+        item_data['status'] = u"รอดำเนินการ"
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementRequire.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
+@procurement.route('repair/qrcode/scan')
+@login_required
+def scan_qrcode_to_repair_online():
+    return render_template('procurement/scan_qrcode_to_repair_online.html')
+
+
+@procurement.route('/<string:procurement_no>/sub-procurements')
+@login_required
+def view_sub_procurements(procurement_no):
+    sub_procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).all()
+    next_view = request.args.get('next_view')
+    return render_template('procurement/view_sub_procurements.html', next_view=next_view, sub_procurement=sub_procurement,
+                           request_args=request.args, procurement_no=procurement_no)
+
+
+@procurement.route('/scan-qrcode/info/repair')
+@procurement.route('/scan-qrcode/info/repair/procurement_no/<string:procurement_no>')
+def view_procurement_to_repair_online(procurement_no=None):
+    procurement_id = request.args.get('procurement_id')
+    if procurement_id:
+        item = ProcurementDetail.query.get(procurement_id)
+    if procurement_no:
+        item_count = ProcurementDetail.query.filter_by(procurement_no=procurement_no).count()
+        if item_count > 1:
+            return redirect(url_for('procurement.view_sub_procurements', procurement_no=procurement_no,
+                                    next_view="procurement.view_procurement_to_repair_online"))
+        else:
+            item = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
+
+    return render_template('procurement/view_procurement_info_to_repair_online.html', item=item,
+                           procurement_no=item.procurement_no, url_callback=request.referrer)
+
+
+@procurement.route('repair/for-information-technology-and-maintenance/all', methods=['GET', 'POST'])
+def view_all_repair_online_history_by_it_and_maintenance():
+    return render_template('procurement/view_all_repair_online_history_by_it_and_maintenance.html')
+
+
+@procurement.route('api/repair_online_history/for-information-technology-and-maintenance/all')
+def get_repair_online_history_by_it_and_maintenance():
+    query = ProcurementRequire.query
+    search = request.args.get('search[value]')
+    query = query.join(ProcurementDetail, aliased=True).filter(or_(
+        ProcurementDetail.erp_code.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.procurement_no.ilike(u'%{}%'.format(search)),
+        ProcurementDetail.name.ilike(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['name'] = u'{}'.format(item.detail.name)
+        item_data['erp_code'] = u'{}'.format(item.detail.erp_code)
+        item_data['procurement_no'] = u'{}'.format(item.detail.procurement_no)
+        item_data['notice_date'] = item_data['notice_date'].strftime('%d/%m/%Y') if item_data[
+            'notice_date'] else ''
+        item_data['status'] = u"รอดำเนินการ"
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ProcurementRequire.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
+

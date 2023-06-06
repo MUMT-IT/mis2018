@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li>
+                        <a href="{{ url_for("procurement.view_borrow_detail") }}">
+                        <span class="icon is-small">
+                              <i class="fas fa-list" aria-hidden="true"></i>
+                            </span>
+                            <span>View List</span>
+                        </a>
+                    </li>
+                    <li class="is-active"><a href="#" aria-current="page">เพิ่มข้อมูล</a></li>
+                </ul>
+            </nav>
+            <div class="columns">
+                {% include "messages.html" %}
+                <div class="column has-text-centered">
+                    <h1 class="title">Add Alumni Information</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-10 is-offset-1">
+                    <div class="box">
+                        <form method="post">
+                            {{ form.hidden_tag() }}
+                            <div class="field">
+                                <label class="label">{{ form.student_id.label }}</label>
+                                <div class="control">
+                                    {{ form.student_id(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.th_title.label }}</label>
+                                    <div class="control">
+                                        {{ form.th_title(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.th_firstname.label }}</label>
+                                    <div class="control">
+                                        {{ form.th_firstname(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.th_lastname.label }}</label>
+                                    <div class="control">
+                                        {{ form.th_lastname(class="input") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.contact.label }}</label>
+                                <div class="control">
+                                    {{ form.contact(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.occupation.label }}</label>
+                                    <div class="control">
+                                        {{ form.occupation(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.workplace.label }}</label>
+                                    <div class="control">
+                                        {{ form.workplace(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.province.label }}</label>
+                                    <div class="control">
+                                        {{ form.province(class="input") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <br>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="buttons">
+                                    <button class="button is-success" type="submit" value="submit">บันทึก</button>
+                                    <a href="{{ request.referrer }}"
+                                       class="button is-danger">ยกเลิก</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

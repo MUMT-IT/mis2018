@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Event Detail{% endblock %}
+{% include "procurement/nav_for_borrow_scheduler.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-one-third is-offset-one-third">
+                    <div class="card">
+                        <div class="card-image">
+                            <figure class="image is-3by2">
+                                <img src="{{ url_for('static', filename='img/vehicles.jpg') }}">
+                            </figure>
+                        </div>
+                        <div class="card-content">
+                            <div class="content">
+                                <p>
+                                    <span class="title is-4">{{ event.items.name }}</span>
+                                </p>
+                                <p>
+                                    <span class="subtitle">
+                                        <span class="icon">
+                                            <i class="fas fa-map-marker-alt"></i>
+                                        </span>
+                                        &nbsp;{{ event.purpose }}
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="subtitle">
+                                        <span class="icon">
+                                            <i class="fas fa-map-marker-alt"></i>
+                                        </span>
+                                        &nbsp;{{ event.reason }}
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="icon">
+                                        <i class="fas fa-car"></i>
+                                    </span>
+                                    <span class="subtitle">
+                                        &nbsp; {{ event.items.erp_code}}
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="icon">
+                                        <i class="far fa-clock"></i>
+                                    </span>
+                                    <span class="subtitle">
+                                        {{ event.start_date.strftime('%d/%m/%Y') }} {{ event.start_date.strftime('%H:%M') }}
+                                        ถึง {{ event.end_date.strftime('%d/%m/%Y') }} {{ event.end_date.strftime('%H:%M') }}
+                                    </span>
+                                </p>
+                                <p>
+                                    <span class="icon">
+                                        <i class="fas fa-users"></i>
+                                    </span>
+                                    <span class="subtitle">
+                                        {{ event.borrower }}
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
+                        <footer class="card-footer">
+                        </footer>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

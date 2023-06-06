@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}Add New Event{% endblock %}
+{% include "instruments/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="columns">
+        <div class="column is-two-thirds is-offset-2">
+            {% include "messages.html" %}
+            <div class="box">
+                <p class="has-text-centered">กรุณากรอกข้อมูลการจองให้สมบูรณ์</p>
+                <form method="post">
+                {{ form.hidden_tag() }}
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">{{ form.title.label }}</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.title(class="input") }}
+                                    <p class="help has-text-danger">*จำเป็น</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">{{ form.start.label }}</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    {{ form.start(class="input") }}
+                                    <span class="icon is-left is-small">
+                                        <i class="fa-solid fa-calendar-days"></i>
+                                    </span>
+                                    <p class="help has-text-danger">*จำเป็น</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">{{ form.end.label }}</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    {{ form.end(class="input") }}
+                                    <span class="icon is-left is-small">
+                                        <i class="fa-solid fa-calendar-days"></i>
+                                    </span>
+                                    <p class="help has-text-danger">*จำเป็น</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">{{ form.desc.label }}</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    {{ form.desc(class="textarea") }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="buttons is-centered">
+                        <button type="submit" class="button is-success">
+                            <strong>Submit</strong>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{super()}}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(function() {
+            $('#start').daterangepicker({
+                    singleDatePicker: true,
+                    timePicker: true,
+                    timePickerIncrement: 15,
+                    timePicker24Hour: true,
+                    locale: {
+                        format: 'YYYY-MM-DD HH:mm:ss'
+                    },
+                    applyButtonClasses: "button is-success",
+                    cancelButtonClasses: "button is-light"
+                }
+            );
+            $('#end').daterangepicker({
+                    singleDatePicker: true,
+                    timePicker: true,
+                    timePickerIncrement: 15,
+                    timePicker24Hour: true,
+                    locale: {
+                        format: 'YYYY-MM-DD HH:mm:ss'
+                    },
+                    applyButtonClasses: "button is-success",
+                    cancelButtonClasses: "button is-light"
+                }
+            );
+        });
+    </script>
+{#    <script>#}
+{#        function formatState (state) {#}
+{#            if (!state.id) {#}
+{#                return state.text;#}
+{#            }#}
+{#            let textArray = state.text.split(":");#}
+{#            let $state = $(#}
+{#                '<span><strong>Code</strong> ' + textArray[0] + '</span><br>' +#}
+{#                '<span><strong>Name</strong> ' + textArray[1] + '</span><br>' +#}
+{#                '<span><strong>Org</strong> ' + textArray[2] + '</span><br>' +#}
+{#                '<span><strong>Mission</strong> ' + textArray[3] + '</span>'#}
+{#            );#}
+{#            return $state;#}
+{#        };#}
+{#        function formatSelection (state) {#}
+{#            if (!state.id) {#}
+{#                return state.text;#}
+{#            }#}
+{#            let textArray = state.text.split(":");#}
+{#            let $state = textArray[0];#}
+{#            return $state;#}
+{#        };#}
+{#    </script>#}
+{% endblock %}
