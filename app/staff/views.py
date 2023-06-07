@@ -3413,7 +3413,6 @@ def seminar_attends_each_person(staff_id):
     approver = StaffLeaveApprover.query.filter_by(approver_account_id=current_user.id).first()
     return render_template('staff/seminar_records_each_person.html', seminar_list=seminar_list,
                            attend_name=attend_name ,seminar_records=seminar_records, approver=approver)
-                           attend_name=attend_name, seminar_records=seminar_records)
 
 
 @staff.route('/api/time-report')
