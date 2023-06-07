@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter has-text-centered">
+                    {% include 'messages.html' %}
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    {% if session_id %}
+                        <h1 class="title has-text-centered">แก้ไขกิจกรรมการเรียนรู้นอกห้องเรียน</h1>
+                    {% else %}
+                        <h1 class="title has-text-centered">เพิ่มกิจกรรมการเรียนรู้นอกห้องเรียน</h1>
+                    {% endif %}
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="card">
+                            <div class="card-header">
+                                <p class="card-header-title">รายละเอียด</p>
+                            </div>
+                            <div class="card-content">
+                                <div class="field">
+                                    <label class="label">{{ form.title.label }}</label>
+                                    <div class="control">
+                                        {{ form.title(class='input') }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.desc.label }}</label>
+                                    <div class="control">
+                                        {{ form.desc(class='textarea') }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.start.label }}</label>
+                                    <div class="control">
+                                        {{ form.start(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.end.label }}</label>
+                                    <div class="control">
+                                        {{ form.end(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.type_.label }}</label>
+                                    <div class="control">
+                                        <div class="select">
+                                            {{ form.type_ }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.format.label }}</label>
+                                    <div class="control">
+                                        <div class="select">
+                                            {{ form.format() }}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.workhours.label }}</label>
+                                    <div class="control">
+                                        {{ form.workhours(class='input') }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.instructors.label }}</label>
+                                    <div class="control">
+                                        {{ form.instructors() }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <br>
+                        <div class="field">
+                            <div class="buttons is-grouped is-centered">
+                                <div class="control">
+                                    <a href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}"
+                                       class="button is-light">Cancel</a>
+                                </div>
+                                <div class="control">
+                                    <input type="submit" class="button is-success" value="Save"/>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+    <!--
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.2"></script>
+    <script>
+        $(document).ready(function () {
+            moment.locale('th');
+            $('input[name="start"]').daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
+                showDropdowns: true,
+                {% if form.start.data %}
+                    startDate: {{ form.start.data.astimezone(localtz).isoformat()|tojson|safe }},
+                {% else %}
+                    startDate: moment().startOf('hour'),
+                {% endif %}
+                locale: {
+                    format: 'YYYY-MM-DD HH:mm:ss'
+                }
+            });
+            $('input[name="end"]').daterangepicker({
+                singleDatePicker: true,
+                timePicker: true,
+                timePickerIncrement: 15,
+                timePicker24Hour: true,
+                showDropdowns: true,
+                {% if form.end.data %}
+                    startDate: {{ form.end.data.astimezone(localtz).isoformat()|tojson|safe }},
+                {% else %}
+                    startDate: moment().startOf('hour'),
+                {% endif %}
+                locale: {
+                    format: 'YYYY-MM-DD HH:mm:ss'
+                }
+            });
+            $('input[name="start"]').change(function () {
+                $('input[name="end"]').data('daterangepicker').setStartDate(moment($(this).val()).add(1, 'hours'))
+                $('.js-example-basic-single').each(function () {
+                    $(this).trigger('select2:select')
+                })
+            })
+            $('input[name="end"]').on('apply.daterangepicker', function () {
+                let endDateTime = moment($('input[name="end"]').val())
+                let startDateTime = moment($('input[name="start"]').val())
+                if (startDateTime.format() == endDateTime.format()) {
+                    alert('กรุณาตรวจสอบวันและเวลาเริ่มและสิ้นสุดอีกครั้ง')
+                    $('input[name="end"]').data('daterangepicker').setStartDate(startDateTime.add(1, 'hours'))
+                } else {
+                    $('.js-example-basic-single').each(function () {
+                        $(this).trigger('select2:select')
+                    })
+                }
+            })
+            let initializeSelect = function () {
+                $('.js-example-basic-single').each(function () {
+                    $(this).select2()
+                    $(this).on('select2:select', function (e) {
+                        let roomId = $(this).find(':selected').val()
+                        let endDateTime = moment($('input[name="end"]').val())
+                        let startDateTime = moment($('input[name="start"]').val())
+                        htmx.ajax('GET',
+                            '{{ url_for("room.check_room_availability") }}',
+                            {
+                                source: '#' + $(this).attr('id'),
+                                target: '#availability-' + $(this).attr('id'),
+                                values: {
+                                    'room': roomId,
+                                    'start': startDateTime.format(),
+                                    'end': endDateTime.format(),
+                                    {% if session_id %}'session_id': {{session_id|tojson|safe}},
+                                        {% else %}'session_id': null
+                                    {% endif %}
+                                }
+                            })
+                    })
+                })
+            }
+            initializeSelect()
+            $('.js-example-basic-single').each(function () {
+                let roomId = $(this).find(':selected').val()
+                // let event = new Event('change')
+                // document.querySelector('#'+ $(this).attr('id')).dispatchEvent(event)
+                let endDateTime = moment($('input[name="end"]').val())
+                let startDateTime = moment($('input[name="start"]').val())
+                htmx.ajax('GET',
+                    '{{ url_for("room.check_room_availability") }}',
+                    {
+                        source: '#' + $(this).attr('id'),
+                        target: '#availability-' + $(this).attr('id'),
+                        values: {
+                            'start': startDateTime.format(),
+                            'end': endDateTime.format(),
+                            'room': roomId,
+                            {% if session_id %}'session_id': {{session_id|tojson|safe}},
+                                {% else %}'session_id': null
+                            {% endif %}
+                        }
+                    })
+            })
+            document.addEventListener('activateSelect2js', function () {
+                initializeSelect()
+            })
+        })
+    </script>
+{% endblock %}

@@ -762,6 +762,80 @@ def delete_session_role(course_id, session_id):
     return template
 
 
+@edu.route('/qa/courses/<int:course_id>/assignments/add', methods=['GET', 'POST'])
+@login_required
+def add_session_assignment(course_id):
+    course = EduQACourse.query.get(course_id)
+    AssignmentInstructorForm = create_assignment_instructors_form(course)
+    form = AssignmentInstructorForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            new_session = EduQACourseAssignmentSession()
+            form.populate_obj(new_session)
+            new_session.course = course
+            new_session.start = localtz.localize(new_session.start)
+            new_session.end = localtz.localize(new_session.end)
+            if not is_datetime_valid(new_session.start, new_session.end):
+                form.start.data = new_session.start
+                form.end.data = new_session.end
+                return render_template('eduqa/QA/assignment_session_edit.html',
+                                       form=form, course=course, localtz=localtz)
+            course.updated_at = localtz.localize(datetime.now())
+            course.updater = current_user
+            db.session.add(new_session)
+            db.session.commit()
+            flash(u'เพิ่มกิจกรรมเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('eduqa.show_course_detail', course_id=course.id))
+        else:
+            flash(u'เกิดปัญหาในการบันทึกข้อมูล', 'warning')
+    return render_template('eduqa/QA/assignment_session_edit.html', form=form, course=course, localtz=localtz)
+
+
+@edu.route('/qa/courses/<int:course_id>/assignments/<int:session_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_session_assignment(course_id, session_id):
+    course = EduQACourse.query.get(course_id)
+    a_session = EduQACourseAssignmentSession.query.get(session_id)
+    AssignmentInstructorForm = create_assignment_instructors_form(course)
+    form = AssignmentInstructorForm(obj=a_session)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(a_session)
+            a_session.course = course
+            course.updater = current_user
+            a_session.start = localtz.localize(a_session.start)
+            a_session.end = localtz.localize(a_session.end)
+            if not is_datetime_valid(a_session.start, a_session.end):
+                form.start.data = a_session.start
+                form.end.data = a_session.end
+                return render_template('eduqa/QA/session_edit.html',
+                                       form=form, course=course, localtz=localtz)
+            course.updated_at = localtz.localize(datetime.now())
+            db.session.add(a_session)
+            db.session.commit()
+            flash(u'แก้ไขรายการสอนเรียบร้อยแล้ว', 'success')
+            return redirect(url_for('eduqa.show_course_detail', course_id=course.id))
+        else:
+            for field, error in form.errors.items():
+                flash('{}: {}'.format(field, error), 'danger')
+    return render_template('eduqa/QA/assignment_session_edit.html',
+                           form=form, course=course, session_id=session_id, localtz=localtz)
+
+
+@edu.route('/qa/assignments/<int:session_id>')
+@login_required
+def delete_session_assignment(session_id):
+    a_session = EduQACourseAssignmentSession.query.get(session_id)
+    course_id = a_session.course.id
+    if a_session:
+        db.session.delete(a_session)
+        db.session.commit()
+        flash(u'ลบรายการเรียบร้อยแล้ว', 'success')
+    else:
+        flash(u'ไม่พบรายการ', 'warning')
+    return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
+
+
 @edu.route('/qa/revisions/<int:revision_id>/summary/hours')
 def show_hours_summary_all(revision_id):
     revision = EduQACurriculumnRevision.query.get(revision_id)
