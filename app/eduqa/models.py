@@ -14,13 +14,13 @@ session_instructors = db.Table('eduqa_session_instructor_assoc',
                                          db.ForeignKey('eduqa_course_instructors.id')),
                                )
 
-
 session_assignment_instructors = db.Table('eduqa_session_assignment_instructor_assoc',
-                               db.Column('session_assignment_id', db.Integer,
-                                         db.ForeignKey('eduqa_course_assignment_sessions.id')),
-                               db.Column('instructor_id', db.Integer,
-                                         db.ForeignKey('eduqa_course_instructors.id')),
-                               )
+                                          db.Column('session_assignment_id', db.Integer,
+                                                    db.ForeignKey('eduqa_course_assignment_sessions.id')),
+                                          db.Column('instructor_id', db.Integer,
+                                                    db.ForeignKey('eduqa_course_instructors.id')),
+                                          )
+
 
 class EduQACourseInstructorAssociation(db.Model):
     __tablename__ = 'eduqa_course_instructor_assoc'
@@ -115,6 +115,8 @@ class EduQACourse(db.Model):
     en_code = db.Column(db.String(255), nullable=False, info={'label': u'English Code'})
     th_name = db.Column(db.String(255), nullable=False, info={'label': u'ชื่อภาษาไทย'})
     en_name = db.Column(db.String(255), nullable=False, info={'label': u'English Title'})
+    student_year = db.Column(db.String(), info={'label': 'ระดับ',
+                                                'choices': [(c, c) for c in ('ปี 1', 'ปี 2', 'ปี 3', 'ปี 4')]})
     semester = db.Column(db.String(), info={'label': u'ภาคการศึกษา'})
     academic_year = db.Column(db.String(), info={'label': u'ปีการศึกษา'})
     th_desc = db.Column(db.Text(), info={'label': u'คำอธิบายรายวิชา'})
@@ -214,13 +216,13 @@ class EduQACourseSession(db.Model):
 
     def to_event(self):
         return {
-                'title': self.course.en_code if self.course else 'N/A',
-                'start': self.start.astimezone(bangkok).isoformat(),
-                'end': self.end.astimezone(bangkok).isoformat(),
-                'id': self.id,
-                'course_id': self.course.id,
-                'name': self.course.th_name
-                }
+            'title': self.course.en_code if self.course else 'N/A',
+            'start': self.start.astimezone(bangkok).isoformat(),
+            'end': self.end.astimezone(bangkok).isoformat(),
+            'id': self.id,
+            'course_id': self.course.id,
+            'name': self.course.th_name
+        }
 
 
 class EduQACourseAssignmentSession(db.Model):
@@ -257,7 +259,10 @@ class EduQACourseAssignmentSession(db.Model):
             'end': self.end.astimezone(bangkok).isoformat(),
             'id': self.id,
             'course_id': self.course.id,
-            'name': self.course.th_name
+            'name': self.title,
+            'type': self.type_,
+            'hours': self.workhours,
+            'format': self.format
         }
 
 
