@@ -83,6 +83,14 @@
                     </tr>
                     <tr>
                         <td>
+                            <label class="label">ระดับชั้น</label>
+                        </td>
+                        <td>
+                            {{ course.student_year }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
                             <label class="label">หน่วยกิต</label>
                         </td>
                         <td>
@@ -125,7 +133,8 @@
                     </tr>
                 </table>
                 <div class="buttons is-centered">
-                    <a class="button is-rounded is-outlined is-info" href="{{ url_for('eduqa.edit_course', course_id=course.id) }}">
+                    <a class="button is-rounded is-outlined is-info"
+                       href="{{ url_for('eduqa.edit_course', course_id=course.id) }}">
                         <span class="icon">
                             <i class="fas fa-pencil-alt"></i>
                         </span>
@@ -375,9 +384,26 @@
                                                 </span>
                                                 <span>เพิ่มกิจกรรมนอกห้องเรียน</span>
                                             </a>
+                                            <a href="{{ url_for('studs.show_assignments', revision_id=course.revision_id, student_year=course.student_year) }}"
+                                               class="button is-light is-danger is-rounded">
+                                                <span class="icon">
+                                                    <i class="fa-solid fa-weight-scale"></i>
+                                                </span>
+                                                <span>ตรวจสอบภาระงานนศ.</span>
+                                            </a>
                                         </div>
                                     </td>
                                 </tr>
+                                {% if not course.student_year %}
+                                <tr>
+                                    <td colspan="8" class="has-text-centered">
+                                        <p class="help is-danger">
+                                            รายวิชานี้ยังไม่ได้ระบุระดับชั้นนศ. กรุณาเพิ่มเติมข้อมูลก่อนตรวจสอบภาระงานโดย
+                                            <a href="{{ url_for('eduqa.edit_course', course_id=course.id) }}">คลิกที่นี่</a>
+                                        </p>
+                                    </td>
+                                </tr>
+                                {% endif %}
                                 </tbody>
                             </table>
                         </td>
