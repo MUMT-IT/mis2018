@@ -5,9 +5,9 @@ import dateutil
 import requests
 from flask import render_template, jsonify, request, url_for, flash, redirect
 from . import instrumentsbp as instruments
-from models import *
-from .forms import InstrumentsBookingForm
-from ..procurement.models import ProcurementDetail
+from app.models import *
+from app.instruments.forms import InstrumentsBookingForm
+from app.procurement.models import ProcurementDetail
 
 from google.oauth2.service_account import Credentials
 

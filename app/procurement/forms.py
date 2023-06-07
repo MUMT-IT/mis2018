@@ -2,8 +2,15 @@
 import datetime
 
 from flask_wtf import FlaskForm
-from wtforms import SelectMultipleField, widgets, FileField, RadioField, SelectField, FieldList, \
-    FormField, Field, SubmitField, StringField
+from wtforms import (SelectMultipleField,
+                     widgets,
+                     FileField,
+                     RadioField,
+                     SelectField,
+                     FieldList,
+                     FormField,
+                     Field
+                     )
 from wtforms.validators import DataRequired
 from wtforms.widgets import TextInput
 from wtforms_alchemy import (model_form_factory, QuerySelectField)
@@ -108,7 +115,6 @@ class ProcurementRequireForm(ModelForm):
 
     format_service = RadioField(u'รูปแบบการให้บริการ',
                                  choices=[(c, c) for c in [u'นำเครื่องมาด้วย', u'ไม่ได้นำเครื่องมาด้วย', u'การให้บริการอื่นๆ']],
-                                 coerce=unicode,
                                  validators=[DataRequired()])
     staff = QuerySelectField(u'ผู้ใช้งานหลัก', query_factory=lambda: StaffAccount.get_active_accounts(),
                             get_label='personal_info', allow_blank=True)
@@ -179,7 +185,6 @@ class ProcurementBorrowDetailForm(ModelForm):
     type_of_purpose = RadioField(u'ความประสงค์ของยืมพัสดุ',
                                  choices=[(c, c) for c in [u'ยืมระหว่างส่วนงาน', u'บุคลากรยืม-ใช้ภายในพื้นที่ของมหาวิทยาลัย',
                                                            u'บุคลากรยืม-ใช้นอกพื้นที่ของมหาวิทยาลัย', u'บุคลากรหรือหน่วยงานภายนอกยืมใช้']],
-                                 coerce=unicode,
                                  validators=[DataRequired()])
     items = FieldList(FormField(ProcurementBorrowItemForm, default=ProcurementBorrowItem), min_entries=1)
 

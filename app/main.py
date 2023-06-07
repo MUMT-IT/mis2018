@@ -272,20 +272,20 @@ admin.add_views(ModelView(ElectronicReceiptItem, db.session, category='ReceiptPr
 admin.add_views(ModelView(ElectronicReceiptRequest, db.session, category='ReceiptPrinting'))
 admin.add_views(ElectronicReceiptGLModel(ElectronicReceiptGL, db.session, category='ReceiptPrinting'))
 
-from instruments import instrumentsbp as instruments_blueprint
+from app.instruments import instrumentsbp as instruments_blueprint
 
 app.register_blueprint(instruments_blueprint, url_prefix='/instruments')
 
-from instruments.models import *
+from app.instruments.models import *
 
 admin.add_views(ModelView(InstrumentsBooking, db.session, category='Instruments'))
 
 
-from alumni import alumnibp as alumni_blueprint
+from app.alumni import alumnibp as alumni_blueprint
 
 app.register_blueprint(alumni_blueprint, url_prefix='/alumni')
 
-from alumni.models import *
+from app.alumni.models import *
 
 admin.add_views(ModelView(AlumniInformation, db.session, category='Alumni'))
 
@@ -405,7 +405,7 @@ from app.roles import admin_permission
 
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-from models import (Org, OrgStructure, Mission, Holidays, Dashboard)
+from app.models import (Org, OrgStructure, Mission, Holidays, Dashboard)
 
 admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
 
