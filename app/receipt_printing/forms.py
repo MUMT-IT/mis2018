@@ -65,9 +65,8 @@ class IOCodeForm(ModelForm):
         model = IOCode
 
     is_active = RadioField(u'สถานะ',
-                         choices=[(c, c) for c in [u'Active', u'Inactive']],
-                         coerce=unicode,
-                         validators=[DataRequired()])
+                           choices=[(c, c) for c in [u'Active', u'Inactive']],
+                           validators=[DataRequired()])
     mission = QuerySelectField('mission', query_factory=lambda: Mission.query.all(),
                                get_label='name', blank_text='Select Mission..', allow_blank=True)
     org = QuerySelectField(query_factory=lambda: Org.query.all(),

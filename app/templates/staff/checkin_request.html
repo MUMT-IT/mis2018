@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block head %}
+{{ super() }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">แบบฟอร์มขอรับรองการทำงาน</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <b-notification type="is-warning is-light" aria-close-label="Close notification" role="alert">
+                เข้าทำงานสาย หรือ ออกก่อนเวลา ไม่สามารถขอรับรองการทำงานได้
+                </b-notification>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter has-text-centered">
+                <div class="box">
+                    <form method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">วัน-เวลา ที่ขอรับรอง</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <div class="control has-icons-left">
+                                        <input name="workdatetime" id="workdatetime" class="input">
+                                        <span class="icon is-small is-left">
+                                            <i class="far fa-calendar-alt"></i>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">ช่วงเวลา</label>
+                            </div>
+                            <div class="field-body">
+                                <label class="radio-inline">
+                                    <input type="radio" value="checkin" name="clock" checked>
+                                    เวลาเข้า
+                                </label>
+                                <label class="radio-inline">
+                                    <input type="radio" value="checkout" name="clock">
+                                    เวลากลับ
+                                </label>
+                            </div>
+                        </div>
+                        <div class="field is-horizontal">
+                            <div class="field-label is-normal">
+                                <label class="label">เหตุผล</label>
+                            </div>
+                            <div class="field-body">
+                                <div class="control">
+                                    <div class="field">
+                                        <input class="input" name="reason" type="text">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a href="" class="button is-light">ยกเลิก</a>
+{#                            <a href="{{ url_for('staff.geo_checkin') }}" class="button is-light">ยกเลิก</a>#}
+                        </div>
+                        <div class="control">
+                                <input type="submit" value="ส่งคำขอ" class="button is-primary"/>
+                        </div>
+                    </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    moment.locale('th')
+    $(document).ready(()=> {
+        $('input[name="workdatetime"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: true,
+            timePickerIncrement: 5,
+            timePicker24Hour: true,
+            startDate: moment(),
+            locale: {
+                format: 'DD/MM/YYYY HH:mm'
+            }
+        });
+    });
+</script>
+{% endblock %}

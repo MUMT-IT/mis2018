@@ -1,6 +1,6 @@
 # -*- coding:utf-8 -*-
 import textwrap
-from main import db, ma
+from app.main import db, ma
 from sqlalchemy.sql import func
 
 
@@ -28,6 +28,13 @@ class Org(db.Model):
     @property
     def active_staff(self):
         return [s for s in self.staff if s.retired is not True]
+
+
+class OrgStructure(db.Model):
+    __tablename__ = 'org_structure'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    position = db.Column('position', db.String(), nullable=False)
+    position_en = db.Column('position_en', db.String())
 
 
 class Strategy(db.Model):
@@ -134,44 +141,6 @@ class Student(db.Model):
         return u'ID:{} {} {}'.format(self.id, self.th_first_name, self.th_last_name)
 
 
-class Class(db.Model):
-    __tablename__ = 'classes'
-    id = db.Column('id', db.Integer(), primary_key=True)
-    refno = db.Column('refno', db.String(), nullable=False)
-    th_class_name = db.Column('th_class_name', db.String(), nullable=False)
-    en_class_name = db.Column('en_class_name', db.String(), nullable=False)
-    academic_year = db.Column('academic_year', db.String(4), nullable=False)
-    deadlines = db.relationship('ClassCheckIn', backref=db.backref('class'))
-
-    def __str__(self):
-        return u'{} : {}'.format(self.refno, self.academic_year)
-
-
-class ClassCheckIn(db.Model):
-    __tablename__ = 'class_check_in'
-    id = db.Column('id', db.Integer(), primary_key=True)
-    class_id = db.Column('class_id', db.ForeignKey('classes.id'))
-    deadline = db.Column('deadline', db.String())
-    late_mins = db.Column('late_mins', db.Integer())
-    class_ = db.relationship('Class', backref=db.backref('checkin_info'))
-
-    def __str__(self):
-        return self.class_.refno
-
-
-class StudentCheckInRecord(db.Model):
-    __tablename__ = 'student_check_in_records'
-    id = db.Column('id', db.Integer(), primary_key=True)
-    stud_id = db.Column('stud_id', db.ForeignKey('students.id'))
-    student = db.relationship('Student', backref=db.backref('check_in_records'))
-    classchk_id = db.Column('classchk_id', db.Integer(),
-                            db.ForeignKey('class_check_in.id'), nullable=False)
-    classchk = db.relationship('ClassCheckIn', backref=db.backref('student_records'))
-    check_in_time = db.Column('checkin', db.DateTime(timezone=True), nullable=False)
-    check_in_status = db.Column('status', db.String())
-    elapsed_mins = db.Column('elapsed_mins', db.Integer())
-
-
 class Province(db.Model):
     __tablename__ = 'provinces'
     id = db.Column('id', db.Integer(), primary_key=True)
@@ -201,7 +170,7 @@ class Subdistrict(db.Model):
                             db.ForeignKey('districts.id'))
 
 
-class KPISchema(ma.ModelSchema):
+class KPISchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = KPI
 
@@ -273,7 +242,7 @@ class IOCode(db.Model):
         }
 
 
-class OrgSchema(ma.ModelSchema):
+class OrgSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Org
 
@@ -503,3 +472,14 @@ class ROPA(db.Model):
     updated_at = db.Column('updated_at', db.DateTime(timezone=True), onupdate=func.now())
     updater_id = db.Column('updater_id', db.ForeignKey('staff_account.id'))
     updater = db.relationship(StaffAccount)
+
+
+class Dashboard(db.Model):
+    __tablename__ = 'dashboard'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    name = db.Column('name', db.String(), nullable=False)
+    description = db.Column('description', db.String(), nullable=False)
+    created_at = db.Column('created_at', db.DateTime(timezone=True), default=func.now())
+    url = db.Column('url', db.String())
+    mission_id = db.Column('mission_id', db.Integer(), db.ForeignKey('missions.id'), nullable=False)
+    mission = db.relationship('Mission', backref=db.backref('dashboard'))

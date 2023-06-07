@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block head %}
+{{ super() }}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+{% endblock %}
+{% block page_content %}
+<section class="section" id="app">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">เพิ่มประวัติตำแหน่งทางวิชาการ</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <div class="box">
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ชื่อ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="control">
+                                <select class="js-example-basic" name="staff">
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ตำแหน่ง</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="control">
+                                <div class="field">
+                                    <div class="select">
+                                        <select name="position_id">
+                                            {% for p in position %}
+                                                <option value="{{ p.id }}">
+                                                    {{ p.fullname_th }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">วันที่ได้รับแต่งตั้ง</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control has-icons-left">
+                                    <input name="appointed_date" id="appointed_date" class="input">
+                                    <span class="icon is-small is-left">
+                                       <i class="far fa-calendar-alt"></i>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a href="{{ url_for('staff.staff_index') }}" class="button is-light">ยกเลิก</a>
+                        </div>
+                        <div class="control">
+                                <input type="submit" value="บันทึก" class="button is-primary"/>
+                        </div>
+                    </div>
+                    </div>
+                    <div class="box">
+                    <div>
+                        <table class="table is-fullwidth is-striped" id="academicTable">
+                            <thead>
+                            <th>ชื่อ</th>
+                            <th>ตำแหน่งทางวิชาการ</th>
+                            <th>วันที่ได้รับแต่งตั้ง</th>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                    </div>
+                </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script>
+    moment.locale('th')
+    $(document).ready(()=> {
+        let table = $('#academicTable').DataTable(
+            {
+                ajax: "/staff/api/academic-records",
+                columns: [
+                    {
+                        data: 'fullname'
+                    },
+                    {
+                        data: 'appointed_at',
+                        render: function(data, type, row) {
+                            if (data != '') {
+                                let d = moment(data)
+                                return d.format('LL')
+                            } else {
+                                return '-'
+                            }
+                        }
+                    },
+                    {
+                        data: 'position'
+                    }
+                ]
+            }
+        );
+        $('.js-example-basic').select2({
+            width: '400px',
+            ajax: {
+                url: "{{ url_for('staff.get_all_employees', group='academic') }}",
+                dataType: "json"
+            }
+        });
+        $('.js-example-basic').on('select2:select', function(e) {
+            let employee = e.params.data
+            console.log(e.params.data)
+            table.ajax.url('/staff/api/academic-records/' + employee.id).load()
+        })
+        $('input[name="appointed_date"]').daterangepicker({
+        singleDatePicker: true,
+        timePicker: false,
+        startDate: moment().startOf('hour'),
+        locale: {
+            format: 'DD/MM/YYYY'
+        }
+    });
+    });
+</script>
+{% endblock %}
+
+

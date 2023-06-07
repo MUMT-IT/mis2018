@@ -27,7 +27,6 @@ class CreateAccountForm(ModelForm):
     upload = FileField(u'อัพโหลดไฟล์')
     formats = RadioField(u'รูปแบบหลักการ',
                          choices=[(c, c) for c in [u'หลักการตามขั้นตอนปกติ', u'รายงานผลจัดซื้อกรณีจำเป็นเร่งด่วนฯ']],
-                         coerce=unicode,
                          validators=[DataRequired()])
 
 

@@ -20,12 +20,6 @@ class StaffSeminarForm(ModelForm):
     class Meta:
         model = StaffSeminar
 
-    missions = QuerySelectMultipleField(u'พัฒนาในด้าน', get_label='mission', validators=[DataRequired()],
-                                        query_factory=lambda: StaffSeminarMission.query.all(),
-                                        widget=widgets.ListWidget(prefix_label=False),
-                                        option_widget=widgets.CheckboxInput()
-                                        )
-
 
 def create_seminar_attend_form(current_user):
     class StaffSeminarAttendForm(ModelForm):

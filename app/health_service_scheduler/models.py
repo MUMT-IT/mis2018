@@ -79,12 +79,12 @@ class SmartNested(Nested):
         return super(SmartNested, self).serialize(attr, obj, accessor)
 
 
-class HealthServiceSiteSchema(ma.ModelSchema):
+class HealthServiceSiteSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = HealthServiceSite
 
 
-class HealthServiceSlotSchema(ma.ModelSchema):
+class HealthServiceSlotSchema(ma.SQLAlchemyAutoSchema):
     site = SmartNested(HealthServiceSiteSchema)
     start = Function(lambda obj: time.mktime(obj.start.timetuple())*1000.0)
     end = Function(lambda obj: time.mktime(obj.end.timetuple())*1000.0)
@@ -93,18 +93,18 @@ class HealthServiceSlotSchema(ma.ModelSchema):
         sqla_session = db.session
 
 
-class HealthServiceBookingSchema(ma.ModelSchema):
+class HealthServiceBookingSchema(ma.SQLAlchemyAutoSchema):
     slot = SmartNested(HealthServiceSlotSchema)
     class Meta:
         model = HealthServiceBooking
         sqla_session = db.session
 
 
-class HealthServiceAppUserSchema(ma.ModelSchema):
+class HealthServiceAppUserSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = HealthServiceAppUser
 
 
-class HealthServiceServiceSchema(ma.ModelSchema):
+class HealthServiceServiceSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = HealthServiceService

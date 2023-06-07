@@ -6,14 +6,14 @@
 {% endblock %}
 {% block page_content %}
 <section class="section">
-    <div class="container">
+    <div class="container" id="app">
         {% include "messages.html" %}
         <div class="columns">
             <div class="column has-text-left">
                 <h1 class="title">รายการประชุม อบรม สัมมนา</h1>
             </div>
             <div class="column has-text-right">
-                <a href="{{ url_for('staff.create_seminar') }}" class="button is-rounded is-info">
+                <a href="{{ url_for('staff.create_seminar') }}" class="button is-rounded is-warning">
                     <span class="icon">
                         <i class="fas fa-plus"></i>
                     </span>
@@ -82,6 +82,37 @@
             </div>
         </div>
         <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <div class="box">
+                <form method="post">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <div class="control">
+                        <h4 class="title">Downloadรายการอบรม</h4>
+                        <b-field label="เลือกช่วงวันที่ต้องการ">
+                            <b-datepicker
+                                required
+                                name="dates"
+                                v-model="selectedDates"
+                                range
+                                icon-pack="fa"
+                                :date-formatter="formatDate"
+                                :mobile-native="false"
+                                placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                icon="calendar-alt">
+                            </b-datepicker>
+                        </b-field>
+                    </div>
+                    <hr>
+                    <div class="field is-grouped">
+                        <div class="control">
+                            <input type="submit" value="DOWNLOAD" class="button is-success"/>
+                        </div>
+                    </div>
+                </form>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
             <div class="column">
                 <a href="{{ url_for('staff.seminar') }}" class="button is-rounded is-info is-light">
                     <span class="icon">
@@ -101,4 +132,22 @@
         $('#seminarTable').DataTable();
     });
 </script>
+<script>
+    new Vue({
+        el: '#app',
+        delimiters: ['<%', '%>'],
+        data() {
+            return {
+                selectedDates: [],
+            }
+        },
+        methods: {
+            formatDate(dates){
+                    let start = new moment(dates[0]).format("DD/MM/YYYY")
+                    let end = new moment(dates[1]).format("DD/MM/YYYY")
+                    return start + ' - ' + end
+            }
+        }
+    });
+    </script>
 {% endblock %}
