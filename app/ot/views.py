@@ -1,7 +1,5 @@
 # -*- coding:utf-8 -*-
-import wtforms
 from flask_login import login_required, current_user
-from pandas import DataFrame
 import pytz
 import requests
 import os
@@ -9,13 +7,12 @@ from sqlalchemy import cast, Date, extract, and_
 
 from werkzeug.utils import secure_filename
 
-from models import *
-from forms import *
+from app.ot.forms import *
 from . import otbp as ot
-from app.main import db, get_weekdays, app, func, StaffPersonalInfo, StaffSpecialGroup, StaffShiftSchedule, \
-    StaffWorkLogin, StaffLeaveRequest
-from app.models import Holidays, Org
-from flask import jsonify, render_template, request, redirect, url_for, flash, session, send_from_directory
+from app.main import (db, func, StaffPersonalInfo, StaffSpecialGroup,
+                      StaffShiftSchedule, StaffWorkLogin, StaffLeaveRequest)
+from app.models import Org
+from flask import jsonify, render_template, request, redirect, url_for, flash
 from pydrive.auth import ServiceAccountCredentials, GoogleAuth
 from pydrive.drive import GoogleDrive
 from datetime import date, datetime

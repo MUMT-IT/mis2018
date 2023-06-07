@@ -22,11 +22,10 @@ from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
-from wtforms.validators import required
 from flask_mail import Mail
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from flask_restful import Api, Resource
+from flask_restful import Api
 
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 
@@ -109,8 +108,9 @@ api = Api(app)
 
 
 # user_loader_callback_loader has renamed to user_lookup_loader in >=4.0
-@jwt.user_loader_callback_loader
+@jwt.user_lookup_loader
 def user_lookup_callback(identity):
+    # TODO: Need to allow loading a client from other services.
     return ScbPaymentServiceApiClientAccount.get_account_by_id(identity)
 
 
@@ -168,7 +168,7 @@ def index():
 
 json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()
 
-from kpi import kpibp as kpi_blueprint
+from app.kpi import kpibp as kpi_blueprint
 
 app.register_blueprint(kpi_blueprint, url_prefix='/kpi')
 
@@ -192,23 +192,23 @@ class KPIAdminModel(ModelView):
                    'updated_at', 'updated_by', 'name')
 
 
-from events import event_bp as event_blueprint
+from app import models
+
+from app.events import event_bp as event_blueprint
 
 app.register_blueprint(event_blueprint, url_prefix='/events')
 
-from models import KPI
+admin.add_views(KPIAdminModel(models.KPI, db.session, category='KPI'))
 
-admin.add_views(KPIAdminModel(KPI, db.session, category='KPI'))
-
-from studs import studbp as stud_blueprint
+from app.studs import studbp as stud_blueprint
 
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
-from food import foodbp as food_blueprint
+from app.food import foodbp as food_blueprint
 
 app.register_blueprint(food_blueprint, url_prefix='/food')
-from food.models import (Person, Farm, Produce, PesticideTest,
-                         BactTest, ParasiteTest)
+from app.food.models import (Person, Farm, Produce, PesticideTest,
+                             BactTest, ParasiteTest)
 
 admin.add_views(ModelView(Person, db.session, category='Food'))
 admin.add_views(ModelView(Farm, db.session, category='Food'))
@@ -217,18 +217,18 @@ admin.add_views(ModelView(PesticideTest, db.session, category='Food'))
 admin.add_views(ModelView(BactTest, db.session, category='Food'))
 admin.add_views(ModelView(ParasiteTest, db.session, category='Food'))
 
-from research import researchbp as research_blueprint
+from app.research import researchbp as research_blueprint
 
 app.register_blueprint(research_blueprint, url_prefix='/research')
-from research.models import *
+from app.research.models import *
 
 admin.add_views(ModelView(ResearchPub, db.session, category='Research'))
 admin.add_views(ModelView(Author, db.session, category='Research'))
 
-from procurement import procurementbp as procurement_blueprint
+from app.procurement import procurementbp as procurement_blueprint
 
 app.register_blueprint(procurement_blueprint, url_prefix='/procurement')
-from procurement.models import *
+from app.procurement.models import *
 
 admin.add_views(ModelView(ProcurementDetail, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementCategory, db.session, category='Procurement'))
@@ -245,7 +245,7 @@ admin.add_views(ModelView(ProcurementSurveyComputer, db.session, category='Procu
 admin.add_views(ModelView(ProcurementBorrowDetail, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementBorrowItem, db.session, category='Procurement'))
 
-from purchase_tracker import purchase_tracker_bp as purchase_tracker_blueprint
+from app.purchase_tracker import purchase_tracker_bp as purchase_tracker_blueprint
 
 app.register_blueprint(purchase_tracker_blueprint, url_prefix='/purchase_tracker')
 from app.purchase_tracker.models import *
@@ -255,7 +255,7 @@ admin.add_views(ModelView(PurchaseTrackerStatus, db.session, category='PurchaseT
 admin.add_views(ModelView(PurchaseTrackerActivity, db.session, category='PurchaseTracker'))
 admin.add_views(ModelView(PurchaseTrackerForm, db.session, category='PurchaseTracker'))
 
-from receipt_printing import receipt_printing_bp as receipt_printing_blueprint
+from app.receipt_printing import receipt_printing_bp as receipt_printing_blueprint
 
 app.register_blueprint(receipt_printing_blueprint, url_prefix='/receipt_printing')
 from app.receipt_printing.models import *
@@ -272,28 +272,28 @@ admin.add_views(ModelView(ElectronicReceiptItem, db.session, category='ReceiptPr
 admin.add_views(ModelView(ElectronicReceiptRequest, db.session, category='ReceiptPrinting'))
 admin.add_views(ElectronicReceiptGLModel(ElectronicReceiptGL, db.session, category='ReceiptPrinting'))
 
-from instruments import instrumentsbp as instruments_blueprint
+from app.instruments import instrumentsbp as instruments_blueprint
 
 app.register_blueprint(instruments_blueprint, url_prefix='/instruments')
 
-from instruments.models import *
+from app.instruments.models import *
 
 admin.add_views(ModelView(InstrumentsBooking, db.session, category='Instruments'))
 
 
-from alumni import alumnibp as alumni_blueprint
+from app.alumni import alumnibp as alumni_blueprint
 
 app.register_blueprint(alumni_blueprint, url_prefix='/alumni')
 
-from alumni.models import *
+from app.alumni.models import *
 
 admin.add_views(ModelView(AlumniInformation, db.session, category='Alumni'))
 
-from staff import staffbp as staff_blueprint
+from app.staff import staffbp as staff_blueprint
 
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
-from staff.models import *
+from app.staff.models import *
 
 admin.add_views(ModelView(Role, db.session, category='Permission'))
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
@@ -364,10 +364,10 @@ admin.add_view(LoginDataUploadView(
     category='Human Resource')
 )
 
-from ot import otbp as ot_blueprint
+from app.ot import otbp as ot_blueprint
 
 app.register_blueprint(ot_blueprint, url_prefix='/ot')
-from ot.models import *
+from app.ot.models import *
 
 admin.add_views(ModelView(OtPaymentAnnounce, db.session, category='OT'))
 admin.add_views(ModelView(OtCompensationRate, db.session, category='OT'))
@@ -375,17 +375,22 @@ admin.add_views(ModelView(OtDocumentApproval, db.session, category='OT'))
 admin.add_views(ModelView(OtRecord, db.session, category='OT'))
 admin.add_views(ModelView(OtRoundRequest, db.session, category='OT'))
 
-from room_scheduler import roombp as room_blueprint
+from app.room_scheduler import roombp as room_blueprint
 
 app.register_blueprint(room_blueprint, url_prefix='/room')
-from room_scheduler.models import *
+from app.room_scheduler.models import *
 
-from vehicle_scheduler import vehiclebp as vehicle_blueprint
+from app.vehicle_scheduler import vehiclebp as vehicle_blueprint
 
 app.register_blueprint(vehicle_blueprint, url_prefix='/vehicle')
-from vehicle_scheduler.models import *
+from app.vehicle_scheduler.models import *
 
-admin.add_views(ModelView(RoomResource, db.session, category='Physicals'))
+
+class RoomModelView(ModelView):
+    can_view_details = True
+    form_excluded_columns = ['items', 'reservations', 'equipments']
+
+admin.add_views(RoomModelView(RoomResource, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomEvent, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomType, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomAvailability, db.session, category='Physicals'))
@@ -395,46 +400,32 @@ admin.add_view(ModelView(VehicleResource, db.session, category='Physicals'))
 admin.add_view(ModelView(VehicleAvailability, db.session, category='Physicals'))
 admin.add_view(ModelView(VehicleType, db.session, category='Physicals'))
 
-from auth import authbp as auth_blueprint
+from app.auth import authbp as auth_blueprint
 from app.roles import admin_permission
 
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-from models import (Student, Class, ClassCheckIn,
-                    Org, OrgStructure, Mission, IOCode, CostCenter,
-                    StudentCheckInRecord, Holidays, Dashboard)
+from app.models import (Org, OrgStructure, Mission, Holidays, Dashboard)
 
 admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
 
-from line import linebot_bp as linebot_blueprint
+from app.line import linebot_bp as linebot_blueprint
 
 app.register_blueprint(linebot_blueprint, url_prefix='/linebot')
 
-import database
+from app import database
 
-
-class StudentCheckInAdminModel(ModelView):
-    can_create = True
-    form_columns = ('id', 'classchk', 'check_in_time', 'check_in_status', 'elapsed_mins')
-    column_list = ('id', 'classchk', 'check_in_time', 'check_in_status', 'elapsed_mins')
-
-
-admin.add_view(ModelView(Student, db.session, category='Student Affairs'))
-admin.add_view(ModelView(ClassCheckIn, db.session, category='Student Affairs'))
-admin.add_view(ModelView(Class, db.session, category='Student Affairs'))
-admin.add_view(StudentCheckInAdminModel(
-    StudentCheckInRecord, db.session, category='Student Affairs'))
-
+admin.add_view(ModelView(models.Student, db.session, category='Student Affairs'))
 admin.add_view(ModelView(Org, db.session, category='Organization'))
 admin.add_view(ModelView(Mission, db.session, category='Organization'))
 admin.add_view(ModelView(Dashboard, db.session, category='Organization'))
 admin.add_view(ModelView(OrgStructure, db.session, category='Organization'))
 
-from asset import assetbp as asset_blueprint
+from app.asset import assetbp as asset_blueprint
 
 app.register_blueprint(asset_blueprint, url_prefix='/asset')
 
-from asset.models import *
+from app.asset.models import *
 
 admin.add_view(ModelView(AssetItem, db.session, category='Asset'))
 
@@ -445,7 +436,7 @@ class IOCodeAdminModel(ModelView):
     column_list = ('id', 'cost_center', 'mission', 'org', 'name', 'is_active')
 
 
-admin.add_view(IOCodeAdminModel(IOCode, db.session, category='Finance'))
+admin.add_view(IOCodeAdminModel(models.IOCode, db.session, category='Finance'))
 
 
 class CostCenterAdminModel(ModelView):
@@ -454,14 +445,14 @@ class CostCenterAdminModel(ModelView):
     column_list = ('id',)
 
 
-admin.add_view(CostCenterAdminModel(CostCenter, db.session, category='Finance'))
+admin.add_view(CostCenterAdminModel(models.CostCenter, db.session, category='Finance'))
 
-from lisedu import lisedu as lis_blueprint
+from app.lisedu import lisedu as lis_blueprint
 
 app.register_blueprint(lis_blueprint, url_prefix='/lis')
 
-from eduqa import eduqa_bp as eduqa_blueprint
-from eduqa.models import *
+from app.eduqa import eduqa_bp as eduqa_blueprint
+from app.eduqa.models import *
 
 app.register_blueprint(eduqa_blueprint, url_prefix='/eduqa')
 admin.add_view(ModelView(EduQACourseCategory, db.session, category='EduQA'))
@@ -472,13 +463,13 @@ admin.add_view(ModelView(EduQACurriculumnRevision, db.session, category='EduQA')
 admin.add_view(ModelView(EduQAInstructorRole, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQACourseSessionDetailRoleItem, db.session, category='EduQA'))
 
-from chemdb import chemdbbp as chemdb_blueprint
-import chemdb.models
+from app.chemdb import chemdbbp as chemdb_blueprint
+from app.chemdb.models import *
 
 app.register_blueprint(chemdb_blueprint, url_prefix='/chemdb')
 
-from comhealth import comhealth as comhealth_blueprint
-from comhealth.models import *
+from app.comhealth import comhealth as comhealth_blueprint
+from app.comhealth.models import *
 
 app.register_blueprint(comhealth_blueprint, url_prefix='/comhealth')
 admin.add_view(ModelView(ComHealthTestProfile, db.session, category='Com Health'))
@@ -508,11 +499,11 @@ admin.add_view(ModelView(ComHealthConsentRecord, db.session, category='Com Healt
 class ComHealthTestModelView(ModelView):
     form_args = {
         'name': {
-            'validators': [required()]
+            'validators': [InputRequired()]
         },
         'code': {
             'label': 'Test code',
-            'validators': [required()]
+            'validators': [InputRequired()]
         }
     }
 
@@ -520,7 +511,7 @@ class ComHealthTestModelView(ModelView):
 class ComHealthContainerModelView(ModelView):
     form_args = {
         'name': {
-            'validators': [required()]
+            'validators': [InputRequired()]
         }
     }
     form_choices = {
@@ -533,7 +524,7 @@ class ComHealthContainerModelView(ModelView):
 class ComHealthDepartmentModelView(ModelView):
     form_args = {
         'name': {
-            'validators': [required()]
+            'validators': [InputRequired()]
         }
     }
 
@@ -542,7 +533,7 @@ admin.add_view(ComHealthTestModelView(ComHealthTest, db.session, category='Com H
 admin.add_view(ComHealthContainerModelView(ComHealthContainer, db.session, category='Com Health'))
 admin.add_view(ComHealthDepartmentModelView(ComHealthDepartment, db.session, category='Com Health'))
 
-from pdpa import pdpa_blueprint
+from app.pdpa import pdpa_blueprint
 
 app.register_blueprint(pdpa_blueprint, url_prefix='/pdpa')
 
@@ -558,18 +549,18 @@ class CoreServiceModelView(ModelView):
 
 admin.add_view(CoreServiceModelView(CoreService, db.session, category='PDPA'))
 
-from smartclass_scheduler import smartclass_scheduler_blueprint
+from app.smartclass_scheduler import smartclass_scheduler_blueprint
 
 app.register_blueprint(smartclass_scheduler_blueprint, url_prefix='/smartclass')
-from smartclass_scheduler.models import (SmartClassOnlineAccount,
-                                         SmartClassResourceType,
-                                         SmartClassOnlineAccountEvent)
+from app.smartclass_scheduler.models import (SmartClassOnlineAccount,
+                                             SmartClassResourceType,
+                                             SmartClassOnlineAccountEvent)
 
 admin.add_view(ModelView(SmartClassOnlineAccount, db.session, category='Smartclass'))
 admin.add_view(ModelView(SmartClassResourceType, db.session, category='Smartclass'))
 admin.add_view(ModelView(SmartClassOnlineAccountEvent, db.session, category='Smartclass'))
 
-from comhealth.views import CustomerEmploymentTypeUploadView
+from app.comhealth.views import CustomerEmploymentTypeUploadView
 
 admin.add_view(CustomerEmploymentTypeUploadView(
     name='Upload employment types',
@@ -590,7 +581,7 @@ app.register_blueprint(health_service_blueprint, url_prefix='/health-service-sch
 
 # Restful APIs
 
-from health_service_scheduler.apis import *
+from app.health_service_scheduler.apis import *
 
 api.add_resource(HealthServiceSiteListResource, '/api/v1.0/hscheduler/sites')
 api.add_resource(HealthServiceSiteResource, '/api/v1.0/hscheduler/sites/<int:id>')
@@ -608,8 +599,8 @@ admin.add_view(ModelView(HealthServiceTimeSlot, db.session, category='HealthSche
 admin.add_view(ModelView(HealthServiceService, db.session, category='HealthScheduler'))
 admin.add_view(ModelView(HealthServiceSite, db.session, category='HealthScheduler'))
 
-from doc_circulation.models import *
-from doc_circulation import docbp as doc_blueprint
+from app.doc_circulation.models import *
+from app.doc_circulation import docbp as doc_blueprint
 
 app.register_blueprint(doc_blueprint, url_prefix='/docs')
 
@@ -623,18 +614,19 @@ admin.add_view(ModelView(DocReceiveRecord, db.session, category='Docs Circulatio
 admin.add_view(ModelView(DocSendOut, db.session, category='Docs Circulation'))
 admin.add_view(ModelView(DocOrg, db.session, category='Docs Circulation'))
 
-from data_blueprint import data_bp as data_blueprint
+from app.data_blueprint import data_bp as data_blueprint
 
 app.register_blueprint(data_blueprint, url_prefix='/data-blueprint')
 
-from scb_payment_service import scb_payment as scb_payment_blueprint
+from app.scb_payment_service import scb_payment as scb_payment_blueprint
 
 app.register_blueprint(scb_payment_blueprint)
 
-from scb_payment_service.models import *
+from app.scb_payment_service.models import *
 
 admin.add_view(ModelView(ScbPaymentServiceApiClientAccount, db.session, category='SCB Payment Service'))
 admin.add_view(ModelView(ScbPaymentRecord, db.session, category='SCB Payment Service'))
+
 
 # Commands
 
@@ -647,7 +639,7 @@ def populatedb():
     database.load_activities()
 
 
-from database import load_students
+from app.database import load_students
 
 
 @dbutils.command('add-update-staff-finger-print-gsheet')
@@ -758,7 +750,8 @@ def import_procurement_data():
         idx, row = record
         item = ProcurementDetail.query.filter_by(procurement_no=str(row['procurement_no'])).first()
         if row['purchasing_type_id']:
-            purchasing_type = ProcurementPurchasingType.query.filter_by(fund=int(str(row['purchasing_type_id'])[0])).first()
+            purchasing_type = ProcurementPurchasingType.query.filter_by(
+                fund=int(str(row['purchasing_type_id'])[0])).first()
         else:
             purchasing_type = None
         if not item:
@@ -934,29 +927,7 @@ def import_students(excelfile):
 
 app.cli.add_command(dbutils)
 
-
-@app.cli.command()
-def populate_classes():
-    klass = Class(refno='MTID101',
-                  th_class_name=u'การเรียนรู้เพื่อการเปลี่ยงแปลงสำหรับ MT',
-                  en_class_name='Transformative learning for MT',
-                  academic_year='2560')
-    db.session.add(klass)
-    db.session.commit()
-
-
-@app.cli.command()
-def populate_checkin():
-    class_checkin = ClassCheckIn(
-        class_id=1,
-        deadline='10:00:00',
-        late_mins=15,
-    )
-    db.session.add(class_checkin)
-    db.session.commit()
-
-
-from database import load_provinces, load_districts, load_subdistricts
+from app.database import load_provinces, load_districts, load_subdistricts
 
 
 @app.cli.command()
@@ -1219,7 +1190,7 @@ def update_cumulative_leave_quota(year1, year2):
 
             start_fiscal_date = tz.localize(datetime(int(year1), 10, 1))
             end_fiscal_date = tz.localize(datetime(int(year2), 9, 30))
-            used_quota.pending_days = used_quota.staff.personal_info\
+            used_quota.pending_days = used_quota.staff.personal_info \
                 .get_total_pending_leaves_request(quota.id, start_fiscal_date, end_fiscal_date)
 
         db.session.add(used_quota)

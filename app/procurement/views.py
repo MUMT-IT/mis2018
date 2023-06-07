@@ -1,5 +1,5 @@
 # -*- coding:utf-8 -*-
-import cStringIO
+import io
 import os, requests
 from base64 import b64decode
 
@@ -448,7 +448,7 @@ def list_qrcode():
                 item.generate_qrcode()
 
             decoded_img = b64decode(item.qrcode)
-            img_string = cStringIO.StringIO(decoded_img)
+            img_string = io.StringIO(decoded_img)
             img_string.seek(0)
             data.append(Image(img_string, 50 * mm, 30 * mm, kind='bound'))
             data.append(Paragraph('<para align=center leading=10><font size=13>{}</font></para>'
@@ -534,7 +534,7 @@ def export_qrcode_pdf(procurement_id):
         procurement.generate_qrcode()
 
     decoded_img = b64decode(procurement.qrcode)
-    img_string = cStringIO.StringIO(decoded_img)
+    img_string = io.StringIO(decoded_img)
     img_string.seek(0)
     im = Image(img_string, 50 * mm, 30 * mm, kind='bound')
     data.append(im)

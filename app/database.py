@@ -1,15 +1,16 @@
-from datetime import datetime
-from sqlalchemy.sql import func
-from main import db
 import pandas as pd
-from chemdb.models import ChemItem
-from staff.models import StaffAccount, StaffPersonalInfo
-from models import (Org, Strategy, StrategyTactic,
-                        StrategyTheme, StrategyActivity)
+from pandas import read_excel
+from app.main import db
+from app.chemdb.models import ChemItem
+from app.staff.models import StaffAccount, StaffPersonalInfo
+from app.models import (Org, Strategy, StrategyTactic,
+                        Province, District, Subdistrict,
+                        StrategyTheme, StrategyActivity, Student)
+
 
 def load_orgs():
     import pandas as pd
-    data  = pd.read_excel('staff.xlsx', names=['id', 'name', 'parent', 'head'],  header=None)
+    data = pd.read_excel('staff.xlsx', names=['id', 'name', 'parent', 'head'], header=None)
     for row in data.iterrows():
         idx, d = row
         parent = None if pd.isna(d['parent']) else int(d['parent'])
@@ -25,8 +26,8 @@ def load_orgs():
 
 def load_strategy():
     import pandas as pd
-    data  = pd.read_excel('kpi.xlsx', header=None,
-                names=['id', 'content', 'owner_id'], sheet_name='strategy_list')
+    data = pd.read_excel('kpi.xlsx', header=None,
+                         names=['id', 'content', 'owner_id'], sheet_name='strategy_list')
     for idx, rec in data.iterrows():
         org = Org.query.get(rec['owner_id'])
         s = Strategy(refno=str(rec['id']), org=org, content=rec['content'])
@@ -40,7 +41,7 @@ def load_tactics():
     for idx, rec in data.iterrows():
         s = Strategy.query.get(rec['strategy_id'])
         t = StrategyTactic(refno=str(int(rec['tactic_refno'])),
-                        strategy=s, content=rec['tactic_content'])
+                           strategy=s, content=rec['tactic_content'])
         db.session.add(t)
     db.session.commit()
 
@@ -51,7 +52,7 @@ def load_themes():
     for idx, rec in data.iterrows():
         tactic = StrategyTactic.query.get(rec['tactic_id'])
         theme = StrategyTheme(refno=str(rec['theme_refno']),
-                    tactic=tactic, content=rec['theme_content'])
+                              tactic=tactic, content=rec['theme_content'])
         db.session.add(theme)
     db.session.commit()
 
@@ -62,29 +63,25 @@ def load_activities():
     for idx, rec in data.iterrows():
         theme = StrategyTheme.query.get(rec['theme_id'])
         activity = StrategyActivity(refno=str(rec['activity_refno']),
-                    theme=theme, content=rec['activity_content'])
+                                    theme=theme, content=rec['activity_content'])
         db.session.add(activity)
     db.session.commit()
 
 
-from main import db
-from models import Student
-from pandas import read_excel
 def load_students(excelfile):
     data = read_excel(excelfile, header=None,
-        names=['refno', 'uid', 'title', 'firstname', 'lastname'])
+                      names=['refno', 'uid', 'title', 'firstname', 'lastname'])
     for _, row in data.iterrows():
         student = Student(refno=row['refno'],
-                            th_first_name=row['firstname'],
-                            th_last_name=row['lastname'],
-                            id=row['uid'],
-                            title=row['title']
-                            )
+                          th_first_name=row['firstname'],
+                          th_last_name=row['lastname'],
+                          id=row['uid'],
+                          title=row['title']
+                          )
         db.session.add(student)
     db.session.commit()
 
 
-from models import Province, District, Subdistrict
 def load_provinces():
     data = read_excel('data/tambon.xlsx')
     data['changwat'] = \
@@ -93,7 +90,7 @@ def load_provinces():
     for _, row in data[['changwat', 'CH_ID']].iterrows():
         if str(row['CH_ID']) not in added_ps:
             p = Province(code=str(row['CH_ID']),
-                        name=unicode(row['changwat']))
+                         name=str(row['changwat']))
             db.session.add(p)
             added_ps.add(str(row['CH_ID']))
     db.session.commit()
@@ -107,9 +104,9 @@ def load_districts():
     for _, row in data[['amphoe', 'AM_ID', 'CH_ID']].iterrows():
         if str(row['AM_ID']) not in added_items:
             p = Province.query.filter(
-                    Province.code==str(row['CH_ID'])).first()
+                Province.code == str(row['CH_ID'])).first()
             d = District(code=str(row['AM_ID']),
-                    name=row['amphoe'])
+                         name=row['amphoe'])
             db.session.add(d)
             added_items.add(str(row['AM_ID']))
             p.districts.append(d)
@@ -124,9 +121,9 @@ def load_subdistricts():
     for _, row in data[['tambon', 'TA_ID', 'AM_ID']].iterrows():
         if str(row['TA_ID']) not in added_items:
             a = District.query.filter(
-                    District.code==str(row['AM_ID'])).first()
+                District.code == str(row['AM_ID'])).first()
             d = Subdistrict(code=str(row['TA_ID']),
-                    name=row['tambon'])
+                            name=row['tambon'])
             db.session.add(d)
             added_items.add(str(row['TA_ID']))
             a.subdistricts.append(d)
@@ -166,9 +163,10 @@ def load_chem_items(excel_file):
             db.session.add(citem)
         db.session.commit()
 
+
 def load_staff_list(excel_file):
     df = pd.read_excel(excel_file)
-    for idx,row in df.iterrows():
+    for idx, row in df.iterrows():
         if pd.isna(row['email']):
             continue
         acnt = StaffAccount.query.filter_by(email=row['email']).first()

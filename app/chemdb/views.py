@@ -2,8 +2,8 @@
 from flask import render_template, flash, redirect, url_for, request
 from . import chemdbbp as chemdb
 from app.main import db
-from models import ChemItem
-from forms import ChemItemForm
+from app.chemdb.models import ChemItem
+from app.chemdb.forms import ChemItemForm
 
 
 @chemdb.route('/')

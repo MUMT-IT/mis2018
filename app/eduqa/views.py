@@ -2,13 +2,13 @@
 import pandas as pd
 from datetime import datetime
 
-from flask import render_template, request, flash, redirect, url_for, session, jsonify
+from flask import render_template, request, flash, redirect, url_for, session, jsonify, make_response
 from flask_login import current_user, login_required
 from sqlalchemy.orm import make_transient
 from sqlalchemy import extract
 
 from . import eduqa_bp as edu
-from forms import *
+from app.eduqa.forms import *
 from ..staff.models import StaffPersonalInfo
 
 from pytz import timezone
@@ -440,6 +440,10 @@ def add_session(course_id):
     InstructorForm = create_instructors_form(course)
     form = InstructorForm()
     if request.method == 'POST':
+        for event_form in form.events:
+            event_form.start.data = form.start.data
+            event_form.end.data = form.end.data
+            event_form.title.data = f'{course.en_code}'
         if form.validate_on_submit():
             new_session = EduQACourseSession()
             form.populate_obj(new_session)
@@ -470,6 +474,11 @@ def edit_session(course_id, session_id):
     InstructorForm = create_instructors_form(course)
     form = InstructorForm(obj=a_session)
     if request.method == 'POST':
+        for event_form in form.events:
+            if event_form.room.data:
+                event_form.start.data = form.start.data
+                event_form.end.data = form.end.data
+                event_form.title.data = f'{course.en_code}'
         if form.validate_on_submit():
             form.populate_obj(a_session)
             a_session.course = course
@@ -487,8 +496,9 @@ def edit_session(course_id, session_id):
             flash(u'แก้ไขรายการสอนเรียบร้อยแล้ว', 'success')
             return redirect(url_for('eduqa.show_course_detail', course_id=course.id))
         else:
-            flash(u'เกิดปัญหาในการบันทึกข้อมูล', 'warning')
-    return render_template('eduqa/QA/session_edit.html', form=form, course=course, localtz=localtz)
+            for field, error in form.errors.items():
+                flash('{}: {}'.format(field, error), 'danger')
+    return render_template('eduqa/QA/session_edit.html', form=form, course=course, session_id=session_id, localtz=localtz)
 
 
 @edu.route('/qa/courses/<int:course_id>/sessions/<int:session_id>/duplicate', methods=['GET', 'POST'])
@@ -622,6 +632,77 @@ def delete_session_topic(course_id):
     return template
 
 
+@edu.route('/api/qa/courses/<int:course_id>/sessions/rooms', methods=['POST'])
+@login_required
+def add_session_room_event(course_id):
+    course = EduQACourse.query.get(course_id)
+    EduCourseSessionForm = create_instructors_form(course)
+    form = EduCourseSessionForm()
+    form.events.append_entry()
+    event_form = form.events[-1]
+    template = u"""
+    <div id="{}">
+        <div class="field">
+            <label class="label">{}</label>
+            {}
+            <span id="availability-{}"></span>
+        </div>
+        <div class="field">
+            <label class="label">{}</label>
+            <div class="control">
+            {}
+            </div>
+        </div>
+    <div>
+    """
+    resp = template.format(event_form.name,
+                           event_form.room.label,
+                           event_form.room(class_="js-example-basic-single"),
+                           event_form.room.name,
+                           event_form.request.label,
+                           event_form.request(class_="input"),
+                           )
+    resp = make_response(resp)
+    resp.headers['HX-Trigger-After-Swap'] = 'activateSelect2js'
+    return resp
+
+
+@edu.route('/api/qa/courses/<int:course_id>/sessions/rooms', methods=['DELETE'])
+@login_required
+def remove_session_room_event(course_id):
+    course = EduQACourse.query.get(course_id)
+    EduCourseSessionForm = create_instructors_form(course)
+    form = EduCourseSessionForm()
+    form.events.pop_entry()
+    resp = ''
+    for event_form in form.events:
+        template = u"""
+        <div id="{}" hx-preserve>
+            <div class="field">
+                <label class="label">{}</label>
+                {}
+                <span id="availability-{}"></span>
+            </div>
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                {}
+                </div>
+            </div>
+        </div>
+        """.format(event_form.name,
+                   event_form.room.label,
+                   event_form.room(class_="js-example-basic-single"),
+                   event_form.room.name,
+                   event_form.request.label,
+                   event_form.request(class_="input")
+                   )
+        resp += template
+    if len(form.events.entries) == 0:
+        resp = '<p>ไม่มีการใช้ห้องสำหรับกิจกรรม</p>'
+    resp = make_response(resp)
+    return resp
+
 @edu.route('/api/qa/courses/<int:course_id>/sessions/<int:session_id>/roles', methods=['POST'])
 @login_required
 def add_session_role(course_id, session_id):
@@ -647,7 +728,7 @@ def add_session_role(course_id, session_id):
     return template.format(role_form.role_item.label,
                            role_form.role_item(),
                            role_form.detail.label,
-                           role_form.detail(class_="textarea"))
+                           role_form.detail(class_="input"))
 
 
 @edu.route('/api/qa/courses/<int:course_id>/sessions/<int:session_id>/roles', methods=['DELETE'])

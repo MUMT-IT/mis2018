@@ -9,46 +9,54 @@
 {% include "scheduler/nav.html" %}
 {% block page_content %}
 <section class="section">
-    <h1 class="title"><a href="{{ url_for('room.index') }}">Room Scheduler</a></h1>
+    <h1 class="title"><a href="{{ url_for('room.index') }}">Room Self-Booking System</a></h1>
     <h2 class="subtitle">ระบบการจองห้องสำหรับการประชุมหรือการเรียนการสอน รุ่น 2.0</h2>
     <div class="columns">
-        <div class="column is-two-thirds is-offset-2">
+        <div class="column has-text-centered">
             {% include "messages.html" %}
         </div>
     </div>
-    <div class="box">
-        <div class="columns">
-            <div class="column">
-                <div class="buttons is-centered">
-                    <a id="add_evt_btn" class="button is-info" href="{{ url_for('room.new_event') }}">
+    <div class="columns">
+        <div class="column">
+            <div class="buttons is-centered">
+                <a id="add_evt_btn" class="button is-info" href="{{ url_for('room.new_event') }}">
+                <span class="icon">
+                    <i class="far fa-calendar-plus"></i>
+                </span>
+                    <span>
+                    จองห้อง
+                </span>
+                </a>
+                <a class="button is-primary is-outlined"
+                   href="{{ url_for('room.event_list', list_type='timelineDay') }}">
                     <span class="icon">
-                        <i class="far fa-calendar-plus"></i>
+                        <i class="fas fa-list-ol"></i>
                     </span>
-                        <span>
-                        จองห้อง
+                    <span>
+                        มุมมองแบบวัน
                     </span>
-                    </a>
-                    <a class="button is-primary is-outlined"
-                       href="{{ url_for('room.event_list', list_type='timelineDay') }}">
-                        <span class="icon">
-                            <i class="fas fa-list-ol"></i>
-                        </span>
-                        <span>
-                            มุมมองแบบวัน
-                        </span>
-                    </a>
-                    <a class="button is-primary is-outlined"
-                       href="{{ url_for('room.event_list', list_type='agendaWeek') }}">
-                        <span class="icon">
-                            <i class="far fa-eye"></i>
-                        </span>
-                        <span>
-                            มุมมองแบบสัปดาห์
-                        </span>
-                    </a>
-                </div>
-                <div id="room_calendar"></div>
+                </a>
+                <a class="button is-primary is-outlined"
+                   href="{{ url_for('room.event_list', list_type='agendaWeek') }}">
+                    <span class="icon">
+                        <i class="far fa-eye"></i>
+                    </span>
+                    <span>
+                        มุมมองแบบสัปดาห์
+                    </span>
+                </a>
             </div>
+            <div id="room_calendar"></div>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column has-text-centered">
+            <a class="button is-danger" href="{{ url_for('room.room_event_list') }}">
+                <span class="icon">
+                    <i class="fa-solid fa-user-tie"></i>
+                </span>
+                <span>ผู้ประสานงาน/ดูแลห้อง</span>
+            </a>
         </div>
     </div>
 </section>

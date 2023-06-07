@@ -1,6 +1,6 @@
 from flask import jsonify
 from . import assetbp as asset
-from models import AssetItem
+from app.asset.models import AssetItem
 
 
 @asset.route('/api/room/extra-items')

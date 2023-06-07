@@ -4,7 +4,7 @@ from flask_wtf import FlaskForm
 from flask_wtf.file import FileField
 from wtforms import SelectMultipleField, widgets, BooleanField
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
-from .models import *
+from app.doc_circulation.models import *
 
 
 BaseModelForm = model_form_factory(FlaskForm)
