@@ -10,7 +10,6 @@ from app.room_scheduler.models import RoomResource, RoomEvent
 from app.staff.models import (StaffAcademicPositionRecord,
                               StaffAcademicPosition,
                               StaffEduDegree)
-from sqlalchemy import and_
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -114,6 +113,20 @@ def create_instructors_form(course):
         events = FieldList(FormField(RoomEventForm, default=RoomEvent), min_entries=0)
 
     return EduCourseSessionForm
+
+
+def create_assignment_instructors_form(course):
+    class EduCourseAssignmentSessionForm(ModelForm):
+        class Meta:
+            model = EduQACourseAssignmentSession
+
+        instructors = QuerySelectMultipleField(u'ผู้รับผิดชอบ',
+                                               get_label='fullname',
+                                               query_factory=lambda: course.instructors,
+                                               widget=widgets.ListWidget(prefix_label=False),
+                                               option_widget=widgets.CheckboxInput())
+
+    return EduCourseAssignmentSessionForm
 
 
 def CourseSessionDetailRoleFormFactory(format):

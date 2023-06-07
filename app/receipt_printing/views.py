@@ -84,31 +84,33 @@ def list_add_items():
     item_form = form.items[-1]
     form_text = '<table class="table is-bordered is-fullwidth is-narrow">'
     form_text += u'''
-    <div class="field">
-        <label class="label">{}</label>
-        <div class="control">
-            {}
+    <div id={}>
+        <div class="field">
+            <label class="label">{}</label>
+            <div class="control">
+                {}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{}</label>
+            <div class="control">
+                {}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{}</label>
+                {}
+        </div>
+        <div class="field">
+            <label class="label">{}</label>
+                {}
+        </div>
+        <div class="field">
+            <label class="label">{}</label>
+                {}
         </div>
     </div>
-    <div class="field">
-        <label class="label">{}</label>
-        <div class="control">
-            {}
-        </div>
-    </div>
-    <div class="field">
-        <label class="label">{}</label>
-            {}
-    </div>
-    <div class="field">
-        <label class="label">{}</label>
-            {}
-    </div>
-    <div class="field">
-        <label class="label">{}</label>
-            {}
-    </div>
-    '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label,
+    '''.format(item_form.name, item_form.item.label, item_form.item(class_="input"), item_form.price.label,
                item_form.price(class_="input", placeholder=u"฿",
                                **{'hx-post': url_for("receipt_printing.update_amount"),
                                   'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount',
@@ -118,7 +120,7 @@ def list_add_items():
                item_form.internal_order_code.label, item_form.internal_order_code()
                )
     resp = make_response(form_text)
-    resp.headers['HX-Trigger-After-Swap'] = 'update_amount'
+    resp.headers['HX-Trigger-After-Swap'] = 'initSelect2Input'
     return resp
 
 
@@ -127,7 +129,10 @@ def update_amount():
     form = ReceiptDetailForm()
     total_amount = 0.0
     for item in form.items.entries:
-        total_amount += float(item.price.data)
+        if item.price.data:
+            total_amount += float(item.price.data)
+        else:
+            print(item.name)
     return form.paid_amount(class_="input", readonly=True, value=total_amount)
 
 
@@ -142,31 +147,33 @@ def delete_items():
     form_text = ''
     for item_form in form.items.entries:
         form_text += u'''
-    <div class="field">
-        <label class="label">{}</label>
-        <div class="control">
-            {}
+    <div id={} hx-preserve>
+        <div class="field">
+            <label class="label">{}</label>
+            <div class="control">
+                {}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">{}</label>
+            <div class="control">
+                {}
+            </div>
+        </div>
+        <div class="field" hx-preserve>
+            <label class="label">{}</label>
+                {}
+        </div>
+        <div class="field" hx-preserve>
+            <label class="label">{}</label>
+                {}
+        </div>
+        <div class="field" hx-preserve>
+            <label class="label">{}</label>
+                {}
         </div>
     </div>
-    <div class="field">
-        <label class="label">{}</label>
-        <div class="control">
-            {}
-        </div>
-    </div>
-    <div class="field">
-        <label class="label">{}</label>
-            {}
-    </div>
-    <div class="field">
-        <label class="label">{}</label>
-            {}
-    </div>
-    <div class="field">
-        <label class="label">{}</label>
-            {}
-    </div>
-    '''.format(item_form.item.label, item_form.item(class_="input"), item_form.price.label,
+    '''.format(item_form.name, item_form.item.label, item_form.item(class_="input"), item_form.price.label,
                item_form.price(class_="input", placeholder=u"฿"),
                item_form.gl.label, item_form.gl(),
                item_form.cost_center.label, item_form.cost_center(),
