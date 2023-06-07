@@ -2,13 +2,15 @@
 
 from flask_wtf import FlaskForm
 from wtforms import SelectMultipleField, widgets, FieldList, FormField, IntegerField, HiddenField
+from wtforms.validators import Optional, ValidationError
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField, ModelFormField, \
     ModelFieldList
-from app.main import db
-from models import *
+from app.eduqa.models import *
+from app.room_scheduler.models import RoomResource, RoomEvent
 from app.staff.models import (StaffAcademicPositionRecord,
                               StaffAcademicPosition,
                               StaffEduDegree)
+from sqlalchemy import and_
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -85,6 +87,18 @@ class EduCourseSessionTopicForm(ModelForm):
         model = EduQACourseSessionTopic
 
 
+class RoomEventForm(ModelForm):
+    class Meta:
+        model = RoomEvent
+        field_args = {
+            'start': {'validators': [Optional()]},
+            'end': {'validators': [Optional()]},
+            'title': {'validators': [Optional()]}
+        }
+    room = QuerySelectField('ห้อง', query_factory=lambda: RoomResource.query.all(),
+                            allow_blank=True, blank_text='กรุณาเลือกห้อง')
+
+
 def create_instructors_form(course):
     class EduCourseSessionForm(ModelForm):
         class Meta:
@@ -97,6 +111,7 @@ def create_instructors_form(course):
                                                option_widget=widgets.CheckboxInput())
         topics = FieldList(FormField(EduCourseSessionTopicForm,
                                      default=EduQACourseSessionTopic), min_entries=1)
+        events = FieldList(FormField(RoomEventForm, default=RoomEvent), min_entries=0)
 
     return EduCourseSessionForm
 

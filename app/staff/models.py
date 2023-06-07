@@ -3,15 +3,12 @@
 from sqlalchemy import func
 
 from ..main import db, ma
-from werkzeug import generate_password_hash, check_password_hash
-from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from marshmallow import fields
 from app.models import Org, OrgSchema, OrgStructure
-from datetime import datetime, timedelta
-from app.main import get_weekdays
-import numpy as np
+from datetime import datetime
 
 today = datetime.today()
 
@@ -137,7 +134,7 @@ class StaffAccount(db.Model):
         return False
 
     def get_id(self):
-        return unicode(self.id)
+        return str(self.id)
 
     def __str__(self):
         return u'{}'.format(self.email)
@@ -181,8 +178,8 @@ class StaffPersonalInfo(db.Model):
             academic_position = self.academic_positions[0]
         except IndexError:
             if self.academic_staff:
-                th_position = u'อาจารย์'
-                en_position = u'Lecturer'
+                th_position = u'อ.'
+                en_position = u'Lect.'
             else:
                 th_position = None
                 en_position = None
@@ -565,30 +562,30 @@ class StaffLeaveApproval(db.Model):
                                backref=db.backref('approved_requests'))
 
 
-class StaffPersonalInfoSchema(ma.ModelSchema):
+class StaffPersonalInfoSchema(ma.SQLAlchemyAutoSchema):
     org = fields.Nested(OrgSchema)
 
     class Meta:
         model = StaffPersonalInfo
 
 
-class StaffAccountSchema(ma.ModelSchema):
+class StaffAccountSchema(ma.SQLAlchemyAutoSchema):
     personal_info = fields.Nested(StaffPersonalInfoSchema)
 
 
-class StaffLeaveTypeSchema(ma.ModelSchema):
+class StaffLeaveTypeSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = StaffLeaveType
 
 
-class StaffLeaveQuotaSchema(ma.ModelSchema):
+class StaffLeaveQuotaSchema(ma.SQLAlchemyAutoSchema):
     leave_type = fields.Nested(StaffLeaveTypeSchema)
 
     class Meta:
         model = StaffLeaveQuota
 
 
-class StaffLeaveRequestSchema(ma.ModelSchema):
+class StaffLeaveRequestSchema(ma.SQLAlchemyAutoSchema):
     staff = fields.Nested(StaffAccountSchema)
     quota = fields.Nested(StaffLeaveQuotaSchema)
 
@@ -685,7 +682,7 @@ class StaffWorkFromHomeCheckedJob(db.Model):
                 return approval.approval_comment
 
 
-class StaffWorkFromHomeRequestSchema(ma.ModelSchema):
+class StaffWorkFromHomeRequestSchema(ma.SQLAlchemyAutoSchema):
     staff = fields.Nested(StaffAccountSchema)
 
     class Meta:

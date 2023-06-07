@@ -11,7 +11,7 @@ from flask_login import login_user, current_user, logout_user, login_required
 from flask_principal import Identity, identity_changed, AnonymousIdentity, identity_loaded, UserNeed
 from app.staff.models import StaffAccount, StaffLeaveApprover
 from .forms import LoginForm, ForgotPasswordForm, ResetPasswordForm
-from itsdangerous import TimedJSONWebSignatureSerializer
+from itsdangerous import TimedSerializer as TimedJSONWebSignatureSerializer
 import requests
 from linebot import (LineBotApi, WebhookHandler)
 
@@ -48,13 +48,11 @@ def on_identity_loaded(sender, identity):
 @auth.route('/login', methods=['GET', 'POST'])
 def login():
     if current_user.is_authenticated:
-        next = request.args.get('next')
-        if not is_safe_url(next):
-            return abort(400)
-        if next:
-            return redirect(next)
+        next_url = request.args.get('next', url_for('auth.account'))
+        if is_safe_url(next_url):
+            return redirect(next_url)
         else:
-            return redirect(url_for('auth.account'))
+            return abort(400)
 
     linking_line = True if request.args.get('linking_line') == 'yes' else False
 
@@ -68,11 +66,12 @@ def login():
                 status = login_user(user, form.remember_me.data)
                 identity_changed.send(current_app._get_current_object(), identity=Identity(user.id))
                 # session.pop('_flashes', None)  # this line clears all unconsumed flash messages.
-                next = request.args.get('next')
-                if not is_safe_url(next):
+                next_url = request.args.get('next', url_for('index'))
+                if not is_safe_url(next_url):
                     return abort(400)
-                flash(u'You have just logged in. ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
-                return redirect(next or url_for('index'))
+                else:
+                    flash(u'You have just logged in. ลงทะเบียนเข้าใช้งานเรียบร้อย', 'success')
+                    return redirect(next_url)
             else:
                 flash(u'Wrong password, try again. รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง', 'danger')
                 return redirect(url_for('auth.login'))

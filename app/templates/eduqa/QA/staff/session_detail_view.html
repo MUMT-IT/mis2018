@@ -79,6 +79,15 @@
                     <a href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}" class="button is-light">
                         Back
                     </a>
+                    {% if instructor.account == current_user %}
+                    <a class="button"
+                       href="{{ url_for('eduqa.add_session_detail', course_id=course.id, session_id=a_session.id) }}">
+                        <span class="icon">
+                            <i class="far fa-star has-text-warning"></i>
+                        </span>
+                        <span>Workpoint</span>
+                    </a>
+                    {% endif %}
                 </div>
             </div>
         </div>

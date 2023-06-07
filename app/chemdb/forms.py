@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from wtforms_alchemy import model_form_factory
 from app.main import db
-from models import ChemItem
+from app.chemdb.models import ChemItem
 
 BaseModelForm = model_form_factory(FlaskForm)
 

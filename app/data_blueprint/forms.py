@@ -3,6 +3,7 @@ from flask_wtf import FlaskForm
 from wtforms import widgets, SelectField
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
 from app.models import Mission, Org, CoreService, Process, Data, KPI, Dataset, ROPA, DataSubject
+from app.main import db
 
 BaseModelForm = model_form_factory(FlaskForm)
 

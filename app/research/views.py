@@ -9,9 +9,9 @@ import requests
 from flask import request, render_template, jsonify
 from pandas import DataFrame
 from . import researchbp as research
-from models import APIKey, ResearchPub, Country, Author, Affiliation, ScopusAuthorID, SubjectArea
-from ..staff.models import StaffAccount, StaffPersonalInfo
-from ..main import db, json_keyfile, csrf
+from app.research.models import APIKey, ResearchPub, Country, Author, Affiliation, ScopusAuthorID, SubjectArea
+from app.staff.models import StaffPersonalInfo
+from app.main import db, json_keyfile, csrf
 from sqlalchemy import extract
 
 usr = os.environ.get('PROXY_USER')

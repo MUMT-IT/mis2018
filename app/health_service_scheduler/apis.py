@@ -1,7 +1,7 @@
 from flask import jsonify
 
 from flask_restful import Resource, abort
-from models import *
+from app.health_service_scheduler.models import *
 
 
 class HealthServiceSiteListResource(Resource):
