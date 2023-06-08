@@ -1489,29 +1489,8 @@ def leave_request_result_by_person():
 @login_required
 def leave_request_by_person_detail(requester_id):
     requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id)
-    # quota = StaffLeaveQuota.query.get(quota_id)
-    # used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
-    #                                                          tz.localize(END_FISCAL_DATE))
-    #
-    # delta = current_user.personal_info.get_employ_period_of_current_fiscal_year()
-    # max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
-    # if delta.years > 0:
-    #     if max_cum_quota:
-    #         last_quota = StaffLeaveRemainQuota.query.filter(and_
-    #                                                         (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-    #                                                          StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year - 1),
-    #                                                          StaffLeaveRemainQuota.staff_account_id == current_user.id)).first()
-    #         if last_quota:
-    #             last_year_quota = last_quota.last_year_quota
-    #         else:
-    #             last_year_quota = 0
-    #         before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
-    #         quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
-    #     else:
-    #         quota_limit = quota.max_per_year
-    # else:
-    #     quota_limit = quota.first_year
-    return render_template('staff/leave_request_by_person_detail.html', requester=requester,
+    quota = StaffLeaveUsedQuota.query.filter_by(staff_account_id=requester_id).all()
+    return render_template('staff/leave_request_by_person_detail.html', requester=requester, quota=quota,
                            START_FISCAL_DATE=START_FISCAL_DATE, END_FISCAL_DATE=END_FISCAL_DATE)
 
 
