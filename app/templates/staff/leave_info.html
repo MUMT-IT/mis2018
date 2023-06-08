@@ -35,7 +35,7 @@
                     </div>
             </div>
         <div class="columns">
-            {% for type,quota in quota_days.iteritems()|sort %}
+            {% for type,quota in quota_days.items()|sort %}
                 <div class="column">
                     <nav class="panel is-info">
                         <a href="{{ url_for('staff.request_for_leave_info', quota_id=quota.id) }}">
