@@ -212,7 +212,7 @@ def request_for_leave(quota_id=None):
                                                        StaffLeaveRequest.start_datetime == start_datetime,
                                                        StaffLeaveRequest.quota == quota,
                                                        StaffLeaveRequest.cancelled_at == None)).first():
-                    flash(u'ท่านได้มีการขอลาในวันดังกล่าวแล้ว')
+                    flash('ท่านได้มีการขอลาในวันดังกล่าวแล้ว')
                     return redirect(url_for('staff.request_for_leave_info', quota_id=quota_id))
                 else:
                     req = StaffLeaveRequest(
@@ -240,13 +240,13 @@ def request_for_leave(quota_id=None):
                     else:
                         upload_file_id = None
                     if start_datetime.date() <= END_FISCAL_DATE.date() < end_datetime.date():
-                        flash(u'ไม่สามารถลาข้ามปีงบประมาณได้ กรุณาส่งคำร้องแยกกัน 2 ครั้ง โดยแยกตามปีงบประมาณ')
+                        flash('ไม่สามารถลาข้ามปีงบประมาณได้ กรุณาส่งคำร้องแยกกัน 2 ครั้ง โดยแยกตามปีงบประมาณ')
                         resp = make_response()
                         resp.headers['HX-Redirect'] = request.referrer
                         return resp
                     delta = start_datetime.date() - datetime.today().date()
                     if delta.days > 0 and not quota.leave_type.request_in_advance:
-                        flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
+                        flash('ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
                         resp = make_response()
                         resp.headers['HX-Redirect'] = request.referrer
                         return resp
@@ -265,13 +265,13 @@ def request_for_leave(quota_id=None):
                     req_duration = req_duration - len(holidays)
                     delta = current_user.personal_info.get_employ_period()
                     if req_duration == 0:
-                        flash(u'วันลาตรงกับวันหยุด')
+                        flash('วันลาตรงกับวันหยุด')
                         resp = make_response()
                         resp.headers['HX-Redirect'] = request.referrer
                         return resp
                     if quota.max_per_leave:
                         if req_duration >= quota.max_per_leave and upload_file_id is None:
-                            flash(u'ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ', 'danger')
+                            flash('ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ', 'danger')
                             resp = make_response()
                             resp.headers['HX-Redirect'] = request.referrer
                             return resp
@@ -356,17 +356,17 @@ def request_for_leave(quota_id=None):
                             )
                             db.session.add(new_used_quota)
                             db.session.commit()
-                        flash(u'ส่งคำขอของท่านเรียบร้อยแล้ว (The request has been sent.)', 'success')
+                        flash('ส่งคำขอของท่านเรียบร้อยแล้ว (The request has been sent.)', 'success')
                         resp = make_response()
                         resp.headers['HX-Redirect'] = url_for('staff.request_for_leave_info', quota_id=quota_id)
                         return resp
                     else:
-                        flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ (The quota is exceeded.)', 'danger')
+                        flash('วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ (The quota is exceeded.)', 'danger')
                         resp = make_response()
                         resp.headers['HX-Redirect'] = request.referrer
                         return resp
             else:
-                flash(u'ไม่พบข้อมูลในระบบฐานข้อมูล (Leave quota not found)', 'danger')
+                flash('ไม่พบข้อมูลในระบบฐานข้อมูล (Leave quota not found)', 'danger')
                 resp = make_response()
                 resp.headers['HX-Redirect'] = request.referrer
                 return resp
@@ -436,7 +436,7 @@ def request_for_leave_period(quota_id=None):
                 end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
                 delta = start_datetime.date() - datetime.today().date()
                 if delta.days > 0 and not quota.leave_type.request_in_advance:
-                    flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
+                    flash('ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
                     return redirect(request.referrer)
                 START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(start_datetime)
                 used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
@@ -445,7 +445,7 @@ def request_for_leave_period(quota_id=None):
                     (quota.id, tz.localize(START_FISCAL_DATE), tz.localize(END_FISCAL_DATE))
                 if StaffLeaveRequest.query. \
                         filter_by(staff_account_id=current_user.id, start_datetime=start_datetime).first():
-                    flash(u'ท่านได้มีการขอลาในวันดังกล่าวแล้ว')
+                    flash('ท่านได้มีการขอลาในวันดังกล่าวแล้ว')
                     return redirect(url_for('staff.request_for_leave_info', quota_id=quota_id))
                 else:
                     req = StaffLeaveRequest(
@@ -455,12 +455,12 @@ def request_for_leave_period(quota_id=None):
                     )
                     req_duration = get_weekdays(req)
                     if req_duration == 0:
-                        flash(u'วันลาตรงกับเสาร์-อาทิตย์')
+                        flash('วันลาตรงกับเสาร์-อาทิตย์')
                         return redirect(request.referrer)
                     holidays = Holidays.query.filter(Holidays.holiday_date == start_datetime.date()).all()
                     req_duration = req_duration - len(holidays)
                     if req_duration <= 0:
-                        flash(u'วันลาตรงกับวันหยุด')
+                        flash('วันลาตรงกับวันหยุด')
                         return redirect(request.referrer)
                     delta = current_user.personal_info.get_employ_period()
 
@@ -535,10 +535,10 @@ def request_for_leave_period(quota_id=None):
                             )
                             db.session.add(new_used_quota)
                             db.session.commit()
-                        flash(u'ส่งคำขอของท่านเรียบร้อยแล้ว', 'success')
+                        flash('ส่งคำขอของท่านเรียบร้อยแล้ว', 'success')
                         return redirect(url_for('staff.request_for_leave_info', quota_id=quota_id))
                     else:
-                        flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
+                        flash('วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
                         return redirect(request.referrer)
             else:
                 return 'Error happened'
@@ -671,14 +671,14 @@ def edit_leave_request(req_id=None):
             req.end_datetime = tz.localize(end_datetime)
             START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(req.start_datetime)
             if start_datetime <= END_FISCAL_DATE and end_datetime > END_FISCAL_DATE:
-                flash(u'ไม่สามารถลาข้ามปีงบประมาณได้ กรุณาส่งคำร้องแยกกัน 2 ครั้ง โดยแยกตามปีงบประมาณ')
+                flash('ไม่สามารถลาข้ามปีงบประมาณได้ กรุณาส่งคำร้องแยกกัน 2 ครั้ง โดยแยกตามปีงบประมาณ')
                 return redirect(request.referrer)
             if request.form.get('traveldates'):
                 start_travel_dt, end_travel_dt = request.form.get('traveldates').split(' - ')
                 start_travel_datetime = datetime.strptime(start_travel_dt, '%d/%m/%Y')
                 end_travel_datetime = datetime.strptime(end_travel_dt, '%d/%m/%Y')
                 if not (start_travel_datetime <= start_datetime and end_travel_datetime >= end_datetime):
-                    flash(u'ช่วงเวลาเดินทาง ไม่ครอบคลุมวันที่ต้องการขอลา กรุณาตรวจสอบอีกครั้ง', "danger")
+                    flash('ช่วงเวลาเดินทาง ไม่ครอบคลุมวันที่ต้องการขอลา กรุณาตรวจสอบอีกครั้ง', "danger")
                     return redirect(request.referrer)
                 else:
                     req.start_travel_datetime = tz.localize(start_travel_datetime)
@@ -703,7 +703,7 @@ def edit_leave_request(req_id=None):
                     upload_file_id = None
             delta = start_datetime.date() - datetime.today().date()
             if delta.days > 0 and not quota.leave_type.request_in_advance:
-                flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
+                flash('ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
                 return redirect(request.referrer)
                 # retrieve cum periods
             used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
@@ -716,12 +716,11 @@ def edit_leave_request(req_id=None):
             req_duration = req_duration - len(holidays)
             delta = current_user.personal_info.get_employ_period()
             if req_duration == 0:
-                flash(u'วันลาตรงกับวันหยุด')
+                flash('วันลาตรงกับวันหยุด')
                 return redirect(request.referrer)
             if quota.max_per_leave:
                 if req_duration > quota.max_per_leave and upload_file_id is None:
-                    flash(
-                        u'ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ')
+                    flash('ไม่สามารถลาป่วยเกินสามวันได้โดยไม่มีใบรับรองแพทย์ประกอบ')
                     return redirect(request.referrer)
                 else:
                     if delta.years > 0:
@@ -786,10 +785,10 @@ def edit_leave_request(req_id=None):
                     )
                     db.session.add(new_used_quota)
                     db.session.commit()
-                flash(u'แก้ไขคำขอของท่านเรียบร้อยแล้ว', 'success')
+                flash('แก้ไขคำขอของท่านเรียบร้อยแล้ว', 'success')
                 return redirect(url_for('staff.request_for_leave_info', quota_id=req.leave_quota_id))
             else:
-                flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ', 'warning')
+                flash('วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ', 'warning')
                 return redirect(request.referrer)
         else:
             return 'Error happened'
@@ -822,7 +821,7 @@ def edit_leave_request_period(req_id=None):
             end_datetime = datetime.strptime(end_dt, '%d/%m/%Y %H:%M')
             delta = start_datetime - datetime.today()
             if delta.days > 0 and not quota.leave_type.request_in_advance:
-                flash(u'ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
+                flash('ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
                 return redirect(request.referrer)
 
             START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(start_datetime)
@@ -833,13 +832,13 @@ def edit_leave_request_period(req_id=None):
 
             holidays = Holidays.query.filter(Holidays.holiday_date == start_datetime.date()).all()
             if len(holidays) > 0:
-                flash(u'วันลาตรงกับวันหยุด')
+                flash('วันลาตรงกับวันหยุด')
                 return redirect(request.referrer)
             req.start_datetime = tz.localize(start_datetime)
             req.end_datetime = tz.localize(end_datetime)
             req_duration = get_weekdays(req)
             if req_duration == 0:
-                flash(u'วันลาตรงกับเสาร์-อาทิตย์')
+                flash('วันลาตรงกับเสาร์-อาทิตย์')
                 return redirect(request.referrer)
             # if duration not exceeds quota
             delta = current_user.personal_info.get_employ_period()
@@ -891,10 +890,10 @@ def edit_leave_request_period(req_id=None):
                     )
                     db.session.add(new_used_quota)
                     db.session.commit()
-                flash(u'แก้ไขคำขอของท่านเรียบร้อยแล้ว', 'success')
+                flash('แก้ไขคำขอของท่านเรียบร้อยแล้ว', 'success')
                 return redirect(url_for('staff.request_for_leave_info', quota_id=req.leave_quota_id))
             else:
-                flash(u'วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
+                flash('วันลาที่ต้องการลา เกินจำนวนวันลาคงเหลือ')
                 return redirect(request.referrer)
         else:
             return 'Error happened'
@@ -954,7 +953,7 @@ def show_leave_approval_info_download():
     df = DataFrame(records)
     summary = df.pivot_table(index='name', columns='leave_type', aggfunc=len, fill_value=0)
     summary.to_excel('leave_summary.xlsx')
-    flash(u'ดาวน์โหลดไฟล์เรียบร้อยแล้ว ชื่อไฟล์ leave_summary.xlsx', 'success')
+    flash('ดาวน์โหลดไฟล์เรียบร้อยแล้ว ชื่อไฟล์ leave_summary.xlsx', 'success')
     return send_from_directory(os.getcwd(), 'leave_summary.xlsx')
 
 
@@ -1007,7 +1006,7 @@ def leave_approve(req_id, approver_id):
     if request.method == 'POST':
         req = StaffLeaveRequest.query.get(req_id)
         if StaffLeaveApproval.query.filter_by(request_id=req_id, approver_id=approver_id).first():
-            flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที')
+            flash('อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที')
         else:
             comment = request.form.get('approval_comment')
             approval = StaffLeaveApproval(
@@ -1072,7 +1071,7 @@ def leave_approve(req_id, approver_id):
                 db.session.add(new_used_quota)
                 db.session.commit()
 
-            flash(u'อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที')
+            flash('อนุมัติการลาให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที')
             if approval.is_approved is True:
                 approve_msg = u'การขออนุมัติ{} ระหว่างวันที่ {} ถึงวันที่ {} ได้รับการอนุมัติโดย {} เรียบร้อยแล้ว รายละเอียดเพิ่มเติม {}' \
                               u'\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
@@ -1138,10 +1137,10 @@ def request_cancel_leave_request(req_id):
                 send_mail([approval.approver.account.email + "@mahidol.ac.th"], req_title, req_to_cancel_msg)
             else:
                 print(req_to_cancel_msg)
-        flash(u'ส่งคำขอยกเลิกการลาของท่านเรียบร้อยแล้ว', 'success')
+        flash('ส่งคำขอยกเลิกการลาของท่านเรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.request_for_leave_info', quota_id=req.leave_quota_id))
     else:
-        flash(u'ไม่สามารถส่งคำขอซ้ำภายใน 3 วันได้', 'warning')
+        flash('ไม่สามารถส่งคำขอซ้ำภายใน 3 วันได้', 'warning')
     return redirect(url_for('staff.show_leave_info'))
 
 
@@ -1594,7 +1593,7 @@ def request_work_from_home():
         else:
             print([approver.account.email + 'mahidol.ac.th'], req_title, req_msg)
 
-        flash(u'ส่งคำขอของท่านเรียบร้อยแล้ว (The request has been sent.)', 'success')
+        flash('ส่งคำขอของท่านเรียบร้อยแล้ว (The request has been sent.)', 'success')
         return redirect(url_for('staff.show_work_from_home'))
     else:
         return render_template('staff/wfh_request.html')
@@ -1693,7 +1692,7 @@ def wfh_approve(req_id, approver_id):
         )
         db.session.add(approval)
         db.session.commit()
-        flash(u'อนุมัติ WFH ให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที', 'success')
+        flash('อนุมัติ WFH ให้บุคลากรในสังกัดเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที', 'success')
 
         req = StaffWorkFromHomeRequest.query.get(req_id)
         if approval.is_approved is True:
@@ -2100,13 +2099,13 @@ def request_for_clockin_clockout():
                             print(req_msg, wfh_approver.account.id)
                     else:
                         print(wfh_approver.account.email, req_title, req_msg)
-                flash(u'ส่งคำขอเรียบร้อยแล้ว', 'success')
+                flash('ส่งคำขอเรียบร้อยแล้ว', 'success')
             else:
-                flash(u'ไม่สามารถส่งคำขอได้ เนื่องจากไม่พบผู้บังคับบัญชาชั้นต้น', 'danger')
+                flash('ไม่สามารถส่งคำขอได้ เนื่องจากไม่พบผู้บังคับบัญชาชั้นต้น', 'danger')
             return render_template('staff/checkin_request.html')
             #return render_template('staff/geo_checkin.html')
         else:
-            flash(u'ไม่สามารถส่งคำขอก่อนเวลาปัจจุบันได้', 'warning')
+            flash('ไม่สามารถส่งคำขอก่อนเวลาปัจจุบันได้', 'warning')
             return render_template('staff/checkin_request.html')
     return render_template('staff/checkin_request.html')
 
@@ -2142,7 +2141,7 @@ def approved_for_clockin_clockout(request_id):
             clock_request.cancelled_at = datetime.now(pytz.utc)
         db.session.add(clock_request)
         db.session.commit()
-        flash(u'บันทึกการขอรับรองการทำงานเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที', 'success')
+        flash('บันทึกการขอรับรองการทำงานเรียบร้อย หากเปิดบน Line สามารถปิดหน้าต่างนี้ได้ทันที', 'success')
 
         title = u'เข้างาน' if clock_request.is_checkin else u'กลับบ้าน'
         if clock_request.approved_at:
@@ -2737,7 +2736,7 @@ def create_shift_schedule():
         end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
         timedelta = end_datetime - start_datetime
         if timedelta.days < 0 or timedelta.seconds == 0:
-            flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
+            flash('วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
             return render_template('staff/shift_schedule_create_schedule.html', staff_list=staff_list)
         else:
             for staff_id in form.getlist("worker"):
@@ -2748,7 +2747,7 @@ def create_shift_schedule():
                 )
                 db.session.add(schedule)
             db.session.commit()
-            flash(u'เพิ่มเวลาปฏิบัติงานเรียบร้อยแล้ว', 'success')
+            flash('เพิ่มเวลาปฏิบัติงานเรียบร้อยแล้ว', 'success')
             return redirect(url_for('staff.shift_schedule'))
     return render_template('staff/shift_schedule_create_schedule.html', staff_list=staff_list)
 
@@ -2763,14 +2762,14 @@ def edit_shift_schedule(schedule_id):
         end_datetime = datetime.strptime(form.get('end_dt'), '%d/%m/%Y %H:%M')
         timedelta = end_datetime - start_datetime
         if timedelta.days < 0 or timedelta.seconds == 0:
-            flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
+            flash('วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
             return render_template('staff/shift_schedule_edit.html', schedule=schedule)
         else:
             schedule.start_datetime = tz.localize(start_datetime)
             schedule.end_datetime = tz.localize(end_datetime)
             db.session.add(schedule)
             db.session.commit()
-            flash(u'การแก้ไขถูกบันทึกเรียบร้อย', 'success')
+            flash('การแก้ไขถูกบันทึกเรียบร้อย', 'success')
             return redirect(url_for('staff.shift_schedule'))
     return render_template('staff/shift_schedule_edit.html', schedule=schedule)
 
@@ -3154,7 +3153,7 @@ def seminar_request_for_proposal(seminar_attend_id):
                     line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
             else:
                 print(req_msg, requester_email, line_id)
-            flash(u'ระบบบันทึกการอนุมัติของท่านแล้ว', 'success')
+            flash('ระบบบันทึกการอนุมัติของท่านแล้ว', 'success')
             return redirect(url_for('staff.show_seminar_proposal_info'))
     return render_template('staff/seminar_request_for_proposal_detail.html', seminar_attend=seminar_attend,
                            another_proposer=another_proposer, upload_file_url=upload_file_url,
@@ -3207,10 +3206,10 @@ def seminar_upload_proposal(seminar_attend_id, proposal_id):
             file_drive.Upload()
             permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
             upload_file_url = file_drive['id']
-            flash(u'Upload File เรียบร้อยแล้ว', 'success')
+            flash('Upload File เรียบร้อยแล้ว', 'success')
         else:
             upload_file_url = None
-            flash(u'Upload File ไม่สำเร็จ', 'warning')
+            flash('Upload File ไม่สำเร็จ', 'warning')
         this_proposal.upload_file_url = upload_file_url
         db.session.add(this_proposal)
         db.session.commit()
@@ -3235,7 +3234,7 @@ def seminar_upload_proposal(seminar_attend_id, proposal_id):
                 line_bot_api.push_message(to=general_account.line_id, messages=TextSendMessage(text=req_msg))
         else:
             print(req_msg, general_account.email)
-        flash(u'ระบบบันทึกการอนุมัติของท่านแล้ว', 'success')
+        flash('ระบบบันทึกการอนุมัติของท่านแล้ว', 'success')
         return redirect(url_for('staff.show_seminar_proposal_info'))
     return render_template('staff/seminar_upload_proposal.html', proposal=proposal, this_proposal=this_proposal,
                            registration_fee=registration_fee, seminar_attend=seminar_attend,
@@ -3294,7 +3293,7 @@ def seminar_add_attendee(seminar_id):
             db.session.add(attend)
             db.session.commit()
         attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
-        flash(u'เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
+        flash('เพิ่มผู้เข้าร่วมใหม่เรียบร้อยแล้ว', 'success')
         return render_template('staff/seminar_attend_info_for_hr.html', seminar=seminar, attends=attends)
     return render_template('staff/seminar_add_attendee.html', seminar=seminar, staff_list=staff_list)
 
@@ -3349,7 +3348,7 @@ def edit_seminar_info(seminar_id):
         seminar.is_online = True if form.getlist("online") else False
         db.session.add(seminar)
         db.session.commit()
-        flash(u'การแก้ไขถูกบันทึกเรียบร้อย', 'success')
+        flash('การแก้ไขถูกบันทึกเรียบร้อย', 'success')
         return redirect(url_for('staff.seminar_records'))
 
     return render_template('staff/seminar_edit_seminar_info.html', seminar=seminar)
@@ -3361,13 +3360,13 @@ def cancel_seminar(seminar_id):
     seminar = StaffSeminar.query.get(seminar_id)
     attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
     if attends:
-        flash(u'ไม่สามารถลบกิจกรรมนี้ได้ เนื่องจากมีข้อมูลผู้เข้าร่วมอยู่ในกิจกรรม จำเป็นต้องลบข้อมูลผู้เข้าร่วมก่อน',
+        flash('ไม่สามารถลบกิจกรรมนี้ได้ เนื่องจากมีข้อมูลผู้เข้าร่วมอยู่ในกิจกรรม จำเป็นต้องลบข้อมูลผู้เข้าร่วมก่อน',
               'danger')
     else:
         seminar.cancelled_at = tz.localize(datetime.today())
         db.session.add(seminar)
         db.session.commit()
-        flash(u'ลบกิจกรรมเรียบร้อยแล้ว', 'success')
+        flash('ลบกิจกรรมเรียบร้อยแล้ว', 'success')
     return redirect(url_for('staff.seminar_records'))
 
 
@@ -3447,7 +3446,7 @@ def staff_create_info():
         getemail = form.get('email')
         for staff in StaffAccount.query.all():
             if staff.email == getemail:
-                flash(u'มีบัญชีนี้อยู่ในระบบแล้ว', 'warning')
+                flash('มีบัญชีนี้อยู่ในระบบแล้ว', 'warning')
                 departments = Org.query.all()
                 employments = StaffEmployment.query.all()
                 return render_template('staff/staff_create_info.html', departments=departments, employments=employments)
@@ -3495,7 +3494,7 @@ def staff_create_info():
             db.session.add(new_used_quota)
             db.session.commit()
 
-        flash(u'เพิ่มบุคลากรเรียบร้อย และเพิ่มข้อมูล quota การลาให้กับพนักงานใหม่เรียบร้อย', 'success')
+        flash('เพิ่มบุคลากรเรียบร้อย และเพิ่มข้อมูล quota การลาให้กับพนักงานใหม่เรียบร้อย', 'success')
         staff = StaffPersonalInfo.query.get(createstaff.id)
         return render_template('staff/staff_show_info.html', staff=staff)
     departments = Org.query.all()
@@ -3584,9 +3583,9 @@ def staff_edit_info(staff_id):
                     db.session.add(type)
                     db.session.commit()
             else:
-                flash(u'บุคลากรท่านนี้ยังไม่มีข้อมูลประวัติการลา กรุณาแจ้งหน่วยสารสนเทศ เพื่อดำเนินการเพิ่มเติม',
+                flash('บุคลากรท่านนี้ยังไม่มีข้อมูลประวัติการลา กรุณาแจ้งหน่วยสารสนเทศ เพื่อดำเนินการเพิ่มเติม',
                       'danger')
-        flash(u'แก้ไขข้อมูลบุคลากรเรียบร้อย', 'success')
+        flash('แก้ไขข้อมูลบุคลากรเรียบร้อย', 'success')
         return render_template('staff/staff_show_info.html', staff=staff)
     return render_template('staff/staff_index.html')
 
@@ -3632,7 +3631,7 @@ def staff_add_academic_position():
         )
         db.session.add(add_position)
         db.session.commit()
-        flash(u'เพิ่มตำแหน่งทางวิชาการเรียบร้อยแล้ว', 'success')
+        flash('เพิ่มตำแหน่งทางวิชาการเรียบร้อยแล้ว', 'success')
         staff = StaffPersonalInfo.query.get(int(request.form.get('staff')))
         return render_template('staff/staff_show_info.html', staff=staff)
     return render_template('staff/staff_add_academic_position.html', position=position)
@@ -3657,7 +3656,7 @@ def staff_edit_pwd(staff_id):
         staff_email.password = form.get('pwd')
         db.session.add(staff_email)
         db.session.commit()
-        flash(u'แก้ไขรหัสผ่านเรียบร้อย')
+        flash('แก้ไขรหัสผ่านเรียบร้อย')
         return render_template('staff/staff_index.html')
     return render_template('staff/staff_search_to_change_pwd.html')
 
@@ -3689,7 +3688,7 @@ def staff_add_approver(approver_id):
         find_requester = StaffLeaveApprover.query.filter_by \
             (approver_account_id=approver_id, staff_account_id=staff_account_id).first()
         if find_requester:
-            flash(u'ไม่สามารถเพิ่มบุคลากรท่านนี้ได้ เนื่องจากมีข้อมูลบุคลากรท่านนี้อยู่แล้ว', 'warning')
+            flash('ไม่สามารถเพิ่มบุคลากรท่านนี้ได้ เนื่องจากมีข้อมูลบุคลากรท่านนี้อยู่แล้ว', 'warning')
         else:
             createrequester = StaffLeaveApprover(
                 staff_account_id=staff_account_id,
@@ -3697,7 +3696,7 @@ def staff_add_approver(approver_id):
             )
             db.session.add(createrequester)
             db.session.commit()
-            flash(u'เพิ่มบุคลากรเรียบร้อยแล้ว', 'success')
+            flash('เพิ่มบุคลากรเรียบร้อยแล้ว', 'success')
     approvers = StaffLeaveApprover.query.filter_by(approver_account_id=approver_id)
     return render_template('staff/leave_request_manage_approver.html', approvers=approvers)
 
@@ -3710,7 +3709,7 @@ def staff_approver_change_active_status(approver_id, requester_id):
     approver.is_active = True if not approver.is_active else False
     db.session.add(approver)
     db.session.commit()
-    flash(u'แก้ไขสถานะการอนุมัติเรียบร้อยแล้ว', 'success')
+    flash('แก้ไขสถานะการอนุมัติเรียบร้อยแล้ว', 'success')
     return redirect(request.referrer)
 
 
@@ -3723,7 +3722,7 @@ def staff_add_requester(requester_id):
         find_approver = StaffLeaveApprover.query.filter_by \
             (approver_account_id=approver_account_id, staff_account_id=requester_id).first()
         if find_approver:
-            flash(u'ไม่สามารถเพิ่มผู้อนุมัติได้เนื่องจากมีผู้อนุมัตินี้อยู่แล้ว', 'warning')
+            flash('ไม่สามารถเพิ่มผู้อนุมัติได้เนื่องจากมีผู้อนุมัตินี้อยู่แล้ว', 'warning')
         else:
             createapprover = StaffLeaveApprover(
                 approver_account_id=approver_account_id,
@@ -3731,7 +3730,7 @@ def staff_add_requester(requester_id):
             )
             db.session.add(createapprover)
             db.session.commit()
-            flash(u'เพิ่มผู้อนุมัติเรียบร้อยแล้ว', 'success')
+            flash('เพิ่มผู้อนุมัติเรียบร้อยแล้ว', 'success')
 
     requester = StaffLeaveApprover.query.filter_by(staff_account_id=requester_id)
     requester_name = StaffLeaveApprover.query.filter_by(staff_account_id=requester_id).first()
@@ -3775,7 +3774,7 @@ def add_leave_request_by_hr(staff_id):
 
         START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(start_datetime)
         if start_datetime.date() <= END_FISCAL_DATE.date() and end_datetime.date() > END_FISCAL_DATE.date():
-            flash(u'ไม่สามารถลาข้ามปีงบประมาณได้ กรุณาส่งคำร้องแยกกัน 2 ครั้ง โดยแยกตามปีงบประมาณ', 'warning')
+            flash('ไม่สามารถลาข้ามปีงบประมาณได้ กรุณาส่งคำร้องแยกกัน 2 ครั้ง โดยแยกตามปีงบประมาณ', 'warning')
             return render_template('staff/leave_request_add_by_hr.html',
                                    staff=staff, approvers=approvers, leave_types=leave_types)
         createleave = StaffLeaveRequest(
@@ -3812,7 +3811,7 @@ def add_leave_request_by_hr(staff_id):
         db.session.add(createleave)
         if form.get('moreapprovedAt'):
             if form.get('moreapprover_id') == form.get('approver_id'):
-                flash(u'ผู้อนุมัติเป็นคนเดียวกัน กรุณาตรวจสอบอีกครั้ง', 'danger')
+                flash('ผู้อนุมัติเป็นคนเดียวกัน กรุณาตรวจสอบอีกครั้ง', 'danger')
                 return render_template('staff/leave_request_add_by_hr.html',
                                        staff=staff, approvers=approvers, leave_types=leave_types)
         db.session.commit()
@@ -3934,7 +3933,7 @@ def add_leave_request_by_hr(staff_id):
         mails.append(staff_id.email + "@mahidol.ac.th")
         if not current_app.debug:
             send_mail(mails, req_title, req_msg)
-        flash(u'บันทึกการลาเรียบร้อยแล้ว', 'success')
+        flash('บันทึกการลาเรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.record_each_request_leave_request', request_id=createleave.id))
     return render_template('staff/leave_request_add_by_hr.html', staff=staff, approvers=approvers,
                            leave_types=leave_types)
@@ -4055,7 +4054,7 @@ def add_holiday():
         )
         db.session.add(holiday)
         db.session.commit()
-        flash(u'เพิ่มวันหยุดเรียบร้อยแล้ว', 'success')
+        flash('เพิ่มวันหยุดเรียบร้อยแล้ว', 'success')
         return render_template('staff/add_Holiday.html', holiday=holiday)
     return render_template('staff/add_Holiday.html', holiday=holiday)
 
@@ -4084,7 +4083,7 @@ def list_org_staff(org_id):
             staff.org = org
             db.session.add(staff)
         db.session.commit()
-        flash(u'เพิ่มบุคลากรเข้าสังกัดเรียบร้อยแล้ว', 'success')
+        flash('เพิ่มบุคลากรเข้าสังกัดเรียบร้อยแล้ว', 'success')
     return render_template('staff/org_staff.html', org=org, org_head_name=org_head_name)
 
 
@@ -4129,10 +4128,10 @@ def edit_org_head_email(org_id):
             org.head = email
             db.session.add(org)
             db.session.commit()
-            flash(u'แก้ไขชื่อหัวหน้าหน่วยงานเรียบร้อย', 'success')
+            flash('แก้ไขชื่อหัวหน้าหน่วยงานเรียบร้อย', 'success')
             return redirect(url_for('staff.list_org_staff', org_id=org_id))
         else:
-            flash(u'ไม่พบบัญชีที่ใช้อีเมล {} กรุณาตรวจสอบอีกครั้ง'.format(email), 'danger')
+            flash('ไม่พบบัญชีที่ใช้อีเมล {} กรุณาตรวจสอบอีกครั้ง'.format(email), 'danger')
     return render_template('staff/org_head_email_form.html', org_id=org_id)
 
 
