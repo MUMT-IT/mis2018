@@ -449,7 +449,7 @@ def list_to_cancel_receipt():
 def confirm_cancel_receipt(receipt_id):
     receipt = ElectronicReceiptDetail.query.get(receipt_id)
     if not receipt.cancelled:
-        return render_template('receipt_printing/confirm_cancel_receipt.html', receipt=receipt)
+        return render_template('receipt_printing/confirm_cancel_receipt.html', receipt=receipt, callback=request.referrer)
     return redirect(url_for('receipt_printing.list_all_receipts'))
 
 
