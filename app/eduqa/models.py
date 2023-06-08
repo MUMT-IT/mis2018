@@ -232,7 +232,8 @@ class EduQACourseAssignmentSession(db.Model):
     type_ = db.Column(db.String(255), info={'label': 'รูปแบบกิจกรรม',
                                             'choices': [(c, c) for c in
                                                         ('กรณีศึกษา', 'แบบทดสอบ', 'ทำรายงาน', 'ค้นหาข้อมูล')]})
-    desc = db.Column(db.Text())
+    title = db.Column('title', db.String(), nullable=False, info={'label': 'หัวข้อ/ชื่อกิจกรรม'})
+    desc = db.Column(db.Text(), info={'label': 'รายละเอียด'})
 
     course = db.relationship(EduQACourse, backref=db.backref('assignments', lazy='dynamic'))
     instructors = db.relationship('EduQAInstructor',
@@ -240,7 +241,7 @@ class EduQACourseAssignmentSession(db.Model):
                                   backref=db.backref('assignments', lazy='dynamic'))
     format = db.Column('format', db.String(), info={'label': 'รูปแบบ',
                                                     'choices': [(c, c) for c in ['งานเดี่ยว', 'งานกลุ่ม']]})
-    workhours = db.Column('workhours', db.Integer(), default=1)
+    workhours = db.Column('workhours', db.Integer(), default=1, info={'label': 'จำนวนชั่วโมงในการทำกิจกรรม/คน'})
 
     @property
     def topics(self):

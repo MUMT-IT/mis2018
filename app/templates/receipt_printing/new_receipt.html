@@ -18,30 +18,36 @@
                         {{ form.hidden_tag() }}
                          <div id="items">
                              {% for i in form.items %}
-                            <div class="field">
-                                <label class="label">รายการ</label>
-                                <div class="control">
-                                    {{ i.item(class="input is-danger") }}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">จำนวนเงิน</label>
-                                <div class="control">
-                                    {{ i.price(class="input is-danger", placeholder="฿") }}
-                                </div>
-                            </div>
-                            <div class="field">
-                                <label class="label">GL</label>
-                                {{ i.gl() }}
-                            </div>
-                            <div class="field">
-                                <label class="label">Cost Center</label>
-                                {{ i.cost_center() }}
-                            </div>
-                            <div class="field">
-                                <label class="label">Internal Order/IO</label>
-                                {{ i.internal_order_code() }}
-                            </div>
+                                 <div id="{{ i.name }}">
+                                     <div class="field">
+                                         <label class="label">รายการ</label>
+                                         <div class="control">
+                                             {{ i.item(class="input is-danger") }}
+                                         </div>
+                                     </div>
+                                     <div class="field">
+                                         <label class="label">จำนวนเงินบาท</label>
+                                         <div class="control">
+                                             {{ i.price(class_="input", placeholder="฿",
+                                            **{'hx-post': url_for("receipt_printing.update_amount"),
+                                            'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount',
+                                            'hx-swap': 'outerHTML'})
+                                                     }}
+                                         </div>
+                                     </div>
+                                     <div class="field">
+                                         <label class="label">GL</label>
+                                         {{ i.gl() }}
+                                     </div>
+                                     <div class="field">
+                                         <label class="label">Cost Center</label>
+                                         {{ i.cost_center() }}
+                                     </div>
+                                     <div class="field">
+                                         <label class="label">Internal Order/IO</label>
+                                         {{ i.internal_order_code() }}
+                                     </div>
+                                 </div>
                              {% endfor %}
                          </div><br>
                          <div class="field">
@@ -157,7 +163,6 @@
                     total_amount += Number($(this).val())
                 })
                 $('#paid_amount').val(total_amount)
-                initSelect2Input();
             })
         }
 
@@ -213,6 +218,7 @@
         }
 
         document.addEventListener('clearInput', onClearInput)
+        document.addEventListener('initSelect2Input', initSelect2Input)
 
     </script>
 {% endblock %}

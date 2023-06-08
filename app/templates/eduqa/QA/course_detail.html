@@ -300,7 +300,80 @@
                                                 <span class="icon">
                                                     <i class="fas fa-plus"></i>
                                                 </span>
-                                                <span>เพิ่มกิจกรรมการเรียนรู้</span>
+                                                <span>เพิ่มกิจกรรมในห้องเรียน</span>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                </tbody>
+                            </table>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>กิจกรรมนอกห้องเรียน</td>
+                        <td>
+                            <table class="table is-bordered is-fullwidth">
+                                <thead>
+                                <th>วันที่</th>
+                                <th>เวลา</th>
+                                <th>หัวข้อ</th>
+                                <th>ประเภท</th>
+                                <th>รูปแบบ</th>
+                                <th>จำนวนชั่วโมง/คน</th>
+                                <th>ผู้รับผิดชอบ</th>
+                                <th></th>
+                                </thead>
+                                <tbody>
+                                {% for s in course.assignments|sort(attribute='start') %}
+                                    <tr>
+                                        <td>{{s.start|localdatetime}} - {{ s.end|localdatetime }}</td>
+                                        <td>
+                                            {{ s.total_hours }}
+                                        </td>
+                                        <td>
+                                            {{ s.title }}
+                                        </td>
+                                        <td>{{ s.type_ }}</td>
+                                        <td>{{ s.format }}</td>
+                                        <td>{{ s.workhours }}</td>
+                                        <td>
+                                            {% for i in s.instructors %}
+                                                <a href="{{ url_for('eduqa.view_session_detail', session_id=s.id, course_id=course.id, instructor_id=i.id) }}">
+                                                    <span class="tag is-rounded is-info is-light">{{ i.fullname }}</span>
+                                                </a>
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            <div class="field has-addons">
+                                                <div class="control">
+                                                    <a class="button is-small is-rounded"
+                                                       href="{{ url_for('eduqa.edit_session_assignment', session_id=s.id, course_id=course.id) }}">
+                                                <span class="icon">
+                                                    <i class="fas fa-pencil-alt"></i>
+                                                </span>
+                                                    </a>
+                                                </div>
+                                                <div class="control">
+                                                    <a class="button is-small is-rounded"
+                                                       href="{{ url_for('eduqa.delete_session_assignment', session_id=s.id) }}">
+                                                        <span class="icon">
+                                                            <i class="far fa-trash-alt has-text-danger"></i>
+                                                        </span>
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                                <tr>
+                                    <td colspan="8">
+                                        <div class="buttons is-centered">
+                                            <a href="{{ url_for('eduqa.add_session_assignment', course_id=course.id) }}"
+                                               class="button is-success is-rounded">
+                                                <span class="icon">
+                                                    <i class="fas fa-plus"></i>
+                                                </span>
+                                                <span>เพิ่มกิจกรรมนอกห้องเรียน</span>
                                             </a>
                                         </div>
                                     </td>
