@@ -179,6 +179,7 @@ def show_leave_info():
                 quota_limit = quota.first_year
             else:
                 quota_limit = quota.first_year if not quota.min_employed_months else 0
+        #using for unusal leave type
         can_request = quota.leave_type.requester_self_added
         quota_days[quota.leave_type.type_] = Quota(quota.id, quota_limit, can_request)
 
@@ -2862,7 +2863,7 @@ def seminar_add_approval(attend_id):
                 line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
         else:
             print(req_msg, requester_email, line_id)
-        flash(u'update รายการอนุมัติเรียบร้อยแล้ว', 'success')
+        flash('update รายการอนุมัติเรียบร้อยแล้ว', 'success')
 
         seminar_records = []
         for seminars in StaffSeminarAttend.query.filter(StaffSeminar.cancelled_at == None).all():
@@ -2893,24 +2894,24 @@ def create_seminar():
             file_drive.Upload()
             permission = file_drive.InsertPermission({'type': 'anyone', 'value': 'anyone', 'role': 'reader'})
             upload_file_url = file_drive['id']
-            flash(u'Upload File เรียบร้อยแล้ว', 'success')
+            flash('Upload File เรียบร้อยแล้ว', 'success')
         else:
             upload_file_url = None
-            flash(u'Upload File ไม่สำเร็จ', 'warning')
+            flash('Upload File ไม่สำเร็จ/ ไม่มีเอกสารแนบ', 'warning')
         seminar.upload_file_url = upload_file_url
         timedelta = form.end_datetime.data - form.start_datetime.data
         if timedelta.days < 0 and timedelta.seconds == 0:
-            flash(u'วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
+            flash('วันที่สิ้นสุดต้องไม่เร็วกว่าวันที่เริ่มต้น', 'danger')
         else:
             seminar.start_datetime = tz.localize(form.start_datetime.data),
             seminar.end_datetime = tz.localize(form.end_datetime.data)
             db.session.add(seminar)
             db.session.commit()
-            flash(u'เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
+            flash('เพิ่มข้อมูลกิจกรรมเรียบร้อย', 'success')
         if hr_permission.can():
             return redirect(url_for('staff.seminar_attend_info_for_hr', seminar_id=seminar.id))
         else:
-            return redirect(url_for('staff.seminar_attend_info', seminar_id=seminar.id))
+            return redirect(url_for('staff.seminar_create_record', seminar_id=seminar.id))
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
@@ -2948,8 +2949,10 @@ def seminar_attend_info(seminar_id):
         upload_file_url = upload_file.get('embedLink')
     else:
         upload_file_url = None
+    already_attend = StaffSeminarAttend.query.filter_by(staff_account_id=current_user.id, seminar_id=seminar.id).first()
     return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends,
-                             current_user_attended=current_user_attended, upload_file_url=upload_file_url)
+                                already_attend=already_attend, current_user_attended=current_user_attended,
+                                upload_file_url=upload_file_url)
 
 
 @staff.route('/seminar/all-seminars', methods=['GET', 'POST'])
@@ -3043,11 +3046,10 @@ def seminar_create_record(seminar_id):
                     line_bot_api.push_message(to=line_id,messages=TextSendMessage(text=req_msg))
             else:
                 print(req_msg, line_id)
-            flash(u'ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
+            flash('ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
         else:
-            flash(u'เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
-        attends = StaffSeminarAttend.query.filter_by(seminar_id=seminar_id).all()
-        return render_template('staff/seminar_attend_info.html', seminar=seminar, attends=attends)
+            flash('เพิ่มรายชื่อของท่านเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('staff.seminar_attend_info', seminar_id= seminar_id))
     print (form.errors)
     return render_template('staff/seminar_create_record.html', seminar=seminar, form=form)
 
