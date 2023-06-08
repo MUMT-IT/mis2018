@@ -6,6 +6,30 @@
         <div class="table-container">
             <div class="columns">
                 <div class="column">
+                    <table class="table is-bordered is-striped">
+                        <tbody>
+                            {% for quota in quota %}
+                            <tr>
+                                <td>
+                                    {{ quota.leave_type }}
+                                </td>
+                                <td>
+                                    ปีงบประมาณ {{ quota.fiscal_year }}
+                                </td>
+                                <td>
+                                    quota {{ quota.quota_days }}
+                                </td>
+                                <td>
+                                    ใช้ไป {{ quota.used_days }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
                     <div class="box">
                         <h4 class="subtitle">รายการลาของ
                             {{ requester[0].staff.personal_info }} ปีงบประมาณปัจจุบัน

@@ -1604,6 +1604,8 @@ def get_repair_online_history_by_it_and_maintenance():
         item_data['notice_date'] = item_data['notice_date'].strftime('%d/%m/%Y') if item_data[
             'notice_date'] else ''
         item_data['status'] = u"รอดำเนินการ"
+        item_data['detail'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">รายละเอียด</a>'.format(
+            url_for('procurement.view_desc_procurement_to_check_instruments', procurement_id=item.id))
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
