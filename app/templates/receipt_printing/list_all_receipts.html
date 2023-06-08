@@ -3,7 +3,7 @@
     <nav class="navbar" role="navigation" aria-label="main navigation">
         <div class="container">
             <div class="navbar-brand">
-                <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" width="200"/>
+                <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" width="70"/>
             </div>
             <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
               <span aria-hidden="true"></span>
@@ -105,15 +105,12 @@
                         <th>เล่มที่</th>
                         <th>เลขที่</th>
                         <th>ออกวันที่</th>
-{#                        <th>จำนวนรายการ</th>#}
                         <th>ครั้งที่พิมพ์</th>
                         <th>รายละเอียด</th>
-{#                        <th>พิมพ์ใบเสร็จ</th>#}
-{#                        <th>ยกเลิกใบเสร็จ</th>#}
                         <th>หมายเหตุ</th>
                         <th>สถานะ</th>
                         <th>สาเหตุของการยกเลิก</th>
-{#                        <th>สร้างโดย</th>#}
+                        <th>สร้างโดย</th>
                         </thead>
                         <tbody>
                         </tbody>
@@ -149,17 +146,15 @@
                     {data: 'book_number'},
                     {data: 'number'},
                     {data: 'created_datetime'},
-                    {#{data: 'items|length'},#}
                     {data: 'print_number'},
                     {data: 'preview'},
                     {data: 'comment'},
                     {data: 'status'},
                     {data: 'cancel_comment'},
-                    {#{data: 'issuer'}#}
+                    {data: 'issuer'}
 
                 ],
             })
         });
     </script>
-
 {% endblock %}

@@ -682,7 +682,7 @@ def get_receipt_by_list_type():
             url_for('receipt_printing.show_receipt_detail', receipt_id=item.id))
         item_data['created_datetime'] = item_data['created_datetime'].strftime('%d/%m/%Y, %H:%M:%S')
         item_data['status'] = '<i class="fas fa-times has-text-danger"></i>' if item.cancelled else '<i class="far fa-check-circle has-text-success"></i>'
-
+        item_data['issuer'] = item_data['issuer']
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
