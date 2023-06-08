@@ -1733,8 +1733,7 @@ def show_wfh_approved_list_each_person(requester_id):
 @login_required
 def show_wfh_approval(request_id):
     req = StaffWorkFromHomeRequest.query.get(request_id)
-    approvers = StaffWorkFromHomeApprover.query.filter_by(staff_account_id=current_user.id)
-    return render_template('staff/wfh_approval_status.html', req=req, approvers=approvers)
+    return render_template('staff/wfh_approval_status.html', req=req)
 
 
 # Deleted
@@ -1881,7 +1880,7 @@ def get_hr_login_summary_report_data():
         data[rec.start_datetime.date()] += 1
 
     count_data = []
-    for date, heads in data.iteritems():
+    for date, heads in data.items():
         count_data.append({
             'date': date,
             'heads': heads
@@ -1905,7 +1904,7 @@ def get_hr_wfh_summary_report_data():
             data[rec.start_datetime.date()] += 1
 
     count_data = []
-    for date, heads in data.iteritems():
+    for date, heads in data.items():
         count_data.append({
             'date': date,
             'heads': heads
@@ -1929,7 +1928,7 @@ def get_hr_leave_summary_report_data():
             data[rec.start_datetime.date()] += 1
 
     count_data = []
-    for date, heads in data.iteritems():
+    for date, heads in data.items():
         count_data.append({
             'date': date,
             'heads': heads
@@ -1951,7 +1950,7 @@ def get_hr_login_time_data():
         data[(start_datetime.hour, start_datetime.minute, 0)] += 1
 
     count_data = []
-    for tod, heads in data.iteritems():
+    for tod, heads in data.items():
         count_data.append({
             'timeofday': list(tod),
             'heads': heads
@@ -3196,7 +3195,8 @@ def seminar_upload_proposal(seminar_attend_id, proposal_id):
         prefix_position = u'อาจารย์'
     else:
         prefix_position = ''
-
+    telephone = seminar_attend.staff.personal_info.telephone if seminar_attend.staff.personal_info.telephone \
+        else '.......'
     if request.method == 'POST':
         upload_file = request.files.get('document')
         if upload_file:
@@ -3242,7 +3242,7 @@ def seminar_upload_proposal(seminar_attend_id, proposal_id):
                            transaction_fee=transaction_fee, budget=budget, accommodation_cost=accommodation_cost,
                            flight_ticket_cost=flight_ticket_cost, train_ticket_cost=train_ticket_cost,
                            taxi_cost=taxi_cost, fuel_cost=fuel_cost, org_name=org_name, attend_online=attend_online,
-                           prefix_position=prefix_position)
+                           prefix_position=prefix_position, telephone=telephone)
 
 
 @staff.route('/seminar/all-proposal')
