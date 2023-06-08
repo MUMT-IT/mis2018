@@ -9,7 +9,7 @@ from . import staffbp as staff
 from app.main import get_weekdays, mail, app, csrf
 from app.models import Holidays
 from flask import jsonify, render_template, request, redirect, url_for, flash, session, send_from_directory, \
-    make_response
+    make_response, current_app
 from datetime import date, timedelta
 from collections import defaultdict, namedtuple
 import pytz
@@ -328,13 +328,13 @@ def request_for_leave(quota_id=None):
                         for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
                             if approver.is_active:
                                 if approver.notified_by_line and approver.account.line_id:
-                                    if os.environ["FLASK_ENV"] == "production":
+                                    if not current_app.debug:
                                         line_bot_api.push_message(to=approver.account.line_id,
                                                                   messages=TextSendMessage(text=req_msg))
                                     else:
                                         print(req_msg, approver.account.id)
                                 mails.append(approver.account.email + "@mahidol.ac.th")
-                        if os.environ["FLASK_ENV"] == "production":
+                        if not current_app.debug:
                             send_mail(mails, req_title, req_msg)
                         is_used_quota = StaffLeaveUsedQuota.query.filter_by(leave_type_id=req.quota.leave_type_id,
                                                                             staff_account_id=req.staff_account_id,
@@ -506,13 +506,13 @@ def request_for_leave_period(quota_id=None):
                         for approver in StaffLeaveApprover.query.filter_by(staff_account_id=current_user.id):
                             if approver.is_active:
                                 if approver.notified_by_line and approver.account.line_id:
-                                    if os.environ["FLASK_ENV"] == "production":
+                                    if not current_app.debug:
                                         line_bot_api.push_message(to=approver.account.line_id,
                                                                   messages=TextSendMessage(text=req_msg))
                                     else:
                                         print(req_msg, approver.account.id)
                                 mails.append(approver.account.email + "@mahidol.ac.th")
-                        if os.environ["FLASK_ENV"] == "production":
+                        if not current_app.debug:
                             send_mail(mails, req_title, req_msg)
 
                         _, END_FISCAL_DATE = get_fiscal_date(req.start_datetime)
@@ -1087,12 +1087,12 @@ def leave_approve(req_id, approver_id):
                     current_user.personal_info.fullname,
                     url_for("staff.show_leave_approval", req_id=req_id, _external=True))
             if req.notify_to_line and req.staff.line_id:
-                if os.environ["FLASK_ENV"] == "production":
+                if not current_app.debug:
                     line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=approve_msg))
                 else:
                     print(approve_msg, req.staff.id)
             approve_title = u'แจ้งสถานะการอนุมัติ' + req.quota.leave_type.type_
-            if os.environ["FLASK_ENV"] == "production":
+            if not current_app.debug:
                 send_mail([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
         return redirect(url_for('staff.show_leave_approval_info'))
     if approved is not None:
@@ -1126,14 +1126,14 @@ def request_cancel_leave_request(req_id):
                        req.start_datetime, req.end_datetime, url_for("staff.info_request_cancel_leave_request",
                                                                      token=token, _external=True))
             if approval.approver.notified_by_line and approval.approver.account.line_id:
-                if os.environ["FLASK_ENV"] == "production":
+                if not current_app.debug:
                     line_bot_api.push_message(to=approval.approver.account.line_id,
                                               messages=TextSendMessage(text=req_to_cancel_msg))
                 else:
                     print(req_to_cancel_msg, approval.approver.account.id)
 
             req_title = u'แจ้งการขอยกเลิก' + req.quota.leave_type.type_
-            if os.environ["FLASK_ENV"] == "production":
+            if not current_app.debug:
                 send_mail([approval.approver.account.email + "@mahidol.ac.th"], req_title, req_to_cancel_msg)
             else:
                 print(req_to_cancel_msg)
@@ -1230,12 +1230,12 @@ def approver_cancel_leave_request(req_id, cancelled_account_id):
                                                                                           req.cancelled_by.personal_info
                                                                                           , _external=True)
     if req.notify_to_line and req.staff.line_id:
-        if os.environ["FLASK_ENV"] == "production":
+        if not current_app.debug:
             line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=cancelled_msg))
         else:
             print(cancelled_msg, req.staff.id)
     cancelled_title = u'แจ้งยกเลิกการขอ' + req.quota.leave_type.type_ + u'โดยผู้บังคับบัญชา'
-    if os.environ["FLASK_ENV"] == "production":
+    if not current_app.debug:
         send_mail([req.staff.email + "@mahidol.ac.th"], cancelled_title, cancelled_msg)
     return redirect(request.referrer)
 
@@ -1309,12 +1309,12 @@ def cancel_leave_request(req_id, cancelled_account_id):
                                                                                           current_user.personal_info.fullname
                                                                                           , _external=True)
     if req.notify_to_line and req.staff.line_id:
-        if os.environ["FLASK_ENV"] == "production":
+        if not current_app.debug:
             line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=cancelled_msg))
         else:
             print(cancelled_msg, req.staff.id)
     cancelled_title = u'แจ้งยกเลิกการขอ' + req.quota.leave_type.type_
-    if os.environ["FLASK_ENV"] == "production":
+    if not current_app.debug:
         send_mail([req.staff.email + "@mahidol.ac.th"], cancelled_title, cancelled_msg)
     return redirect(request.referrer)
 
@@ -1489,29 +1489,8 @@ def leave_request_result_by_person():
 @login_required
 def leave_request_by_person_detail(requester_id):
     requester = StaffLeaveRequest.query.filter_by(staff_account_id=requester_id)
-    # quota = StaffLeaveQuota.query.get(quota_id)
-    # used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
-    #                                                          tz.localize(END_FISCAL_DATE))
-    #
-    # delta = current_user.personal_info.get_employ_period_of_current_fiscal_year()
-    # max_cum_quota = current_user.personal_info.get_max_cum_quota_per_year(quota)
-    # if delta.years > 0:
-    #     if max_cum_quota:
-    #         last_quota = StaffLeaveRemainQuota.query.filter(and_
-    #                                                         (StaffLeaveRemainQuota.leave_quota_id == quota.id,
-    #                                                          StaffLeaveRemainQuota.year == (START_FISCAL_DATE.year - 1),
-    #                                                          StaffLeaveRemainQuota.staff_account_id == current_user.id)).first()
-    #         if last_quota:
-    #             last_year_quota = last_quota.last_year_quota
-    #         else:
-    #             last_year_quota = 0
-    #         before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
-    #         quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
-    #     else:
-    #         quota_limit = quota.max_per_year
-    # else:
-    #     quota_limit = quota.first_year
-    return render_template('staff/leave_request_by_person_detail.html', requester=requester,
+    quota = StaffLeaveUsedQuota.query.filter_by(staff_account_id=requester_id).all()
+    return render_template('staff/leave_request_by_person_detail.html', requester=requester, quota=quota,
                            START_FISCAL_DATE=START_FISCAL_DATE, END_FISCAL_DATE=END_FISCAL_DATE)
 
 
@@ -1603,13 +1582,13 @@ def request_work_from_home():
         for approver in current_user.wfh_requesters:
             if approver.is_active:
                 if approver.notified_by_line and approver.account.line_id:
-                    if os.environ["FLASK_ENV"] == "production":
+                    if not current_app.debug:
                         line_bot_api.push_message(to=approver.account.line_id,
                                                   messages=TextSendMessage(text=req_msg))
                     else:
                         print(req_msg, approver.account.id)
                 mails.append(approver.account.email + "@mahidol.ac.th")
-        if os.environ["FLASK_ENV"] == "production":
+        if not current_app.debug:
             send_mail(mails, req_title, req_msg)
         else:
             print([approver.account.email + 'mahidol.ac.th'], req_title, req_msg)
@@ -1725,12 +1704,12 @@ def wfh_approve(req_id, approver_id):
                 .format(req.detail, current_user.personal_info.fullname,
                         url_for("staff.show_wfh_approval", request_id=req_id, _external=True))
         if req.notify_to_line and req.staff.line_id:
-            if os.environ["FLASK_ENV"] == "production":
+            if not current_app.debug:
                 line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=approve_msg))
             else:
                 print(approve_msg, req.staff.id)
         approve_title = u'แจ้งสถานะการอนุมัติ WFH'
-        if os.environ["FLASK_ENV"] == "production":
+        if not current_app.debug:
             send_mail([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
         else:
             print([req.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
@@ -2112,7 +2091,7 @@ def request_for_clockin_clockout():
 
             if wfh_approver:
                 if wfh_approver.is_active:
-                    if os.environ["FLASK_ENV"] == "production":
+                    if not current_app.debug:
                         send_mail([wfh_approver.approver.email + "@mahidol.ac.th"], req_title, req_msg)
                         if wfh_approver.notified_by_line and wfh_approver.account.line_id:
                             line_bot_api.push_message(to=wfh_approver.account.line_id,
@@ -2179,13 +2158,13 @@ def approved_for_clockin_clockout(request_id):
                 url_for("staff.approved_for_clockin_clockout", request_id=clock_request.id,
                         approver_id=clock_request.approver_id, _external=True))
         if clock_request.staff.line_id:
-            if os.environ["FLASK_ENV"] == "production":
+            if not current_app.debug:
                 line_bot_api.push_message(to=clock_request.staff.line_id,
                                           messages=TextSendMessage(text=approve_msg))
             else:
                 print(approve_msg, clock_request.staff.id)
         approve_title = u'แจ้งสถานะรับรองการทำงาน'
-        if os.environ["FLASK_ENV"] == "production":
+        if not current_app.debug:
             send_mail([clock_request.staff.email + "@mahidol.ac.th"], approve_title, approve_msg)
         all_requests = StaffRequestWorkLogin.query.all()
         return render_template('staff/checkin_all_requests.html', all_requests=all_requests)
@@ -2877,7 +2856,7 @@ def seminar_add_approval(attend_id):
         req_title = u'ทดสอบแจ้งผลการขออนุมัติ' + attend.seminar.topic_type
         requester_email = attend.staff.email
         line_id = attend.staff.line_id
-        if os.environ["FLASK_ENV"] == "production":
+        if not current_app.debug:
             send_mail([requester_email + "@mahidol.ac.th"], req_title, req_msg)
             if line_id:
                 line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
@@ -3058,7 +3037,7 @@ def seminar_create_record(seminar_id):
             approver_email = approver.account.email
             is_notify_line = approver.notified_by_line
             line_id = approver.account.line_id
-            if os.environ["FLASK_ENV"] == "production":
+            if not current_app.debug:
                 send_mail([approver_email + "@mahidol.ac.th"], req_title, req_msg)
                 if is_notify_line and line_id:
                     line_bot_api.push_message(to=line_id,messages=TextSendMessage(text=req_msg))
@@ -3150,7 +3129,7 @@ def seminar_request_for_proposal(seminar_attend_id):
                            url_for("staff.show_seminar_info_each_person", record_id=seminar_attend.id, _external=True))
                 requester_email = seminar_attend.staff.email
                 line_id = seminar_attend.staff.line_id
-                if os.environ["FLASK_ENV"] == "production":
+                if not current_app.debug:
                     send_mail([requester_email + "@mahidol.ac.th"], req_title, req_msg)
                     if line_id:
                         line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
@@ -3168,7 +3147,7 @@ def seminar_request_for_proposal(seminar_attend_id):
                        url_for("staff.show_seminar_info_each_person", record_id=seminar_attend.id, _external=True))
             requester_email = seminar_attend.staff.email
             line_id = seminar_attend.staff.line_id
-            if os.environ["FLASK_ENV"] == "production":
+            if not current_app.debug:
                 send_mail([requester_email + "@mahidol.ac.th"], req_title, req_msg)
                 if line_id:
                     line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
@@ -3248,7 +3227,7 @@ def seminar_upload_proposal(seminar_attend_id, proposal_id):
                           seminar_attend.seminar.topic, seminar_attend.start_datetime, seminar_attend.end_datetime,
                           this_proposal.proposer.personal_info, upload_file_url)
         general_account = StaffAccount.query.filter_by(email='natchaya.rit').first()
-        if os.environ["FLASK_ENV"] == "production":
+        if not current_app.debug:
             send_mail([general_account.email + "@mahidol.ac.th"], req_title, req_msg)
             if general_account.line_id:
                 line_bot_api.push_message(to=general_account.line_id, messages=TextSendMessage(text=req_msg))
@@ -3946,12 +3925,12 @@ def add_leave_request_by_hr(staff_id):
             format(createleave.quota.leave_type.type_, createleave.staff.personal_info.fullname, start_datetime,
                    end_datetime,
                    url_for("staff.record_each_request_leave_request", request_id=createleave.id, _external=True))
-        if os.environ["FLASK_ENV"] == "production":
+        if not current_app.debug:
             line_bot_api.push_message(to=staff_id.line_id, messages=TextSendMessage(text=req_msg))
         else:
             print(req_msg, staff_id.email)
         mails.append(staff_id.email + "@mahidol.ac.th")
-        if os.environ["FLASK_ENV"] == "production":
+        if not current_app.debug:
             send_mail(mails, req_title, req_msg)
         flash(u'บันทึกการลาเรียบร้อยแล้ว', 'success')
         return redirect(url_for('staff.record_each_request_leave_request', request_id=createleave.id))
@@ -4028,12 +4007,12 @@ def cancel_leave_request_by_hr(req_id):
                                                                                           req.cancelled_by.personal_info
                                                                                           , _external=True)
     if req.notify_to_line and req.staff.line_id:
-        if os.environ["FLASK_ENV"] == "production":
+        if not current_app.debug:
             line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=cancelled_msg))
         else:
             print(cancelled_msg, req.staff.id)
     cancelled_title = u'แจ้งยกเลิกการขอ' + req.quota.leave_type.type_ + u'โดยเจ้าหน้าที่หน่วย HR'
-    if os.environ["FLASK_ENV"] == "production":
+    if not current_app.debug:
         send_mail([req.staff.email + "@mahidol.ac.th"], cancelled_title, cancelled_msg)
     return redirect(request.referrer)
 
