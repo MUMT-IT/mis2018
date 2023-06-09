@@ -10,6 +10,30 @@
     <h1 class="title has-text-centered">Student Workload Planner</h1>
     <h1 class="title has-text-centered is-size-4">{{ revision }}</h1>
     <h1 class="subtitle has-text-centered">นักศึกษาชั้น{{ student_year }}</h1>
+    <div class="tabs is-boxed">
+      <ul>
+        <li {% if student_year == 'ปี 1' %}class="is-active"{% endif %}>
+          <a href="{{ url_for('studs.show_assignments', revision_id=revision_id, student_year='ปี 1') }}">
+            <span>ปี 1</span>
+          </a>
+        </li>
+        <li {% if student_year == 'ปี 2' %}class="is-active"{% endif %}>
+          <a href="{{ url_for('studs.show_assignments', revision_id=revision_id, student_year='ปี 2') }}">
+            <span>ปี 2</span>
+          </a>
+        </li>
+        <li {% if student_year == 'ปี 3' %}class="is-active"{% endif %}>
+          <a href="{{ url_for('studs.show_assignments', revision_id=revision_id, student_year='ปี 3') }}">
+            <span>ปี 3</span>
+          </a>
+        </li>
+        <li {% if student_year == 'ปี 4' %}class="is-active"{% endif %}>
+          <a href="{{ url_for('studs.show_assignments', revision_id=revision_id, student_year='ปี 4') }}">
+            <span>ปี 4</span>
+          </a>
+        </li>
+      </ul>
+    </div>
     <div id="calendar"></div>
 </section>
 {% endblock %}
