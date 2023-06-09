@@ -643,22 +643,20 @@ def view_require_receipt():
 
 
 @receipt_printing.route('/receipt-data/')
-@receipt_printing.route('/receipt-data/<int:receipt_id>', methods=['GET'])
-def view_receipt_by_list_type(receipt_id=None):
+def view_receipt_by_list_type():
     list_type = request.args.get('list_type')
-    if list_type == "myAccount" or list_type is None:
-        record = ElectronicReceiptDetail.query.filter_by(issuer_id=current_user.id).all()
-    elif list_type == "ourAccount":
-        org = current_user.personal_info.org
-        record = [receipt for receipt in ElectronicReceiptDetail.query.all()
-                    if receipt.issuer.personal_info.org == org]
-    return render_template('receipt_printing/list_all_receipts.html',
-                           receipt_id=receipt_id, record=record, list_type=list_type)
+    return render_template('receipt_printing/list_all_receipts.html', list_type=list_type)
 
 
 @receipt_printing.route('api/receipt-data/all')
 def get_receipt_by_list_type():
+    list_type = request.args.get('list_type')
     query = ElectronicReceiptDetail.query
+    org = current_user.personal_info.org
+
+    if list_type is None:
+        query = query.filter_by(issuer_id=current_user.id)
+
     search = request.args.get('search[value]')
     col_idx = request.args.get('order[0][column]')
     direction = request.args.get('order[0][dir]')
@@ -673,9 +671,12 @@ def get_receipt_by_list_type():
     query = query.order_by(column)
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
+    if list_type == 'org':
+        query = query.filter(ElectronicReceiptDetail.issuer.has(StaffAccount.personal_info.has(org_id=org.id)))
     total_filtered = query.count()
     query = query.offset(start).limit(length)
     data = []
+
     for item in query:
         item_data = item.to_dict()
         item_data['preview'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">Preview</a>'.format(
