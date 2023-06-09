@@ -64,7 +64,7 @@ def add_procurement():
             # convert image to base64(text) in database
             import base64
             with open(img_name, "rb") as img_file:
-                procurement.image = base64.b64encode(img_file.read())
+                procurement.image = base64.b64encode(img_file.read()).decode()
 
         db.session.add(procurement)
         db.session.commit()
@@ -333,7 +333,7 @@ def edit_procurement(procurement_id):
             # convert image to base64(text) in database
             import base64
             with open(img_name, "rb") as img_file:
-                procurement.image = base64.b64encode(img_file.read())
+                procurement.image = base64.b64encode(img_file.read()).decode()
         db.session.add(procurement)
         db.session.commit()
         flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
@@ -641,7 +641,7 @@ def add_img_procurement(procurement_id):
             file.save(img_name)  # convert image to base64(text) in database
             import base64
             with open(img_name, "rb") as img_file:
-                procurement.image = base64.b64encode(img_file.read())
+                procurement.image = base64.b64encode(img_file.read()).decode()
         db.session.add(procurement)
         db.session.commit()
         flash(u'บันทึกรูปภาพสำเร็จ.', 'success')
