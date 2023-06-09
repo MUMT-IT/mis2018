@@ -537,7 +537,7 @@ def download_daily_payment_report():
                          ],
                 index=False,
                 encoding='utf-8')
-    return send_from_directory(os.getcwd(), filename='daily_payment_report.xlsx')
+    return send_file(os.path.join(os.getcwd(),'daily_payment_report.xlsx'))
 
 
 def send_mail(recp, title, message):
