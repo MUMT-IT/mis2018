@@ -446,13 +446,11 @@ def list_qrcode():
             item = ProcurementDetail.query.get(int(item_id))
             if not item.qrcode:
                 item.generate_qrcode()
-
-            decoded_img = b64decode(item.qrcode)
-            img_string = io.StringIO(decoded_img)
-            img_string.seek(0)
-            data.append(Image(img_string, 50 * mm, 30 * mm, kind='bound'))
+            img_ = io.BytesIO(b64decode(str.encode(item.qrcode)))
+            im = Image(img_, 50 * mm, 30 * mm, kind='bound')
+            data.append(im)
             data.append(Paragraph('<para align=center leading=10><font size=13>{}</font></para>'
-                                  .format(item.erp_code.encode('utf-8')),
+                                  .format(item.erp_code),
                                   style=style_sheet['ThaiStyle']))
             data.append(PageBreak())
         doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
@@ -533,13 +531,11 @@ def export_qrcode_pdf(procurement_id):
     if not procurement.qrcode:
         procurement.generate_qrcode()
 
-    decoded_img = b64decode(procurement.qrcode)
-    img_string = io.StringIO(decoded_img)
-    img_string.seek(0)
-    im = Image(img_string, 50 * mm, 30 * mm, kind='bound')
+    img_ = io.BytesIO(b64decode(str.encode(procurement.qrcode)))
+    im = Image(img_, 50 * mm, 30 * mm, kind='bound')
     data.append(im)
     data.append(Paragraph('<para align=center leading=10><font size=13>{}</font></para>'
-                          .format(procurement.erp_code.encode('utf-8')),
+                          .format(procurement.erp_code),
                           style=style_sheet['ThaiStyle']))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     return send_file('qrcode.pdf')
