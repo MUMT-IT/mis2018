@@ -82,6 +82,12 @@ def add_procurement():
     return render_template('procurement/new_procurement.html', form=form)
 
 
+@procurement.route('/main')
+@login_required
+def main_procurement_page():
+    return render_template('procurement/main_procurement_page.html')
+
+
 @procurement.route('/official/login')
 @login_required
 def first_page():
