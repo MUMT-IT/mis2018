@@ -9,7 +9,7 @@
         </div>
         <div id="navbarMenuHeroA" class="navbar-menu">
             <div class="navbar-end">
-                <a class="navbar-item" href="{{ url_for('receipt_printing.index') }}">
+                <a class="navbar-item" href="{{ url_for('procurement.main_procurement_page') }}">
                     หน้าหลัก
                 </a>
                 <a class="navbar-item" href="{{ url_for('auth.account') }}">
@@ -26,7 +26,7 @@
                     </span>
                     <span>ออกจากระบบ</span>
                 </a>
-                <a class="navbar-item" href="/">
+                <a class="navbar-item" href="{{ url_for('procurement.main_procurement_page') }}">
                     <span>ปิด</span>
                     <span class="icon">
                         <i class="far fa-times-circle"></i>
