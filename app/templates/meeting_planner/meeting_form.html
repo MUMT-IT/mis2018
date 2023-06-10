@@ -49,10 +49,10 @@
                         </div>
                         <div class="card-content">
                             <div id="room_events">
-                                {% if form.events.entries|length == 0 %}
+                                {% if form.meeting_events.entries|length == 0 %}
                                     <p>ไม่มีการใช้ห้อง</p>
                                 {% endif %}
-                                {% for event_form in form.events %}
+                                {% for event_form in form.meeting_events %}
                                     <div id="{{ event_form.name }}">
                                         <div class="field">
                                             <label class="label">{{ event_form.room.label }}</label>

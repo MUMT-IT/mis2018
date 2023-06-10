@@ -15,38 +15,54 @@
                         {% for invite in current_user.invitations %}
                             <article class="media">
                             <div class="media-left">
-                                <span class="icon">
-                                    <i class="fa-solid fa-users"></i>
+                                <span class="icon" id="left-icon-{{ invite.id }}">
+                                    {% if invite.response == 'เข้าร่วม' %}
+                                    <i class="fa-sharp fa-regular fa-circle-check has-text-success"></i>
+                                    {% elif invite.response == 'ไม่เข้าร่วม' %}
+                                    <i class="fa-solid fa-hand has-text-danger"></i>
+                                    {% else %}
+                                    <i class="fa-solid fa-hourglass-start"></i>
+                                    {% endif %}
                                 </span>
                             </div>
                                 <div class="media-content">
                                     <div class="content">
                                         <p>
-                                            <strong>{{ invite.meeting.title }}</strong>
+                                            <a hx-get="{{ url_for('meeting_planner.invitation_detail', invitation_id=invite.id) }}"
+                                            hx-target="#target-{{ invite.id }}">
+                                                <strong>{{ invite.meeting.title }}</strong>
+                                            </a>
                                             <br>
                                             <span class="icon">
                                                 <i class="fa-regular fa-clock"></i>
                                             </span>
                                             <small>{{ invite.meeting.start|localdatetime }} - {{ invite.meeting.end|localdatetime }}</small>
                                             <br>
+                                            {{ invite.meeting.rooms }}
+                                            <br>
                                             {{ invite.meeting.detail }}
                                         </p>
                                     </div>
+                                    <div id="target-{{ invite.id }}">
                                     {% if invite.response == None %}
                                         <nav class="level is-mobile">
                                             <div class="level-left">
-                                                <a class="level-item">
+                                                <a class="level-item" hx-target="#left-icon-{{ invite.id }}"
+                                                   hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='เข้าร่วม') }}">
                                                     <span class="tag is-success">เข้าร่วม</span>
                                                 </a>
-                                                <a class="level-item">
+                                                <a class="level-item" hx-target="#left-icon-{{ invite.id }}"
+                                                   hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่เข้าร่วม') }}">
                                                     <span class="tag is-danger">ไม่เข้าร่วม</span>
                                                 </a>
-                                                <a class="level-item">
+                                                <a class="level-item" hx-target="#left-icon-{{ invite.id }}"
+                                                   hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่แน่ใจ') }}">
                                                     <span class="tag is-light">ไม่แน่ใจ</span>
                                                 </a>
                                             </div>
                                         </nav>
                                     {% endif %}
+                                    </div>
                                 </div>
                             </article>
                         {% endfor %}
@@ -330,4 +346,12 @@
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+    document.body.addEventListener('htmx:configRequest', (event) => {
+        event.detail.headers['X-CSRF-Token'] = '{{ csrf_token()|tojson|safe }}';
+    })
+    </script>
 {% endblock %}

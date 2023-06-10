@@ -19,6 +19,20 @@ class MeetingEvent(db.Model):
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True), server_default=None)
     cancelled_by = db.Column('cancelled_by', db.ForeignKey('staff_account.id'))
     notify_participants = db.Column('notify_participants', db.Boolean(), default=True, info={'label': 'แจ้งเตือนผู้เข้าร่วมประชุม'})
+    meeting_events = db.relationship('RoomEvent')
+
+    @property
+    def rooms(self):
+        return f'ห้อง {", ".join([e.room.number for e in self.meeting_events])}'
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'start': self.start.isoformat(),
+            'end': self.end.isoformat(),
+            'rooms': self.rooms
+        }
 
 
 class MeetingInvitation(db.Model):
@@ -26,7 +40,7 @@ class MeetingInvitation(db.Model):
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     meeting_event_id = db.Column('meeting_event_id', db.ForeignKey('meeting_events.id'))
     meeting = db.relationship(MeetingEvent, backref=db.backref('invitations'))
-    note = db.Column('note', db.Text())
+    note = db.Column('note', db.Text(), default='')
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship(StaffAccount,
                             backref=db.backref('invitations', lazy='dynamic', cascade='all, delete-orphan'))
