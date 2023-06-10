@@ -10,17 +10,73 @@
             </div>
         </div>
         <div class="columns">
-            <div class="column is-half is-offset-one-quarter">
+            <div class="column is-one-third">
+                <div class="card">
+                    <div class="card-header">
+                        <p class="card-header-title">การนัดหมายประชุม</p>
+                    </div>
+                    <div class="card-content">
+                        {% for invite in current_user.invitations %}
+                            <article class="media">
+                            <div class="media-left">
+                                <span class="icon">
+                                    <i class="fa-solid fa-users"></i>
+                                </span>
+                            </div>
+                                <div class="media-content">
+                                    <div class="content">
+                                        <p>
+                                            <strong>{{ invite.meeting.title }}</strong>
+                                            <br>
+                                            <span class="icon">
+                                                <i class="fa-regular fa-clock"></i>
+                                            </span>
+                                            <small>{{ invite.meeting.start|localdatetime }} - {{ invite.meeting.end|localdatetime }}</small>
+                                            <br>
+                                            {{ invite.meeting.detail }}
+                                        </p>
+                                    </div>
+                                    {% if invite.response == None %}
+                                        <nav class="level is-mobile">
+                                            <div class="level-left">
+                                                <a class="level-item">
+                                                    <span class="tag is-success">เข้าร่วม</span>
+                                                </a>
+                                                <a class="level-item">
+                                                    <span class="tag is-danger">ไม่เข้าร่วม</span>
+                                                </a>
+                                                <a class="level-item">
+                                                    <span class="tag is-light">ไม่แน่ใจ</span>
+                                                </a>
+                                            </div>
+                                        </nav>
+                                    {% endif %}
+                                </div>
+                            </article>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            <div class="column is-half">
                 <nav class="panel is-info">
                     <p class="panel-heading">Staff</p>
                     <a class="panel-block"
                         href="{{ url_for('staff.index') }}">
                         <span class="panel-icon">
-                            <i class="fas fa-users"></i>
+                            <i class="fa-solid fa-user"></i>
                         </span>
                         <span class="is-size-5">
                             บุคลากร
                         </span>
+                    </a>
+                    <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa-solid fa-envelope"></i>
+                        </span>
+                        <span class="is-size-5">
+                            คำเชิญเข้าประชุม
+                        </span>
+                        <span class="tag is-rounded is-danger">{{ current_user.new_invitations|length }}</span>
                     </a>
                     <a class="panel-block"
                        href="{{ url_for('staff.geo_checkin') }}">
@@ -86,6 +142,15 @@
                         <span class="is-size-5">
                             ระบบจองห้อง
                         </span>
+                    </a>
+                    <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa-solid fa-users"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ระบบนัดหมายการประชุม
+                        </span>
+                        <span class="tag is-rounded is-danger">{{ current_user.new_invitations|length }}</span>
                     </a>
                     <a href="{{ url_for('smartclass_scheduler.index') }}" class="panel-block">
                         <span class="panel-icon">

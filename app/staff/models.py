@@ -143,6 +143,10 @@ class StaffAccount(db.Model):
     def total_wfh_duration(self):
         return sum([wfh.duration for wfh in self.wfh_requests if not wfh.cancelled_at and wfh.get_approved])
 
+    @property
+    def new_invitations(self):
+        return self.invitations.filter_by(response=None).all()
+
 
 class StaffPersonalInfo(db.Model):
     __tablename__ = 'staff_personal_info'

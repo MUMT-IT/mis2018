@@ -1,10 +1,26 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+{% extends "base.html" %}
+
+{% include "meeting_planner/nav.html" %}
+{% block page_content %}
+<section class="section">
+<div class="container">
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            {% include "messages.html" %}
+            <nav class="panel is-info">
+                <p class="panel-heading">Meeting</p>
+                <a class="panel-block"
+                   href="{{ url_for('meeting_planner.create_meeting') }}">
+                    <span class="panel-icon">
+                        <i class="fa-solid fa-users"></i>
+                    </span>
+                    <span class="is-size-5">
+                        สร้างการประชุมใหม่
+                    </span>
+                </a>
+            </nav>
+        </div>
+    </div>
+</div>
+</section>
+{% endblock %}
