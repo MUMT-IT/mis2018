@@ -64,7 +64,7 @@ def add_procurement():
             # convert image to base64(text) in database
             import base64
             with open(img_name, "rb") as img_file:
-                procurement.image = base64.b64encode(img_file.read())
+                procurement.image = base64.b64encode(img_file.read()).decode()
 
         db.session.add(procurement)
         db.session.commit()
@@ -80,6 +80,12 @@ def add_procurement():
         for er in form.errors:
             flash("{} {}".format(er, form.errors[er]), 'danger')
     return render_template('procurement/new_procurement.html', form=form)
+
+
+@procurement.route('/main')
+@login_required
+def main_procurement_page():
+    return render_template('procurement/main_procurement_page.html')
 
 
 @procurement.route('/official/login')
@@ -201,7 +207,7 @@ def export_by_committee_summary():
                 index=False,
                 columns=columns,
                 encoding='utf-8')
-    return send_from_directory(os.getcwd(), filename='committee_summary.xlsx', as_attachment=True)
+    return send_file(os.path.join(os.getcwd(), 'committee_summary.xlsx'))
 
 
 @procurement.route('/for-committee/search-info', methods=['GET', 'POST'])
@@ -333,7 +339,7 @@ def edit_procurement(procurement_id):
             # convert image to base64(text) in database
             import base64
             with open(img_name, "rb") as img_file:
-                procurement.image = base64.b64encode(img_file.read())
+                procurement.image = base64.b64encode(img_file.read()).decode()
         db.session.add(procurement)
         db.session.commit()
         flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
@@ -446,13 +452,11 @@ def list_qrcode():
             item = ProcurementDetail.query.get(int(item_id))
             if not item.qrcode:
                 item.generate_qrcode()
-
-            decoded_img = b64decode(item.qrcode)
-            img_string = io.StringIO(decoded_img)
-            img_string.seek(0)
-            data.append(Image(img_string, 50 * mm, 30 * mm, kind='bound'))
+            img_ = io.BytesIO(b64decode(str.encode(item.qrcode)))
+            im = Image(img_, 50 * mm, 30 * mm, kind='bound')
+            data.append(im)
             data.append(Paragraph('<para align=center leading=10><font size=13>{}</font></para>'
-                                  .format(item.erp_code.encode('utf-8')),
+                                  .format(item.erp_code),
                                   style=style_sheet['ThaiStyle']))
             data.append(PageBreak())
         doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
@@ -533,13 +537,11 @@ def export_qrcode_pdf(procurement_id):
     if not procurement.qrcode:
         procurement.generate_qrcode()
 
-    decoded_img = b64decode(procurement.qrcode)
-    img_string = io.StringIO(decoded_img)
-    img_string.seek(0)
-    im = Image(img_string, 50 * mm, 30 * mm, kind='bound')
+    img_ = io.BytesIO(b64decode(str.encode(procurement.qrcode)))
+    im = Image(img_, 50 * mm, 30 * mm, kind='bound')
     data.append(im)
     data.append(Paragraph('<para align=center leading=10><font size=13>{}</font></para>'
-                          .format(procurement.erp_code.encode('utf-8')),
+                          .format(procurement.erp_code),
                           style=style_sheet['ThaiStyle']))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
     return send_file('qrcode.pdf')
@@ -641,7 +643,7 @@ def add_img_procurement(procurement_id):
             file.save(img_name)  # convert image to base64(text) in database
             import base64
             with open(img_name, "rb") as img_file:
-                procurement.image = base64.b64encode(img_file.read())
+                procurement.image = base64.b64encode(img_file.read()).decode()
         db.session.add(procurement)
         db.session.commit()
         flash(u'บันทึกรูปภาพสำเร็จ.', 'success')

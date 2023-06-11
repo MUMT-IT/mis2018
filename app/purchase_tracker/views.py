@@ -409,7 +409,7 @@ def dashboard_info_download():
             })
     df = DataFrame(records)
     df.to_excel('account_summary.xlsx')
-    return send_from_directory(os.getcwd(), filename='account_summary.xlsx')
+    return send_file(os.path.join(os.getcwd(), 'account_summary.xlsx'))
 
 
 # @purchase_tracker.route('/personnel/personnel_index/e-form/create/<string:form_code>/<int:account_id>', methods=['GET', 'POST'])
