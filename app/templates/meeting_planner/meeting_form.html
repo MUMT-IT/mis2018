@@ -98,6 +98,13 @@
                             <div class="field">
                                 <select class="js-example-basic-multiple" placeholder="ค้นหารายชื่อ" name="participants" multiple="multiple">
                                 </select>
+                                <p class="help is-info">ค้นหาเพื่อเพิ่มรายชื่อผู้เข้าร่วมประชุม</p>
+                            </div>
+                            <div class="field">
+                                <label class="label">
+                                    {{ form.notify_participants() }}
+                                    แจ้งเตือนผู้เข้าร่วมประชุมทางอีเมล
+                                </label>
                             </div>
                         </div>
                     </div>

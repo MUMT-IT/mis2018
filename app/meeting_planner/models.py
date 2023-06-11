@@ -1,7 +1,10 @@
+from pytz import timezone
 from sqlalchemy import func
 
 from app.main import db
 from app.staff.models import StaffAccount
+
+Bangkok = timezone('Asia/Bangkok')
 
 
 class MeetingEvent(db.Model):
@@ -29,8 +32,8 @@ class MeetingEvent(db.Model):
         return {
             'id': self.id,
             'title': self.title,
-            'start': self.start.isoformat(),
-            'end': self.end.isoformat(),
+            'start': self.start.astimezone(Bangkok).isoformat(),
+            'end': self.end.astimezone(Bangkok).isoformat(),
             'rooms': self.rooms
         }
 

@@ -1,16 +1,22 @@
-from flask import render_template, make_response, request, redirect, url_for, flash, jsonify
+from flask import render_template, make_response, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_required, current_user
 
 from app.main import db
 from app.meeting_planner import meeting_planner
 from app.meeting_planner.forms import MeetingEventForm
 from app.meeting_planner.models import MeetingEvent, MeetingInvitation
-from app.room_scheduler.models import RoomEvent
 from app.staff.models import StaffPersonalInfo
+from app.main import mail
 from pytz import timezone
+from flask_mail import Message
 import arrow
 
 tz = timezone('Asia/Bangkok')
+
+
+def send_mail(recp, title, message):
+    message = Message(subject=title, body=message, recipients=recp)
+    mail.send(message)
 
 
 @meeting_planner.route('/')
@@ -187,7 +193,43 @@ def get_meetings():
     data = []
     for meeting in MeetingEvent.query.filter_by(creator=current_user).order_by(MeetingEvent.created_at.desc()):
         d_ = meeting.to_dict()
-        view_meeting_url = url_for('meeting_planner.list_meetings')
+        view_meeting_url = url_for('meeting_planner.detail_meeting', meeting_id=d_['id'])
         d_['action'] = f'<a class="tag" href={view_meeting_url}>view</a>'
         data.append(d_)
     return jsonify({'data': data})
+
+
+@meeting_planner.route('/meetings/<int:meeting_id>/detail')
+@login_required
+def detail_meeting(meeting_id):
+    meeting = MeetingEvent.query.get(meeting_id)
+    return render_template('meeting_planner/meeting_detail.html', meeting=meeting)
+
+
+@meeting_planner.route('/api/invitations/<int:invitation_id>/notify')
+@login_required
+def notify_participant(invitation_id):
+    invitation = MeetingInvitation.query.get(invitation_id)
+    meeting_invitation_link = url_for('meeting_planner.detail_meeting',
+                                      _external=True,
+                                      meeting_id=invitation.meeting_event_id)
+    start = invitation.meeting.start.astimezone(tz)
+    end = invitation.meeting.end.astimezone(tz)
+    message = f'''
+    ขอเรียนเชิญเข้าร่วมประชุม{invitation.meeting.title}
+    ในวันที่ {start.strftime('%d/%m/%Y %H:%M')} - {end.strftime('%d/%m/%Y %H:%M')}
+    {invitation.meeting.rooms}
+    
+    กรุณาตอบรับการประชุมในลิงค์ด้านล่าง
+    
+    {meeting_invitation_link}
+    '''
+    if not current_app.debug:
+        send_mail([invitation.staff.email+'@mahidol.ac.th'],
+                  title=f'MUMT-MIS: เชิญเข้าร่วมประชุม{invitation.meeting.title}',
+                  message=message)
+    else:
+        print(message)
+    resp = make_response()
+    resp.headers['HX-Trigger-After-Swap'] = 'notifyAlert'
+    return resp
