@@ -33,7 +33,7 @@
                                 <div class="buttons">
                                     <a href="{{ url_for('staff.seminar_request_for_proposal',
                                                                 seminar_attend_id=req.id) }}"
-                                        class="button is-small is-info is-rounded is-light">
+                                        class="button is-small is-success is-rounded is-light">
                                         <span>รายละเอียด</span>
                                     </a>
                                 </div>
@@ -75,7 +75,7 @@
                                 <div class="buttons">
                                     <a href="{{ url_for('staff.seminar_request_for_proposal',
                                                                 seminar_attend_id=req.id) }}"
-                                        class="button is-small is-info is-rounded is-light">รายละเอียด</a>
+                                        class="button is-small is-success is-rounded is-light">รายละเอียด</a>
                                 </div>
                             </td>
                         </tr>
@@ -103,7 +103,6 @@
                         {% if not req.comment %}
                         <tr>
                             <td>
-                                {{ req.id }}
                                 {{ req.seminar_attend.staff.personal_info }}
                             </td>
                             <td>
@@ -113,7 +112,7 @@
                                 <div class="buttons">
                                     <a href="{{ url_for('staff.seminar_upload_proposal',
                                                     seminar_attend_id=req.seminar_attend_id, proposal_id=req.id) }}"
-                                        class="button is-small is-info is-rounded">
+                                        class="button is-small is-success is-rounded">
                                         <span class="icon">
                                             <i class="fas fa-upload"></i>
                                         </span>
@@ -133,7 +132,7 @@
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
-                    <a href="{{ url_for('staff.seminar_proposal') }}" class="button is-rounded is-info is-light">
+                    <a href="{{ url_for('staff.seminar_proposal') }}" class="button is-rounded is-success is-light">
                         <span>ประวัติการอนุมัติ</span>
                     </a>
                 </div>
@@ -143,13 +142,13 @@
             <div class="column">
                 <div class="buttons is-centered">
                     <a href="{{ url_for('staff.seminar_attends_each_person',
-                                        staff_id=current_user.id) }}" class="button is-rounded is-info is-light">
+                                        staff_id=current_user.id) }}" class="button is-rounded is-success is-light">
                         <span class="icon">
                             <i class="fas fa-arrow-left"></i>
                         </span>
                         <span>กลับหน้าสรุปการอบรมของท่าน</span>
                     </a>
-                    <a href="{{ url_for('staff.summary_index') }}" class="button is-rounded is-info is-light">
+                    <a href="{{ url_for('staff.summary_index') }}" class="button is-rounded is-success is-light">
                         <span>ตารางสรุปการเข้างาน</span>
                         <span class="icon">
                         <i class="fas fa-arrow-right"></i>

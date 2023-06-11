@@ -19,7 +19,7 @@
                     </h1>
                     <div class="tags">
                         {% for p in performance_processes %}
-                        <p class="tag is-light is-medium is-success">
+                        <p class="tag is-medium is-success">
                         <a href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
                             {{ p.name }}
                         </a>
@@ -40,7 +40,7 @@
                     </h1>
                     <div class="tags">
                         {% for p in crm_processes %}
-                        <p class="tag is-light is-medium is-success">
+                        <p class="tag is-medium is-success">
                         <a href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
                             {{ p.name }}
                         </a>
@@ -61,7 +61,7 @@
                     </h1>
                     <div class="tags">
                         {% for sv in core_services %}
-                        <p class="tag is-info is-medium is-light">
+                        <p class="tag is-info is-medium">
                             <a href="{{url_for('data_bp.core_service_detail', service_id=sv.id)}}">{{ sv.service }}</a>
                             <a href="{{ url_for('data_bp.core_service_form', service_id=sv.id) }}" class="delete is-small"></a>
                         </p>
@@ -124,7 +124,7 @@
                     </h1>
                     <div class="tags">
                         {% for dt in data %}
-                        <p class="tag is-danger is-light is-medium">
+                        <p class="tag is-danger is-medium">
                             <a href="{{ url_for('data_bp.data_detail', data_id=dt.id) }}">
                                 {{ dt.name }}
                             </a>
