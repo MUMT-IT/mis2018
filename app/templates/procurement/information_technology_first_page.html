@@ -3,7 +3,7 @@
     <nav class="navbar">
         <div class="container">
             <div class="navbar-brand">
-                <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" alt="Logo" width="250">
+                <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Logo" width="75">
                 <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false"
                    data-target="navbarBasicExample">
                     <span aria-hidden="true"></span>
@@ -13,10 +13,11 @@
             </div>
             <div id="navbarMenu" class="navbar-menu">
                 <div class="navbar-end">
-                    <a href="{{ url_for('procurement.first_page') }}"
-                       class="navbar-item is-active is-size-5 has-text-weight-semibold">
-                        Home
+                    <span class="navbar-item">
+                    <a class="button is-outlined" href="{{ url_for('procurement.first_page') }}">
+                        <span>Home</span>
                     </a>
+                    </span>
                 </div>
             </div>
         </div>

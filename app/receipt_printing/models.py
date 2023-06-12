@@ -60,7 +60,8 @@ class ElectronicReceiptDetail(db.Model):
             'print_number': self.print_number,
             'comment': self.comment,
             'cancelled': self.cancelled,
-            'cancel_comment': self.cancel_comment
+            'cancel_comment': self.cancel_comment,
+            'issuer': self.issuer.personal_info.fullname
         }
 
 

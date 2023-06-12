@@ -1,17 +1,16 @@
 {% extends "base.html" %}
-{% include "nav.html" %}
+{% include "staff/nav.html" %}
 {% block page_content %}
-<section class="section">
-    <div class="container" id="app">
-        {% include "messages.html" %}
-        <div class="columns">
-            <div class="column has-text-centered">
-                <h1 class="title">บันทึกรายละเอียดประชุม อบรม สัมมนา</h1>
+    <section class="section">
+        <div class="container" id="app">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">บันทึกรายละเอียดประชุม อบรม สัมมนา</h1>
+                </div>
             </div>
-        </div>
-        <div class="columns">
-            <div class="column is-half is-offset-one-quarter">
-                <div class="box">
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
                     <b-notification type="is-warning is-light" aria-close-label="Close notification" role="alert">
                         หากวันอบรมอยู่ในช่วง2ปีงบฯ ให้บันทึกครั้งเดียว
                     </b-notification>
@@ -90,7 +89,8 @@
                         </div>
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
-                                <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}" class="button is-light">Cancel</a>
+                                <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}"
+                                   class="button is-light">Cancel</a>
                             </div>
                             <div class="control">
                                 <input type="submit" value="submit" class="button is-success"/>
@@ -100,40 +100,39 @@
                 </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
 {% block scripts %}
-{{ super() }}
-<script>
-    let vm = new Vue({
-        el: '#app',
-        delimiters: ['<%', '%>'],
-        data() {
-            return {
-                startDateTime: null,
-                endDateTime: null,
-                data: [],
-                timepicker: {
-                    incrementMinutes: 15
-                },
-                file: null,
-        }
-        },
-        computed: {
-            formattedStartDateTime: function(){
-                if (this.startDateTime){
-                    return new moment(this.startDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
+    {{ super() }}
+    <script>
+        let vm = new Vue({
+            el: '#app',
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    startDateTime: null,
+                    endDateTime: null,
+                    data: [],
+                    timepicker: {
+                        incrementMinutes: 15
+                    },
+                    file: null,
                 }
-                return null
             },
-            formattedEndDateTime: function(){
-                if (this.endDateTime){
-                    return new moment(this.endDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
+            computed: {
+                formattedStartDateTime: function () {
+                    if (this.startDateTime) {
+                        return new moment(this.startDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
+                    }
+                    return null
+                },
+                formattedEndDateTime: function () {
+                    if (this.endDateTime) {
+                        return new moment(this.endDateTime.toISOString()).format('YYYY-MM-DD HH:mm:ss')
+                    }
+                    return null
                 }
-                return null
             }
-        }
-    });
-</script>
+        });
+    </script>
 {% endblock %}

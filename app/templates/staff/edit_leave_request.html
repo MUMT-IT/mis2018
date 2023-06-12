@@ -6,7 +6,7 @@
         {% for msg in get_flashed_messages() %}
         <p class="notification is-warning">{{ msg }}</p>
         {% endfor %}
-        {% for err, msg in errors.iteritems() %}
+        {% for err, msg in errors.items() %}
         <p>{{ err }} : {{ msg }}</p>
         {% endfor %}
         <div class="columns">
@@ -131,7 +131,7 @@
                     </div>
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
-                            <a href="{{ url_for('staff.request_for_leave_info', quota_id=req.quota.id) }}" class="button is-light">Cancel</a>
+                            <a href="{{ url_for('staff.request_for_leave_info', quota_id=req.quota.id) }}" class="button">Cancel</a>
                         </div>
                         <div class="control">
                             <input type="submit" value="Submit" class="button is-success"/>

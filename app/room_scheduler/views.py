@@ -294,9 +294,8 @@ def room_event_list():
     return render_template('scheduler/room_event_list.html')
 
 
-def get_overlaps(room_id, start, end, session_id=None):
+def get_overlaps(room_id, start, end, session_id=None, session_attr=None):
     query = RoomEvent.query.filter_by(room_id=room_id)
-    print('all', query.filter(start >= RoomEvent.start, end <= RoomEvent.end).count())
     if not session_id:
         # check for inner overlaps
         overlaps = query.filter(start >= RoomEvent.start, end <= RoomEvent.end).count()
@@ -313,33 +312,33 @@ def get_overlaps(room_id, start, end, session_id=None):
         # check for inner overlaps
         overlaps = query.filter(start >= RoomEvent.start,
                                 end <= RoomEvent.end,
-                                session_id != RoomEvent.course_session_id).count()
-        print('inner', session_id, overlaps)
+                                session_id != getattr(RoomEvent, session_attr)).count()
 
         # check for outer overlaps
         overlaps += query.filter(and_(start <= RoomEvent.start,
                                       end > RoomEvent.start,
-                                      session_id != RoomEvent.course_session_id,
+                                      session_id != getattr(RoomEvent, session_attr),
                                       end <= RoomEvent.end)).count()
 
         overlaps += query.filter(and_(start >= RoomEvent.start,
                                       end >= RoomEvent.end,
-                                      session_id != RoomEvent.course_session_id,
+                                      session_id != getattr(RoomEvent, session_attr),
                                       start < RoomEvent.end)).count()
-        print('outer', session_id, overlaps)
     return overlaps
 
 
 @room.route('/api/room-availability')
 @login_required
 def check_room_availability():
+    session_attr = request.args.get('session_attr')
     session_id = request.args.get('session_id', type=int)
     room_id = request.args.get('room', type=int)
     start = request.args.get('start')
     end = request.args.get('end')
     start = dateutil.parser.isoparse(start)
     end = dateutil.parser.isoparse(end)
-    if get_overlaps(room_id, start, end, session_id):
+    if get_overlaps(room_id, start, end, session_id, session_attr):
         return '<span class="tag is-danger">ห้องไม่ว่าง/จองซ้อน</span>'
     else:
         return '<span class="tag is-success">ห้องว่าง</span>'
+

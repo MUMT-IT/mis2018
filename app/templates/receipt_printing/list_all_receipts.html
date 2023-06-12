@@ -3,7 +3,7 @@
     <nav class="navbar" role="navigation" aria-label="main navigation">
         <div class="container">
             <div class="navbar-brand">
-                <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" width="200"/>
+                <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" width="70"/>
             </div>
             <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
               <span aria-hidden="true"></span>
@@ -13,7 +13,7 @@
             <div id="navbarMenu" class="navbar-menu">
                 <div class="navbar-end">
                 <span class="navbar-item is-hoverable">
-                    <a class="button is-dark is-outlined">
+                    <a class="button is-outlined">
                         <span class="icon">
                             <i class="fas fa-plus-square"></i>
                         </span>
@@ -26,7 +26,7 @@
                     </div>
                 </span>
                     <span class="navbar-item is-hoverable">
-                    <a class="button is-dark is-outlined">
+                    <a class="button is-outlined">
                         <span class="icon">
                             <i class="fas fa-eye"></i>
                         </span>
@@ -48,7 +48,7 @@
                     </div>
                     </span>
                      <span class="navbar-item is-hoverable">
-                    <a class="button is-dark is-outlined">
+                    <a class="button is-outlined">
                         <span class="icon">
                             <i class="fas fa-bookmark"></i>
                         </span>
@@ -65,7 +65,7 @@
                     </div>
                     </span>
                     <span class="navbar-item">
-                    <a class="button is-dark is-outlined" href="{{ url_for('receipt_printing.index') }}">
+                    <a class="button is-outlined" href="{{ url_for('receipt_printing.index') }}">
                         <span class="icon">
                            <i class="fas fa-sign-out-alt"></i>
                         </span>
@@ -84,14 +84,14 @@
         </div>
         <div class="tabs is-centered" id="type_tab">
             <ul>
-                <li class="is-active">
-                    <a href="{{ url_for('receipt_printing.view_receipt_by_list_type', list_type='myAccount') }}">
+                <li {% if list_type == None %} class="is-active" {% endif %}>
+                    <a href="{{ url_for('receipt_printing.view_receipt_by_list_type') }}">
                         <span class="icon is-small"><i class="fas fa-portrait" aria-hidden="true"></i></span>
                         <span>ข้อมูลการสร้างใบเสร็จของตนเอง</span>
                     </a>
                 </li>
-                <li>
-                    <a href="{{ url_for('receipt_printing.view_receipt_by_list_type', list_type='ourAccount') }}">
+                <li {% if list_type == 'org' %} class="is-active" {% endif %}>
+                    <a href="{{ url_for('receipt_printing.view_receipt_by_list_type', list_type='org') }}">
                         <span class="icon is-small"><i class="fas fa-sitemap" aria-hidden="true"></i></span>
                         <span>ข้อมูลการสร้างใบเสร็จภายในหน่วยงาน</span>
                     </a>
@@ -105,15 +105,12 @@
                         <th>เล่มที่</th>
                         <th>เลขที่</th>
                         <th>ออกวันที่</th>
-{#                        <th>จำนวนรายการ</th>#}
                         <th>ครั้งที่พิมพ์</th>
                         <th>รายละเอียด</th>
-{#                        <th>พิมพ์ใบเสร็จ</th>#}
-{#                        <th>ยกเลิกใบเสร็จ</th>#}
                         <th>หมายเหตุ</th>
                         <th>สถานะ</th>
                         <th>สาเหตุของการยกเลิก</th>
-{#                        <th>สร้างโดย</th>#}
+                        <th>สร้างโดย</th>
                         </thead>
                         <tbody>
                         </tbody>
@@ -143,23 +140,21 @@
             $('#receipt_data').DataTable({
                 order: [[1, 'desc']],
                 searchDelay: 350,
-                ajax: '{{ url_for("receipt_printing.get_receipt_by_list_type") }}',
+                ajax: '{{ url_for("receipt_printing.get_receipt_by_list_type", list_type=list_type) }}',
                 serverSide: true,
                 columns: [
                     {data: 'book_number'},
                     {data: 'number'},
                     {data: 'created_datetime'},
-                    {#{data: 'items|length'},#}
                     {data: 'print_number'},
                     {data: 'preview'},
                     {data: 'comment'},
                     {data: 'status'},
                     {data: 'cancel_comment'},
-                    {#{data: 'issuer'}#}
+                    {data: 'issuer'}
 
                 ],
             })
         });
     </script>
-
 {% endblock %}

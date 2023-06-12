@@ -167,7 +167,7 @@ class ProcurementRequire(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'), nullable=False)
     staff = db.relationship(StaffAccount)
-    detail_id = db.Column('service_id', db.ForeignKey('procurement_details.id'))
+    detail_id = db.Column('detail_id', db.ForeignKey('procurement_details.id'))
     detail = db.relationship('ProcurementDetail',
                               backref=db.backref('repair_records', lazy='dynamic'))
     desc = db.Column('desc', db.Text(), info={'label': u'รายละเอียดที่ต้องการให้บริการหรือปัญหาต่างๆ'})

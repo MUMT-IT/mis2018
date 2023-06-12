@@ -71,7 +71,7 @@ def create_app():
     """Create app based on the config setting
     """
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL').replace('://', 'ql://', 1)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['LINE_CLIENT_ID'] = os.environ.get('LINE_CLIENT_ID')
@@ -163,7 +163,9 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    tz = timezone('Asia/Bangkok')
+    now = datetime.now(tz=tz)
+    return render_template('index.html', now=now)
 
 
 json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()
@@ -628,6 +630,12 @@ admin.add_view(ModelView(ScbPaymentServiceApiClientAccount, db.session, category
 admin.add_view(ModelView(ScbPaymentRecord, db.session, category='SCB Payment Service'))
 
 
+from app.meeting_planner import meeting_planner as meeting_planner_blueprint
+app.register_blueprint(meeting_planner_blueprint)
+
+from app.meeting_planner.models import *
+admin.add_view(ModelView(MeetingEvent, db.session, category='Meeting'))
+admin.add_view(ModelView(MeetingInvitation, db.session, category='Meeting'))
 # Commands
 
 @app.cli.command()
@@ -955,6 +963,12 @@ def load_staff_list(excel_file):
 @click.argument('excel_file')
 def import_chem_items(excel_file):
     database.load_chem_items(excel_file)
+
+
+@app.template_filter('upcoming_meeting_events')
+def filter_upcoming_events(events):
+    tz = timezone('Asia/Bangkok')
+    return [event for event in events if event.meeting.start >= datetime.now(tz=tz)]
 
 
 @app.template_filter('total_hours')

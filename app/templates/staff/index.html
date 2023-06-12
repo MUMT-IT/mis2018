@@ -6,7 +6,7 @@
     {% include "messages.html" %}
     <h1 class="title has-text-centered">ระบบสารสนเทศสำหรับบุคลากร</h1>
     <div class="columns">
-        <div class="column is-half is-offset-3">
+        <div class="column is-one-third is-offset-4">
             <nav class="panel is-info">
                 <p class="panel-heading">สำหรับบุคลากร</p>
                 <a class="panel-block" href="{{ url_for('auth.account') }}">
@@ -14,6 +14,15 @@
                         <i class="fas fa-user-circle"></i>
                     </span>
                     <span class="is-size-5">ข้อมูลส่วนบุคคล (My Profile)</span><br>
+                </a>
+                <a href="{{ url_for('meeting_planner.list_invitations') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fa-solid fa-envelope"></i>
+                    </span>
+                    <span class="is-size-5">
+                        คำเชิญเข้าประชุม
+                    </span>
+                    <span class="tag is-rounded is-danger">{{ current_user.new_invitations|upcoming_meeting_events|length }}</span>
                 </a>
                 <a class="panel-block" href="{{ url_for('staff.pa_index') }}">
                     <span class="panel-icon">

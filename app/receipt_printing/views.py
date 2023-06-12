@@ -15,7 +15,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, PageBreak
+from reportlab.platypus import Image, SimpleDocTemplate, Paragraph, TableStyle, Table, Spacer, PageBreak, KeepTogether
 from werkzeug.utils import secure_filename
 from pydrive.auth import GoogleAuth
 from oauth2client.service_account import ServiceAccountCredentials
@@ -239,13 +239,13 @@ def export_receipt_pdf(receipt_id):
     </font>
     '''
     issued_date = datetime.now().strftime('%d/%m/%Y')
-    receipt_info_ori = receipt_info.format(original=u'ต้นฉบับ<br/>(Original)'.encode('utf-8'),
+    receipt_info_ori = receipt_info.format(original=u'ต้นฉบับ<br/>(Original)',
                                            book_id=book_id,
                                            receipt_number=receipt_number,
                                            issued_date=issued_date,
                                            )
 
-    receipt_info_copy = receipt_info.format(original=u'สำเนา<br/>(Copy)'.encode('utf-8'),
+    receipt_info_copy = receipt_info.format(original=u'สำเนา<br/>(Copy)',
                                             book_id=book_id,
                                             receipt_number=receipt_number,
                                             issued_date=issued_date,
@@ -278,8 +278,8 @@ def export_receipt_pdf(receipt_id):
     ได้รับเงินจาก / RECEIVED FROM {received_from}<br/>
     ที่อยู่ / ADDRESS {address}
     </font></para>
-    '''.format(received_from=receipt.received_from.encode('utf-8'),
-               address=receipt.address.encode('utf-8'))
+    '''.format(received_from=receipt.received_from,
+               address=receipt.address)
 
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
                     ]],
@@ -294,7 +294,7 @@ def export_receipt_pdf(receipt_id):
     total = 0
     for n, item in enumerate(receipt.items, start=1):
         item_record = [Paragraph('<font size=12>{}</font>'.format(n), style=style_sheet['ThaiStyleCenter']),
-                Paragraph('<font size=12>{}</font>'.format(item.item.encode('utf-8')), style=style_sheet['ThaiStyle']),
+                Paragraph('<font size=12>{}</font>'.format(item.item), style=style_sheet['ThaiStyle']),
                 Paragraph('<font size=12>{:,.2f}</font>'.format(item.price), style=style_sheet['ThaiStyleNumber'])
                 ]
         items.append(item_record)
@@ -308,7 +308,7 @@ def export_receipt_pdf(receipt_id):
             Paragraph('<font size=12> </font>', style=style_sheet['ThaiStyleNumber']),
         ])
     total_thai = bahttext(total)
-    total_text = "รวมเงินทั้งสิ้น/ TOTAL : {}".format(total_thai.encode('utf-8'))
+    total_text = "รวมเงินทั้งสิ้น/ TOTAL : {}".format(total_thai)
     items.append([
         Paragraph('<font size=12>{}</font>'.format(total_text), style=style_sheet['ThaiStyleNumber']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -365,13 +365,13 @@ def export_receipt_pdf(receipt_id):
                       Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     receive_officer = Table(receive, colWidths=[0, 80, 20])
 
-    fullname = Paragraph('<font size=12>({})<br/></font>'.format(receipt.issuer.personal_info.fullname.encode('utf-8')),
+    fullname = Paragraph('<font size=12>({})<br/></font>'.format(receipt.issuer.personal_info.fullname),
                          style=style_sheet['ThaiStyle'])
     personal_info = [[fullname,
                 Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
     issuer_personal_info = Table(personal_info, colWidths=[0, 30, 20])
 
-    position = Paragraph('<font size=12>..............{}..................... ตำแหน่ง / POSITION </font>'.format(receipt.issuer.personal_info.position.encode('utf-8')),
+    position = Paragraph('<font size=12>..............{}..................... ตำแหน่ง / POSITION </font>'.format(receipt.issuer.personal_info.position),
                          style=style_sheet['ThaiStyle'])
     position_info = [[position,
                       Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle'])]]
@@ -384,28 +384,28 @@ def export_receipt_pdf(receipt_id):
         number_of_copies = 2 if receipt.copy_number == 1 else 1
         for i in range(number_of_copies):
             if i == 0 and receipt.copy_number == 1:
-                data.append(header_ori)
-                data.append(cancel_receipts)
+                data.append(KeepTogether(header_ori))
+                data.append(KeepTogether(cancel_receipts))
             else:
-                data.append(cancel_receipts)
-                data.append(header_copy)
+                data.append(KeepTogether(cancel_receipts))
+                data.append(KeepTogether(header_copy))
 
-            data.append(customer)
-            data.append(Spacer(1, 12))
-            data.append(Spacer(1, 6))
-            data.append(item_table)
-            data.append(Spacer(1, 6))
-            data.append(total_table)
-            data.append(Spacer(1, 12))
-            data.append(receive_officer)
-            data.append(issuer_personal_info)
-            data.append(issuer_position)
-            data.append(Paragraph('เลขที่กำกับเอกสาร<br/> Regulatory Document No. {}'.format(receipt.book_number),
-                                  style=style_sheet['ThaiStyle']))
-            data.append(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
-                                  style=style_sheet['ThaiStyle']))
-            data.append(notice)
-            data.append(PageBreak())
+            data.append(KeepTogether(customer))
+            data.append(KeepTogether(Spacer(1, 12)))
+            data.append(KeepTogether(Spacer(1, 6)))
+            data.append(KeepTogether(item_table))
+            data.append(KeepTogether(Spacer(1, 6)))
+            data.append(KeepTogether(total_table))
+            data.append(KeepTogether(Spacer(1, 12)))
+            data.append(KeepTogether(receive_officer))
+            data.append(KeepTogether(issuer_personal_info))
+            data.append(KeepTogether(issuer_position))
+            data.append(KeepTogether(Paragraph('เลขที่กำกับเอกสาร<br/> Regulatory Document No. {}'.format(receipt.book_number),
+                                  style=style_sheet['ThaiStyle'])))
+            data.append(KeepTogether(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
+                                  style=style_sheet['ThaiStyle'])))
+            data.append(KeepTogether(notice))
+            data.append(KeepTogether(PageBreak()))
     else:
         number_of_copies = 2 if receipt.copy_number == 1 else 1
         for i in range(number_of_copies):
@@ -414,22 +414,22 @@ def export_receipt_pdf(receipt_id):
             else:
                 data.append(header_copy)
 
-            data.append(customer)
-            data.append(Spacer(1, 12))
-            data.append(Spacer(1, 6))
-            data.append(item_table)
-            data.append(Spacer(1, 6))
-            data.append(total_table)
-            data.append(Spacer(1, 12))
-            data.append(receive_officer)
-            data.append(issuer_personal_info)
-            data.append(issuer_position)
-            data.append(Paragraph('เลขที่กำกับเอกสาร<br/> Regulatory Document No. {}'.format(receipt.book_number),
-                                  style=style_sheet['ThaiStyle']))
-            data.append(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
-                                  style=style_sheet['ThaiStyle']))
-            data.append(notice)
-            data.append(PageBreak())
+            data.append(KeepTogether(customer))
+            data.append(KeepTogether(Spacer(1, 12)))
+            data.append(KeepTogether(Spacer(1, 6)))
+            data.append(KeepTogether(item_table))
+            data.append(KeepTogether(Spacer(1, 6)))
+            data.append(KeepTogether(total_table))
+            data.append(KeepTogether(Spacer(1, 12)))
+            data.append(KeepTogether(receive_officer))
+            data.append(KeepTogether(issuer_personal_info))
+            data.append(KeepTogether(issuer_position))
+            data.append(KeepTogether(Paragraph('เลขที่กำกับเอกสาร<br/> Regulatory Document No. {}'.format(receipt.book_number),
+                                  style=style_sheet['ThaiStyle'])))
+            data.append(KeepTogether(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
+                                  style=style_sheet['ThaiStyle'])))
+            data.append(KeepTogether(notice))
+            data.append(KeepTogether(PageBreak()))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
 
     receipt.print_number += 1
@@ -449,7 +449,7 @@ def list_to_cancel_receipt():
 def confirm_cancel_receipt(receipt_id):
     receipt = ElectronicReceiptDetail.query.get(receipt_id)
     if not receipt.cancelled:
-        return render_template('receipt_printing/confirm_cancel_receipt.html', receipt=receipt)
+        return render_template('receipt_printing/confirm_cancel_receipt.html', receipt=receipt, callback=request.referrer)
     return redirect(url_for('receipt_printing.list_all_receipts'))
 
 
@@ -537,7 +537,7 @@ def download_daily_payment_report():
                          ],
                 index=False,
                 encoding='utf-8')
-    return send_from_directory(os.getcwd(), filename='daily_payment_report.xlsx')
+    return send_file(os.path.join(os.getcwd(),'daily_payment_report.xlsx'))
 
 
 def send_mail(recp, title, message):
@@ -643,22 +643,20 @@ def view_require_receipt():
 
 
 @receipt_printing.route('/receipt-data/')
-@receipt_printing.route('/receipt-data/<int:receipt_id>', methods=['GET'])
-def view_receipt_by_list_type(receipt_id=None):
+def view_receipt_by_list_type():
     list_type = request.args.get('list_type')
-    if list_type == "myAccount" or list_type is None:
-        record = ElectronicReceiptDetail.query.filter_by(issuer_id=current_user.id).all()
-    elif list_type == "ourAccount":
-        org = current_user.personal_info.org
-        record = [receipt for receipt in ElectronicReceiptDetail.query.all()
-                    if receipt.issuer.personal_info.org == org]
-    return render_template('receipt_printing/list_all_receipts.html',
-                           receipt_id=receipt_id, record=record, list_type=list_type)
+    return render_template('receipt_printing/list_all_receipts.html', list_type=list_type)
 
 
 @receipt_printing.route('api/receipt-data/all')
 def get_receipt_by_list_type():
+    list_type = request.args.get('list_type')
     query = ElectronicReceiptDetail.query
+    org = current_user.personal_info.org
+
+    if list_type is None:
+        query = query.filter_by(issuer_id=current_user.id)
+
     search = request.args.get('search[value]')
     col_idx = request.args.get('order[0][column]')
     direction = request.args.get('order[0][dir]')
@@ -673,16 +671,19 @@ def get_receipt_by_list_type():
     query = query.order_by(column)
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
+    if list_type == 'org':
+        query = query.filter(ElectronicReceiptDetail.issuer.has(StaffAccount.personal_info.has(org_id=org.id)))
     total_filtered = query.count()
     query = query.offset(start).limit(length)
     data = []
+
     for item in query:
         item_data = item.to_dict()
         item_data['preview'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">Preview</a>'.format(
             url_for('receipt_printing.show_receipt_detail', receipt_id=item.id))
         item_data['created_datetime'] = item_data['created_datetime'].strftime('%d/%m/%Y, %H:%M:%S')
         item_data['status'] = '<i class="fas fa-times has-text-danger"></i>' if item.cancelled else '<i class="far fa-check-circle has-text-success"></i>'
-
+        item_data['issuer'] = item_data['issuer']
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
