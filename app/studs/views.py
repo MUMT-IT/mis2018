@@ -13,10 +13,11 @@ def index():
 
 @stud.route('/workload/revisions/<int:revision_id>/assignments')
 def show_assignments(revision_id):
+    next_url = request.args.get('next_url')
     revision = EduQACurriculumnRevision.query.get(revision_id)
     student_year = request.args.get('student_year', 'ปี 1')
     return render_template('studs/assignments.html',
-                           student_year=student_year, revision_id=revision_id, revision=revision)
+                           student_year=student_year, revision_id=revision_id, revision=revision, next_url=next_url)
 
 
 @stud.route('/api/assignments')
