@@ -965,6 +965,12 @@ def import_chem_items(excel_file):
     database.load_chem_items(excel_file)
 
 
+@app.template_filter('upcoming_meeting_events')
+def filter_upcoming_events(events):
+    tz = timezone('Asia/Bangkok')
+    return [event for event in events if event.meeting.start >= datetime.now(tz=tz)]
+
+
 @app.template_filter('total_hours')
 def cal_total_hours(instructor, course_id):
     total_seconds = []
