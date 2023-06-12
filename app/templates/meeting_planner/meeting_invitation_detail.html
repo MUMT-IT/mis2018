@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <h1 class="title has-text-centered">รายละเอียดการประชุม</h1>
+        <div class="columns">
+            <div class="column">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-header-title">
+                            รายละเอียดการประชุม
+                        </div>
+                    </div>
+                    <div class="card-content">
+                        <p>
+                            <label class="label">ชื่อ</label>
+                            {{ meeting.title }}
+                        </p>
+                        <p>
+                            <label class="label">วันและเวลา</label>
+                            {{ meeting.start|localdatetime }} - {{ meeting.end|localdatetime }}
+                        </p>
+                        <p>
+                            <label class="label">ห้อง</label>
+                            {{ meeting.rooms }}
+                        </p>
+                    </div>
+                </div>
+                <br>
+                <div class="card">
+                    <div class="card-header">
+                        <p class="card-header-title">รายชื่อผู้เข้าประชุม</p>
+                    </div>
+                    <div class="card-content">
+                        {% for invite in meeting.invitations %}
+                            <span class="tag is-light is-info">
+                                {{ invite.staff.fullname }}
+                            </span>
+                        {% endfor %}
+                    </div>
+                    {% if invite.response == None %}
+                    <footer class="card-footer">
+                        <a class="card-footer-item" hx-target="#left-icon-{{ invite.id }}"
+                           hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='เข้าร่วม') }}">
+                            <span class="tag is-success">เข้าร่วม</span>
+                        </a>
+                        <a class="card-footer-item" hx-target="#left-icon-{{ invite.id }}"
+                           hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่เข้าร่วม') }}">
+                            <span class="tag is-danger">ไม่เข้าร่วม</span>
+                        </a>
+                        <a class="card-footer-item" hx-target="#left-icon-{{ invite.id }}"
+                           hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่แน่ใจ') }}">
+                            <span class="tag is-light">ไม่แน่ใจ</span>
+                        </a>
+                    </footer>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

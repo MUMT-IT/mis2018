@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}MUMT Internal Information System{% endblock %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        {% include 'messages.html' %}
+        <div class="columns">
+            <div class="column">
+                <table id="meetings" class="table is-fullwidth">
+                    <thead>
+                    <th>ชื่อ</th>
+                    <th>เริ่ม</th>
+                    <th>สิ้นสุด</th>
+                    <th>ห้อง</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            let table = $('#meetings').DataTable({
+                ajax: "{{ url_for('meeting_planner.get_meetings') }}",
+                dataSrc: "data",
+                columns: [
+                    { data : 'title'},
+                    {
+                        data : 'start',
+                        render: function(data, type, row) {
+                            if (data !== '') {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return '-'
+                            }
+                        }
+                    },
+                    {
+                        data : 'end',
+                        render: function(data, type, row) {
+                            if (data !== '') {
+                                let d = moment(data)
+                                return d.format('lll')
+                            } else {
+                                return '-'
+                            }
+                        }
+                    },
+                    { data : 'rooms'},
+                    { data : 'action'}
+                ]
+            });
+        });
+    </script>
+{% endblock %}

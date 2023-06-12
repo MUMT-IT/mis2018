@@ -163,7 +163,9 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    tz = timezone('Asia/Bangkok')
+    now = datetime.now(tz=tz)
+    return render_template('index.html', now=now)
 
 
 json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()
@@ -628,6 +630,12 @@ admin.add_view(ModelView(ScbPaymentServiceApiClientAccount, db.session, category
 admin.add_view(ModelView(ScbPaymentRecord, db.session, category='SCB Payment Service'))
 
 
+from app.meeting_planner import meeting_planner as meeting_planner_blueprint
+app.register_blueprint(meeting_planner_blueprint)
+
+from app.meeting_planner.models import *
+admin.add_view(ModelView(MeetingEvent, db.session, category='Meeting'))
+admin.add_view(ModelView(MeetingInvitation, db.session, category='Meeting'))
 # Commands
 
 @app.cli.command()

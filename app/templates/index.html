@@ -4,23 +4,93 @@
 {% block page_content %}
 <section class="section">
     <div class="container">
+        {% include 'messages.html' %}
         <div class="columns">
-            <div class="column is-half is-offset-one-quarter has-text-centered">
-                {% include 'messages.html' %}
+            <div class="column is-one-third">
+                <div class="card">
+                    <div class="card-header">
+                        <p class="card-header-title">การนัดหมายประชุม</p>
+                    </div>
+                    <div class="card-content">
+                        {% for invite in current_user.invitations %}
+                            {% if invite.meeting.start >= now %}
+                            <article class="media">
+                            <div class="media-left">
+                                <span class="icon" id="left-icon-{{ invite.id }}">
+                                    {% if invite.response == 'เข้าร่วม' %}
+                                    <i class="fa-sharp fa-regular fa-circle-check has-text-success"></i>
+                                    {% elif invite.response == 'ไม่เข้าร่วม' %}
+                                    <i class="fa-solid fa-hand has-text-danger"></i>
+                                    {% else %}
+                                    <i class="fa-solid fa-hourglass-start"></i>
+                                    {% endif %}
+                                </span>
+                            </div>
+                                <div class="media-content">
+                                    <div class="content">
+                                        <p>
+                                            <a hx-get="{{ url_for('meeting_planner.invitation_detail', invitation_id=invite.id) }}"
+                                            hx-target="#target-{{ invite.id }}">
+                                                <strong>{{ invite.meeting.title }}</strong>
+                                            </a>
+                                            <br>
+                                            <span class="icon">
+                                                <i class="fa-regular fa-clock"></i>
+                                            </span>
+                                            <small>{{ invite.meeting.start|localdatetime }} - {{ invite.meeting.end|localdatetime }}</small>
+                                            <br>
+                                            {{ invite.meeting.rooms }}
+                                            <br>
+                                            {{ invite.meeting.detail }}
+                                        </p>
+                                    </div>
+                                    <div id="target-{{ invite.id }}">
+                                    {% if invite.response == None %}
+                                        <nav class="level is-mobile">
+                                            <div class="level-left">
+                                                <a class="level-item" hx-target="#left-icon-{{ invite.id }}"
+                                                   hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='เข้าร่วม') }}">
+                                                    <span class="tag is-success">เข้าร่วม</span>
+                                                </a>
+                                                <a class="level-item" hx-target="#left-icon-{{ invite.id }}"
+                                                   hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่เข้าร่วม') }}">
+                                                    <span class="tag is-danger">ไม่เข้าร่วม</span>
+                                                </a>
+                                                <a class="level-item" hx-target="#left-icon-{{ invite.id }}"
+                                                   hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่แน่ใจ') }}">
+                                                    <span class="tag is-light">ไม่แน่ใจ</span>
+                                                </a>
+                                            </div>
+                                        </nav>
+                                    {% endif %}
+                                    </div>
+                                </div>
+                            </article>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="columns">
-            <div class="column is-half is-offset-one-quarter">
+            <div class="column is-half">
                 <nav class="panel is-info">
                     <p class="panel-heading">Staff</p>
                     <a class="panel-block"
                         href="{{ url_for('staff.index') }}">
                         <span class="panel-icon">
-                            <i class="fas fa-users"></i>
+                            <i class="fa-solid fa-user"></i>
                         </span>
                         <span class="is-size-5">
                             บุคลากร
                         </span>
+                    </a>
+                    <a href="{{ url_for('meeting_planner.list_invitations') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa-solid fa-envelope"></i>
+                        </span>
+                        <span class="is-size-5">
+                            คำเชิญเข้าประชุม
+                        </span>
+                        <span class="tag is-rounded is-danger">{{ current_user.new_invitations|length }}</span>
                     </a>
                     <a class="panel-block"
                        href="{{ url_for('staff.geo_checkin') }}">
@@ -54,7 +124,7 @@
                 </nav>
                 <nav class="panel is-info">
                     <p class="panel-heading">Education</p>
-                    <a href="#" class="panel-block">
+                    <a href="{{ url_for('studs.index') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-graduate"></i>
                         </span><span class="is-size-5">นักศึกษา</span>
@@ -85,6 +155,14 @@
                         </span>
                         <span class="is-size-5">
                             ระบบจองห้อง
+                        </span>
+                    </a>
+                    <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa-solid fa-users"></i>
+                        </span>
+                        <span class="is-size-5">
+                            ระบบนัดหมายการประชุม
                         </span>
                     </a>
                     <a href="{{ url_for('smartclass_scheduler.index') }}" class="panel-block">
@@ -258,4 +336,12 @@
         </div>
     </div>
 </section>
+{% endblock %}
+
+{% block scripts %}
+    <script>
+    document.body.addEventListener('htmx:configRequest', (event) => {
+        event.detail.headers['X-CSRF-Token'] = '{{ csrf_token()|tojson|safe }}';
+    })
+    </script>
 {% endblock %}
