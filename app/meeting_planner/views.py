@@ -49,6 +49,25 @@ def create_meeting():
             db.session.add(invitation)
         new_meeting.creator = current_user
         db.session.commit()
+        if form.notify_participants.data:
+            meeting_invitation_link = url_for('meeting_planner.list_invitations',
+                                              _external=True,
+                                              meeting_id=invitation.meeting_event_id)
+            message = f'''
+            ขอเรียนเชิญเข้าร่วมประชุม{invitation.meeting.title}
+            ในวันที่ {form.start.data.strftime('%d/%m/%Y %H:%M')} - {form.start.data.end.strftime('%d/%m/%Y %H:%M')}
+            {invitation.meeting.rooms}
+            
+            กรุณาตอบรับการประชุมในลิงค์ด้านล่าง
+            
+            {meeting_invitation_link}
+            '''
+            if not current_app.debug:
+                send_mail([invitation.staff.email+'@mahidol.ac.th' for invitation in new_meeting.invitations],
+                          title=f'MUMT-MIS: เชิญเข้าร่วมประชุม{invitation.meeting.title}',
+                          message=message)
+            else:
+                print(message)
         flash('บันทึกข้อมูลการประชุมแล้ว', 'success')
         return redirect(url_for('meeting_planner.index'))
     else:
@@ -229,7 +248,7 @@ def detail_meeting(meeting_id):
 @login_required
 def notify_participant(invitation_id):
     invitation = MeetingInvitation.query.get(invitation_id)
-    meeting_invitation_link = url_for('meeting_planner.detail_meeting',
+    meeting_invitation_link = url_for('meeting_planner.list_invitations',
                                       _external=True,
                                       meeting_id=invitation.meeting_event_id)
     start = invitation.meeting.start.astimezone(tz)
