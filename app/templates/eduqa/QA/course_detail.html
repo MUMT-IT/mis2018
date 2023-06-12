@@ -384,7 +384,7 @@
                                                 </span>
                                                 <span>เพิ่มกิจกรรมนอกห้องเรียน</span>
                                             </a>
-                                            <a href="{{ url_for('studs.show_assignments', revision_id=course.revision_id, student_year=course.student_year) }}"
+                                            <a href="{{ url_for('studs.show_assignments', revision_id=course.revision_id, student_year=course.student_year, next_url=request.url) }}"
                                                class="button is-light is-danger is-rounded">
                                                 <span class="icon">
                                                     <i class="fa-solid fa-weight-scale"></i>
@@ -399,7 +399,7 @@
                                     <td colspan="8" class="has-text-centered">
                                         <p class="help is-danger">
                                             รายวิชานี้ยังไม่ได้ระบุระดับชั้นนศ. กรุณาเพิ่มเติมข้อมูลก่อนตรวจสอบภาระงานโดย
-                                            <a href="{{ url_for('eduqa.edit_course', course_id=course.id) }}">คลิกที่นี่</a>
+                                            <a class="tag is-danger" href="{{ url_for('eduqa.edit_course', course_id=course.id) }}">คลิกที่นี่</a>
                                         </p>
                                     </td>
                                 </tr>

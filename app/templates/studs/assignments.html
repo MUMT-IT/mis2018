@@ -10,6 +10,9 @@
     <h1 class="title has-text-centered">Student Workload Planner</h1>
     <h1 class="title has-text-centered is-size-4">{{ revision }}</h1>
     <h1 class="subtitle has-text-centered">นักศึกษาชั้น{{ student_year }}</h1>
+    <div class="buttons is-centered">
+        <a href="{{ next_url or url_for('/') }}" class="button is-light">Back</a>
+    </div>
     <div class="tabs is-boxed">
       <ul>
         <li {% if student_year == 'ปี 1' %}class="is-active"{% endif %}>
