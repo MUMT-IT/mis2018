@@ -15,6 +15,15 @@
                     </span>
                     <span class="is-size-5">ข้อมูลส่วนบุคคล (My Profile)</span><br>
                 </a>
+                <a href="{{ url_for('meeting_planner.list_invitations') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fa-solid fa-envelope"></i>
+                    </span>
+                    <span class="is-size-5">
+                        คำเชิญเข้าประชุม
+                    </span>
+                    <span class="tag is-rounded is-danger">{{ current_user.new_invitations|length }}</span>
+                </a>
                 <a class="panel-block" href="{{ url_for('staff.pa_index') }}">
                     <span class="panel-icon">
                         <i class="far fa-star"></i>

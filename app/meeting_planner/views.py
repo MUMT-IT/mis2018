@@ -1,3 +1,5 @@
+import datetime
+
 from flask import render_template, make_response, request, redirect, url_for, flash, jsonify, current_app
 from flask_login import login_required, current_user
 
@@ -127,22 +129,27 @@ def remove_room_event():
 @login_required
 def respond(invitation_id):
     response = request.args.get('response')
+    keep = request.args.get('keep', 'false')
     invitation = MeetingInvitation.query.get(invitation_id)
     if invitation.meeting.cancelled_at is None:
         invitation.response = response
         invitation.responded_at = arrow.now('Asia/Bangkok').datetime
         if invitation.response == 'เข้าร่วม':
             invitation.note = ''
-            resp = f'<div id="target-{invitation.id}" hx-swap-oob="true"></div>'
-            resp += '<i class="fa-sharp fa-regular fa-circle-check has-text-success"></i>'
+            resp = '<i class="fa-sharp fa-regular fa-circle-check has-text-success"></i>'
+            if keep == 'false':
+                resp += f'<div id="target-{invitation.id}" hx-swap-oob="true"></div>'
         elif invitation.response == 'ไม่เข้าร่วม':
-            add_note_to_response_url = url_for('meeting_planner.add_note_to_response', invitation_id=invitation.id)
-            resp = f'<div id="target-{invitation.id}" hx-swap-oob="true"><form hx-get="{add_note_to_response_url}"><input type="text" placeholder="โปรดระบุเหตุผล" value="{invitation.note}" name="note" class="input"><input class="button is-small is-white" type="submit" value="Send"></form></div>'
-            resp += '<i class="fa-solid fa-hand has-text-danger"></i>'
+            add_note_to_response_url = url_for('meeting_planner.add_note_to_response', invitation_id=invitation.id, keep=keep)
+            resp = '<i class="fa-solid fa-hand has-text-danger"></i>'
+            resp += f'<div id="note-target-{invitation.id}" hx-swap-oob="true"><form hx-get="{add_note_to_response_url}"><input type="text" placeholder="โปรดระบุเหตุผล" value="{invitation.note}" name="note" class="input"><input class="button is-small is-white" type="submit" value="Send"></form></div>'
+            if keep == 'false':
+                resp += f'<div id="target-{invitation.id}" hx-swap-oob="true"></div>'
         else:
             invitation.note = ''
-            resp = f'<div id="target-{invitation.id}" hx-swap-oob="true"></div>'
-            resp += '<i class="fa-solid fa-hourglass-start"></i>'
+            resp = '<i class="fa-solid fa-hourglass-start"></i>'
+            if keep == 'false':
+                resp += f'<div id="target-{invitation.id}" hx-swap-oob="true"></div>'
         db.session.add(invitation)
         db.session.commit()
         return resp
@@ -152,12 +159,16 @@ def respond(invitation_id):
 @meeting_planner.route('/api/invitations/<int:invitation_id>/note', methods=['GET'])
 @login_required
 def add_note_to_response(invitation_id):
+    keep = request.args.get('keep', 'false')
     invitation = MeetingInvitation.query.get(invitation_id)
     invitation.note = request.args.get('note')
     print(request.args.get('note'))
     db.session.add(invitation)
     db.session.commit()
-    return f'<div id="target-{invitation.id}" hx-swap-oob="true"></div>'
+    if keep == 'true':
+        return f'<div id="note-target-{invitation.id}" hx-swap-oob="true"></div>'
+    else:
+        return f'<div id="target-{invitation.id}" hx-swap-oob="true"></div>'
 
 
 @meeting_planner.route('/api/invitations/<int:invitation_id>/detail')
@@ -185,6 +196,14 @@ def invitation_detail(invitation_id):
 @login_required
 def list_meetings():
     return render_template('meeting_planner/meetings.html')
+
+
+@meeting_planner.route('/invitations')
+@login_required
+def list_invitations():
+    cat = request.args.get('cat', 'new')
+    now = datetime.datetime.now(tz=tz)
+    return render_template('meeting_planner/meeting_invitations.html', cat=cat, now=now)
 
 
 @meeting_planner.route('/api/meetings')

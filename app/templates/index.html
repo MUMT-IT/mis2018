@@ -13,6 +13,7 @@
                     </div>
                     <div class="card-content">
                         {% for invite in current_user.invitations %}
+                            {% if invite.meeting.start >= now %}
                             <article class="media">
                             <div class="media-left">
                                 <span class="icon" id="left-icon-{{ invite.id }}">
@@ -65,6 +66,7 @@
                                     </div>
                                 </div>
                             </article>
+                            {% endif %}
                         {% endfor %}
                     </div>
                 </div>
@@ -81,7 +83,7 @@
                             บุคลากร
                         </span>
                     </a>
-                    <a href="{{ url_for('meeting_planner.index') }}" class="panel-block">
+                    <a href="{{ url_for('meeting_planner.list_invitations') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fa-solid fa-envelope"></i>
                         </span>

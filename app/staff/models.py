@@ -10,6 +10,7 @@ from marshmallow import fields
 from app.models import Org, OrgSchema, OrgStructure
 from datetime import datetime
 
+
 today = datetime.today()
 
 if today.month >= 10:
@@ -39,9 +40,10 @@ seminar_approval_attend_assoc_table = db.Table('seminar_approval_attend_assoc',
                                                )
 
 staff_seminar_mission_assoc_table = db.Table('staff_seminar_mission_assoc',
-                                   db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id')),
-                                   db.Column('seminar_mission_id', db.ForeignKey('staff_seminar_missions.id')),
-                                   )
+                                             db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id')),
+                                             db.Column('seminar_mission_id',
+                                                       db.ForeignKey('staff_seminar_missions.id')),
+                                             )
 
 staff_seminar_objective_assoc_table = db.Table('staff_seminar_objective_assoc',
                                                db.Column('seminar_attend_id',
@@ -146,6 +148,10 @@ class StaffAccount(db.Model):
     @property
     def new_invitations(self):
         return self.invitations.filter_by(response=None).all()
+
+    @property
+    def pending_invitations(self):
+        return self.invitations.filter_by(response='ไม่แน่ใจ').all()
 
 
 class StaffPersonalInfo(db.Model):
@@ -752,10 +758,11 @@ class StaffSeminarAttend(db.Model):
     budget_type = db.Column('budget_type', db.String(), info={'label': u'แหล่งทุน'})
     transaction_fee = db.Column('transaction_fee', db.Float(), info={'label': u'ค่าธรรมเนียมการโอน (บาท)'})
     budget = db.Column('budget', db.Float(), info={'label': u'ค่าใช้จ่ายรวมทั้งหมด (บาท)'})
-    attend_online = db.Column('attend_online', db.Boolean(), default=False, info={'label': u'เข้าร่วมผ่านช่องทาง online'})
+    attend_online = db.Column('attend_online', db.Boolean(), default=False,
+                              info={'label': u'เข้าร่วมผ่านช่องทาง online'})
     middle_level_approver_account_id = db.Column('middle_level_approver_account_id', db.ForeignKey('staff_account.id'))
     middle_level_approver = db.relationship('StaffAccount', foreign_keys=[middle_level_approver_account_id],
-                                           backref=db.backref('seminar_middle_approver_attends', lazy='dynamic'))
+                                            backref=db.backref('seminar_middle_approver_attends', lazy='dynamic'))
     lower_level_approver_account_id = db.Column('lower_level_approver_account_id', db.ForeignKey('staff_account.id'))
     lower_level_approver = db.relationship('StaffAccount', foreign_keys=[lower_level_approver_account_id],
                                            backref=db.backref('seminar_lower_approver_attends', lazy='dynamic'))
@@ -793,12 +800,12 @@ class StaffSeminarProposal(db.Model):
     comment = db.Column('approval_comment', db.String())
     proposer_account_id = db.Column('proposer_account_id', db.ForeignKey('staff_account.id'))
     proposer = db.relationship('StaffAccount', foreign_keys=[proposer_account_id],
-                                           backref=db.backref('seminar_proposer', lazy='dynamic'))
+                               backref=db.backref('seminar_proposer', lazy='dynamic'))
     previous_proposal_id = db.Column('previous_proposal_id', db.Integer())
     upload_file_url = db.Column('upload_file_url', db.String())
     proposer_head_position_id = db.Column('proposer_head_position_id', db.ForeignKey('staff_head_positions.id'))
     head_position = db.relationship('StaffHeadPosition', foreign_keys=[proposer_head_position_id],
-                               backref=db.backref('proposer_head_position'))
+                                    backref=db.backref('proposer_head_position'))
 
 
 class StaffSeminarDocument(db.Model):
@@ -806,9 +813,9 @@ class StaffSeminarDocument(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     seminar_proposal_id = db.Column('seminar_proposal_id', db.ForeignKey('staff_seminar_proposals.id'))
     proposal = db.relationship('StaffSeminarProposal', backref=db.backref('seminar_document')
-                                     , foreign_keys=[seminar_proposal_id])
+                               , foreign_keys=[seminar_proposal_id])
     document_no = db.Column('document_no', db.String)
-    #doc_internal_sending_id = db.Column('doc_internal_sending_id', db.ForeignKey('doc_internal_sending.id'))
+    # doc_internal_sending_id = db.Column('doc_internal_sending_id', db.ForeignKey('doc_internal_sending.id'))
 
 
 class StaffSeminarApproval(db.Model):
@@ -864,7 +871,7 @@ class StaffRequestWorkLogin(db.Model):
     requested_at = db.Column('requested_at', db.DateTime(timezone=True))
     approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
     approver = db.relationship('StaffAccount', backref=db.backref('approver_work_logins', lazy='dynamic'),
-                            foreign_keys=[approver_id])
+                               foreign_keys=[approver_id])
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     date_id = db.Column('date_id', db.String())
@@ -874,6 +881,7 @@ class StaffRequestWorkLogin(db.Model):
     @staticmethod
     def generate_date_id(date):
         return date.strftime('%Y%m%d')
+
 
 class StaffShiftSchedule(db.Model):
     __tablename__ = 'staff_shift_schedule'

@@ -163,7 +163,9 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    tz = timezone('Asia/Bangkok')
+    now = datetime.now(tz=tz)
+    return render_template('index.html', now=now)
 
 
 json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()

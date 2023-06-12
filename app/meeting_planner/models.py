@@ -25,6 +25,10 @@ class MeetingEvent(db.Model):
     meeting_events = db.relationship('RoomEvent')
 
     @property
+    def participants(self):
+        return [i.staff.fullname for i in self.invitations]
+
+    @property
     def rooms(self):
         return f'ห้อง {", ".join([e.room.number for e in self.meeting_events])}'
 
