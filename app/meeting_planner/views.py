@@ -229,7 +229,7 @@ def detail_meeting(meeting_id):
 @login_required
 def notify_participant(invitation_id):
     invitation = MeetingInvitation.query.get(invitation_id)
-    meeting_invitation_link = url_for('meeting_planner.detail_meeting',
+    meeting_invitation_link = url_for('meeting_planner.list_invitations',
                                       _external=True,
                                       meeting_id=invitation.meeting_event_id)
     start = invitation.meeting.start.astimezone(tz)
