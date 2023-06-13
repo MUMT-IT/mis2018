@@ -213,7 +213,9 @@ def request_for_leave(quota_id=None):
                                                        StaffLeaveRequest.quota == quota,
                                                        StaffLeaveRequest.cancelled_at == None)).first():
                     flash('ท่านได้มีการขอลาในวันดังกล่าวแล้ว')
-                    return redirect(url_for('staff.request_for_leave_info', quota_id=quota_id))
+                    resp = make_response()
+                    resp.headers['HX-Redirect'] = request.referrer
+                    return resp
                 else:
                     req = StaffLeaveRequest(
                         start_datetime=tz.localize(start_datetime),
@@ -251,6 +253,11 @@ def request_for_leave(quota_id=None):
                         resp.headers['HX-Redirect'] = request.referrer
                         return resp
                         # retrieve cum periods
+                    if delta.days <= 0 and quota.leave_type.request_in_advance:
+                        flash('ไม่สามารถลาพักผ่อน/ลากิจย้อนหลังได้')
+                        resp = make_response()
+                        resp.headers['HX-Redirect'] = request.referrer
+                        return resp
                     used_quota = current_user.personal_info \
                         .get_total_leaves(quota.id,
                                           tz.localize(START_FISCAL_DATE),
@@ -437,6 +444,9 @@ def request_for_leave_period(quota_id=None):
                 delta = start_datetime.date() - datetime.today().date()
                 if delta.days > 0 and not quota.leave_type.request_in_advance:
                     flash('ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
+                    return redirect(request.referrer)
+                if delta.days <= 0 and quota.leave_type.request_in_advance:
+                    flash('ไม่สามารถลาพักผ่อน/ลากิจย้อนหลังได้')
                     return redirect(request.referrer)
                 START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(start_datetime)
                 used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
@@ -706,6 +716,9 @@ def edit_leave_request(req_id=None):
                 flash('ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
                 return redirect(request.referrer)
                 # retrieve cum periods
+            if delta.days <= 0 and quota.leave_type.request_in_advance:
+                flash('ไม่สามารถลาพักผ่อน/ลากิจย้อนหลังได้')
+                return redirect(request.referrer)
             used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                      tz.localize(END_FISCAL_DATE))
             pending_days = current_user.personal_info.get_total_pending_leaves_request \
@@ -823,7 +836,9 @@ def edit_leave_request_period(req_id=None):
             if delta.days > 0 and not quota.leave_type.request_in_advance:
                 flash('ไม่สามารถลาล่วงหน้าได้ กรุณาลองใหม่')
                 return redirect(request.referrer)
-
+            if delta.days <= 0 and quota.leave_type.request_in_advance:
+                flash('ไม่สามารถลาพักผ่อน/ลากิจย้อนหลังได้')
+                return redirect(request.referrer)
             START_FISCAL_DATE, END_FISCAL_DATE = get_fiscal_date(start_datetime)
             used_quota = current_user.personal_info.get_total_leaves(quota.id, tz.localize(START_FISCAL_DATE),
                                                                      tz.localize(END_FISCAL_DATE))
