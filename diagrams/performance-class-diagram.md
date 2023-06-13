@@ -8,13 +8,27 @@ erDiagram
     STAFF_ACCOUNT }o--o{ COMMITTEE : serve
     COMMITTEE ||--o{ SCORE_SHEET : given
     SCORE_SHEET }|--|| PA : for
+    SCORE_SHEET ||--|{ SCORE_SHEET_ITEM : has
     PA ||--o{ PA_ITEM : has
     PA_ITEM ||--|| KPI_ITEM : has
     
     KPI ||--|{ KPI_ITEM : has
     
+    SCORE_SHEET {
+        foreignKey pa_id
+        foreignKey committee_id
+    }
+    
+    SCORE_SHEET_ITEM {
+        foreignKey kpi_item_id
+        foreignKey score_sheet_id
+        integer score
+        string comment
+    }
+    
     KPI {
         foreignKey pa_id
+        string detail
     }
     
     KPI_ITEM {
