@@ -11,6 +11,11 @@ erDiagram
     SCORE_SHEET ||--|{ SCORE_SHEET_ITEM : has
     PA ||--o{ PA_ITEM : has
     PA_ITEM ||--|| KPI_ITEM : has
+    PA_LEVEL }o--o{ KPI_ITEM : has
+    
+    PA_LEVEL {
+        string level
+    }
     
     KPI ||--|{ KPI_ITEM : has
     
