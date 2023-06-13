@@ -1,0 +1,19 @@
+# Features
+
+Staff
+- Users can create 1-2 agreement per year (depending on employment type) for an open round
+- Users can edit an agreement at anytime before approval
+- Users can request for a permission to edit one month prior to evaluation
+
+
+Supervisor
+- A supervisor can review an agreement
+- A supervisor can send comments/feedback to staff
+- A supervisor can approve an agreement
+- A supervisor can grant a permission to edit
+- Assign/create a committee for a staff
+
+HR
+- Open a round of evaluation
+
+
