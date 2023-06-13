@@ -25,9 +25,9 @@ erDiagram
     }
     
     SCORE_SHEET_ITEM {
-        foreignKey kpi_item_id
+        foreignKey kpi_id
         foreignKey score_sheet_id
-        integer score
+        float score
         string comment
     }
     

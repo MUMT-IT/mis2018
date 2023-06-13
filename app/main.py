@@ -644,6 +644,15 @@ app.register_blueprint(pa_blueprint)
 from app.PA.models import *
 admin.add_view(ModelView(PARound, db.session, category='PA'))
 admin.add_view(ModelView(PAAgreement, db.session, category='PA'))
+admin.add_view(ModelView(PAKPI, db.session, category='PA'))
+admin.add_view(ModelView(PAKPIItem, db.session, category='PA'))
+admin.add_view(ModelView(PALevel, db.session, category='PA'))
+admin.add_view(ModelView(PACommittee, db.session, category='PA'))
+admin.add_view(ModelView(PAItem, db.session, category='PA'))
+admin.add_view(ModelView(PARequest, db.session, category='PA'))
+admin.add_view(ModelView(PAScoreSheet, db.session, category='PA'))
+admin.add_view(ModelView(PAScoreSheetItem, db.session, category='PA'))
+
 
 # Commands
 
