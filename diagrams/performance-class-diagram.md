@@ -11,6 +11,11 @@ erDiagram
     SCORE_SHEET ||--|{ SCORE_SHEET_ITEM : has
     PA ||--o{ PA_ITEM : has
     PA_ITEM ||--|| KPI_ITEM : has
+    PA_LEVEL }o--o{ KPI_ITEM : has
+    
+    PA_LEVEL {
+        string level
+    }
     
     KPI ||--|{ KPI_ITEM : has
     
@@ -20,9 +25,9 @@ erDiagram
     }
     
     SCORE_SHEET_ITEM {
-        foreignKey kpi_item_id
+        foreignKey kpi_id
         foreignKey score_sheet_id
-        integer score
+        float score
         string comment
     }
     
