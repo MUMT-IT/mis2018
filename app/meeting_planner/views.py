@@ -49,6 +49,23 @@ def create_meeting():
             db.session.add(invitation)
         new_meeting.creator = current_user
         db.session.commit()
+        if form.notify_participants.data:
+            meeting_invitation_link = url_for('meeting_planner.list_invitations', _external=True)
+            message = f'''
+            ขอเรียนเชิญเข้าร่วมประชุม{invitation.meeting.title}
+            ในวันที่ {form.start.data.strftime('%d/%m/%Y %H:%M')} - {form.end.data.strftime('%d/%m/%Y %H:%M')}
+            {invitation.meeting.rooms}
+            
+            กรุณาตอบรับการประชุมในลิงค์ด้านล่าง
+            
+            {meeting_invitation_link}
+            '''
+            if not current_app.debug:
+                send_mail([invitation.staff.email+'@mahidol.ac.th' for invitation in new_meeting.invitations],
+                          title=f'MUMT-MIS: เชิญเข้าร่วมประชุม{invitation.meeting.title}',
+                          message=message)
+            else:
+                print(message)
         flash('บันทึกข้อมูลการประชุมแล้ว', 'success')
         return redirect(url_for('meeting_planner.index'))
     else:
@@ -142,9 +159,11 @@ def respond(invitation_id):
         elif invitation.response == 'ไม่เข้าร่วม':
             add_note_to_response_url = url_for('meeting_planner.add_note_to_response', invitation_id=invitation.id, keep=keep)
             resp = '<i class="fa-solid fa-hand has-text-danger"></i>'
-            resp += f'<div id="note-target-{invitation.id}" hx-swap-oob="true"><form hx-get="{add_note_to_response_url}"><input type="text" placeholder="โปรดระบุเหตุผล" value="{invitation.note}" name="note" class="input"><input class="button is-small is-white" type="submit" value="Send"></form></div>'
+            resp += f'<div id="note-target-{invitation.id}" hx-swap-oob="true"><form hx-get="{add_note_to_response_url}"><input type="text" placeholder="โปรดระบุเหตุผล" value="{invitation.note}" name="note" class="input is-small"><input class="tag is-light" type="submit" value="Send"></form></div>'
+            '''
             if keep == 'false':
                 resp += f'<div id="target-{invitation.id}" hx-swap-oob="true"></div>'
+            '''
         else:
             invitation.note = ''
             resp = '<i class="fa-solid fa-hourglass-start"></i>'
@@ -229,7 +248,7 @@ def detail_meeting(meeting_id):
 @login_required
 def notify_participant(invitation_id):
     invitation = MeetingInvitation.query.get(invitation_id)
-    meeting_invitation_link = url_for('meeting_planner.detail_meeting',
+    meeting_invitation_link = url_for('meeting_planner.list_invitations',
                                       _external=True,
                                       meeting_id=invitation.meeting_event_id)
     start = invitation.meeting.start.astimezone(tz)

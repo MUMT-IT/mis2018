@@ -141,7 +141,7 @@
                 {% if form.start.data %}
                     startDate: {{ form.start.data.astimezone(localtz).isoformat()|tojson|safe }},
                 {% else %}
-                    startDate: moment().startOf('hour'),
+                    startDate: moment().startOf('hour').add(1, 'hours'),
                 {% endif %}
                 locale: {
                     format: 'YYYY-MM-DD HH:mm:ss'
@@ -156,7 +156,7 @@
                 {% if form.end.data %}
                     startDate: {{ form.end.data.astimezone(localtz).isoformat()|tojson|safe }},
                 {% else %}
-                    startDate: moment().startOf('hour').add(1, 'hours'),
+                    startDate: moment().startOf('hour').add(2, 'hours'),
                 {% endif %}
                 locale: {
                     format: 'YYYY-MM-DD HH:mm:ss'

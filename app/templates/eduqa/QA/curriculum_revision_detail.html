@@ -41,6 +41,11 @@
                       </span>
                       <span>ตารางสอน</span>
                     </a>
+                    <a href="{{ url_for('studs.show_assignments', revision_id=revision.id) }}"
+                       class="button is-rounded">
+                        <span class="icon"><i class="fa-solid fa-weight-scale"></i></span>
+                        <span>ภาระงานของนักศึกษา</span>
+                    </a>
                 </div>
                 <b-field>
                     <b-switch type="is-success"
