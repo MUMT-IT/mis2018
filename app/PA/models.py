@@ -98,7 +98,7 @@ class PACommittee(db.Model):
                                                 'choices': [(c, c) for c in ('ประธาน', 'กรรมการ')]})
 
     def __str__(self):
-        return self.staff.fullname
+        return self.staff.personal_info.fullname
 
 
 class PAScoreSheet(db.Model):
@@ -109,6 +109,9 @@ class PAScoreSheet(db.Model):
     committee_id = db.Column('pa_committee_id', db.ForeignKey('pa_committees.id'))
     committee = db.relationship('PACommittee', backref=db.backref('commitee_score_sheet', lazy='dynamic'),
                             foreign_keys=[committee_id])
+    evaluator_id = db.Column('evaluator_id', db.ForeignKey('staff_account.id'))
+    evaluator = db.relationship('StaffAccount', backref=db.backref('evaluator_score_sheetfla', lazy='dynamic'),
+                            foreign_keys=[evaluator_id])
     is_consolidated = db.Column('is_consolidated', db.Boolean(), default=False)
 
 
