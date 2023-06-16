@@ -97,13 +97,18 @@ class PACommittee(db.Model):
     role = db.Column('role', db.String(), info={'label': 'ประเภท',
                                                 'choices': [(c, c) for c in ('ประธาน', 'กรรมการ')]})
 
+    def __str__(self):
+        return self.staff.fullname
+
 
 class PAScoreSheet(db.Model):
     __tablename__ = 'pa_score_sheets'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    pd_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
-    pa = db.relationship('PAAgreement', backref=db.backref('pa_score_sheet'), foreign_keys=[pd_id])
+    pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
+    pa = db.relationship('PAAgreement', backref=db.backref('pa_score_sheet'), foreign_keys=[pa_id])
     committee_id = db.Column('pa_committee_id', db.ForeignKey('pa_committees.id'))
+    committee = db.relationship('PACommittee', backref=db.backref('commitee_score_sheet', lazy='dynamic'),
+                            foreign_keys=[committee_id])
     is_consolidated = db.Column('is_consolidated', db.Boolean(), default=False)
 
 
