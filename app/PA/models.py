@@ -12,6 +12,9 @@ class PARound(db.Model):
     start = db.Column('start', db.Date())
     end = db.Column('end', db.Date())
 
+    def __str__(self):
+        return u'{} - {}'.format(self.start, self.end)
+
 
 class PAAgreement(db.Model):
     __tablename__ = 'pa_agreements'
@@ -68,6 +71,9 @@ class PAItem(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     task = db.Column(db.Text())
     percentage = db.Column(db.Numeric())
+    agreement_id = db.Column('agreement_id', db.ForeignKey('pa_agreements.id'))
+    agreement = db.relationship('PAAgreement',
+                                backref=db.backref('items', cascade='all, delete-orphan'))
 
 
 class PACommittee(db.Model):
