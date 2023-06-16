@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="{{ url_for('pa.user_performance') }}">หน้าหลัก</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">ดูข้อมูล</a></li>
+                </ul>
+            </nav>
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">รายละเอียดแบบประเมินผลการปฏิบัติงาน</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column has-text-centered is-two-thirds is-offset-2">
+                    <div class="card">
+                        <div class="card-content">
+                            <table class="table is-striped is-bordered is-fullwidth">
+                                <colgroup>
+                                    <col span="1" style="width: 25%;">
+                                    <col span="1" style="width: 75%;">
+                                </colgroup>
+                                <tr>
+                                    <td><label class="label">ภาระงานที่ทำข้อตกลงการปฏิบัติงาน</label></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ร้อยละ(น้ำหนัก)</label></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน(ร้อยละ)</label></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">รายละเอียดตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</label></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">รายละเอียดตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</label></td>
+                                    <td></td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">เกณฑ์การประเมิน</label></td>
+                                    <td></td>
+                                </tr>
+                            </table>
+                            <div class="buttons is-centered">
+                                <a href="{{ url_for('pa.user_performance') }}" class="button is-light">กลับ</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super }}
+{% endblock %}
