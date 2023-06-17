@@ -85,6 +85,7 @@ class PAKPIItem(db.Model):
     kpi_id = db.Column(db.ForeignKey('pa_kpis.id'))
     kpi = db.relationship('PAKPI', backref=db.backref('pa_kpi_items'))
     goal = db.Column('goal', db.Text())
+    kpi = db.relationship('PAKPI', backref=db.backref('pa_kpi_items'))
 
     def __str__(self):
         return self.goal
@@ -94,8 +95,8 @@ class PAItem(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     task = db.Column(db.Text())
     percentage = db.Column(db.Numeric())
-    pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
-    pa = db.relationship('PAAgreement', backref=db.backref('pa_item'))
+    agreement_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
+    agreement = db.relationship('PAAgreement', backref=db.backref('pa_item', cascade='all, delete-orphan'))
     kpi_items = db.relationship('PAKPIItem', secondary=item_kpi_item_assoc_table)
 
 
