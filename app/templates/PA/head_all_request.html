@@ -28,7 +28,19 @@
                             {{ req.pa.staff.fullname }}
                         </td>
                         <td>
+                            {% if req.for_ =='ขอรับการประเมิน' %}
+                            <a class="tag is-medium is-danger">
                             {{ req.for_ }}
+                            </a>
+                            {% elif req.for_ =='อนุมัติ' %}
+                            <a class="tag is-medium is-info">
+                            {{ req.for_ }}
+                            </a>
+                            {% else %}
+                            <a class="tag is-medium is-warning">
+                            {{ req.for_ }}
+                            </a>
+                            {% endif %}
                         </td>
                         {% if req.responded_at %}
                         <td>
