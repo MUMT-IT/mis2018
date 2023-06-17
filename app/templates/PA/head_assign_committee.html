@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="subtitle">ขั้นตอนส่งการประเมินผลงานไปยังกลุ่มผู้ประเมิน</h1>
+                    <h1 class="title">ผู้รับการประเมิน {{ pa.staff.personal_info.fullname }}</h1>
+                    <h1 class="subtitle">รอบการประเมิน {{ pa.round }}</h1>
+                    <h1 class="title">กรุณาเลือกผู้ประเมิน 2 ท่านเป็นคณะกรรมการ</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <form method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                        <div class="columns">
+                            <div class="column is-two-thirds is-offset-2">
+                                {% for c in committee %}
+                                    <div class="field">
+                                        <input type="checkbox" name="commitees" value="{{ c.id }}">
+                                        {{ c.staff.fullname }} {{ c.role }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.all_request') }}"
+                                   class="button is-light">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="submit" class="button is-success"/>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">การประเมินผลงาน (Performance) ของ{{ scoresheet.pa.staff.personal_info.fullname }}</h1>
+                <h1 class="subtitle">ตำแหน่ง {{ scoresheet.pa.staff.personal_info.position }}
+                    <br>ลักษณะการจ้าง {{ scoresheet.pa.staff.personal_info.employment }}
+                </h1>
+            </div>
+        </div>
+    {% include "messages.html" %}
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="reqTable">
+                    <thead>
+                    <th>ภาระงาน</th>
+                    <th>ร้อยละ (น้ำหนัก)</th>
+                    <th>เป้าหมาย: ปริมาณ</th>
+                    <th>เป้าหมาย: คุณภาพ</th>
+                    <th>เป้าหมาย: เวลา</th>
+                    <th>เป้าหมาย: ความคุ้มค่า</th>
+                    <th>เป้าหมาย: ความพึงพอใจ</th>
+                    <th>คะแนนที่ให้</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for item in scoresheet.pa.pa_item %}
+                    <tr>
+                        <td>
+                            {{ item.task }}
+                        </td>
+                        <td>
+                            {{ item.percentage }}
+                        </td>
+                        <td>
+                            {% for kpi in item.kpi_items %}
+                                {% if kpi.kpi.type == 'เวลา' %}
+
+                                    {{ kpi.goal }}<br>
+
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for kpi in item.kpi_items %}
+                                {% if kpi.kpi.type == 'คุณภาพ' %}
+
+                                    {{ kpi.goal }}<br>
+
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for kpi in item.kpi_items %}
+                                {% if kpi.kpi.type == 'เวลา' %}
+
+                                    {{ kpi.goal }}<br>
+
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for kpi in item.kpi_items %}
+                                {% if kpi.kpi.type == 'ความคุ้มค่า' %}
+
+                                    {{ kpi.goal }}<br>
+
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for kpi in item.kpi_items %}
+                                {% if kpi.kpi.type == 'ความพึงพอใจ' %}
+
+                                    {{ kpi.goal }}<br>
+
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('pa.rate_performance',
+                            pa_id=scoresheet.pa_id, item_id=item.id, scoresheet_id=scoresheet.id) }}"
+                               class="button is-small">
+                                <span>ให้คะแนน</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('pa.all_scoresheet') }}" class="button is-rounded is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับหน้าหลัก</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#reqTable').DataTable();
+        });
+    </script>
+{% endblock %}

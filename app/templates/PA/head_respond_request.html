@@ -40,11 +40,6 @@
                         {% endif %}
                         <div class="field">
                             <label class="label">PA</label>
-{#                            {% for kpi in req.pa.pa_kpi %}#}
-{#                            <div>#}
-{#                                {{ kpi.detail }}#}
-{#                            </div>#}
-{#                            {% endfor %}#}
                             <div>
                                 รายละเอียด PA...........
                             </div>
@@ -88,8 +83,14 @@
                         {% if req.for_ == 'ขอรับการประเมิน' %}
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
-                                <a href="{{ url_for('pa.create_scoresheet', pa_id=req.pd_id) }}"
+                                <a href="{{ url_for('pa.create_scoresheet', pa_id=req.pa_id) }}"
                                    class="button is-warning">เริ่มการประเมิน</a>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.assign_committee', pa_id=req.pa_id) }}"
+                                   class="button is-warning">แต่งตั้งกลุ่มผู้ประเมิน</a>
                             </div>
                         </div>
                         {% endif %}

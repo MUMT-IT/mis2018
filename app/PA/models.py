@@ -112,6 +112,9 @@ class PACommittee(db.Model):
     role = db.Column('role', db.String(), info={'label': 'ประเภท',
                                                 'choices': [(c, c) for c in ('ประธาน', 'กรรมการ')]})
 
+    def __str__(self):
+        return self.staff.fullname
+
 
 class PAScoreSheet(db.Model):
     __tablename__ = 'pa_score_sheets'

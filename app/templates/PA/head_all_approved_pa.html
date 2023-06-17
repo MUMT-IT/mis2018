@@ -1,3 +1,4 @@
+{# show subordinates committee and can assign individual committee #}
 {% extends "base.html" %}
 {% include "nav.html" %}
 {% block page_content %}
@@ -5,7 +6,7 @@
     <div class="container" id="app">
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">รายการคำขอทั้งหมด</h1>
+                <h1 class="title">รายชื่อบุคลากรเข้ารับการประเมินผลงาน (Performance)</h1>
             </div>
         </div>
         {% include "messages.html" %}
@@ -14,37 +15,37 @@
                 <table class="table is-striped is-fullwidth" id="reqTable">
                     <thead>
                     <th>รอบการประเมิน</th>
-                    <th>ผู้ยื่นคำขอ</th>
-                    <th>ประเภทคำขอ</th>
+                    <th>ผู้รับการประเมิน</th>
+                    <th>กลุ่มผู้ประเมิน</th>
                     <th></th>
                     </thead>
                     <tbody>
-                    {% for req in all_req %}
+                    {% for pa in pa %}
                     <tr>
                         <td>
-                            {{ req.pa.round }}
+                            {{ pa.round }}
                         </td>
                         <td>
-                            {{ req.pa.staff.fullname }}
+                            {{ pa.staff.personal_info.fullname }}
                         </td>
                         <td>
-                            {{ req.for_ }}
+                            {% for c in pa.committees %}
+                                <a class="tag is-medium">
+                                {{ c.staff.personal_info.fullname }}
+                                </a>
+
+                            {% endfor %}
                         </td>
-                        {% if req.responded_at %}
                         <td>
-                            <a href="{{ url_for('pa.respond_request', request_id=req.id) }}"
+                            <a href="{{ url_for('pa.create_scoresheet_for_committee', pa_id=pa.id) }}"
                                class="button is-small">
-                                <span>รายละเอียด</span>
+                                <span>ส่งแบบประเมินไปยังกลุ่มผู้ประเมิน</span>
+                            </a>
+                            <a href="{{ url_for('pa.create_scoresheet', pa_id=pa.id) }}"
+                               class="button is-small">
+                                <span>เริ่มทำการประเมิน</span>
                             </a>
                         </td>
-                        {% else %}
-                        <td>
-                            <a href="{{ url_for('pa.respond_request', request_id=req.id) }}"
-                               class="button is-small is-info">
-                                <span>ดำเนินการอนุมัติ</span>
-                            </a>
-                        </td>
-                        {% endif %}
                     </tr>
                     {% endfor %}
                     </tbody>
