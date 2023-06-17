@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
 {% endblock %}
 {% block title %}MUMT MIS: Performance Agreement {% endblock %}
 {% include "PA/nav.html" %}
@@ -23,20 +22,26 @@
                         <br>
                         <div class="card">
                             <div class="card-header">
-                                <p class="card-header-title">ส่วนที่ 2 ข้อตกลงการปฏิบัติงาน(Performance Agreement: PA)</p>
+                                <p class="card-header-title">ส่วนที่ 2 ข้อตกลงการปฏิบัติงาน(Performance Agreement:
+                                    PA)</p>
                             </div>
                             <div class="card-content">
-                                <p class="subtitle is-6">1.ให้ผู้บังคับบัญชาชั้นต้นและผู้รับการประเมินตกลงร่วมกันเกี่ยวกับภาระงาน ค่าน้ำหนัก ตัวชี้วัด เป้าหมาย เกณฑ์การประเมิน ให้สอดคล้องตามลักษณะงาน ตำแหน่งงานและความรู้ ความสามารถ โดยให้คำนึงถึงแผนยุทธศาสตร์ แผนกลยุทย์ และหรือเป้าหมายของมหาวิทยาลัย ส่วนงานและหรือหน่วยงาน</p>
-                                <p class="subtitle is-6">2.ให้ผู้รับการประเมินกรอกภาระงาน ค่าน้ำหนัก ตัวชี้วัด เป้าหมาย เกณฑ์การประเมิน เป็นลายลักษณ์อักษร พร้อมให้ผู้รับการประเมินและผู้บังคับบัญชาชั้นต้นลงลายมือชื่อไว้ด้วย</p>
+                                <p class="subtitle is-6">
+                                    1.ให้ผู้บังคับบัญชาชั้นต้นและผู้รับการประเมินตกลงร่วมกันเกี่ยวกับภาระงาน ค่าน้ำหนัก
+                                    ตัวชี้วัด เป้าหมาย เกณฑ์การประเมิน ให้สอดคล้องตามลักษณะงาน ตำแหน่งงานและความรู้
+                                    ความสามารถ โดยให้คำนึงถึงแผนยุทธศาสตร์ แผนกลยุทย์ และหรือเป้าหมายของมหาวิทยาลัย
+                                    ส่วนงานและหรือหน่วยงาน</p>
+                                <p class="subtitle is-6">2.ให้ผู้รับการประเมินกรอกภาระงาน ค่าน้ำหนัก ตัวชี้วัด เป้าหมาย
+                                    เกณฑ์การประเมิน เป็นลายลักษณ์อักษร
+                                    พร้อมให้ผู้รับการประเมินและผู้บังคับบัญชาชั้นต้นลงลายมือชื่อไว้ด้วย</p>
                                 <p class="subtitle is-6">2.1 ภาระงานและตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</p>
                                 <div id="items">
-{#                                    {% for form_item in form.items %}#}
-                                     <div class="field">
-                                         <label class="label">ภาระงานที่ทำข้อตกลงการปฏิบัติงาน</label>
-                                         <div class="control">
-                                             {{ form.task(class="textarea") }}
-                                         </div>
-                                     </div>
+                                    <div class="field">
+                                        <label class="label">ภาระงานที่ทำข้อตกลงการปฏิบัติงาน</label>
+                                        <div class="control">
+                                            {{ form.task(class="textarea") }}
+                                        </div>
+                                    </div>
                                     <div class="field">
                                         <label class="label">ร้อยละ(น้ำหนัก)</label>
                                         <div class="control">
@@ -44,36 +49,29 @@
                                         </div>
                                     </div>
                                     <div class="field">
-                                        <label class="label">ตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน(ร้อยละ)</label>
-                                        <div>
-                                            {{ form.type }}
+                                        <label class="label">ตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</label>
+                                        <div class="control">
+                                            {{ form.kpis(class="input") }}
                                         </div>
                                     </div>
-{#                                    <div class="field">#}
-{#                                        <label class="label">รายละเอียดตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</label>#}
-{#                                        <div class="control">#}
-{#                                            {{ form.items.detail(class="textarea") }}#}
-{#                                        </div>#}
-{#                                    </div>#}
-{#                                    {% endfor %}#}
                                 </div>
                             </div>
                             <footer class="card-footer">
                                 <a class="card-footer-item"
-                                        hx-post="{{ url_for('pa.add_tasks') }}"
-                                        hx-target="#items" hx-swap="beforeend">
+                                   hx-post="{{ url_for('pa.add_tasks') }}"
+                                   hx-target="#items" hx-swap="beforeend">
                                         <span class="icon">
                                             <i class="fas fa-plus"></i>
                                         </span>
-                                        <span>เพิ่มภาระงาน</span>
+                                    <span>เพิ่มภาระงาน</span>
                                 </a>
                                 <a class="card-footer-item"
-                                        hx-delete=""
-                                        hx-target="#items" hx-swap="innerHTML">
+                                   hx-delete=""
+                                   hx-target="#items" hx-swap="innerHTML">
                                         <span class="icon">
                                           <i class="far fa-trash-alt has-text-danger"></i>
                                         </span>
-                                        <span class="has-text-danger">ลบภาระงาน</span>
+                                    <span class="has-text-danger">ลบภาระงาน</span>
                                 </a>
                             </footer>
                         </div>
@@ -81,7 +79,7 @@
                         <div class="field">
                             <div class="buttons is-grouped is-centered">
                                 <div class="control">
-                                    <a href="{{ url_for('pa.add_kpi_item_detail', round_id=round.id) }}"
+                                    <a href="{{ url_for('pa.add_kpi', round_id=round.id) }}"
                                        class="button is-info">ต่อไป</a>
                                 </div>
                             </div>
@@ -94,17 +92,4 @@
 {% endblock %}
 {% block scripts %}
     {{ super() }}
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-     <script>
-        let initSelect2Input = function () {
-            $('select').each(function () {
-                $(this).select2({
-                    width: '30%'
-                });
-            })
-        }
-        $(document).ready(() => {
-            initSelect2Input();
-        });
-    </script>
 {% endblock %}
