@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    <h1 class="title has-text-centered">ระบบประเมินผลการปฏิบัติงาน</h1>
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            <nav class="panel is-warning">
+                <p class="panel-heading">สำหรับผู้บังคับบัญชาขั้นต้น</p>
+                <a href="{{ url_for('pa.all_request') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fa fa-user-edit"></i>
+                    </span>
+                    <span class="is-size-5">คำร้องขอแก้ไขข้อมูล</span><br>
+                </a>
+                <a href="" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fa fa-plus"></i>
+                    </span>
+                    <span class="is-size-5">เพิ่มคณะกรรมการประเมินผลการปฏิบัติงานรายบุคคล</span><br>
+                </a>
+                <a href="{{ url_for('pa.all_pa_agreement') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fa fa-check"></i>
+                    </span>
+                    <span class="is-size-5">ประเมินผลงาน(ผู้บังคับบัญชาขั้นต้น)</span><br>
+                </a>
+            </nav>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            <nav class="panel is-warning">
+                <p class="panel-heading">สำหรับกลุ่มผู้ประเมิน</p>
+                <a href="{{ url_for('pa.all_scoresheet') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fa fa-check"></i>
+                    </span>
+                    <span class="is-size-5">การประเมินผลงาน(Performance)</span><br>
+                </a>
+            </nav>
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            {% if hr_permission.can() %}
+            <nav class="panel is-warning">
+                <p class="panel-heading">สำหรับเจ้าหน้าที่ HR</p>
+                <a href="{{ url_for('pa.create_round') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fa fa-repeat"></i>
+                        </span>
+                    <span class="is-size-5">รอบการประเมิน</span><br>
+                </a>
+                <a href="{{ url_for('pa.show_commitee') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-circle"></i>
+                        </span>
+                    <span class="is-size-5">คณะกรรมการประเมินผล</span><br>
+                </a>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

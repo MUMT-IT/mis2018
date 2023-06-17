@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+        {% include "messages.html" %}
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                <form method="post" enctype="multipart/form-data">
+                    {{ form.hidden_tag() }}
+                    <div class="column has-text-centered">
+                        <h1 class="title">คำขอ {{ req.for_ }} PA</h1>
+                    </div>
+                    <div class="box">
+                        <div class="field">
+                            <label class="label">ผู้ขอ</label>
+                            <div>
+                                {{ req.pa.staff.personal_info.fullname }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">รอบการประเมิน</label>
+                            <div>
+                                {{ req.pa.round }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">ประเภทคำขอ</label>
+                            <div>
+                                {{ req.for_ }}
+                            </div>
+                        </div>
+                        {% if req.detail %}
+                        <div class="field">
+                            <label class="label">รายละเอียด</label>
+                            <div>
+                                {{ req.detail}}
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="field">
+                            <label class="label">PA</label>
+{#                            {% for kpi in req.pa.pa_kpi %}#}
+{#                            <div>#}
+{#                                {{ kpi.detail }}#}
+{#                            </div>#}
+{#                            {% endfor %}#}
+                            <div>
+                                รายละเอียด PA...........
+                            </div>
+                        </div>
+                        {% if req.submitted_at %}
+                        <div class="field">
+                            <label class="label">ประธาน{{ req.status }}เมื่อ</label>
+                            <div>
+                                {{ req.submitted_at|localdatetime }}
+                            </div>
+                            <div>
+                                comment: {{ req.supervisor_comment }}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if not req.submitted_at %}
+
+                        <div class="field">
+                            <label class="label">{{ form.status.label }}</label>
+                            <div class="select">
+                                {{ form.status() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.supervisor_comment.label }}</label>
+                            <div class="control">
+                                {{ form.supervisor_comment(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.all_request') }}"
+                                   class="button is-light">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="submit" class="button is-success"/>
+                            </div>
+                        </div>
+                    {% else %}
+                        {% if req.for_ == 'ขอรับการประเมิน' %}
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.create_scoresheet', pa_id=req.pd_id) }}"
+                                   class="button is-warning">เริ่มการประเมิน</a>
+                            </div>
+                        </div>
+                        {% endif %}
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.all_request') }}"
+                                   class="button is-light">กลับ</a>
+                            </div>
+                        </div>
+                    {% endif %}
+                </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
