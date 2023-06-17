@@ -7,11 +7,11 @@ level_kpi_item_assoc = db.Table('level_kpi_item_assoc',
                                    db.Column('kpi_item_id', db.Integer, db.ForeignKey('pa_kpi_items.id'))
                                    )
 
-# item_kpi_assoc_table = db.Table('item_kpi_assoc_assoc',
-#                                              db.Column('item_id', db.ForeignKey('pa_kpis.id')),
-#                                              db.Column('kpi_id',
-#                                                        db.ForeignKey('pa_kpis.id')),
-#                                              )
+item_kpi_item_assoc_table = db.Table('item_kpi_item_assoc_assoc',
+                                             db.Column('item_id', db.ForeignKey('pa_items.id')),
+                                             db.Column('kpi_item_id',
+                                                       db.ForeignKey('pa_kpi_items.id')),
+                                             )
 
 class PARound(db.Model):
     __tablename__ = 'pa_rounds'
@@ -88,6 +88,7 @@ class PAItem(db.Model):
     percentage = db.Column(db.Numeric())
     pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
     pa = db.relationship('PAAgreement', backref=db.backref('pa_item'), foreign_keys=[pa_id])
+    kpi_items = db.relationship('PAKPIItem', secondary=item_kpi_item_assoc_table)
 
 
 class PACommittee(db.Model):
