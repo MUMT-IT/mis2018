@@ -84,22 +84,22 @@ def add_tasks():
 #     return redirect(url_for('pa.show_task_detail', staff_id=staff_id))
 
 
-@pa.route('/staff/rounds/<int:round_id>/kpi-item/add', methods=['GET', 'POST'])
+@pa.route('/staff/rounds/<int:round_id>/kpi/add', methods=['GET', 'POST'])
 @login_required
-def add_kpi_item_detail(round_id):
+def add_kpi(round_id):
     round = PARound.query.get(round_id)
-    form = PAKPIItemForm()
+    form = PAKPIForm()
     if form.validate_on_submit():
-        new_kpi_item = PAKPIItem()
-        form.populate_obj(new_kpi_item)
-        # new_kpi_item.kpi_id = kpi_id
-        db.session.add(new_kpi_item)
+        new_kpi = PAKPI()
+        form.populate_obj(new_kpi)
+        # new_kpi.kpi_id = kpi_id
+        db.session.add(new_kpi)
         db.session.commit()
         flash('เพิ่มรายละเอียดเกณฑ์การประเมินเรียบร้อย', 'success')
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
-    return render_template('pa/kpi_item_detail.html', form=form, round=round)
+    return render_template('pa/add_kpi.html', form=form, round=round)
 
 
 @pa.route('/staff/rounds/<int:round_id>/task/view')
