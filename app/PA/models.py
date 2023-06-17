@@ -13,6 +13,12 @@ item_kpi_item_assoc_table = db.Table('item_kpi_item_assoc_assoc',
                                                        db.ForeignKey('pa_kpi_items.id')),
                                              )
 
+pa_committee_assoc_table = db.Table('pa_committee_assoc',
+                                             db.Column('pa_agreement_id', db.ForeignKey('pa_agreements.id')),
+                                             db.Column('committee_id',
+                                                       db.ForeignKey('pa_committees.id')),
+                                             )
+
 class PARound(db.Model):
     __tablename__ = 'pa_rounds'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -32,7 +38,7 @@ class PAAgreement(db.Model):
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     round_id = db.Column('round_id', db.ForeignKey('pa_rounds.id'))
     round = db.relationship(PARound, backref=db.backref('agreements', lazy='dynamic'))
-
+    committees = db.relationship('PACommittee', secondary=pa_committee_assoc_table)
 
 class PARequest(db.Model):
     __tablename__ = 'pa_requests'
@@ -77,9 +83,11 @@ class PAKPIItem(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     level = db.relationship(PALevel, secondary=level_kpi_item_assoc)
     kpi_id = db.Column(db.ForeignKey('pa_kpis.id'))
-    kpi = db.relationship('PAKPI', backref=db.backref('pa_kpi_item'), foreign_keys=[kpi_id])
+    kpi = db.relationship('PAKPI', backref=db.backref('pa_kpi_items'))
     goal = db.Column('goal', db.Text())
 
+    def __str__(self):
+        return self.goal
 
 class PAItem(db.Model):
     __tablename__ = 'pa_items'
@@ -87,7 +95,7 @@ class PAItem(db.Model):
     task = db.Column(db.Text())
     percentage = db.Column(db.Numeric())
     pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
-    pa = db.relationship('PAAgreement', backref=db.backref('pa_item'), foreign_keys=[pa_id])
+    pa = db.relationship('PAAgreement', backref=db.backref('pa_item'))
     kpi_items = db.relationship('PAKPIItem', secondary=item_kpi_item_assoc_table)
 
 
