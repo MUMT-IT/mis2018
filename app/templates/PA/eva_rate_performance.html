@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">ประเมินผล</h1>
+                </div>
+            </div>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="columns">
+                    <div class="column">
+                        <table class="table is-striped is-fullwidth" id="reqTable">
+                            <thead>
+                            <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
+                            <th>ร้อยละ</th>
+                            <th>ประเภท</th>
+                            <th>เกณฑ์ตามตัวชี้วัด</th>
+                            <th><div class="tag is-info">ให้คะแนน(0-10 คะแนน)</div></th>
+                            </thead>
+                            <tbody>
+                            {% for s in scoresheet.score_sheet_item %}
+                                <tr>
+                                    <td>
+                                        {{ s.item }}<br>
+                                        <div class="tag">
+                                            {{ s.kpi_item }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {{ s.item.percentage }}
+                                    </td>
+                                    <td>
+                                        {{ s.kpi_item.kpi.type }}
+                                    </td>
+                                    <td>
+                                        {% for kpi in s.kpi_item.kpi.pa_kpi_items %}
+
+                                                {{ kpi.goal }}
+
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+                                        <div class="field">
+                                            <div class="control">
+                                                <input class="input" required step="0.5"
+                                                       type="number" min="0" max="10" value="8" id="score"/>
+                                            </div>
+                                        </div>
+                                    </td>
+
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.all_performance', scoresheet_id=scoresheet.id) }}"
+                                   class="button is-light">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="submit" class="button is-success"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+{% endblock %}

@@ -37,7 +37,7 @@ class PARequestForm(ModelForm):
         model = PARequest
 
 
-def create_rate_performance_form(kpi_id):
+def create_rate_performance_form(scoresheet_id):
     class PAScoreSheetItemForm(ModelForm):
         class Meta:
             model = PAScoreSheet

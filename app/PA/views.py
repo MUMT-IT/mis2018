@@ -103,17 +103,16 @@ def all_performance(scoresheet_id):
     return render_template('pa/eva_all_performance.html', scoresheet=scoresheet)
 
 
-@pa.route('/eva/rate_performance/<int:pa_id>/item/<int:item_id>/<int:scoresheet_id>', methods=['GET', 'POST'])
+@pa.route('/eva/rate_performance/<int:scoresheet_id>', methods=['GET', 'POST'])
 @login_required
-def rate_performance(pa_id, item_id, scoresheet_id):
-    pa_kpi = PAKPI.query.filter_by(pa_id=pa_id).first()
-    pa_item = PAItem.query.filter_by(id=item_id).first()
-    ScoreItemForm = create_rate_performance_form(pa_id)
-    form = ScoreItemForm()
-    if form.validate_on_submit():
-        score_item = PAScoreSheetItem()
-        form.populate_obj(score_item)
-    return render_template('pa/eva_rate_performance.html', form=form, pa_item=pa_item, pa_id=pa_id)
+def rate_performance(scoresheet_id):
+    scoresheet = PAScoreSheet.query.get(scoresheet_id)
+    #TODO: get score of each item
+    if request.method == 'POST':
+        form = request.form
+        score = form.get('score')
+        print (score)
+    return render_template('pa/eva_rate_performance.html', scoresheet=scoresheet)
 
 
 @pa.route('/head/create-scoresheet/<int:pa_id>', methods=['GET', 'POST'])
@@ -128,15 +127,14 @@ def create_scoresheet(pa_id):
         db.session.add(create_scoresheet)
         db.session.commit()
 
-        pa_kpi = PAKPI.query.filter_by(pa_id=pa_id).all()
-        for kpi in pa_kpi:
-            pa_item = PAItem.query.filter_by(pa_id=pa_id).all()
-            for item in pa_item:
+        pa_item = PAItem.query.filter_by(pa_id=pa_id).all()
+        for item in pa_item:
+            for kpi_item in item.kpi_items:
                 create_scoresheet_item = PAScoreSheetItem(
-                    score_sheet_id=create_scoresheet.id,
-                    item_id=item.id,
-                    kpi_id=kpi.id
-                )
+                        score_sheet_id=create_scoresheet.id,
+                        item_id=item.id,
+                        kpi_item_id=kpi_item.id
+                    )
                 db.session.add(create_scoresheet_item)
                 db.session.commit()
         return redirect(url_for('pa.all_performance', scoresheet_id=create_scoresheet.id))
@@ -157,15 +155,13 @@ def create_scoresheet_for_committee(pa_id):
             )
             db.session.add(create_scoresheet)
             db.session.commit()
-
-            pa_kpi = PAKPI.query.filter_by(pa_id=pa_id).all()
-            for kpi in pa_kpi:
-                pa_item = PAItem.query.filter_by(pa_id=pa_id).all()
-                for item in pa_item:
+            pa_item = PAItem.query.filter_by(pa_id=pa_id).all()
+            for item in pa_item:
+                for kpi_item in item.kpi_items:
                     create_scoresheet_item = PAScoreSheetItem(
                         score_sheet_id=create_scoresheet.id,
                         item_id=item.id,
-                        kpi_id=kpi.id
+                        kpi_item_id=kpi_item.id
                     )
                     db.session.add(create_scoresheet_item)
                     db.session.commit()

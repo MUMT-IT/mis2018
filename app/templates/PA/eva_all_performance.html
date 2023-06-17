@@ -18,12 +18,22 @@
         </div>
         <div class="columns">
             <div class="column">
-            <div class="box">
-                <h1 class="subtitle">ผู้รับการประเมิน {{ scoresheet.pa.staff.personal_info.fullname }}<br>
-                    ตำแหน่ง {{ scoresheet.pa.staff.personal_info.position }}<br>
-                    ลักษณะการจ้าง {{ scoresheet.pa.staff.personal_info.employment }}
-                </h1>
+                <div class="box">
+                    <h1 class="subtitle">ผู้รับการประเมิน {{ scoresheet.pa.staff.personal_info.fullname }}<br>
+                        ตำแหน่ง {{ scoresheet.pa.staff.personal_info.position }}<br>
+                        ลักษณะการจ้าง {{ scoresheet.pa.staff.personal_info.employment }}
+                    </h1>
+                </div>
             </div>
+            <div class="column">
+                <div class="notification is-info is-light">
+                    <span>
+                        * วิธีคิดคะแนนประเมินผลงาน<br>
+                        1.  ให้นำคะแนนประเมินผลของคณะกรรมการประเมินผลการปฏิบัติงานในแต่ละข้อคูณค่าน้ำหนักของภาระงานในข้อนั้นๆ<br>
+                        2.  รวมคะแนนประเมินทั้งหมดที่คำนวณแล้วทุกข้อ<br>
+                        3.  เทียบบัญญัติไตรยางศ์คะแนนประเมินรวมตามร้อยละที่กำหนด
+                    </span>
+                </div>
             </div>
         </div>
     {% include "messages.html" %}
