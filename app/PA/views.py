@@ -149,24 +149,27 @@ def create_scoresheet(pa_id):
 def create_scoresheet_for_committee(pa_id):
     pa = PAAgreement.query.get(pa_id)
     for c in pa.committees:
-        create_scoresheet = PAScoreSheet(
-            pa_id=pa_id,
-            evaluator_id=c.staff_account_id
-        )
-        db.session.add(create_scoresheet)
-        db.session.commit()
+        scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id,evaluator_id=c.staff_account_id).first()
+        if not scoresheet:
+            create_scoresheet = PAScoreSheet(
+                pa_id=pa_id,
+                evaluator_id=c.staff_account_id
+            )
+            db.session.add(create_scoresheet)
+            db.session.commit()
 
-        pa_kpi = PAKPI.query.filter_by(pa_id=pa_id).all()
-        for kpi in pa_kpi:
-            pa_item = PAItem.query.filter_by(pa_id=pa_id).all()
-            for item in pa_item:
-                create_scoresheet_item = PAScoreSheetItem(
-                    score_sheet_id=create_scoresheet.id,
-                    item_id=item.id,
-                    kpi_id=kpi.id
-                )
-                db.session.add(create_scoresheet_item)
-                db.session.commit()
+            pa_kpi = PAKPI.query.filter_by(pa_id=pa_id).all()
+            for kpi in pa_kpi:
+                pa_item = PAItem.query.filter_by(pa_id=pa_id).all()
+                for item in pa_item:
+                    create_scoresheet_item = PAScoreSheetItem(
+                        score_sheet_id=create_scoresheet.id,
+                        item_id=item.id,
+                        kpi_id=kpi.id
+                    )
+                    db.session.add(create_scoresheet_item)
+                    db.session.commit()
+        flash('มีการเพิ่มผู้ประเมินเรียบร้อยแล้ว', 'success')
     flash('ส่งการประเมินไปยังกลุ่มผู้ประเมินเรียบร้อยแล้ว', 'success')
     return redirect(url_for('pa.all_pa'))
 
