@@ -20,6 +20,7 @@
                             <th>ร้อยละ</th>
                             <th>ประเภท</th>
                             <th>เกณฑ์ตามตัวชี้วัด</th>
+                            <th>ผลการประเมินผู้บังคับบัญชาขั้นต้น</th>
                             <th><div class="tag is-info">ให้คะแนน(0-10 คะแนน)</div></th>
                             </thead>
                             <tbody>
@@ -43,6 +44,9 @@
                                                 {{ kpi.goal }}
 
                                         {% endfor %}
+                                    </td>
+                                    <td>
+                                        {{ s.score }}
                                     </td>
                                     <td>
                                         <div class="field">
