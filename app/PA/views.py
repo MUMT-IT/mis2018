@@ -171,7 +171,7 @@ def create_scoresheet_for_committee(pa_id):
                     db.session.commit()
         flash('มีการเพิ่มผู้ประเมินเรียบร้อยแล้ว', 'success')
     flash('ส่งการประเมินไปยังกลุ่มผู้ประเมินเรียบร้อยแล้ว', 'success')
-    return redirect(url_for('pa.all_pa'))
+    return redirect(url_for('pa.all_approved_pa'))
 
 
 @pa.route('/head/assign-committee/<int:pa_id>', methods=['GET', 'POST'])
@@ -189,13 +189,13 @@ def assign_committee(pa_id):
             db.session.add(evaluator)
             db.session.commit()
         flash('บันทึกกลุ่มผู้ประเมินเรียบร้อยแล้ว', 'success')
-        return redirect(url_for('pa.all_pa'))
+        return redirect(url_for('pa.all_approved_pa'))
     return render_template('pa/head_assign_committee.html', pa=pa, committee=committee)
 
 
 @pa.route('/head/all-approved-pa')
 @login_required
-def all_pa():
+def all_approved_pa():
     pa = PAAgreement.query.filter(and_(PARequest.submitted_at is not None,
                                        PARequest.for_ == 'ขอรับการประเมิน')).all()
     return render_template('pa/head_all_approved_pa.html', pa=pa)
