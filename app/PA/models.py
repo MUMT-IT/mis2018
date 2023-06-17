@@ -64,6 +64,7 @@ class PAKPIItem(db.Model):
     level = db.relationship(PALevel, secondary=level_kpi_item_assoc)
     kpi_id = db.Column(db.ForeignKey('pa_kpis.id'))
     goal = db.Column('goal', db.Text())
+    kpi = db.relationship('PAKPI', backref=db.backref('pa_kpi_items'))
 
 
 class PAItem(db.Model):
