@@ -98,6 +98,9 @@ class PAItem(db.Model):
     pa = db.relationship('PAAgreement', backref=db.backref('pa_item'))
     kpi_items = db.relationship('PAKPIItem', secondary=item_kpi_item_assoc_table)
 
+    def __str__(self):
+        return self.task
+
 
 class PACommittee(db.Model):
     __tablename__ = 'pa_committees'
@@ -132,8 +135,6 @@ class PAScoreSheetItem(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     score_sheet_id = db.Column(db.ForeignKey('pa_score_sheets.id'))
     score_sheet = db.relationship('PAScoreSheet', backref=db.backref('score_sheet_item'), foreign_keys=[score_sheet_id])
-    kpi_id = db.Column(db.ForeignKey('pa_kpis.id'))
-    kpi = db.relationship('PAKPI', backref=db.backref('kpi_score_item'), foreign_keys=[kpi_id])
     item_id = db.Column(db.ForeignKey('pa_items.id'))
     item = db.relationship('PAItem', backref=db.backref('pa_score_item'), foreign_keys=[item_id])
     score = db.Column('score', db.Numeric())
