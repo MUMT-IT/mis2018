@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
-from wtforms import FieldList, FormField, SelectField
+from wtforms import FieldList, FormField, widgets
 from wtforms.validators import DataRequired
-from wtforms_alchemy import model_form_factory, QuerySelectField
+from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
 
 from app.PA.models import *
 from app.main import db
@@ -36,7 +36,10 @@ class PAItemForm(ModelForm):
         model = PAItem
 
     items = FieldList(FormField(PAKPIForm, default=PAKPI), min_entries=1)
-
+    kpis = QuerySelectMultipleField('ตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน',
+                                    query_factory=lambda: PAKPI.query.all(),
+                                    widget=widgets.ListWidget(prefix_label=False),
+                                    option_widget=widgets.CheckboxInput())
 
 
 
