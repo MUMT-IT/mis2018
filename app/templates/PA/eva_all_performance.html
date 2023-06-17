@@ -5,10 +5,25 @@
     <div class="container" id="app">
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">การประเมินผลงาน (Performance) ของ{{ scoresheet.pa.staff.personal_info.fullname }}</h1>
-                <h1 class="subtitle">ตำแหน่ง {{ scoresheet.pa.staff.personal_info.position }}
-                    <br>ลักษณะการจ้าง {{ scoresheet.pa.staff.personal_info.employment }}
+                <h1 class="title">การประเมินผลงาน</h1>
+            </div>
+            <div class="column has-text-right">
+                <a href="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}" class="button is-rounded is-warning">
+                    <span class="icon">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span>เริ่มการประเมิน</span>
+                </a>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+            <div class="box">
+                <h1 class="subtitle">ผู้รับการประเมิน {{ scoresheet.pa.staff.personal_info.fullname }}<br>
+                    ตำแหน่ง {{ scoresheet.pa.staff.personal_info.position }}<br>
+                    ลักษณะการจ้าง {{ scoresheet.pa.staff.personal_info.employment }}
                 </h1>
+            </div>
             </div>
         </div>
     {% include "messages.html" %}
@@ -24,7 +39,6 @@
                     <th>เป้าหมาย: ความคุ้มค่า</th>
                     <th>เป้าหมาย: ความพึงพอใจ</th>
                     <th>คะแนนที่ให้</th>
-                    <th></th>
                     </thead>
                     <tbody>
                     {% for item in scoresheet.pa.pa_item %}
@@ -81,13 +95,6 @@
                             {% endfor %}
                         </td>
                         <td>
-                        </td>
-                        <td>
-                            <a href="{{ url_for('pa.rate_performance',
-                            pa_id=scoresheet.pa_id, item_id=item.id, scoresheet_id=scoresheet.id) }}"
-                               class="button is-small">
-                                <span>ให้คะแนน</span>
-                            </a>
                         </td>
                     </tr>
                     {% endfor %}
