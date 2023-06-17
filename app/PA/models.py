@@ -31,8 +31,8 @@ class PAAgreement(db.Model):
 class PARequest(db.Model):
     __tablename__ = 'pa_requests'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    pd_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
-    pa = db.relationship('PAAgreement', foreign_keys=[pd_id])
+    pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
+    pa = db.relationship('PAAgreement', foreign_keys=[pa_id])
     supervisor_id = db.Column('supervisor_id', db.ForeignKey('staff_account.id'))
     supervisor = db.relationship('StaffAccount', backref=db.backref('request_supervisor', lazy='dynamic'),
                             foreign_keys=[supervisor_id])
@@ -56,8 +56,8 @@ class PALevel(db.Model):
 class PAKPI(db.Model):
     __tablename__ = 'pa_kpis'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    pd_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
-    pa = db.relationship('PAAgreement', backref=db.backref('pa_kpi'), foreign_keys=[pd_id])
+    pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
+    pa = db.relationship('PAAgreement', backref=db.backref('pa_kpi'), foreign_keys=[pa_id])
     detail = db.Column(db.Text())
     type = db.Column(db.String(), info={'label': 'ประเภท',
                                         'choices': [(c, c) for c in ('ปริมาณ', 'คุณภาพ', 'เวลา', 'ความคุ้มค่า', 'ความพึงพอใจ')]})
@@ -80,8 +80,10 @@ class PAItem(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     task = db.Column(db.Text())
     percentage = db.Column(db.Numeric())
-    pd_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
-    pa = db.relationship('PAAgreement', backref=db.backref('pa_item'), foreign_keys=[pd_id])
+    pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
+    pa = db.relationship('PAAgreement', backref=db.backref('pa_item'), foreign_keys=[pa_id])
+    kpi_item_id = db.Column(db.ForeignKey('pa_kpi_items.id'))
+    kpi_item = db.relationship('PAKPIItem', backref=db.backref('item_kpi_item'), foreign_keys=[kpi_item_id])
 
 
 class PACommittee(db.Model):
@@ -96,9 +98,6 @@ class PACommittee(db.Model):
     round = db.relationship(PARound, backref=db.backref('round_committee', lazy='dynamic'))
     role = db.Column('role', db.String(), info={'label': 'ประเภท',
                                                 'choices': [(c, c) for c in ('ประธาน', 'กรรมการ')]})
-
-    def __str__(self):
-        return self.staff.personal_info.fullname
 
 
 class PAScoreSheet(db.Model):
