@@ -141,3 +141,11 @@ class PAScoreSheetItem(db.Model):
     kpi_item = db.relationship('PAKPIItem', backref=db.backref('sore_sheet_kpi_item'), foreign_keys=[kpi_item_id])
     score = db.Column('score', db.Numeric())
     comment = db.Column('comment', db.Text())
+
+
+class PAApprovedScoreSheet(db.Model):
+    __tablename__ = 'pa_approved_score_sheets'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    score_sheet_id = db.Column(db.ForeignKey('pa_score_sheets.id'))
+    committee_id = db.Column('committee_id', db.ForeignKey('pa_committees.id'))
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
