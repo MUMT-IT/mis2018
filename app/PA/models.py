@@ -125,9 +125,6 @@ class PAScoreSheet(db.Model):
     pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
     pa = db.relationship('PAAgreement', backref=db.backref('pa_score_sheet'), foreign_keys=[pa_id])
     committee_id = db.Column('committee_id', db.ForeignKey('pa_committees.id'))
-    evaluator_id = db.Column('evaluator_id', db.ForeignKey('staff_account.id'))
-    evaluator = db.relationship('StaffAccount', backref=db.backref('evaluator_score_sheetfla', lazy='dynamic'),
-                            foreign_keys=[evaluator_id])
     is_consolidated = db.Column('is_consolidated', db.Boolean(), default=False)
 
 
