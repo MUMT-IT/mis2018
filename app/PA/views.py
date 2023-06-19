@@ -96,33 +96,16 @@ def respond_request(request_id):
     return render_template('pa/head_respond_request.html', form=form, req=req)
 
 
-@pa.route('/eva/head/all_performance/<int:scoresheet_id>')
-@login_required
-def all_performance(scoresheet_id):
-    scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
-    return render_template('pa/eva_all_performance.html', scoresheet=scoresheet)
-
-
-@pa.route('/eva/rate_performance/<int:scoresheet_id>', methods=['GET', 'POST'])
-@login_required
-def rate_performance(scoresheet_id):
-    scoresheet = PAScoreSheet.query.get(scoresheet_id)
-    #TODO: get score of each item
-    if request.method == 'POST':
-        form = request.form
-        score = form.get('score')
-        print (score)
-    return render_template('pa/eva_rate_performance.html', scoresheet=scoresheet)
-
-
 @pa.route('/head/create-scoresheet/<int:pa_id>', methods=['GET', 'POST'])
 @login_required
 def create_scoresheet(pa_id):
     scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id).filter(PACommittee.staff == current_user).first()
+    pa = PAAgreement.query.filter_by(id=pa_id).first()
+    committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ').first()
     if not scoresheet:
         create_scoresheet = PAScoreSheet(
             pa_id=pa_id,
-            evaluator_id=current_user.id
+            committee_id=committee.id
         )
         db.session.add(create_scoresheet)
         db.session.commit()
@@ -147,11 +130,11 @@ def create_scoresheet(pa_id):
 def create_scoresheet_for_committee(pa_id):
     pa = PAAgreement.query.get(pa_id)
     for c in pa.committees:
-        scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id,evaluator_id=c.staff_account_id).first()
+        scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id,committee_id=c.id).first()
         if not scoresheet:
             create_scoresheet = PAScoreSheet(
                 pa_id=pa_id,
-                evaluator_id=c.staff_account_id
+                committee_id=c.id
             )
             db.session.add(create_scoresheet)
             db.session.commit()
@@ -179,10 +162,10 @@ def assign_committee(pa_id):
     if request.method == 'POST':
         form = request.form
         pa.committees = []
-        for evaluator_id in form.getlist("commitees"):
-            evaluator = PACommittee.query.get(int(evaluator_id))
-            pa.committees.append(evaluator)
-            db.session.add(evaluator)
+        for c_id in form.getlist("commitees"):
+            committee = PACommittee.query.get(int(c_id))
+            pa.committees.append(committee)
+            db.session.add(committee)
             db.session.commit()
         flash('บันทึกกลุ่มผู้ประเมินเรียบร้อยแล้ว', 'success')
         return redirect(url_for('pa.all_approved_pa'))
@@ -193,12 +176,51 @@ def assign_committee(pa_id):
 @login_required
 def all_approved_pa():
     pa = PAAgreement.query.filter(and_(PARequest.submitted_at is not None,
-                                       PARequest.for_ == 'ขอรับการประเมิน')).all()
+                                       PARequest.for_ == 'ขอรับการประเมิน',
+                                       PARequest.supervisor_id == current_user.id)).all()
     return render_template('pa/head_all_approved_pa.html', pa=pa)
+
+
+# @pa.route('/head/all-approved-pa/consensus-score')
+# @login_required
+# def consensus_score(pa_id):
+#
+#     return render_template('pa/eva_consensus_scoresheet.html')
+#
+#
+# @pa.route('/head/all-approved-pa/summary-scoresheet')
+# @login_required
+# def summary_scoresheet(pa_id):
+#     scoresheets = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).all()
+#     return render_template('pa/head_summary_score.html', scoresheets=scoresheets)
 
 
 @pa.route('/eva/all-scoresheet')
 @login_required
 def all_scoresheet():
-    scoresheets = PAScoreSheet.query.filter_by(evaluator=current_user).all()
+    committee = PACommittee.query.filter_by(staff=current_user).all()
+    for c in committee:
+        scoresheets = PAScoreSheet.query.filter_by(committee_id=c.id).all()
     return render_template('pa/eva_all_scoresheet.html', scoresheets=scoresheets)
+
+
+@pa.route('/eva/rate_performance/<int:scoresheet_id>', methods=['GET', 'POST'])
+@login_required
+def rate_performance(scoresheet_id):
+    scoresheet = PAScoreSheet.query.get(scoresheet_id)
+    head_score = PAScoreSheet.query.filter_by(pa_id=scoresheet.pa_id).first()
+    # TODO: get score of each item
+    if request.method == 'POST':
+        form = request.form
+        score = form.get('score')
+        scoresheet.is_consolidated = True
+        print(score)
+        flash('ส่งผลประเมินไปยังประธานกรรมเรียบร้อยแล้ว', 'success')
+    return render_template('pa/eva_rate_performance.html', scoresheet=scoresheet, head_score=head_score)
+
+
+@pa.route('/eva/all_performance/<int:scoresheet_id>')
+@login_required
+def all_performance(scoresheet_id):
+    scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
+    return render_template('pa/eva_all_performance.html', scoresheet=scoresheet)

@@ -113,7 +113,7 @@ class PACommittee(db.Model):
     round_id = db.Column(db.ForeignKey('pa_rounds.id'))
     round = db.relationship(PARound, backref=db.backref('round_committee', lazy='dynamic'))
     role = db.Column('role', db.String(), info={'label': 'ประเภท',
-                                                'choices': [(c, c) for c in ('ประธาน', 'กรรมการ')]})
+                                                'choices': [(c, c) for c in ('ประธานกรรมการ', 'กรรมการ')]})
 
     def __str__(self):
         return self.staff.fullname

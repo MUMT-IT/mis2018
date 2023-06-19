@@ -40,23 +40,24 @@
                                     </td>
                                     <td>
                                         {% for kpi in s.kpi_item.kpi.pa_kpi_items %}
-
-                                                {{ kpi.goal }}
-
+                                            {{ kpi.goal }}<br>
                                         {% endfor %}
                                     </td>
                                     <td>
-                                        {{ s.score }}
+
                                     </td>
                                     <td>
+                                        {% if not s.score %}
                                         <div class="field">
                                             <div class="control">
                                                 <input class="input" required step="0.5"
                                                        type="number" min="0" max="10" value="8" id="score"/>
                                             </div>
                                         </div>
+                                        {% else %}
+                                            {{ s.score }}
+                                        {% endif %}
                                     </td>
-
                                 </tr>
                             {% endfor %}
                             </tbody>
