@@ -16,6 +16,7 @@ tz = pytz.timezone('Asia/Bangkok')
 @pa.route('/pa/')
 @login_required
 def index():
+    #TODO: create head committee permission for access special part
     return render_template('pa/index.html', hr_permission=hr_permission, manager_permission=manager_permission)
 
 
@@ -175,6 +176,7 @@ def assign_committee(pa_id):
 @pa.route('/head/all-approved-pa')
 @login_required
 def all_approved_pa():
+    #TODO: In template, disable create scoresheet for committee when it already created
     pa = PAAgreement.query.filter(and_(PARequest.submitted_at is not None,
                                        PARequest.for_ == 'ขอรับการประเมิน',
                                        PARequest.supervisor_id == current_user.id)).all()
@@ -262,5 +264,3 @@ def all_performance(scoresheet_id):
 # def consensus_score(pa_id):
 #
 #     return render_template('pa/eva_consensus_scoresheet.html')
-#
-#
