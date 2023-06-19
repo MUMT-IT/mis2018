@@ -15,12 +15,6 @@
             <div class="columns">
                 <div class="column">
                     <h1 class="title has-text-centered">เพิ่มเกณฑ์การประเมิน</h1>
-                    <h1 class="subtitle has-text-centered">รอบการประเมิน {{ round }}</h1>
-{#                    {% if task_id %}#}
-{#                        <h1 class="title has-text-centered">แก้ไขเกณฑ์การประเมิน</h1>#}
-{#                    {% else %}#}
-{#                        <h1 class="title has-text-centered">เพิ่มเกณฑ์การประเมิน</h1>#}
-{#                    {% endif %}#}
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <br>
@@ -58,30 +52,13 @@
                                     {% endfor %}
                                 </div>
                             </div>
-                            <footer class="card-footer">
-                                <a class="card-footer-item"
-                                        hx-post="{{ url_for('pa.add_tasks') }}"
-                                        hx-target="#items" hx-swap="beforeend">
-                                        <span class="icon">
-                                            <i class="fas fa-plus"></i>
-                                        </span>
-                                        <span>เพิ่มรายละเอียดตัวชี้วัดเป้าหมาย</span>
-                                </a>
-                                <a class="card-footer-item"
-                                        hx-delete=""
-                                        hx-target="#items" hx-swap="innerHTML">
-                                        <span class="icon">
-                                          <i class="far fa-trash-alt has-text-danger"></i>
-                                        </span>
-                                        <span class="has-text-danger">ลบรายละเอียดตัวชี้วัดเป้าหมาย</span>
-                                </a>
-                            </footer>
                         </div>
                         <br>
                         <div class="field">
                             <div class="buttons is-grouped is-centered">
+                                <a class="button is-light" href="{{ url_for('pa.add_pa_item', round_id=round_id) }}">กลับ</a>
                                 <div class="control">
-                                    <input type="submit" class="button is-success" value="Save"/>
+                                    <input type="submit" class="button is-success" value="บันทึก"/>
                                 </div>
                             </div>
                         </div>
