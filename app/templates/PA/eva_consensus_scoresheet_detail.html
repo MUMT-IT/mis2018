@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">รับรองผลการประเมิน</h1>
+                </div>
+            </div>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="columns">
+                    <div class="column">
+                        <table class="table is-striped is-fullwidth" id="reqTable">
+                            <thead>
+                                <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
+                                <th>ร้อยละ</th>
+                                <th>ประเภท</th>
+                                <th>เกณฑ์ตามตัวชี้วัด</th>
+                                <th>ผลการประเมินผู้บังคับบัญชาขั้นต้น</th>
+                                <th>ผลการประเมินกรรมการ</th>
+                                <th>ผลการประเมินกรรมการ</th>
+                                <th><div class="tag is-info">คะแนนสรุป</div></th>
+                            </thead>
+                            <tbody>
+                            {% for item in score_sheet_item %}
+                                <tr>
+                                    <td>
+                                        {{ item.item }}
+                                        <div class="tag">
+                                            {{ item.kpi_item }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {{ item.item.percentage }}
+                                    </td>
+                                    <td>
+                                        {{ item.kpi_item.kpi.type }}
+                                    </td>
+                                    <td>
+                                        {% for kpi in item.kpi_item.kpi.pa_kpi_items %}
+                                            {{ kpi.goal }}<br>
+                                        {% endfor %}
+                                    </td>
+                                    <td>
+
+                                    </td>
+                                    <td>
+
+                                    </td>
+                                    <td>
+
+                                    </td>
+                                    <td>
+                                        {{ s.score }}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.consensus_scoresheets') }}"
+                                   class="button is-light">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <a href=""
+                                   class="button is-danger">Approved</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+{% endblock %}
