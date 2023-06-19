@@ -1,8 +1,8 @@
 from flask_wtf import FlaskForm
 from wtforms import widgets
-from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField
+from wtforms_alchemy import model_form_factory, QuerySelectField
 from app.main import db
-from .models import PACommittee, PARound, PARequest, PAScoreSheet, PAAgreement, PAKPIItem
+from .models import PACommittee, PARound, PARequest
 from ..models import Org, StaffAccount
 
 BaseModelForm = model_form_factory(FlaskForm)
@@ -35,15 +35,3 @@ class PACommitteeForm(ModelForm):
 class PARequestForm(ModelForm):
     class Meta:
         model = PARequest
-
-
-def create_rate_performance_form(scoresheet_id):
-    class PAScoreSheetItemForm(ModelForm):
-        class Meta:
-            model = PAScoreSheet
-
-        kpi_item = QuerySelectField('เกณฑ์',
-                              allow_blank=False,
-                              query_factory=lambda: PAKPIItem.query.filter_by(kpi_id=kpi_id).all())
-
-    return PAScoreSheetItemForm
