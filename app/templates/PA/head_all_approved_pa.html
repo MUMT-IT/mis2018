@@ -34,7 +34,6 @@
                                 <a class="tag is-medium">
                                 {{ c.staff.personal_info.fullname }}
                                 </a>
-
                             {% endfor %}
                         </td>
                         <td>
@@ -47,6 +46,10 @@
                             <a href="{{ url_for('pa.create_scoresheet', pa_id=pa.id) }}"
                                class="button is-small">
                                 <span>เริ่มทำการประเมิน</span>
+                            </a>
+                            <a href="{{ url_for('pa.summary_scoresheet', pa_id=pa.id) }}"
+                               class="button is-small">
+                                <span>สรุปผลการประเมิน</span>
                             </a>
                         </td>
                     </tr>
