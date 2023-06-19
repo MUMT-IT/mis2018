@@ -24,7 +24,7 @@
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="columns">
                     <div class="column">
-                        <table class="table is-striped is-fullwidth" id="reqTable">
+                        <table class="table is-striped is-fullwidth">
                             <thead>
                             <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
                             <th>ร้อยละ</th>
@@ -61,7 +61,7 @@
                                         <div class="field">
                                             <div class="control">
                                                 <input class="input" required step="0.5"
-                                                       type="number" min="0" max="10" value="8" id="score"/>
+                                                       type="number" min="0" max="10" id="score"/>
                                             </div>
                                         </div>
                                         {% else %}
