@@ -39,6 +39,9 @@ class KPIitemSelectForm(FlaskForm):
 class PAItemForm(FlaskForm):
     task = TextAreaField('Task')
     percentage = FloatField('Percentage')
+    category = QuerySelectField('Category',
+                                query_factory=lambda: PAItemCategory.query.all(),
+                                get_label='category')
 
     kpi_items_ = FieldList(SelectField(validate_choice=False), min_entries=0)
 

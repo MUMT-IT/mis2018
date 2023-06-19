@@ -97,9 +97,20 @@ class PAKPIItem(db.Model):
         return f'{self.kpi.detail} เป้าคือ {self.goal} ({self.kpi.type}) ได้ {self.level} คะแนน'
 
 
+class PAItemCategory(db.Model):
+    __tablename__ = 'pa_item_categories'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    category = db.Column('category', db.String(), nullable=False)
+
+    def __str__(self):
+        return self.category
+
+
 class PAItem(db.Model):
     __tablename__ = 'pa_items'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    category_id = db.Column(db.ForeignKey('pa_item_categories.id'))
+    category = db.relationship(PAItemCategory, backref=db.backref('pa_items', lazy='dynamic'))
     task = db.Column(db.Text())
     percentage = db.Column(db.Numeric())
     pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))

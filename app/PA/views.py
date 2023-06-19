@@ -28,6 +28,7 @@ def user_performance():
 @login_required
 def add_pa_item(round_id, item_id=None, pa_id=None):
     pa_round = PARound.query.get(round_id)
+    categories = PAItemCategory.query.all()
     if pa_id:
         pa = PAAgreement.query.get(pa_id)
     else:
@@ -81,7 +82,12 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
-    return render_template('pa/pa_item_edit.html', form=form, pa_round=pa_round, pa=pa, pa_item_id=item_id)
+    return render_template('pa/pa_item_edit.html',
+                           form=form,
+                           pa_round=pa_round,
+                           pa=pa,
+                           pa_item_id=item_id,
+                           categories=categories)
 
 
 @pa.route('/staff/items/add', methods=['POST', 'GET'])
