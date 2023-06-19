@@ -127,6 +127,7 @@ class PAScoreSheet(db.Model):
     committee_id = db.Column('committee_id', db.ForeignKey('pa_committees.id'))
     committee = db.relationship('PACommittee', backref=db.backref('committee_score_sheet'), foreign_keys=[committee_id])
     is_consolidated = db.Column('is_consolidated', db.Boolean(), default=False)
+    is_final = db.Column('is_final', db.Boolean(), default=False)
 
 
 class PAScoreSheetItem(db.Model):
