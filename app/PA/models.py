@@ -124,6 +124,7 @@ class PAScoreSheet(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
     pa = db.relationship('PAAgreement', backref=db.backref('pa_score_sheet'), foreign_keys=[pa_id])
+    committee_id = db.Column('committee_id', db.ForeignKey('pa_committees.id'))
     evaluator_id = db.Column('evaluator_id', db.ForeignKey('staff_account.id'))
     evaluator = db.relationship('StaffAccount', backref=db.backref('evaluator_score_sheetfla', lazy='dynamic'),
                             foreign_keys=[evaluator_id])
@@ -141,4 +142,3 @@ class PAScoreSheetItem(db.Model):
     kpi_item = db.relationship('PAKPIItem', backref=db.backref('sore_sheet_kpi_item'), foreign_keys=[kpi_item_id])
     score = db.Column('score', db.Numeric())
     comment = db.Column('comment', db.Text())
-
