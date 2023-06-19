@@ -9,7 +9,7 @@ from flask import render_template, request, redirect, url_for, flash
 from app.PA.models import *
 from app.roles import hr_permission, manager_permission
 from ..models import Org
-from app.PA.forms import PACommitteeForm, PARequestForm, create_rate_performance_form
+from app.PA.forms import PACommitteeForm, PARequestForm
 
 tz = pytz.timezone('Asia/Bangkok')
 
@@ -103,24 +103,24 @@ def create_scoresheet(pa_id):
     pa = PAAgreement.query.filter_by(id=pa_id).first()
     committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ').first()
     if not scoresheet:
-        create_scoresheet = PAScoreSheet(
+        create_score_sheet = PAScoreSheet(
             pa_id=pa_id,
             committee_id=committee.id
         )
-        db.session.add(create_scoresheet)
+        db.session.add(create_score_sheet)
         db.session.commit()
 
         pa_item = PAItem.query.filter_by(pa_id=pa_id).all()
         for item in pa_item:
             for kpi_item in item.kpi_items:
-                create_scoresheet_item = PAScoreSheetItem(
-                        score_sheet_id=create_scoresheet.id,
+                create_score_sheet_item = PAScoreSheetItem(
+                        score_sheet_id=create_score_sheet.id,
                         item_id=item.id,
                         kpi_item_id=kpi_item.id
                     )
-                db.session.add(create_scoresheet_item)
+                db.session.add(create_score_sheet_item)
                 db.session.commit()
-        return redirect(url_for('pa.all_performance', scoresheet_id=create_scoresheet.id))
+        return redirect(url_for('pa.all_performance', scoresheet_id=create_score_sheet.id))
     else:
         return render_template('pa/eva_all_performance.html', scoresheet=scoresheet)
 
@@ -181,18 +181,38 @@ def all_approved_pa():
     return render_template('pa/head_all_approved_pa.html', pa=pa)
 
 
-# @pa.route('/head/all-approved-pa/consensus-score')
-# @login_required
-# def consensus_score(pa_id):
-#
-#     return render_template('pa/eva_consensus_scoresheet.html')
-#
-#
-# @pa.route('/head/all-approved-pa/summary-scoresheet')
-# @login_required
-# def summary_scoresheet(pa_id):
-#     scoresheets = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).all()
-#     return render_template('pa/head_summary_score.html', scoresheets=scoresheets)
+@pa.route('/head/all-approved-pa/summary-scoresheet/<int:pa_id>', methods=['GET', 'POST'])
+@login_required
+def summary_scoresheet(pa_id):
+    #TODO: show evaluation score of each committees
+    #TODO: get average score from post method
+    #TODO: after get average score send the notification to all committees for score consensus
+    pa = PAAgreement.query.filter_by(id=pa_id).first()
+    committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ').first()
+    score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_final=True).filter(PACommittee.staff == current_user).first()
+    if score_sheet:
+        score_sheet_item = PAScoreSheetItem.query.filter_by(score_sheet_id=score_sheet.id).all()
+    else:
+        create_score_sheet = PAScoreSheet(
+            pa_id=pa_id,
+            committee_id=committee.id,
+            is_final=True
+        )
+        db.session.add(create_score_sheet)
+        db.session.commit()
+
+        pa_item = PAItem.query.filter_by(pa_id=pa_id).all()
+        for item in pa_item:
+            for kpi_item in item.kpi_items:
+                create_score_sheet_item = PAScoreSheetItem(
+                    score_sheet_id=create_score_sheet.id,
+                    item_id=item.id,
+                    kpi_item_id=kpi_item.id
+                )
+                db.session.add(create_score_sheet_item)
+                db.session.commit()
+        score_sheet_item = PAScoreSheetItem.query.filter_by(score_sheet_id=create_score_sheet.id).all()
+    return render_template('pa/head_summary_score.html', score_sheet_item=score_sheet_item)
 
 
 @pa.route('/eva/all-scoresheet')
@@ -207,6 +227,7 @@ def all_scoresheet():
 @pa.route('/eva/rate_performance/<int:scoresheet_id>', methods=['GET', 'POST'])
 @login_required
 def rate_performance(scoresheet_id):
+    #TODO: show evaluation score of head committee
     scoresheet = PAScoreSheet.query.get(scoresheet_id)
     head_score = PAScoreSheet.query.filter_by(pa_id=scoresheet.pa_id).first()
     # TODO: get score of each item
@@ -224,3 +245,20 @@ def rate_performance(scoresheet_id):
 def all_performance(scoresheet_id):
     scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
     return render_template('pa/eva_all_performance.html', scoresheet=scoresheet)
+
+
+# @pa.route('/eva/approved/<int:scoresheet_id>')
+# @login_required
+# def approved_score(scoresheet_id):
+#     scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
+#
+#     return render_template('pa/eva_all_performance.html', scoresheet=scoresheet)
+
+
+# @pa.route('/head/all-approved-pa/consensus-score')
+# @login_required
+# def consensus_score(pa_id):
+#
+#     return render_template('pa/eva_consensus_scoresheet.html')
+#
+#
