@@ -187,6 +187,7 @@ def summary_scoresheet(pa_id):
     #TODO: show evaluation score of each committees
     #TODO: get average score from post method
     #TODO: after get average score send the notification to all committees for score consensus
+    # TODO: In template, disable submit buttom if already send the final score
     pa = PAAgreement.query.filter_by(id=pa_id).first()
     committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ').first()
     score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_final=True).filter(PACommittee.staff == current_user).first()
@@ -237,6 +238,7 @@ def rate_performance(scoresheet_id):
         scoresheet.is_consolidated = True
         print(score)
         flash('ส่งผลประเมินไปยังประธานกรรมเรียบร้อยแล้ว', 'success')
+    #TODO: In template, disable submit buttom if the scoresheet alread have score
     return render_template('pa/eva_rate_performance.html', scoresheet=scoresheet, head_score=head_score)
 
 
