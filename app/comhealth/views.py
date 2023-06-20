@@ -426,6 +426,10 @@ def edit_record(record_id):
             else:
                 flash(u'หมายเลข lab number ไม่ถูกต้อง', 'warning')
                 return redirect(url_for('comhealth.edit_record', record_id=record_id))
+        finance_contact = request.form.get('finance_contact', '')
+        if finance_contact == '0':
+            flash(u'กรุณาระบุติดต่อเจ้าหน้าที่การเงินด้วยหรือไม่', 'warning')
+            return redirect(url_for('comhealth.edit_record', record_id=record_id))
         record.ordered_tests = []
         for field in request.form:
             if field.startswith('test_'):
