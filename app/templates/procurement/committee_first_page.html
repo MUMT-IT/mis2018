@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Logo" width="75">
+                <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false"
+                   data-target="navbarBasicExample">
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                </a>
+            </div>
+            <div id="navbarMenu" class="navbar-menu">
+                <div class="navbar-end">
+                    <span class="navbar-item">
+                    <a class="button is-outlined" href="{{ url_for('procurement.first_page') }}">
+                        <span>Home</span>
+                    </a>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <section class="section">
+        <h1 class="title has-text-centered">Welcome, K.{{ name.personal_info.en_firstname }}</h1>
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column is-half is-offset-3">
+                <nav class="panel is-success">
+                    <p class="panel-heading">สำหรับคณะกรรมการตรวจสอบครุภัณฑ์</p>
+                    <a class="panel-block"
+                       href="{{ url_for('procurement.view_procurement_by_committee') }}">
+                        <span class="panel-icon"><i class="fas fa-file-alt"></i></span>
+                        <span class="is-size-5">รายงานตรวจสอบประจำปี</span><br>
+                    </a>
+                    <a class="panel-block"
+                       href="{{ url_for('procurement.qrcode_scan') }}">
+                        <span class="panel-icon"><i class="fas fa-qrcode"></i></span>
+                        <span class="is-size-5">Scan QR Code</span><br>
+                    </a>
+                    <a class="panel-block"
+                       href="{{ url_for('procurement.search_erp_code_info') }}">
+                        <span class="panel-icon"><i class="fas fa-search"></i></span>
+                        <span class="is-size-5">ค้นหาจากเลข Inventory Number / ERP Code</span><br>
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </section>
+{% endblock %}

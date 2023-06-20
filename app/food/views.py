@@ -2,10 +2,10 @@
 from pandas import DataFrame, Series
 from flask import render_template, request, redirect, url_for, jsonify
 from . import foodbp as food
-from models import (Person, Farm, AgriType, SampleLot, Produce,
-                        Sample, ProduceBreed, GrownProduce, PesticideTest, PesticideResult,
-                        ToxicoResult, ToxicoTest, BactResult, BactTest, HealthPerson,
-                        HealthServices, SurveyResult, PesticideUse, ParasiteTest, ParasiteResult)
+from app.food.models import (Person, Farm, AgriType, SampleLot, Produce,
+                             Sample, ProduceBreed, GrownProduce, PesticideTest, PesticideResult,
+                             ToxicoResult, ToxicoTest, BactResult, BactTest, HealthPerson,
+                             HealthServices, SurveyResult, PesticideUse, ParasiteTest, ParasiteResult)
 from ..models import Province, District, Subdistrict
 from ..main import db
 

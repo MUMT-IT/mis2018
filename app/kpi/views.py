@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy.sql import select
 from flask import request
 from flask import jsonify, render_template, Response
+from flask_login import login_required
 import pandas as pd
 from pandas import DataFrame
 import numpy as np
@@ -11,7 +12,7 @@ from dateutil.relativedelta import relativedelta
 from . import kpibp as kpi
 from ..main import db, json_keyfile
 from ..models import (Org, KPI, Strategy, StrategyTactic,
-                      StrategyTheme, StrategyActivity, KPISchema)
+                      StrategyTheme, StrategyActivity, KPISchema, Dashboard)
 
 import gspread
 import sys
@@ -1782,5 +1783,7 @@ def show_boardeval():
 
 
 @kpi.route('/dashboard')
+@login_required
 def dashboard_index():
-    return render_template('kpi/dashboard/index.html')
+    dashboard = Dashboard.query.all()
+    return render_template('kpi/dashboard/index.html', dashboard=dashboard)

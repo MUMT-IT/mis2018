@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">รายการขอรับรองการทำงาน</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="workTable">
+                    <thead>
+                        <th>ผู้ขอ</th>
+                        <th>วันที่ต้องการขอรับรอง</th>
+                        <th>เหตุผล</th>
+                        <th>อนุมัติ</th>
+                    </thead>
+                    <tbody>
+                    {% for req in all_requests %}
+                    {% if not req.approved_at and not req.cancelled_at %}
+                    <tr>
+                        <td>
+                            {{ req.staff.fullname }}
+                        </td>
+                        <td>
+                            {{ req.work_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            {{ req.reason }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('staff.approved_for_clockin_clockout',
+                                    request_id=req.id) }}" class="button is-small is-info is-rounded">
+                                อนุมัติ/ไม่อนุมัติ
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">ประวัติ</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="approvedTable">
+                    <thead>
+                        <th>ผู้ขอ</th>
+                        <th>วันที่ต้องการขอรับรอง</th>
+                        <th>เหตุผล</th>
+                        <th>อนุมัติ</th>
+                    </thead>
+                    <tbody>
+                    {% for req in all_requests %}
+                    {% if req.approved_at or req.cancelled_at %}
+                    <tr>
+                        <td>
+                            {{ req.staff.fullname }}
+                        </td>
+                        <td>
+                            {{ req.work_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            {{ req.reason }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('staff.approved_for_clockin_clockout',
+                                    request_id=req.id) }}" class="button is-small is-info is-rounded is-light">
+                                รายละเอียด
+                            </a>
+                        </td>
+                    </tr>
+                    {% endif %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#workTable').DataTable();
+        $('#approvedTable').DataTable();
+    });
+</script>
+{% endblock %}

@@ -14,34 +14,30 @@
                 <h1 class="title has-text-centered">ชั่วโมงสอน</h1>
                 <h2 class="title is-size-4 has-text-centered">{{ instructor.fullname }}</h2>
                 <h2 class="subtitle has-text-centered">{{ instructor.account.personal_info.org.name }}</h2>
+                <div class="field">
+                  <div class="select">
+                    <select id="academicYear">
+                      <option value="">All years</option>
+                      {% for yr in years %}
+                      <option value={{ yr }} {% if year == yr %} selected {% endif %}>{{ yr }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
                 <table class="table is-striped" id="instructors">
                     <thead>
-                    <th>รหัสรายวิชา</th>
-                    <th>ชื่อรายวิชา</th>
-                    <th>ภาคและปีการศึกษา</th>
-                    <th>วันที่และเวลา</th>
-                    <th>รูปแบบ</th>
-                    <th>จำนวนชม.</th>
+                      <th>รายวิชา</th>
+                      <th>จำนวนชั่วโมง</th>
                     </thead>
                     <tbody>
-                    {% for course in instructor.courses %}
-                        {% for s in course.sessions %}
-                            {% if instructor in s.instructors %}
-                            <tr>
-                                <td>{{ course.th_code }} ({{ course.en_code }})</td>
-                                <td>{{ course.th_name }}</td>
-                                {% if course.academic_year and course.semester %}
-                                <td>{{ course.semester + '/' + course.academic_year }}</td>
-                                {% else %}
-                                <td>N/A</td>
-                                {% endif %}
-                                <td>{{ s.start|localdatetime }} - {{ s.end|localdatetime }}</td>
-                                <td>{{ s.type_ }}</td>
-                                <td>{{ s.total_hours }}</td>
-                            </tr>
-                            {% endif %}
-                        {% endfor %}
-                    {% endfor %}
+                      {% for idx, row in sum_hours.iterrows() %}
+                      <tr>
+                          <td>{{ idx }}</td>
+                          {% for c in row %}
+                          <td>{{ c }}</td>
+                          {% endfor %}
+                      </tr>
+                      {% endfor %}
                     </tbody>
                 </table>
             </div>
@@ -56,6 +52,9 @@
         $('#instructors').DataTable({
             "pageLength": 20,
         });
+        $('#academicYear').change(()=>{
+          window.location = '/staff/users/teaching-hours/summary?year=' + $('#academicYear').val()
+        })
     });
 </script>
 {% endblock %}

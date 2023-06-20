@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="{{ url_for("procurement.computer_search_by_erp_code") }}">ดูข้อมูลคอมพิวเตอร์</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">เพิ่มรายละเอียดการสำรวจ</a></li>
+                </ul>
+            </nav>
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">เพิ่มรายละเอียดการสำรวจ: {{ procurement.erp_code }}</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-10 is-offset-1">
+                    <div class="box">
+                        <form method="post">
+                            {{ form.hidden_tag() }}
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.satisfaction_with_speed_of_use.label }}</label>
+                                    <div class="control">
+                                        {{ form.satisfaction_with_speed_of_use(class="radio") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.satisfaction_with_continuous_work.label }}</label>
+                                    <div class="control">
+                                        {{ form.satisfaction_with_continuous_work(class="radio") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.satisfaction_with_enough_space.label }}</label>
+                                    <div class="control">
+                                        {{ form.satisfaction_with_enough_space(class="radio") }}
+                                    </div>
+                                </div>
+                            </div>
+                                <div class="field">
+                                    <label class="label">{{ form.personal_info() }} {{ form.personal_info.label }}</label>
+                                </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.check_back_up_file.label }}</label>
+                                    <div class="select is-fullwidth">
+                                        {{ form.check_back_up_file() }}
+                                    </div>
+                                </div>
+                            <div class="field">
+                                    <label class="label">{{ form.reason_no_backup_file.label }}</label>
+                                    <div class="select is-fullwidth">
+                                        {{ form.reason_no_backup_file() }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.check_anti_virus_update.label }}</label>
+                                    <div class="select is-fullwidth">
+                                        {{ form.check_anti_virus_update() }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.check_windows_update.label }}</label>
+                                    <div class="select is-fullwidth">
+                                        {{ form.check_windows_update() }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.list_software.label }}</label>
+                                <div class="control">
+                                    {{ form.list_software(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.setting_user_login.label }}</label>
+                                    <div class="select is-fullwidth">
+                                        {{ form.setting_user_login() }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.setting_screen_saver.label }}</label>
+                                    <div class="select is-fullwidth">
+                                        {{ form.setting_screen_saver() }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.check_ms_office_and_windows_activation.label }}</label>
+                                    <div class="select is-fullwidth">
+                                        {{ form.check_ms_office_and_windows_activation() }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.requirement.label }}</label>
+                                <div class="control">
+                                    {{ form.requirement(class="textarea") }}
+                                </div>
+                            </div>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="buttons">
+                                    <button class="button is-success" type="submit" value="submit">บันทึก</button>
+                                    <a href="{{ url_for('procurement.new_checking_computer_info', procurement_id=procurement.id) }}" class="button is-danger">ยกเลิก</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+{% endblock %}

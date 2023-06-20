@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% include "studs/nav.html" %}
+
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-bulma@5/bulma.css" />
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    <h1 class="title has-text-centered">Student Workload Planner</h1>
+    <h1 class="title has-text-centered is-size-4">{{ revision }}</h1>
+    <h1 class="subtitle has-text-centered">นักศึกษาชั้น{{ student_year }}</h1>
+    <div class="buttons is-centered">
+        <a href="{{ next_url or url_for('/') }}" class="button is-light">Back</a>
+    </div>
+    <div class="tabs is-boxed">
+      <ul>
+        <li {% if student_year == 'ปี 1' %}class="is-active"{% endif %}>
+          <a href="{{ url_for('studs.show_assignments', revision_id=revision_id, student_year='ปี 1') }}">
+            <span>ปี 1</span>
+          </a>
+        </li>
+        <li {% if student_year == 'ปี 2' %}class="is-active"{% endif %}>
+          <a href="{{ url_for('studs.show_assignments', revision_id=revision_id, student_year='ปี 2') }}">
+            <span>ปี 2</span>
+          </a>
+        </li>
+        <li {% if student_year == 'ปี 3' %}class="is-active"{% endif %}>
+          <a href="{{ url_for('studs.show_assignments', revision_id=revision_id, student_year='ปี 3') }}">
+            <span>ปี 3</span>
+          </a>
+        </li>
+        <li {% if student_year == 'ปี 4' %}class="is-active"{% endif %}>
+          <a href="{{ url_for('studs.show_assignments', revision_id=revision_id, student_year='ปี 4') }}">
+            <span>ปี 4</span>
+          </a>
+        </li>
+      </ul>
+    </div>
+    <div id="calendar"></div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.0.0/index.global.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    $(document).ready(()=>{
+        let calendarEl = document.getElementById('calendar');
+        let calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            events: "{{url_for('studs.get_assignments', revision_id=revision_id, student_year=student_year)|safe}}",
+            eventClick: function(info) {
+                Swal.fire({
+                    title: info.event.title,
+                    html: info.event.extendedProps.name + '<br>' + info.event.start.toLocaleString() + ' - ' + info.event.end.toLocaleString() + '<br>' + 'กิจกรรม' + info.event.extendedProps.type + ' ประเภท' + info.event.extendedProps.format + ' เวลาที่ใช้ ' + info.event.extendedProps.hours + ' ชม./คน',
+                })
+            }
+        });
+        calendar.render();
+    })
+    </script>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+{% include "meeting_planner/nav.html" %}
+<section class="section">
+<div class="container">
+    <h1 class="title has-text-centered">รายละเอียดการประชุม</h1>
+    <div class="columns">
+        <div class="column">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-title">
+                        รายละเอียดการประชุม
+                    </div>
+                </div>
+                <div class="card-content">
+                    <p>
+                        <label class="label">ชื่อ</label>
+                        {{ meeting.title }}
+                    </p>
+                    <p>
+                        <label class="label">วันและเวลา</label>
+                        {{ meeting.start|localdatetime }} - {{ meeting.end|localdatetime }}
+                    </p>
+                    <p>
+                        <label class="label">ห้อง</label>
+                        {{ meeting.rooms }}
+                    </p>
+                    <p>
+                        <label class="label">ลิงค์ประชุมออนไลน์</label>
+                        {{ meeting.meeting_url }}
+                    </p>
+                </div>
+            </div>
+            <br>
+            <div class="card">
+                <div class="card-header">
+                    <p class="card-header-title">รายชื่อผู้เข้าประชุม</p>
+                </div>
+                <div class="card-content">
+                    <table class="table">
+                        <thead>
+                        <th>ชื่อ</th>
+                        <th>ตอบรับเมื่อ</th>
+                        <th>การตอบรับ</th>
+                        <th>สาเหตุ</th>
+                        <th>ส่งข้อความเตือน</th>
+                        </thead>
+                        <tbody>
+                        {% for invite in meeting.invitations %}
+                            <tr>
+                            <td>{{ invite.staff.fullname }}</td>
+                            <td>{{ invite.responded_at|localdatetime or '' }}</td>
+                            <td>{{ invite.response or '' }}</td>
+                            <td>{{ invite.note or '' }}</td>
+                            <td>
+                                {% if not invite.response %}
+                                <a hx-swap="none" hx-get="{{ url_for('meeting_planner.notify_participant', invitation_id=invite.id) }}">
+                                    <span class="icon">
+                                        <i class="fa-sharp fa-solid fa-paper-plane"></i>
+                                    </span>
+                                </a>
+                                {% endif %}
+                            </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        <br>
+        <div class="buttons is-centered">
+            <a href="{{ url_for('meeting_planner.list_meetings') }}"
+               class="button is-light">Back</a>
+        </div>
+        </div>
+    </div>
+</div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function () {
+        document.addEventListener('notifyAlert', function () {
+            alert('ส่งข้อความเตือนเรียบร้อย')
+        })
+    })
+</script>
+{% endblock %}

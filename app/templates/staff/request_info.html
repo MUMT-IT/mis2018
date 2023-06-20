@@ -10,14 +10,38 @@
                 <h4 class="subtitle is-size-6">{{ current_user.personal_info }} {{ current_user.personal_info.employment.title }}</h4>
             </div>
         </div>
+        {% if quota_info %}
         <div class="columns">
-            <div class="column has-text-centered">
-                <span class="subtitle has-text-success is-size-6">เหลือ</span>
-                <span class="subtitle has-text-success is-size-6">(Remaining)</span>
-                <span class="title has-text-success">{{ quota_limit - used_quota}}</span>
-                <span class="subtitle has-text-success is-size-6">วัน (days)</span>
+            <div class="column box is-half is-offset-one-quarter">
+                <table class="table is-fullwidth">
+                    <tbody>
+                    <tr>
+                        <td>
+                            วันลาสะสม (Cumulative)
+                        </td>
+                        <td>{{ quota_info.quota_days }} วัน (days)</td>
+                    </tr>
+                    <tr>
+                        <td>
+                            ใช้ไป (Taken)
+                        </td>
+                        <td>{{ quota_info.used_days }} วัน (days) <br>
+                            อนุมัติแล้ว (Approved) {{ approved_days }} วัน (days) <br>
+                            รออนุมัติ (Pending) {{ pending_day }} วัน (days)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="subtitle has-text-success is-size-6">คงเหลือ (Remaining)</span></td>
+                        <td><span class="subtitle has-text-success is-size-6">
+                            {{ quota_info.quota_days - quota_info.used_days }} วัน (days)
+                            </span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
+        {% endif %}
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
@@ -134,7 +158,7 @@
         </div>
         <div class="columns">
             <div class="column">
-                <div class="notification is-info is-light">
+                <div class="notification is-info">
                     <a href="{{ url_for('staff.leave_info_deleted_records', quota_id=quota.id) }}">
                         <span class="is-size-6 has-text-">ประวัติการยกเลิก (Deleted History)</span>
                     </a>
@@ -144,7 +168,7 @@
         <div class="columns">
             <div class="column">
                 <div class="notification is-warning is-light">
-                    <span>*กรณีขอยกเลิกการลา สามารถคลิกเพื่อส่งคำขอซ้ำได้หลังจาก 1 วันที่ส่งคำขอครั้งล่าสุด</span><br>
+                    <span>*กรณีขอยกเลิกการลา สามารถคลิกเพื่อส่งคำขอซ้ำได้หลังจาก 3 วันที่ส่งคำขอครั้งล่าสุด</span><br>
                     <span>*A request for cancellation is limited to one time per day.</span>
                 </div>
             </div>
@@ -198,7 +222,7 @@
                 this.$buefy.dialog.confirm({
                     title: 'ยื่นคำร้องยกเลิกคำขอที่' + req_id,
                     message: 'แน่ใจหรือไม่ที่จะ<b>ยกเลิก</b>การลาครั้งนี้ คำขอจะส่งไปยังผู้อนุมัติการลาครั้งนี้ ' +
-                        'และมีระยะเวลาการขอยกเลิก <b>1 วัน</b> นับตั้งแต่ส่งคำขอ',
+                        'และมีระยะเวลาการขอยกเลิก <b>3 วัน</b> นับตั้งแต่ส่งคำขอ',
                     confirmText: 'Send request',
                     type: 'is-danger',
                     hasIcon: true,

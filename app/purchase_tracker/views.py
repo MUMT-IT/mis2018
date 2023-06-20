@@ -1,10 +1,18 @@
 # -*- coding:utf-8 -*-
 import requests, os
-from flask import render_template, request, flash, redirect, url_for, send_from_directory
+from flask import render_template, request, flash, redirect, url_for, send_from_directory, send_file
 from flask_login import current_user, login_required
 from oauth2client.service_account import ServiceAccountCredentials
 from pandas import DataFrame
 from pydrive.auth import GoogleAuth
+from reportlab.lib import styles
+from reportlab.lib.enums import TA_RIGHT, TA_CENTER
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.utils import ImageReader
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Image, TableStyle, Table, Spacer
 from sqlalchemy import cast, Date
 from werkzeug.utils import secure_filename
 from . import purchase_tracker_bp as purchase_tracker
@@ -12,10 +20,10 @@ from .forms import *
 from datetime import datetime
 from pytz import timezone
 from pydrive.drive import GoogleDrive
-from .models import PurchaseTrackerAccount
+from .models import PurchaseTrackerAccount, PurchaseTrackerForm
 from flask_mail import Message
 from ..main import mail
-from ..roles import finance_permission, procurement_permission
+from ..roles import finance_procurement_permission
 
 # Upload images for Google Drive
 
@@ -38,6 +46,12 @@ def landing_page():
 @purchase_tracker.route('/personnel/personnel_index')
 def staff_index():
     return render_template('purchase_tracker/personnel/personnel_index.html')
+
+
+@purchase_tracker.route('/personnel/personnel_index/e-form/method/select/<int:account_id>')
+def select_form(account_id):
+    account = PurchaseTrackerAccount.query.get(account_id)
+    return render_template('purchase_tracker/personnel/alternative_form.html', account=account)
 
 
 @purchase_tracker.route('/main')
@@ -203,8 +217,7 @@ def close_account(account_id):
 
 
 @purchase_tracker.route('/supplies/')
-@finance_permission.require()
-@procurement_permission.require()
+@finance_procurement_permission.require()
 def supplies():
     from sqlalchemy import desc
     accounts = PurchaseTrackerAccount.query.all()
@@ -230,8 +243,7 @@ def send_mail(recp, title, message):
 
 
 @purchase_tracker.route('/account/<int:account_id>/update', methods=['GET', 'POST'])
-@finance_permission.require()
-@procurement_permission.require()
+@finance_procurement_permission.require()
 @login_required
 def update_status(account_id):
     form = StatusForm()
@@ -282,8 +294,7 @@ def update_status(account_id):
 
 
 @purchase_tracker.route('/account/<int:account_id>/status/<int:status_id>/edit', methods=['GET', 'POST'])
-@finance_permission.require()
-@procurement_permission.require()
+@finance_procurement_permission.require()
 @login_required
 def edit_update_status(account_id, status_id):
     status = PurchaseTrackerStatus.query.get(status_id)
@@ -317,8 +328,7 @@ def edit_update_status(account_id, status_id):
 
 
 @purchase_tracker.route('/account/<int:account_id>/status/<int:status_id>/delete')
-@finance_permission.require()
-@procurement_permission.require()
+@finance_procurement_permission.require()
 @login_required
 def delete_update_status(account_id, status_id):
     if account_id:
@@ -330,8 +340,7 @@ def delete_update_status(account_id, status_id):
 
 
 @purchase_tracker.route('/create/<int:account_id>/activity', methods=['GET', 'POST'])
-@finance_permission.require()
-@procurement_permission.require()
+@finance_procurement_permission.require()
 @login_required
 def add_activity(account_id):
     activity = db.session.query(PurchaseTrackerActivity)
@@ -351,7 +360,7 @@ def add_activity(account_id):
     return render_template('purchase_tracker/create_activity.html', form=form, activity=activity, account_id=account_id)
 
 
-@purchase_tracker.route('/dashboard/', methods=['GET', 'POST'])
+@purchase_tracker.route('/dashboard', methods=['GET', 'POST'])
 def show_info_page():
     start_date = None
     end_date = None
@@ -400,4 +409,87 @@ def dashboard_info_download():
             })
     df = DataFrame(records)
     df.to_excel('account_summary.xlsx')
-    return send_from_directory(os.getcwd(), filename='account_summary.xlsx')
+    return send_file(os.path.join(os.getcwd(), 'account_summary.xlsx'))
+
+
+# @purchase_tracker.route('/personnel/personnel_index/e-form/create/<string:form_code>/<int:account_id>', methods=['GET', 'POST'])
+# @login_required
+# def create_form(account_id, form_code):
+#     account = PurchaseTrackerAccount.query.get(account_id)
+#     MTPCform = create_MTPCForm(acnt=account)
+#     form = MTPCform()
+#     if form.validate_on_submit():
+#         new_form = PurchaseTrackerForm()
+#         form.populate_obj(new_form)
+#         new_form.staff = current_user
+#         db.session.add(new_form)
+#         db.session.commit()
+#         flash(u'บันทึกข้อมูลสำเร็จ.', 'success')
+#         form_letter(new_form, account)
+#         return send_file('e-form.pdf')
+#     # Check Error
+#     else:
+#         for er in form.errors:
+#             flash("{}:{}".format(er,form.errors[er]), 'danger')
+#     return render_template('purchase_tracker/personnel/create_form_{}.html'.format(form_code), form=form, account=account)
+#
+#
+# sarabun_font = TTFont('Sarabun', 'app/static/fonts/THSarabunNew.ttf')
+# pdfmetrics.registerFont(sarabun_font)
+# style_sheet = getSampleStyleSheet()
+# style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Sarabun'))
+# style_sheet.add(ParagraphStyle(name='ThaiStyleNumber', fontName='Sarabun', alignment=TA_RIGHT))
+# style_sheet.add(ParagraphStyle(name='ThaiStyleCenter', fontName='Sarabun', alignment=TA_CENTER))
+#
+#
+# def form_letter(form, account):
+#     logo = Image('app/static/img/logo-MU.jpg', 60, 60)
+#
+#     def all_page_setup(canvas, doc):
+#         canvas.saveState()
+#         logo_image = ImageReader('app/static/img/logo-MU.jpg')
+#         canvas.drawImage(logo_image, 10, 700, width=70, height=70)
+#         canvas.restoreState()
+#
+#     doc = SimpleDocTemplate("app/e-form.pdf",
+#                             pagesize=letter,
+#                             rightMargin=72,
+#                             leftMargin=72,
+#                             topMargin=72,
+#                             bottomMargin=18)
+#
+#
+#     data = [ Paragraph(u'<font size=16>ภาควิชา / ศูนย์ {}</font>'.format(account.staff.personal_info.org.name), style=style_sheet['ThaiStyle']),
+#              Paragraph(u'<font size=16>ที่ {}</font>'.format(form.account.number), style=style_sheet['ThaiStyle']),
+#              Paragraph(u'<font size=16>วันที่ {}</font>'.format(form.account.creation_date), style=style_sheet['ThaiStyle']),
+#              Paragraph(u'<font size=16>เรื่อง {}</font>'.format(form.account.subject), style=style_sheet['ThaiStyle']),
+#              Paragraph(u'<font size=16>ข้าพเจ้า {}</font>'.format(form.name), style=style_sheet['ThaiStyle']),
+#              Paragraph(u'<font size=16>เหตุผลและความจำเป็นเร่งด่วนที่ต้องซื้อหรือจ้าง {}</font>'.format(form.reason),
+#                        style=style_sheet['ThaiStyle']),
+#              Paragraph(u'<font size=16>รายละเอียดของพัสดุที่ซื้อหรือจ้าง {}</font>'.format(form.account.desc),
+#                        style=style_sheet['ThaiStyle']),
+#              Paragraph(u'<font size=16>วงเงินที่ซื้อหรือจ้างในครั้งนี้เป็นเงินเท่าไหร่ {}</font>'.format(form.account.amount),
+#                        style=style_sheet['ThaiStyle']),
+#              Paragraph(u'<font size=16>จาก {}</font>'.format(form.account.amount),
+#                        style=style_sheet['ThaiStyle']),
+#              Paragraph(u'<font size=16>ตามใบส่งของ/ใบเสร็จรับเงินเล่มที่ {}</font>'.format(form.book),
+#                        style=style_sheet['ThaiStyle']),
+#              Paragraph(u'<font size=16>เลขที่ {}</font>'.format(form.number),
+#                        style=style_sheet['ThaiStyle']),
+#              Paragraph(u'<font size=16>วันที่ {}</font>'.format(form.receipt_date),
+#                        style=style_sheet['ThaiStyle']),
+#              Paragraph(u'<font size=16>โดยขอเบิกจ่ายจากเงิน {}</font>'.format(form.disbursement_method),
+#                        style=style_sheet['ThaiStyle']),
+#              Paragraph(u'<font size=16>ประจำปีงบประมาณ {}</font>'.format(form.financial_year),
+#                        style=style_sheet['ThaiStyle']),
+#              Paragraph(u'<font size=16>วันที่ {}</font>'.format(form.receipt_date),
+#                        style=style_sheet['ThaiStyle']),
+#              Paragraph(u'<font size=16>รหัสศูนย์ต้นทุน {}</font>'.format(form.cost_center),
+#                        style=style_sheet['ThaiStyle']),
+#              Paragraph(u'<font size=16>รหัสใบสั่งงานภายใน {}</font>'.format(form.internal_order),
+#                        style=style_sheet['ThaiStyle']),
+#              ]
+#     data.append(Spacer(1, 12))
+#
+#     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
+

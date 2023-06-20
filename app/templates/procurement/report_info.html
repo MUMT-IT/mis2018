@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% include "procurement/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div>
+        <h1 class="title has-text-centered has-text-info">รายงานครุภัณฑ์ภายในภาค</h1>
+        <div class="tile is-ancestor">
+            <div class="tile is-parent">
+
+            </div>
+            <div class="tile is-parent">
+
+            </div>
+            <div class="tile is-parent is-4">
+                <article class="tile is-child notification is-success">
+                    <h1 class="title is-size-4 has-text-centered">Cost Center</h1>
+                    <div class="tags">
+{#                        {% for cost_center in data %}#}
+{#                        <p class="tag is-info is-medium is-light">#}
+{#                            <a href="">{{ cost_center.cost_center }}</a>#}
+{#                        </p>#}
+{#                        {% endfor %}#}
+                    </div>
+                </article>
+            </div>
+            <div class="tile is-parent">
+
+            </div>
+            <div class="tile is-parent">
+
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

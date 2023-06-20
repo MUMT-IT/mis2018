@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% include "receipt_printing/nav.html" %}
+
+{% block head %}
+    {{ super() }}
+
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        {% include "messages.html" %}
+        <div class="container">
+            <h1 class="title has-text-centered">ข้อมูล Internal Order/IO ทั้งหมด</h1>
+            <div class="buttons is-centered has-addons">
+                <a href="{{ url_for('receipt_printing.new_IOCode') }}"
+                   class="button is-rounded is-info">
+                      <span class="icon">
+                          <i class="fas fa-plus"></i>
+                      </span>
+                    <span>เพิ่ม Internal Order/IO</span>
+                </a>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-striped" id="iocodetable">
+                        <thead>
+                            <th>Internal Order/IO</th>
+                            <th>Mission</th>
+                            <th>Org</th>
+                            <th>Name</th>
+                            <th>Active</th>
+                            <th></th>
+                        </thead>
+                        <tbody>
+                        {% for record in io_code %}
+                            <tr>
+                                <td>{{ record.id }}</td>
+                                <td>{{ record.mission.name }}</td>
+                                <td>{{ record.org.name }}</td>
+                                <td>{{ record.name }}</td>
+                                <td>{{ record.is_active }}</td>
+                                <td>
+                                    <a href="{{ url_for('receipt_printing.io_code_change_active_status', iocode_id=record.id) }}"
+                                       class="button is-small is-warning is-outlined">
+                                        {% if record.is_active == True %}
+                                        <span class="icon">
+                                            <i class="fas has-text-danger fa-pencil-alt"></i>
+                                        </span>
+                                        <span class="fas has-text-danger">Change Inactive Status</span>
+                                        {% else %}
+                                        <span class="icon">
+                                            <i class="fas has-text-success fa-pencil-alt"></i>
+                                        </span>
+                                        <span class="fas has-text-success">Change to Active Status</span>
+                                        {% endif %}
+                                    </a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <a href="{{ url_for('receipt_printing.select_btw_io_code_and_cost_center') }}"
+                       class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#iocodetable').DataTable();
+        });
+    </script>
+{% endblock %}

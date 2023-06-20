@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block head %}
+{{ super() }}
+
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="box">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">คำร้องขอสำเนาใบเสร็จรับเงิน</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-one-third is-offset-4">
+                    <table class="table is-fullwidth is-striped">
+                         <tr>
+                            <td><strong>เล่มที่</strong></td>
+                            <td>{{ receipt.book_number }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>เลขที่</strong></td>
+                            <td>{{ receipt.number }}</td>
+                        </tr>
+                    </table>
+                    <form action="{{ url_for('receipt_printing.require_new_receipt', receipt_id=receipt.id) }}" method="POST" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">สาเหตุ</label>
+                            <div class="control">
+                                {{ form.reason(class="textarea") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="file">
+                                <label class="file-label">
+                                    {{ form.upload(class="file-input") }}
+                                    <span class="file-cta">
+                                      <span class="file-icon">
+                                        <i class="fas fa-upload"></i>
+                                      </span>
+                                      <span class="file-label">
+                                        {{ form.upload.label }}
+                                      </span>
+                                    </span>
+                                    <span class="file-name" id="filename"></span>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="buttons">
+                                <button class="button is-success" type="submit" value="submit">Submit</button>
+                                <a href="{{ url_for('receipt_printing.list_to_require_receipt') }}" class="button is-danger">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock page_content %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $('#upload').change(function (e) {
+            let fileName = e.target.files[0].name;
+            $('#filename').text(fileName);
+        });
+
+    </script>
+{% endblock %}

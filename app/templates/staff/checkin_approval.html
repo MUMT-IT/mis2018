@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+    {% include "messages.html" %}
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+            <div class="column has-text-centered">
+                <h1 class="title">รายการขอรับรองการทำงาน</h1>
+            </div>
+            <div class="box">
+                <form method="post" enctype="multipart/form-data">
+                    <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+                    <table class="table is-fullwidth">
+                        <tr>
+                            <td>
+                               <label class="label">ผู้ขอ</label>
+                            </td>
+                            <td>
+                                {{ clock_request.staff.personal_info }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">ในวัน-เวลา</label>
+                            </td>
+                            <td>
+                                {{ clock_request.work_datetime|localdatetime }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">ช่วงเวลา</label>
+                            </td>
+                            {% if clock_request.is_checkin %}
+                            <td>
+                                เข้างาน
+                            </td>
+                            {% else %}
+                            <td>
+                                กลับบ้าน
+                            </td>
+                            {% endif %}
+                        </tr>
+                        <tr>
+                            <td>
+                               <label class="label">เนื่องจาก</label>
+                            </td>
+                            <td>
+                                {{ clock_request.reason }}
+                            </td>
+                        </tr>
+                    </table>
+                    {% if clock_request.approved_at %}
+                        <div class="has-text-centered">
+                            <span>คำขอนี้ถูกอนุมัติเรียบร้อยแล้ว</span>
+                        </div>
+                    {% elif not clock_request.cancelled_at %}
+                        <div class="control has-text-centered">
+                            <a href="{{ url_for('staff.approved_for_clockin_clockout',
+                                request_id=clock_request.id, approver_id=current_user.id, approved='yes') }}"
+                               class="button is-success">อนุมัติ</a>
+                            <a href="{{ url_for('staff.approved_for_clockin_clockout',
+                                request_id=clock_request.id, approver_id=current_user.id, approved='no') }}"
+                               class="button is-danger">ไม่อนุมัติ</a>
+                        </div>
+                    {% else %}
+                        <div class="has-text-centered">
+                            <span>คำขอนี้ถูกยกเลิกแล้ว</span>
+                        </div>
+                    {% endif %}
+                </form>
+            </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

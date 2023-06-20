@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">ข้อมูลครุภัณฑ์ทั้งหมด</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-fullwidth is-striped" id="proTable">
+                    <thead>
+                        <th></th>
+                        <th>รายการ</th>
+                        <th>รหัสครุภัณฑ์</th>
+                        <th>Inventory Number/ERP</th>
+                        <th>เพิ่มรูปภาพ</th>
+                        <th>แก้ไข</th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('procurement.landing') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#proTable').DataTable({
+                searchDelay: 350,
+                ajax: '{{ url_for("procurement.get_procurement_image_data") }}',
+                serverSide: true,
+                columns: [
+                    {data: 'view_img'},
+                    {data: 'name'},
+                    {data: 'procurement_no'},
+                    {data: 'erp_code'},
+                    {data: 'img'},
+                    {data: 'edit'}
+                ],
+            });
+        });
+    </script>
+{% endblock %}

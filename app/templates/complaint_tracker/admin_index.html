@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}MUMT-MIS: Complaint Tracker Admin{% endblock %}
+
+{% block page_content %}
+{% include "nav.html" %}
+<section class="section">
+    <div class="container">
+        {% include 'messages.html' %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">ระบบบริหารจัดการข้อร้องเรียน</h1>
+                <table class="table is-fullwidth">
+                    <thead>
+                    <th>หมวด</th>
+                    <th>หัวข้อ</th>
+                    <th>สถานะ</th>
+                    <th>ความสำคัญ</th>
+                    <th>แก้ไข</th>
+                    <th>การดำเนินการ</th>
+                    </thead>
+                    <tbody>
+                    {% for item in admin_list %}
+                        {% for record in item.topic.records %}
+                        <tr>
+                        <td>{{ item.topic.category }}</td>
+                        <td>{{ item.topic }}</td>
+                        <td>
+                            <span class="tag {{ record.status.color }}">
+                                {{ record.status }}
+                            </span>
+                        </td>
+                        <td>
+                            {{ record.priority }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </span>
+                            </a>
+                        </td>
+                        <td>
+                            {{ record.actions|length }}
+                        </td>
+                        </tr>
+                        {% endfor %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

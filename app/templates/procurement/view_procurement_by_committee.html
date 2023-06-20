@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% include "procurement/nav_for_committee.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    {% include "messages.html" %}
+    <div class="container">
+        <h1 class="title has-text-centered">Export Data</h1>
+        <p>คลิกเพื่อเลือกช่วงวันที่ต้องการนำออก</p>
+        <form method="post" action="{{ url_for('procurement.export_by_committee_summary') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="field">
+                <div class="control has-icons-left">
+                    <input class="input" name="datePicker" id="datePicker">
+                    <span class="icon is-small is-left">
+                        <i class="far fa-calendar-alt"></i>
+                    </span>
+                </div>
+            </div>
+            <div class="field">
+                <div class="control">
+                    <input type="submit" class="button is-info" value="Download">
+                </div>
+            </div>
+        </form>
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h3 class="title is-3">ข้อมูลครุภัณฑ์ทั้งหมด</h3>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-fullwidth is-striped" id="proCommitteeTable">
+                    <thead>
+                        <th>รายการ</th>
+                        <th>รหัสครุภัณฑ์</th>
+                        <th>ERP</th>
+                        <th>วัน-เวลาที่ตรวจ</th>
+                        <th>ผลการตรวจสอบ</th>
+                        <th>ชื่อผู้ตรวจสอบ</th>
+                        <th>สถานะ</th>
+                        <th>Comment</th>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('procurement.committee_first') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับ</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $('#proCommitteeTable').DataTable({
+                ajax: '{{ url_for("procurement.get_procurement_data_to_committee") }}',
+                serverSide: true,
+                columns: [
+                    {data: 'name'},
+                    {data: 'procurement_no'},
+                    {data: 'erp_code'},
+                    {data: 'updated_at'},
+                    {data: 'checking_result'},
+                    {data: 'approver'},
+                    {data: 'status'},
+                    {data: 'approver_comment'},
+
+                ],
+            });
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('input[name="update_at"]').daterangepicker({
+                singleDatePicker: true,
+                locale: {
+                    format: 'DD-MM-YYYY'
+                }
+            })
+             $('#datePicker').daterangepicker({
+                singleDatePicker: false,
+                startDate: moment()
+            }
+            )
+        });
+    </script>
+
+{% endblock %}
+
+}

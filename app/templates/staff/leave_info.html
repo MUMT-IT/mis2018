@@ -8,10 +8,18 @@
             การลาของท่านจะได้รับการพิจารณาและอนุมัติโดยผู้บังคับบัญชาได้แก่
             <strong>
                 {% for approver in current_user.leave_requesters %}
-                    {{ loop.index }}. {{ approver.account.personal_info.fullname }}
+                    {% if approver.is_active == True %}
+                        {{ loop.index }}. {{ approver.account.personal_info.fullname }}
+                    {% endif %}
                 {% endfor %}
             </strong>
-            อย่างน้อยหนึ่งท่าน หากสายงานการบังคับบัญชาไม่ถูกต้องกรุณาติดต่อเจ้าหน้าที่หน่วยสารสนเทศเพื่อแก้ไข
+            อย่างน้อยหนึ่งท่าน หากสายงานการบังคับบัญชาไม่ถูกต้องกรุณาติดต่อเจ้าหน้าที่หน่วย HR เพื่อแก้ไข
+            <br><br>
+            สามารถดูประวัติการลาได้โดยคลิก
+            <span class="icon is-medium">
+                <i class="fas fa-info-circle"></i>
+            </span>
+            ในแต่ละประเภทการลา
         </div>
         <div class="columns">
             <div class="column is-offset-2 is-two-thirds has-text-centered">
@@ -27,64 +35,55 @@
                     </div>
             </div>
         <div class="columns">
-            {% for type,quota in quota_days.iteritems()|sort %}
-            <div class="column">
-                <table class="box">
-                    <tr style="height: 60px">
-                        <td class="has-text-centered">
-                            <a href="{{ url_for('staff.request_for_leave_info', quota_id=quota.id) }}"
-                               class="title has-text-link">
-                                <span>
-                                    {{ type }}
-                                </span>
+            {% for type,quota in quota_days.items()|sort %}
+                <div class="column">
+                    <nav class="panel is-info">
+                        <a href="{{ url_for('staff.request_for_leave_info', quota_id=quota.id) }}">
+                            <p class="panel-heading">
+                                {{ type }}
                                 <span class="icon is-medium">
-                                    <i class="fas fa-info-circle"></i>
+                                     <i class="fas fa-info-circle"></i>
+                                 </span>
+                            </p>
+                        </a>
+                        <div class="panel-block">
+                            <span class="panel-icon">
+                                <i class="far fa-calendar-alt"></i>
+                            </span>
+                            วันลาสะสม (quota) {{ quota.limit }}
+                        </div>
+                        <div class="panel-block">
+                            <span class="panel-icon">
+                                <i class="far fa-calendar-check"></i>
+                            </span>
+                            อนุมัติแล้ว (approved) {{ cum_days[type] }}
+                        </div>
+                        <div class="panel-block">
+                            <span class="panel-icon">
+                                <i class="far fa-clock"></i>
+                            </span>
+                            รออนุมัติ (pending) {{ pending_days[type] }}
+                        </div>
+                        {% if quota.can_request %}
+                            <a class="panel-block" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">
+                                <span class="panel-icon">
+                                    <i class="fas fa-plus"></i>
+                                </span>
+                                <span>
+                                    ขออนุมัติลาเต็มวัน (new request - full day(s))
                                 </span>
                             </a>
-                        </td>
-                    </tr>
-                    <tr style="height: 60px">
-                        <td class="has-text-centered">
-                            <span class="subtitle has-text-success is-size-6">วันลาสะสม</span>
-                            <span class="subtitle has-text-success is-size-6">(Cumulative)</span>
-                            <span class="title has-text-success">{{ quota.limit }}</span>
-                            <span class="subtitle has-text-success is-size-6">วัน (days)</span>
-                        </td>
-                    </tr>
-                    <tr style="height: 60px">
-                        <td class="has-text-centered">
-                            <span class="subtitle has-text-dark is-size-6">ใช้ไป</span>
-                            <span class="subtitle has-text-dark is-size-6">(Taken)</span>
-                            <span class="title has-text-dark">{{ cum_days[type] }}</span>
-                            <span class="subtitle has-text-dark is-size-6">วัน (days)</span>
-                        </td>
-                    </tr>
-                    <tr style="height: 60px">
-                        <td class="has-text-centered">
-                            <span class="subtitle has-text-dark is-size-6">รออนุมัติ</span>
-                            <span class="subtitle has-text-dark is-size-6">(Pending)</span>
-                            <span class="title has-text-warning">{{ pending_days[type] }}</span>
-                            <span class="subtitle has-text-dark is-size-6">วัน (days)</span>
-                        </td>
-                    </tr>
-                    {% if quota.can_request %}
-                    <tr style="height: 40px">
-                        <td class="has-text-centered">
-                            <hr>
-                            <div class="field">
-                                <label class="label">Make a Request</label>
-                            </div>
-                            <div class="field">
-                                <div class="buttons is-centered">
-                                    <a class="button is-info" href="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}">ลาเต็มวัน (Full day)</a>
-                                    <a class="button is-warning" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">ลาครึ่งวัน (Half-day)</a>
-                                </div>
-                            </div>
-                        </td>
-                    </tr>
-                    {% endif %}
-                </table>
-            </div>
+                            <a class="panel-block" href="{{ url_for('staff.request_for_leave_period', quota_id=quota.id) }}">
+                                <span class="panel-icon">
+                                    <i class="fas fa-plus"></i>
+                                </span>
+                                <span>
+                                    ขออนุมัติลาครึ่งวัน (new request - half a day)
+                                </span>
+                            </a>
+                        {% endif %}
+                    </nav>
+                </div>
             {% endfor %}
         </div>
         <div class="has-text-centered">
@@ -127,7 +126,8 @@
         </div>
         <div class="columns">
             <div class="column has-text-centered">
-                <a href="https://drive.google.com/file/d/1FI-fCqdIc9BoysdH-omdv5xBFn8roqp1/view?usp=sharing/">
+
+                <a href="https://docs.google.com/document/d/1FBKUWtnzykStY7MWsRJi-RgNoxXgV-gAKb90ZDGHhUk/edit?usp=sharing">
                     <span class="is-size-4">คู่มือการใช้งาน</span>
                 </a>
             </div>

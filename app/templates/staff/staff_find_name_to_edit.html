@@ -6,11 +6,11 @@
         <div class="column">
             <div class="container has-text-centered">
                 <div class="box">
-                    <h1>ค้นหาชื่อ</h1>
+                    <h1 class="title has-text-centered">ค้นหาชื่อบุคลากร</h1>
                     <form method="post" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                         <div class="control">
-                            <b-field message="สามารถค้นหาด้วยชื่อ นามสกุล">
+                            <b-field message="สามารถค้นหาด้วยชื่อ นามสกุล สังกัด">
                                 ชื่อ <% staffNameSelected %>
                                 <b-autocomplete v-model="staffquery" :data="data" name="staffname"
                                         field="id" :loading="isFetching" icon="magnify"
@@ -31,12 +31,22 @@
                                 </b-autocomplete>
                             </b-field>
                         </div>
-                        <div class="field is-grouped">
+                        <br>
+                        <div class="field is-centered">
                             <div class="control">
                                 <input type="submit" value="search" class="button is-info"/>
                             </div>
+                        </div>
+                        <div class="field is-grouped">
                             <div class="control">
-                                <a href="{{ url_for('staff.staff_index') }}" class="button is-danger">Cancel</a>
+                                <a href="{{ url_for('staff.staff_index') }}" class="button  is-light">
+                                    <span class="icon">
+                                        <i class="fas fa-arrow-left"></i>
+                                    </span>
+                                    <span>
+                                        กลับ
+                                    </span>
+                                </a>
                             </div>
                         </div>
                     </form>

@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% include "procurement/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                {% include "messages.html" %}
+                <nav class="breadcrumb" aria-label="breadcrumbs">
+                    <ul>
+                        <li><a href="{{ url_for('procurement.landing') }}">หน้าหลัก</a></li>
+                        <li><a href="{{ url_for('procurement.update_location_and_status') }}">สแกนคิวอาร์โค้ด</a></li>
+                        <li><a href="{{ url_for('procurement.view_img_procurement') }}">ดูรูปภาพ</a></li>
+                        <li class="is-active"><a href="#" aria-current="page">เพิ่มรูป</a></li>
+                    </ul>
+                </nav>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <div class="column has-text-centered">
+                    <h1 class="title">เพิ่มรูปภาพครุภัณฑ์ใหม่</h1>
+                </div>
+                    <div class="box">
+                        <form method="post" enctype="multipart/form-data">
+                            {{ form.hidden_tag() }}
+                            <div class="field">
+                                <img style='display:block; width:330px;height:230px;' id="preview"
+                                     src='data:image/png;base64, {{ procurement.image }}'>
+                                <div class="file">
+                                    <label class="file-label">
+                                        {{ form.image_upload(class="file-input", onchange="previewImage(event)", accept="image/*") }}
+                                        <span class="file-cta">
+                                            <span class="file-icon">
+                                                <i class="fas fa-upload"></i>
+                                            </span>
+                                            <span class="file-label">
+                                            Choose a file…
+                                            </span>
+                                        </span>
+                                        <span class="file-name" id="filename"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="buttons">
+                                    <button class="button is-success" type="submit" value="submit">บันทึก</button>
+                                    <a href="{{ url_callback }}"
+                                       class="button is-danger">ยกเลิก</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+
+    <script>
+        const previewImage = e => {
+            const reader = new FileReader();
+            reader.readAsDataURL(e.target.files[0]);
+            reader.onload = () => {
+                const preview = document.getElementById('preview');
+                preview.src = reader.result;
+            };
+        };
+    </script>
+    <script>
+        $(document).ready(() => {
+            $('#filename').text("None");
+        })
+        $('#image_upload').change(function (e) {
+            let fileName = e.target.files[0].name;
+            $('#filename').text(fileName);
+        });
+    </script>
+
+{% endblock %}

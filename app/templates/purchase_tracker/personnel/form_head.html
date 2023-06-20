@@ -1,0 +1,76 @@
+<div class="field">
+    <label class="label">ภาควิชา / ศูนย์</label>
+    <div class="control">
+        {{ account.staff.personal_info.org.name }}
+    </div>
+</div>
+<div class="field-body">
+    <div class="field">
+        <label class="label">เลขที่หนังสือ</label>
+        <div class="control">
+            {{ form.account.number(class="input") }}
+        </div>
+    </div>
+    <div class="field">
+        <label class="label">วันที่หนังสือ</label>
+        <div class="control">
+            {{ form.account.booking_date(class="input") }}
+        </div>
+    </div>
+</div>
+<div class="field">
+    <label class="label">เรื่อง</label>
+    <div class="control">
+        {{ form.account.subject(class="input") }}
+    </div>
+</div>
+<div class="field">
+    <label class="label">รายการขออนุมัติ</label>
+    <div class="select">
+        {{ form.method() }}
+    </div>
+</div>
+<div class="field">
+    <label class="label">วงเงินที่ซื้อหรือจ้างในครั้งนี้เป็นเงิน</label>
+    <div class="control">
+        {{ form.account.amount(class="input") }}
+    </div>
+</div>
+<div class="field">
+    <label class="label">เหตุผลและความจำเป็นเร่งด่วนที่ต้องซื้อหรือจ้าง</label>
+    <div class="control">
+        {{ form.reason(class="textarea") }}
+    </div>
+</div>
+<div class="field">
+    <label class="label">รายละเอียดของพัสดุที่ซื้อหรือจ้าง</label>
+    <div class="control">
+        {{ form.account.desc(class="textarea") }}
+    </div>
+</div>
+<div class="field">
+    <label class="label">โดยขอเบิกจ่ายจากเงิน</label>
+    <div class="select is-fullwidth">
+        {{ form.disbursement_method() }}
+    </div>
+</div>
+<div class="field">
+    <label class="label">ประจำปีงบประมาณ</label>
+    <div class="control">
+        {{ form.financial_year(class="input") }}
+    </div>
+</div>
+<div class="field-body">
+    <div class="field">
+        <label class="label">รหัสศูนย์ต้นทุน</label>
+        <div class="control">
+            {{ form.cost_center(class="input") }}
+        </div>
+    </div>
+    <div class="field">
+        <label class="label">รหัสใบสั่งงานภายใน</label>
+        <div class="control">
+            {{ form.internal_order(class="input") }}
+        </div>
+    </div>
+</div>

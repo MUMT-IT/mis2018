@@ -6,6 +6,30 @@
         <div class="table-container">
             <div class="columns">
                 <div class="column">
+                    <table class="table is-bordered is-striped">
+                        <tbody>
+                            {% for quota in quota %}
+                            <tr>
+                                <td>
+                                    {{ quota.leave_type }}
+                                </td>
+                                <td>
+                                    ปีงบประมาณ {{ quota.fiscal_year }}
+                                </td>
+                                <td>
+                                    quota {{ quota.quota_days }}
+                                </td>
+                                <td>
+                                    ใช้ไป {{ quota.used_days }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
                     <div class="box">
                         <h4 class="subtitle">รายการลาของ
                             {{ requester[0].staff.personal_info }} ปีงบประมาณปัจจุบัน
@@ -24,10 +48,10 @@
                             {% if requester.start_datetime.date() >= START_FISCAL_DATE.date() %}
                             <tr>
                                 <td>
-                                    {{ requester.start_datetime|localdate }}
+                                    {{ requester.start_datetime.date() }}
                                 </td>
                                 <td>
-                                    {{ requester.end_datetime|localdate }}
+                                    {{ requester.end_datetime.date() }}
                                 </td>
                                 <td>
                                     {{ requester.total_leave_days }}
@@ -79,10 +103,10 @@
                             {% if requester.start_datetime.date() >= START_FISCAL_DATE.date() %}
                             <tr>
                                 <td>
-                                    {{ requester.start_datetime|localdate }}
+                                    {{ requester.start_datetime.date() }}
                                 </td>
                                 <td>
-                                    {{ requester.end_datetime|localdate }}
+                                    {{ requester.end_datetime.date() }}
                                 </td>
                                 <td>
                                     {{ requester.total_leave_days }}
@@ -120,10 +144,10 @@
                         {% if not requester.cancelled_at and requester.get_approved or requester.get_unapproved %}
                         <tr>
                             <td>
-                                {{ requester.start_datetime|localdate }}
+                                {{ requester.start_datetime.date() }}
                             </td>
                             <td>
-                                {{ requester.end_datetime|localdate }}
+                                {{ requester.end_datetime.date() }}
                             </td>
                             <td>
                                 {{ requester.total_leave_days }}
@@ -173,10 +197,10 @@
                         {% if not requester.get_unapproved %}
                         <tr>
                             <td>
-                                {{ requester.start_datetime|localdate }}
+                                {{ requester.start_datetime.date() }}
                             </td>
                             <td>
-                                {{ requester.end_datetime|localdate }}
+                                {{ requester.end_datetime.date() }}
                             </td>
                             <td>
                                 {{ requester.total_leave_days }}

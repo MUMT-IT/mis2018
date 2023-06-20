@@ -1,8 +1,10 @@
 # -*- coding:utf-8 -*-
+import base64
 import os
 import click
 import arrow
 import pandas
+import pandas as pd
 import requests
 from flask_principal import Principal, PermissionDenied, Identity
 from flask.cli import AppGroup
@@ -18,12 +20,12 @@ from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
-from wtforms.validators import required
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
 from flask_mail import Mail
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-from flask_restful import Api, Resource
-
+from flask_restful import Api
 
 scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 
@@ -69,7 +71,7 @@ def create_app():
     """Create app based on the config setting
     """
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL').replace('://', 'ql://', 1)
     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['LINE_CLIENT_ID'] = os.environ.get('LINE_CLIENT_ID')
@@ -83,7 +85,8 @@ def create_app():
     app.config['MAIL_USE_TLS'] = True
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
-    app.config['MAIL_DEFAULT_SENDER'] = ('MUMT-MIS', os.environ.get('MAIL_USERNAME'))
+    app.config['MAIL_DEFAULT_SENDER'] = ('MUMT-MIS',
+                                         os.environ.get('MAIL_USERNAME'))
 
     db.init_app(app)
     ma.init_app(app)
@@ -105,14 +108,10 @@ api = Api(app)
 
 
 # user_loader_callback_loader has renamed to user_lookup_loader in >=4.0
-@jwt.user_loader_callback_loader
+@jwt.user_lookup_loader
 def user_lookup_callback(identity):
+    # TODO: Need to allow loading a client from other services.
     return ScbPaymentServiceApiClientAccount.get_account_by_id(identity)
-
-
-@app.errorhandler(403)
-def page_not_found(e):
-    return render_template('errors/403.html', error=e), 404
 
 
 @app.errorhandler(404)
@@ -121,13 +120,14 @@ def page_not_found(e):
 
 
 @app.errorhandler(500)
-def page_not_found(e):
+def internal_server_error(e):
     return render_template('errors/500.html', error=e), 500
 
 
 @app.errorhandler(PermissionDenied)
 def permission_denied(e):
     return render_template('errors/403.html', error=e), 403
+
 
 def get_weekdays(req):
     delta = req.end_datetime - req.start_datetime
@@ -163,15 +163,29 @@ def load_user(user_id):
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    tz = timezone('Asia/Bangkok')
+    now = datetime.now(tz=tz)
+    return render_template('index.html', now=now)
 
 
 json_keyfile = requests.get(os.environ.get('JSON_KEYFILE')).json()
 
-
-from kpi import kpibp as kpi_blueprint
+from app.kpi import kpibp as kpi_blueprint
 
 app.register_blueprint(kpi_blueprint, url_prefix='/kpi')
+
+from app.complaint_tracker import complaint_tracker
+from app.complaint_tracker.models import *
+
+app.register_blueprint(complaint_tracker)
+
+admin.add_views(ModelView(ComplaintTopic, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintCategory, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintAdmin, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintStatus, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintPriority, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintRecord, db.session, category='Complaint'))
+admin.add_views(ModelView(ComplaintActionRecord, db.session, category='Complaint'))
 
 
 class KPIAdminModel(ModelView):
@@ -180,23 +194,23 @@ class KPIAdminModel(ModelView):
                    'updated_at', 'updated_by', 'name')
 
 
-from events import event_bp as event_blueprint
+from app import models
+
+from app.events import event_bp as event_blueprint
 
 app.register_blueprint(event_blueprint, url_prefix='/events')
 
-from models import KPI
+admin.add_views(KPIAdminModel(models.KPI, db.session, category='KPI'))
 
-admin.add_views(KPIAdminModel(KPI, db.session, category='KPI'))
-
-from studs import studbp as stud_blueprint
+from app.studs import studbp as stud_blueprint
 
 app.register_blueprint(stud_blueprint, url_prefix='/stud')
 
-from food import foodbp as food_blueprint
+from app.food import foodbp as food_blueprint
 
 app.register_blueprint(food_blueprint, url_prefix='/food')
-from food.models import (Person, Farm, Produce, PesticideTest,
-                         BactTest, ParasiteTest)
+from app.food.models import (Person, Farm, Produce, PesticideTest,
+                             BactTest, ParasiteTest)
 
 admin.add_views(ModelView(Person, db.session, category='Food'))
 admin.add_views(ModelView(Farm, db.session, category='Food'))
@@ -205,27 +219,35 @@ admin.add_views(ModelView(PesticideTest, db.session, category='Food'))
 admin.add_views(ModelView(BactTest, db.session, category='Food'))
 admin.add_views(ModelView(ParasiteTest, db.session, category='Food'))
 
-from research import researchbp as research_blueprint
+from app.research import researchbp as research_blueprint
 
 app.register_blueprint(research_blueprint, url_prefix='/research')
-from research.models import *
+from app.research.models import *
 
 admin.add_views(ModelView(ResearchPub, db.session, category='Research'))
 admin.add_views(ModelView(Author, db.session, category='Research'))
 
-from procurement import procurementbp as procurement_blueprint
+from app.procurement import procurementbp as procurement_blueprint
 
 app.register_blueprint(procurement_blueprint, url_prefix='/procurement')
-from procurement.models import *
+from app.procurement.models import *
 
 admin.add_views(ModelView(ProcurementDetail, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementCategory, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementStatus, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementRecord, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementRequire, db.session, category='Procurement'))
-admin.add_views(ModelView(ProcurementMaintenance, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementPurchasingType, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementCommitteeApproval, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementInfoComputer, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementInfoCPU, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementInfoRAM, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementInfoWindowsVersion, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementSurveyComputer, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementBorrowDetail, db.session, category='Procurement'))
+admin.add_views(ModelView(ProcurementBorrowItem, db.session, category='Procurement'))
 
-from purchase_tracker import purchase_tracker_bp as purchase_tracker_blueprint
+from app.purchase_tracker import purchase_tracker_bp as purchase_tracker_blueprint
 
 app.register_blueprint(purchase_tracker_blueprint, url_prefix='/purchase_tracker')
 from app.purchase_tracker.models import *
@@ -233,20 +255,56 @@ from app.purchase_tracker.models import *
 admin.add_views(ModelView(PurchaseTrackerAccount, db.session, category='PurchaseTracker'))
 admin.add_views(ModelView(PurchaseTrackerStatus, db.session, category='PurchaseTracker'))
 admin.add_views(ModelView(PurchaseTrackerActivity, db.session, category='PurchaseTracker'))
+admin.add_views(ModelView(PurchaseTrackerForm, db.session, category='PurchaseTracker'))
+
+from app.receipt_printing import receipt_printing_bp as receipt_printing_blueprint
+
+app.register_blueprint(receipt_printing_blueprint, url_prefix='/receipt_printing')
+from app.receipt_printing.models import *
 
 
-from staff import staffbp as staff_blueprint
+class ElectronicReceiptGLModel(ModelView):
+    can_create = True
+    form_columns = ('gl', 'receive_name', 'items_gl')
+    column_list = ('gl', 'receive_name', 'items_gl')
+
+
+admin.add_views(ModelView(ElectronicReceiptDetail, db.session, category='ReceiptPrinting'))
+admin.add_views(ModelView(ElectronicReceiptItem, db.session, category='ReceiptPrinting'))
+admin.add_views(ModelView(ElectronicReceiptRequest, db.session, category='ReceiptPrinting'))
+admin.add_views(ElectronicReceiptGLModel(ElectronicReceiptGL, db.session, category='ReceiptPrinting'))
+
+from app.instruments import instrumentsbp as instruments_blueprint
+
+app.register_blueprint(instruments_blueprint, url_prefix='/instruments')
+
+from app.instruments.models import *
+
+admin.add_views(ModelView(InstrumentsBooking, db.session, category='Instruments'))
+
+
+from app.alumni import alumnibp as alumni_blueprint
+
+app.register_blueprint(alumni_blueprint, url_prefix='/alumni')
+
+from app.alumni.models import *
+
+admin.add_views(ModelView(AlumniInformation, db.session, category='Alumni'))
+
+from app.staff import staffbp as staff_blueprint
 
 app.register_blueprint(staff_blueprint, url_prefix='/staff')
 
-
-from staff.models import *
+from app.staff.models import *
 
 admin.add_views(ModelView(Role, db.session, category='Permission'))
 admin.add_views(ModelView(StaffAccount, db.session, category='Staff'))
 admin.add_views(ModelView(StaffPersonalInfo, db.session, category='Staff'))
+admin.add_views(ModelView(StaffEduDegree, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPosition, db.session, category='Staff'))
+admin.add_views(ModelView(StaffAcademicPositionRecord, db.session, category='Staff'))
 admin.add_views(ModelView(StaffEmployment, db.session, category='Staff'))
+admin.add_views(ModelView(StaffHeadPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveType, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveQuota, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveApprover, db.session, category='Staff'))
@@ -256,12 +314,18 @@ admin.add_views(ModelView(StaffWorkFromHomeApprover, db.session, category='Staff
 admin.add_views(ModelView(StaffWorkFromHomeApproval, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkFromHomeCheckedJob, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveRemainQuota, db.session, category='Staff'))
+admin.add_views(ModelView(StaffLeaveUsedQuota, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminar, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSeminarAttend, db.session, category='Staff'))
 admin.add_views(ModelView(StaffWorkLogin, db.session, category='Staff'))
+admin.add_views(ModelView(StaffRequestWorkLogin, db.session, category='Staff'))
 admin.add_views(ModelView(StaffSpecialGroup, db.session, category='Staff'))
 admin.add_views(ModelView(StaffShiftSchedule, db.session, category='Staff'))
 admin.add_views(ModelView(StaffShiftRole, db.session, category='Staff'))
+admin.add_views(ModelView(StaffSeminarApproval, db.session, category='Staff'))
+admin.add_views(ModelView(StaffSeminarMission, db.session, category='Staff'))
+admin.add_views(ModelView(StaffSeminarObjective, db.session, category='Staff'))
+admin.add_views(ModelView(StaffSeminarProposal, db.session, category='Staff'))
 
 
 class StaffLeaveApprovalModelView(ModelView):
@@ -302,11 +366,10 @@ admin.add_view(LoginDataUploadView(
     category='Human Resource')
 )
 
-
-from ot import otbp as ot_blueprint
+from app.ot import otbp as ot_blueprint
 
 app.register_blueprint(ot_blueprint, url_prefix='/ot')
-from ot.models import *
+from app.ot.models import *
 
 admin.add_views(ModelView(OtPaymentAnnounce, db.session, category='OT'))
 admin.add_views(ModelView(OtCompensationRate, db.session, category='OT'))
@@ -314,19 +377,22 @@ admin.add_views(ModelView(OtDocumentApproval, db.session, category='OT'))
 admin.add_views(ModelView(OtRecord, db.session, category='OT'))
 admin.add_views(ModelView(OtRoundRequest, db.session, category='OT'))
 
-
-
-from room_scheduler import roombp as room_blueprint
+from app.room_scheduler import roombp as room_blueprint
 
 app.register_blueprint(room_blueprint, url_prefix='/room')
-from room_scheduler.models import *
+from app.room_scheduler.models import *
 
-from vehicle_scheduler import vehiclebp as vehicle_blueprint
+from app.vehicle_scheduler import vehiclebp as vehicle_blueprint
 
 app.register_blueprint(vehicle_blueprint, url_prefix='/vehicle')
-from vehicle_scheduler.models import *
+from app.vehicle_scheduler.models import *
 
-admin.add_views(ModelView(RoomResource, db.session, category='Physicals'))
+
+class RoomModelView(ModelView):
+    can_view_details = True
+    form_excluded_columns = ['items', 'reservations', 'equipments']
+
+admin.add_views(RoomModelView(RoomResource, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomEvent, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomType, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomAvailability, db.session, category='Physicals'))
@@ -336,55 +402,43 @@ admin.add_view(ModelView(VehicleResource, db.session, category='Physicals'))
 admin.add_view(ModelView(VehicleAvailability, db.session, category='Physicals'))
 admin.add_view(ModelView(VehicleType, db.session, category='Physicals'))
 
-from auth import authbp as auth_blueprint
+from app.auth import authbp as auth_blueprint
 from app.roles import admin_permission
 
 app.register_blueprint(auth_blueprint, url_prefix='/auth')
 
-from models import (Student, Class, ClassCheckIn,
-                    Org, Mission, IOCode, CostCenter,
-                    StudentCheckInRecord, Holidays)
+from app.models import (Org, OrgStructure, Mission, Holidays, Dashboard)
 
 admin.add_view(ModelView(Holidays, db.session, category='Holidays'))
 
-from line import linebot_bp as linebot_blueprint
+from app.line import linebot_bp as linebot_blueprint
 
 app.register_blueprint(linebot_blueprint, url_prefix='/linebot')
 
-import database
+from app import database
 
-
-class StudentCheckInAdminModel(ModelView):
-    can_create = True
-    form_columns = ('id', 'classchk', 'check_in_time', 'check_in_status', 'elapsed_mins')
-    column_list = ('id', 'classchk', 'check_in_time', 'check_in_status', 'elapsed_mins')
-
-
-admin.add_view(ModelView(Student, db.session, category='Student Affairs'))
-admin.add_view(ModelView(ClassCheckIn, db.session, category='Student Affairs'))
-admin.add_view(ModelView(Class, db.session, category='Student Affairs'))
-admin.add_view(StudentCheckInAdminModel(
-    StudentCheckInRecord, db.session, category='Student Affairs'))
-
+admin.add_view(ModelView(models.Student, db.session, category='Student Affairs'))
 admin.add_view(ModelView(Org, db.session, category='Organization'))
 admin.add_view(ModelView(Mission, db.session, category='Organization'))
+admin.add_view(ModelView(Dashboard, db.session, category='Organization'))
+admin.add_view(ModelView(OrgStructure, db.session, category='Organization'))
 
-from asset import assetbp as asset_blueprint
+from app.asset import assetbp as asset_blueprint
 
 app.register_blueprint(asset_blueprint, url_prefix='/asset')
 
-from asset.models import *
+from app.asset.models import *
 
 admin.add_view(ModelView(AssetItem, db.session, category='Asset'))
 
 
 class IOCodeAdminModel(ModelView):
     can_create = True
-    form_columns = ('id', 'cost_center', 'mission', 'org', 'name')
-    column_list = ('id', 'cost_center', 'mission', 'org', 'name')
+    form_columns = ('id', 'cost_center', 'mission', 'org', 'name', 'is_active')
+    column_list = ('id', 'cost_center', 'mission', 'org', 'name', 'is_active')
 
 
-admin.add_view(IOCodeAdminModel(IOCode, db.session, category='Finance'))
+admin.add_view(IOCodeAdminModel(models.IOCode, db.session, category='Finance'))
 
 
 class CostCenterAdminModel(ModelView):
@@ -393,26 +447,31 @@ class CostCenterAdminModel(ModelView):
     column_list = ('id',)
 
 
-admin.add_view(CostCenterAdminModel(CostCenter, db.session, category='Finance'))
+admin.add_view(CostCenterAdminModel(models.CostCenter, db.session, category='Finance'))
 
-from lisedu import lisedu as lis_blueprint
+from app.lisedu import lisedu as lis_blueprint
 
 app.register_blueprint(lis_blueprint, url_prefix='/lis')
 
-from eduqa import eduqa_bp as eduqa_blueprint
-from eduqa.models import *
+from app.eduqa import eduqa_bp as eduqa_blueprint
+from app.eduqa.models import *
+
 app.register_blueprint(eduqa_blueprint, url_prefix='/eduqa')
 admin.add_view(ModelView(EduQACourseCategory, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQACourse, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAProgram, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQACurriculum, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQACurriculumnRevision, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAInstructorRole, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQACourseSessionDetailRoleItem, db.session, category='EduQA'))
 
-
-from chemdb import chemdbbp as chemdb_blueprint
-import chemdb.models
+from app.chemdb import chemdbbp as chemdb_blueprint
+from app.chemdb.models import *
 
 app.register_blueprint(chemdb_blueprint, url_prefix='/chemdb')
 
-from comhealth import comhealth as comhealth_blueprint
-from comhealth.models import *
+from app.comhealth import comhealth as comhealth_blueprint
+from app.comhealth.models import *
 
 app.register_blueprint(comhealth_blueprint, url_prefix='/comhealth')
 admin.add_view(ModelView(ComHealthTestProfile, db.session, category='Com Health'))
@@ -442,11 +501,11 @@ admin.add_view(ModelView(ComHealthConsentRecord, db.session, category='Com Healt
 class ComHealthTestModelView(ModelView):
     form_args = {
         'name': {
-            'validators': [required()]
+            'validators': [InputRequired()]
         },
         'code': {
             'label': 'Test code',
-            'validators': [required()]
+            'validators': [InputRequired()]
         }
     }
 
@@ -454,7 +513,7 @@ class ComHealthTestModelView(ModelView):
 class ComHealthContainerModelView(ModelView):
     form_args = {
         'name': {
-            'validators': [required()]
+            'validators': [InputRequired()]
         }
     }
     form_choices = {
@@ -467,7 +526,7 @@ class ComHealthContainerModelView(ModelView):
 class ComHealthDepartmentModelView(ModelView):
     form_args = {
         'name': {
-            'validators': [required()]
+            'validators': [InputRequired()]
         }
     }
 
@@ -476,8 +535,8 @@ admin.add_view(ComHealthTestModelView(ComHealthTest, db.session, category='Com H
 admin.add_view(ComHealthContainerModelView(ComHealthContainer, db.session, category='Com Health'))
 admin.add_view(ComHealthDepartmentModelView(ComHealthDepartment, db.session, category='Com Health'))
 
+from app.pdpa import pdpa_blueprint
 
-from pdpa import pdpa_blueprint
 app.register_blueprint(pdpa_blueprint, url_prefix='/pdpa')
 
 from app.pdpa.models import *
@@ -492,19 +551,18 @@ class CoreServiceModelView(ModelView):
 
 admin.add_view(CoreServiceModelView(CoreService, db.session, category='PDPA'))
 
-
-from smartclass_scheduler import smartclass_scheduler_blueprint
+from app.smartclass_scheduler import smartclass_scheduler_blueprint
 
 app.register_blueprint(smartclass_scheduler_blueprint, url_prefix='/smartclass')
-from smartclass_scheduler.models import (SmartClassOnlineAccount,
-                                         SmartClassResourceType,
-                                         SmartClassOnlineAccountEvent)
+from app.smartclass_scheduler.models import (SmartClassOnlineAccount,
+                                             SmartClassResourceType,
+                                             SmartClassOnlineAccountEvent)
 
 admin.add_view(ModelView(SmartClassOnlineAccount, db.session, category='Smartclass'))
 admin.add_view(ModelView(SmartClassResourceType, db.session, category='Smartclass'))
 admin.add_view(ModelView(SmartClassOnlineAccountEvent, db.session, category='Smartclass'))
 
-from comhealth.views import CustomerEmploymentTypeUploadView
+from app.comhealth.views import CustomerEmploymentTypeUploadView
 
 admin.add_view(CustomerEmploymentTypeUploadView(
     name='Upload employment types',
@@ -525,7 +583,7 @@ app.register_blueprint(health_service_blueprint, url_prefix='/health-service-sch
 
 # Restful APIs
 
-from health_service_scheduler.apis import *
+from app.health_service_scheduler.apis import *
 
 api.add_resource(HealthServiceSiteListResource, '/api/v1.0/hscheduler/sites')
 api.add_resource(HealthServiceSiteResource, '/api/v1.0/hscheduler/sites/<int:id>')
@@ -543,8 +601,8 @@ admin.add_view(ModelView(HealthServiceTimeSlot, db.session, category='HealthSche
 admin.add_view(ModelView(HealthServiceService, db.session, category='HealthScheduler'))
 admin.add_view(ModelView(HealthServiceSite, db.session, category='HealthScheduler'))
 
-from doc_circulation.models import *
-from doc_circulation import docbp as doc_blueprint
+from app.doc_circulation.models import *
+from app.doc_circulation import docbp as doc_blueprint
 
 app.register_blueprint(doc_blueprint, url_prefix='/docs')
 
@@ -555,18 +613,45 @@ admin.add_view(ModelView(DocCategory, db.session, category='Docs Circulation'))
 admin.add_view(ModelView(DocDocument, db.session, category='Docs Circulation'))
 admin.add_view(ModelView(DocDocumentReach, db.session, category='Docs Circulation'))
 admin.add_view(ModelView(DocReceiveRecord, db.session, category='Docs Circulation'))
+admin.add_view(ModelView(DocSendOut, db.session, category='Docs Circulation'))
+admin.add_view(ModelView(DocOrg, db.session, category='Docs Circulation'))
 
-
-from data_blueprint import data_bp as data_blueprint
+from app.data_blueprint import data_bp as data_blueprint
 
 app.register_blueprint(data_blueprint, url_prefix='/data-blueprint')
 
-
-from scb_payment_service import scb_payment as scb_payment_blueprint
+from app.scb_payment_service import scb_payment as scb_payment_blueprint
 
 app.register_blueprint(scb_payment_blueprint)
 
-from scb_payment_service.models import *
+from app.scb_payment_service.models import *
+
+admin.add_view(ModelView(ScbPaymentServiceApiClientAccount, db.session, category='SCB Payment Service'))
+admin.add_view(ModelView(ScbPaymentRecord, db.session, category='SCB Payment Service'))
+
+
+from app.meeting_planner import meeting_planner as meeting_planner_blueprint
+app.register_blueprint(meeting_planner_blueprint)
+
+from app.meeting_planner.models import *
+admin.add_view(ModelView(MeetingEvent, db.session, category='Meeting'))
+admin.add_view(ModelView(MeetingInvitation, db.session, category='Meeting'))
+
+from app.PA import pa_blueprint
+
+app.register_blueprint(pa_blueprint)
+
+from app.PA.models import *
+admin.add_view(ModelView(PARound, db.session, category='PA'))
+admin.add_view(ModelView(PAAgreement, db.session, category='PA'))
+admin.add_view(ModelView(PAKPI, db.session, category='PA'))
+admin.add_view(ModelView(PAKPIItem, db.session, category='PA'))
+admin.add_view(ModelView(PALevel, db.session, category='PA'))
+admin.add_view(ModelView(PACommittee, db.session, category='PA'))
+admin.add_view(ModelView(PAItem, db.session, category='PA'))
+admin.add_view(ModelView(PARequest, db.session, category='PA'))
+admin.add_view(ModelView(PAScoreSheet, db.session, category='PA'))
+admin.add_view(ModelView(PAScoreSheetItem, db.session, category='PA'))
 
 
 # Commands
@@ -580,7 +665,7 @@ def populatedb():
     database.load_activities()
 
 
-from database import load_students
+from app.database import load_students
 
 
 @dbutils.command('add-update-staff-finger-print-gsheet')
@@ -659,6 +744,101 @@ def import_leave_data():
     db.session.commit()
 
 
+@dbutils.command('import-procurement-data')
+def import_procurement_data():
+    def convert_date(d, format='%d.%m.%Y'):
+        try:
+            new_date = pandas.to_datetime(d, format=format)
+        except ValueError:
+            new_date = None
+        return new_date
+
+    def convert_number(d):
+        if isinstance(d, int) or isinstance(d, float):
+            return d
+        try:
+            new_number = float(d.replace(",", "").replace("-", ""))
+        except ValueError:
+            new_number = None
+        return new_number
+
+    sheetid = '165tgZytipxxy5jY2ZOY5EaBJwxt3ZVRDwaBqggqmccY'
+    print('Authorizing with Google..')
+    gc = get_credential(json_keyfile)
+    wb = gc.open_by_key(sheetid)
+    sheet = wb.worksheet("Data")
+    df = pandas.DataFrame(sheet.get_all_records())
+    df['curr_acq_value'] = df['curr_acq_value'].apply(convert_number)
+    df['received_date'] = df['received_date'].apply(convert_date)
+    for n, record in enumerate(df.iterrows()):
+        if n % 1000 == 0:
+            print(n)
+        idx, row = record
+        item = ProcurementDetail.query.filter_by(procurement_no=str(row['procurement_no'])).first()
+        if row['purchasing_type_id']:
+            purchasing_type = ProcurementPurchasingType.query.filter_by(
+                fund=int(str(row['purchasing_type_id'])[0])).first()
+        else:
+            purchasing_type = None
+        if not item:
+            item = ProcurementDetail(procurement_no=str(row['procurement_no']))
+            procurement_record = ProcurementRecord(item=item)
+            db.session.add(procurement_record)
+        item.cost_center = row['cost_center']
+        item.erp_code = row['erp_code']
+        item.sub_number = row['sub_number']
+        item.name = row['name']
+        item.curr_acq_value = row['curr_acq_value']
+        item.price = row['price']
+        item.available = row['available']
+        item.budget_year = row['budget_year']
+        item.received_date = row['received_date'] if not pd.isna(row['received_date']) else None
+        item.purchasing_type = purchasing_type
+        db.session.add(item)
+    db.session.commit()
+
+
+def initialize_gdrive():
+    gauth = GoogleAuth()
+    scope = ['https://www.googleapis.com/auth/drive']
+    gauth.credentials = ServiceAccountCredentials.from_json_keyfile_dict(json_keyfile, scope)
+    return GoogleDrive(gauth)
+
+
+@dbutils.command('import-procurement-image')
+@click.argument('index')
+@click.argument('limit')
+def import_procurement_image(index, limit):
+    sheetid = '16A6yb_W-GcWRLbpqV-9cAnpqgh7nQsZogsNlzz_73ds'
+    print('Authorizing with Google sheet..')
+    gc = get_credential(json_keyfile)
+    wks = gc.open_by_key(sheetid)
+    sheet = wks.worksheet("Asset")
+    drive = initialize_gdrive()
+    img_name = 'temp_image.jpg'
+    for n, rec in enumerate(sheet.get_all_records(), start=1):
+        if n >= int(index) and n < int(limit) + int(index):
+            print(n)
+            asset_code = str(rec['AssetCode'])
+            item = ProcurementDetail.query.filter_by(procurement_no=asset_code).first()
+            if item:
+                if not item.image:
+                    print(rec['Picture'])
+                    query = u"title = '{}'".format(rec['Picture'])
+                    for file_list in drive.ListFile({'q': query, 'spaces': 'drive'}):
+                        if file_list:
+                            print(query)
+                            for fi in file_list:
+                                fi.GetContentFile(img_name)
+                                with open(img_name, "rb") as img_file:
+                                    item.image = base64.b64encode(img_file.read())
+                                    db.session.add(item)
+                                print('The image has been added to item with Asset code={}'.format(item.procurement_no))
+                            db.session.commit()
+            else:
+                print(u'\tItem with Asset code={} not found..'.format(rec['AssetCode']))
+
+
 @dbutils.command('add-update-staff-gsheet')
 def add_update_staff_gsheet():
     sheetid = '17lUlFNYk5znYqXL1vVCmZFtgTcjGvlNRZIlaDaEhy5E'
@@ -702,6 +882,11 @@ def add_update_staff_gsheet():
         db.session.add(account)
         db.session.commit()
         print('{} has been added/updated'.format(account.email))
+
+
+@dbutils.command('update-used-leave-quota')
+def update_leave_used_leave_quota():
+    pass
 
 
 @dbutils.command('update-remaining-leave-quota-2020')
@@ -768,29 +953,7 @@ def import_students(excelfile):
 
 app.cli.add_command(dbutils)
 
-
-@app.cli.command()
-def populate_classes():
-    klass = Class(refno='MTID101',
-                  th_class_name=u'การเรียนรู้เพื่อการเปลี่ยงแปลงสำหรับ MT',
-                  en_class_name='Transformative learning for MT',
-                  academic_year='2560')
-    db.session.add(klass)
-    db.session.commit()
-
-
-@app.cli.command()
-def populate_checkin():
-    class_checkin = ClassCheckIn(
-        class_id=1,
-        deadline='10:00:00',
-        late_mins=15,
-    )
-    db.session.add(class_checkin)
-    db.session.commit()
-
-
-from database import load_provinces, load_districts, load_subdistricts
+from app.database import load_provinces, load_districts, load_subdistricts
 
 
 @app.cli.command()
@@ -818,6 +981,29 @@ def load_staff_list(excel_file):
 @click.argument('excel_file')
 def import_chem_items(excel_file):
     database.load_chem_items(excel_file)
+
+
+@app.template_filter('upcoming_meeting_events')
+def filter_upcoming_events(events):
+    tz = timezone('Asia/Bangkok')
+    return [event for event in events if event.meeting.start >= datetime.now(tz=tz)]
+
+
+@app.template_filter('total_hours')
+def cal_total_hours(instructor, course_id):
+    total_seconds = []
+    for session in instructor.sessions.filter_by(course_id=course_id):
+        detail = EduQACourseSessionDetail.query.filter_by(session_id=session.id,
+                                                          staff_id=instructor.account.id).first()
+        if detail:
+            factor = detail.factor if detail.factor else 1
+            seconds = session.total_seconds * factor
+            total_seconds.append(seconds)
+        else:
+            total_seconds.append(session.total_seconds)
+    hours = sum(total_seconds) // 3600
+    mins = (sum(total_seconds) // 60) % 60
+    return u'{} ชม. {} นาที'.format(hours, mins)
 
 
 @app.template_filter("moneyformat")
@@ -927,6 +1113,187 @@ def truncate_text(text, length=150):
 @app.template_filter("getweekdays")
 def count_weekdays(req):
     return get_weekdays(req)
+
+
+def get_fiscal_date(date):
+    if date.month >= 10:
+        start_fiscal_date = datetime(date.year, 10, 1)
+        end_fiscal_date = datetime(date.year + 1, 9, 30, 23, 59, 59, 0)
+    else:
+        start_fiscal_date = datetime(date.year - 1, 10, 1)
+        end_fiscal_date = datetime(date.year, 9, 30, 23, 59, 59, 0)
+    return start_fiscal_date, end_fiscal_date
+
+
+from datetime import datetime
+
+
+@dbutils.command('calculate-leave-quota')
+@click.argument("date_time")
+def calculate_leave_quota(date_time):
+    """Calculate used quota for the fiscal year from a given date.
+
+    """
+    # date_time = '2022/09/30'
+    print('Calculating leave quota from all requests...')
+    date_time = datetime.strptime(date_time, '%Y/%m/%d')
+    start_fiscal_date, end_fiscal_date = get_fiscal_date(date_time)
+    for leave_request in StaffLeaveRequest.query.filter(StaffLeaveRequest.start_datetime >= start_fiscal_date,
+                                                        StaffLeaveRequest.end_datetime <= end_fiscal_date,
+                                                        StaffLeaveRequest.cancelled_at == None):
+        if leave_request.staff.personal_info.retired:
+            continue
+        personal_info = leave_request.staff.personal_info
+        quota = leave_request.quota
+
+        pending_days = personal_info.get_total_pending_leaves_request(quota.id,
+                                                                      leave_request.start_datetime,
+                                                                      leave_request.end_datetime)
+        total_leave_days = personal_info.get_total_leaves(quota.id,
+                                                          leave_request.start_datetime,
+                                                          leave_request.end_datetime)
+
+        used_quota = StaffLeaveUsedQuota.query.filter_by(leave_type_id=quota.leave_type_id,
+                                                         staff=leave_request.staff,
+                                                         fiscal_year=end_fiscal_date.year).first()
+        if used_quota:
+            used_quota.used_days += total_leave_days + pending_days
+            used_quota.pending_days = pending_days
+        else:
+            delta = personal_info.get_employ_period()
+            max_cum_quota = personal_info.get_max_cum_quota_per_year(quota)
+            # use StaffLeaveRemainQuota until fiscal year of 2022
+            last_quota = StaffLeaveRemainQuota.query.filter(and_(
+                StaffLeaveRemainQuota.leave_quota_id == quota.id,
+                StaffLeaveRemainQuota.year == (start_fiscal_date.year - 1),
+                StaffLeaveRemainQuota.staff_account_id == leave_request.staff.id)).first()
+            if delta.years > 0:
+                if max_cum_quota:
+                    if last_quota:
+                        last_year_quota = last_quota.last_year_quota
+                    else:
+                        last_year_quota = 0
+                    before_cut_max_quota = last_year_quota + LEAVE_ANNUAL_QUOTA
+                    quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                else:
+                    quota_limit = quota.max_per_year
+            else:
+                quota_limit = quota.first_year
+            used_quota = StaffLeaveUsedQuota(leave_type_id=quota.leave_type_id,
+                                             staff_account_id=leave_request.staff.id,
+                                             fiscal_year=end_fiscal_date.year,
+                                             used_days=total_leave_days + pending_days,
+                                             pending_days=pending_days,
+                                             quota_days=quota_limit)
+        db.session.add(used_quota)
+        db.session.commit()
+
+
+@dbutils.command('update-cumulative-leave-quota')
+@click.argument("year1")
+@click.argument("year2")
+def update_cumulative_leave_quota(year1, year2):
+    """Update cumulative leave quota from the previous year.
+    Make sure to run calculate_leave_quota for the year2 prior to running this command.
+
+    """
+    print('Running; this could take a moment...')
+    for used_quota in StaffLeaveUsedQuota.query.filter(StaffLeaveUsedQuota.fiscal_year == year2):
+        last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=used_quota.staff,
+                                                              fiscal_year=year1,
+                                                              leave_type=used_quota.leave_type).first()
+        delta = used_quota.staff.personal_info.get_employ_period()
+        quota = StaffLeaveQuota.query.filter_by(employment=used_quota.staff.personal_info.employment,
+                                                leave_type=used_quota.leave_type).first()
+        max_cum_quota = used_quota.staff.personal_info.get_max_cum_quota_per_year(quota)
+
+        if last_used_quota:
+            remaining_days = last_used_quota.quota_days - last_used_quota.used_days
+            if delta.years > 0 or delta.months > 5:
+                if max_cum_quota:
+                    before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
+                    quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+                else:
+                    quota_limit = quota.max_per_year
+            else:
+                quota_limit = quota.first_year
+
+            used_quota.quota_days = quota_limit
+
+            start_fiscal_date = tz.localize(datetime(int(year1), 10, 1))
+            end_fiscal_date = tz.localize(datetime(int(year2), 9, 30))
+            used_quota.pending_days = used_quota.staff.personal_info \
+                .get_total_pending_leaves_request(quota.id, start_fiscal_date, end_fiscal_date)
+
+        db.session.add(used_quota)
+        db.session.commit()
+
+
+def update_leave_information(current_date, staff_email):
+    for type_ in StaffLeaveType.query.all():
+        staff = StaffAccount.query.filter_by(email=staff_email).first()
+        date_time = datetime.strptime(current_date, '%Y/%m/%d')
+        start_fiscal_date, end_fiscal_date = get_fiscal_date(date_time)
+
+        quota = StaffLeaveQuota.query.filter_by(employment=staff.personal_info.employment,
+                                                leave_type=type_).first()
+        if not quota and not staff.is_retired:
+            print(staff.id, staff.email, staff.personal_info.employment, 'Quota not found.')
+            return
+        pending_days = staff.personal_info.get_total_pending_leaves_request(quota.id,
+                                                                            tz.localize(start_fiscal_date),
+                                                                            tz.localize(end_fiscal_date))
+        total_leave_days = staff.personal_info.get_total_leaves(quota.id,tz.localize(start_fiscal_date),
+                                                                tz.localize(end_fiscal_date))
+        delta = staff.personal_info.get_employ_period()
+        max_cum_quota = staff.personal_info.get_max_cum_quota_per_year(quota)
+        if delta.years > 0 or delta.months > 5:
+            if max_cum_quota:
+                last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff,
+                                                                      fiscal_year=end_fiscal_date.year-1,
+                                                                      leave_type=type_).first()
+                if last_used_quota:
+                    remaining_days = last_used_quota.quota_days - last_used_quota.used_days
+                else:
+                    remaining_days = max_cum_quota
+                before_cut_max_quota = remaining_days + LEAVE_ANNUAL_QUOTA
+                quota_limit = max_cum_quota if max_cum_quota < before_cut_max_quota else before_cut_max_quota
+            else:
+                quota_limit = quota.max_per_year or quota.first_year
+        else:
+            quota_limit = quota.first_year
+
+        used_quota = StaffLeaveUsedQuota.query.filter_by(leave_type_id=type_.id,
+                                                         staff_account_id=staff.id,
+                                                         fiscal_year=end_fiscal_date.year,
+                                                         ).first()
+        if used_quota:
+            used_quota.pending_days = pending_days
+            used_quota.quota_days = quota_limit
+            used_quota.used_days = total_leave_days + pending_days
+        else:
+            used_quota = StaffLeaveUsedQuota(leave_type_id=type_.id,
+                                             staff_account_id=staff.id,
+                                             fiscal_year=end_fiscal_date.year,
+                                             used_days=total_leave_days + pending_days,
+                                             pending_days=pending_days,
+                                             quota_days=quota_limit)
+        db.session.add(used_quota)
+        db.session.commit()
+        # print (used_quota.leave_type_id, used_quota.used_days, used_quota.pending_days, used_quota.quota_days)
+
+
+@dbutils.command('update-staff-leave-info')
+@click.argument('staff_email')
+@click.argument('currentdate')
+def update_staff_leave_info(currentdate, staff_email=None):
+    # currentdate format '2022/09/30'
+    if staff_email != 'all':
+        update_leave_information(currentdate, staff_email)
+    else:
+        for staff in StaffAccount.query.all():
+            if not staff.is_retired:
+                update_leave_information(currentdate, staff.email)
 
 
 if __name__ == '__main__':

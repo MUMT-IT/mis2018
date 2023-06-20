@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">รายการหนังสือขออนุมัติที่ผ่านมาทั้งหมด</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped" id="seminarTable">
+                    <thead>
+                    <th>ช่วงเวลา</th>
+                    <th>ชื่อกิจกรรม</th>
+                    <th>ผู้ขออนุมัติ</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for record in seminar_attend_list %}
+                    <tr>
+                        <td>
+                            {{ record.start_datetime|localdatetime }}-{{ record.end_datetime|localdatetime }}
+                        </td>
+                        <td>
+                            {{ record.seminar }}
+                        </td>
+                        <td>
+                            {{ record.staff.personal_info }}
+                        </td>
+                        <td>
+                            <div class="buttons">
+                                <a href="{{ url_for('staff.show_seminar_info_each_person', record_id=record.id) }}"
+                                                        class="button is-info is-light">รายละเอียด</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('staff.show_seminar_proposal_info') }}" class="button is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script>
+    $(document).ready(function(){
+        $('#seminarTable').DataTable();
+    });
+</script>
+{% endblock %}

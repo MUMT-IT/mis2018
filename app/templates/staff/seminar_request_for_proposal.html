@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        {% include "messages.html" %}
+        {% if lower_level_requests %}
+        <h4 class="subtitle">รายการขออนุมัติ</h4>
+        <div class="columns">
+            <div class="column box">
+                <table class="table is-fullwidth is-striped">
+                    <thead>
+                        <th>ผู้ขออนุมัติ</th>
+                        <th>เรื่อง</th>
+                        <th>ช่วงเวลา</th>
+                        <th></th>
+                    </thead>
+                    <tbody>
+                    {% for req in lower_level_requests %}
+                        {% if not req.middle_level_approver %}
+                            {% if not req.is_approved_by(current_user) %}
+                        <tr>
+                            <td>
+                                {{ req.staff.personal_info }}
+                            </td>
+                            <td>
+                                {{ req.seminar.topic_type }} {{ req.seminar.topic }}
+                            </td>
+                            <td>
+                                {{ req.start_datetime|localdatetime }} - {{ req.end_datetime|localdatetime }}
+                            </td>
+                            <td>
+                                <div class="buttons">
+                                    <a href="{{ url_for('staff.seminar_request_for_proposal',
+                                                                seminar_attend_id=req.id) }}"
+                                        class="button is-small is-success is-rounded is-light">
+                                        <span>รายละเอียด</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                            {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+        {% if middle_level_requests %}
+        <h4 class="subtitle">รายการขอเสนออนุมัติจากหัวหน้างาน</h4>
+        <div class="columns">
+            <div class="column box">
+                <table class="table is-fullwidth is-striped">
+                    <thead>
+                        <th>ผู้ขออนุมัติ</th>
+                        <th>เรื่อง</th>
+                        <th>ช่วงเวลา</th>
+                        <th></th>
+                    </thead>
+                    <tbody>
+                    {% for req in middle_level_requests %}
+                        {% if not req.is_approved_by(current_user) %}
+                        <tr>
+                            <td>
+                                {{ req.staff.personal_info }}
+                            </td>
+                            <td>
+                                {{ req.seminar.topic_type }} {{ req.seminar.topic }}
+                            </td>
+                            <td>
+                                {{ req.start_datetime|localdatetime }} - {{ req.end_datetime|localdatetime }}
+                            </td>
+                            <td>
+                                <div class="buttons">
+                                    <a href="{{ url_for('staff.seminar_request_for_proposal',
+                                                                seminar_attend_id=req.id) }}"
+                                        class="button is-small is-success is-rounded is-light">รายละเอียด</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+        {% if pending_proposal %}
+        <h4 class="title">รายการรอ upload File อนุมัติ</h4>
+        <div class="columns">
+            <div class="column box">
+                <table class="table is-fullwidth is-striped">
+                    <thead>
+                        <th>ผู้ขออนุมัติ</th>
+                        <th>เรื่อง</th>
+                        <th></th>
+                    </thead>
+                    <tbody>
+                    {% for req in pending_proposal %}
+                        {% if not req.upload_file_url %}
+                        {% if not req.comment %}
+                        <tr>
+                            <td>
+                                {{ req.seminar_attend.staff.personal_info }}
+                            </td>
+                            <td>
+                                {{ req.seminar_attend.seminar.topic }}
+                            </td>
+                            <td>
+                                <div class="buttons">
+                                    <a href="{{ url_for('staff.seminar_upload_proposal',
+                                                    seminar_attend_id=req.seminar_attend_id, proposal_id=req.id) }}"
+                                        class="button is-small is-success is-rounded">
+                                        <span class="icon">
+                                            <i class="fas fa-upload"></i>
+                                        </span>
+                                        <span>Download เอกสาร/upload file ที่เซ็นแล้ว</span>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endif %}
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('staff.seminar_proposal') }}" class="button is-rounded is-success is-light">
+                        <span>ประวัติการอนุมัติ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('staff.seminar_attends_each_person',
+                                        staff_id=current_user.id) }}" class="button is-rounded is-success is-light">
+                        <span class="icon">
+                            <i class="fas fa-arrow-left"></i>
+                        </span>
+                        <span>กลับหน้าสรุปการอบรมของท่าน</span>
+                    </a>
+                    <a href="{{ url_for('staff.summary_index') }}" class="button is-rounded is-success is-light">
+                        <span>ตารางสรุปการเข้างาน</span>
+                        <span class="icon">
+                        <i class="fas fa-arrow-right"></i>
+                        </span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+

@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Add New Reservation{% endblock %}
+{% include "procurement/nav_for_borrow_scheduler.html" %}
+{% block page_content %}
+    <section class="hero is-fullheight">
+        <div class="hero-body">
+            <div class="container has-text-centered">
+                <div class="column is-6 is-offset-3">
+                    <h1 class="title">
+                        New Reservation
+                    </h1>
+                    <form method="post" action="{{ url_for('procurement.procurement_list') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                        <div class="box">
+                            <div class="field is-grouped">
+                                <p class="control is-expanded has-icons-right">
+                                    <input class="input" type="text" name="erp_code"
+                                           placeholder="ค้นหา Inventory Number/ERP">
+                                    <span class="icon is-right">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                </p>
+                                <p class="control">
+                                    <button type="submit" class="button is-rounded is-success">
+                                        <strong>Search</strong></button>
+                                </p>
+                            </div>
+                        </div>
+                    </form>
+                    <p>
+                        <a href="{{ url_for('procurement.view_all_procurement_to_borrow') }}">ดูรายการครุภัณฑ์ทั้งหมด</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+        </div>
+        </div>
+    </section>
+{% endblock %}

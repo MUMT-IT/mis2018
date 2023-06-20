@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <section class="section" id="app">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="{{ url_for('receipt_printing.landing') }}">หน้าหลัก</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">ข้อมูลใบเสร็จรับเงินทั้งหมดที่ถูกยกเลิก</a></li>
+                </ul>
+            </nav>
+            <div class="columns">
+                <div class="column">
+                    <table id="receipt_data" class="table is-fullwidth is-striped">
+                        <thead>
+                        <th>หมายเลขเล่ม</th>
+                        <th>เลขที่</th>
+                        <th>ออกวันที่</th>
+                        <th>ได้รับเงินจาก</th>
+                        <th>จำนวนรายการ</th>
+                        <th>จำนวนครั้งที่พิมพ์</th>
+                        <th>พิมพ์ใบเสร็จยกเลิก</th>
+                        <th>หมายเหตุ</th>
+                        <th>สถานะ</th>
+                        <th>สาเหตุของการยกเลิก</th>
+                        </thead>
+                        <tbody>
+                        {% for r in record %}
+                            <tr>
+                                <td>{{ r.book_number }}</td>
+                                <td>{{ r.number }}</td>
+                                <td>{{ r.created_datetime|localdatetime }}</td>
+                                <td>{{ r.received_from }}</td>
+                                <td>{{ r.items|length }}</td>
+                                <td>{{ r.print_number}}</td>
+                                <td><a
+                                        {% if r.cancelled and r.print_number<2 %}
+                                        href="{{ url_for('receipt_printing.export_receipt_pdf', receipt_id=r.id) }}"
+                                        {% else %}
+                                        disabled
+                                        {% endif %}
+                                        >
+                                        <span class="icon">
+                                            <i class="fas fa-print"></i>
+                                        </span>
+                                </a>
+                                </td>
+                                <td>{{ r.comment or '' }}</td>
+                                <td>
+                                    <span class="icon">
+                                    {% if r.cancelled %}
+                                        <i class="fas fa-times has-text-danger"></i>
+                                    {% else %}
+                                        <i class="far fa-check-circle has-text-success"></i>
+                                    {% endif %}
+                                    </span>
+                                </td>
+                                <td>{{ r.cancel_comment or '' }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-left">
+                        <a class="button is-light"
+                           href="{{ url_for('receipt_printing.landing') }}">
+                            <span class="icon">
+                                <i class="fas fa-chevron-left"></i>
+                            </span>
+                            <span>กลับ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#receipt_data').DataTable({})
+        });
+    </script>
+
+{% endblock %}

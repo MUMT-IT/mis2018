@@ -3,167 +3,160 @@
 {% block page_content %}
 {% include "documents/nav.html" %}
 <section class="section">
-    <div class="container">
-        <nav class="breadcrumb" aria-label="breadcrumbs">
-            <ul>
-                <li><a href="{{ url_for('doc.index') }}">Main</a></li>
-                <li><a href="{{ url_for('doc.admin_index') }}">Rounds</a></li>
-                <li class="is-active"><a href="#" aria-current="page">Documents</a></li>
-            </ul>
-        </nav>
-        {% include "messages.html" %}
-        <div class="columns">
-            <div class="column has-text-centered">
-                <h1 class="title">Documents <span class="tag is-info is-rounded is-light">admin</span></h1>
-                <h1 class="subtitle">Round {{ round }}</h1>
-                <a class="button is-light is-link" href="{{ url_for('doc.add_document', round_id=round.id) }}">
-                    <span class="icon">
-                        <i class="fas fa-plus"></i>
-                    </span>
-                    <span>Document</span>
-                </a>
-            </div>
+    <nav class="breadcrumb" aria-label="breadcrumbs">
+        <ul>
+            <li><a href="{{ url_for('doc.index') }}">Main</a></li>
+            <li><a href="{{ url_for('doc.admin_index') }}">Rounds</a></li>
+            <li class="is-active"><a href="#" aria-current="page">Documents</a></li>
+        </ul>
+    </nav>
+    {% include "messages.html" %}
+    <div class="columns">
+        <div class="column has-text-centered">
+            <h1 class="title">Documents <span class="tag is-info is-rounded is-light">admin</span></h1>
+            <h1 class="subtitle">Round {{ round }}</h1>
+            <a class="button is-light is-link" href="{{ url_for('doc.add_document', round_id=round.id) }}">
+                <span class="icon">
+                    <i class="fas fa-plus"></i>
+                </span>
+                <span>Document</span>
+            </a>
         </div>
-        <div class="columns">
-            <div class="column">
-                <table class="table is-striped is-fullwidth">
-                    <col width="5%">
-                    <col width="5%">
-                    <col width="25%">
-                    <col width="25%">
-                    <col width="10%">
-                    <thead>
-                    <th>Added At</th>
-                    <th>Number</th>
-                    <th>Title</th>
-                    <th>Summary</th>
-                    <th>Comment</th>
-                    <th>Priority</th>
-                    <th>Category</th>
-                    <th>Deadline</th>
-                    <th>Download</th>
-                    <th>Stage</th>
-                    <th>Action</th>
-                    </thead>
-                    <tbody>
-                    {% for doc in round.documents %}
-                    <tr>
-                        <td>
-                            <h1 class="title is-size-7">
-                                {{ doc.addedAt|localdatetime }}
-                            </h1>
-                            <h1 class="subtitle is-size-7">
-                                {{ doc.addedAt|humanizedt|title }}
-                            </h1>
-                        </td>
-                        <td>
-                            {{ doc.number }}
-                        </td>
-                        <td>
-                            <h1 class="title is-size-6">
-                                {{ doc.title|truncate }}
-                            </h1>
-                        </td>
-                        <td>{{ doc.summary|truncate }}</td>
-                        <td>{{ doc.comment|truncate }}</td>
-                        <td>
-                            {% if doc.priority == 'ด่วนที่สุด' %}
-                            <span class="tag is-danger">
-                            {% elif doc.priority == 'ด่วน' %}
-                            <span class="tag is-warning">
-                            {% else %}
-                            <span class="tag">
-                            {% endif %}
-                                {{ doc.priority }}
+    </div>
+    <div class="columns">
+        <div class="column">
+            <table class="table is-striped is-fullwidth">
+                <thead>
+                <th>Added At</th>
+                <th>Number</th>
+                <th>Title</th>
+                <th>Summary</th>
+                <th>Comment</th>
+                <th>Priority</th>
+                <th>Category</th>
+                <th>Deadline</th>
+                <th>Download</th>
+                <th>Stage</th>
+                <th>Action</th>
+                </thead>
+                <tbody>
+                {% for doc in round.documents %}
+                <tr>
+                    <td>
+                        <h1 class="title is-size-7">
+                            {{ doc.addedAt|localdatetime }}
+                        </h1>
+                        <h1 class="subtitle is-size-7">
+                            {{ doc.addedAt|humanizedt|title }}
+                        </h1>
+                    </td>
+                    <td>
+                        {{ doc.number }}
+                    </td>
+                    <td style="word-break:break-all;">
+                        <h1 class="title is-size-6">
+                            {{ doc.title }}
+                        </h1>
+                    </td>
+                    <td style="word-break:break-all;">{{ doc.summary }}</td>
+                    <td style="word-break:break-all;">{{ doc.comment }}</td>
+                    <td>
+                        {% if doc.priority == 'ด่วนที่สุด' %}
+                        <span class="tag is-danger">
+                        {% elif doc.priority == 'ด่วน' %}
+                        <span class="tag is-warning">
+                        {% else %}
+                        <span class="tag">
+                        {% endif %}
+                            {{ doc.priority }}
+                        </span>
+                    </td>
+                    <td>{{ doc.category }}</td>
+                    <td>
+                        {% if doc.deadline %}
+                        <h1 class="title is-size-7">
+                            {{ doc.deadline|localdatetime }}
+                        </h1>
+                        <h1 class="subtitle is-size-7">
+                            {{ doc.deadline|humanizedt|title }}
+                        </h1>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if doc.url %}
+                        <a href="{{ 'https://drive.google.com/uc?id=' + doc.url }}" target="_blank">
+                            <span class="icon">
+                                <i class="far fa-file-pdf"></i>
                             </span>
-                        </td>
-                        <td>{{ doc.category }}</td>
-                        <td>
-                            {% if doc.deadline %}
-                            <h1 class="title is-size-7">
-                                {{ doc.deadline|localdatetime }}
-                            </h1>
-                            <h1 class="subtitle is-size-7">
-                                {{ doc.deadline|humanizedt|title }}
-                            </h1>
-                            {% else %}
-                            -
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if doc.url %}
-                            <a href="{{ 'https://drive.google.com/uc?id=' + doc.url }}" target="_blank">
-                                <span class="icon">
-                                    <i class="far fa-file-pdf"></i>
-                                </span>
-                            </a>
-                            {% else %}
-                            -
-                            {% endif %}
-                        </td>
-                        <td>
-                            {{ doc.stage.upper() }}
-                        </td>
-                        <td>
-                            {% if doc.stage == 'drafting' %}
-                            <div class="field has-addons">
-                                <p class="control">
-                                    <a class="button is-light is-success"
-                                       href="{{ url_for('doc.send_document', doc_id=doc.id) }}">
-                                        <span class="icon">
-                                            <i class="fas fa-check"></i>
-                                        </span>
-                                        <span>ready</span>
-                                    </a>
-                                </p>
-                                <p class="control">
-                                    <a class="button is-light is-link"
-                                        href="{{ url_for('doc.add_document', round_id=round.id, doc_id=doc.id) }}">
-                                        <span class="icon">
-                                            <i class="fas fa-pencil-alt"></i>
-                                        </span>
-                                        <span>edit</span>
-                                    </a>
-                                </p>
-                                <p class="control">
-                                    <a class="button is-light is-danger">
-                                        <span class="icon">
-                                            <i class="far fa-trash-alt"></i>
-                                        </span>
-                                        <span>toss</span>
-                                    </a>
-                                </p>
-                            </div>
-                            {% else %}
-                            <button class="button is-light" disabled>None</button>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-                <div class="buttons is-centered">
-                    <a class="button is-light" href="{{ url_for('doc.admin_index') }}">Back</a>
-                    {% if round.documents.filter_by(stage='ready').all()|length > 0 %}
-                    <a class="button is-success" href="{{ url_for('doc.send_round_for_review', round_id=round.id) }}">
-                        <span class="icon">
-                           <i class="far fa-paper-plane"></i>
-                        </span>
-                        <span>
-                            Send
-                        </span>
-                    </a>
-                    {% else %}
-                    <a class="button is-success" disabled="">
-                        <span class="icon">
-                           <i class="far fa-paper-plane"></i>
-                        </span>
-                        <span>
-                            Send
-                        </span>
-                    </a>
-                    {% endif %}
-                </div>
+                        </a>
+                        {% else %}
+                        -
+                        {% endif %}
+                    </td>
+                    <td>
+                        {{ doc.stage.upper() }}
+                    </td>
+                    <td>
+                        {% if doc.stage == 'drafting' %}
+                        <div class="field has-addons">
+                            <p class="control">
+                                <a class="button is-light is-success"
+                                   href="{{ url_for('doc.send_document', doc_id=doc.id) }}">
+                                    <span class="icon">
+                                        <i class="fas fa-check"></i>
+                                    </span>
+                                    <span>ready</span>
+                                </a>
+                            </p>
+                            <p class="control">
+                                <a class="button is-light is-link"
+                                    href="{{ url_for('doc.add_document', round_id=round.id, doc_id=doc.id) }}">
+                                    <span class="icon">
+                                        <i class="fas fa-pencil-alt"></i>
+                                    </span>
+                                    <span>edit</span>
+                                </a>
+                            </p>
+                            <p class="control">
+                                <a class="button is-light is-danger">
+                                    <span class="icon">
+                                        <i class="far fa-trash-alt"></i>
+                                    </span>
+                                    <span>toss</span>
+                                </a>
+                            </p>
+                        </div>
+                        {% else %}
+                        <button class="button is-light" disabled>None</button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+            <div class="buttons is-centered">
+                <a class="button is-light" href="{{ url_for('doc.admin_index') }}">Back</a>
+                {% if round.documents.filter_by(stage='ready').all()|length > 0 %}
+                <a class="button is-success" href="{{ url_for('doc.send_round_for_review', round_id=round.id) }}">
+                    <span class="icon">
+                       <i class="far fa-paper-plane"></i>
+                    </span>
+                    <span>
+                        Send
+                    </span>
+                </a>
+                {% else %}
+                <a class="button is-success" disabled="">
+                    <span class="icon">
+                       <i class="far fa-paper-plane"></i>
+                    </span>
+                    <span>
+                        Send
+                    </span>
+                </a>
+                {% endif %}
             </div>
         </div>
     </div>

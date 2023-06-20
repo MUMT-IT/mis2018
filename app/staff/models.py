@@ -3,15 +3,12 @@
 from sqlalchemy import func
 
 from ..main import db, ma
-from werkzeug import generate_password_hash, check_password_hash
-from datetime import datetime
+from werkzeug.security import generate_password_hash, check_password_hash
 from dateutil.relativedelta import relativedelta
 from pytz import timezone
 from marshmallow import fields
-from app.models import Org, OrgSchema
-from datetime import datetime, timedelta
-from app.main import get_weekdays
-import numpy as np
+from app.models import Org, OrgSchema, OrgStructure
+from datetime import datetime
 
 
 today = datetime.today()
@@ -29,20 +26,31 @@ LEAVE_ANNUAL_QUOTA = 10
 tz = timezone('Asia/Bangkok')
 
 staff_group_assoc_table = db.Table('staff_group_assoc',
-                                            db.Column('staff_id', db.ForeignKey('staff_account.id'),
-                                                        primary_key=True),
-                                            db.Column('group_id', db.ForeignKey('staff_special_groups.id'),
-                                                        primary_key=True),
-                                           )
-
+                                   db.Column('staff_id', db.ForeignKey('staff_account.id'),
+                                             primary_key=True),
+                                   db.Column('group_id', db.ForeignKey('staff_special_groups.id'),
+                                             primary_key=True),
+                                   )
 
 seminar_approval_attend_assoc_table = db.Table('seminar_approval_attend_assoc',
-                                    db.Column('attend_id', db.ForeignKey('staff_seminar_attends.id'),
-                                              primary_key=True),
-                                    db.Column('approval_id', db.ForeignKey('staff_seminar_approvals.id'),
-                                              primary_key=True),
-                                    )
+                                               db.Column('attend_id', db.ForeignKey('staff_seminar_attends.id'),
+                                                         primary_key=True),
+                                               db.Column('approval_id', db.ForeignKey('staff_seminar_approvals.id'),
+                                                         primary_key=True),
+                                               )
 
+staff_seminar_mission_assoc_table = db.Table('staff_seminar_mission_assoc',
+                                             db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id')),
+                                             db.Column('seminar_mission_id',
+                                                       db.ForeignKey('staff_seminar_missions.id')),
+                                             )
+
+staff_seminar_objective_assoc_table = db.Table('staff_seminar_objective_assoc',
+                                               db.Column('seminar_attend_id',
+                                                         db.ForeignKey('staff_seminar_attends.id')),
+                                               db.Column('seminar_objective_id',
+                                                         db.ForeignKey('staff_seminar_objectives.id')),
+                                               )
 
 
 def local_datetime(dt):
@@ -85,9 +93,25 @@ class StaffAccount(db.Model):
     def get_account_by_email(cls, email):
         return cls.query.filter_by(email=email).first()
 
+    @classmethod
+    def get_active_accounts(cls):
+        return [account for account in cls.query.all() if account.is_active]
+
+    @property
+    def fullname(self):
+        return self.personal_info.fullname
+
+    @property
+    def en_fullname(self):
+        return self.personal_info.en_fullname
+
     @property
     def has_password(self):
         return self.__password_hash != None
+
+    @property
+    def is_retired(self):
+        return self.personal_info.retired is True
 
     @property
     def password(self):
@@ -112,7 +136,7 @@ class StaffAccount(db.Model):
         return False
 
     def get_id(self):
-        return unicode(self.id)
+        return str(self.id)
 
     def __str__(self):
         return u'{}'.format(self.email)
@@ -120,6 +144,14 @@ class StaffAccount(db.Model):
     @property
     def total_wfh_duration(self):
         return sum([wfh.duration for wfh in self.wfh_requests if not wfh.cancelled_at and wfh.get_approved])
+
+    @property
+    def new_invitations(self):
+        return self.invitations.filter_by(response=None).all()
+
+    @property
+    def pending_invitations(self):
+        return self.invitations.filter_by(response='ไม่แน่ใจ').all()
 
 
 class StaffPersonalInfo(db.Model):
@@ -141,16 +173,75 @@ class StaffPersonalInfo(db.Model):
     finger_scan_id = db.Column('finger_scan_id', db.Integer)
     academic_staff = db.Column('academic_staff', db.Boolean())
     retired = db.Column('retired', db.Boolean(), default=False)
+    position = db.Column('position', db.String(), info={'label': u'ตำแหน่ง'})
+    mobile_phone = db.Column('mobile_phone', db.String(), info={'label': u'มือถือ'})
+    telephone = db.Column('telephone', db.String(), info={'label': u'โทร'})
+    retirement_date = db.Column('retirement_date', db.Date(), nullable=True)
+    resignation_date = db.Column('resignation_date', db.Date(), nullable=True)
 
     def __str__(self):
         return self.fullname
 
     @property
     def fullname(self):
-        if self.th_firstname or self.th_lastname:
-            return u'{}{} {}'.format(self.th_title or u'คุณ', self.th_firstname, self.th_lastname)
+        try:
+            academic_position = self.academic_positions[0]
+        except IndexError:
+            if self.academic_staff:
+                th_position = u'อ.'
+                en_position = u'Lect.'
+            else:
+                th_position = None
+                en_position = None
         else:
-            return u'{}{} {}'.format(self.en_title or '', self.en_firstname, self.en_lastname)
+            th_position = academic_position.position.shortname_th
+            en_position = academic_position.position.shortname_en
+
+        if self.th_firstname or self.th_lastname:
+            if th_position:
+                if self.th_title == u'ดร.':
+                    return u'{} {}{} {}'.format(th_position, self.th_title or '', self.th_firstname, self.th_lastname)
+                else:
+                    return u'{} {} {}'.format(th_position, self.th_firstname, self.th_lastname)
+            else:
+                return u'{}{} {}'.format(self.th_title or '', self.th_firstname, self.th_lastname)
+        else:
+            if en_position:
+                if self.en_title == u'Dr.':
+                    return u'{} {}{} {}'.format(en_position,
+                                                self.en_title or '',
+                                                self.en_firstname,
+                                                self.en_lastname)
+                else:
+                    return u'{} {} {}'.format(en_position, self.en_firstname, self.en_lastname)
+            else:
+                return u'{}{} {}'.format(self.en_title or '', self.en_firstname, self.en_lastname)
+
+    @property
+    def en_fullname(self):
+        try:
+            academic_position = self.academic_positions[0]
+        except IndexError:
+            if self.academic_staff:
+                en_position = u'Lecturer'
+            else:
+                en_position = None
+        else:
+            en_position = academic_position.position.shortname_en
+
+        if en_position:
+            if self.en_title == u'Dr.':
+                return u'{} {}{} {}'.format(en_position,
+                                            self.en_title,
+                                            self.en_firstname,
+                                            self.en_lastname)
+            else:
+                return u'{} {} {}'.format(en_position, self.en_firstname, self.en_lastname)
+        else:
+            if self.en_title == u'Dr.':
+                return u'{}{} {}'.format(self.en_title, self.en_firstname, self.en_lastname)
+            else:
+                return u'{}{} {}'.format(self.en_title or '', self.en_firstname, self.en_lastname)
 
     def get_employ_period(self):
         today = datetime.now().date()
@@ -166,7 +257,7 @@ class StaffPersonalInfo(db.Model):
         period = self.get_employ_period()
         if period.years > 0:
             return True
-        elif period.years == 0 and period.months > minmonth:
+        elif period.years == 0 and period.months >= minmonth:
             return True
         else:
             return False
@@ -194,15 +285,15 @@ class StaffPersonalInfo(db.Model):
                             total_leaves.append(req.total_leave_days)
 
         return sum(total_leaves)
-        #return len([req for req in self.staff_account.leave_requests if req.quota_id == leave_quota_id])
+        # return len([req for req in self.staff_account.leave_requests if req.quota_id == leave_quota_id])
 
     def get_total_pending_leaves_request(self, leave_quota_id, start_date=None, end_date=None):
         total_leaves = []
         for req in self.staff_account.leave_requests:
             if req.quota.id == leave_quota_id:
                 if start_date is None or end_date is None and not req.cancelled_at \
-                        and not req.get_approved and not req.get_unapproved :
-                        total_leaves.append(req.total_leave_days)
+                        and not req.get_approved and not req.get_unapproved:
+                    total_leaves.append(req.total_leave_days)
                 else:
                     if req.start_datetime >= start_date and req.end_datetime <= end_date \
                             and not req.cancelled_at and not req.get_approved and not req.get_unapproved:
@@ -276,9 +367,12 @@ class StaffAcademicPosition(db.Model):
                       info={'label': u'',
                             'choices': ((0, u'อาจารย์'),
                                         (1, u'ผู้ช่วยศาสตราจารย์'),
-                                        (2, u'รองศาสตรจารย์'),
-                                        (3, u'ศาสตรจารย์'))
+                                        (2, u'รองศาสตราจารย์'),
+                                        (3, u'ศาสตราจารย์'))
                             })
+
+    def __str__(self):
+        return self.shortname_th
 
 
 class StaffAcademicPositionRecord(db.Model):
@@ -292,6 +386,9 @@ class StaffAcademicPositionRecord(db.Model):
     updated_at = db.Column(db.DateTime(timezone=True), onupdate=func.now())
     position_id = db.Column(db.ForeignKey('staff_academic_position.id'))
     position = db.relationship(StaffAcademicPosition, backref=db.backref('records'))
+
+    def __str__(self):
+        return self.position.fullname_th
 
 
 class StaffEmployment(db.Model):
@@ -310,6 +407,18 @@ class StaffSpecialGroup(db.Model):
     group_code = db.Column('group_code', db.String(), unique=True, nullable=False)
     staffs = db.relationship('StaffAccount', backref=db.backref('groups'),
                              secondary=staff_group_assoc_table)
+
+
+class StaffHeadPosition(db.Model):
+    __tablename__ = 'staff_head_positions'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    position = db.Column('position', db.String(), nullable=False)
+    org_id = db.Column('org_id', db.Integer(), db.ForeignKey('orgs.id'))
+    org_structure_id = db.Column('org_structure_id', db.Integer(), db.ForeignKey('org_structure.id'))
+    org = db.relationship(Org, backref=db.backref('head_position_org'))
+    org_structure = db.relationship(OrgStructure, backref=db.backref('head_position_org_structure'))
+    staff = db.relationship('StaffAccount', backref=db.backref('head_position_staff'))
 
 
 class StaffLeaveType(db.Model):
@@ -353,8 +462,13 @@ class StaffLeaveUsedQuota(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     leave_type_id = db.Column('leave_type_id', db.ForeignKey('staff_leave_types.id'))
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    fiscal_year = db.Column('fiscal_year', db.Integer())
     used_days = db.Column('used_days', db.Float())
+    pending_days = db.Column('pending_days', db.Float(), default=0)
     quota_days = db.Column('quota_days', db.Float())
+    staff = db.relationship('StaffAccount', backref=db.backref('leave_used_quota', lazy='dynamic'),
+                            foreign_keys=[staff_account_id])
+    leave_type = db.relationship('StaffLeaveType', backref=db.backref('type_used_quota'))
 
 
 class StaffLeaveRequest(db.Model):
@@ -362,7 +476,7 @@ class StaffLeaveRequest(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     leave_quota_id = db.Column('quota_id', db.ForeignKey('staff_leave_quota.id'))
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
-    #TODO: fixed offset-naive and offset-timezone comparison error.
+    # TODO: fixed offset-naive and offset-timezone comparison error.
     start_datetime = db.Column('start_date', db.DateTime(timezone=True))
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
     start_travel_datetime = db.Column('start_travel_datetime', db.DateTime(timezone=True))
@@ -371,7 +485,7 @@ class StaffLeaveRequest(db.Model):
     reason = db.Column('reason', db.String())
     contact_address = db.Column('contact_address', db.String())
     contact_phone = db.Column('contact_phone', db.String())
-    #TODO: travel_datetime = db.Column('travel_datetime', db.DateTime(timezone=True))
+    # TODO: travel_datetime = db.Column('travel_datetime', db.DateTime(timezone=True))
     staff = db.relationship('StaffAccount', backref=db.backref('leave_requests'), foreign_keys=[staff_account_id])
     quota = db.relationship('StaffLeaveQuota', backref=db.backref('leave_requests'))
 
@@ -385,13 +499,16 @@ class StaffLeaveRequest(db.Model):
     cancelled_by = db.relationship('StaffAccount', foreign_keys=[cancelled_account_id])
     last_cancel_requested_at = db.Column('last_cancel_requested_at', db.DateTime(timezone=True))
 
+    def get_approved_by(self, approver):
+        return [a for a in self.approvals if a.approver.account == approver]
+
     @property
     def get_approved(self):
         return [a for a in self.approvals if a.is_approved]
 
     @property
     def get_unapproved(self):
-        return [a for a in self.approvals if a.is_approved==False]
+        return [a for a in self.approvals if a.is_approved is False]
 
     def __str__(self):
         return "{}: {}".format(self.id, self.staff.email)
@@ -433,6 +550,10 @@ class StaffLeaveApprover(db.Model):
                               foreign_keys=[approver_account_id])
     notified_by_line = db.Column('notified_by_line', db.Boolean(), default=True)
 
+    @property
+    def approver_name(self):
+        return self.account.personal_info.fullname
+
     def __str__(self):
         return "{}->{}".format(self.account.email, self.requester.email)
 
@@ -451,32 +572,36 @@ class StaffLeaveApproval(db.Model):
                                backref=db.backref('approved_requests'))
 
 
-class StaffPersonalInfoSchema(ma.ModelSchema):
+class StaffPersonalInfoSchema(ma.SQLAlchemyAutoSchema):
     org = fields.Nested(OrgSchema)
+
     class Meta:
         model = StaffPersonalInfo
 
 
-class StaffAccountSchema(ma.ModelSchema):
+class StaffAccountSchema(ma.SQLAlchemyAutoSchema):
     personal_info = fields.Nested(StaffPersonalInfoSchema)
 
 
-class StaffLeaveTypeSchema(ma.ModelSchema):
+class StaffLeaveTypeSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = StaffLeaveType
 
 
-class StaffLeaveQuotaSchema(ma.ModelSchema):
+class StaffLeaveQuotaSchema(ma.SQLAlchemyAutoSchema):
     leave_type = fields.Nested(StaffLeaveTypeSchema)
+
     class Meta:
         model = StaffLeaveQuota
 
 
-class StaffLeaveRequestSchema(ma.ModelSchema):
+class StaffLeaveRequestSchema(ma.SQLAlchemyAutoSchema):
     staff = fields.Nested(StaffAccountSchema)
     quota = fields.Nested(StaffLeaveQuotaSchema)
+
     class Meta:
         model = StaffLeaveRequest
+
     duration = fields.Float()
 
 
@@ -486,7 +611,7 @@ class StaffWorkFromHomeRequest(db.Model):
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
     start_datetime = db.Column('start_date', db.DateTime(timezone=True))
     end_datetime = db.Column('end_date', db.DateTime(timezone=True))
-    created_at = db.Column('created_at',db.DateTime(timezone=True),
+    created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
     contact_phone = db.Column('contact_phone', db.String())
     # want to change name detail to be topic
@@ -495,6 +620,9 @@ class StaffWorkFromHomeRequest(db.Model):
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     staff = db.relationship('StaffAccount', backref=db.backref('wfh_requests'))
     notify_to_line = db.Column('notify_to_line', db.Boolean(), default=False)
+
+    def get_approved_by(self, approver):
+        return [a for a in self.wfh_approvals if a.approver.account == approver]
 
     @property
     def duration(self):
@@ -513,7 +641,7 @@ class StaffWorkFromHomeRequest(db.Model):
 class StaffWorkFromHomeJobDetail(db.Model):
     __tablename__ = 'staff_work_from_home_job_detail'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    #want to change topic to activity and activity to comment(for Approver)
+    # want to change topic to activity and activity to comment(for Approver)
     activity = db.Column('topic', db.String(), nullable=False, unique=False)
     status = db.Column('status', db.Boolean())
     wfh_id = db.Column('wfh_id', db.ForeignKey('staff_work_from_home_requests.id'))
@@ -564,62 +692,130 @@ class StaffWorkFromHomeCheckedJob(db.Model):
                 return approval.approval_comment
 
 
-class StaffWorkFromHomeRequestSchema(ma.ModelSchema):
+class StaffWorkFromHomeRequestSchema(ma.SQLAlchemyAutoSchema):
     staff = fields.Nested(StaffAccountSchema)
+
     class Meta:
         model = StaffWorkFromHomeRequest
+
     duration = fields.Int()
 
 
 class StaffSeminar(db.Model):
     __tablename__ = 'staff_seminar'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
-    start_datetime = db.Column('start_date', db.DateTime(timezone=True))
-    end_datetime = db.Column('end_date', db.DateTime(timezone=True))
-    created_at = db.Column('created_at',db.DateTime(timezone=True),
+    start_datetime = db.Column('start_date', db.DateTime(timezone=True), info={'label': u'วันเริ่มต้น'})
+    end_datetime = db.Column('end_date', db.DateTime(timezone=True), info={'label': u'วันสิ้นสุด'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
-    topic_type = db.Column('topic_type', db.String())
-    topic = db.Column('topic', db.String())
-    mission = db.Column('mission', db.String())
-    organize_by = db.Column('organize_by', db.String())
-    location = db.Column('location', db.String())
-    is_online = db.Column('is_online', db.Boolean(), default=False)
+    topic_type = db.Column('topic_type', db.String(),
+                           info={'label': u'ประเภท',
+                                 'choices': [(c, c) for c in [u'อบรม', u'สัมมนา', u'ประชุม', u'ประชุมวิชาการ']]})
+    topic = db.Column('topic', db.String(), info={'label': u'หัวข้อ'})
+    organize_by = db.Column('organize_by', db.String(), info={'label': u'หน่วยงานที่จัด'})
+    location = db.Column('location', db.String(), info={'label': u'สถานที่จัด'})
+    is_online = db.Column('is_online', db.Boolean(), default=False, info={'label': u'จัดแบบ Online'})
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    upload_file_url = db.Column('upload_file_url', db.String())
 
     def __str__(self):
         return u'{}'.format(self.topic)
+
+
+class StaffSeminarMission(db.Model):
+    __tablename__ = 'staff_seminar_missions'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    mission = db.Column('mission', db.String())
+
+
+class StaffSeminarObjective(db.Model):
+    __tablename__ = 'staff_seminar_objectives'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    objective = db.Column('objective', db.String())
 
 
 class StaffSeminarAttend(db.Model):
     __tablename__ = 'staff_seminar_attends'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     seminar_id = db.Column('seminar_id', db.ForeignKey('staff_seminar.id'))
-    start_datetime = db.Column('start_date', db.DateTime(timezone=True))
-    end_datetime = db.Column('end_date', db.DateTime(timezone=True))
-    created_at = db.Column('created_at',db.DateTime(timezone=True),
+    start_datetime = db.Column('start_date', db.DateTime(timezone=True), info={'label': u'วันเริ่มต้น'})
+    end_datetime = db.Column('end_date', db.DateTime(timezone=True), info={'label': u'วันสิ้นสุด'})
+    created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
-    role = db.Column('role', db.String())
-    registration_fee = db.Column('registration_fee', db.Float())
-    objective = db.Column('objective', db.String())
-    invited_document_id = db.Column('document_id', db.String())
-    invited_organization = db.Column('invited_organization', db.String())
-    invited_document_date = db.Column('invited_document_date', db.DateTime(timezone=True))
-    document_title = db.Column('document_title', db.String())
-    taxi_cost = db.Column('taxi_cost', db.Float())
-    train_ticket_cost = db.Column('train_ticket_cost', db.Float())
-    flight_ticket_cost = db.Column('flight_ticket_cost', db.Float())
-    fuel_cost = db.Column('fuel_cost', db.Float())
-    accommodation_cost = db.Column('accommodation_cost', db.Float())
-    budget_type = db.Column('budget_type', db.String())
-    transaction_fee = db.Column('transaction_fee', db.Float())
-    budget = db.Column('budget', db.Float())
-    attend_online = db.Column('attend_online', db.Boolean(), default=False)
-    contact_no = db.Column('contact_no', db.Integer())
-    head_account_id = db.Column('head_account_id', db.ForeignKey('staff_account.id'))
+    role = db.Column('role', db.String(), info={'label': u'บทบาท', 'choices': [
+        (c, c) for c in [u'ผู้เข้าร่วม', u'อาจารย์พิเศษ', u'วิทยากร', u'ที่ปรึกษา', u'กรรมการ', u'นิเทศน์งาน']]})
+    registration_fee = db.Column('registration_fee', db.Float(), info={'label': u'ค่าลงทะเบียน (บาท)'})
+    invited_document_id = db.Column('document_id', db.String(), info={'label': u'เลขที่หนังสือเชิญ'})
+    invited_organization = db.Column('invited_organization', db.String(), info={'label': u'หน่วยงานที่เชิญ'})
+    invited_document_date = db.Column('invited_document_date', db.DateTime(timezone=True),
+                                      info={'label': u'ลงวันที่หนังสือ'})
+    document_title = db.Column('document_title', db.String(), info={'label': u'ชื่อเรื่องหนังสือ'})
+    taxi_cost = db.Column('taxi_cost', db.Float(), info={'label': u'ค่า Taxi (บาท)'})
+    train_ticket_cost = db.Column('train_ticket_cost', db.Float(), info={'label': u'ค่าตั๋วรถไฟ (บาท)'})
+    flight_ticket_cost = db.Column('flight_ticket_cost', db.Float(), info={'label': u'ค่าตั๋วเครื่องบิน (บาท)'})
+    fuel_cost = db.Column('fuel_cost', db.Float(), info={'label': u'ค่าน้ำมัน (บาท)'})
+    accommodation_cost = db.Column('accommodation_cost', db.Float(), info={'label': u'ค่าที่พัก (บาท)'})
+    budget_type = db.Column('budget_type', db.String(), info={'label': u'แหล่งทุน'})
+    transaction_fee = db.Column('transaction_fee', db.Float(), info={'label': u'ค่าธรรมเนียมการโอน (บาท)'})
+    budget = db.Column('budget', db.Float(), info={'label': u'ค่าใช้จ่ายรวมทั้งหมด (บาท)'})
+    attend_online = db.Column('attend_online', db.Boolean(), default=False,
+                              info={'label': u'เข้าร่วมผ่านช่องทาง online'})
+    middle_level_approver_account_id = db.Column('middle_level_approver_account_id', db.ForeignKey('staff_account.id'))
+    middle_level_approver = db.relationship('StaffAccount', foreign_keys=[middle_level_approver_account_id],
+                                            backref=db.backref('seminar_middle_approver_attends', lazy='dynamic'))
+    lower_level_approver_account_id = db.Column('lower_level_approver_account_id', db.ForeignKey('staff_account.id'))
+    lower_level_approver = db.relationship('StaffAccount', foreign_keys=[lower_level_approver_account_id],
+                                           backref=db.backref('seminar_lower_approver_attends', lazy='dynamic'))
     staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    document_no = db.Column('document_no', db.String())
     staff = db.relationship('StaffAccount', foreign_keys=[staff_account_id],
                             backref=db.backref('seminar_attends', lazy='dynamic'))
     seminar = db.relationship('StaffSeminar', backref=db.backref('attends'), foreign_keys=[seminar_id])
+    objectives = db.relationship('StaffSeminarObjective', secondary=staff_seminar_objective_assoc_table)
+    missions = db.relationship('StaffSeminarMission', secondary=staff_seminar_mission_assoc_table)
+
+    def __str__(self):
+        return u'{}'.format(self.seminar)
+
+    def is_approved_by(self, user):
+        return self.proposal.filter_by(proposer=user).first()
+
+    @property
+    def mission_list(self):
+        return [m.mission for m in self.missions]
+
+    @property
+    def objective_list(self):
+        return [o.objective for o in self.objectives]
+
+
+class StaffSeminarProposal(db.Model):
+    __tablename__ = 'staff_seminar_proposals'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    seminar_attend_id = db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id'))
+    seminar_attend = db.relationship('StaffSeminarAttend', foreign_keys=[seminar_attend_id],
+                                     backref=db.backref('proposal', lazy='dynamic'))
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+    is_approved = db.Column('is_approved', db.Boolean(), default=True)
+    comment = db.Column('approval_comment', db.String())
+    proposer_account_id = db.Column('proposer_account_id', db.ForeignKey('staff_account.id'))
+    proposer = db.relationship('StaffAccount', foreign_keys=[proposer_account_id],
+                               backref=db.backref('seminar_proposer', lazy='dynamic'))
+    previous_proposal_id = db.Column('previous_proposal_id', db.Integer())
+    upload_file_url = db.Column('upload_file_url', db.String())
+    proposer_head_position_id = db.Column('proposer_head_position_id', db.ForeignKey('staff_head_positions.id'))
+    head_position = db.relationship('StaffHeadPosition', foreign_keys=[proposer_head_position_id],
+                                    backref=db.backref('proposer_head_position'))
+
+
+class StaffSeminarDocument(db.Model):
+    __tablename__ = 'staff_seminar_documents'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    seminar_proposal_id = db.Column('seminar_proposal_id', db.ForeignKey('staff_seminar_proposals.id'))
+    proposal = db.relationship('StaffSeminarProposal', backref=db.backref('seminar_document')
+                               , foreign_keys=[seminar_proposal_id])
+    document_no = db.Column('document_no', db.String)
+    # doc_internal_sending_id = db.Column('doc_internal_sending_id', db.ForeignKey('doc_internal_sending.id'))
 
 
 class StaffSeminarApproval(db.Model):
@@ -627,23 +823,23 @@ class StaffSeminarApproval(db.Model):
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
     seminar_attend_id = db.Column('seminar_attend_id', db.ForeignKey('staff_seminar_attends.id'))
     seminar_attend = db.relationship('StaffSeminarAttend', backref=db.backref('seminar_approval')
-                                     ,foreign_keys=[seminar_attend_id])
+                                     , foreign_keys=[seminar_attend_id])
     updated_at = db.Column('updated_at', db.DateTime(timezone=True))
     is_approved = db.Column('is_approved', db.Boolean(), default=True)
     approval_comment = db.Column('approval_comment', db.String())
     final_approver_account_id = db.Column('final_approver_account_id', db.ForeignKey('staff_account.id'))
     recorded_account_id = db.Column('recorded_account_id', db.ForeignKey('staff_account.id'))
-    created_at = db.Column('created_at',db.DateTime(timezone=True),
+    created_at = db.Column('created_at', db.DateTime(timezone=True),
                            default=datetime.now())
     approver = db.relationship('StaffAccount', backref=db.backref('approval_approver'),
-                                foreign_keys=[final_approver_account_id])
+                               foreign_keys=[final_approver_account_id])
     recorded_by = db.relationship('StaffAccount', backref=db.backref('approval_recorded_by'),
-                              foreign_keys=[recorded_account_id])
+                                  foreign_keys=[recorded_account_id])
     attend = db.relationship('StaffSeminarAttend',
                              secondary=seminar_approval_attend_assoc_table,
                              backref=db.backref('seminar_approval_attendee', lazy='dynamic'))
-    
-    
+
+
 class StaffWorkLogin(db.Model):
     __tablename__ = 'staff_work_logins'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -659,6 +855,28 @@ class StaffWorkLogin(db.Model):
     qrcode_out_exp_datetime = db.Column('qrcode_out_exp_datetime', db.DateTime(timezone=True))
     lat = db.Column('lat', db.Numeric())
     long = db.Column('long', db.Numeric())
+
+    @staticmethod
+    def generate_date_id(date):
+        return date.strftime('%Y%m%d')
+
+
+class StaffRequestWorkLogin(db.Model):
+    __tablename__ = 'staff_request_work_logins'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    staff_account_id = db.Column('staff_account_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship('StaffAccount', backref=db.backref('request_work_logins', lazy='dynamic'),
+                            foreign_keys=[staff_account_id])
+    reason = db.Column('reason', db.String())
+    requested_at = db.Column('requested_at', db.DateTime(timezone=True))
+    approver_id = db.Column('approver_id', db.ForeignKey('staff_account.id'))
+    approver = db.relationship('StaffAccount', backref=db.backref('approver_work_logins', lazy='dynamic'),
+                               foreign_keys=[approver_id])
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+    cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
+    date_id = db.Column('date_id', db.String())
+    work_datetime = db.Column('work_datetime', db.DateTime(timezone=True))
+    is_checkin = db.Column('is_checkin', db.Boolean(), default=True)
 
     @staticmethod
     def generate_date_id(date):
@@ -684,7 +902,6 @@ class StaffShiftRole(db.Model):
     def __str__(self):
         return self.role
 
-
 # class StaffSapNo(db.Model):
 #     __tablename__ = 'staff_sap_no'
 #     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
@@ -693,6 +910,3 @@ class StaffShiftRole(db.Model):
 #     created_at = db.Column('created_at',db.DateTime(timezone=True),
 #                            default=datetime.now())
 #     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
-
-
-
