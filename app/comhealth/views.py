@@ -226,7 +226,8 @@ def register_customer_to_service_org(service_id, org_id):
 @comhealth.route('/services/<int:service_id>')
 @login_required
 def display_service_customers(service_id):
-    return render_template('comhealth/service_customers.html', service_id=service_id)
+    service = ComHealthService.query.get(service_id)
+    return render_template('comhealth/service_customers.html', service_id=service_id,service=service)
 
 
 @comhealth.route('api/services/<int:service_id>/customers')
@@ -1415,7 +1416,10 @@ def export_csv(service_id):
                      'labno': u'{}'.format(record.labno),
                      'tests': u'{}'.format(tests),
                      'urgent': record.urgent,
-                     'note': u'{}'.format(record.comment)})
+                     'note_to_lab': u'{}'.format(record.comment),
+                     'employment_note': u'{}'.format(record.note),
+                     'finance_contact': u'{}'.format(record.finance_contact),
+                     'checkin_datetime': u'{}'.format(record.checkin_datetime)})
     if rows:
         pd.DataFrame(rows).to_excel('export.xlsx',
                                     header=True,
@@ -1433,7 +1437,10 @@ def export_csv(service_id):
                                              'employmentType',
                                              'tests',
                                              'urgent',
-                                             'note'],
+                                             'note_to_lab',
+                                             'employment_note',
+                                             'finance_contact',
+                                             'checkin_datetime'],
                                     index=False,
                                     encoding='utf-8')
         return send_from_directory(os.getcwd(), filename='export.xlsx')
