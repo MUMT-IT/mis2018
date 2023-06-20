@@ -26,6 +26,10 @@
                         <label class="label">ห้อง</label>
                         {{ meeting.rooms }}
                     </p>
+                    <p>
+                        <label class="label">ลิงค์ประชุมออนไลน์</label>
+                        {{ meeting.meeting_url }}
+                    </p>
                 </div>
             </div>
             <br>
@@ -64,6 +68,11 @@
                     </table>
                 </div>
             </div>
+        <br>
+        <div class="buttons is-centered">
+            <a href="{{ url_for('meeting_planner.list_meetings') }}"
+               class="button is-light">Back</a>
+        </div>
         </div>
     </div>
 </div>

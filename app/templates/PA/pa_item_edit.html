@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+{% endblock %}
+{% block title %}MUMT MIS: Performance Agreement {% endblock %}
+{% include "PA/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include 'messages.html' %}
+            <div class="columns">
+                <div class="column">
+                    {% if task_id %}
+                        <h1 class="title has-text-centered">แก้ไขภาระงาน้</h1>
+                        <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }}</h1>
+                    {% else %}
+                        <h1 class="title has-text-centered">เพิ่มภาระงาน</h1>
+                        <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }}</h1>
+                    {% endif %}
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <br>
+                        <div class="card">
+                            <div class="card-header">
+                                <p class="card-header-title">ส่วนที่ 2 ข้อตกลงการปฏิบัติงาน(Performance Agreement:
+                                    PA)</p>
+                            </div>
+                            <div class="card-content">
+                                <p class="subtitle is-6">
+                                    1.ให้ผู้บังคับบัญชาชั้นต้นและผู้รับการประเมินตกลงร่วมกันเกี่ยวกับภาระงาน ค่าน้ำหนัก
+                                    ตัวชี้วัด เป้าหมาย เกณฑ์การประเมิน ให้สอดคล้องตามลักษณะงาน ตำแหน่งงานและความรู้
+                                    ความสามารถ โดยให้คำนึงถึงแผนยุทธศาสตร์ แผนกลยุทย์ และหรือเป้าหมายของมหาวิทยาลัย
+                                    ส่วนงานและหรือหน่วยงาน</p>
+                                <p class="subtitle is-6">2.ให้ผู้รับการประเมินกรอกภาระงาน ค่าน้ำหนัก ตัวชี้วัด เป้าหมาย
+                                    เกณฑ์การประเมิน เป็นลายลักษณ์อักษร
+                                    พร้อมให้ผู้รับการประเมินและผู้บังคับบัญชาชั้นต้นลงลายมือชื่อไว้ด้วย</p>
+                                <p class="subtitle is-6">2.1 ภาระงานและตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</p>
+                                <table class="table is-fullwidth is-bordered">
+                                    <thead>
+                                    <th>หมวด</th>
+                                    <th>ภาระงาน</th>
+                                    </thead>
+                                    <tbody>
+                                    {% for cat in categories %}
+                                        <tr>
+                                            <td>
+                                                {{ cat }}
+                                            </td>
+                                            <td>
+                                                {% if cat.pa_items.filter_by(pa_id=pa.id).all() %}
+                                                    <table class="table is-fullwidth">
+                                                        <thead>
+                                                        <th>ภาระงาน</th>
+                                                        <th>ร้อยละ(น้ำหนัก)</th>
+                                                        <th>ตัวชี้วัด (หากมีหลายตัวชี้วัดคะแนนจะถูกนำมาเฉลี่ย)</th>
+                                                        <th></th>
+                                                        </thead>
+                                                        <tbody>
+                                                        {% for pa_item in cat.pa_items.filter_by(pa_id=pa.id) %}
+                                                            <tr {% if pa_item_id == pa_item.id %}
+                                                                style="background-color: palegreen" {% endif %}>
+                                                                <td>{{ pa_item.task }}</td>
+                                                                <td>{{ pa_item.percentage }}</td>
+                                                                <td>
+                                                                    <ul>
+                                                                        {% for kpi_item in pa_item.kpi_items %}
+                                                                            <li>{{ kpi_item }}</li>
+                                                                        {% endfor %}
+                                                                    </ul>
+                                                                </td>
+                                                                <td>
+                                                                    <div class="field has-addons">
+                                                                        <div class="control">
+                                                                            <a href="{{ url_for('pa.add_pa_item', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
+                                                                               class="button is-rounded">
+                                                        <span class="icon">
+                                                            <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
+                                                        </span>
+                                                                            </a>
+                                                                        </div>
+                                                                        <div class="control">
+                                                                            <a class="button is-rounded">
+                                                    <span class="icon">
+                                                        <i class="fa-solid fa-trash-can has-text-danger"></i>
+                                                    </span>
+                                                                            </a>
+                                                                        </div>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        {% endfor %}
+                                                        </tbody>
+                                                    </table>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                                <div {% if pa_item_id %}class="notification is-light is-success"{% else %}
+                                     class="notification" {% endif %}>
+                                    <p class="title is-size-4 has-text-centered">
+                                        เพิ่ม/แก้ไขข้อมูลภาระงานและตัวชี้วัด</p>
+                                    <div class="field">
+                                        <label class="label">{{ form.category.label }}</label>
+                                        <div class="select">
+                                            {{ form.category() }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">ภาระงานที่ทำข้อตกลงการปฏิบัติงาน</label>
+                                        <div class="control">
+                                            {{ form.task(class="textarea") }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">ร้อยละ(น้ำหนัก)</label>
+                                        <div class="control">
+                                            {{ form.percentage(class="input") }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">ตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</label>
+                                        <p class="help is-danger">สามารถระบุได้มากกว่า 1 ตัวชี้วัด
+                                            โดยคะแนนจะมาจากค่าเฉลี่ยของทุกตัว</p>
+                                    </div>
+                                    {% if pa.kpis %}
+                                        {% for item_form in form.kpi_items_ %}
+                                            <div class="field">
+                                                <label class="label">{{ item_form.label }}</label>
+                                                <div class="select">
+                                                    {{ item_form() }}
+                                                </div>
+                                            </div>
+                                        {% endfor %}
+                                        <div class="field">
+                                            <div class="control">
+                                                <a href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=pa_round.id) }}">
+                                                    <span class="tag is-link">เพิ่มตัวชี้วัด</span>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    {% else %}
+                                        <div class="field">
+                                            <a href="{{ url_for('pa.add_kpi', pa_id=pa.id) }}">
+                                                กรุณากรอกข้อมูลตัวชี้วัด
+                                            </a>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="field is-grouped is-grouped-centered">
+                                    <div class="control">
+                                        <input type="submit" value="บันทึกภาระงาน" class="button is-success">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('pa.create_request', pa_id=pa.id) }}" class="button is-info is-outlined" aria-haspopup="true" aria-controls="dropdown-menu">
+                            <span class="icon">
+                                <i class="fa-sharp fa-solid fa-paper-plane"></i>
+                            </span>
+                            <span>ส่งคำขอ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <h1 class="title">สถานะการประเมินภาระงาน</h1>
+                    <table class="table">
+                        <thead>
+                        <th>สร้างเมื่อ</th>
+                        <th>เพื่อ</th>
+                        <th>รายละเอียด</th>
+                        <th>สถานะ</th>
+                        <th>ส่งเมื่อ</th>
+                        <th>ตอบกลับเมื่อ</th>
+                        <th>comment</th>
+                        <th>หัวหน้าส่วนงาน</th>
+                        </thead>
+                        <tbody>
+                        {% for req in pa.requests %}
+                            <tr>
+                                <td>{{ req.created_at|localdatetime }}</td>
+                                <td>{{ req.for_ }}</td>
+                                <td>{{ req.detail }}</td>
+                                <td>{{ req.status or 'ระหว่างดำเนินการ' }}</td>
+                                <td>{{ req.submitted_at|localdatetime }}</td>
+                                <td>{{ req.responded_at or '' }}</td>
+                                <td>{{ req.supervisor_comment }}</td>
+                                <td>{{ req.supervisor.fullname }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        let dropdown = document.querySelector('.dropdown');
+        dropdown.addEventListener('click', function (event) {
+            event.preventDefault()
+            event.stopPropagation();
+            dropdown.classList.toggle('is-active');
+        });
+    </script>
+{% endblock %}

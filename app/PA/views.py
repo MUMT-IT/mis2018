@@ -1,12 +1,11 @@
 # -*- coding:utf-8 -*-
 import datetime
 import pytz
+import arrow
 from sqlalchemy import and_
 from . import pa_blueprint as pa
 
-from app.PA.models import *
 from app.roles import hr_permission, manager_permission
-from app.models import Org
 from app.PA.forms import *
 
 tz = pytz.timezone('Asia/Bangkok')
@@ -24,22 +23,71 @@ def user_performance():
                            name=current_user, rounds=rounds)
 
 
-@pa.route('/staff/rounds/<int:round_id>/tasks/add', methods=['GET', 'POST'])
+@pa.route('/rounds/<int:round_id>/items/add', methods=['GET', 'POST'])
+@pa.route('/rounds/<int:round_id>/pa/<int:pa_id>/items/<int:item_id>/edit', methods=['GET', 'POST'])
 @login_required
-def add_task_detail(round_id):
-    round = PARound.query.get(round_id)
-    form = PAItemForm()
+def add_pa_item(round_id, item_id=None, pa_id=None):
+    pa_round = PARound.query.get(round_id)
+    categories = PAItemCategory.query.all()
+    if pa_id:
+        pa = PAAgreement.query.get(pa_id)
+    else:
+        pa = PAAgreement.query.filter_by(round_id=round_id,
+                                         staff=current_user).first()
+    if pa is None:
+        pa = PAAgreement(round_id=round_id,
+                         staff=current_user,
+                         created_at=arrow.now('Asia/Bangkok').datetime)
+        db.session.add(pa)
+        db.session.commit()
+
+    if item_id:
+        pa_item = PAItem.query.get(item_id)
+        form = PAItemForm(obj=pa_item)
+    else:
+        pa_item = None
+        form = PAItemForm()
+
+    for kpi in pa.kpis:
+        items = []
+        default = None
+        for item in kpi.pa_kpi_items:
+            items.append((item.id, item.goal))
+            if pa_item:
+                if item in pa_item.kpi_items:
+                    default = item.id
+        field_ = form.kpi_items_.append_entry(default)
+        field_.choices = [('', 'ไม่ระบุเป้าหมาย')] + items
+        field_.label = kpi.detail
+
     if form.validate_on_submit():
-        new_task = PAItem()
-        form.populate_obj(new_task)
-        new_task.staff_id = current_user.id
-        db.session.add(new_task)
+        for i in range(len(pa.kpis)):
+            form.kpi_items_.pop_entry()
+
+        if not pa_item:
+            pa_item = PAItem()
+        form.populate_obj(pa_item)
+        new_kpi_items = []
+        for e in form.kpi_items_.entries:
+            if e.data:
+                kpi_item = PAKPIItem.query.get(int(e.data))
+                if kpi_item:
+                    new_kpi_items.append(kpi_item)
+        pa_item.kpi_items = new_kpi_items
+        pa.pa_items.append(pa_item)
+        db.session.add(pa_item)
         db.session.commit()
         flash('เพิ่มรายละเอียดภาระงานเรียบร้อย', 'success')
+        return redirect(url_for('pa.add_pa_item', round_id=round_id))
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
-    return render_template('pa/task_detail_edit.html', form=form, round=round)
+    return render_template('pa/pa_item_edit.html',
+                           form=form,
+                           pa_round=pa_round,
+                           pa=pa,
+                           pa_item_id=item_id,
+                           categories=categories)
 
 
 @pa.route('/staff/items/add', methods=['POST', 'GET'])
@@ -92,27 +140,28 @@ def add_tasks():
 #     return redirect(url_for('pa.show_task_detail', staff_id=staff_id))
 
 
-@pa.route('/staff/rounds/<int:round_id>/kpi/add', methods=['GET', 'POST'])
+@pa.route('/pa/<int:pa_id>/kpis/add', methods=['GET', 'POST'])
 @login_required
-def add_kpi(round_id):
-    round = PARound.query.get(round_id)
+def add_kpi(pa_id):
+    round_id = request.args.get('round_id', type=int)
     form = PAKPIForm()
     if form.validate_on_submit():
         new_kpi = PAKPI()
         form.populate_obj(new_kpi)
-        # new_kpi.kpi_id = kpi_id
+        new_kpi.pa_id = pa_id
         db.session.add(new_kpi)
         db.session.commit()
         flash('เพิ่มรายละเอียดเกณฑ์การประเมินเรียบร้อย', 'success')
+        return redirect(url_for('pa.add_kpi'), pa_id=pa_id)
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
-    return render_template('pa/add_kpi.html', form=form, round=round)
+    return render_template('pa/add_kpi.html', form=form, round_id=round_id, pa_id=pa_id)
 
 
 @pa.route('/staff/rounds/<int:round_id>/task/view')
 @login_required
-def view_task_detail(round_id):
+def view_pa_item(round_id):
     round = PARound.query.get(round_id)
     agreement = PAAgreement.query.all()
     return render_template('pa/view_task.html', round=round, agreement=agreement)
@@ -163,7 +212,7 @@ def add_commitee():
 @pa.route('/hr/committee', methods=['GET', 'POST'])
 @login_required
 def show_commitee():
-    #TODO: org filter
+    # TODO: org filter
     org_id = request.args.get('deptid')
     departments = Org.query.all()
     if org_id is None:
@@ -175,37 +224,67 @@ def show_commitee():
                            departments=[{'id': d.id, 'name': d.name} for d in departments])
 
 
+@pa.route('/pa/<int:pa_id>/requests', methods=['GET', 'POST'])
+def create_request(pa_id):
+    pa = PAAgreement.query.get(pa_id)
+    form = PARequestForm()
+    supervisor_email = current_user.personal_info.org.head or current_user.personal_info.org.parent.head
+    supervisor = StaffAccount.query.filter_by(email=supervisor_email).first()
+    if form.validate_on_submit():
+        new_request = PARequest()
+        form.populate_obj(new_request)
+        new_request.pa_id = pa_id
+        right_now = arrow.now('Asia/Bangkok').datetime
+        new_request.created_at = right_now
+        new_request.submitted_at = right_now
+        new_request.supervisor = supervisor
+        db.session.add(new_request)
+        db.session.commit()
+        flash('ส่งคำขอเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+    return render_template('PA/request_form.html', form=form, pa=pa)
+
+
 @pa.route('/head/requests')
 @login_required
 def all_request():
-    all_req = PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.submitted_at!=None).all()
-    #all_req = PARequest.query.filter_by(supervisor_id=current_user.id).all()
+    all_req = PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.submitted_at != None).all()
+    # all_req = PARequest.query.filter_by(supervisor_id=current_user.id).all()
     return render_template('pa/head_all_request.html', all_req=all_req)
+
+
+@pa.route('/head/request/<int:request_id>/detail')
+@login_required
+def view_request(request_id):
+    categories = PAItemCategory.query.all()
+    req = PARequest.query.get(request_id)
+    return render_template('PA/head_respond_request.html',
+                           categories=categories, req=req)
 
 
 @pa.route('/head/request/<int:request_id>', methods=['GET', 'POST'])
 @login_required
 def respond_request(request_id):
     req = PARequest.query.get(request_id)
-    form = PARequestForm(obj=req)
-    #TODO: for_ required
-    if form.validate_on_submit():
-        form.populate_obj(req)
-        req.responded_at = datetime.datetime.now(tz)
+    if request.method == 'POST':
+        form = request.form
+        req.status = form.get('approval')
+        if req.for_ == 'ขอรับรอง':
+            req.pa.approved_at = arrow.now('Asia/Bangkok').datetime
+        elif req.for_ == 'ขอแก้ไข':
+            req.pa.approved_at = None
+        req.responded_at = arrow.now('Asia/Bangkok').datetime
+        req.supervisor_comment = form.get('supervisor_comment')
         db.session.add(req)
         db.session.commit()
-        flash('บันทึกผลเรียบร้อยแล้ว', 'success')
-        return redirect(url_for('pa.all_request'))
-    else:
-        for err in form.errors:
-            flash('{}: {}'.format(err, form.errors[err]), 'danger')
-    return render_template('pa/head_respond_request.html', form=form, req=req)
+        flash('ดำเนินการอนุมัติเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('pa.all_request'))
 
 
 @pa.route('/cmte/all_pa_agreement', methods=['GET', 'POST'])
 @login_required
 def all_pa_agreement():
-    #pa = PAAgreement.query.filter(and_(PARequest.submitted_at !='',PARequest.for_=='ขอรับการประเมิน')).all()
+    # pa = PAAgreement.query.filter(and_(PARequest.submitted_at !='',PARequest.for_=='ขอรับการประเมิน')).all()
     pa = PAAgreement.query.all()
     return render_template('pa/cmte_all_pa_agreement.html', pa=pa)
 
@@ -234,15 +313,15 @@ def rate_performance(pa_id, item_id):
 @login_required
 def all_scoresheet():
     # evaluator = PAScoreSheet.query.filter(PACommittee.org_id).all()
-    pa = PAAgreement.query.filter(and_(PARequest.submitted_at !='',
-                                       PARequest.for_=='ขอรับการประเมิน')).all()
+    pa = PAAgreement.query.filter(and_(PARequest.submitted_at != '',
+                                       PARequest.for_ == 'ขอรับการประเมิน')).all()
     return render_template('pa/cmte_all_scoresheet.html', pa=pa)
 
 
 @pa.route('/head/create-scoresheet/<int:pa_id>', methods=['GET', 'POST'])
 @login_required
 def create_scoresheet(pa_id):
-    #scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id, committee_id=current_user.id).first()
+    # scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id, committee_id=current_user.id).first()
     scoresheet = PAScoreSheet.query.all()
     return render_template('pa/cmte_all_performance.html', scoresheet=scoresheet)
     # if not scoresheet:

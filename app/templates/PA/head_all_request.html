@@ -29,21 +29,14 @@
                         <td>
                             {{ req.for_ }}
                         </td>
-                        {% if req.responded_at %}
                         <td>
-                            <a href="{{ url_for('pa.respond_request', request_id=req.id) }}"
-                               class="button is-small">
+                            {% if req.responded_at %}
+                            <a href="{{ url_for('pa.view_request', request_id=req.id) }}"
+                               class="button is-small is-rounded is-outlined">
                                 <span>รายละเอียด</span>
                             </a>
+                            {% endif %}
                         </td>
-                        {% else %}
-                        <td>
-                            <a href="{{ url_for('pa.respond_request', request_id=req.id) }}"
-                               class="button is-small is-info">
-                                <span>ดำเนินการอนุมัติ</span>
-                            </a>
-                        </td>
-                        {% endif %}
                     </tr>
                     {% endfor %}
                     </tbody>

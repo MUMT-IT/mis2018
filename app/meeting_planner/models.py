@@ -23,6 +23,7 @@ class MeetingEvent(db.Model):
     cancelled_by = db.Column('cancelled_by', db.ForeignKey('staff_account.id'))
     notify_participants = db.Column('notify_participants', db.Boolean(), default=True, info={'label': 'แจ้งเตือนผู้เข้าร่วมประชุม'})
     meeting_events = db.relationship('RoomEvent')
+    meeting_url = db.Column('meeting_url', db.Text(), info={'label': 'ลิงค์ประชุมออนไลน์'})
 
     @property
     def participants(self):
