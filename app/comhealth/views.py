@@ -8,6 +8,8 @@ from flask_cors import cross_origin
 from pandas import read_excel, isna
 from bahttext import bahttext
 from decimal import Decimal
+
+from sqlalchemy import or_
 from sqlalchemy.orm.attributes import flag_modified
 from sqlalchemy.sql import and_
 from flask import (render_template, flash, redirect,
@@ -224,15 +226,82 @@ def register_customer_to_service_org(service_id, org_id):
 @comhealth.route('/services/<int:service_id>')
 @login_required
 def display_service_customers(service_id):
-    service = ComHealthService.query.get(service_id)
-    return render_template('comhealth/service_customers.html', service=service)
+    return render_template('comhealth/service_customers.html', service_id=service_id)
 
+
+@comhealth.route('api/services/<int:service_id>/customers')
+@login_required
+def get_services_customers(service_id):
+    query = ComHealthRecord.query.filter_by(service_id=service_id)
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    col_idx = request.args.get('order[0][column]')
+    direction = request.args.get('order[0][dir]')
+    col_name = request.args.get('columns[{}][data]'.format(col_idx))
+    query = query.join(ComHealthCustomer,aliased=True).filter(or_(
+        ComHealthCustomer.firstname.contains(search),
+        ComHealthCustomer.lastname.contains(search),
+        ComHealthRecord.labno.contains(search)))
+    try:
+        column = getattr(ComHealthCustomer,col_name)
+    except AttributeError:
+        column = getattr(ComHealthRecord, col_name)
+    if direction == 'desc':
+        column = column.desc()
+    query = query.order_by(column)
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        if item.checkin_datetime != None:
+            item_data['check_in_time'] = '<a class="button is-rounded is-light" href="{}" <div><span class="icon"><i class="fas fa-user-check has-text-success"></i></span><span>Check in</span></div></a>'.format(
+            url_for('comhealth.edit_record',record_id=item.id))
+        else:
+            item_data['check_in_time'] = '<a class="button is-rounded is-light" href="{}" <div><span class="icon"><i class="fas fa-user"></i></span><span>Check in</span></div></a>'.format(
+                url_for('comhealth.edit_record', record_id=item.id))
+        item_data['customer_info']= '<a class="button is-rounded is-light" href="{}" <span class="icon"><i class="fas fa-pencil-alt"></i></span></a>'.format(
+            url_for('comhealth.edit_customer_data',customer_id=item.customer_id))
+        item_data['note_info'] = '<a class="button is-rounded is-light" href="{}" <span class="icon"><i class="fas fa-book"></span></i></a>'.format(
+            url_for('comhealth.edit_note_data',record_id=item.id))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': records_total,
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 @comhealth.route('/services/<int:service_id>/pre-register')
 def pre_register(service_id):
     service = ComHealthService.query.get(service_id)
     return render_template('comhealth/pre_register.html', service=service)
 
+@comhealth.route('api/services/<int:service_id>/pre-register')
+@login_required
+def get_services_pre_register(service_id):
+    query = ComHealthRecord.query.filter_by(service_id=service_id)
+    records_total = query.count()
+    search = request.args.get('search[value]')
+    query = query.join(ComHealthCustomer,aliased=True).filter(or_(
+        ComHealthCustomer.firstname.contains(search),
+        ComHealthCustomer.lastname.contains(search)))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['customer_pre_register'] = '<a class="button is-light is-link" href="{}" <span>ลงทะเบียน</span></a>'.format(
+            url_for('comhealth.pre_register_login', service_id=service_id,record_id=item.id))
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': records_total,
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 @comhealth.route('/services/<int:service_id>/pre-register/<int:record_id>/login', methods=['GET', 'POST'])
 def pre_register_login(service_id, record_id):
@@ -357,7 +426,7 @@ def edit_record(record_id):
             else:
                 flash(u'หมายเลข lab number ไม่ถูกต้อง', 'warning')
                 return redirect(url_for('comhealth.edit_record', record_id=record_id))
-
+        record.ordered_tests = []
         for field in request.form:
             if field.startswith('test_'):
                 _, test_id = field.split('_')
@@ -1102,7 +1171,7 @@ def scan_container(service_id, container_id):
                         db.session.commit()
                     return render_template('comhealth/scan_container.html', service=service,
                                        container=container, specimens_no=specimens_no,
-                                       checkin_record=checkin_record, recents=recents)
+                                       checkin_record=checkin_record, recents=recents[:5])
                     check_is_container = 1
                     break
             if check_is_container == 0:
@@ -1110,7 +1179,7 @@ def scan_container(service_id, container_id):
         else:
             flash(specimens_no + '  no register.', 'danger')
 
-    return render_template('comhealth/scan_container.html', service=service, container=container, recents=recents)
+    return render_template('comhealth/scan_container.html', service=service, container=container, recents=recents[:5])
 
 
 @comhealth.route('/organizations')
@@ -1260,7 +1329,7 @@ def edit_note_data(record_id):
         record.note = request.form.get('note')
         db.session.add(record)
         db.session.commit()
-        return redirect(request.args.get('next'))
+        return redirect(request.args.get('next',url_for('comhealth.get_services_customers',service_id=record.service_id)))
     return render_template('comhealth/edit_note.html',record=record)
 
 @comhealth.route('/customers/<int:customer_id>/edit', methods=['GET', 'POST'])
@@ -1310,7 +1379,7 @@ def edit_customer_data(customer_id):
     else:
         flash('Customer not found.', 'warning')
         return redirect(request.args.get('next'))
-    return render_template('comhealth/edit_customer_data.html', form=form)
+    return render_template('comhealth/edit_customer_data.html', form=form, customer=customer)
 
 
 # TODO: export the price of tests
