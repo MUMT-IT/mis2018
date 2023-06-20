@@ -139,17 +139,6 @@
                                 </label>
                             </div>
                             <div class="control">
-                                <a href="{{ url_for('pa.create_scoresheet', pa_id=req.pa_id) }}"
-                                   class="button is-warning">เริ่มการประเมิน</a>
-                            </div>
-                        </div>
-                        <div class="field is-grouped is-grouped-centered">
-                            <div class="control">
-                                <a href="{{ url_for('pa.assign_committee', pa_id=req.pa_id) }}"
-                                   class="button is-warning">แต่งตั้งกลุ่มผู้ประเมิน</a>
-                            </div>
-                        </div>
-                        {% endif %}
                                 <label class="label">
                                     <input type="radio" checked name="approval" value="yes">
                                     อนุมัติ
@@ -172,6 +161,19 @@
                             </div>
                         </div>
                     </form>
+                    {% if req.pa.approved_at %}
+                    <div class="field is-grouped is-grouped-centered">
+                        <div class="control">
+                            <a href="{{ url_for('pa.create_scoresheet', pa_id=req.pa_id) }}"
+                               class="button is-warning">เริ่มการประเมิน</a>
+                        </div>
+                            <div class="control">
+                                <a href="{{ url_for('pa.assign_committee', pa_id=req.pa_id) }}"
+                                   class="button is-warning">กำหนดผู้ประเมิน</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

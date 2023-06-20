@@ -156,7 +156,7 @@ class PAScoreSheetItem(db.Model):
     __tablename__ = 'pa_score_sheet_items'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     score_sheet_id = db.Column(db.ForeignKey('pa_score_sheets.id'))
-    score_sheet = db.relationship('PAScoreSheet', backref=db.backref('score_sheet_item'), foreign_keys=[score_sheet_id])
+    score_sheet = db.relationship('PAScoreSheet', backref=db.backref('score_sheet_items'), foreign_keys=[score_sheet_id])
     item_id = db.Column(db.ForeignKey('pa_items.id'))
     item = db.relationship('PAItem', backref=db.backref('pa_score_item'), foreign_keys=[item_id])
     kpi_item_id = db.Column(db.ForeignKey('pa_kpi_items.id'))

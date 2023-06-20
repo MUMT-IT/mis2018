@@ -20,7 +20,7 @@
                     </div>
                 </div>
             </div>
-            <form method="post">
+            <form method="post" action="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="columns">
                     <div class="column">
@@ -34,13 +34,13 @@
                             <th><div class="tag is-info">ให้คะแนน(0-10 คะแนน)</div></th>
                             </thead>
                             <tbody>
-                            {% for s in scoresheet.score_sheet_item %}
+                            {% for s in scoresheet.score_sheet_items %}
                                 <tr>
                                     <td>
-                                        {{ s.item }}<br>
-                                        <div class="tag">
+                                        <p class="tag is-info">{{ s.item }}</p>
+                                        <p class="help">
                                             {{ s.kpi_item }}
-                                        </div>
+                                        </p>
                                     </td>
                                     <td>
                                         {{ s.item.percentage }}
@@ -48,10 +48,12 @@
                                     <td>
                                         {{ s.kpi_item.kpi.type }}
                                     </td>
-                                    <td>
+                                    <td class="content">
+                                    <ul>
                                         {% for kpi in s.kpi_item.kpi.pa_kpi_items %}
-                                            {{ kpi.goal }}<br>
+                                            <li>{{ kpi.goal }} ({{ kpi.level }})</li>
                                         {% endfor %}
+                                    </ul>
                                     </td>
                                     <td>
 
@@ -60,8 +62,8 @@
                                         {% if not s.score %}
                                         <div class="field">
                                             <div class="control">
-                                                <input class="input" required step="0.5"
-                                                       type="number" min="0" max="10" id="score"/>
+                                                <input class="input" required name="pa-item-{{ s.id }}"
+                                                       step="0.5" type="number" min="0" max="10" id="score"/>
                                             </div>
                                         </div>
                                         {% else %}
