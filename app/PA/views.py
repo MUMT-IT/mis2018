@@ -412,9 +412,14 @@ def rate_performance(scoresheet_id):
     # TODO: get score of each item
     if request.method == 'POST':
         form = request.form
-        score = form.get('score')
-        scoresheet.is_consolidated = True
-        print(score)
+        print(form)
+        for field, value in form.items():
+            if field.startswith('pa-item-'):
+                scoresheet_item_id = field.split('-')[-1]
+                scoresheet_item = PAScoreSheetItem.query.get(scoresheet_item_id)
+                scoresheet_item.score = int(value)
+                db.session.add(scoresheet_item)
+        db.session.commit()
         flash('ส่งผลประเมินไปยังประธานกรรมเรียบร้อยแล้ว', 'success')
     #TODO: In template, disable submit buttom if the scoresheet alread have score
     return render_template('pa/eva_rate_performance.html', scoresheet=scoresheet, head_score=head_score)

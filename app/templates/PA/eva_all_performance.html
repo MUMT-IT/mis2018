@@ -51,7 +51,7 @@
                     <th>คะแนนที่ให้</th>
                     </thead>
                     <tbody>
-                    {% for item in scoresheet.pa.pa_item %}
+                    {% for item in scoresheet.pa.pa_items %}
                     <tr>
                         <td>
                             {{ item.task }}
@@ -59,53 +59,15 @@
                         <td>
                             {{ item.percentage }}
                         </td>
+                        {% for t in ['ปริมาณ', 'คุณภาพ', 'เวลา', 'ความคุ้มค่า', 'ความพึงพอใจ'] %}
                         <td>
-                            {% for kpi in item.kpi_items %}
-                                {% if kpi.kpi.type == 'เวลา' %}
-
-                                    {{ kpi.goal }}<br>
-
+                            {% for kpi_item in item.kpi_items %}
+                                {% if kpi_item.kpi.type == t %}
+                                    {{ kpi_item.goal }}<br>
                                 {% endif %}
                             {% endfor %}
                         </td>
-                        <td>
-                            {% for kpi in item.kpi_items %}
-                                {% if kpi.kpi.type == 'คุณภาพ' %}
-
-                                    {{ kpi.goal }}<br>
-
-                                {% endif %}
-                            {% endfor %}
-                        </td>
-                        <td>
-                            {% for kpi in item.kpi_items %}
-                                {% if kpi.kpi.type == 'เวลา' %}
-
-                                    {{ kpi.goal }}<br>
-
-                                {% endif %}
-                            {% endfor %}
-                        </td>
-                        <td>
-                            {% for kpi in item.kpi_items %}
-                                {% if kpi.kpi.type == 'ความคุ้มค่า' %}
-
-                                    {{ kpi.goal }}<br>
-
-                                {% endif %}
-                            {% endfor %}
-                        </td>
-                        <td>
-                            {% for kpi in item.kpi_items %}
-                                {% if kpi.kpi.type == 'ความพึงพอใจ' %}
-
-                                    {{ kpi.goal }}<br>
-
-                                {% endif %}
-                            {% endfor %}
-                        </td>
-                        <td>
-                        </td>
+                        {% endfor %}
                     </tr>
                     {% endfor %}
                     </tbody>
