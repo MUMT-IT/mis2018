@@ -66,7 +66,7 @@ class ComHealthCashier(db.Model):
     __tablename__ = 'comhealth_cashier'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
-    staff = db.relationship('StaffAccount', backref=db.backref('cashier',
+    staff = db.relationship('StaffAccount', backref=db.backref('comhealth_cashier',
                                                                cascade='all, delete-orphan',
                                                                uselist=False))
     position = db.Column('position', db.String(255))
@@ -429,7 +429,7 @@ class ComHealthReceiptID(db.Model):
         while count > RECEIPT_PER_BOOK:
             count -= RECEIPT_PER_BOOK
             number += 1
-        return u'{}{}{:03}'.format(self.code, str(self.buddhist_year)[-2:], number)
+        return u'{}{}{:05}'.format(self.code, u'-', number)
 
 
 class ComHealthReceipt(db.Model):
@@ -510,24 +510,24 @@ class ComHealthConsentRecord(db.Model):
     detail_id = db.Column('detail_id', db.ForeignKey('comhealth_consent_details.id'))
 
 
-class ComHealthCustomerInfoSchema(ma.ModelSchema):
+class ComHealthCustomerInfoSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = ComHealthCustomerInfo
 
 
-class ComHealthCustomerEmploymentTypeSchema(ma.ModelSchema):
+class ComHealthCustomerEmploymentTypeSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = ComHealthCustomerEmploymentType
 
 
-class ComHealthCustomerSimpleSchema(ma.ModelSchema):
+class ComHealthCustomerSimpleSchema(ma.SQLAlchemyAutoSchema):
     emptype = fields.Nested(ComHealthCustomerEmploymentTypeSchema(only=('name',)))
 
     class Meta:
         model = ComHealthCustomer
 
 
-class ComHealthCustomerSchema(ma.ModelSchema):
+class ComHealthCustomerSchema(ma.SQLAlchemyAutoSchema):
     info = fields.Nested(ComHealthCustomerInfoSchema)
     emptype = fields.Nested(ComHealthCustomerEmploymentTypeSchema(only=('name',)))
 
@@ -535,17 +535,17 @@ class ComHealthCustomerSchema(ma.ModelSchema):
         model = ComHealthCustomer
 
 
-class ComHealthReceiptSchema(ma.ModelSchema):
+class ComHealthReceiptSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = ComHealthReceipt
 
 
-class ComHealthFinanceContactReasonSchema(ma.ModelSchema):
+class ComHealthFinanceContactReasonSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = ComHealthFinanceContactReason
 
 
-class ComHealthRecordSchema(ma.ModelSchema):
+class ComHealthRecordSchema(ma.SQLAlchemyAutoSchema):
     customer = fields.Nested(ComHealthCustomerSimpleSchema(only=('title', 'firstname',
                                                                  'lastname', 'emptype')))
     finance_contact = fields.Nested(ComHealthFinanceContactReasonSchema(only=('reason',)))
@@ -555,44 +555,44 @@ class ComHealthRecordSchema(ma.ModelSchema):
         model = ComHealthRecord
 
 
-class ComHealthRecordCustomerSchema(ma.ModelSchema):
+class ComHealthRecordCustomerSchema(ma.SQLAlchemyAutoSchema):
     customer = fields.Nested(ComHealthCustomerSchema(only=("id", "firstname", "lastname", "hn")))
 
     class Meta:
         model = ComHealthRecord
 
 
-class ComHealthServiceSchema(ma.ModelSchema):
+class ComHealthServiceSchema(ma.SQLAlchemyAutoSchema):
     records = fields.Nested(ComHealthRecordSchema, many=True)
 
     class Meta:
         model = ComHealthService
 
 
-class ComHealthServiceOnlySchema(ma.ModelSchema):
+class ComHealthServiceOnlySchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = ComHealthService
 
 
-class ComHealthTestProfileSchema(ma.ModelSchema):
+class ComHealthTestProfileSchema(ma.SQLAlchemyAutoSchema):
     quote = fields.String()
 
     class Meta:
         model = ComHealthTestProfile
 
 
-class ComHealthTestGroupSchema(ma.ModelSchema):
+class ComHealthTestGroupSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = ComHealthTestGroup
 
 
-class ComHealthTestSchema(ma.ModelSchema):
+class ComHealthTestSchema(ma.SQLAlchemyAutoSchema):
     default_price = fields.String()
 
     class Meta:
         model = ComHealthTest
 
 
-class ComHealthOrgSchema(ma.ModelSchema):
+class ComHealthOrgSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = ComHealthOrg

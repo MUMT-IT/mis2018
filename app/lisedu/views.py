@@ -1,7 +1,7 @@
 from . import lisedu as edu
 from flask import render_template, request, flash, redirect, url_for
 from flask_login import login_user
-from models import StudentUser
+from app.lisedu.models import StudentUser
 from ..models import Student
 
 

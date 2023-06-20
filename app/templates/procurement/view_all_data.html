@@ -1,87 +1,66 @@
 {% extends "base.html" %}
-{% include "nav.html" %}
-{% block head %}
-{{ super() }}
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
-{% endblock %}
+{% include "procurement/nav.html" %}
 {% block page_content %}
-<section class="section">
-    {% include "messages.html" %}
-    <div class="container">
-        <div class="columns">
-            <div class="column has-text-left">
-                <h1 class="title">ข้อมูลครุภัณฑ์ทั้งหมด</h1>
+    <section class="section">
+        {% include "messages.html" %}
+        <div class="container">
+            <div class="columns">
+                <div class="column has-text-left">
+                    <h1 class="title">ข้อมูลครุภัณฑ์ทั้งหมด</h1>
+                </div>
             </div>
-        </div>
-        <div class="columns">
-            <div class="column">
-                <table class="table is-striped" id="procurementTable">
-                    <thead>
+            <div class="columns">
+                <div class="column">
+                    <table id="data" class="table is-fullwidth is-striped">
+                        <thead>
+                        <th>View</th>
+                        <th>Edit</th>
                         <th>รายการ</th>
                         <th>รหัสครุภัณฑ์</th>
-                        <th>ERP</th>
+                        <th>Inventory Number/ERP</th>
                         <th>ปีงบประมาณ</th>
                         <th>วันที่ได้รับ</th>
-                        <th>จัดซื้อด้วยเงิน</th>
                         <th>สถานะ</th>
-                        <th>ดูข้อมูล</th>
-                        <th>แก้ไข</th>
-                    </thead>
-                    <tbody>
-                    {% for record in procurement_list %}
-                    <tr>
-                        <td>
-                            {{ record["name"] }}
-                        </td>
-                        <td>
-                            {{ record["procurement_no"] }}
-                        </td>
-                        <td>
-                            {{ record["erp_code"] }}
-                        </td>
-                        <td>
-                            {{ record["budget_year"] }}
-                        </td>
-                        <td>
-                            {{ record["received_date"] }}
-                        </td>
-                        <td>
-                            {{ record["bought_by"] }}
-                        </td>
-                        <td>
-                            {{ record["available"] }}
-                        </td>
-                        <td>
-                             <a href="{{ url_for('procurement.view_qrcode', procurement_id=record.id) }}">
-                                <i class="fas fa-eye"></i></a>
-                        </td>
-                        <td>
-                            <a href="{{ url_for('procurement.edit_procurement', procurement_id=record.id) }}">
-                                <i class="fas fa-edit"></i></a>
-                        </td>
-                    {% endfor %}
-                    </tbody>
-                </table>
+
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
-        <div class="columns">
-            <div class="column">
-                <a href="{{ url_for('procurement.index') }}" class="button is-rounded is-info is-light">
+            <div class="columns">
+                <div class="column">
+                    <a href="{{ url_for('procurement.landing') }}" class="button is-rounded is-info is-light">
                     <span class="icon">
                         <i class="fas fa-arrow-left"></i>
                     </span>
-                    <span>กลับ</span>
-                </a>
+                        <span>กลับ</span>
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
 {% block scripts %}
-{{ super() }}
-<script>
-    $(document).ready(function(){
-        $('#procurementTable').DataTable();
-    });
-</script>
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#data').DataTable({
+                searchDelay: 350,
+                ajax: '{{ url_for("procurement.get_procurement_data") }}',
+                serverSide: true,
+                columns: [
+                    {data: 'view'},
+                    {data: 'edit'},
+                    {data: 'name'},
+                    {data: 'procurement_no'},
+                    {data: 'erp_code'},
+                    {data: 'budget_year'},
+                    {data: 'received_date'},
+                    {data: 'available'}
+
+                ],
+            });
+        });
+    </script>
 {% endblock %}

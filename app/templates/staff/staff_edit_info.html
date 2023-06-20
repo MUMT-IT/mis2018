@@ -74,6 +74,20 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
+                            <label class="label">Title</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                           name="en_title" type="text" placeholder="ภาษาอังกฤษ"
+                                           value="{{ staff.en_title }}">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
                             <label class="label">Firstname</label>
                         </div>
                         <div class="field-body">
@@ -88,20 +102,6 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
-                            <label class="label">Title</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control">
-                                    <input class="input"
-                                           name="th_title" type="text" placeholder="ภาษาอังกฤษ"
-                                           value="{{ staff.en_title }}">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field is-horizontal">
-                        <div class="field-label is-normal">
                             <label class="label">Lastname</label>
                         </div>
                         <div class="field-body">
@@ -110,6 +110,19 @@
                                     <input class="input"
                                         name="en_lastname" type="text" placeholder="ภาษาอังกฤษ"
                                            value="{{ staff.en_lastname }}" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">ตำแหน่ง</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <input class="input"
+                                        name="position" type="text" placeholder="ตำแหน่ง" value="{{ staff.position }}">
                                 </div>
                             </div>
                         </div>
@@ -225,12 +238,54 @@
                             </label>
                         </div>
                     </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">กรณีลาออก ระบุวันลาออก</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <b-datepicker
+                                        required
+                                        name="resignation_date"
+                                        v-model="selectedResignDate"
+                                        icon-pack="fa"
+                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                        :mobile-native="false"
+                                        :date-formatter="formatResignDate"
+                                        icon="calendar-alt">
+                                    </b-datepicker>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
+                            <label class="label">กรณีเกษียณอายุ ระบุวันที่</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <div class="control">
+                                    <b-datepicker
+                                        required
+                                        name="retirement_date"
+                                        v-model="selectedRetiredDate"
+                                        icon-pack="fa"
+                                        placeholder="คลิกเพื่อเปิดปฏิทิน..."
+                                        :mobile-native="false"
+                                        :date-formatter="formatRetiredDate"
+                                        icon="calendar-alt">
+                                    </b-datepicker>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
-                                <input type="submit" value="บันทึก" class="button is-info"/>
-                            </div>
+                            <a href="{{ url_for('staff.staff_search_info') }}" class="button is-light">ยกเลิก</a>
+                        </div>
                         <div class="control">
-                            <a href="{{ url_for('staff.staff_search_info') }}" class="button is-danger">ยกเลิก</a>
+                                <input type="submit" value="บันทึก" class="button is-primary"/>
                         </div>
                     </div>
                 </form>
@@ -250,12 +305,22 @@
             return {
                 empDate: [],
                 selectedEmpDate: {% if emp_date %} new Date({{ emp_date|tojsdatetime(single=True) }}) {% else %} null {% endif %},
+                selectedResignDate: {% if resign_date %} new Date({{ resign_date|tojsdatetime(single=True) }}) {% else %} null {% endif %},
+                selectedRetiredDate: {% if retired_date %} new Date({{ retired_date|tojsdatetime(single=True) }}) {% else %} null {% endif %},
                 employed: "active",
             }
         },
         methods: {
             formatDate(employed_date){
                 let date = new moment(employed_date).format("DD/MM/YYYY")
+                return date
+            },
+            formatResignDate(resignation_date){
+                let date = new moment(resignation_date).format("DD/MM/YYYY")
+                return date
+            },
+            formatRetiredDate(retirement_date){
+                let date = new moment(retirement_date).format("DD/MM/YYYY")
                 return date
             }
         },

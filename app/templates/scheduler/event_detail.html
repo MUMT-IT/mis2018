@@ -43,25 +43,6 @@
                                         &nbsp;{{ event.occupancy }} คน
                                     </span>
                                 </p>
-                                <p>
-                                    <span class="subtitle is-6">
-                                        {% if event.approved %}
-                                            <span class="icon">
-                                            <i class="far fa-check-circle has-text-success"></i>
-                                        </span>
-                                            <span class="has-text-success">
-                                            &nbsp;อนุมัติแล้ว
-                                            </span>
-                                        {% else %}
-                                            <span class="icon">
-                                                <i class="far fa-circle has-text-danger"></i>
-                                            </span>
-                                            <span class="has-text-danger">
-                                                &nbsp;รอการอนุมัติ
-                                            </span>
-                                        {% endif %}
-                                    </span>
-                                </p>
                             </div>
                         </div>
                         <footer class="card-footer">
@@ -71,29 +52,21 @@
                                 </span>
                                 <span>กลับ</span>
                             </a>
-                            {% if not event.approved %}
-                                <a href="{{ url_for('room.approve_event', event_id=event.id) }}"
-                                   class="card-footer-item">
-                                    <span class="icon">
-                                        <i class="far fa-calendar-check has-text-success"></i>
-                                    </span>
-                                    <span class="has-text-success">อนุมัติ (สำหรับผู้ดูแลห้อง)</span>
-                                </a>
+                            {% if current_user == event.creator %}
                                 <a href="{{ url_for('room.edit_detail', event_id=event.id) }}"
                                    class="card-footer-item">
                                     <span class="icon">
-                                        <i class="fas fa-pencil-alt has-text-link"></i>
+                                        <i class="fas fa-pencil-alt"></i>
                                     </span>
-                                    <span>
-                                        แก้ไขหรือเพิ่มรายละเอียด
-                                    </span>
+                                    <span>แก้ไข</span>
                                 </a>
                                 <a href="{{ url_for('room.cancel', event_id=event.id) }}"
                                    class="card-footer-item">
                                     <span class="icon">
                                         <i class="far fa-trash-alt has-text-danger"></i>
                                     </span>
-                                    <span class="has-text-danger">ยกเลิก</span></a>
+                                    <span class="has-text-danger">ยกเลิก</span>
+                                </a>
                             {% endif %}
                         </footer>
                     </div>

@@ -1,0 +1,241 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li>
+                        <a href="{{ url_for("procurement.view_borrow_detail") }}">
+                        <span class="icon is-small">
+                              <i class="fas fa-list" aria-hidden="true"></i>
+                            </span>
+                            <span>View List</span>
+                        </a>
+                    </li>
+                    <li class="is-active"><a href="#" aria-current="page">เพิ่มข้อมูล</a></li>
+                </ul>
+            </nav>
+            <div class="columns">
+                {% include "messages.html" %}
+                <div class="column has-text-centered">
+                    <h1 class="title">เพิ่มข้อมูลการยืม-คืนพัสดุ</h1>
+                    <h2 class="subtitle"> {{ procurement.name }} : {{ procurement.erp_code }} </h2>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-10 is-offset-1">
+                    <div class="box">
+                        <form method="post" enctype="multipart/form-data">
+                            {{ form.hidden_tag() }}
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.number.label }}</label>
+                                    <div class="control">
+                                        {{ form.number(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.book_date.label }}</label>
+                                    <div class="control">
+                                        {{ form.book_date(class="input", type="text", readonly=True) }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.type_of_purpose.label }}</label>
+                                <div class="control">
+                                    {{ form.type_of_purpose() }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.purpose.label }}</label>
+                                <div class="control">
+                                    {{ form.purpose(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.reason.label }}</label>
+                                <div class="control">
+                                    {{ form.reason(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.location_of_use.label }}</label>
+                                <div class="control">
+                                    {{ form.location_of_use(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.address_number.label }}</label>
+                                    <div class="control">
+                                        {{ form.address_number(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.moo.label }}</label>
+                                    <div class="control">
+                                        {{ form.moo(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.road.label }}</label>
+                                    <div class="control">
+                                        {{ form.road(class="input") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.sub_district.label }}</label>
+                                    <div class="control">
+                                        {{ form.sub_district(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.district.label }}</label>
+                                    <div class="control">
+                                        {{ form.district(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.province.label }}</label>
+                                    <div class="control">
+                                        {{ form.province(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.postal_code.label }}</label>
+                                    <div class="control">
+                                        {{ form.postal_code(class="input") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.start_date.label }}</label>
+                                    <div class="control">
+                                        {{ form.start_date(class="input", type="text", readonly=True) }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.end_date.label }}</label>
+                                    <div class="control">
+                                        {{ form.end_date(class="input", type="text", readonly=True) }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="items">
+                                {% for i in form.items %}
+                                    <div class="field">
+                                        <label class="label">รายการ</label>
+                                        <div class="control">
+                                            {{ i.item(class="input") }}
+                                        </div>
+                                    </div>
+                                    <div class="field-body">
+                                    <div class="field">
+                                        <label class="label">จำนวน</label>
+                                        <div class="control">
+                                            {{ i.quantity(class="input") }}
+                                        </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">หน่วยนับ</label>
+                                        <div class="control">
+                                            {{ i.unit(class="input") }}
+                                        </div>
+                                    </div>
+                                    </div>
+                                    <div class="field">
+                                        <label class="label">หมายเหตุ</label>
+                                        <div class="control">
+                                            {{ i.note(class="textarea") }}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div><br>
+                            <div class="field is-grouped">
+                                <div class="control">
+                                    <button class="button is-small is-info"
+                                            hx-post="{{ url_for('procurement.list_add_items') }}"
+                                            hx-target="#items" hx-swap="beforeend">เพิ่มรายการ
+                                    </button>
+                                </div>
+                                <div class="control">
+                                    <button class="button is-small is-danger"
+                                            hx-post="{{ url_for('procurement.delete_items') }}"
+                                            hx-target="#items" hx-swap="innerHTML"
+                                            hx-confirm="Are you sure to delete?">ลบรายการ
+                                    </button>
+                                </div>
+                            </div>
+
+                            <br>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="buttons">
+                                    <button class="button is-success" type="submit" value="submit">บันทึก</button>
+                                    <a href="{{ request.referrer }}"
+                                       class="button is-danger">ยกเลิก</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $('input[name="book_date"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: false,
+            locale: {
+                format: 'YYYY-MM-DD'
+            }
+        });
+        $('input[name="start_date"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: false,
+            locale: {
+                format: 'YYYY-MM-DD'
+            }
+        });
+        $('input[name="end_date"]').daterangepicker({
+            singleDatePicker: true,
+            timePicker: false,
+            locale: {
+                format: 'YYYY-MM-DD'
+            }
+        });
+    </script>
+    <script>
+        $(document).ready(() => {
+            $('.select').select2({
+                width: '100%',
+
+            });
+        });
+    </script>
+      <script>
+        $.ajaxSetup({
+            headers:
+                {'X-CSRF-TOKEN': "{{ csrf_token() }}"}
+        });
+
+        function delete_warning() {
+            alert("The form needs at least one entry.")
+        }
+
+        document.addEventListener('delete_warning', delete_warning)
+    </script>
+{% endblock %}

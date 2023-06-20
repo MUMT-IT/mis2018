@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% include "scheduler/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+<div class="columns">
+    <div class="column has-text-centered box">
+        <p>ตัวกรองรายการ</p>
+        <div class="field">
+            <label class="radio">
+                <input type="radio" name="toggle" value="all" checked="true">
+                ทั้งหมด
+            </label>
+            <label class="radio">
+                <input type="radio" name="toggle" value="some">
+                ห้องที่ดูแล
+            </label>
+        </div>
+    </div>
+</div>
+<div class="columns">
+    <div class="column">
+        <table id="data" class="table is-fullwidth">
+            <thead>
+            <th>หมายเลข</th>
+            <th>วิทยาเขต</th>
+            <th>ผู้จอง</th>
+            <th>จุดประสงค์</th>
+            <th>เริ่ม</th>
+            <th>สิ้นสุด</th>
+            <th>หมายเหตุ</th>
+            <th>ยกเลิกเมื่อ</th>
+            <th>ประเภท</th>
+            </thead>
+        </table>
+    </div>
+</div>
+</section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            let table = $('#data').DataTable({
+                ajax: '{{ url_for('room.get_room_event_list') }}',
+                order: [[4, 'desc']],
+                serverSide: true,
+                processing: true,
+                columns: [
+                    { data: 'room_number' },
+                    { data: 'room_location' },
+                    { data: 'creator' },
+                    { data: 'title' },
+                    {
+                        data: 'start',
+                        render: function(data, type) {
+                            return moment(data).format('lll')
+                        }
+                    },
+                    {
+                        data: 'end',
+                        render: function(data, type) {
+                            return moment(data).format('lll')
+                        }
+                    },
+                    { data: 'note' },
+                    {
+                        data: 'cancelled_at',
+                        render: function(data, type) {
+                            if (data !== null) {
+                                return moment(data).format('lll')
+                            } else {
+                                return null
+                            }
+                        }
+                    },
+                    { data: 'category' },
+                ],
+            });
+            $('input[name="toggle"]').change(function() {
+                let selected_value = $("input[name='toggle']:checked").val();
+                let url = '/room/api/admin/events' + '?query=' + selected_value
+                table.ajax.url(url).load()
+            })
+        });
+    </script>
+{% endblock %}

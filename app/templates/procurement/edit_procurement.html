@@ -1,216 +1,320 @@
 {% extends "base.html" %}
 {% include "procurement/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
 {% block page_content %}
-
-<section class="section">
-    <div class="container">
-        <div class="columns">
-            <div class="column has-text-centered">
-                <h1 class="title">แก้ไขข้อมูลครุภัณฑ์</h1>
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                {% include "messages.html" %}
+                <div class="column has-text-centered">
+                    <h1 class="title">แก้ไขข้อมูลครุภัณฑ์ใหม่</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-10 is-offset-1">
+                    <div class="box">
+                        <form method="post" enctype="multipart/form-data">
+                            {{ form.hidden_tag() }}
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.cost_center.label }}</label>
+                                    <div class="control">
+                                        {{ form.cost_center(class="input is-danger") }}
+                                    </div>
+                                    <p class="help is-danger">Required</p>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.erp_code.label }}</label>
+                                    <div class="control">
+                                        {{ form.erp_code(class="input is-danger") }}
+                                    </div>
+                                    <p class="help is-danger">Required</p>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.procurement_no.label }}</label>
+                                    <div class="control">
+                                        {{ form.procurement_no(class="input is-danger") }}
+                                    </div>
+                                    <p class="help is-danger">Required</p>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.sub_number.label }}</label>
+                                    <div class="control">
+                                        {{ form.sub_number(class="input is-danger") }}
+                                    </div>
+                                    <p class="help is-danger">Required</p>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.category.label }}
+                                    <a href="{{ url_for('procurement.add_category_ref') }}">
+                                        <i class="far fa-plus-square"></i>
+                                    </a>
+                                </label>
+                                <div>
+                                    {{ form.category(class='select') }}
+                                </div>
+                                <p class="help is-danger">Required</p>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.serial_no.label }}</label>
+                                    <div class="control">
+                                        {{ form.serial_no(class="input is-danger") }}
+                                    </div>
+                                    <p class="help is-danger">Required</p>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.document_no.label }}</label>
+                                    <div class="control">
+                                        {{ form.document_no(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.bought_by.label }}</label>
+                                    <div>
+                                        {{ form.bought_by(class='select') }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.name.label }}</label>
+                                <div class="control">
+                                    {{ form.name(class="input is-danger") }}
+                                </div>
+                                <p class="help is-danger">Required</p>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.model.label }}</label>
+                                    <div class="control">
+                                        {{ form.model(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.size.label }}</label>
+                                    <div class="control">
+                                        {{ form.size(class="input") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.maker.label }}</label>
+                                    <div class="control">
+                                        {{ form.maker(class="input") }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.guarantee.label }}</label>
+                                <div class="control">
+                                    {{ form.guarantee(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.received_date.label }}</label>
+                                    <div class="control">
+                                        {{ form.received_date(class="input is-danger") }}
+                                    </div>
+                                    <p class="help is-danger">Required</p>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.start_guarantee_date.label }}</label>
+                                    <div class="control">
+                                        {{ form.start_guarantee_date(class="input is-danger") }}
+                                    </div>
+                                    <p class="help is-danger">Required</p>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.end_guarantee_date.label }}</label>
+                                    <div class="control">
+                                        {{ form.end_guarantee_date(class="input is-danger") }}
+                                    </div>
+                                    <p class="help is-danger">Required</p>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.budget_year.label }}</label>
+                                    <div class="control">
+                                        {{ form.budget_year(class="input is-danger") }}
+                                    </div>
+                                    <p class="help is-danger">Required</p>
+                                </div>
+                            </div>
+                            <div class="field-body">
+                                <div class="field">
+                                    <label class="label">{{ form.purchasing_type.label }}</label>
+                                    <div>
+                                        {{ form.purchasing_type(class="select") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.price.label }}</label>
+                                    <div class="control">
+                                        {{ form.price(class="input", placeholder="฿") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.curr_acq_value.label }}</label>
+                                    <div class="control">
+                                        {{ form.curr_acq_value(class="input", placeholder="฿") }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ form.available.label }}</label>
+                                    <div>
+                                        {{ form.available(class="select") }}
+                                    </div>
+                                    <p class="help is-danger">Required</p>
+                                </div>
+                            </div>
+                            <br>
+                            <div class="field">
+                                <img style='display:block; width:450px;height:350px;' id="preview"
+                                     src='data:image/png;base64, {{ procurement.image }}'>
+                                <div class="file">
+                                    <label class="file-label">
+                                        {{ form.image_file_upload(class="file-input", onchange="previewImage(event)", accept="image/*") }}
+                                        <span class="file-cta">
+                                            <span class="file-icon"><i class="fas fa-upload"></i></span>
+                                            <span class="file-label">Choose a file…</span>
+                                        </span>
+                                        <span class="file-name" id="filename"></span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.org.label }}</label>
+                                <div>
+                                    {{ form.org(class="select") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ form.comment.label }}</label>
+                                <div class="control">
+                                    {{ form.comment(class="textarea") }}
+                                </div>
+                            </div>
+                            <div class="field-body">
+                                {% set record = form.records[-1] %}
+                                <div class="field">
+                                    <label class="label">เพิ่มผู้ดูแลครุภัณฑ์</label>
+                                    <div id="record_form">
+                                        {{ record.staff_responsible(class='select') }}
+                                    </div>
+                                </div>
+                                <div class="field">
+                                    <label class="label">{{ record.status.label }}
+                                        <a href="{{ url_for('procurement.add_status_ref') }}">
+                                            <i class="far fa-plus-square"></i>
+                                        </a>
+                                    </label>
+                                    <div>
+                                        {{ record.status(class='select') }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ record.location.label }}</label>
+                                <div>
+                                    {{ record.location(class='select') }}
+                                </div>
+                            </div>
+                            <br>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="buttons">
+                                    <button class="button is-success" type="submit" value="submit">บันทึก</button>
+                                    <a href="{{ url_callback }}"
+                                       class="button is-danger">ยกเลิก</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="columns">
-            <div class="column is-half is-offset-one-quarter">
-                <div class="box">
-                <form method="post" enctype="multipart/form-data">
-                    {{ form.hidden_tag() }}
-                    <div class="field-body">
-                        <div class="field">
-                            <label class="label">{{ form.category.label }}</label>
-                            <div class="select is-fullwidth is-info">
-                                {{ form.category() }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.registration_no.label }}</label>
-                            <div class="control">
-                                {{ form.registration_no(class="input is-info") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field-body">
-                        <div class="field">
-                            <label class="label">{{ form.procurement_no.label }}</label>
-                            <div class="control">
-                                {{ form.procurement_no(class="input is-focused") }}
-                            </div>
-                            <p class="help is-danger">Required</p>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.erp_code.label }}</label>
-                            <div class="control">
-                                {{ form.erp_code(class="input is-info") }}
-                            </div>
-                            <p class="help is-danger">Required</p>
-                        </div>
-                    </div>
-                    <div class="field-body">
-                        <div class="field">
-                            <label class="label">{{ form.university_no.label }}</label>
-                            <div class="control">
-                                {{ form.university_no(class="input is-info") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.document_no.label }}</label>
-                            <div class="control">
-                                {{ form.document_no(class="input is-info") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field-body">
-                        <div class="field">
-                            <label class="label">{{ form.name.label }}</label>
-                            <div class="control">
-                                {{ form.name(class="input is-info") }}
-                            </div>
-                            <p class="help is-danger">Required</p>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.available.label }}</label>
-                            <div class="control">
-                                {{ form.available(class="input is-info") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field-body">
-                        <div class="field">
-                            <label class="label">{{ form.model.label }}</label>
-                            <div class="control">
-                                {{ form.model(class="input is-info") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.size.label }}</label>
-                            <div class="control">
-                                {{ form.size(class="input is-info") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.maker.label }}</label>
-                            <div class="control">
-                                {{ form.maker(class="input is-info") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.guarantee.label }}</label>
-                            <div class="control">
-                                {{ form.guarantee(class="input is-info") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.desc.label }}</label>
-                        <div class="control">
-                            {{ form.desc(class="input is-info") }}
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">{{ form.serial_no.label }}</label>
-                        <div class="control">
-                            {{ form.serial_no(class="input is-info") }}
-                        </div>
-                        <p class="help is-danger">Required</p>
-                    </div>
-                    <div class="field-body">
-                        <div class="field">
-                            <label class="label">{{ form.purchasing_type.label }}</label>
-                            <div class="select is-fullwidth is-info">
-                                {{ form.purchasing_type() }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.budget_year.label }}</label>
-                            <div class="control">
-                                {{ form.budget_year(class="input is-info") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.price.label }}</label>
-                            <div class="control">
-                                {{ form.price(class="input is-info") }}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="field-body">
-                        <div class="field">
-                            <label class="label">{{ form.quantity.label }}</label>
-                            <div class="control">
-                                {{ form.quantity(class="input is-info") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.received_date.label }}</label>
-                            <div class="control">
-                                {{ form.received_date(class="input is-info") }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.bought_by.label }}</label>
-                            <div class="select is-fullwidth is-info">
-                                {{ form.bought_by() }}
-                            </div>
-                        </div>
-                    </div><br>
-                    <div class="field">
-                            <div class="file">
-                                <label class="file-label">
-                                  {{ form.upload(class="file-input") }}
-                                  <span class="file-cta">
-                                  <span class="file-icon">
-                                    <i class="fas fa-upload"></i>
-                                  </span>
-                                  <span class="file-label">
-                                    {{ form.upload.label }}
-                                  </span>
-                                  </span>
-                                  <span class="file-name" id="filename"></span>
-                                </label>
-                            </div>
-                        </div>
-                    <div class="field">
-                        <label class="label">{{ form.comment.label }}</label>
-                        <div class="control">
-                            {{ form.comment(class="textarea is-info") }}
-                        </div>
-                    </div><br>
-                     <div class="columns">
-                        <div class="column has-text-centered">
-                            <h2 class="title is-3">ภาควิชาที่ซื้อและสถานที่ตั้ง</h2>
-                        </div>
-                    </div>
-                    <div class="field-body">
-                        <div class="field">
-                            <label class="label">{{ form.org.label }}</label>
-                            <div class="select is-fullwidth is-info">
-                                {{ form.org() }}
-                            </div>
-                        </div>
-                        <div class="field">
-                                <label class="label">{{ form.location.label }}</label>
-                                <div class="select is-fullwidth is-info">
-                                    {{ form.location() }}
-                                </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.responsible_person.label }}</label>
-                            <div class="control">
-                                {{ form.responsible_person(class="input is-info") }}
-                            </div>
-                        </div>
-                    </div>
-                    <br>
-                    <div class="field is-grouped is-grouped-centered">
-                        <div class="buttons">
-                            <button class="button is-success" type="submit" value="submit">บันทึก</button>
-                            <a href="{{ url_for('procurement.view_procurement') }}" class="button is-danger">ยกเลิก</a>
-                        </div>
-                    </div>
-                    <hr>
-                    </form>
-                </div>
-             </div>
-        </div>
-    </div>
-</section>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(() => {
+            let DATEFORMAT = 'DD/MM/YYYY'
+            let receiveInput = $('input[name="received_date"]')
+            let startDateInput = $('input[name="start_guarantee_date"]')
+            let endDateInput = $('input[name="end_guarantee_date"]')
+
+            let purchaseCal = $('input[name="received_date"]').daterangepicker({
+                singleDatePicker: true,
+                autoUpdateInput: true,
+                locale: {
+                    format: DATEFORMAT,
+                }
+            });
+            let startCal = $('input[name="start_guarantee_date"]').daterangepicker({
+                singleDatePicker: true,
+                startDate: moment(receiveInput.val(), DATEFORMAT).add(1, "days"),
+                autoUpdateInput: true,
+                locale: {
+                    format: DATEFORMAT,
+                    cancelLabel: 'Clear'
+                }
+            });
+            let endCal = $('input[name="end_guarantee_date"]').daterangepicker({
+                singleDatePicker: true,
+                autoUpdateInput: true,
+                startDate: moment(startDateInput.val(), DATEFORMAT).add(1, "years"),
+                locale: {
+                    format: DATEFORMAT,
+                    cancelLabel: 'Clear'
+                }
+            });
+            receiveInput.on('apply.daterangepicker', (evt, picker) => {
+                startCal.data('daterangepicker').setStartDate(moment(receiveInput.val(), DATEFORMAT).add(1, "days").format(DATEFORMAT))
+                startCal.data('daterangepicker').setEndDate(moment(receiveInput.val(), DATEFORMAT).add(1, "days").format(DATEFORMAT))
+            })
+            startDateInput.on('change', () => {
+                endCal.data('daterangepicker').setStartDate(moment(startDateInput.val(), DATEFORMAT).add(1, "years").format(DATEFORMAT))
+                endCal.data('daterangepicker').setEndDate(moment(startDateInput.val(), DATEFORMAT).add(1, "years").format(DATEFORMAT))
+            })
+            endDateInput.on('cancel.daterangepicker', (evt, picker) => {
+                endDateInput.val('')
+            })
+            startDateInput.on('cancel.daterangepicker', (evt, picker) => {
+                startDateInput.val('')
+            })
+        })
+    </script>
+
+    <script>
+        const previewImage = e => {
+            const reader = new FileReader();
+            reader.readAsDataURL(e.target.files[0]);
+            reader.onload = () => {
+                const preview = document.getElementById('preview');
+                preview.src = reader.result;
+            };
+        };
+    </script>
+    <script>
+        $(document).ready(() => {
+            $('#filename').text("None");
+        })
+        $('#image_file_upload').change(function (e) {
+            let fileName = e.target.files[0].name;
+            $('#filename').text(fileName);
+        });
+    </script>
+    <script>
+        $(document).ready(() => {
+            $('.select').select2({
+                width: '100%',
+            });
+        });
+    </script>
 {% endblock %}

@@ -22,23 +22,23 @@
                                     {{ current_user.email }}
                                 </span>
                             </a>
+                            </div>
+                            <a class="navbar-item" href="{{ url_for('procurement.landing') }}">
+                                จัดการครุภัณฑ์
+                            </a>
+                            <a class="navbar-item" href="{{ url_for('auth.logout') }}">
+                                <span class="icon">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                </span>
+                                <span>ออกจากระบบ</span>
+                            </a>
                             <a class="navbar-item" href="/">
                                <span class="icon">
                                    <i class="fas fa-home"></i>
                                </span>
                                 <span>หน้าหลัก</span>
                             </a>
-                    </div>
-                     <a class="navbar-item" href="{{ url_for('procurement.index') }}">
-                        จัดการครุภัณฑ์
-                     </a>
-                     <a class="navbar-item" href="{{ url_for('auth.logout') }}">
-                        <span class="icon">
-                              <i class="fas fa-sign-out-alt"></i>
-                        </span>
-                        <span>ออกจากระบบ</span>
-                     </a>
-                       {% endif %}
+                        {% endif %}
                 </div>
             </div>
         </nav>

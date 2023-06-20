@@ -1,11 +1,9 @@
 # -*- coding:utf-8 -*-
-from wtforms.validators import DataRequired
-
 from flask_wtf import FlaskForm
-from flask_wtf.file import FileField
-from wtforms import SelectMultipleField, widgets, BooleanField
+from wtforms import widgets, SelectField
 from wtforms_alchemy import (model_form_factory, QuerySelectField, QuerySelectMultipleField)
 from app.models import Mission, Org, CoreService, Process, Data, KPI, Dataset, ROPA, DataSubject
+from app.main import db
 
 BaseModelForm = model_form_factory(FlaskForm)
 
@@ -59,6 +57,9 @@ class KPIForm(ModelForm):
         model = KPI
         only = ['name', 'refno', 'frequency', 'unit', 'source', 'intent',
                 'available', 'availability', 'formula', 'note', 'keeper']
+
+    keeper = SelectField(u'เก็บโดย')
+
     # core_services = QuerySelectMultipleField(u'บริการที่เกี่ยวข้อง', get_label='service',
                                      # query_factory=lambda: CoreService.query.all(),
                                      # widget=widgets.ListWidget(prefix_label=False),
@@ -73,6 +74,9 @@ class KPITargetForm(ModelForm):
     class Meta:
         model = KPI
         only = ['target', 'target_source', 'target_setter', 'target_account', 'target_reporter']
+    target_account = SelectField(u'ผู้ดูแลเป้าหมาย')
+    target_reporter = SelectField(u'ผู้รายงานเป้าหมาย')
+    target_setter = SelectField(u'ผู้ตั้งเป้าหมาย')
 
 
 class KPIReportForm(ModelForm):
@@ -80,6 +84,15 @@ class KPIReportForm(ModelForm):
         model = KPI
         only = ['account', 'reporter', 'consult', 'informed', 'reportlink',
                 'pfm_account', 'pfm_responsible', 'pfm_consult', 'pfm_informed']
+
+    account = SelectField(u'ผู้รับผิดชอบ')
+    pfm_account = SelectField(u'ผู้รับดูแลประสิทธิภาพตัวชี้วัด')
+    pfm_responsible = SelectField(u'ผู้รับผิดชอบประสิทธิภาพตัวชี้วัด')
+    pfm_consult = SelectField(u'ที่ปรึกษาประสิทธิภาพตัวชี้วัด')
+    pfm_informed = SelectField(u'ผู้รับรายงานเรื่องประสิทธิภาพตัวชี้วัด')
+    reporter = SelectField(u'ผู้รายงาน')
+    consult = SelectField(u'ที่ปรึกษา')
+    informed = SelectField(u'ผู้รับรายงานหลัก')
 
 
 def createDatasetForm(data_id):

@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 {% include "nav.html" %}
+{% block head %}
+{{ super() }}
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.12.1/css/jquery.dataTables.css">
+{% endblock %}
 {% block page_content %}
 <section class="section">
     <div class="container" id="app">
@@ -59,12 +63,47 @@
                             </td>
                         </tr>
                         {% endif %}
+                        {% if upload_file_url %}
+                        <tr>
+                            <td>
+                                 เอกสารรายละเอียด
+                            </td>
+                            <td>
+                                <a href="{{ upload_file_url }}">คลิกเพื่อดู</a>
+                            </td>
+                        </tr>
+                        {% endif %}
                     </table>
                 </div>
                 <div class="box">
-                    <table class="table is-fullwidth">
+                <div class="columns">
+                        <div class="column has-text-centered">
+                            <a href="{{ url_for('staff.seminar_add_attendee', seminar_id=seminar.id) }}"
+                               class="button is-light is-success">
+                                <span class="icon">
+                                    <i class="fas fa-user-plus"></i>
+                                </span>
+                                <span>เพิ่มผู้เข้าร่วม</span>
+                            </a>
+                            <a href="{{ url_for('staff.checkin_activity', seminar_id=seminar.id) }}"
+                               class="button is-light is-info">
+                                <span class="icon">
+                                   <i class="fas fa-qrcode"></i>
+                                </span>
+                                <span>สแกนเข้าร่วม</span>
+                            </a>
+                            <a href="{{ url_for('staff.attend_download', seminar_id=seminar.id)}}"
+                               class="button is-warning" >
+                                <span class="icon"><i class="fas fa-download"></i></span>
+                                <span>Download</span>
+                            </a>
+                        </div>
+                    </div>
+                    <table class="cell-border" id="attendTable">
                         <thead>
-                        <th>ชื่อ</th>
+                        <th>ชื่อ-นามสกุล</th>
+                        <th>Email</th>
+                        <th>หน่วยงาน/ภาควิชา</th>
                         <th>ประเภทการเข้าร่วม</th>
                         <th>วันและเวลา</th>
                         <th>Actions</th>
@@ -74,6 +113,12 @@
                         <tr>
                             <td>
                                 {{ attend.staff.personal_info.fullname }}
+                            </td>
+                            <td>
+                                {{ attend.staff.email }}
+                            </td>
+                            <td>
+                                {{ attend.staff.personal_info.org.name }}
                             </td>
                             <td>
                                 {{ attend.role }}
@@ -96,24 +141,6 @@
                         {% endfor %}
                         </tbody>
                     </table>
-                    <div class="columns">
-                        <div class="column has-text-centered">
-                            <a href="{{ url_for('staff.seminar_add_attendee', seminar_id=seminar.id) }}"
-                               class="button is-light is-success">
-                                <span class="icon">
-                                    <i class="fas fa-user-plus"></i>
-                                </span>
-                                <span>เพิ่มผู้เข้าร่วม</span>
-                            </a>
-                            <a href="{{ url_for('staff.checkin_activity', seminar_id=seminar.id) }}"
-                               class="button is-light is-info">
-                                <span class="icon">
-                                   <i class="fas fa-qrcode"></i>
-                                </span>
-                                <span>สแกนเข้าร่วม</span>
-                            </a>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -132,7 +159,7 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
-<script>
+    <script>
     new Vue({
         el: '#app',
         delimiters: ['<%', '%>'],
@@ -151,6 +178,11 @@
                 return start + ' - ' + end
             },
         }
+    });
+</script>
+<script>
+    $(document).ready(function(){
+        $('#attendTable').DataTable();
     });
 </script>
 {% endblock %}

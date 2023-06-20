@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" alt="Logo" width="250">
+                <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false"
+                   data-target="navbarBasicExample">
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                </a>
+            </div>
+            <div id="navbarMenu" class="navbar-menu">
+                <div class="navbar-end">
+                    <a href="/"
+                       class="navbar-item is-active is-size-5 has-text-weight-semibold">
+                        Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <section class="section">
+        <h1 class="title has-text-centered">Welcome, K.{{ name.personal_info.en_firstname }}</h1>
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <nav class="panel is-success">
+                    <p class="panel-heading">ปี</p>
+                    <a href="{{ url_for('alumni.search_student_info') }}" class="panel-block">
+                        <span class="panel-icon"><i class="fas fa-bookmark"></i></span>
+                        <span class="is-size-5">2566</span><br>
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+{% endblock %}

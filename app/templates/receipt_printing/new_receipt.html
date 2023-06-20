@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column box is-two-thirds is-offset-2">
+                    <div class="has-text-centered">
+                        <h2 class="title is-size-2">ใบเสร็จรับเงิน</h2>
+                        <h3 class="title is-size-3"></h3>
+                        <h1 class="help-inline">กรุณาตรวจสอบรายละเอียดเพื่อการออกใบเสร็จรับเงิน</h1>
+                    </div>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                         <div id="items">
+                             {% for i in form.items %}
+                                 <div id="{{ i.name }}">
+                                     <div class="field">
+                                         <label class="label">รายการ</label>
+                                         <div class="control">
+                                             {{ i.item(class="input is-danger") }}
+                                         </div>
+                                     </div>
+                                     <div class="field">
+                                         <label class="label">จำนวนเงินบาท</label>
+                                         <div class="control">
+                                             {{ i.price(class_="input", placeholder="฿",
+                                            **{'hx-post': url_for("receipt_printing.update_amount"),
+                                            'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount',
+                                            'hx-swap': 'outerHTML'})
+                                                     }}
+                                         </div>
+                                     </div>
+                                     <div class="field">
+                                         <label class="label">GL</label>
+                                         {{ i.gl() }}
+                                     </div>
+                                     <div class="field">
+                                         <label class="label">Cost Center</label>
+                                         {{ i.cost_center() }}
+                                     </div>
+                                     <div class="field">
+                                         <label class="label">Internal Order/IO</label>
+                                         {{ i.internal_order_code() }}
+                                     </div>
+                                 </div>
+                             {% endfor %}
+                         </div><br>
+                         <div class="field">
+                            <div class="buttons is-centered">
+                                <button class="button is-small is-info"
+                                        hx-post="{{ url_for('receipt_printing.list_add_items') }}"
+                                        hx-target="#items" hx-swap="beforeend">เพิ่มรายการ
+                                </button>
+                                <button class="button is-small is-danger"
+                                        hx-post="{{ url_for('receipt_printing.delete_items') }}"
+                                        hx-target="#items" hx-swap="innerHTML"
+                                        hx-confirm="Are you sure to delete?">ลบรายการ
+                                </button>
+                            </div>
+                         </div>
+                        <div class="field">
+                            <label class="label">ได้รับเงินจาก</label>
+                            <div class="control">
+                                {{ form.received_from(class="input is-danger") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">ที่อยู่ในใบเสร็จรับเงิน</label>
+                            <div class="control">
+                                {{ form.address(class="textarea is-danger") }}
+                            </div>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <label class="label">ช่องทางการชำระเงิน</label>
+                                <div class="control">
+                                    {{ form.payment_method(class="input is-danger") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">จำนวนเงิน</label>
+                                <div class="control">
+                                    {{ form.paid_amount(class="input", readonly=True) }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="field" id="card-no">
+                            <label class="label">{{ form.card_number.label }}</label>
+                            <div class="control">
+                                {{ form.card_number(class="input is-danger", id="card-no") }}
+                            </div>
+                            <label class="label">{{ form.bank_name.label }}</label>
+                            <div class="control">
+                                {{ form.bank_name(class="input is-danger", id="card-no") }}
+                            </div>
+                        </div>
+                        <div class="field" id="cheque-no">
+                            <label class="label">เช็คเลขที่</label>
+                            <div class="control">
+                                {{ form.cheque_number(class="input is-danger", id="cheque-no") }}
+                            </div>
+                            <label class="label">{{ form.bank_name.label }}</label>
+                            <div class="control">
+                                {{ form.bank_name(class="input is-danger", id="cheque-no") }}
+                            </div>
+                        </div>
+                        <div class="field" id="other_payment_method">
+                            <label class="label">ช่องทางการชำระเงินอื่นๆ</label>
+                            <div class="control">
+                                {{ form.other_payment_method(class="input is-danger", id="other_payment_method") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">หมายเหตุรายละเอียด</label>
+                            <div class="control">
+                                {{ form.comment(class="textarea") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">ผู้ออกใบเสร็จ</label>
+                            <div class="control">
+                                {{ current_user.personal_info.fullname }}
+                            </div>
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <button class="button is-success" type="submit" value="submit">Submit</button>
+                            </div>
+                            <div class="control">
+                                <a href="{{ url_for('receipt_printing.landing') }}" class="button is-danger">Cancel</a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $.ajaxSetup({
+            headers:
+                {'X-CSRF-TOKEN': "{{ csrf_token() }}"}
+        });
+
+        function delete_warning() {
+            alert("The form needs at least one entry.")
+        }
+
+        document.addEventListener('delete_warning', delete_warning)
+
+        function update_amount() {
+            let total_amount = 0.0
+            $(document).ready(() => {
+                $('[id$=price]').each(function () {
+                    total_amount += Number($(this).val())
+                })
+                $('#paid_amount').val(total_amount)
+            })
+        }
+
+        document.addEventListener('update_amount', update_amount)
+
+    </script>
+    <script>
+        $(document).ready(() => {
+            $('#card-no').hide()
+            $('#cheque-no').hide()
+            $('#other_payment_method').hide()
+            $('#payment_method').change(e => {
+                $('#card-no').hide()
+                $('#cheque-no').hide()
+                $('#other_payment_method').hide()
+                if ($('#payment_method').val() === "Credit Card") {
+                    $('#card-no').show()
+                } else {
+                    $('#card-no').hide()
+                }
+                if ($('#payment_method').val() === "Cheque") {
+                    $('#cheque-no').show()
+                } else {
+                    $('#cheque-no').hide()
+                }
+                if ($('#payment_method').val() === "Other") {
+                    $('#other_payment_method').show()
+                } else {
+                    $('#other_payment_method').hide()
+                }
+            })
+        })
+    </script>
+    <script>
+        let initSelect2Input = function () {
+            $('select').each(function () {
+                $(this).select2({
+                    width: '100%'
+                });
+            })
+        }
+        $(document).ready(() => {
+            initSelect2Input();
+        });
+    </script>
+    <script>
+        function onClearInput() {
+            $('#item').val(null).trigger('change');
+            $('#price').val(null).trigger('change');
+            $('#gl').val(null).trigger('change');
+            $('#cost_center').val(null).trigger('change');
+            $('#internal_order_code').val(null).trigger('change');
+        }
+
+        document.addEventListener('clearInput', onClearInput)
+        document.addEventListener('initSelect2Input', initSelect2Input)
+
+    </script>
+{% endblock %}

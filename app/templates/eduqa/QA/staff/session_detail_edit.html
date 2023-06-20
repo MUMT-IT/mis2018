@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% include "eduqa/QA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+              <div class="has-text-centered">
+                <figure class="image is-inline-block is-128x128">
+                  <img src="{{url_for('static', filename='img/test.png')}}">
+                </figure>
+              </div>
+                <h1 class="title has-text-centered">บันทึกข้อมูลการสอน</h1>
+                <table class="table is-bordered is-fullwidth">
+                    <tr>
+                        <td>
+                            <label class="label">รายวิชา</label>
+                        </td>
+                        <td>
+                            <p>
+                                {{ a_session.course.th_name }} ({{ a_session.course.th_code }})
+                            </p>
+                            <p>
+                                {{ a_session.course.en_name }} ({{ a_session.course.en_code }})
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">วันและเวลา</label>
+                        </td>
+                        <td>
+                            <p>
+                                {{ a_session.start|localdatetime }} - {{ a_session.end|localdatetime }}
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><label class="label">รวมเวลาสอน</label></td>
+                        <td>
+                          {{ a_session.total_hours }}
+                          <span class="tag is-rounded is-warning">
+                            <span class="icon">
+                              <i class="fas fa-times"></i>
+                            </span>
+                            {{ factor }}
+                          </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">หัวข้อ</label>
+                        </td>
+                        <td>
+                            <ul>
+                                {% for topic in a_session.topics %}
+                                    <li>- {{ topic.topic }}</li>
+                                {% endfor %}
+                            </ul>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">ผู้สอน</label>
+                        </td>
+                        <td>
+                            <p>
+                                {{ current_user.fullname }}
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+                <form method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                      <label class="label">{{ form.factor.label }}</label>
+                      <div class="control">
+                        {{ form.factor(class="input") }}
+                        <p class="help is-info">
+                          จำนวนตัวคูณสำหรับวิชาภาคนิพนธ์และวารสารสโมสร เช่น มีนักศึกษาที่ดูแล 2 คนให้ใส่ตัวคูณเท่ากับ 2 หากเว้นไว้จะมีค่าเป็น 1 โดยอัตโนมัติ
+                        </p>
+                      </div>
+                    </div>
+                    <div id="roles">
+                        {% for role_form in form.roles %}
+                            <div class="field">
+                                <label class="label">{{ role_form.role_item.label }}</label>
+                                <div class="select">
+                                    {{ role_form.role_item() }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">{{ role_form.detail.label }}</label>
+                                <div class="control">
+                                    {{ role_form.detail(class="textarea") }}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                    <br>
+                    <div class="buttons is-centered">
+                        <button class="button is-success is-rounded"
+                                hx-post="{{ url_for('eduqa.add_session_role', course_id=course.id, session_id=a_session.id) }}"
+                                hx-target="#roles" hx-swap="beforeend">
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>เพิ่มหัวข้อ</span>
+                        </button>
+                        <button class="button is-rounded is-danger"
+                                hx-delete="{{ url_for('eduqa.delete_session_role', course_id=course.id, session_id=a_session.id) }}"
+                                hx-target="#roles" hx-swap="innerHTML">
+                            <span class="icon">
+                              <i class="far fa-trash-alt"></i>
+                            </span>
+                            <span>ลบหัวข้อ</span>
+                        </button>
+                    </div>
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('eduqa.show_course_detail', course_id=course.id) }}"
+                          class="button is-light">
+                            Back
+                        </a>
+                        <input type="submit" value="Save" class="button is-success">
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

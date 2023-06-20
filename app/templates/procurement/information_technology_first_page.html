@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block page_content %}
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <img src="{{ url_for('static', filename='img/logo-MU_Color.png') }}" alt="Logo" width="75">
+                <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false"
+                   data-target="navbarBasicExample">
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                    <span aria-hidden="true"></span>
+                </a>
+            </div>
+            <div id="navbarMenu" class="navbar-menu">
+                <div class="navbar-end">
+                    <span class="navbar-item">
+                    <a class="button is-outlined" href="{{ url_for('procurement.first_page') }}">
+                        <span>Home</span>
+                    </a>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <section class="section">
+        <h1 class="title has-text-centered">Welcome, K.{{ name.personal_info.en_firstname }}</h1>
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column is-half is-offset-3">
+                <nav class="panel is-warning">
+                    <p class="panel-heading">สำหรับหน่วยข้อมูลและสารสนเทศ & หน่วยซ่อมบำรุง</p>
+                    <a class="panel-block"
+                       href="{{ url_for('procurement.landing_survey_info') }}">
+                        <span class="panel-icon"><i class="fas fa-tasks"></i></span>
+                        <span class="is-size-5">สำรวจและตรวจสอบเครื่องคอมพิวเตอร์</span><br>
+                    </a>
+                    <a class="panel-block"
+                       href="{{ url_for('procurement.view_all_procurement_to_reserve') }}">
+                        <span class="panel-icon"><i class="fas fa-plus-square"></i></span>
+                        <span class="is-size-5">เพิ่มครุภัณฑ์เพื่อการยืม</span><br>
+                    </a>
+                    <a class="panel-block"
+                       href="{{ url_for('procurement.view_all_repair_online_history_by_it_and_maintenance') }}">
+                        <span class="panel-icon"><i class="fas fa-eye"></i></span>
+                        <span class="is-size-5">ดูการแจ้งซ่อม</span><br>
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </section>
+{% endblock %}

@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Form Page{% endblock %}
+{% block head %}
+    <meta charset="utf-8"/>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <!-- Bulma Version 0.9.0-->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.2/css/bulma.min.css"/>
+    <link rel="stylesheet" type="text/css" href="../css/documentation.css"/>
+    <script src="https://kit.fontawesome.com/2828f7885a.js"
+            integrity="sha384-WAsFbnLEQcpCk8lM1UTWesAf5rGTCvb2Y+8LvyjAAcxK1c3s5c0L+SYOgxvc6PWG"
+            crossorigin="anonymous"></script>
+    <link rel="icon" type="image/png" href="favicon.png"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com"/>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700&display=swap" rel="stylesheet"/>
+{% endblock %}
+{% block page_content %}
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <img src="{{ url_for('static', filename='img/mumt-logo.png') }}" width="200" alt="Logo">
+            </div>
+            <div id="navbarMenu" class="navbar-menu">
+                <div class="navbar-end">
+                    <a href="{{ url_for('purchase_tracker.landing_page') }}"
+                       class="navbar-item is-active is-size-5 has-text-weight-semibold">
+                        Home
+                    </a>
+                    <a href="{{ url_for('purchase_tracker.landing_page') }}"
+                       class="navbar-item is-size-5 has-text-weight-semibold">
+                        Track
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <section class="categories">
+        <div class="container">
+            <div class="columns is-multiline">
+                <div class="column is-6">
+                    <div class="category">
+                        <div class="box">
+                            <h1 class="title is-5">
+                                แบบฟอร์มหน่วยพัสดุ
+                            </h1>
+                            <hr/>
+                            <ul>
+                                <li>
+                                    <a href="{{ url_for('purchase_tracker.create_form', form_code="MTPC-001", account_id=account.id) }}">
+                                        <i class="fas fa-caret-right fa-xs icon-padding-right"/></i>
+                                        MTPC-001 รายงานขออนุมัติซื้อหรือจ้าง กรณีจำเป็นเร่งด่วนฯ
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="">
+                                        <i class="fas fa-caret-right fa-xs icon-padding-right"/></i>
+                                        MTPC-002 รายงานขออนุมัติในหลักการ วงเงินไม่เกิน 30,000 บาท
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="">
+                                        <i class="fas fa-caret-right fa-xs icon-padding-right"/></i>
+                                        MTPC-003 รายงานขออนุมัติในหลักการ วงเงินเกิน 30,000 บาท ไม่เกิน 500,000 บาท
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="">
+                                        <i class="fas fa-caret-right fa-xs icon-padding-right"/></i>
+                                        MTPC-004 รายงานขออนุมัติในหลักการ วงเงินเกิน 500,000 บาท
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="">
+                                        <i class="fas fa-caret-right fa-xs icon-padding-right"/></i>
+                                        MTPC-005 รายงานขออนุมัติในหลักการซื้อครุภัณฑ์ ไม่เกิน 500,000 บาท
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="">
+                                        <i class="fas fa-caret-right fa-xs icon-padding-right"/></i>
+                                        MTPC-006 รายงานขออนุมัติในหลักการซื้อครุภัณฑ์ วงเงินเกิน 500,000 บาท
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="">
+                                        <i class="fas fa-caret-right fa-xs icon-padding-right"/></i>
+                                        MTPC-007 ขออนุมัติในหลักการซ่อม
+                                    </a>
+                                </li>
+                                <li><br><br><br><br>
+                                    <a href="">
+                                        <i class="fas fa-caret-right fa-xs icon-padding-right"/></i>
+                                        แบบฟอร์มการยืม-คืนพัสดุ
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                <div class="column is-6">
+                    <div class="category">
+                        <div class="box">
+                            <h1 class="title is-5">
+                                แบบฟอร์มหน่วยการเงิน
+                            </h1>
+                            <hr/>
+                            <ul>
+                                <li>
+                                    <a href="">
+                                        <i class="fas fa-caret-right fa-xs icon-padding-right"/></i>
+                                        FNAR01 ขออนุมัติยืมเงินทดรองจ่าย
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="">
+                                        <i class="fas fa-caret-right fa-xs icon-padding-right"/></i>
+                                        FNAR02 สัญญาการยืมเงิน
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="">
+                                        <i class="fas fa-caret-right fa-xs icon-padding-right"/></i>
+                                        FNAR03 เร่งรัดชำระหนี้เงินยืมทดรองจ่ายเกินกำหนด
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="">
+                                        <i class="fas fa-caret-right fa-xs icon-padding-right"/></i>
+                                        FNAR04 เร่งรัดชำระหนี้เงินยืมทดรองจ่ายเกินกำหนด
+                                    </a>
+                                </li><br>
+                                <li>
+                                    <a href="">
+                                        <i class="fas fa-caret-right fa-xs icon-padding-right"/></i>
+                                        MT Research 01 แบบขออนุมัติเบิกจ่ายเงินอุดหนุนวิจัย
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="">
+                                        <i class="fas fa-caret-right fa-xs icon-padding-right"/></i>
+                                        MT Research 02
+                                        แบบฟอร์มรายงานการจัดซื้อจัดจ้างพัสดุเพื่อการวิจัยและพัฒนาพร้อมขออนุมัติเบิกจ่าย
+                                        สำหรับกรณีที่นักวิจัยได้รับทุนอุดหนุนวิจัยและพัฒนาจากหน่วยงานผู้ให้ทุนโดยตรง
+                                        หรือผ่านหน่วยงานต้นสังกัด
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="">
+                                        <i class="fas fa-caret-right fa-xs icon-padding-right"/></i>
+                                        MT Research 03 แบบฟอร์มขอสร้างข้อมูลหลักสินทรัพย์
+                                        กรณีที่นักวิจัยได้รับทุนอุดหนุนวิจัยและพัฒนา จากหน่วยงานผู้ให้ทุนโดยตรง
+                                        หรือผ่านหน่วยงานต้นสังกัด
+                                    </a>
+                                </li>
+                                <li>
+                                    <a href="">
+                                        <i class="fas fa-caret-right fa-xs icon-padding-right"/></i>
+                                        MT Research 04 สัญญาการยืมเงินอุดหนุนวิจัย
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

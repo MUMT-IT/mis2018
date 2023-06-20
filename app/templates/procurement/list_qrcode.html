@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% include "procurement/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css"
+          href="https://cdn.jsdelivr.net/npm/bulma-checkradio@2.1.3/dist/css/bulma-checkradio.min.css">
+{% endblock %}
+{% block page_content %}
+    <section class="section">
+        {% include "messages.html" %}
+        <div class="container">
+            <form hx-post="{{ url_for('procurement.select_items_for_printing_qrcode') }}"
+                  hx-target="#selected_items" hx-swap="beforeend">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="columns">
+                    <div class="column has-text-centered">
+                        <h1 class="title">ข้อมูล QR Code ครุภัณฑ์</h1>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <div class="column has-text-left">
+                            <button class="button is-info">
+                                <span class="icon">
+                                    <i class="fas fa-print"></i>
+                                </span>
+                                <span>เลือก</span>
+                            </button>
+                        </div>
+                        <table class="table is-fullwidth is-striped" id="QTable">
+                            <thead>
+                            <th></th>
+                            <th>รายการ</th>
+                            <th>รหัสครุภัณฑ์</th>
+                            <th>Inventory Number/ERP</th>
+                            <th>ปีงบประมาณ</th>
+                            <th>วันที่ได้รับ</th>
+                            <th>สถานะ</th>
+                            <th>Print</th>
+                            </thead>
+                            <tbody>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </form>
+            <div class="columns">
+                <div class="column">
+                    <form method="post" action="{{ url_for('procurement.list_qrcode') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <h1 class="title">Selected Items</h1>
+                        <table class="table is-fullwidth" id="selected_items">
+                        </table>
+                        <input type="submit" value="Print" class="button is-success"></input>
+                    </form>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <a href="{{ url_for('procurement.landing') }}" class="button is-rounded is-info is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            $('#QTable').DataTable({
+                searchDelay: 350,
+                ajax: '{{ url_for("procurement.get_procurement_data_qrcode_list") }}',
+                serverSide: true,
+                columns: [
+                    {data: 'select_item'},
+                    {data: 'name'},
+                    {data: 'procurement_no'},
+                    {data: 'erp_code'},
+                    {data: 'budget_year'},
+                    {data: 'received_date'},
+                    {data: 'available'},
+                    {data: 'print'}
+                ],
+            });
+        });
+    </script>
+{% endblock %}

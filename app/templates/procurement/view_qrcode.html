@@ -1,150 +1,166 @@
 {% extends "base.html" %}
 {% include "procurement/nav.html" %}
 {% block page_content %}
-<section class="section">
-    <div class="container">
-        <nav class="breadcrumb" aria-label="breadcrumbs">
-            <ul>
-                <li><a href="{{ url_for('procurement.index') }}">Main</a></li>
-                <li class="is-active"><a href="#" aria-current="page">Information</a></li>
-            </ul>
-        </nav>
-        {% include "messages.html" %}
-        <div class="columns">
-            <div class="column has-text-centered">
-                <h1 class="title">Procurement Info
-                <a class="button is-primary" href="{{ url_for('procurement.add_record', item_id=item.id) }}">
-                Update Info
-                </a></h1>
+    <section class="section">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="{{ url_for('procurement.landing') }}">หน้าหลัก</a></li>
+                    <li><a href="{{ url_for('procurement.edit_procurement', procurement_id=item.id) }}">แก้ไขข้อมูล</a>
+                    </li>
+                    <li><a href="{{ url_for('procurement.update_location_and_status') }}">สแกนคิวอาร์โค้ด</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">ข้อมูล</a></li>
+                </ul>
+            </nav>
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">รายละเอียดครุภัณฑ์</h1>
+                </div>
             </div>
-        </div>
-        <div class="columns">
-            <div class="column has-text-centered is-two-thirds is-offset-2">
-                <div class="card">
-                    <div class="card-header">
-                        <h1 class="card-header-title">
-                            <td><img src="{{ qrcode(procurement_no) }}"></td>
-                            <table class="table">
-                            {% set last_record = item.records.order_by(model.updated_at.desc()).first() %}
-                             <tr>
-                                <td><label class="label">Update ล่าสุด:</label></td>
-                                <td>{{ last_record.updated_at|humanizedt }}</td>
+            <div class="columns">
+                <div class="column has-text-centered is-two-thirds is-offset-2">
+                    <div class="card">
+                        <div class="card-header">
+                            <h1 class="card-header-title">
+                                <img class="zoom-image" style='display:block; width:128px;height:128px;'
+                                     id='base64image'
+                                     src='data:image/png;base64, {{ item.image }}'/>
+                                <table class="table ">
+                                    {% set last_record = item.current_record %}
+                                    <tr>
+                                        <td><label class="label">Update ล่าสุด:</label></td>
+                                        <td>{{ last_record.updated_at|humanizedt }}</td>
+                                    <tr>
+                                        <td><label class="label">Location ล่าสุด:</label></td>
+                                        <td>{{ last_record.location }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><label class="label">Status ล่าสุด:</label></td>
+                                        <td>{{ last_record.status }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td><img src="{{ qrcode(procurement_no, box_size=4) }}"></td>
+                                    </tr>
+                                    <tr>
+                                        <td><a class="button is-primary" href="{{ url_for('procurement.add_record', item_id=item.id) }}">อัพเดตข้อมูล</a></td>
+                                    </tr>
+                                    </tr>
+                                </table>
+                            </h1>
+                        </div>
+                        <div class="card-content">
+                            <table class="table is-striped is-bordered is-fullwidth">
+                                <colgroup>
+                                    <col span="1" style="width: 25%;">
+                                    <col span="1" style="width: 75%;">
+                                </colgroup>
                                 <tr>
-                                    <td><label class="label">Location ล่าสุด:</label></td>
-                                    <td>{{ last_record.location }}</td>
+                                    <td><label class="label">หมวดหมู่ / ประเภท </label></td>
+                                    <td>{{ item.category }}</td>
                                 </tr>
                                 <tr>
-                                    <td><label class="label">Status ล่าสุด:</label></td>
-                                    <td>{{ last_record.status }}</td>
+                                    <td><label class="label">ชื่อครุภัณฑ์</label></td>
+                                    <td>{{ item.name }}</td>
                                 </tr>
-                            </tr>
+                                <tr>
+                                    <td><label class="label">เลขครุภัณฑ์</label></td>
+                                    <td>{{ item.procurement_no }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">เอกสารสั่งซื้อเลขที่</label></td>
+                                    <td>{{ item.document_no }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">Inventory Number / ERP</label></td>
+                                    <td>{{ item.erp_code }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">Serial Number</label></td>
+                                    <td>{{ item.serial_no }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">จัดซื้อด้วยเงิน</label></td>
+                                    <td>{{ item.purchasing_type.purchasing_type }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">วิธีการจัดซื้อ</label></td>
+                                    <td>{{ item.bought_by }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ปีงบประมาณ</label></td>
+                                    <td>{{ item.budget_year }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ราคา</label></td>
+                                    <td>
+                                        {% if item.price=="-"or""or item.price %}
+                                            {{ item.price }}
+                                        {% else %}
+                                            {{ item.curr_acq_value }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">วันที่ได้รับ</label></td>
+                                    <td>{{ item.received_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">สภาพของสินทรัพย์</label></td>
+                                    <td>{{ item.available }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ประกัน</label></td>
+                                    <td>{{ item.guarantee }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">วันที่เริ่มประกัน</label></td>
+                                    <td>{{ item.start_guarantee_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">วันที่สิ้นสุดประกัน</label></td>
+                                    <td>{{ item.end_guarantee_date }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">รุ่น</label></td>
+                                    <td>{{ item.model }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ยี่ห้อ</label></td>
+                                    <td>{{ item.maker }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ขนาด</label></td>
+                                    <td>{{ item.size }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">หมายเหตุ</label></td>
+                                    <td>{{ item.comment }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ภาควิชา / หน่วยงาน</label></td>
+                                    <td>{{ item.org }}</td>
+                                </tr>
                             </table>
-                        </h1>
-                    </div>
-                    <div class="card-content">
-                        <table class="table is-striped is-bordered is-fullwidth">
-                            <colgroup>
-                                <col span="1" style="width: 25%;">
-                                <col span="1" style="width: 75%;">
-                            </colgroup>
-                            <tr>
-                                <td><label class="label">Category</label></td>
-                                <td>{{ item.category }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Name</label></td>
-                                <td>{{ item.name }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Procurement No.</label></td>
-                                <td>{{ item.procurement_no }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Registration No.</label></td>
-                                <td>{{ item.registration_no }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">University No.</label></td>
-                                <td>{{ item.university_no }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Document No.</label></td>
-                                <td>{{ item.document_no}}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">ERP Code</label></td>
-                                <td>{{ item.erp_code }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Serial No.</label></td>
-                                <td>{{ item.serial_no }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Purchasing Type</label></td>
-                                <td>{{ item.purchasing_type }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Bought by</label></td>
-                                <td>{{ item.bought_by }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Budget Year</label></td>
-                                <td>{{ item.budget_year }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Price</label></td>
-                                <td>{{ item.price }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Quantity</label></td>
-                                <td>{{ item.quantity }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Received Date</label></td>
-                                <td>{{ item.received_date }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Available</label></td>
-                                <td>{{ item.available }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Guarantee</label></td>
-                                <td>{{ item.guarantee }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Model</label></td>
-                                <td>{{ item.model }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Maker</label></td>
-                                <td>{{ item.maker }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Size</label></td>
-                                <td>{{ item.size }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Desc</label></td>
-                                <td>{{ item.desc }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">comment</label></td>
-                                <td>{{ item.comment }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Responsible Person</label></td>
-                                <td>{{ item.responsible_person }}</td>
-                            </tr>
-                            <tr>
-                                <td><label class="label">Organiser</label></td>
-                                <td>{{ item.organiser }}</td>
-                            </tr>
-                        </table>
-                        <a href="{{ url_for('procurement.view_procurement') }}" class="button is-light">Back</a>
+                            <div class="buttons is-centered">
+                                <a href="{{ url_next }}" class="button is-light">กลับ</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super }}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/medium-zoom@1.0.2/dist/medium-zoom.min.js"></script>
+    <script>
+        mediumZoom('.zoom-image', {
+            margin: 24,
+            background: '#ffffff',
+            scrollOffset: 40 /* The number of pixels to scroll to close the zoom = > Your 40px */
+        })
+    </script>
 {% endblock %}

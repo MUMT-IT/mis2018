@@ -65,7 +65,7 @@
         </div>
         <div class="columns">
             <div class="column">
-                <table class="table is-striped" id="PurchaseTrackerTable">
+                <table class="table is-fullwidth is-striped" id="PurchaseTrackerTable">
                     <thead>
                     <th>ชื่อเรื่อง</th>
                     <th>เลขที่หนังสือ</th>
@@ -74,6 +74,7 @@
                     <th>หน่วยงาน/ภาควิชา</th>
                     <th>สถานะ</th>
                     <th>Dashboard</th>
+{#                    <th>Forms</th>#}
                     <th>Edit</th>
                     </thead>
                     <tbody>
@@ -103,9 +104,15 @@
                                 <span>View</span>
                             </a>
                         </td>
-                        <td>
                             {% if record.records.count() == 0 and not record.cancelled_datetime and not record.end_datetime and not list_type=='ourAccount' %}
-                                <a href="{{ url_for('purchase_tracker.edit_account', account_id=record.id) }}">
+{#                        <td>#}
+{#                            <a href="{{ url_for('purchase_tracker.select_form', account_id=record.id) }}">#}
+{#                                <i class="fab fa-wpforms"></i>#}
+{#                                <span>สร้างฟอร์ม</span>#}
+{#                            </a>#}
+{#                        </td>#}
+                        <td>
+                             <a href="{{ url_for('purchase_tracker.edit_account', account_id=record.id) }}">
                                     <span class="icon">
                                         <i class="fas fa-pencil-alt"></i>
                                     </span>

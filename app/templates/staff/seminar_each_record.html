@@ -10,10 +10,37 @@
                     <table class="table is-fullwidth">
                         <tr>
                             <td>
-                               <label class="label">ระยะเวลางานสัมมนา</label>
+                               <label class="label">ผู้ไปอบรม</label>
                             </td>
                             <td>
-                                {{ attend.seminar.start_datetime|localdatetime }} - {{ attend.seminar.end_datetime|localdatetime }}
+                                <p class="is-size-5"><strong>{{ attend.staff.personal_info }}</strong></p>
+                            </td>
+                        </tr>
+                        {% if attend.head_account_id %}
+                        <tr>
+                            <td>
+                               <label>ผู้บังคับบัญชา</label>
+                            </td>
+                            <td>
+                                {{ attend.head_account.personal_info }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <td>
+                               <label class="label">เรื่อง</label>
+                            </td>
+                            <td>
+                                <p class="is-size-5"><strong>{{ attend.seminar.topic }}</strong></p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                               <label>ระยะเวลางานสัมมนา</label>
+                            </td>
+                            <td>
+                                {{ attend.seminar.start_datetime|localdatetime }} -
+                                {{ attend.seminar.end_datetime|localdatetime }}
                             </td>
                         </tr>
                         <tr>
@@ -26,42 +53,10 @@
                         </tr>
                         <tr>
                             <td>
-                               <label class="label">ผู้ไปอบรม</label>
-                            </td>
-                            <td>
-                                <p class="is-size-5"><strong>{{ attend.staff.personal_info }}</strong></p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                               <label class="label">เรื่อง</label>
-                            </td>
-                            <td>
-                                <p class="is-size-5"><strong>{{ attend.seminar.topic }}</strong></p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <label class="label">ด้าน</label>
-                            </td>
-                            <td>
-                                {{ attend.seminar.mission }}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <label class="label">ประเภท</label>
+                                <label>ประเภท</label>
                             </td>
                             <td>
                                 {{ attend.seminar.topic_type }}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <label class="label">ดำเนินการภายใต้</label>
-                            </td>
-                            <td>
-                                {{ attend.objective }}
                             </td>
                         </tr>
                         <tr>
@@ -70,6 +65,24 @@
                             </td>
                             <td>
                                 {{ attend.role }}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">ด้าน</label>
+                            </td>
+                            <td>{% for mission in attend.missions %}
+                                {{ mission.mission }}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <label class="label">ดำเนินการภายใต้</label>
+                            </td>
+                            <td>{% for obj in attend.objectives %}
+                                {{ obj.objective }}
+                                {% endfor %}
                             </td>
                         </tr>
                         <tr>
@@ -159,17 +172,75 @@
                             </td>
                         </tr>
                         {% endif %}
+                        {% if attend.lower_level_approver %}
+                        <tr>
+                            <td>
+                                การอนุมัติ
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if proposal %}
+                        {% for proposal in proposal %}
+                            <tr>
+                            <td>
+
+                            </td>
+                            <td>
+                                {{ proposal.proposer.personal_info }}
+                                {% if proposal.is_approved == True %}
+                                    อนุมัติ
+                                {% else %}
+                                    ไม่อนุมัติ เนื่องจาก {{ proposal.comment }}
+                                {% endif %}
+                                {{ proposal.approved_at|localdatetime }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        {% if approval.approver %}
+                        <tr>
+                            <td>
+                                คณบดี/รักษาการฯ
+                            </td>
+                            <td>
+                                {{ approval.approver.personal_info }} {{ approval.updated_at|localdatetime }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% endif %}
+                        {% if upload_file_url %}
+                        <tr>
+                            <td>
+                                หนังสือขออนุมัติ
+                            </td>
+                            <td>
+                                <a href="{{ upload_file_url }}">คลิกเพื่อดู</a>
+                            </td>
+                        </tr>
+                        {% endif %}
                     </table>
                 </div>
                 <div class="columns">
-                    <div class="column">
-                        <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}" class="button is-rounded is-info is-light">
-                            <span class="icon">
-                                <i class="fas fa-arrow-left"></i>
-                            </span>
-                            <span>กลับหน้าสรุปรายการอบรม</span>
-                        </a>
-                    </div>
+                    {% if is_hr %}
+                        <div class="column">
+                            <a href="{{ url_for('staff.seminar_approval_records') }}"
+                               class="button is-rounded is-info is-light">
+                                <span class="icon">
+                                    <i class="fas fa-arrow-left"></i>
+                                </span>
+                                <span>กลับ</span>
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="column">
+                            <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}"
+                               class="button is-rounded is-info is-light">
+                                <span class="icon">
+                                    <i class="fas fa-arrow-left"></i>
+                                </span>
+                                <span>กลับหน้าสรุปรายการอบรม</span>
+                            </a>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>

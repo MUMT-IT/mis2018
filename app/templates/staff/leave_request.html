@@ -6,7 +6,7 @@
         {% for msg in get_flashed_messages() %}
         <p class="notification is-warning">{{ msg }}</p>
         {% endfor %}
-        {% for err, msg in errors.iteritems() %}
+        {% for err, msg in errors.items() %}
         <p>{{ err }} : {{ msg }}</p>
         {% endfor %}
         <div class="columns">
@@ -32,7 +32,9 @@
                             สามารถดาวน์โหลดแบบฟอร์มได้โดย<a class="button is-text" href="https://mt.mahidol.ac.th/wp-content/uploads/PDF/Forms/2022/20220819/1.pdf">คลิกที่นี่</a>
                     </b-message>
                     {% endif %}
-                <form method="post" enctype="multipart/form-data">
+                <form hx-indicator="#spinner"
+                      hx-post="{{ url_for('staff.request_for_leave', quota_id=quota.id) }}"
+                      hx-encoding="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="{{csrf_token()}}">
                     <div class="field">
                         {% if quota.leave_type.type_ == "ลาพักผ่อน" %}
@@ -135,12 +137,21 @@
                             ส่งข้อความเตือนในไลน์เมื่อได้รับการพิจารณาจากหัวหน้างาน
                         </label>
                     </div>
+                    <div class="field">
+                      <p class="subtitle has-text-info is-hidden"
+                          id="progressMessage">กำลังดำเนินการ โปรดรอสักครู่</p>
+                    </div>
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
-                            <a href="{{ url_for('staff.show_leave_info') }}" class="button is-light">Cancel</a>
+                            <a id="cancelButton" href="{{ url_for('staff.show_leave_info') }}" class="button">Cancel</a>
                         </div>
                         <div class="control">
-                            <input type="submit" value="Submit" class="button is-success"/>
+                            <button id="submitButton" class="button is-success">
+                                <span>Submit</span>
+                                <span id="spinnerIcon" class="icon is-hidden" id="spinner">
+                                    <i class="fas fa-spinner fa-pulse"></i>
+                                </span>
+                            </button>
                         </div>
                     </div>
                 </form>
@@ -152,6 +163,15 @@
 {% endblock %}
 {% block scripts %}
 {{ super() }}
+<script>
+  window.addEventListener('htmx:beforeRequest', ()=>{
+      document.getElementById("submitButton").setAttribute('disabled', '')
+      document.getElementById("cancelButton").setAttribute('disabled', '')
+      document.getElementById("spinnerIcon").classList.remove('is-hidden')
+      document.getElementById("progressMessage").classList.remove('is-hidden')
+      document.getElementById("spinnerIcon").classList.add('fa-pulse')
+  })
+</script>
 <script>
     const thisMonth = new Date().getMonth()
 

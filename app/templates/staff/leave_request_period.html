@@ -6,7 +6,7 @@
         {% for msg in get_flashed_messages() %}
         <p class="notification is-warning">{{ msg }}</p>
         {% endfor %}
-        {% for err, msg in errors.iteritems() %}
+        {% for err, msg in errors.items() %}
         <p>{{ err }} : {{ msg }}</p>
         {% endfor %}
         <div class="columns">
@@ -80,12 +80,12 @@
                                 ส่งข้อความเตือนในไลน์เมื่อได้รับการพิจารณาจากหัวหน้างาน
                             </label>
                         </div>
-                        <div class="field is-grouped">
+                        <div class="field is-grouped is-grouped-centered">
                             <div class="control">
-                                <input type="submit" value="submit" class="button is-primary"/>
+                                <a href="{{ url_for('staff.show_leave_info') }}" class="button">Cancel</a>
                             </div>
                             <div class="control">
-                                <a href="{{ url_for('staff.show_leave_info') }}" class="button is-danger">Cancel</a>
+                                <input type="submit" value="Submit" class="button is-success"/>
                             </div>
                         </div>
                     </form>

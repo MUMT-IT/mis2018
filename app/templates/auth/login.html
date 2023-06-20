@@ -9,12 +9,6 @@
                     {% include 'messages.html' %}
                     <h1 class="title">ลงชื่อเข้าระบบ</h1>
                     <h1 class="subtitle">Log In</h1>
-                    {% for field, error in errors.iteritems() %}
-                    <div class="notification is-danger">
-                        <span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
-                        <span><strong>{{ field }}:</strong> {{ ', '.join(error) }}</span>
-                    </div>
-                    {% endfor %}
                     <p class="notification is-light">
                     {% if linking_line %}
                         กรุณาใส่ข้อมูลเพื่อเชื่อมบัญชีไลน์กับบัญชีระบบของท่าน โปรดติดต่อหน่วยไอทีหากท่านไม่ทราบรหัสผ่าน

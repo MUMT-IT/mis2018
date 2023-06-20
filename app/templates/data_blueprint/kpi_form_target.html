@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Add/Edit KPI{% endblock %}
 {% include "data_blueprint/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
 {% block page_content %}
 <section class="section">
     <div class="container">
@@ -32,23 +36,20 @@
                     <div class="field">
                         <label class="label">{{form.target_account.label}}</label>
                         <div class="control">
-                            {{form.target_account(class="input", pattern="\w+\.\w{3}", placeholder="ผู้ที่รับผิดชอบในการดำเนินแผนให้ได้ตามเป้าหมาย")}}
+                            {{form.target_account(class="js-example-basic-single", style="width: 100%")}}
                         </div>
-                        <p class="help">เช่น likit.pre</p>
                     </div>
                     <div class="field">
                         <label class="label">{{form.target_reporter.label}}</label>
-                        <div class="control">
-                            {{form.target_reporter(class="input", pattern="\w+\.\w{3}", placeholder="ผู้รับผิดชอบในการติดตามและรายงานเป้าหมายเป็นระยะ")}}
+                        <div>
+                            {{form.target_reporter(class="js-example-basic-single", style="width: 100%")}}
                         </div>
-                        <p class="help">เช่น likit.pre</p>
                     </div>
                     <div class="field">
                         <label class="label">{{form.target_setter.label}}</label>
-                        <div class="control">
-                            {{form.target_setter(class="input", pattern="\w+\.\w{3}", placeholder="ผู้รับผิดชอบในการกำหนดเป้าหมาย")}}
+                        <div>
+                            {{form.target_setter(class="js-example-basic-single", style="width: 100%")}}
                         </div>
-                        <p class="help">เช่น likit.pre</p>
                     </div>
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
@@ -65,10 +66,14 @@
 </section>
 {% endblock %}
 {% block scripts %}
-{{super()}}
-<script type="text/javascript">
-</script>
-</section>
+    {{super()}}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript">
+        $(document).ready(function() {
+            $('.js-example-basic-single').select2();
+        });
+    </script>
+    </section>
 {% endblock %}
 
 

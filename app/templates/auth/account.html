@@ -62,14 +62,14 @@
                 <tr>
                     <td>ชื่อ นามสกุล</td>
                     <td>
-                        {{ current_user.personal_info }}
+                        {{ current_user.fullname }}
                     </td>
                 </tr>
                 {% endif %}
                 <tr>
                     <td>Name</td>
                     <td>
-                        {{ current_user.personal_info.en_firstname }} {{ current_user.personal_info.en_lastname }}
+                        {{ current_user.personal_info.en_fullname }}
                     </td>
                 </tr>
                 <tr>

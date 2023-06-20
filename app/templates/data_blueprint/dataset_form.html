@@ -1,11 +1,15 @@
 {% extends "base.html" %}
+{% block head %}
+{{super()}}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+{% endblock %}
 
 {% block page_content %}
 {% include "data_blueprint/nav.html" %}
 <section class="section">
     <div class="container">
         <div class="columns">
-            <div class="column is-one-third is-offset-4 box">
+            <div class="column is-two-thirds is-offset-2 box">
                 {% include "messages.html" %}
                 <h1 class="title has-text-centered is-size-3">Dataset</h1>
                 <form method="post">
@@ -58,9 +62,19 @@
                             {{ form.processes() }}
                         </div>
                     </div>
+                    <div class="field">
+                      <div class="control">
+                        <label class="label">Tags</label>
+                        <select class="js-example-basic-multiple" name="tags" multiple="multiple">
+                          {% for tag in dataset.tags %}
+                          <option value="{{tag.tag}}" selected="selected">{{tag.tag}}</option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                    </div>
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
-                            <a class="button is-light" href="{{ request.referrer }}">Cancel</a>
+                            <a class="button" href="{{ request.referrer }}">Cancel</a>
                         </div>
                         <label class="label"></label>
                         <div class="control">
@@ -72,4 +86,20 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+  {{super()}}
+  <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      $('.js-example-basic-multiple').select2({
+        width: '600px',
+        tags: true,
+        ajax: {
+            url: "{{ url_for('data_bp.get_all_tags') }}",
+            dataType: "json"
+        }
+      });
+    });
+  </script>
 {% endblock %}

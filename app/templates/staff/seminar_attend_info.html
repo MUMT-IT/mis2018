@@ -1,158 +1,167 @@
 {% extends "base.html" %}
-{% include "nav.html" %}
+{% include "staff/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.24/css/jquery.dataTables.css">
+{% endblock %}
 {% block page_content %}
-<section class="section">
-    <div class="container" id="app">
-        {% include "messages.html" %}
-        <div class="columns">
-            <div class="column has-text-centered">
-                <h1 class="title">บันทึกผู้เข้าร่วมประชุม อบรม สัมมนา</h1>
+    <section class="section">
+        <div class="container" id="app">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">รายละเอียดประชุม อบรม สัมมนา</h1>
+                </div>
             </div>
-        </div>
-        <div class="columns">
-            <div class="column">
-                <div class="box">
-                    <table class="table is-fullwidth">
-                        <tr>
-                            <td>
-                                <label class="label">เรื่อง</label>
-                            </td>
-                            <td>
-                                <p class="is-size-5"><strong>{{ seminar.topic }}</strong></p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <label class="label">หน่วยงานที่จัด</label>
-                            </td>
-                            <td>
-                                {{ seminar.organize_by }}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <label class="label">วันที่</label>
-                            </td>
-                            <td>
-                                {{ seminar.start_datetime|localdatetime }} - {{ seminar.end_datetime|localdatetime }}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <label class="label">ด้าน</label>
-                            </td>
-                            <td>
-                                {{ seminar.mission }}
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <label class="label">สถานที่</label>
-                            </td>
-                            <td>
-                                {{ seminar.location }}
-                                {% if seminar.is_online %}
-                                (จัดผ่านช่องทาง online)
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% if seminar.country %}
-                        <tr>
-                            <td>
-                                <label class="label">ประเทศ</label>
-                            </td>
-                            <td>
-                                {{ seminar.country }}
-                            </td>
-                        </tr>
-                        {% endif %}
-                    </table>
-                </div>
+            {% if not current_user_attended %}
                 <div class="columns">
-                    <div class="column">
-                        <div class="notification is-info is-light">
-                    <span>
-                        หากต้องการยกเลิกการเข้าร่วม กรุณาติดต่อหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่
-                    </span>
-                        </div>
-                    </div>
-                </div>
-                <div class="box">
-                    {% if not current_user_attended %}
-                    <div class="columns">
-                        <div class="column has-text-centered">
-                            <a href="{{ url_for('staff.seminar_create_record', seminar_id=seminar.id) }}"
-                               class="button is-light is-success">
+                    <div class="column has-text-centered">
+                        <a href="{{ url_for('staff.seminar_create_record', seminar_id=seminar.id) }}"
+                           class="button is-light is-success">
                                 <span class="icon">
                                     <i class="fas fa-user-plus"></i>
                                 </span>
-                                <span>เข้าร่วมกิจกรรมนี้</span>
-                            </a>
-                        </div>
+                            <span>เข้าร่วมกิจกรรมนี้</span>
+                        </a>
                     </div>
-                    {% endif %}
-                    <table class="table is-fullwidth">
-                        <thead>
-                            <th>ชื่อ</th>
-                            <th>ประเภทการเข้าร่วม</th>
-                            <th>วันและเวลา</th>
-                        </thead>
-                        <tbody>
-                            {% for attend in attends %}
+                </div>
+            {% endif %}
+            <div class="columns">
+                <div class="column">
+                    <div class="box">
+                        <table class="table is-fullwidth">
                             <tr>
                                 <td>
-                                    {{ attend.staff.personal_info }}
+                                    <label class="label">เรื่อง</label>
                                 </td>
                                 <td>
-                                    {{ attend.role }}
-                                    {% if attend.attend_online %}
-                                    (เข้าร่วมผ่านทาง online)
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {{ attend.start_datetime|localdatetime }} - {{ attend.end_datetime|localdatetime }}
+                                    <p class="is-size-5"><strong>{{ seminar.topic }}</strong></p>
                                 </td>
                             </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+                            <tr>
+                                <td>
+                                    <label class="label">หน่วยงานที่จัด</label>
+                                </td>
+                                <td>
+                                    {{ seminar.organize_by }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <label class="label">วันที่</label>
+                                </td>
+                                <td>
+                                    {{ seminar.start_datetime|localdatetime }}
+                                    - {{ seminar.end_datetime|localdatetime }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <label class="label">ด้าน</label>
+                                </td>
+                                <td>
+                                    {{ seminar.mission }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <label class="label">สถานที่</label>
+                                </td>
+                                <td>
+                                    {{ seminar.location }}
+                                    {% if seminar.is_online %}
+                                        (จัดผ่านช่องทาง online)
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% if seminar.country %}
+                                <tr>
+                                    <td>
+                                        <label class="label">ประเทศ</label>
+                                    </td>
+                                    <td>
+                                        {{ seminar.country }}
+                                    </td>
+                                </tr>
+                            {% endif %}
+                            {% if upload_file_url %}
+                                <tr>
+                                    <td>
+                                        เอกสารรายละเอียด
+                                    </td>
+                                    <td>
+                                        <a href="{{ upload_file_url }}">
+                                            <span class="icon">
+                                                <i class="fas fa-book-open"></i>
+                                            </span>
+                                            คลิกเพื่อดู
+                                        </a>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </table>
+                        {% if already_attend.id %}
+                            <div class="columns">
+                                <div class="column has-text-centered">
+                                    <a href="{{ url_for('staff.show_seminar_info_each_person', record_id=already_attend.id) }}"
+                                       class="button">
+                                        <span>รายละเอียดการเข้าร่วมของท่าน</span>
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="columns">
+                                <div class="column">
+                                    <div class="notification is-warning is-light has-text-centered">
+                                        <span>
+                                            หากต้องการยกเลิกการเข้าร่วม กรุณาติดต่อหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="columns">
-            <div class="column">
-                <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}" class="button is-rounded is-info is-light">
+            <div class="columns">
+                <div class="column">
+                    <a href="{{ url_for('staff.seminar_attends_each_person', staff_id=current_user.id) }}"
+                       class="button is-rounded is-info is-light">
                     <span class="icon">
                         <i class="fas fa-arrow-left"></i>
                     </span>
-                    <span>กลับ</span>
-                </a>
+                        <span>กลับ</span>
+                    </a>
+                </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
 {% block scripts %}
-{{ super() }}
-<script>
-    new Vue({
-        el: '#app',
-        delimiters: ['<%', '%>'],
-        data() {
-            return {
-                selectedDates: [],
-                stime: "fulltime",
-                payment: "unpaid",
-                data: []
-            }
-        },
-        methods: {
-            formatDate(dates){
-                let start = new moment(dates[0]).format("DD/MM/YYYY")
-                let end = new moment(dates[1]).format("DD/MM/YYYY")
-                return start + ' - ' + end
+    {{ super() }}
+    <script>
+        new Vue({
+            el: '#app',
+            delimiters: ['<%', '%>'],
+            data() {
+                return {
+                    selectedDates: [],
+                    stime: "fulltime",
+                    payment: "unpaid",
+                    data: []
+                }
             },
-        }
-    });
-</script>
+            methods: {
+                formatDate(dates) {
+                    let start = new moment(dates[0]).format("DD/MM/YYYY")
+                    let end = new moment(dates[1]).format("DD/MM/YYYY")
+                    return start + ' - ' + end
+                },
+            }
+        });
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('#attendTable').DataTable();
+        });
+    </script>
 {% endblock %}
