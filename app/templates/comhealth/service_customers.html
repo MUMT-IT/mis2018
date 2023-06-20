@@ -9,6 +9,28 @@
                     <h1 class="title">รายชื่อผู้รับบริการ</h1>
                 </div>
             </div>
+            <div class="column">
+                    <div class="has-text-right">
+                      {% if service.records.count() > 0 %}
+                        <a class="button is-link"
+                            href="{{ url_for('comhealth.add_customer_to_service_org',
+                                    service_id=service.id, org_id=service.records[0].customer.org_id) }}">
+                            <span class="icon">
+                                <i class="fas fa-user-plus"></i>
+                            </span>
+                            <span>เพิ่มผู้รับบริการ walk in</span>
+                        </a>
+                      {% else %}
+                        <a class="button is-link"
+                           href="{{ url_for('comhealth.list_orgs') }}">
+                            <span class="icon">
+                                <i class="fas fa-user-plus"></i>
+                            </span>
+                            <span>เพิ่มผู้รับบริการ walk in</span>
+                        </a>
+                      {% endif %}
+                    </div>
+                </div>
             <div class="columns">
                 <div class="column">
                     <table id="data" class="table is-fullwidth is-striped">
