@@ -5,50 +5,32 @@
     <div class="container" id="app">
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">รายการคำขอทั้งหมด</h1>
+                <h1 class="title">รายชื่อบุคลากรเข้ารับการประเมินผลงาน (Performance)</h1>
             </div>
         </div>
-        {% include "messages.html" %}
+    {% include "messages.html" %}
         <div class="columns">
             <div class="column">
                 <table class="table is-striped is-fullwidth" id="reqTable">
                     <thead>
                     <th>รอบการประเมิน</th>
-                    <th>ผู้ยื่นคำขอ</th>
-                    <th>ประเภทคำขอ</th>
+                    <th>ผู้รับการประเมิน</th>
                     <th></th>
                     </thead>
                     <tbody>
-                    {% for req in all_req %}
+                    {% for scoresheet in scoresheets %}
                     <tr>
                         <td>
-                            {{ req.pa.round }}
+                            {{ scoresheet.pa.round }}
                         </td>
                         <td>
-                            {{ req.pa.staff.fullname }}
+                            {{ scoresheet.pa.staff.personal_info.fullname }}
                         </td>
                         <td>
-                            {% if req.for_ =='ขอรับการประเมิน' %}
-                            <a class="tag is-medium is-danger">
-                            {{ req.for_ }}
+                            <a href="{{ url_for('pa.all_performance', scoresheet_id=scoresheet.id) }}"
+                               class="button is-small">
+                                <span>ให้คะแนน</span>
                             </a>
-                            {% elif req.for_ =='อนุมัติ' %}
-                            <a class="tag is-medium is-info">
-                            {{ req.for_ }}
-                            </a>
-                            {% else %}
-                            <a class="tag is-medium is-warning">
-                            {{ req.for_ }}
-                            </a>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if req.responded_at %}
-                            <a href="{{ url_for('pa.view_request', request_id=req.id) }}"
-                               class="button is-small is-rounded is-outlined">
-                                <span>รายละเอียด</span>
-                            </a>
-                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

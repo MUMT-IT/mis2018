@@ -120,6 +120,9 @@ class PAItem(db.Model):
     pa = db.relationship('PAAgreement', backref=db.backref('pa_items', cascade='all, delete-orphan'))
     kpi_items = db.relationship('PAKPIItem', secondary=item_kpi_item_assoc_table)
 
+    def __str__(self):
+        return self.task
+
 
 class PACommittee(db.Model):
     __tablename__ = 'pa_committees'
@@ -132,7 +135,10 @@ class PACommittee(db.Model):
     round_id = db.Column(db.ForeignKey('pa_rounds.id'))
     round = db.relationship(PARound, backref=db.backref('round_committee', lazy='dynamic'))
     role = db.Column('role', db.String(), info={'label': 'ประเภท',
-                                                'choices': [(c, c) for c in ('ประธาน', 'กรรมการ')]})
+                                                'choices': [(c, c) for c in ('ประธานกรรมการ', 'กรรมการ')]})
+
+    def __str__(self):
+        return self.staff.fullname
 
 
 class PAScoreSheet(db.Model):
@@ -140,10 +146,10 @@ class PAScoreSheet(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
     pa = db.relationship('PAAgreement', backref=db.backref('pa_score_sheet'), foreign_keys=[pa_id])
-    evaluator_id = db.Column('evaluator_id', db.ForeignKey('staff_account.id'))
-    evaluator = db.relationship('StaffAccount', backref=db.backref('evaluator_score_sheetfla', lazy='dynamic'),
-                                foreign_keys=[evaluator_id])
+    committee_id = db.Column('committee_id', db.ForeignKey('pa_committees.id'))
+    committee = db.relationship('PACommittee', backref=db.backref('committee_score_sheet'), foreign_keys=[committee_id])
     is_consolidated = db.Column('is_consolidated', db.Boolean(), default=False)
+    is_final = db.Column('is_final', db.Boolean(), default=False)
 
 
 class PAScoreSheetItem(db.Model):
@@ -151,9 +157,18 @@ class PAScoreSheetItem(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     score_sheet_id = db.Column(db.ForeignKey('pa_score_sheets.id'))
     score_sheet = db.relationship('PAScoreSheet', backref=db.backref('score_sheet_item'), foreign_keys=[score_sheet_id])
-    kpi_id = db.Column(db.ForeignKey('pa_kpis.id'))
-    kpi = db.relationship('PAKPI', backref=db.backref('kpi_score_item'), foreign_keys=[kpi_id])
     item_id = db.Column(db.ForeignKey('pa_items.id'))
     item = db.relationship('PAItem', backref=db.backref('pa_score_item'), foreign_keys=[item_id])
+    kpi_item_id = db.Column(db.ForeignKey('pa_kpi_items.id'))
+    kpi_item = db.relationship('PAKPIItem', backref=db.backref('sore_sheet_kpi_item'), foreign_keys=[kpi_item_id])
     score = db.Column('score', db.Numeric())
     comment = db.Column('comment', db.Text())
+
+
+class PAApprovedScoreSheet(db.Model):
+    __tablename__ = 'pa_approved_score_sheets'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    score_sheet_id = db.Column(db.ForeignKey('pa_score_sheets.id'))
+    score_sheet = db.relationship('PAScoreSheet', backref=db.backref('approved_score_sheet'), foreign_keys=[score_sheet_id])
+    committee_id = db.Column('committee_id', db.ForeignKey('pa_committees.id'))
+    approved_at = db.Column('approved_at', db.DateTime(timezone=True))

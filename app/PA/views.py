@@ -6,6 +6,7 @@ from sqlalchemy import and_
 from . import pa_blueprint as pa
 
 from app.roles import hr_permission, manager_permission
+from ..models import Org
 from app.PA.forms import *
 
 tz = pytz.timezone('Asia/Bangkok')
@@ -170,6 +171,7 @@ def view_pa_item(round_id):
 @pa.route('/pa/')
 @login_required
 def index():
+    #TODO: create head committee permission for access special part
     return render_template('pa/index.html', hr_permission=hr_permission, manager_permission=manager_permission)
 
 
@@ -249,7 +251,6 @@ def create_request(pa_id):
 @login_required
 def all_request():
     all_req = PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.submitted_at != None).all()
-    # all_req = PARequest.query.filter_by(supervisor_id=current_user.id).all()
     return render_template('pa/head_all_request.html', all_req=all_req)
 
 
@@ -281,35 +282,172 @@ def respond_request(request_id):
     return redirect(url_for('pa.all_request'))
 
 
-@pa.route('/cmte/all_pa_agreement', methods=['GET', 'POST'])
+@pa.route('/head/create-scoresheet/<int:pa_id>', methods=['GET', 'POST'])
 @login_required
-def all_pa_agreement():
-    # pa = PAAgreement.query.filter(and_(PARequest.submitted_at !='',PARequest.for_=='ขอรับการประเมิน')).all()
-    pa = PAAgreement.query.all()
-    return render_template('pa/cmte_all_pa_agreement.html', pa=pa)
+def create_scoresheet(pa_id):
+    scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id).filter(PACommittee.staff == current_user).first()
+    pa = PAAgreement.query.filter_by(id=pa_id).first()
+    committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ').first()
+    if not scoresheet:
+        create_score_sheet = PAScoreSheet(
+            pa_id=pa_id,
+            committee_id=committee.id
+        )
+        db.session.add(create_score_sheet)
+        db.session.commit()
+
+        pa_item = PAItem.query.filter_by(pa_id=pa_id).all()
+        for item in pa_item:
+            for kpi_item in item.kpi_items:
+                create_score_sheet_item = PAScoreSheetItem(
+                        score_sheet_id=create_score_sheet.id,
+                        item_id=item.id,
+                        kpi_item_id=kpi_item.id
+                    )
+                db.session.add(create_score_sheet_item)
+                db.session.commit()
+        return redirect(url_for('pa.all_performance', scoresheet_id=create_score_sheet.id))
+    else:
+        return render_template('pa/eva_all_performance.html', scoresheet=scoresheet)
 
 
-@pa.route('/cmte/head/all_performance/<int:scoresheet_id>', methods=['GET', 'POST'])
+@pa.route('/head/create-scoresheet/<int:pa_id>/for-committee', methods=['GET', 'POST'])
+@login_required
+def create_scoresheet_for_committee(pa_id):
+    pa = PAAgreement.query.get(pa_id)
+    for c in pa.committees:
+        scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id,committee_id=c.id).first()
+        if not scoresheet:
+            create_scoresheet = PAScoreSheet(
+                pa_id=pa_id,
+                committee_id=c.id
+            )
+            db.session.add(create_scoresheet)
+            db.session.commit()
+            pa_item = PAItem.query.filter_by(pa_id=pa_id).all()
+            for item in pa_item:
+                for kpi_item in item.kpi_items:
+                    create_scoresheet_item = PAScoreSheetItem(
+                        score_sheet_id=create_scoresheet.id,
+                        item_id=item.id,
+                        kpi_item_id=kpi_item.id
+                    )
+                    db.session.add(create_scoresheet_item)
+                    db.session.commit()
+        flash('มีการเพิ่มผู้ประเมินเรียบร้อยแล้ว', 'success')
+    flash('ส่งการประเมินไปยังกลุ่มผู้ประเมินเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('pa.all_approved_pa'))
+
+
+@pa.route('/head/assign-committee/<int:pa_id>', methods=['GET', 'POST'])
+@login_required
+def assign_committee(pa_id):
+    pa = PAAgreement.query.filter_by(id=pa_id).first()
+    committee = PACommittee.query.filter_by(round_id=pa.round_id, org=pa.staff.personal_info.org).filter(
+        PACommittee.staff != current_user).all()
+    if request.method == 'POST':
+        form = request.form
+        pa.committees = []
+        for c_id in form.getlist("commitees"):
+            committee = PACommittee.query.get(int(c_id))
+            pa.committees.append(committee)
+            db.session.add(committee)
+            db.session.commit()
+        flash('บันทึกกลุ่มผู้ประเมินเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('pa.all_approved_pa'))
+    return render_template('pa/head_assign_committee.html', pa=pa, committee=committee)
+
+
+@pa.route('/head/all-approved-pa')
+@login_required
+def all_approved_pa():
+    #TODO: In template, disable create scoresheet for committee when it already created
+    pa = PAAgreement.query.filter(and_(PARequest.submitted_at is not None,
+                                       PARequest.for_ == 'ขอรับการประเมิน',
+                                       PARequest.supervisor_id == current_user.id)).all()
+    return render_template('pa/head_all_approved_pa.html', pa=pa)
+
+
+@pa.route('/head/all-approved-pa/summary-scoresheet/<int:pa_id>', methods=['GET', 'POST'])
+@login_required
+def summary_scoresheet(pa_id):
+    #TODO: show evaluation score of each committees
+    #TODO: get average score from post method
+    #TODO: after get final score create PAApprovedScoreSheet records to all committees for score consensus
+    # TODO: In template, disable submit buttom if already send the final score
+    pa = PAAgreement.query.filter_by(id=pa_id).first()
+    committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ').first()
+    score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_final=True).filter(PACommittee.staff == current_user).first()
+    if score_sheet:
+        score_sheet_item = PAScoreSheetItem.query.filter_by(score_sheet_id=score_sheet.id).all()
+    else:
+        create_score_sheet = PAScoreSheet(
+            pa_id=pa_id,
+            committee_id=committee.id,
+            is_final=True
+        )
+        db.session.add(create_score_sheet)
+        db.session.commit()
+
+        pa_item = PAItem.query.filter_by(pa_id=pa_id).all()
+        for item in pa_item:
+            for kpi_item in item.kpi_items:
+                create_score_sheet_item = PAScoreSheetItem(
+                    score_sheet_id=create_score_sheet.id,
+                    item_id=item.id,
+                    kpi_item_id=kpi_item.id
+                )
+                db.session.add(create_score_sheet_item)
+                db.session.commit()
+        score_sheet_item = PAScoreSheetItem.query.filter_by(score_sheet_id=create_score_sheet.id).all()
+    return render_template('pa/head_summary_score.html', score_sheet_item=score_sheet_item)
+
+
+@pa.route('/eva/rate_performance/<int:scoresheet_id>', methods=['GET', 'POST'])
+@login_required
+def rate_performance(scoresheet_id):
+    #TODO: show evaluation score of head committee
+    scoresheet = PAScoreSheet.query.get(scoresheet_id)
+    head_score = PAScoreSheet.query.filter_by(pa_id=scoresheet.pa_id).first()
+    # TODO: get score of each item
+    if request.method == 'POST':
+        form = request.form
+        score = form.get('score')
+        scoresheet.is_consolidated = True
+        print(score)
+        flash('ส่งผลประเมินไปยังประธานกรรมเรียบร้อยแล้ว', 'success')
+    #TODO: In template, disable submit buttom if the scoresheet alread have score
+    return render_template('pa/eva_rate_performance.html', scoresheet=scoresheet, head_score=head_score)
+
+
+@pa.route('/eva/all_performance/<int:scoresheet_id>')
 @login_required
 def all_performance(scoresheet_id):
     scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
-    return render_template('pa/cmte_all_performance.html', scoresheet=scoresheet)
+    return render_template('pa/eva_all_performance.html', scoresheet=scoresheet)
 
 
-@pa.route('/cmte/head/all_performance/<int:pa_id>/item/<int:item_id>', methods=['GET', 'POST'])
+@pa.route('/eva/consensus-scoresheets')
 @login_required
-def rate_performance(pa_id, item_id):
-    pa_item = PAItem.query.filter_by(id=item_id).first()
-    ScoreItemForm = create_rate_performance_form(pa_id)
-    # TODO: check case duplicate attend
-    form = ScoreItemForm()
-    if form.validate_on_submit():
-        score_item = PAScoreSheetItem()
-        form.populate_obj(score_item)
-    return render_template('pa/cmte_rate_performance.html', form=form, pa_item=pa_item, pa_id=pa_id)
+def consensus_scoresheets():
+    # TODO: recheck bug
+    committee = PACommittee.query.filter_by(staff=current_user).all()
+    for c in committee:
+        scoresheets = PAScoreSheet.query.filter(PAApprovedScoreSheet.committee_id==c.id).all()
+    return render_template('pa/eva_consensus_scoresheet.html', scoresheets=scoresheets)
 
 
-@pa.route('/cmte/all-scoresheet', methods=['GET', 'POST'])
+@pa.route('/eva/consensus-scoresheets/<int:scoresheet_id>')
+@login_required
+def detail_consensus_scoresheet(scoresheet_id):
+    #TODO: recheck bug
+    # TODO: show evaluation score of each committees
+    #TODO: in template, send approved_scoresheet_id to approved_score function
+    score_sheet_item = PAScoreSheetItem.query.filter_by(scoresheet_id=scoresheet_id).all()
+    return render_template('pa/eva_consensus_scoresheet_detail.html', score_sheet_item=score_sheet_item)
+
+  
+@pa.route('/eva/all-scoresheet')
 @login_required
 def all_scoresheet():
     # evaluator = PAScoreSheet.query.filter(PACommittee.org_id).all()
@@ -318,31 +456,14 @@ def all_scoresheet():
     return render_template('pa/cmte_all_scoresheet.html', pa=pa)
 
 
-@pa.route('/head/create-scoresheet/<int:pa_id>', methods=['GET', 'POST'])
+
+@pa.route('/eva/approved/<int:approved_scoresheet_id>')
 @login_required
-def create_scoresheet(pa_id):
-    # scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id, committee_id=current_user.id).first()
-    scoresheet = PAScoreSheet.query.all()
-    return render_template('pa/cmte_all_performance.html', scoresheet=scoresheet)
-    # if not scoresheet:
-    #     create_scoresheet = PAScoreSheet(
-    #         pa_id=pa_id,
-    #         committee_id=current_user.id
-    #     )
-    #     db.session.add(create_scoresheet)
-    #     db.session.commit()
-    #
-    #     pa_kpi = PAKPI.query.filter_by(pa_id=pa_id).all()
-    #     for kpi in pa_kpi:
-    #         pa_item = PAItem.query.filter_by(pa_id=pa_id).all()
-    #         for item in pa_item:
-    #             create_scoresheet_item = PAScoreSheetItem(
-    #                 score_sheet_id=create_scoresheet.id,
-    #                 item_id=item.id,
-    #                 kpi_id=kpi.id
-    #             )
-    #             db.session.add(create_scoresheet_item)
-    #             db.session.commit()
-    #     return render_template('pa/all_performance.html', pa_id=pa_id)
-    # else:
-    #     return render_template('pa/all_performance.html', scoresheet_id=scoresheet.id)
+def approved_score(approved_scoresheet_id):
+    #TODO: Questiion- if not approved will record in db or discuss in person (if not record, head committee change the score and send to committees again)
+    scoresheet = PAApprovedScoreSheet.query.filter_by(id=approved_scoresheet_id).first()
+    scoresheet.approved_at=datetime.datetime.now(tz)
+    db.session.add(scoresheet)
+    db.session.commit()
+    flash('บันทึกการอนุมัติเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('pa.consensus_scoresheets'))

@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm
-from wtforms import FieldList, FormField, FloatField, SelectField, TextAreaField
+from .models import PACommittee, PARound, PARequest
+from wtforms import FieldList, FormField, FloatField, SelectField, TextAreaField, widgets
 from wtforms_alchemy import model_form_factory, QuerySelectField
 
 from app.PA.models import *
