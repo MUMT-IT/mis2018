@@ -56,6 +56,9 @@ def create_meeting():
             ในวันที่ {form.start.data.strftime('%d/%m/%Y %H:%M')} - {form.end.data.strftime('%d/%m/%Y %H:%M')}
             {invitation.meeting.rooms}
             
+            ลิงค์การประชุมออนไลน์
+            {invitation.meeting.meeting_url}
+            
             กรุณาตอบรับการประชุมในลิงค์ด้านล่าง
             
             {meeting_invitation_link}
@@ -257,6 +260,9 @@ def notify_participant(invitation_id):
     ขอเรียนเชิญเข้าร่วมประชุม{invitation.meeting.title}
     ในวันที่ {start.strftime('%d/%m/%Y %H:%M')} - {end.strftime('%d/%m/%Y %H:%M')}
     {invitation.meeting.rooms}
+    
+    ลิงค์การประชุมออนไลน์
+    {invitation.meeting.meeting_url}
     
     กรุณาตอบรับการประชุมในลิงค์ด้านล่าง
     
