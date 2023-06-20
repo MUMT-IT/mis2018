@@ -152,7 +152,7 @@ def add_kpi(pa_id):
         db.session.add(new_kpi)
         db.session.commit()
         flash('เพิ่มรายละเอียดเกณฑ์การประเมินเรียบร้อย', 'success')
-        return redirect('pa.add_kpi', pa_id=pa_id)
+        return redirect(url_for('pa.add_kpi'), pa_id=pa_id)
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
@@ -224,6 +224,27 @@ def show_commitee():
                            departments=[{'id': d.id, 'name': d.name} for d in departments])
 
 
+@pa.route('/pa/<int:pa_id>/requests', methods=['GET', 'POST'])
+def create_request(pa_id):
+    pa = PAAgreement.query.get(pa_id)
+    form = PARequestForm()
+    supervisor_email = current_user.personal_info.org.head or current_user.personal_info.org.parent.head
+    supervisor = StaffAccount.query.filter_by(email=supervisor_email).first()
+    if form.validate_on_submit():
+        new_request = PARequest()
+        form.populate_obj(new_request)
+        new_request.pa_id = pa_id
+        right_now = arrow.now('Asia/Bangkok').datetime
+        new_request.created_at = right_now
+        new_request.submitted_at = right_now
+        new_request.supervisor = supervisor
+        db.session.add(new_request)
+        db.session.commit()
+        flash('ส่งคำขอเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+    return render_template('PA/request_form.html', form=form, pa=pa)
+
+
 @pa.route('/head/requests')
 @login_required
 def all_request():
@@ -232,23 +253,32 @@ def all_request():
     return render_template('pa/head_all_request.html', all_req=all_req)
 
 
+@pa.route('/head/request/<int:request_id>/detail')
+@login_required
+def view_request(request_id):
+    categories = PAItemCategory.query.all()
+    req = PARequest.query.get(request_id)
+    return render_template('PA/head_respond_request.html',
+                           categories=categories, req=req)
+
+
 @pa.route('/head/request/<int:request_id>', methods=['GET', 'POST'])
 @login_required
 def respond_request(request_id):
     req = PARequest.query.get(request_id)
-    form = PARequestForm(obj=req)
-    # TODO: for_ required
-    if form.validate_on_submit():
-        form.populate_obj(req)
-        req.responded_at = datetime.datetime.now(tz)
+    if request.method == 'POST':
+        form = request.form
+        req.status = form.get('approval')
+        if req.for_ == 'ขอรับรอง':
+            req.pa.approved_at = arrow.now('Asia/Bangkok').datetime
+        elif req.for_ == 'ขอแก้ไข':
+            req.pa.approved_at = None
+        req.responded_at = arrow.now('Asia/Bangkok').datetime
+        req.supervisor_comment = form.get('supervisor_comment')
         db.session.add(req)
         db.session.commit()
-        flash('บันทึกผลเรียบร้อยแล้ว', 'success')
-        return redirect(url_for('pa.all_request'))
-    else:
-        for err in form.errors:
-            flash('{}: {}'.format(err, form.errors[err]), 'danger')
-    return render_template('pa/head_respond_request.html', form=form, req=req)
+        flash('ดำเนินการอนุมัติเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('pa.all_request'))
 
 
 @pa.route('/cmte/all_pa_agreement', methods=['GET', 'POST'])

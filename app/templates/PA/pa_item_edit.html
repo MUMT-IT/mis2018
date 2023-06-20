@@ -152,34 +152,49 @@
                                     <div class="control">
                                         <input type="submit" value="บันทึกภาระงาน" class="button is-success">
                                     </div>
-                                    <div class="dropdown">
-                                        <div class="dropdown-trigger">
-                                            <button class="button is-info is-outlined" aria-haspopup="true" aria-controls="dropdown-menu">
-                                                <span>ส่งคำขอ</span>
-                                                <span class="icon is-small">
-                                                    <i class="fas fa-angle-down" aria-hidden="true"></i>
-                                                </span>
-                                            </button>
-                                        </div>
-                                        <div class="dropdown-menu" id="dropdown-menu" role="menu">
-                                            <div class="dropdown-content">
-                                                <a href="#" class="dropdown-item">
-                                                    ตรวจสอบและรับรองภาระงาน
-                                                </a>
-                                                <a class="dropdown-item">
-                                                    แก้ไขภาระงาน
-                                                </a>
-                                                <hr class="dropdown-divider">
-                                                <a href="#" class="dropdown-item">
-                                                    ประเมินภาระงาน
-                                                </a>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         </div>
                     </form>
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('pa.create_request', pa_id=pa.id) }}" class="button is-info is-outlined" aria-haspopup="true" aria-controls="dropdown-menu">
+                            <span class="icon">
+                                <i class="fa-sharp fa-solid fa-paper-plane"></i>
+                            </span>
+                            <span>ส่งคำขอ</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <h1 class="title">สถานะการประเมินภาระงาน</h1>
+                    <table class="table">
+                        <thead>
+                        <th>สร้างเมื่อ</th>
+                        <th>เพื่อ</th>
+                        <th>รายละเอียด</th>
+                        <th>สถานะ</th>
+                        <th>ส่งเมื่อ</th>
+                        <th>ตอบกลับเมื่อ</th>
+                        <th>comment</th>
+                        <th>หัวหน้าส่วนงาน</th>
+                        </thead>
+                        <tbody>
+                        {% for req in pa.requests %}
+                            <tr>
+                                <td>{{ req.created_at|localdatetime }}</td>
+                                <td>{{ req.for_ }}</td>
+                                <td>{{ req.detail }}</td>
+                                <td>{{ req.status or 'ระหว่างดำเนินการ' }}</td>
+                                <td>{{ req.submitted_at|localdatetime }}</td>
+                                <td>{{ req.responded_at or '' }}</td>
+                                <td>{{ req.supervisor_comment }}</td>
+                                <td>{{ req.supervisor.fullname }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

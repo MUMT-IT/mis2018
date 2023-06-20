@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+    <div class="container">
+        <h1 class="title has-text-centered">
+            ส่งคำร้อง
+        </h1>
+        <h1 class="subtitle has-text-centered">
+            รอบการประเมิน {{ pa.round }}
+        </h1>
+        <form method="post">
+            {{ form.hidden_tag() }}
+            <div class="field">
+                <label class="label">{{ form.for_.label }}</label>
+                <div class="select">
+                    {{ form.for_() }}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{{ form.detail.label }}</label>
+                <div class="control">
+                    {{ form.detail(class="textarea") }}
+                </div>
+            </div>
+            <div class="field is-grouped is-grouped-centered">
+                <div class="control">
+                    <input type="submit" value="Submit" class="button is-success">
+                </div>
+                <div class="control">
+                    <a class="button is-light" href="{{ url_for('pa.add_pa_item', round_id=pa.round_id) }}">Back</a>
+                </div>
+            </div>
+        </form>
+    </div>
+    </section>
+{% endblock %}
