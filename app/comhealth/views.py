@@ -121,12 +121,12 @@ def finance_summary(service_id):
 @login_required
 def api_finance_record(service_id):
     service = ComHealthService.query.get(service_id)
-    records = [rec for rec in service.records if rec.is_checked_in]
+    records = [rec for rec in service.records.filter(ComHealthRecord.finance_contact_id!=None).filter(ComHealthRecord.is_checked_in!=None)]
     record_schema = ComHealthRecordSchema(many=True,
                                           only=('labno', 'customer', 'id',
                                                 'checkin_datetime', 'finance_contact',
                                                 'receipts','note'))
-    return jsonify(record_schema.dump(records).data)
+    return jsonify(record_schema.dump(records))
 
 
 @comhealth.route('/services/health-record')
@@ -157,7 +157,7 @@ def health_record_index(service_id):
     else:
         org = None
     return render_template('comhealth/employees.html',
-                           employees=customer_schema.dump(org.employees).data,
+                           employees=customer_schema.dump(org.employees),
                            org=org)
 
 
@@ -192,7 +192,7 @@ def search_service_customer(service_id):
     service = ComHealthService.query.get(service_id)
     record_schema = ComHealthRecordCustomerSchema(many=True,
                                           only=("id", "labno", "checkin_datetime", "customer"))
-    return jsonify(record_schema.dump(service.records).data)
+    return jsonify(record_schema.dump(service.records))
 
 
 @comhealth.route('/orgs/<int:org_id>/services/register')
@@ -201,7 +201,7 @@ def register_service_to_org(org_id):
     services = ComHealthService.query.all()
     org = ComHealthOrg.query.get(org_id)
     service_schema = ComHealthServiceOnlySchema(many=True)
-    return render_template('comhealth/service_register.html', services=service_schema.dump(services).data, org=org)
+    return render_template('comhealth/service_register.html', services=service_schema.dump(services), org=org)
 
 
 @comhealth.route('/orgs/<int:org_id>/services/<int:service_id>/register')
@@ -592,7 +592,7 @@ def test_index():
     profiles = ComHealthTestProfile.query.all()
     pf_schema = ComHealthTestProfileSchema(many=True)
     return render_template('comhealth/test_profile.html',
-                           profiles=pf_schema.dump(profiles).data)
+                           profiles=pf_schema.dump(profiles))
 
 
 @comhealth.route('/test/groups')
@@ -606,7 +606,7 @@ def test_group_index(group_id=None):
     groups = ComHealthTestGroup.query.all()
     gr_schema = ComHealthTestGroupSchema(many=True)
     return render_template('comhealth/test_group.html',
-                           groups=gr_schema.dump(groups).data)
+                           groups=gr_schema.dump(groups))
 
 
 @comhealth.route('/test/profiles/new', methods=['GET', 'POST'])
@@ -673,7 +673,7 @@ def profile_test_menu(profile_id=None):
         profile = ComHealthTestProfile.query.get(profile_id)
         action = url_for('comhealth.add_test_to_profile', profile_id=profile_id)
         return render_template('comhealth/test_menu.html',
-                               tests=t_schema.dump(tests).data,
+                               tests=t_schema.dump(tests),
                                form=form,
                                action=action,
                                profile=profile)
@@ -775,7 +775,7 @@ def group_test_menu(group_id=None):
         group = ComHealthTestGroup.query.get(group_id)
         action = url_for('comhealth.add_test_to_group', group_id=group_id)
         return render_template('comhealth/group_test_menu.html',
-                               tests=t_schema.dump(tests).data,
+                               tests=t_schema.dump(tests),
                                form=form,
                                action=action,
                                group=group)
@@ -856,7 +856,7 @@ def test_test_index(test_id=None):
     tests = ComHealthTest.query.all()
     t_schema = ComHealthTestSchema(many=True)
     return render_template('comhealth/test_test.html',
-                           tests=t_schema.dump(tests).data)
+                           tests=t_schema.dump(tests))
 
 
 @comhealth.route('/test/tests/new', methods=['GET', 'POST'])
@@ -1188,7 +1188,7 @@ def list_orgs():
     org_schema = ComHealthOrgSchema(many=True)
     orgs = ComHealthOrg.query.all()
     return render_template('comhealth/org_list.html',
-                           orgs=org_schema.dump(orgs).data)
+                           orgs=org_schema.dump(orgs))
 
 
 @comhealth.route('/services/add-to-org/<int:org_id>', methods=['GET', 'POST'])
@@ -1460,7 +1460,7 @@ def list_employees(orgid):
         org = ComHealthOrg.query.get(orgid)
         customer_schema = ComHealthCustomerSchema(many=True)
         return render_template('comhealth/employees.html',
-                               employees=customer_schema.dump(org.employees).data,
+                               employees=customer_schema.dump(org.employees),
                                org=org)
 
 
