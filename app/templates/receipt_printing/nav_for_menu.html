@@ -1,0 +1,66 @@
+<nav class="navbar" role="navigation" aria-label="main navigation">
+    <div class="container">
+        <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="navbarBasicExample">
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+            <span aria-hidden="true"></span>
+        </a>
+        <div id="navbarMenu" class="navbar-menu">
+            <div class="navbar-end">
+                <div class="navbar-item has-dropdown is-hoverable">
+                    <a class="navbar-link">
+                        บันทึกข้อมูล
+                    </a>
+                    <div class="navbar-dropdown is-boxed">
+                        <a class="navbar-item" href="{{ url_for('receipt_printing.create_receipt') }}">
+                            <span class="icon"><i class="fas fa-plus-square"></i></span>
+                            <span>สร้างใบเสร็จรับเงิน</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="navbar-item has-dropdown is-hoverable">
+                    <a class="navbar-link">
+                        ดูข้อมูลทั้งหมด
+                    </a>
+                    <div class="navbar-dropdown is-boxed">
+                        <a class="navbar-item" href="{{ url_for('receipt_printing.view_receipt_by_list_type') }}">
+                            <span class="icon"><i class="fas fa-eye"></i></span>
+                            <span>ดูข้อมูล ยกเลิก และพิมพ์ใบเสร็จรับเงิน</span>
+                        </a>
+                        <a class="navbar-item" href="{{ url_for('receipt_printing.list_to_cancel_receipt') }}">
+                            <span class="icon"><i class="fas fa-print"></i></span>
+                            <span>พิมพ์ใบเสร็จรับเงินที่ถูกยกเลิก</span>
+                        </a>
+                        <a class="navbar-item" href="{{ url_for('receipt_printing.list_to_require_receipt') }}">
+                            <span class="icon"><i class="fas fa-copy"></i></span>
+                            <span>คำร้องขอสำเนาใบเสร็จรับเงิน</span>
+                        </a>
+                        <a class="navbar-item" href="{{ url_for('receipt_printing.view_require_receipt') }}"">
+                        <span class="icon"><i class="fas fa-eye"></i></span>
+                        <span>ดูข้อมูลคำร้องขอสำเนาใบเสร็จรับเงิน</span>
+                        </a>
+                    </div>
+                </div>
+                <div class="navbar-item has-dropdown is-hoverable">
+                    <a class="navbar-link">
+                        Report
+                    </a>
+                    <div class="navbar-dropdown is-boxed">
+                        <a class="navbar-item" href="{{ url_for('receipt_printing.daily_payment_report') }}">
+                            <span class="icon"><i class="fas fa-bookmark"></i></span>
+                            <span>รายงานการรับเงินประจำวัน</span>
+                        </a>
+                    </div>
+                </div>
+                <span class="navbar-item">
+                    <a class="button is-outlined" href="{{ url_for('receipt_printing.index') }}">
+                        <span class="icon">
+                           <i class="fas fa-sign-out-alt"></i>
+                        </span>
+                        <span>Logout</span>
+                    </a>
+                </span>
+            </div>
+        </div>
+    </div>
+</nav>
