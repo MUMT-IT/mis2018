@@ -330,17 +330,17 @@ def export_receipt_pdf(receipt_id):
     item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
     item_table.setStyle([('SPAN', (0, -1), (1, -1))])
 
-    if receipt.payment_method == u'เงินสด':
+    if receipt.payment_method == 'Cash':
         payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
-    elif receipt.payment_method == u'บัตรเครดิต':
+    elif receipt.payment_method == 'Credit Card':
         payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: บัตรเครดิต / CREDIT CARD NUMBER {}-****-****-{}</font>'.format(receipt.card_number[:4], receipt.card_number[-4:]),
                                  style=style_sheet['ThaiStyle'])
-    elif receipt.payment_method == u'Scan QR Code':
+    elif receipt.payment_method == u'QR Payment':
         payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: สแกนคิวอาร์โค้ด / SCAN QR CODE</font>', style=style_sheet['ThaiStyle'])
-    elif receipt.payment_method == u'โอนผ่านระบบธนาคารอัตโนมัติ':
+    elif receipt.payment_method == 'Bank Transfer':
         payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: โอนผ่านระบบธนาคารอัตโนมัติ / TRANSFER TO BANK</font>',
                                  style=style_sheet['ThaiStyle'])
-    elif receipt.payment_method == u'เช็คสั่งจ่าย':
+    elif receipt.payment_method == 'Cheque':
         payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: เช็คสั่งจ่าย / CHEQUE NUMBER {}****</font>'.format(receipt.cheque_number[:4]),
                                  style=style_sheet['ThaiStyle'])
     else:
@@ -387,8 +387,8 @@ def export_receipt_pdf(receipt_id):
                 data.append(KeepTogether(header_ori))
                 data.append(KeepTogether(cancel_receipts))
             else:
-                data.append(KeepTogether(cancel_receipts))
                 data.append(KeepTogether(header_copy))
+                data.append(KeepTogether(cancel_receipts))
 
             data.append(KeepTogether(customer))
             data.append(KeepTogether(Spacer(1, 12)))
@@ -405,7 +405,7 @@ def export_receipt_pdf(receipt_id):
             data.append(KeepTogether(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
                                   style=style_sheet['ThaiStyle'])))
             data.append(KeepTogether(notice))
-            data.append(KeepTogether(PageBreak()))
+            # data.append(KeepTogether(PageBreak()))
     else:
         number_of_copies = 2 if receipt.copy_number == 1 else 1
         for i in range(number_of_copies):

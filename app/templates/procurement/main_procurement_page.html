@@ -30,11 +30,17 @@
                         </span>
                     <span class="is-size-5">ระบบพิมพ์ใบเสร็จรับเงิน</span><br>
                 </a>
+                <a href="{{ url_for('receipt_printing.select_btw_io_code_and_cost_center') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-user-alt"></i>
+                        </span>
+                        <span class="is-size-5">IO/Cost Center</span>
+                </a>
             </nav>
         </div>
     </div>
     <div class="has-text-right">
-        <span>พบปัญหาเกี่ยวกับระบบ <br>ติดต่อ yada.boo@mahidol.ac.th หรือโทรศัพท์ภายใน 2845</>
+        <span>พบปัญหาเกี่ยวกับระบบ <br>ติดต่อ yada.boo@mahidol.ac.th หรือโทรศัพท์ภายใน 2845</span>
     </div>
 </section>
 {% endblock %}
