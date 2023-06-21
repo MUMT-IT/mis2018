@@ -26,7 +26,7 @@ class PARound(db.Model):
     # is_closed = db.Column('is_closed', db.Boolean(), default=False)
 
     def __str__(self):
-        return "{} - {}".format(self.start, self.end)
+        return "{} - {}".format(self.start.strftime('%d/%m/%Y'), self.end.strftime('%d/%m/%Y'))
 
 
 class PAAgreement(db.Model):
@@ -68,6 +68,7 @@ class PALevel(db.Model):
     __tablename__ = 'pa_levels'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     level = db.Column('level', db.String())
+    order = db.Column('order', db.Integer())
 
     def __str__(self):
         return self.level
