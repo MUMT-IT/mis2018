@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">รายการรออนุมัติผลคะแนนประเมินผลงาน</h1>
+            </div>
+        </div>
+    {% include "messages.html" %}
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="reqTable">
+                    <thead>
+                    <th>รอบการประเมิน</th>
+                    <th>ผู้รับการประเมิน</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for scoresheet in scoresheets %}
+                    <tr>
+                        <td>
+                            {{ scoresheet.pa.round }}
+                        </td>
+                        <td>
+                            {{ scoresheet.pa.staff.personal_info.fullname }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('pa.detail_consensus_scoresheet', scoresheet_id=scoresheet.id) }}"
+                               class="button is-small">
+                                <span>รายละเอียดเพิ่มเติมเพื่ออนุมัติ</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('pa.index') }}" class="button is-rounded is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับหน้าหลัก</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#reqTable').DataTable();
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">การประเมินผลงาน</h1>
+            </div>
+            <div class="column has-text-right">
+                <a href="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}" class="button is-rounded is-warning">
+                    <span class="icon">
+                        <i class="fas fa-plus"></i>
+                    </span>
+                    <span>เริ่มการประเมิน</span>
+                </a>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="notification is-info">
+                    <h1 class="subtitle">ผู้รับการประเมิน {{ scoresheet.pa.staff.personal_info.fullname }}<br>
+                        ตำแหน่ง {{ scoresheet.pa.staff.personal_info.position }}<br>
+                        ลักษณะการจ้าง {{ scoresheet.pa.staff.personal_info.employment }}
+                    </h1>
+                </div>
+            </div>
+            <div class="column">
+                <div class="notification is-info is-light">
+                    <span>
+                        * วิธีคิดคะแนนประเมินผลงาน<br>
+                        1.  ให้นำคะแนนประเมินผลของคณะกรรมการประเมินผลการปฏิบัติงานในแต่ละข้อคูณค่าน้ำหนักของภาระงานในข้อนั้นๆ<br>
+                        2.  รวมคะแนนประเมินทั้งหมดที่คำนวณแล้วทุกข้อ<br>
+                        3.  เทียบบัญญัติไตรยางศ์คะแนนประเมินรวมตามร้อยละที่กำหนด
+                    </span>
+                </div>
+            </div>
+        </div>
+    {% include "messages.html" %}
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="reqTable">
+                    <thead>
+                    <th>ภาระงาน</th>
+                    <th>ร้อยละ (น้ำหนัก)</th>
+                    <th>เป้าหมาย: ปริมาณ</th>
+                    <th>เป้าหมาย: คุณภาพ</th>
+                    <th>เป้าหมาย: เวลา</th>
+                    <th>เป้าหมาย: ความคุ้มค่า</th>
+                    <th>เป้าหมาย: ความพึงพอใจ</th>
+                    <th>คะแนนที่ให้</th>
+                    </thead>
+                    <tbody>
+                    {% for item in scoresheet.pa.pa_items %}
+                    <tr>
+                        <td>
+                            {{ item.task }}
+                        </td>
+                        <td>
+                            {{ item.percentage }}
+                        </td>
+                        {% for t in ['ปริมาณ', 'คุณภาพ', 'เวลา', 'ความคุ้มค่า', 'ความพึงพอใจ'] %}
+                        <td>
+                            {% for kpi_item in item.kpi_items %}
+                                {% if kpi_item.kpi.type == t %}
+                                    {{ kpi_item.goal }}<br>
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('pa.all_scoresheet') }}" class="button is-rounded is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับหน้าหลัก</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#reqTable').DataTable();
+        });
+    </script>
+{% endblock %}

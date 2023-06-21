@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">รายชื่อบุคลากรเข้ารับการประเมินผลงาน (Performance)</h1>
+                <h1 class="subtitle">การประเมินผลงาน (Performance) : ให้ผู้บังคับบัญชาชั้นต้นพิจารณาให้คะแนนผลการดำเนินงาน
+                    ตามข้อตกลงการปฏิบัติงานเบื้องต้นก่อนให้คณะกรรมการประเมินผลการปฏิบัติงานพิจารณาประเมิน</h1>
+            </div>
+        </div>
+        {% include "messages.html" %}
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="reqTable">
+                    <thead>
+                    <th>รอบการประเมิน</th>
+                    <th>ผู้รับการประเมิน</th>
+                    <th>กลุ่มผู้ประเมิน</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for pa in pa %}
+                    <tr>
+                        <td>
+                            {{ pa.round }}
+                        </td>
+                        <td>
+                            {{ pa.staff.personal_info.fullname }}
+                        </td>
+                        <td>
+                            {% for c in pa.committees %}
+                                <a class="tag is-medium">
+                                {{ c.staff.personal_info.fullname }}
+                                </a>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if pa.pa_score_sheet %}
+                            <a href="{{ url_for('pa.create_scoresheet_for_committee', pa_id=pa.id) }}"
+                               class="button is-small">
+                                <span>ส่งแบบประเมินไปยังกลุ่มผู้ประเมิน</span>
+                            </a>
+                            {% endif %}
+                            <a href="{{ url_for('pa.create_scoresheet', pa_id=pa.id) }}"
+                               class="button is-small">
+                                <span>เริ่มทำการประเมิน</span>
+                            </a>
+                            <a href="{{ url_for('pa.summary_scoresheet', pa_id=pa.id) }}"
+                               class="button is-small">
+                                <span>สรุปผลการประเมิน</span>
+                            </a>
+                            <a href=""
+                               class="button is-small">
+                                <span>ส่งคะแนนไปยังผู้รับการประเมิน</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('pa.index') }}" class="button is-rounded is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับหน้าหลัก</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#reqTable').DataTable();
+        });
+    </script>
+{% endblock %}
