@@ -121,7 +121,7 @@ def finance_summary(service_id):
 @login_required
 def api_finance_record(service_id):
     service = ComHealthService.query.get(service_id)
-    records = [rec for rec in service.records.filter(ComHealthRecord.finance_contact_id!=None).filter(ComHealthRecord.is_checked_in!=None)]
+    records = [rec for rec in service.records.filter(ComHealthRecord.finance_contact_id!=None,ComHealthRecord.finance_contact_id!=3).filter(ComHealthRecord.is_checked_in!=None)]
     record_schema = ComHealthRecordSchema(many=True,
                                           only=('labno', 'customer', 'id',
                                                 'checkin_datetime', 'finance_contact',
