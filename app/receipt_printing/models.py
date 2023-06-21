@@ -20,8 +20,8 @@ class ElectronicReceiptDetail(db.Model):
                                                                                     'choices': [('None', u'--โปรดเลือกช่องทางการชำระเงิน--'),
                                                                                             ('Cash', 'Cash'),
                                                                                             ('Credit Card', 'Credit Card'),
-                                                                                            ('Scan QR Code','Scan QR Code'),
-                                                                                            ('Transfer Bank', 'Transfer Bank'),
+                                                                                            ('QR Payment','QR Payment'),
+                                                                                            ('Bank Transfer', 'Bank Transfer'),
                                                                                             ('Cheque', 'Cheque'), ('Other', 'Other')]})
     paid_amount = db.Column('paid_amount', db.Numeric(), default=0.0)
     card_number = db.Column('card_number', db.String(16), info={'label': u'เลขบัตรเครดิต'})

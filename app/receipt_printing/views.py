@@ -330,21 +330,22 @@ def export_receipt_pdf(receipt_id):
     item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
     item_table.setStyle([('SPAN', (0, -1), (1, -1))])
 
-    if receipt.payment_method == u'เงินสด':
+    if receipt.payment_method == 'Cash':
         payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
-    elif receipt.payment_method == u'บัตรเครดิต':
+    elif receipt.payment_method == 'Credit Card':
         payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: บัตรเครดิต / CREDIT CARD NUMBER {}-****-****-{}</font>'.format(receipt.card_number[:4], receipt.card_number[-4:]),
                                  style=style_sheet['ThaiStyle'])
-    elif receipt.payment_method == u'Scan QR Code':
+    elif receipt.payment_method == u'QR Payment':
         payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: สแกนคิวอาร์โค้ด / SCAN QR CODE</font>', style=style_sheet['ThaiStyle'])
-    elif receipt.payment_method == u'โอนผ่านระบบธนาคารอัตโนมัติ':
+    elif receipt.payment_method == 'Bank Transfer':
         payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: โอนผ่านระบบธนาคารอัตโนมัติ / TRANSFER TO BANK</font>',
                                  style=style_sheet['ThaiStyle'])
-    elif receipt.payment_method == u'เช็คสั่งจ่าย':
+    elif receipt.payment_method == 'Cheque':
         payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: เช็คสั่งจ่าย / CHEQUE NUMBER {}****</font>'.format(receipt.cheque_number[:4]),
                                  style=style_sheet['ThaiStyle'])
     else:
         payment_info = Paragraph('<font size=11>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])
+    print(receipt.payment_method)
 
     total_content = [[payment_info,
                       Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
