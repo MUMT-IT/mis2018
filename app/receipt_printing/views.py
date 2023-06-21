@@ -345,7 +345,6 @@ def export_receipt_pdf(receipt_id):
                                  style=style_sheet['ThaiStyle'])
     else:
         payment_info = Paragraph('<font size=11>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])
-    print(receipt.payment_method)
 
     total_content = [[payment_info,
                       Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -388,8 +387,8 @@ def export_receipt_pdf(receipt_id):
                 data.append(KeepTogether(header_ori))
                 data.append(KeepTogether(cancel_receipts))
             else:
-                data.append(KeepTogether(cancel_receipts))
                 data.append(KeepTogether(header_copy))
+                data.append(KeepTogether(cancel_receipts))
 
             data.append(KeepTogether(customer))
             data.append(KeepTogether(Spacer(1, 12)))
@@ -406,7 +405,7 @@ def export_receipt_pdf(receipt_id):
             data.append(KeepTogether(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
                                   style=style_sheet['ThaiStyle'])))
             data.append(KeepTogether(notice))
-            data.append(KeepTogether(PageBreak()))
+            # data.append(KeepTogether(PageBreak()))
     else:
         number_of_copies = 2 if receipt.copy_number == 1 else 1
         for i in range(number_of_copies):
