@@ -24,7 +24,8 @@
             </nav>
             <nav class="panel is-warning">
                 <p class="panel-heading">อยู่ระหว่างการทดสอบ</p>
-                <a href="{{ url_for('receipt_printing.index') }}" class="panel-block">
+                {% if finance_permission.can() %}
+                <a href="{{ url_for('receipt_printing.landing') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-comments-dollar"></i>
                         </span>
@@ -36,6 +37,7 @@
                         </span>
                         <span class="is-size-5">IO/Cost Center</span>
                 </a>
+                {% endif %}
             </nav>
         </div>
     </div>

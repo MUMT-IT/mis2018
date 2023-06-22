@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">ประเมินผล</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="notification is-info is-light">
+                        <span>
+                            การประเมินผลงาน (Performance) : ให้ผู้บังคับบัญชาชั้นต้นพิจารณาให้คะแนนผลการดำเนินงาน
+                        ตามข้อตกลงการปฏิบัติงานเบื้องต้นก่อนให้คณะกรรมการประเมินผลการปฏิบัติงานพิจารณาประเมิน
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <form method="post" action="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="columns">
+                    <div class="column">
+                        <table class="table is-striped is-fullwidth">
+                            <thead>
+                            <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
+                            <th>ร้อยละ</th>
+                            <th>ประเภท</th>
+                            <th>เกณฑ์ตามตัวชี้วัด</th>
+                            <th>ผลการประเมินผู้บังคับบัญชาขั้นต้น</th>
+                            <th><div class="tag is-info">ให้คะแนน(0-10 คะแนน)</div></th>
+                            </thead>
+                            <tbody>
+                            {% for s in scoresheet.score_sheet_items %}
+                                <tr>
+                                    <td>
+                                        <p class="tag is-info">{{ s.item }}</p>
+                                        <p class="help">
+                                            {{ s.kpi_item }}
+                                        </p>
+                                    </td>
+                                    <td>
+                                        {{ s.item.percentage }}
+                                    </td>
+                                    <td>
+                                        {{ s.kpi_item.kpi.type }}
+                                    </td>
+                                    <td class="content">
+                                    <ul>
+                                        {% for kpi in s.kpi_item.kpi.pa_kpi_items %}
+                                            <li>{{ kpi.goal }} ({{ kpi.level }})</li>
+                                        {% endfor %}
+                                    </ul>
+                                    </td>
+                                    <td>
+
+                                    </td>
+                                    <td>
+                                        {% if not s.score %}
+                                        <div class="field">
+                                            <div class="control">
+                                                <input class="input" required name="pa-item-{{ s.id }}"
+                                                       step="0.5" type="number" min="0" max="10" id="score"/>
+                                            </div>
+                                        </div>
+                                        {% else %}
+                                            {{ s.score }}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="columns">
+                    <div class="column">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.all_performance', scoresheet_id=scoresheet.id) }}"
+                                   class="button is-light">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="submit" class="button is-success"/>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+{% endblock %}

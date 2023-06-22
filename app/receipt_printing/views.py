@@ -43,12 +43,6 @@ json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).js
 ALLOWED_EXTENSION = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
-@receipt_printing.route('/index')
-@finance_permission.require()
-def index():
-    return render_template('receipt_printing/index.html')
-
-
 @receipt_printing.route('/landing')
 def landing():
     return render_template('receipt_printing/landing.html')

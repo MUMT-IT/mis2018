@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block head %}
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+{% endblock %}
+{% include "nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">เพิ่มผู้ประเมินผลการปฏิบัติงาน</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <form method="post" enctype="multipart/form-data">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">รอบการประเมิน</label>
+                            <div class="select">
+                                {{ form.round() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.org.label }}</label>
+                            <div class="select">
+                                {{ form.org() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.role.label }}</label>
+                            <div class="select">
+                                {{ form.role() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.staff.label }}</label>
+                            {{ form.staff() }}
+                        </div>
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.show_commitee') }}"
+                                   class="button is-light">Cancel</a>
+                            </div>
+                            <div class="control">
+                                <input type="submit" value="submit" class="button is-success"/>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $('#staff').select2()
+    </script>
+{% endblock %}
