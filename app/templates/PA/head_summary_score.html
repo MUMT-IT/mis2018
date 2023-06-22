@@ -29,10 +29,10 @@
                             {% for item in score_sheet_item %}
                                 <tr>
                                     <td>
-                                        {{ item.item }}
-                                        <div class="tag">
+                                        <p class="tag is-info"> {{ item.item }}</p>
+                                        <p class="help">
                                             {{ item.kpi_item }}
-                                        </div>
+                                        </p>
                                     </td>
                                     <td>
                                         {{ item.item.percentage }}
@@ -40,10 +40,12 @@
                                     <td>
                                         {{ item.kpi_item.kpi.type }}
                                     </td>
-                                    <td>
+                                    <td class="content">
+                                    <ul>
                                         {% for kpi in item.kpi_item.kpi.pa_kpi_items %}
-                                            {{ kpi.goal }}<br>
+                                            <li> {{ kpi.goal }}</li>
                                         {% endfor %}
+                                    </ul>
                                     </td>
                                     <td>
 
@@ -55,16 +57,12 @@
 
                                     </td>
                                     <td>
-                                        {% if not item.score %}
                                         <div class="field">
                                             <div class="control">
-                                                <input class="input" required step="0.5"
-                                                       type="number" min="0" max="10" value="8" id="score"/>
+                                                <input class="input" required name="pa-item-{{ item.id }}" value="{{ item.score }}"
+                                                       type="number" step="0.5" min="0" max="10" id="score"/>
                                             </div>
                                         </div>
-                                        {% else %}
-                                            {{ s.score }}
-                                        {% endif %}
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -72,6 +70,7 @@
                         </table>
                     </div>
                 </div>
+                {% if score_sheet.is_consolidated == False %}
                 <div class="columns">
                     <div class="column">
                         <div class="field is-grouped is-grouped-centered">
@@ -85,6 +84,28 @@
                         </div>
                     </div>
                 </div>
+                <div class="columns">
+                    <div class="column">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.confirm_score', scoresheet_id=score_sheet.id) }}"
+                                   class="button is-info">ยืนยันคะแนนสุดท้าย(ไม่สามารถแก้ไขคะแนนได้อีก)</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="columns">
+                    <div class="column">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.all_approved_pa') }}"
+                                   class="button is-light">กลับ</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </form>
         </div>
     </section>

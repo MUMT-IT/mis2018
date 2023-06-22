@@ -29,7 +29,11 @@
                         <td>
                             <a href="{{ url_for('pa.all_performance', scoresheet_id=scoresheet.id) }}"
                                class="button is-small">
-                                <span>ให้คะแนน</span>
+                               {% if not scoresheet.is_consolidated %}
+                                   <span>ให้คะแนน</span>
+                               {% else %}
+                                   <span>รายละเอียด</span>
+                               {% endif %}
                             </a>
                         </td>
                     </tr>

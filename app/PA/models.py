@@ -172,4 +172,5 @@ class PAApprovedScoreSheet(db.Model):
     score_sheet_id = db.Column(db.ForeignKey('pa_score_sheets.id'))
     score_sheet = db.relationship('PAScoreSheet', backref=db.backref('approved_score_sheet'), foreign_keys=[score_sheet_id])
     committee_id = db.Column('committee_id', db.ForeignKey('pa_committees.id'))
+    committee = db.relationship('PACommittee', backref=db.backref('committee_approved_score_sheet'), foreign_keys=[committee_id])
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
