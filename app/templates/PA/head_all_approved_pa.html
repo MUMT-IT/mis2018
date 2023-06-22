@@ -37,6 +37,10 @@
                             {% endfor %}
                         </td>
                         <td>
+                            <a href="{{ url_for('pa.assign_committee', pa_id=pa.id) }}"
+                                   class="button is-small">
+                                <span>กำหนดผู้ประเมิน</span>
+                            </a>
                             {% if pa.pa_score_sheet %}
                             <a href="{{ url_for('pa.create_scoresheet_for_committee', pa_id=pa.id) }}"
                                class="button is-small">
@@ -51,7 +55,7 @@
                                class="button is-small">
                                 <span>สรุปผลการประเมิน</span>
                             </a>
-                            <a href=""
+                            <a href="{{ url_for('pa.create_consensus_scoresheets', pa_id=pa.id) }}"
                                class="button is-small">
                                 <span>ส่งคะแนนไปยังผู้รับการประเมิน</span>
                             </a>
