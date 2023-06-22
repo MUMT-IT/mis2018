@@ -43,12 +43,14 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if req.responded_at %}
                             <a href="{{ url_for('pa.view_request', request_id=req.id) }}"
                                class="button is-small is-rounded is-outlined">
-                                <span>รายละเอียด</span>
+                                {% if req.responded_at %}
+                                    <span>รายละเอียด</span>
+                                {% else %}
+                                    <span>ดำเนินการ</span>
+                                {% endif %}
                             </a>
-                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

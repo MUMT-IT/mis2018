@@ -7,14 +7,14 @@
             {% include "messages.html" %}
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="title">รับรองผลการประเมิน</h1>
+                    <h1 class="title">อนุมัติคะแนน</h1>
                 </div>
             </div>
             <form method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="columns">
                     <div class="column">
-                        <table class="table is-striped is-fullwidth" id="reqTable">
+                        <table class="table is-striped is-fullwidth">
                             <thead>
                                 <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
                                 <th>ร้อยละ</th>
@@ -29,10 +29,10 @@
                             {% for item in score_sheet_item %}
                                 <tr>
                                     <td>
-                                        {{ item.item }}
-                                        <div class="tag">
+                                        <p class="tag is-info"> {{ item.item }}</p>
+                                        <p class="help">
                                             {{ item.kpi_item }}
-                                        </div>
+                                        </p>
                                     </td>
                                     <td>
                                         {{ item.item.percentage }}
@@ -40,10 +40,12 @@
                                     <td>
                                         {{ item.kpi_item.kpi.type }}
                                     </td>
-                                    <td>
+                                    <td class="content">
+                                    <ul>
                                         {% for kpi in item.kpi_item.kpi.pa_kpi_items %}
-                                            {{ kpi.goal }}<br>
+                                            <li> {{ kpi.goal }}</li>
                                         {% endfor %}
+                                    </ul>
                                     </td>
                                     <td>
 
@@ -55,7 +57,7 @@
 
                                     </td>
                                     <td>
-                                        {{ s.score }}
+                                        {{ item.score }}
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -63,6 +65,7 @@
                         </table>
                     </div>
                 </div>
+                {% if approve_scoresheet.approved_at == None %}
                 <div class="columns">
                     <div class="column">
                         <div class="field is-grouped is-grouped-centered">
@@ -71,12 +74,23 @@
                                    class="button is-light">Cancel</a>
                             </div>
                             <div class="control">
-                                <a href=""
-                                   class="button is-danger">Approved</a>
+                                <input type="submit" value="submit" class="button is-success"/>
                             </div>
                         </div>
                     </div>
                 </div>
+                {% else %}
+                <div class="columns">
+                    <div class="column">
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.consensus_scoresheets') }}"
+                                   class="button is-light">กลับ</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
             </form>
         </div>
     </section>

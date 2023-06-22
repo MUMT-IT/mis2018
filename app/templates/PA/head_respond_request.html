@@ -38,11 +38,11 @@
                                 </div>
                             </div>
                         {% endif %}
-                        {% if req.submitted_at %}
+                        {% if req.responded_at %}
                             <div class="field">
-                                <label class="label">ประธาน{{ req.status }}เมื่อ</label>
+                                <label class="label">ผู้บังคับบัญชาขั้นต้น {{ req.status }} เมื่อ</label>
                                 <div>
-                                    {{ req.submitted_at|localdatetime }}
+                                    {{ req.responded_at|localdatetime }}
                                 </div>
                                 <div>
                                     comment: {{ req.supervisor_comment }}
@@ -50,38 +50,6 @@
                             </div>
                         {% endif %}
                     </div>
-                    {% if not req.submitted_at %}
-                        <div class="field">
-                            <label class="label">{{ form.status.label }}</label>
-                            <div class="select">
-                                {{ form.status() }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.supervisor_comment.label }}</label>
-                            <div class="control">
-                                {{ form.supervisor_comment(class="input") }}
-                            </div>
-                        </div>
-                        <div class="field is-grouped is-grouped-centered">
-                            <div class="control">
-                                <a href="{{ url_for('pa.all_request') }}"
-                                   class="button is-light">Cancel</a>
-                            </div>
-                            <div class="control">
-                                <input type="submit" value="submit" class="button is-success"/>
-                            </div>
-                        </div>
-                    {% else %}
-                        {% if req.for_ == 'ขอรับการประเมิน' %}
-                            <div class="field is-grouped is-grouped-centered">
-                                <div class="control">
-                                    <a href="{{ url_for('pa.create_scoresheet', pa_id=req.pd_id) }}"
-                                       class="button is-warning">เริ่มการประเมิน</a>
-                                </div>
-                            </div>
-                        {% endif %}
-                    {% endif %}
                 </div>
             </div>
             <div class="columns">
@@ -129,18 +97,19 @@
                         {% endfor %}
                         </tbody>
                     </table>
+                    {% if not req.responded_at %}
                     <form method="post" action="{{ url_for('pa.respond_request', request_id=req.id) }}">
                         <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
                         <div class="field">
                             <div class="control">
                                 <label class="label">
-                                    <input type="radio" name="approval" value="no">
+                                    <input type="radio" name="approval" value="ไม่อนุมัติ">
                                     ไม่อนุมัติ
                                 </label>
                             </div>
                             <div class="control">
                                 <label class="label">
-                                    <input type="radio" checked name="approval" value="yes">
+                                    <input type="radio" checked name="approval" value="อนุมัติ">
                                     อนุมัติ
                                 </label>
                             </div>
@@ -161,16 +130,23 @@
                             </div>
                         </div>
                     </form>
+                    {% else %}
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.all_request') }}"
+                                   class="button is-light">Back</a>
+                            </div>
+                        </div>
+                    {% endif %}
                     {% if req.pa.approved_at %}
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
                             <a href="{{ url_for('pa.create_scoresheet', pa_id=req.pa_id) }}"
                                class="button is-warning">เริ่มการประเมิน</a>
                         </div>
-                            <div class="control">
-                                <a href="{{ url_for('pa.assign_committee', pa_id=req.pa_id) }}"
+                        <div class="control">
+                            <a href="{{ url_for('pa.assign_committee', pa_id=req.pa_id) }}"
                                    class="button is-warning">กำหนดผู้ประเมิน</a>
-                            </div>
                         </div>
                     </div>
                     {% endif %}
