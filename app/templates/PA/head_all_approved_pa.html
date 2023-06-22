@@ -41,12 +41,10 @@
                                    class="button is-small">
                                 <span>กำหนดผู้ประเมิน</span>
                             </a>
-                            {% if pa.pa_score_sheet %}
                             <a href="{{ url_for('pa.create_scoresheet_for_committee', pa_id=pa.id) }}"
                                class="button is-small">
                                 <span>ส่งแบบประเมินไปยังกลุ่มผู้ประเมิน</span>
                             </a>
-                            {% endif %}
                             <a href="{{ url_for('pa.create_scoresheet', pa_id=pa.id) }}"
                                class="button is-small">
                                 <span>เริ่มทำการประเมิน</span>
