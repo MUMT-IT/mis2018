@@ -6,6 +6,32 @@
         <div class="container">
             {% include "messages.html" %}
             <div class="columns">
+                <div class="column">
+                    <table class="table">
+                        <thead>
+                        <th>ตัวชี้วัด</th>
+                        <th>เกณฑ์การประเมิน</th>
+                        </thead>
+                        <tbody>
+                        {% for kpi in consolidated_score_sheet.pa.kpis %}
+                            <tr>
+                            <td>
+                                {{ kpi }}
+                            </td>
+                            <td class="content">
+                                <ul>
+                                    {% for kpi_item in kpi.pa_kpi_items %}
+                                        <li>{{ kpi_item }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
                 <div class="column has-text-centered">
                     <h1 class="title">สรุปการประเมินผล</h1>
                 </div>
@@ -18,51 +44,39 @@
                             <thead>
                                 <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
                                 <th>ร้อยละ</th>
-                                <th>ประเภท</th>
-                                <th>เกณฑ์ตามตัวชี้วัด</th>
-                                <th>ผลการประเมินผู้บังคับบัญชาขั้นต้น</th>
-                                <th>ผลการประเมินกรรมการ</th>
-                                <th>ผลการประเมินกรรมการ</th>
-                                <th><div class="tag is-info">ให้คะแนน(0-10 คะแนน)</div></th>
+                                <th>เป้าหมาย</th>
                             </thead>
                             <tbody>
-                            {% for item in score_sheet_item %}
+                            {% for pa_item in consolidated_score_sheet.pa.pa_items %}
                                 <tr>
                                     <td>
-                                        <p class="tag is-info"> {{ item.item }}</p>
+                                        <p class="tag is-info"> {{ pa_item }}</p>
                                         <p class="help">
-                                            {{ item.kpi_item }}
+                                            {{ pa_item.kpi_item }}
                                         </p>
                                     </td>
                                     <td>
-                                        {{ item.item.percentage }}
-                                    </td>
-                                    <td>
-                                        {{ item.kpi_item.kpi.type }}
+                                        {{ pa_item.percentage }}
                                     </td>
                                     <td class="content">
-                                    <ul>
-                                        {% for kpi in item.kpi_item.kpi.pa_kpi_items %}
-                                            <li> {{ kpi.goal }}</li>
-                                        {% endfor %}
-                                    </ul>
-                                    </td>
-                                    <td>
-
-                                    </td>
-                                    <td>
-
-                                    </td>
-                                    <td>
-
-                                    </td>
-                                    <td>
-                                        <div class="field">
-                                            <div class="control">
-                                                <input class="input" required name="pa-item-{{ item.id }}" value="{{ item.score }}"
-                                                       type="number" step="0.5" min="0" max="10" id="score"/>
+                                        {% for kpi_item in pa_item.kpi_items %}
+                                            <div class="field">
+                                                <label class="label">{{ kpi_item }}</label>
+                                                {% for sc in consolidated_score_sheet.pa.pa_score_sheet %}
+                                                    {% if sc.is_consolidated == False %}
+                                                        <div class="field is-grouped">
+                                                            {{ sc.get_score_sheet_item(pa_item.id, kpi_item.id).score_tag|safe }}
+                                                        </div>
+                                                    {% endif %}
+                                                {% endfor %}
+                                                <div class="control">
+                                                    <input class="input" required step="0.5" min="0" max="10"
+                                                           {% if consolidated_score_sheet.is_final %} readonly {% endif %}
+                                                           name="pa-item-{{ pa_item.id }}-{{ kpi_item.id }}"
+                                                           value="{{ consolidated_score_sheet.get_score_sheet_item(pa_item.id, kpi_item.id).score }}">
+                                                </div>
                                             </div>
-                                        </div>
+                                        {% endfor %}
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -70,7 +84,7 @@
                         </table>
                     </div>
                 </div>
-                {% if score_sheet.is_consolidated == False %}
+                {% if consolidated_score_sheet.is_final == False %}
                 <div class="columns">
                     <div class="column">
                         <div class="field is-grouped is-grouped-centered">
@@ -88,7 +102,7 @@
                     <div class="column">
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
-                                <a href="{{ url_for('pa.confirm_score', scoresheet_id=score_sheet.id) }}"
+                                <a href="{{ url_for('pa.confirm_score', scoresheet_id=consolidated_score_sheet.id) }}"
                                    class="button is-info">ยืนยันคะแนนสุดท้าย(ไม่สามารถแก้ไขคะแนนได้อีก)</a>
                             </div>
                         </div>
