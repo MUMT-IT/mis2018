@@ -38,8 +38,9 @@ class KPIitemSelectForm(FlaskForm):
 
 
 class PAItemForm(FlaskForm):
-    task = TextAreaField('Task')
-    percentage = FloatField('Percentage')
+    task = TextAreaField('ภาระงาน')
+    percentage = FloatField('ร้อยละ')
+    report = TextAreaField('ผลการดำเนินการ')
     category = QuerySelectField('Category',
                                 query_factory=lambda: PAItemCategory.query.all(),
                                 get_label='category')

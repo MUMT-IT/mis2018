@@ -50,8 +50,9 @@
                                                 {% if cat.pa_items.filter_by(pa_id=pa.id).all() %}
                                                     <table class="table is-fullwidth">
                                                         <thead>
-                                                        <th>ภาระงาน</th>
+                                                        <th>งานที่รับผิดชอบ</th>
                                                         <th>ร้อยละ(น้ำหนัก)</th>
+                                                        <th>ผลการดำเนินการ</th>
                                                         <th>ตัวชี้วัด (หากมีหลายตัวชี้วัดคะแนนจะถูกนำมาเฉลี่ย)</th>
                                                         <th></th>
                                                         </thead>
@@ -61,10 +62,12 @@
                                                                 style="background-color: palegreen" {% endif %}>
                                                                 <td>{{ pa_item.task }}</td>
                                                                 <td>{{ pa_item.percentage }}</td>
+                                                                <td>{{ pa_item.report }}</td>
                                                                 <td>
                                                                     <ul>
                                                                         {% for kpi_item in pa_item.kpi_items %}
-                                                                            <li>{{ kpi_item }}</li>
+                                                                            <li>{{ kpi_item }}
+                                                                            </li>
                                                                         {% endfor %}
                                                                     </ul>
                                                                 </td>
@@ -108,11 +111,19 @@
                                         </div>
                                     </div>
                                     <div class="field">
-                                        <label class="label">ภาระงานที่ทำข้อตกลงการปฏิบัติงาน</label>
+                                        <label class="label">{{ form.task.label }}</label>
                                         <div class="control">
                                             {{ form.task(class="textarea") }}
                                         </div>
                                     </div>
+                                    {% if pa.approved_at %}
+                                    <div class="field">
+                                        <label class="label">{{ form.report.label }}</label>
+                                        <div class="control">
+                                            {{ form.report(class="textarea") }}
+                                        </div>
+                                    </div>
+                                    {% endif %}
                                     <div class="field">
                                         <label class="label">ร้อยละ(น้ำหนัก)</label>
                                         <div class="control">
