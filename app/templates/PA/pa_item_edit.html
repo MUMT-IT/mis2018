@@ -16,6 +16,9 @@
                     {% else %}
                         <h1 class="title has-text-centered">เพิ่มภาระงาน</h1>
                         <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }}</h1>
+                        <p>
+                        <span class="icon"><i class="fa-solid fa-clock-rotate-left"></i></span>{{ pa.updated_at|localdatetime }}
+                        </p>
                     {% endif %}
                     <form method="post">
                         {{ form.hidden_tag() }}
@@ -43,28 +46,30 @@
                                     <tbody>
                                     {% for cat in categories %}
                                         <tr>
-                                            <td>
+                                            <td style="width: 10%">
                                                 {{ cat }}
                                             </td>
                                             <td>
                                                 {% if cat.pa_items.filter_by(pa_id=pa.id).all() %}
                                                     <table class="table is-fullwidth">
                                                         <thead>
-                                                        <th>ภาระงาน</th>
-                                                        <th>ร้อยละ(น้ำหนัก)</th>
-                                                        <th>ตัวชี้วัด (หากมีหลายตัวชี้วัดคะแนนจะถูกนำมาเฉลี่ย)</th>
+                                                        <th>งานที่รับผิดชอบ</th>
+                                                        <th>%</th>
+                                                        <th>ผลการดำเนินการ</th>
+                                                        <th>ตัวชี้วัด</th>
                                                         <th></th>
                                                         </thead>
                                                         <tbody>
                                                         {% for pa_item in cat.pa_items.filter_by(pa_id=pa.id) %}
                                                             <tr {% if pa_item_id == pa_item.id %}
                                                                 style="background-color: palegreen" {% endif %}>
-                                                                <td>{{ pa_item.task }}</td>
-                                                                <td>{{ pa_item.percentage }}</td>
-                                                                <td>
+                                                                <td style="width: 20%">{{ pa_item.task }}</td>
+                                                                <td style="width: 10%">{{ pa_item.percentage }}</td>
+                                                                <td style="width: 30%;">{{ pa_item.report }}</td>
+                                                                <td style="width: 30%">
                                                                     <ul>
                                                                         {% for kpi_item in pa_item.kpi_items %}
-                                                                            <li>{{ kpi_item }}</li>
+                                                                            <li><span class="icon"><i class="fa-solid fa-star has-text-warning"></i></span><small>{{ kpi_item }}</small></li>
                                                                         {% endfor %}
                                                                     </ul>
                                                                 </td>
@@ -73,16 +78,16 @@
                                                                         <div class="control">
                                                                             <a href="{{ url_for('pa.add_pa_item', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                class="button is-rounded">
-                                                        <span class="icon">
-                                                            <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
-                                                        </span>
+                                                                                <span class="icon">
+                                                                                    <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
+                                                                                </span>
                                                                             </a>
                                                                         </div>
                                                                         <div class="control">
                                                                             <a class="button is-rounded">
-                                                    <span class="icon">
-                                                        <i class="fa-solid fa-trash-can has-text-danger"></i>
-                                                    </span>
+                                                                                <span class="icon">
+                                                                                    <i class="fa-solid fa-trash-can has-text-danger"></i>
+                                                                                </span>
                                                                             </a>
                                                                         </div>
                                                                     </div>
@@ -108,11 +113,19 @@
                                         </div>
                                     </div>
                                     <div class="field">
-                                        <label class="label">ภาระงานที่ทำข้อตกลงการปฏิบัติงาน</label>
+                                        <label class="label">{{ form.task.label }}</label>
                                         <div class="control">
                                             {{ form.task(class="textarea") }}
                                         </div>
                                     </div>
+                                    {% if pa.approved_at and pa_item_id %}
+                                    <div class="field">
+                                        <label class="label">{{ form.report.label }}</label>
+                                        <div class="control">
+                                            {{ form.report(class="textarea") }}
+                                        </div>
+                                    </div>
+                                    {% endif %}
                                     <div class="field">
                                         <label class="label">ร้อยละ(น้ำหนัก)</label>
                                         <div class="control">
@@ -157,11 +170,26 @@
                         </div>
                     </form>
                     <div class="buttons is-centered">
-                        <a href="{{ url_for('pa.create_request', pa_id=pa.id) }}" class="button is-info is-outlined" aria-haspopup="true" aria-controls="dropdown-menu">
+                        <a href="{{ url_for('pa.create_request', pa_id=pa.id) }}"
+                           class="button is-info is-outlined">
                             <span class="icon">
                                 <i class="fa-sharp fa-solid fa-paper-plane"></i>
                             </span>
                             <span>ส่งคำขอ</span>
+                        </a>
+                        <a href="{{ url_for('pa.create_scoresheet_for_self_evaluation', pa_id=pa.id) }}"
+                           class="button is-warning is-outlined">
+                            <span class="icon">
+                                <i class="fa-solid fa-star"></i>
+                            </span>
+                            <span>ประเมินภาระงานตนเอง</span>
+                        </a>
+                        <a href="{{ url_for('pa.rate_core_competency', pa_id=pa.id, for_self='true', next_url=request.url) }}"
+                           class="button is-warning is-outlined">
+                            <span class="icon">
+                                <i class="fa-solid fa-star"></i>
+                            </span>
+                            <span>ประเมินสมรรถนะหลัก</span>
                         </a>
                     </div>
                 </div>
@@ -199,15 +227,4 @@
             </div>
         </div>
     </section>
-{% endblock %}
-{% block scripts %}
-    {{ super() }}
-    <script>
-        let dropdown = document.querySelector('.dropdown');
-        dropdown.addEventListener('click', function (event) {
-            event.preventDefault()
-            event.stopPropagation();
-            dropdown.classList.toggle('is-active');
-        });
-    </script>
 {% endblock %}

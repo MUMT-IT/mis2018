@@ -7,17 +7,27 @@
             {% include "messages.html" %}
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="title">ประเมินผล</h1>
+                    <h1 class="title">ประเมินภาระงาน</h1>
                 </div>
             </div>
             <div class="columns">
                 <div class="column">
+                    {% if for_self == 'false' %}
                     <div class="notification is-info is-light">
-                        <span>
+                        <p>
                             การประเมินผลงาน (Performance) : ให้ผู้บังคับบัญชาชั้นต้นพิจารณาให้คะแนนผลการดำเนินงาน
                         ตามข้อตกลงการปฏิบัติงานเบื้องต้นก่อนให้คณะกรรมการประเมินผลการปฏิบัติงานพิจารณาประเมิน
-                        </span>
+                        </p>
                     </div>
+                    {% elif for_self == 'true' and scoresheet.is_final %}
+                        <p class="notification is-light is-success">
+                        <span class="icon">
+                            <i class="fa-solid fa-circle-info"></i>
+                        </span>
+                        ท่านได้ดำเนินการส่งคะแนนประเมินตนเองให้คณะกรรมการเรียบร้อยแล้ว
+                        ดังนั้นจะไม่สามารถแก้ไขคะแนนได้
+                        </p>
+                    {% endif %}
                 </div>
             </div>
             <form method="post" action="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}">
@@ -27,38 +37,42 @@
                         <table class="table is-striped is-fullwidth">
                             <thead>
                             <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
-                            <th>ร้อยละ</th>
+                            <th>%</th>
                             <th>ประเภท</th>
                             <th>เกณฑ์ตามตัวชี้วัด</th>
+                            {% if for_self == 'false' %}
                             <th>ผลการประเมินผู้บังคับบัญชาขั้นต้น</th>
-                            <th><div class="tag is-info">ให้คะแนน(0-10 คะแนน)</div></th>
+                            {% endif %}
+                            <th>คะแนน 0-10</th>
                             </thead>
                             <tbody>
                             {% for s in scoresheet.score_sheet_items %}
                                 <tr>
-                                    <td>
+                                    <td style="width: 30%">
                                         <p class="tag is-info">{{ s.item }}</p>
                                         <p class="help">
                                             {{ s.kpi_item }}
                                         </p>
                                     </td>
-                                    <td>
+                                    <td style="width: 10%">
                                         {{ s.item.percentage }}
                                     </td>
                                     <td>
                                         {{ s.kpi_item.kpi.type }}
                                     </td>
-                                    <td class="content">
+                                    <td>
                                     <ul>
                                         {% for kpi in s.kpi_item.kpi.pa_kpi_items %}
-                                            <li>{{ kpi.goal }} ({{ kpi.level }})</li>
+                                            <li><span class="icon"><i class="fa-solid fa-star"></i></span><small>{{ kpi.goal }} ({{ kpi.level }})</small></li>
                                         {% endfor %}
                                     </ul>
                                     </td>
+                                    {% if for_self == 'false' %}
                                     <td>
                                         <div class="field is-grouped">
                                             {{ head_scoresheet.get_score_sheet_item(s.item_id, s.kpi_item.id).score_tag|safe }}
                                         </div>
+                                    {% endif %}
                                     </td>
                                     <td>
                                         <div class="field">
@@ -73,6 +87,32 @@
                             {% endfor %}
                             </tbody>
                         </table>
+                        <h1 class="title has-text-centered">ประเมินสมรรถนะหลัก</h1>
+                        <h1 class="subtitle has-text-centered">Core Competency</h1>
+                        <table class="table is-fullwidth">
+                            <thead>
+                            <th>หัวข้อ</th>
+                            <th>คะแนนเต็ม</th>
+                            <th>คะแนน</th>
+                            </thead>
+                            {% for item in core_competency_items %}
+                                <tr>
+                                    <td>
+                                        <label class="label">{{ item.topic }}</label>
+                                        <p class="help">{{ item.desc }}</p>
+                                    </td>
+                                    <td>{{ item.score }}</td>
+                                    <td>
+                                        <div class="field">
+                                            <input class="input" type="number"
+                                                   name="core-{{ item.id }}"
+                                                    {% if scoresheet.is_final %} readonly {% endif %}
+                                                   value="{{ scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}">
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </table>
                     </div>
                 </div>
                 {% if scoresheet.is_final == False %}
@@ -80,34 +120,35 @@
                     <div class="column">
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
-                                <a href="{{ url_for('pa.all_performance', scoresheet_id=scoresheet.id) }}"
-                                   class="button is-light">Back</a>
+                                <a href="{{ next_url or url_for('pa.all_performance', scoresheet_id=scoresheet.id) }}"
+                                   class="button is-light">กลับ</a>
                             </div>
                             <div class="control">
-                                <input type="submit" value="submit" class="button is-success"/>
+                                <input type="submit" value="บันทึก" class="button is-success"/>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div class="columns">
-                    <div class="column">
-                        <div class="field is-grouped is-grouped-centered">
-                            <div class="control">
-                                <a href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id) }}"
-                                   class="button is-info">ยืนยันคะแนน</a>
-                                <p class="help is-danger">ไม่สามารถแก้ไขคะแนนได้หลังทำการยืนยัน</p>
-                            </div>
+                    <div class="column has-text-centered">
+                        <div class="buttons is-centered">
+                            <a href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self) }}")
+                               class="button is-info">
+                                <span class="icon">
+                                    <i class="fa-solid fa-paper-plane"></i>
+                                </span>
+                                <span>ส่งคะแนน</span>
+                            </a>
                         </div>
+                        <p class="notification is-danger is-light has-text-danger">ท่านไม่สามารถแก้ไขคะแนนได้หลังส่งคะแนน</p>
                     </div>
                 </div>
                 {% else %}
                 <div class="columns">
                     <div class="column">
-                        <div class="field is-grouped is-grouped-centered">
-                            <div class="control">
-                                <a href="{{ url_for('pa.all_performance', scoresheet_id=scoresheet.id) }}"
-                                   class="button is-light">กลับ</a>
-                            </div>
+                        <div class="buttons is-centered">
+                            <a href="{{ next_url or url_for('pa.all_performance', scoresheet_id=scoresheet.id) }}"
+                               class="button is-light">กลับ</a>
                         </div>
                     </div>
                 </div>
