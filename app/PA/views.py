@@ -92,56 +92,6 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
                            categories=categories)
 
 
-@pa.route('/staff/items/add', methods=['POST', 'GET'])
-def add_tasks():
-    form = PAItemForm()
-    form.items.append_entry()
-    task_form = form.items[-1]
-    form_text = '<table class="table is-bordered is-fullwidth is-narrow">'
-    form_text += '''
-    <div id={}>
-        <div class="field">
-            <label class="label">{}</label>
-            <div class="control">
-                {}
-            </div>
-        </div>
-        <div class="field">
-            <label class="label">{}</label>
-                {}
-        </div>
-        <div class="field">
-            <label class="label">{}</label>
-            <div class="control">
-                {}
-            </div>
-        </div>
-    </div>
-    '''.format(task_form.task,
-               task_form.percentage.label,
-               task_form.percentage(class_="input", placeholder="%"),
-               task_form.type.label, task_form.type(),
-               task_form.detail.label, task_form.detail(class_="textarea")
-               )
-    resp = make_response(form_text)
-    resp.headers['HX-Trigger-After-Swap'] = 'initSelect2Input'
-    return resp
-
-
-# @pa.route('/tasks/<int:item_id>')
-# @login_required
-# def delete_task(item_id):
-#     task = PAItem.query.get(item_id)
-#     staff_id = task.task.id
-#     if task:
-#         db.session.delete(task)
-#         db.session.commit()
-#         flash(u'ลบรายการเรียบร้อยแล้ว', 'success')
-#     else:
-#         flash(u'ไม่พบรายการ', 'warning')
-#     return redirect(url_for('pa.show_task_detail', staff_id=staff_id))
-
-
 @pa.route('/pa/<int:pa_id>/kpis/add', methods=['GET', 'POST'])
 @login_required
 def add_kpi(pa_id):
