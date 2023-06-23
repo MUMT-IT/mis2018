@@ -43,7 +43,7 @@
                                     <tbody>
                                     {% for cat in categories %}
                                         <tr>
-                                            <td>
+                                            <td style="width: 10%">
                                                 {{ cat }}
                                             </td>
                                             <td>
@@ -51,23 +51,22 @@
                                                     <table class="table is-fullwidth">
                                                         <thead>
                                                         <th>งานที่รับผิดชอบ</th>
-                                                        <th>ร้อยละ(น้ำหนัก)</th>
+                                                        <th>%</th>
                                                         <th>ผลการดำเนินการ</th>
-                                                        <th>ตัวชี้วัด (หากมีหลายตัวชี้วัดคะแนนจะถูกนำมาเฉลี่ย)</th>
+                                                        <th>ตัวชี้วัด</th>
                                                         <th></th>
                                                         </thead>
                                                         <tbody>
                                                         {% for pa_item in cat.pa_items.filter_by(pa_id=pa.id) %}
                                                             <tr {% if pa_item_id == pa_item.id %}
                                                                 style="background-color: palegreen" {% endif %}>
-                                                                <td>{{ pa_item.task }}</td>
-                                                                <td>{{ pa_item.percentage }}</td>
-                                                                <td>{{ pa_item.report }}</td>
-                                                                <td>
+                                                                <td style="width: 20%">{{ pa_item.task }}</td>
+                                                                <td style="width: 10%">{{ pa_item.percentage }}</td>
+                                                                <td style="width: 30%;">{{ pa_item.report }}</td>
+                                                                <td style="width: 30%">
                                                                     <ul>
                                                                         {% for kpi_item in pa_item.kpi_items %}
-                                                                            <li>{{ kpi_item }}
-                                                                            </li>
+                                                                            <li><span class="icon"><i class="fa-solid fa-star has-text-warning"></i></span><small>{{ kpi_item }}</small></li>
                                                                         {% endfor %}
                                                                     </ul>
                                                                 </td>
@@ -76,16 +75,16 @@
                                                                         <div class="control">
                                                                             <a href="{{ url_for('pa.add_pa_item', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
                                                                                class="button is-rounded">
-                                                        <span class="icon">
-                                                            <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
-                                                        </span>
+                                                                                <span class="icon">
+                                                                                    <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
+                                                                                </span>
                                                                             </a>
                                                                         </div>
                                                                         <div class="control">
                                                                             <a class="button is-rounded">
-                                                    <span class="icon">
-                                                        <i class="fa-solid fa-trash-can has-text-danger"></i>
-                                                    </span>
+                                                                                <span class="icon">
+                                                                                    <i class="fa-solid fa-trash-can has-text-danger"></i>
+                                                                                </span>
                                                                             </a>
                                                                         </div>
                                                                     </div>
@@ -116,7 +115,7 @@
                                             {{ form.task(class="textarea") }}
                                         </div>
                                     </div>
-                                    {% if pa.approved_at %}
+                                    {% if pa.approved_at and pa_item_id %}
                                     <div class="field">
                                         <label class="label">{{ form.report.label }}</label>
                                         <div class="control">
