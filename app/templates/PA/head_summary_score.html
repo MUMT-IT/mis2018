@@ -8,11 +8,11 @@
             <div class="box">
                 <div class="columns has-text-centered">
                     <div class="column has-text-centered">
-                        <h1 class="subtitle">สรุปการประเมินผล</h1>
+                        <h1 class="subtitle">การอนุมัติผลประเมินร่วมกัน</h1>
                     </div>
                 </div>
                 <div class="columns is-grouped-centered">
-                    <div class="column">
+                    <div class="column is-one-third is-offset-4">
                         <table class="table">
                             <thead>
                             <th>ผู้อนุมัติ</th>
@@ -21,18 +21,19 @@
                             <tbody>
                             {% for approved in approved_scoresheets %}
                                 <tr>
-                                <td>
-                                    {{ approved.committee.staff.fullname }}
-                                </td>
-                                <td>
-                                    {{ approved.approved_at|localdatetime }}
-                                </td>
+                                    <td>
+                                        {{ approved.committee.staff.fullname }}
+                                    </td>
+                                    <td>
+                                        {{ approved.approved_at|localdatetime }}
+                                    </td>
                                 </tr>
                             {% endfor %}
                             </tbody>
                         </table>
                     </div>
                 </div>
+                {% if consolidated_score_sheet.is_appproved == False %}
                 <div class="columns">
                     <div class="column has-text-centered">
                         <a href="{{ url_for('pa.send_consensus_scoresheets_to_hr', scoresheet_id=consolidated_score_sheet.id) }}"
@@ -41,6 +42,7 @@
                         </a>
                     </div>
                 </div>
+                {% endif %}
             </div>
             <div class="columns">
                 <div class="column">
