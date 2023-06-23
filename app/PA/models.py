@@ -151,6 +151,7 @@ class PAScoreSheet(db.Model):
     committee = db.relationship('PACommittee', backref=db.backref('committee_score_sheet'), foreign_keys=[committee_id])
     is_consolidated = db.Column('is_consolidated', db.Boolean(), default=False)
     is_final = db.Column('is_final', db.Boolean(), default=False)
+    is_appproved = db.Column('is_appproved', db.Boolean(), default=False)
 
     def get_score_sheet_item(self, pa_item_id, kpi_item_id):
         return self.score_sheet_items.filter_by(item_id=pa_item_id, kpi_item_id=kpi_item_id).first()
