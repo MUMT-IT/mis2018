@@ -170,17 +170,26 @@
                         </div>
                     </form>
                     <div class="buttons is-centered">
-                        <a href="{{ url_for('pa.create_request', pa_id=pa.id) }}" class="button is-info is-outlined">
+                        <a href="{{ url_for('pa.create_request', pa_id=pa.id) }}"
+                           class="button is-info is-outlined">
                             <span class="icon">
                                 <i class="fa-sharp fa-solid fa-paper-plane"></i>
                             </span>
                             <span>ส่งคำขอ</span>
                         </a>
-                        <a href="{{ url_for('pa.create_scoresheet_for_self_evaluation', pa_id=pa.id) }}" class="button is-warning">
+                        <a href="{{ url_for('pa.create_scoresheet_for_self_evaluation', pa_id=pa.id) }}"
+                           class="button is-warning is-outlined">
                             <span class="icon">
                                 <i class="fa-solid fa-star"></i>
                             </span>
-                            <span>ประเมินตนเอง</span>
+                            <span>ประเมินภาระงานตนเอง</span>
+                        </a>
+                        <a href="{{ url_for('pa.rate_core_competency', pa_id=pa.id, for_self='true', next_url=request.url) }}"
+                           class="button is-warning is-outlined">
+                            <span class="icon">
+                                <i class="fa-solid fa-star"></i>
+                            </span>
+                            <span>ประเมินสมรรถนะหลัก</span>
                         </a>
                     </div>
                 </div>

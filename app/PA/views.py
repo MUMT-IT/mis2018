@@ -498,3 +498,51 @@ def all_scoresheet():
         flash('สำหรับคณะกรรมการประเมิน PA เท่านั้น ขออภัยในความไม่สะดวก', 'warning')
         return redirect(url_for('pa.index'))
     return render_template('pa/eva_all_scoresheet.html', scoresheets=scoresheets)
+
+
+@pa.route('/eva/rate_core_competency/<int:scoresheet_id>', methods=['GET', 'POST'])
+@pa.route('/eva/<int:pa_id>/rate_core_competency', methods=['GET', 'POST'])
+@login_required
+def rate_core_competency(pa_id=None, scoresheet_id=None):
+    next_url = request.args.get('next_url')
+    for_self = request.args.get('for_self', 'false')
+    pa = PAAgreement.query.get(pa_id)
+    if pa_id:
+        scoresheet = PAScoreSheet.query.filter_by(
+            staff=current_user,
+            pa_id=pa_id
+        ).first()
+    elif scoresheet_id:
+        scoresheet = PAScoreSheet.query.get(scoresheet_id)
+
+    if not scoresheet and for_self == 'true':
+        scoresheet = PAScoreSheet(
+            staff=current_user,
+            pa_id=pa_id
+        )
+
+    if request.method == 'POST':
+        for field, value in request.form.items():
+            if field.startswith('item-'):
+                comp_item_id = field.split('-')[-1]
+                score_item = PACoreCompetencyScoreItem.query.filter_by(item_id=int(comp_item_id),
+                                                                       score_sheet_id=scoresheet.id).first()
+                if score_item is None:
+                    score_item = PACoreCompetencyScoreItem(item_id=comp_item_id,
+                                              score=float(value),
+                                              score_sheet_id=scoresheet.id)
+                else:
+                    score_item.score = float(value)
+                db.session.add(score_item)
+        pa.updated_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(pa)
+        db.session.commit()
+        flash('บันทึกผลการประเมินเรียบร้อย', 'success')
+        if next_url:
+            return redirect(next_url)
+    core_competency_items = PACoreCompetencyItem.query.all()
+    return render_template('PA/eva_core_competency.html',
+                           core_competency_items=core_competency_items,
+                           scoresheet=scoresheet,
+                           next_url=next_url,
+                           for_self=for_self)
