@@ -115,7 +115,8 @@ class PAItem(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     category_id = db.Column(db.ForeignKey('pa_item_categories.id'))
     category = db.relationship(PAItemCategory, backref=db.backref('pa_items', lazy='dynamic'))
-    task = db.Column(db.Text())
+    task = db.Column(db.Text(), info={'label': 'รายละเอียด'})
+    report = db.Column(db.Text(), info={'label': 'ผลการดำเนินการ'})
     percentage = db.Column(db.Numeric())
     pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
     pa = db.relationship('PAAgreement', backref=db.backref('pa_items', cascade='all, delete-orphan'))
@@ -147,6 +148,9 @@ class PAScoreSheet(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
     pa = db.relationship('PAAgreement', backref=db.backref('pa_score_sheet', lazy='dynamic'), foreign_keys=[pa_id])
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship(StaffAccount, backref=db.backref('pa_scoresheets',
+                                                             cascade='all, delete-orphan'))
     committee_id = db.Column('committee_id', db.ForeignKey('pa_committees.id'))
     committee = db.relationship('PACommittee', backref=db.backref('committee_score_sheet'), foreign_keys=[committee_id])
     is_consolidated = db.Column('is_consolidated', db.Boolean(), default=False)
@@ -154,6 +158,9 @@ class PAScoreSheet(db.Model):
 
     def get_score_sheet_item(self, pa_item_id, kpi_item_id):
         return self.score_sheet_items.filter_by(item_id=pa_item_id, kpi_item_id=kpi_item_id).first()
+
+    def get_core_competency_score_item(self, comp_item_id):
+        return self.competency_score_items.filter_by(item_id=comp_item_id).first()
 
 
 class PAScoreSheetItem(db.Model):
@@ -172,6 +179,28 @@ class PAScoreSheetItem(db.Model):
     @property
     def score_tag(self):
         return f'<div class="control"><div class="tags has-addons"><span class="tag">{self.score_sheet.committee.staff.fullname}</span><span class="tag is-info">{self.score}</span></div></div>'
+
+
+class PACoreCompetencyItem(db.Model):
+    __tablename__ = 'pa_core_competency_items'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    scoresheet_id = db.Column(db.ForeignKey('pa_score_sheets.id'))
+    topic = db.Column('topic', db.String(), nullable=False, info={'label': 'หัวข้อ'})
+    desc = db.Column('desc', db.Text(), info={'label': 'คำอธิบาย'})
+    score = db.Column('score', db.Numeric(), info={'label': 'คะแนนเต็ม'})
+
+
+class PACoreCompetencyScoreItem(db.Model):
+    __tablename__ = 'pa_core_competency_score_items'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    score_sheet_id = db.Column(db.ForeignKey('pa_score_sheets.id'))
+    score_sheet = db.relationship('PAScoreSheet', backref=db.backref('competency_score_items',
+                                                                     lazy='dynamic',
+                                                                     cascade='all, delete-orphan'))
+    item_id = db.Column(db.ForeignKey('pa_core_competency_items.id'))
+    item = db.relationship('PACoreCompetencyItem')
+    score = db.Column('score', db.Numeric())
+    comment = db.Column('comment', db.Text())
 
 
 class PAApprovedScoreSheet(db.Model):

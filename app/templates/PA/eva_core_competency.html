@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+    <section class="section">
+    <div class="columns">
+        <div class="column">
+            <h1 class="title has-text-centered">ประเมินสมรรถนะหลัก</h1>
+            {% if for_self == 'true' and scoresheet.is_final %}
+                <p class="notification is-light is-success">
+                    <span class="icon">
+                        <i class="fa-solid fa-circle-info"></i>
+                    </span>
+                    ท่านได้ดำเนินการส่งคะแนนประเมินตนเองให้คณะกรรมการเรียบร้อยแล้ว
+                    ดังนั้นจะไม่สามารถแก้ไขคะแนนได้
+                </p>
+            {% endif %}
+        </div>
+    </div>
+    <div class="columns">
+        <div class="column">
+        {% if for_self == 'true' %}
+            <h2 class="subtitle has-text-centered">ประเมินตนเอง</h2>
+        {% endif %}
+            <form method="post">
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                <table class="table is-fullwidth">
+                <thead>
+                <th>หัวข้อ</th>
+                <th>คะแนนเต็ม</th>
+                <th>คะแนน</th>
+                </thead>
+                    {% for item in core_competency_items %}
+                        <tr>
+                        <td>
+                            <label class="label">{{ item.topic }}</label>
+                            <p class="help">{{ item.desc }}</p>
+                        </td>
+                        <td>{{ item.score }}</td>
+                        <td>
+                            <div class="field">
+                                <input class="input" type="number"
+                                       name="item-{{ item.id }}"
+                                       {% if scoresheet.is_final %} readonly {% endif %}
+                                       value="{{ scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}">
+                            </div>
+                        </td>
+                        </tr>
+                    {% endfor %}
+                </table>
+                <div class="field is-grouped is-grouped-centered">
+                    <div class="control">
+                        <a class="button is-light" href="{{ next_url or url_for('pa.all_performance', scoresheet_id=scoresheet.id) }}">
+                            กลับ
+                        </a>
+                    </div>
+                    <div class="control">
+                        <input class="button is-success" type="submit" value="บันทึก">
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    </section>
+{% endblock %}
