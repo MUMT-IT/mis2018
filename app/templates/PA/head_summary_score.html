@@ -109,7 +109,7 @@
                                                     {% endif %}
                                                 {% endfor %}
                                                 <div class="control">
-                                                    <input class="input" required step="0.5" min="0" max="10"
+                                                    <input class="input" required step="0.5" min="0" max="10" type="number"
                                                            {% if consolidated_score_sheet.is_final %} readonly {% endif %}
                                                            name="pa-item-{{ pa_item.id }}-{{ kpi_item.id }}"
                                                            value="{{ consolidated_score_sheet.get_score_sheet_item(pa_item.id, kpi_item.id).score }}">

@@ -19,6 +19,7 @@
                                 <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
                                 <th>ร้อยละ</th>
                                 <th>คะแนนสรุป</th>
+                                <th>รายละเอียดคะแนน</th>
                             </thead>
                             <tbody>
                             {% for pa_item in consolidated_score_sheet.pa.pa_items %}
@@ -29,6 +30,9 @@
                                     </td>
                                     <td>
                                         {{ pa_item.percentage }}
+                                    </td>
+                                    <td>
+                                        {{ pa_item.average_score }}
                                     </td>
                                     <td class="content">
                                         {% for kpi_item in pa_item.kpi_items %}
