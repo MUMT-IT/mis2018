@@ -412,6 +412,7 @@ def rate_performance(scoresheet_id):
     pa = PAAgreement.query.get(scoresheet.pa_id)
     head_scoresheet = pa.pa_score_sheet.filter(PACommittee.role == 'ประธานกรรมการ',
                                                PAScoreSheet.is_consolidated == False).first()
+    core_competency_items = PACoreCompetencyItem.query.all()
     if for_self == 'true':
         next_url = url_for('pa.add_pa_item', round_id=pa.round_id)
     else:
@@ -425,6 +426,17 @@ def rate_performance(scoresheet_id):
                 scoresheet_item = PAScoreSheetItem.query.get(scoresheet_item_id)
                 scoresheet_item.score = float(value)
                 db.session.add(scoresheet_item)
+            if field.startswith('core-'):
+                comp_item_id = field.split('-')[-1]
+                score_item = PACoreCompetencyScoreItem.query.filter_by(item_id=int(comp_item_id),
+                                                                       score_sheet_id=scoresheet.id).first()
+                if score_item is None:
+                    score_item = PACoreCompetencyScoreItem(item_id=comp_item_id,
+                                                           score=float(value),
+                                                           score_sheet_id=scoresheet.id)
+                else:
+                    score_item.score = float(value)
+                db.session.add(score_item)
         db.session.commit()
         flash('บันทึกผลการประเมินแล้ว', 'success')
         if for_self == 'true':
@@ -433,6 +445,7 @@ def rate_performance(scoresheet_id):
                            scoresheet=scoresheet,
                            head_scoresheet=head_scoresheet,
                            next_url=next_url,
+                           core_competency_items=core_competency_items,
                            for_self=for_self)
 
 

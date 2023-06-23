@@ -7,7 +7,7 @@
             {% include "messages.html" %}
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="title">ประเมินผล</h1>
+                    <h1 class="title">ประเมินภาระงาน</h1>
                 </div>
             </div>
             <div class="columns">
@@ -86,6 +86,32 @@
                                 </tr>
                             {% endfor %}
                             </tbody>
+                        </table>
+                        <h1 class="title has-text-centered">ประเมินสมรรถนะหลัก</h1>
+                        <h1 class="subtitle has-text-centered">Core Competency</h1>
+                        <table class="table is-fullwidth">
+                            <thead>
+                            <th>หัวข้อ</th>
+                            <th>คะแนนเต็ม</th>
+                            <th>คะแนน</th>
+                            </thead>
+                            {% for item in core_competency_items %}
+                                <tr>
+                                    <td>
+                                        <label class="label">{{ item.topic }}</label>
+                                        <p class="help">{{ item.desc }}</p>
+                                    </td>
+                                    <td>{{ item.score }}</td>
+                                    <td>
+                                        <div class="field">
+                                            <input class="input" type="number"
+                                                   name="core-{{ item.id }}"
+                                                    {% if scoresheet.is_final %} readonly {% endif %}
+                                                   value="{{ scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}">
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
                         </table>
                     </div>
                 </div>
