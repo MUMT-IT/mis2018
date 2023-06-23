@@ -226,6 +226,20 @@ def show_commitee():
                            departments=[{'id': d.id, 'name': d.name} for d in departments])
 
 
+@pa.route('/hr/all-consensus-scoresheets')
+@login_required
+def consensus_scoresheets_for_hr():
+    approved_scoresheets = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True).all()
+    return render_template('pa/hr_all_consensus_scores.html', approved_scoresheets=approved_scoresheets)
+
+
+@pa.route('/hr/all-consensus-scoresheetss/<int:scoresheet_id>')
+@login_required
+def detail_consensus_scoresheet_for_hr(scoresheet_id):
+    consolidated_score_sheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
+    return render_template('pa/hr_consensus_score_detail.html', consolidated_score_sheet=consolidated_score_sheet)
+
+
 @pa.route('/pa/<int:pa_id>/requests', methods=['GET', 'POST'])
 def create_request(pa_id):
     pa = PAAgreement.query.get(pa_id)
@@ -401,7 +415,7 @@ def summary_scoresheet(pa_id):
                 db.session.add(consolidated_score_sheet_item)
                 db.session.commit()
         score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
-
+    approved_scoresheets = PAApprovedScoreSheet.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     if request.method == 'POST':
         form = request.form
         for field, value in form.items():
@@ -415,7 +429,8 @@ def summary_scoresheet(pa_id):
         flash('บันทึกผลค่าเฉลี่ยเรียบร้อยแล้ว', 'success')
     return render_template('pa/head_summary_score.html',
                            score_sheet_items=score_sheet_items,
-                           consolidated_score_sheet=consolidated_score_sheet)
+                           consolidated_score_sheet=consolidated_score_sheet,
+                           approved_scoresheets=approved_scoresheets)
 
 
 @pa.route('/confirm-score/<int:scoresheet_id>')
@@ -426,6 +441,17 @@ def confirm_score(scoresheet_id):
     db.session.add(scoresheet)
     db.session.commit()
     flash('บันทึกคะแนนเรียบร้อยแล้ว', 'success')
+    return redirect(request.referrer)
+
+
+@pa.route('/head/consensus-scoresheets/send-to-hr/<int:scoresheet_id>')
+@login_required
+def send_consensus_scoresheets_to_hr(scoresheet_id):
+    scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
+    scoresheet.is_appproved = True
+    db.session.add(scoresheet)
+    db.session.commit()
+    flash('ส่งคะแนนไปยัง hr เรียบร้อยแล้ว', 'success')
     return redirect(request.referrer)
 
 
@@ -488,16 +514,16 @@ def consensus_scoresheets():
 @pa.route('/eva/consensus-scoresheets/<int:approved_id>', methods=['GET', 'POST'])
 @login_required
 def detail_consensus_scoresheet(approved_id):
-    #TODO: recheck bug
     approve_scoresheet = PAApprovedScoreSheet.query.filter_by(id=approved_id).first()
-    score_sheet_item = PAScoreSheetItem.query.filter_by(score_sheet_id=approve_scoresheet.score_sheet_id).all()
+    consolidated_score_sheet = PAScoreSheet.query.filter_by(id=approve_scoresheet.score_sheet_id).first()
+
     if request.method == 'POST':
         approve_scoresheet.approved_at = datetime.datetime.now(tz)
         db.session.add(approve_scoresheet)
         db.session.commit()
         flash('บันทึกการอนุมัติเรียบร้อยแล้ว', 'success')
         return redirect(url_for('pa.consensus_scoresheets'))
-    return render_template('pa/eva_consensus_scoresheet_detail.html', score_sheet_item=score_sheet_item,
+    return render_template('pa/eva_consensus_scoresheet_detail.html', consolidated_score_sheet=consolidated_score_sheet,
                            approve_scoresheet=approve_scoresheet)
 
   
