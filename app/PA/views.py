@@ -76,6 +76,7 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
                     new_kpi_items.append(kpi_item)
         pa_item.kpi_items = new_kpi_items
         pa.pa_items.append(pa_item)
+        pa.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(pa_item)
         db.session.commit()
         flash('เพิ่มรายละเอียดภาระงานเรียบร้อย', 'success')

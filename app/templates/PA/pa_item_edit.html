@@ -16,6 +16,9 @@
                     {% else %}
                         <h1 class="title has-text-centered">เพิ่มภาระงาน</h1>
                         <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }}</h1>
+                        <p>
+                        <span class="icon"><i class="fa-solid fa-clock-rotate-left"></i></span>{{ pa.updated_at|localdatetime }}
+                        </p>
                     {% endif %}
                     <form method="post">
                         {{ form.hidden_tag() }}
@@ -167,11 +170,17 @@
                         </div>
                     </form>
                     <div class="buttons is-centered">
-                        <a href="{{ url_for('pa.create_request', pa_id=pa.id) }}" class="button is-info is-outlined" aria-haspopup="true" aria-controls="dropdown-menu">
+                        <a href="{{ url_for('pa.create_request', pa_id=pa.id) }}" class="button is-info is-outlined">
                             <span class="icon">
                                 <i class="fa-sharp fa-solid fa-paper-plane"></i>
                             </span>
                             <span>ส่งคำขอ</span>
+                        </a>
+                        <a href="{{ url_for('pa.create_request', pa_id=pa.id) }}" class="button is-warning">
+                            <span class="icon">
+                                <i class="fa-solid fa-star"></i>
+                            </span>
+                            <span>ประเมินตนเอง</span>
                         </a>
                     </div>
                 </div>
@@ -209,15 +218,4 @@
             </div>
         </div>
     </section>
-{% endblock %}
-{% block scripts %}
-    {{ super() }}
-    <script>
-        let dropdown = document.querySelector('.dropdown');
-        dropdown.addEventListener('click', function (event) {
-            event.preventDefault()
-            event.stopPropagation();
-            dropdown.classList.toggle('is-active');
-        });
-    </script>
 {% endblock %}
