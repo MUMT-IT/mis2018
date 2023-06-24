@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block head %}
     {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.css" rel="stylesheet">
 {% endblock %}
 {% block title %}MUMT MIS: Performance Agreement {% endblock %}
 {% include "PA/nav.html" %}
@@ -63,9 +64,9 @@
                                                         {% for pa_item in cat.pa_items.filter_by(pa_id=pa.id) %}
                                                             <tr {% if pa_item_id == pa_item.id %}
                                                                 style="background-color: palegreen" {% endif %}>
-                                                                <td style="width: 20%">{{ pa_item.task }}</td>
+                                                                <td style="width: 20%">{{ pa_item.task|safe }}</td>
                                                                 <td style="width: 10%">{{ pa_item.percentage }}</td>
-                                                                <td style="width: 30%;">{{ pa_item.report }}</td>
+                                                                <td style="width: 30%;">{{ pa_item.report|safe }}</td>
                                                                 <td style="width: 30%">
                                                                     <ul>
                                                                         {% for kpi_item in pa_item.kpi_items %}
@@ -74,22 +75,20 @@
                                                                     </ul>
                                                                 </td>
                                                                 <td>
-                                                                    <div class="field has-addons">
-                                                                        <div class="control">
-                                                                            <a href="{{ url_for('pa.add_pa_item', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id) }}"
-                                                                               class="button is-rounded">
-                                                                                <span class="icon">
-                                                                                    <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
-                                                                                </span>
-                                                                            </a>
-                                                                        </div>
-                                                                        <div class="control">
-                                                                            <a class="button is-rounded">
-                                                                                <span class="icon">
-                                                                                    <i class="fa-solid fa-trash-can has-text-danger"></i>
-                                                                                </span>
-                                                                            </a>
-                                                                        </div>
+                                                                    <div class="buttons">
+                                                                        <a href="{{ url_for('pa.add_pa_item', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id, _anchor='edit_form') }}"
+                                                                           class="button is-rounded">
+                                                                            <span class="icon">
+                                                                                <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
+                                                                            </span>
+                                                                        </a>
+                                                                        {% if pa.approved_at == None %}
+                                                                        <a class="button is-rounded">
+                                                                            <span class="icon">
+                                                                                <i class="fa-solid fa-trash-can has-text-danger"></i>
+                                                                            </span>
+                                                                        </a>
+                                                                        {% endif %}
                                                                     </div>
                                                                 </td>
                                                             </tr>
@@ -102,61 +101,108 @@
                                     {% endfor %}
                                     </tbody>
                                 </table>
-                                <div {% if pa_item_id %}class="notification is-light is-success"{% else %}
-                                     class="notification" {% endif %}>
+                                <div>
+                                    <a id="edit_form"></a>
                                     <p class="title is-size-4 has-text-centered">
-                                        เพิ่ม/แก้ไขข้อมูลภาระงานและตัวชี้วัด</p>
+                                        เพิ่ม/แก้ไขข้อมูลภาระงานและตัวชี้วัด
+                                    </p>
                                     <div class="field">
-                                        <label class="label">{{ form.category.label }}</label>
-                                        <div class="select">
-                                            {{ form.category() }}
+                                        <label class="label">
+                                            {% if pa.approved_at %}
+                                                <span class="icon"><i class="fa-solid fa-lock"></i></span>
+                                            {% endif %}
+                                            {{ form.category.label }}
+                                        </label>
+                                        <div class="select {% if pa_item_id %}is-success{% endif %}">
+                                            {{ form.category(disabled=pa.approved_at != None) }}
                                         </div>
                                     </div>
                                     <div class="field">
-                                        <label class="label">{{ form.task.label }}</label>
+                                        <label class="label">
+                                            {% if pa.approved_at %}
+                                                <span class="icon"><i class="fa-solid fa-lock"></i></span>
+                                            {% endif %}
+                                            {{ form.task.label }}
+                                        </label>
                                         <div class="control">
-                                            {{ form.task(class="textarea") }}
+                                            {{ form.task(required=True, class="textarea is-success" if pa_item_id else "textarea", disabled=pa.approved_at != None) }}
                                         </div>
                                     </div>
-                                    {% if pa.approved_at and pa_item_id %}
+                                    {% if pa_item_id and pa.approved_at %}
                                     <div class="field">
-                                        <label class="label">{{ form.report.label }}</label>
+                                        <label class="label">
+                                            <span class="icon">
+                                                <i class="fa-solid fa-lock-open"></i>
+                                            </span>
+                                            {{ form.report.label }}
+                                        </label>
                                         <div class="control">
-                                            {{ form.report(class="textarea") }}
+                                            {{ form.report(class="textarea is-success" if pa_item_id else "textarea") }}
                                         </div>
                                     </div>
                                     {% endif %}
                                     <div class="field">
-                                        <label class="label">ร้อยละ(น้ำหนัก)</label>
+                                        <label class="label">
+                                            {% if pa.approved_at %}
+                                                <span class="icon"><i class="fa-solid fa-lock"></i></span>
+                                            {% endif %}
+                                            ร้อยละ(น้ำหนัก)
+                                        </label>
                                         <div class="control">
-                                            {{ form.percentage(class="input") }}
+                                            {{ form.percentage(class="input is-success" if pa_item_id else "input", required=True, disabled=pa.approved_at != None) }}
                                         </div>
                                     </div>
                                     <div class="field">
-                                        <label class="label">ตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</label>
+                                        <label class="label">
+                                            {% if pa.approved_at %}
+                                                <span class="icon"><i class="fa-solid fa-lock"></i></span>
+                                            {% endif %}
+                                            ตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน
+                                        </label>
                                         <p class="help is-danger">สามารถระบุได้มากกว่า 1 ตัวชี้วัด
                                             โดยคะแนนจะมาจากค่าเฉลี่ยของทุกตัว</p>
                                     </div>
                                     {% if pa.kpis %}
+                                        <table class="table is-fullwidth is-striped">
                                         {% for item_form in form.kpi_items_ %}
-                                            <div class="field">
-                                                <label class="label">{{ item_form.label }}</label>
-                                                <div class="select">
-                                                    {{ item_form() }}
-                                                </div>
-                                            </div>
+                                            <tr>
+                                                <td>
+                                                    <div class="field">
+                                                        <label class="label">
+                                                            {{ loop.index }}) {{ item_form.label }}
+                                                        </label>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="select">
+                                                        {{ item_form(disabled=pa.approved_at != None) }}
+                                                    </div>
+                                                    {% if pa.approved_at %}
+                                                        <input name="{{ item_form.id }}" value="{{ item_form.data or '' }}" type="hidden">
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
                                         {% endfor %}
+                                        </table>
                                         <div class="field">
-                                            <div class="control">
-                                                <a href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=pa_round.id) }}">
-                                                    <span class="tag is-link">เพิ่มตัวชี้วัด</span>
-                                                </a>
-                                            </div>
+                                            {% if pa.approved_at == None %}
+                                            <a class="button is-info"
+                                               href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=pa_round.id) }}">
+                                                <span class="icon">
+                                                    <i class="fa-solid fa-location-crosshairs"></i>
+                                                </span>
+                                                <span>เพิ่มตัวชี้วัด</span>
+                                            </a>
+                                            {% endif %}
                                         </div>
                                     {% else %}
                                         <div class="field">
-                                            <a href="{{ url_for('pa.add_kpi', pa_id=pa.id) }}">
-                                                กรุณากรอกข้อมูลตัวชี้วัด
+                                            <a class="button is-info"
+                                                    href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=pa_round.id) }}">
+                                                <span class="icon">
+                                                    <i class="fa-solid fa-location-crosshairs"></i>
+                                                </span>
+                                                <span>เพิ่มตัวชี้วัด</span>
                                             </a>
                                         </div>
                                     {% endif %}
@@ -227,4 +273,27 @@
             </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+<script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.js"></script>
+<script>
+    let toolbar = [
+        // [groupName, [list of button]]
+        ['table', ['table']],
+        ['font', ['bold', 'underline', 'strikethrough', 'superscript', 'subscript']],
+        ['fontsize', ['fontsize']],
+        ['para', ['ul', 'ol', 'paragraph']],
+        ['height', ['height']]
+    ]
+    let options = {
+        height: 400,
+        toolbar: toolbar
+    }
+    $(document).ready(function() {
+        $('#report').summernote(options);
+        $('#task').summernote(options);
+    })
+
+</script>
 {% endblock %}

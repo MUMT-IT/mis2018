@@ -20,8 +20,11 @@ from flask_login import login_required, current_user
 def user_performance():
     staff_personal = PAAgreement.query.all()
     rounds = PARound.query.all()
-    return render_template('pa/user_performance.html', staff_personal=staff_personal,
-                           name=current_user, rounds=rounds)
+    return render_template('pa/user_performance.html',
+                           staff_personal=staff_personal,
+                           name=current_user,
+                           rounds=rounds
+                           )
 
 
 @pa.route('/rounds/<int:round_id>/items/add', methods=['GET', 'POST'])
@@ -104,7 +107,7 @@ def add_kpi(pa_id):
         db.session.add(new_kpi)
         db.session.commit()
         flash('เพิ่มรายละเอียดเกณฑ์การประเมินเรียบร้อย', 'success')
-        return redirect(url_for('pa.add_kpi'), pa_id=pa_id)
+        return redirect(url_for('pa.add_kpi', pa_id=pa_id, round_id=round_id))
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')

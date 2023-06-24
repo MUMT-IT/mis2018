@@ -53,9 +53,11 @@
                             กลับ
                         </a>
                     </div>
+                    {% if scoresheet.is_final == False %}
                     <div class="control">
                         <input class="button is-success" type="submit" value="บันทึก">
                     </div>
+                    {% endif %}
                 </div>
             </form>
         </div>
