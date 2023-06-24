@@ -6,7 +6,7 @@
     {% include "messages.html" %}
     <h1 class="title has-text-centered">ระบบสารสนเทศสำหรับบุคลากร</h1>
     <div class="columns">
-        <div class="column is-one-third is-offset-4">
+        <div class="column is-half is-offset-3">
             <nav class="panel is-info">
                 <p class="panel-heading">สำหรับบุคลากร</p>
                 <a class="panel-block" href="{{ url_for('auth.account') }}">
@@ -29,7 +29,6 @@
                         <i class="far fa-star"></i>
                     </span>
                     <span class="is-size-5">ระบบบันทึกภาระงาน (MUMT Workpoint)</span><br>
-                    <span class="tag is-rounded is-success">New</span>
                 </a>
                 <a class="panel-block" href="{{ url_for('staff.show_leave_info') }}">
                     <span class="panel-icon">
@@ -44,6 +43,11 @@
                 <a class="panel-block" href="{{ url_for('staff.show_time_report') }}">
                     <span class="panel-icon"><i class="far fa-id-badge"></i></span>
                     <span class="is-size-5">ข้อมูลการเข้า-ออกงาน (Login Records)</span><br>
+                </a>
+                <a class="panel-block" href="{{ url_for('pa.user_performance') }}">
+                    <span class="panel-icon"><i class="fa-solid fa-user-check"></i></span>
+                    <span class="is-size-5">ประเมินภาระงาน (PA)</span><br>
+                    <span class="tag is-rounded is-success">New</span>
                 </a>
             </nav>
             {% if current_user.personal_info.org.head == current_user.email %}
