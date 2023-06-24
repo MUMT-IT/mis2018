@@ -11,7 +11,7 @@ from app.PA.forms import *
 
 tz = pytz.timezone('Asia/Bangkok')
 
-from flask import render_template, flash, redirect, url_for, make_response, request
+from flask import render_template, flash, redirect, url_for, request, make_response
 from flask_login import login_required, current_user
 
 
@@ -93,6 +93,17 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
                            pa=pa,
                            pa_item_id=item_id,
                            categories=categories)
+
+
+@pa.route('/pa/<int:pa_id>/items/<int:pa_item_id>/delete', methods=['DELETE'])
+@login_required
+def delete_pa_item(pa_id, pa_item_id):
+    pa_item = PAItem.query.get(pa_item_id)
+    db.session.delete(pa_item)
+    db.session.commit()
+    resp = make_response()
+    resp.headers['HX-Refresh'] = "true"
+    return resp
 
 
 @pa.route('/pa/<int:pa_id>/kpis/add', methods=['GET', 'POST'])
@@ -412,12 +423,14 @@ def summary_scoresheet(pa_id):
 @login_required
 def confirm_score(scoresheet_id):
     for_self = request.args.get('for_self')
+    next_url = request.args.get('next_url')
     scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
     scoresheet.is_final = True
     db.session.add(scoresheet)
     db.session.commit()
     flash('บันทึกคะแนนเรียบร้อยแล้ว', 'success')
     return redirect(url_for('pa.rate_performance',
+                            next_url=next_url,
                             scoresheet_id=scoresheet_id,
                             for_self=for_self))
 
