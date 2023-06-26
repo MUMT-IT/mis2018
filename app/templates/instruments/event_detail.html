@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Event Detail{% endblock %}
+{% block title %}Booking Detail{% endblock %}
 {% include "instruments/nav.html" %}
 {% block page_content %}
     <section class="section" id="app">
@@ -9,7 +9,7 @@
                     <div class="card">
                         <div class="card-image">
                             <figure class="image is-3by2">
-                                <img src="{{ url_for('static', filename='img/vehicles.jpg') }}">
+                                <img src="{{ url_for('static', filename='img/instruments.png') }}">
                             </figure>
                         </div>
                         <div class="card-content">
@@ -53,7 +53,25 @@
                             </div>
                         </div>
                         <footer class="card-footer">
-                            <a href="/vehicle/" class="card-footer-item">กลับ</a>
+                            <a href="{{ url_for('instruments.index_of_instruments') }}" class="card-footer-item">กลับ</a>
+                            {% if current_user == event.creator %}
+                                {% if not event.cancelled_at %}
+                                <a href="{{ url_for('instruments.edit_detail', booking_id=event.id) }}"
+                                   class="card-footer-item">
+                                    <span class="icon">
+                                        <i class="fas fa-pencil-alt has-text-warning"></i>
+                                    </span>
+                                    <span class="has-text-warning">แก้ไข</span>
+                                </a>
+                                <a href="{{ url_for('instruments.cancel', booking_id=event.id) }}"
+                                   class="card-footer-item">
+                                    <span class="icon">
+                                        <i class="far fa-trash-alt has-text-danger"></i>
+                                    </span>
+                                    <span class="has-text-danger">ยกเลิก</span>
+                                </a>
+                                {% endif %}
+                            {% endif %}
                         </footer>
                     </div>
                 </div>
