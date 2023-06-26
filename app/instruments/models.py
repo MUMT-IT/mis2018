@@ -1,7 +1,6 @@
 # -*- coding:utf-8 -*-
 from sqlalchemy import func
 from app.main import db
-from app.room_scheduler.models import RoomResource
 import pytz
 
 tz = pytz.timezone('Asia/Bangkok')
