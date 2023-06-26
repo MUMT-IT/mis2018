@@ -2,12 +2,14 @@
 import pytz
 from dateutil import parser
 from flask import render_template, jsonify, request, url_for, flash, redirect
-from flask_login import current_user
+from flask_login import current_user, login_required
 from . import instrumentsbp as instruments
 from app.models import *
 from app.instruments.forms import InstrumentsBookingForm
 from app.procurement.models import ProcurementDetail
 from .models import InstrumentsBooking
+from datetime import datetime
+
 tz = pytz.timezone('Asia/Bangkok')
 
 
@@ -60,34 +62,33 @@ def get_events():
 
 
 @instruments.route('/index')
+@login_required
 def index_of_instruments():
     return render_template('instruments/index.html', list_type='default')
 
 
 @instruments.route('/events/<list_type>')
+@login_required
 def event_instruments_list(list_type='timelineDay'):
     return render_template('instruments/event_list.html', list_type=list_type)
 
 
-# @instruments.route('/events/<int:event_id>', methods=['POST', 'GET'])
-# def show_event_detail(event_id=None):
-#     tz = pytz.timezone('Asia/Bangkok')
-#     if event_id:
-#         event = InstrumentsBooking.query.get(event_id)
-#         if event:
-#             event.start = event.start.astimezone(tz)
-#             event.end = event.end.astimezone(tz)
-#             return render_template('instruments/event_detail.html', event=event)
-#     else:
-#         return 'No event ID specified.'
-
-
-@instruments.route('/events/new')
-def new_event():
-    return render_template('instruments/new_event.html')
+@instruments.route('/events/<int:event_id>', methods=['POST', 'GET'])
+@login_required
+def show_event_detail(event_id=None):
+    tz = pytz.timezone('Asia/Bangkok')
+    if event_id:
+        event = InstrumentsBooking.query.get(event_id)
+        if event:
+            event.start = event.start.astimezone(tz)
+            event.end = event.end.astimezone(tz)
+            return render_template('instruments/event_detail.html', event=event)
+    else:
+        return 'No event ID specified.'
 
 
 @instruments.route('/list', methods=['POST', 'GET'])
+@login_required
 def instruments_list():
     erp_code = request.form.get('erp_code', None)
     if erp_code:
@@ -98,6 +99,7 @@ def instruments_list():
 
 
 @instruments.route('instruments_list/reserve/all', methods=['GET', 'POST'])
+@login_required
 def view_all_instruments_to_reserve():
     return render_template('instruments/view_all_instruments_to_reserve.html')
 
@@ -133,17 +135,54 @@ def get_instruments_to_reserve():
 
 
 @instruments.route('/reserve/<string:procurement_no>', methods=['GET', 'POST'])
+@login_required
 def instruments_reserve(procurement_no):
     procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
     form = InstrumentsBookingForm()
     if form.validate_on_submit():
         reservation = InstrumentsBooking()
-        reservation.created_by = current_user
+        reservation.created_by = current_user.id
+        reservation.created_at = tz.localize(datetime.utcnow())
         form.populate_obj(reservation)
         db.session.add(reservation)
         db.session.commit()
-        return render_template('instruments/reserve_form.html', form=form, procurement=procurement)
+        return redirect(url_for('instruments.show_event_detail', event_id=reservation.id))
     else:
         for err in form.errors.values():
             flash(', '.join(err), 'danger')
     return render_template('instruments/reserve_form.html', form=form, procurement=procurement)
+
+
+@instruments.route('/reserve/edit/<int:booking_id>', methods=['POST', 'GET'])
+@login_required
+def edit_detail(booking_id):
+    booking = InstrumentsBooking.query.get(booking_id)
+    form = InstrumentsBookingForm(obj=booking)
+    if form.validate_on_submit():
+        form.populate_obj(booking)
+        booking.start = form.start.data.astimezone(tz)
+        booking.end = form.end.data.astimezone(tz)
+        booking.updated_at = datetime.utcnow().astimezone(tz)
+        booking.updated_by = current_user.id
+        db.session.add(booking)
+        db.session.commit()
+        flash(u'อัพเดตรายการเรียบร้อย', 'success')
+        return redirect(url_for('instruments.show_event_detail', event_id=booking.id))
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+    return render_template('instruments/reserve_form.html', booking=booking, form=form)
+
+
+@instruments.route('/reserve/cancel/<int:booking_id>')
+@login_required
+def cancel(booking_id=None):
+    if not booking_id:
+        return redirect(url_for('instruments.index_of_instruments'))
+    booking = InstrumentsBooking.query.get(booking_id)
+    booking.cancelled_at = tz.localize(datetime.utcnow())
+    booking.cancelled_by = current_user.id
+    db.session.add(booking)
+    db.session.commit()
+    return redirect(url_for('instruments.index_of_instruments'))
+
