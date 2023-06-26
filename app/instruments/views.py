@@ -86,25 +86,22 @@ def show_booking_detail(booking_id=None):
         return 'No booking ID specified.'
 
 
-# @instruments.route('/events/<int:event_id>', methods=['POST', 'GET'])
-# def show_event_detail(event_id=None):
-#     tz = pytz.timezone('Asia/Bangkok')
-#     if event_id:
-#         event = InstrumentsBooking.query.get(event_id)
-#         if event:
-#             event.start = event.start.astimezone(tz)
-#             event.end = event.end.astimezone(tz)
-#             return render_template('instruments/event_detail.html', event=event)
-#     else:
-#         return 'No event ID specified.'
-
-
-@instruments.route('/events/new')
-def new_event():
-    return render_template('instruments/new_event.html')
+@instruments.route('/events/<int:event_id>', methods=['POST', 'GET'])
+@login_required
+def show_event_detail(event_id=None):
+    tz = pytz.timezone('Asia/Bangkok')
+    if event_id:
+        event = InstrumentsBooking.query.get(event_id)
+        if event:
+            event.start = event.start.astimezone(tz)
+            event.end = event.end.astimezone(tz)
+            return render_template('instruments/event_detail.html', event=event)
+    else:
+        return 'No event ID specified.'
 
 
 @instruments.route('/list', methods=['POST', 'GET'])
+@login_required
 def instruments_list():
     erp_code = request.form.get('erp_code', None)
     if erp_code:
