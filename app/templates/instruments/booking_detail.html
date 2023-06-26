@@ -15,15 +15,15 @@
                         <div class="card-content">
                             <div class="content">
                                 <p>
-                                    <span class="title is-4">{{ event.title }}</span>
+                                    <span class="title is-4">{{ booking.title }}</span>
                                 </p>
                                 <p>
                                     <span class="icon">
                                         <i class="far fa-clock"></i>
                                     </span>
                                     <span class="subtitle">
-                                        {{ event.start.strftime('%d/%m/%Y') }} {{ event.start.strftime('%H:%M') }}
-                                        ถึง {{ event.end.strftime('%d/%m/%Y') }} {{ event.end.strftime('%H:%M') }}
+                                        {{ booking.start.strftime('%d/%m/%Y') }} {{ booking.start.strftime('%H:%M') }}
+                                        ถึง {{ booking.end.strftime('%d/%m/%Y') }} {{ booking.end.strftime('%H:%M') }}
                                     </span>
                                 </p>
                                 <p>
@@ -31,8 +31,8 @@
                                         <i class="fas fa-info-circle"></i>
                                     </span>
                                     <span class="subtitle">
-                                        {% if event.desc %}
-                                            {{ event.desc }}
+                                        {% if booking.desc %}
+                                            {{ booking.desc }}
                                         {% else %}
                                             ไม่ระบุรายละเอียด
                                         {% endif %}
@@ -40,7 +40,7 @@
                                 </p>
                                 <p>
                                     <span class="subtitle">
-                                        {% if event.cancelled_at %}
+                                        {% if booking.cancelled_at %}
                                             <span class="icon">
                                                 <i class="fa-solid fa-circle-xmark has-text-danger"></i>
                                             </span>
@@ -54,16 +54,16 @@
                         </div>
                         <footer class="card-footer">
                             <a href="{{ url_for('instruments.index_of_instruments') }}" class="card-footer-item">กลับ</a>
-                            {% if current_user == event.creator %}
-                                {% if not event.cancelled_at %}
-                                <a href="{{ url_for('instruments.edit_detail', booking_id=event.id) }}"
+                            {% if current_user == booking.creator %}
+                                {% if not booking.cancelled_at %}
+                                <a href="{{ url_for('instruments.edit_detail', booking_id=booking.id) }}"
                                    class="card-footer-item">
                                     <span class="icon">
                                         <i class="fas fa-pencil-alt has-text-warning"></i>
                                     </span>
                                     <span class="has-text-warning">แก้ไข</span>
                                 </a>
-                                <a href="{{ url_for('instruments.cancel', booking_id=event.id) }}"
+                                <a href="{{ url_for('instruments.cancel', booking_id=booking.id) }}"
                                    class="card-footer-item">
                                     <span class="icon">
                                         <i class="far fa-trash-alt has-text-danger"></i>

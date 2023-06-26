@@ -29,13 +29,13 @@
                             </a>
                         </li>
                         <li {% if list_type == 'timelineDay' %} class="is-active" {% endif %}>
-                            <a href="{{ url_for('instruments.event_instruments_list', list_type='timelineDay') }}">
+                            <a href="{{ url_for('instruments.booking_instruments_list', list_type='timelineDay') }}">
                                 <span class="icon"><i class="fas fa-list-ol"></i></span>
                                 <span>ดูเครื่องมือวิจัย</span>
                             </a>
                         </li>
                         <li {% if list_type == 'agendaWeek' %} class="is-active" {% endif %}>
-                            <a href="{{ url_for('instruments.event_instruments_list', list_type='agendaWeek') }}">
+                            <a href="{{ url_for('instruments.booking_instruments_list', list_type='agendaWeek') }}">
                                 <span class="icon"><i class="far fa-eye"></i></span>
                                 <span>ดูรายสัปดาห์</span>
                             </a>
@@ -66,11 +66,11 @@
                 header: {
                     left: 'title',
                 },
-                events: '/instruments/api/events',
+                events: '/instruments/api/bookings',
                 lazyFetching: true,
                 eventLimit: true,
                 eventClick: function (calEvent, jsEvent, view) {
-                    window.location = '/instruments/events/' + calEvent.id;
+                    window.location = '/instruments/bookings/' + calEvent.id;
                 }
             });
         });
