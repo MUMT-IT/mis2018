@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.print.css" media="print">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/scheduler.min.css') }}">
 <style>
-    #instr_calendar {
+    #reserve_calendar {
         max-width: 1200px;
         margin: 0 auto;
     }
@@ -34,14 +34,14 @@
         <div class="column has-text-centered">
             {% include "messages.html" %}
             <div class="buttons is-centered">
-                <a id="add_evt_btn" class="button is-info" href="{{ url_for('instruments.new_event') }}">
+                <a id="add_evt_btn" class="button is-info" href="{{ url_for('instruments.view_all_instruments_to_reserve') }}">
                     <span class="icon"><i class="far fa-calendar-plus"></i></span>
                     <span>เพิ่มรายการจอง</span>
                 </a>
             </div>
             <div class="tabs is-centered is-boxed">
                 <ul>
-                    <li {% if list_type == None %} class="is-active" {% endif %}>
+                    <li {% if list_type == 'None' %} class="is-active" {% endif %}>
                         <a href="{{ url_for('instruments.index_of_instruments') }}">
                             <span class="icon"><i class="far fa-calendar-alt"></i></span>
                             <span>ดูทั้งเดือน</span>
@@ -65,7 +65,7 @@
     </div>
     <div class="columns">
         <div class="column">
-            <div id="instr_calendar"></div>
+            <div id="reserve_calendar"></div>
         </div>
     </div>
 </section>
@@ -78,7 +78,7 @@
 <script src="{{ url_for('static', filename='js/scheduler.min.js') }}"></script>
 <script>
     $(function() {
-        $('#instr_calendar').fullCalendar({
+        $('#reserve_calendar').fullCalendar({
             schedulerLicenseKey: 'CC-Attribution-NonCommercial-NoDerivatives',
             defaultView: '{{ list_type }}',
             header: {
@@ -106,10 +106,10 @@
             }
         });
         $('#prev_btn').on('click', function() {
-            $('#instr_calendar').fullCalendar('prev');
+            $('#reserve_calendar').fullCalendar('prev');
         });
         $('#next_btn').on('click', function() {
-            $('#instr_calendar').fullCalendar('next');
+            $('#reserve_calendar').fullCalendar('next');
         });
     });
 </script>
