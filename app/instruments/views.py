@@ -26,20 +26,19 @@ def get_instruments():
     return jsonify(resources)
 
 
-@instruments.route('/api/events')
-def get_events():
+@instruments.route('/api/bookings')
+def get_bookings():
     start = request.args.get('start')
     end = request.args.get('end')
     if start:
         start = parser.isoparse(start)
     if end:
         end = parser.isoparse(end)
-    all_events = []
-    for event in InstrumentsBooking.query.filter(InstrumentsBooking.start.between(start, end)):
-        print(event)
-        start = event.start
-        end = event.end
-        if event.start:
+    all_bookings = []
+    for booking in InstrumentsBooking.query.filter(InstrumentsBooking.start.between(start, end)):
+        start = booking.start
+        end = booking.end
+        if booking.start:
             text_color = '#ffffff'
             bg_color = '#2b8c36'
             border_color = '#ffffff'
@@ -47,18 +46,18 @@ def get_events():
             text_color = '#000000'
             bg_color = '#f0f0f5'
             border_color = '#ff4d4d'
-        evt = {
-            'title': event.title,
+        book = {
+            'title': booking.title,
             'start': start.astimezone(tz).isoformat(),
             'end': end.astimezone(tz).isoformat(),
-            'resourceId': event.detail_id,
+            'resourceId': booking.detail_id,
             'borderColor': border_color,
             'backgroundColor': bg_color,
             'textColor': text_color,
-            'id': event.id,
+            'id': booking.id,
         }
-        all_events.append(evt)
-    return jsonify(all_events)
+        all_bookings.append(book)
+    return jsonify(all_bookings)
 
 
 @instruments.route('/index')
@@ -67,35 +66,24 @@ def index_of_instruments():
     return render_template('instruments/index.html', list_type='default')
 
 
-@instruments.route('/events/<list_type>')
+@instruments.route('/bookings/<list_type>')
 @login_required
-def event_instruments_list(list_type='timelineDay'):
-    return render_template('instruments/event_list.html', list_type=list_type)
+def booking_instruments_list(list_type='timelineDay'):
+    return render_template('instruments/booking_list.html', list_type=list_type)
 
 
-@instruments.route('/events/<int:event_id>', methods=['POST', 'GET'])
+@instruments.route('/bookings/<int:booking_id>', methods=['POST', 'GET'])
 @login_required
-def show_event_detail(event_id=None):
+def show_booking_detail(booking_id=None):
     tz = pytz.timezone('Asia/Bangkok')
-    if event_id:
-        event = InstrumentsBooking.query.get(event_id)
-        if event:
-            event.start = event.start.astimezone(tz)
-            event.end = event.end.astimezone(tz)
-            return render_template('instruments/event_detail.html', event=event)
+    if booking_id:
+        booking = InstrumentsBooking.query.get(booking_id)
+        if booking:
+            booking.start = booking.start.astimezone(tz)
+            booking.end = booking.end.astimezone(tz)
+            return render_template('instruments/booking_detail.html', booking=booking)
     else:
-        return 'No event ID specified.'
-
-
-@instruments.route('/list', methods=['POST', 'GET'])
-@login_required
-def instruments_list():
-    erp_code = request.form.get('erp_code', None)
-    if erp_code:
-        procurements = ProcurementDetail.query.filter_by(erp_code=erp_code)
-    else:
-        procurements = []
-    return render_template('instruments/instruments_list.html', procurements=procurements)
+        return 'No booking ID specified.'
 
 
 @instruments.route('instruments_list/reserve/all', methods=['GET', 'POST'])
@@ -143,10 +131,11 @@ def instruments_reserve(procurement_no):
         reservation = InstrumentsBooking()
         reservation.created_by = current_user.id
         reservation.created_at = tz.localize(datetime.utcnow())
+        reservation.detail_id = procurement.id
         form.populate_obj(reservation)
         db.session.add(reservation)
         db.session.commit()
-        return redirect(url_for('instruments.show_event_detail', event_id=reservation.id))
+        return redirect(url_for('instruments.show_booking_detail', booking_id=reservation.id))
     else:
         for err in form.errors.values():
             flash(', '.join(err), 'danger')
@@ -167,7 +156,7 @@ def edit_detail(booking_id):
         db.session.add(booking)
         db.session.commit()
         flash(u'อัพเดตรายการเรียบร้อย', 'success')
-        return redirect(url_for('instruments.show_event_detail', event_id=booking.id))
+        return redirect(url_for('instruments.show_booking_detail', booking_id=booking.id))
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
