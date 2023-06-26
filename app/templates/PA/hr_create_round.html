@@ -1,90 +1,115 @@
 {% extends "base.html" %}
 {% include "staff/nav.html" %}
 {% block head %}
-{{ super() }}
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css" />
+    {{ super() }}
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css"/>
 {% endblock %}
 {% block page_content %}
-<section class="section" id="app">
-    <div class="container">
-        {% include "messages.html" %}
-        <div class="columns">
-            <div class="column has-text-left">
-                <h1 class="title">รอบการประเมินผลการปฏิบัติงาน</h1>
+    <section class="section" id="app">
+        <div class="container">
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="subtitle">รอบการประเมินผลการปฏิบัติงาน</h1>
+                </div>
             </div>
-        </div>
-        <form method="post"><input type="hidden" name="csrf_token" value="{{csrf_token()}}">
+            <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="columns">
-                    <div class="column">
-                        <div class="field-label is-normal has-text-left">
-                            <label class="label">สร้างช่วงรอบการประเมินใหม่</label>
-                        </div>
-                        <div class="field-body">
-                            <div class="field">
-                                <div class="control has-icons-left">
-                                    <input name="dates" id="dates" class="input">
-                                    <span class="icon is-small is-left">
-                                       <i class="far fa-calendar-alt"></i>
-                                    </span>
+                    <div class="column is-two-thirds is-offset-2">
+                        <div class="box">
+                            <div class="columns">
+                                <div class="column">
+                                    <div class="field-label is-normal has-text-left">
+                                        <label class="label"><h1>สร้างรอบการประเมินใหม่</h1></label>
+                                    </div>
+                                    <div class="field-body">
+                                        <div class="field">
+                                            <div class="control has-icons-left">
+                                                <input name="dates" id="dates" class="input">
+                                                <span class="icon is-small is-left">
+                                                    <i class="far fa-calendar-alt"></i>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="column">
+                                    <div class="field">
+                                        <div class="column"></div>
+                                    </div>
+                                    <div class="control">
+                                        <input type="submit" value="บันทึก" class="button is-primary"/>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="column">
-                        <div class="field">
-                            <div class="column"></div>
-                        </div>
-                        <div class="control">
-                            <input type="submit" value="บันทึก" class="button is-primary"/>
-                        </div>
+                </div>
+            </form>
+            <div class="columns">
+                <div class="column is-two-thirds is-offset-2">
+                    <table class="table is-striped is-fullwidth" id="roundTable">
+                        <thead>
+                        <th>รอบ</th>
+                        <th>เริ่มต้น</th>
+                        <th>สิ้นสุด</th>
+                        </thead>
+                        <tbody>
+                        {% for r in pa_round %}
+                            <tr>
+                                <td>
+                                    {{ r }}
+                                </td>
+                                <td>
+                                    {{ r.start}}
+                                </td>
+                                <td>
+                                    {{ r.end }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column">
+                    <div class="buttons is-centered">
+                        <a href="{{ url_for('pa.index') }}" class="button is-light">
+                            <span class="icon">
+                                <i class="fas fa-arrow-left"></i>
+                            </span>
+                            <span>กลับหน้าหลัก</span>
+                        </a>
                     </div>
                 </div>
-        </form>
-        <div class="columns">
-            <div class="column">
-                <span>
-                    ประวัติรอบเปิดการประเมิน
-                </span>
             </div>
         </div>
-        <div class="columns">
-            {% for r in pa_round %}
-                {{ r.start }} ถึง {{ r.end }}<br>
-            {% endfor %}
-        </div>
-        <div class="columns">
-            <div class="column">
-                <div class="buttons is-centered">
-                    <a href="{{ url_for('pa.index') }}" class="button is-light">
-                    <span class="icon">
-                        <i class="fas fa-arrow-left"></i>
-                    </span>
-                        <span>กลับ</span>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
+    </section>
 {% endblock %}
 {% block scripts %}
-{{ super() }}
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
-<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
-<script>
+    {{ super() }}
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+    <script>
 
-    $(document).ready(()=> {
-        $('#dates').daterangepicker({
-        timePicker: false,
-        showDropdowns: true,
-        linkedCalendars: false,
-        locale: {
-            format: 'DD/MM/YYYY'
-            }
+        $(document).ready(() => {
+            $('#dates').daterangepicker({
+                timePicker: false,
+                showDropdowns: true,
+                linkedCalendars: false,
+                locale: {
+                    format: 'DD/MM/YYYY'
+                }
+            });
         });
-    });
-</script>
+    </script>
+    <script>
+        $(document).ready(function () {
+            $('#roundTable').DataTable();
+        });
+    </script>
 {% endblock %}
