@@ -1,33 +1,24 @@
 # -*- coding:utf-8 -*-
-import os
-
-import dateutil
-import requests
+import pytz
+from dateutil import parser
 from flask import render_template, jsonify, request, url_for, flash, redirect
+from flask_login import current_user
 from . import instrumentsbp as instruments
 from app.models import *
 from app.instruments.forms import InstrumentsBookingForm
 from app.procurement.models import ProcurementDetail
-
-from google.oauth2.service_account import Credentials
-
-if os.environ.get('FLASK_ENV') == 'development':
-    CALENDAR_ID = 'cl05me2rhh57a5n3i76nqao7ng@group.calendar.google.com'
-else:
-    CALENDAR_ID = 'anatjgngk7bcv9kte15p38l7mg@group.calendar.google.com'
-
-service_account_info = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
-credentials = Credentials.from_service_account_info(service_account_info)
+from .models import InstrumentsBooking
+tz = pytz.timezone('Asia/Bangkok')
 
 
 @instruments.route('/api/instruments')
 def get_instruments():
     instruments = ProcurementDetail.query.filter_by(is_instruments=True)
     resources = []
-    for ins in instruments:
+    for instrument in instruments:
         resources.append({
-            'id': ins.id,
-            'title': ins.name
+            'id': instrument.id,
+            'title': instrument.name
         })
         print(resources)
     return jsonify(resources)
@@ -38,29 +29,32 @@ def get_events():
     start = request.args.get('start')
     end = request.args.get('end')
     if start:
-        start = dateutil.parser.isoparse(start)
+        start = parser.isoparse(start)
     if end:
-        end = dateutil.parser.isoparse(end)
-    events = InstrumentsBooking.query.filter(InstrumentsBooking.start >= start) \
-        .filter(InstrumentsBooking.end <= end)
+        end = parser.isoparse(end)
     all_events = []
-    for event in events:
-        if event.is_closed:
+    for event in InstrumentsBooking.query.filter(InstrumentsBooking.start.between(start, end)):
+        print(event)
+        start = event.start
+        end = event.end
+        if event.start:
             text_color = '#ffffff'
-            bg_color = '#066b02'
-            border_color = '#ffffff'
-        elif event.cancelled_at:
-            text_color = '#ffffff'
-            bg_color = '#ff6666'
+            bg_color = '#2b8c36'
             border_color = '#ffffff'
         else:
             text_color = '#000000'
             bg_color = '#f0f0f5'
-            border_color = '#ffffff'
-        evt = event.to_dict()
-        evt['borderColor'] = border_color
-        evt['backgroundColor'] = bg_color
-        evt['textColor'] = text_color
+            border_color = '#ff4d4d'
+        evt = {
+            'title': event.title,
+            'start': start.astimezone(tz).isoformat(),
+            'end': end.astimezone(tz).isoformat(),
+            'resourceId': event.detail_id,
+            'borderColor': border_color,
+            'backgroundColor': bg_color,
+            'textColor': text_color,
+            'id': event.id,
+        }
         all_events.append(evt)
     return jsonify(all_events)
 
@@ -75,17 +69,17 @@ def event_instruments_list(list_type='timelineDay'):
     return render_template('instruments/event_list.html', list_type=list_type)
 
 
-@instruments.route('/events/<int:event_id>', methods=['POST', 'GET'])
-def show_event_detail(event_id=None):
-    tz = pytz.timezone('Asia/Bangkok')
-    if event_id:
-        event = InstrumentsBooking.query.get(event_id)
-        if event:
-            event.start = event.start.astimezone(tz)
-            event.end = event.end.astimezone(tz)
-            return render_template('instruments/event_detail.html', event=event)
-    else:
-        return 'No event ID specified.'
+# @instruments.route('/events/<int:event_id>', methods=['POST', 'GET'])
+# def show_event_detail(event_id=None):
+#     tz = pytz.timezone('Asia/Bangkok')
+#     if event_id:
+#         event = InstrumentsBooking.query.get(event_id)
+#         if event:
+#             event.start = event.start.astimezone(tz)
+#             event.end = event.end.astimezone(tz)
+#             return render_template('instruments/event_detail.html', event=event)
+#     else:
+#         return 'No event ID specified.'
 
 
 @instruments.route('/events/new')
@@ -126,6 +120,10 @@ def get_instruments_to_reserve():
         item_data = item.to_dict()
         item_data['reserve'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">จอง</a>'.format(
             url_for('instruments.instruments_reserve', procurement_no=item.procurement_no))
+        if item.current_record:
+            item_data['location'] = item.current_record.location
+        else:
+            item_data['location'] = None
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
@@ -140,10 +138,11 @@ def instruments_reserve(procurement_no):
     form = InstrumentsBookingForm()
     if form.validate_on_submit():
         reservation = InstrumentsBooking()
+        reservation.created_by = current_user
         form.populate_obj(reservation)
         db.session.add(reservation)
         db.session.commit()
-        return redirect(url_for('instruments.index'))
+        return render_template('instruments/reserve_form.html', form=form, procurement=procurement)
     else:
         for err in form.errors.values():
             flash(', '.join(err), 'danger')
