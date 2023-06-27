@@ -38,6 +38,12 @@
                         <span class="is-size-5">IO/Cost Center</span>
                 </a>
                 {% endif %}
+                <a href="{{ url_for('scb_payment.verify_slip') }}" class="panel-block">
+                        <span class="panel-icon">
+                            <i class="fas fa-qrcode"></i>
+                        </span>
+                    <span class="is-size-5">ระบบ QR Payment Service</span><br>
+                </a>
             </nav>
         </div>
     </div>
