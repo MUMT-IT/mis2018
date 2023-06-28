@@ -1396,12 +1396,14 @@ def export_csv(service_id):
     # TODO: add organization + dept + unit
     service = ComHealthService.query.get(service_id)
     rows = []
-    for record in sorted(service.records, key=lambda x: x.labno):
+    for record in service.records:
         if not record.labno:
             continue
         tests = ','.join([item.test.code for item in record.ordered_tests])
         department = record.customer.dept.name if record.customer.dept else ''
-        emptype = record.customer.emptype.emptype_id if record.customer.emptype else ''
+        emptype = record.customer.emptype.name if record.customer.emptype else ''
+        reason = record.finance_contact.reason if record.finance_contact else ''
+        division = record.customer.division.name if record.customer.division else ''
         rows.append({'hn': u'{}'.format(record.customer.hn or ''),
                      'title': u'{}'.format(record.customer.title),
                      'firstname': u'{}'.format(record.customer.firstname),
@@ -1412,13 +1414,14 @@ def export_csv(service_id):
                      'phone': u'{}'.format(record.customer.phone),
                      'organization': u'{}'.format(record.customer.org.name),
                      'department': u'{}'.format(department),
+                     'division': u'{}'.format(division),
                      'unit': u'{}'.format(record.customer.unit),
                      'labno': u'{}'.format(record.labno),
                      'tests': u'{}'.format(tests),
                      'urgent': record.urgent,
                      'note_to_lab': u'{}'.format(record.comment),
                      'employment_note': u'{}'.format(record.note),
-                     'finance_contact': u'{}'.format(record.finance_contact),
+                     'finance_contact': u'{}'.format(reason),
                      'checkin_datetime': u'{}'.format(record.checkin_datetime)})
     if rows:
         pd.DataFrame(rows).to_excel('export.xlsx',
@@ -1433,6 +1436,7 @@ def export_csv(service_id):
                                              'phone',
                                              'organization',
                                              'department',
+                                             'division',
                                              'unit',
                                              'employmentType',
                                              'tests',
@@ -1443,7 +1447,7 @@ def export_csv(service_id):
                                              'checkin_datetime'],
                                     index=False,
                                     encoding='utf-8')
-        return send_from_directory(os.getcwd(), filename='export.xlsx')
+        return send_from_directory(os.getcwd(), path='export.xlsx')
     else:
         return 'Data is empty.'
 
@@ -1638,6 +1642,8 @@ def add_many_employees(orgid):
                     lastname = None
                 if isna(firstname) and isna(lastname):
                     continue
+                if isna(unit):
+                    unit = None
                 if not isna(department_name):
                     department= ComHealthDepartment.query.filter_by(parent_id=orgid,name=department_name).first()
                     if not department:
