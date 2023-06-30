@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+
+{% block page_content %}
+<section class="section">
+<div class="container">
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            <nav class="panel is-warning">
+                <p class="panel-heading">Menu</p>
+                <a href="{{ url_for('pa.create_round') }}" class="panel-block">
+                <span class="panel-icon">
+                    <i class="fa fa-repeat"></i>
+                </span>
+                    <span class="is-size-5">รอบการประเมิน</span><br>
+                </a>
+                <a href="{{ url_for('pa.show_commitee') }}" class="panel-block">
+                <span class="panel-icon">
+                    <i class="fas fa-user-circle"></i>
+                </span>
+                    <span class="is-size-5">คณะกรรมการประเมินผล</span><br>
+                </a>
+                <a href="{{ url_for('pa.consensus_scoresheets_for_hr') }}" class="panel-block">
+                <span class="panel-icon">
+                    <i class="fas fa-sort-numeric-up-alt"></i>
+                </span>
+                    <span class="is-size-5">คะแนนการประเมิน</span><br>
+                </a>
+            </nav>
+        </div>
+    </div>
+</div>
+</section>
+{% endblock %}

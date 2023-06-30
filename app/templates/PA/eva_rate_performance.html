@@ -30,7 +30,7 @@
                     {% endif %}
                 </div>
             </div>
-            <form method="post" action="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}">
+            <form method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="columns">
                     <div class="column">

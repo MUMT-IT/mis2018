@@ -112,7 +112,7 @@
                                                     <input class="input" required step="0.5" min="0" max="10"
                                                            {% if consolidated_score_sheet.is_final %} readonly {% endif %}
                                                            name="pa-item-{{ pa_item.id }}-{{ kpi_item.id }}"
-                                                           value="{{ consolidated_score_sheet.get_score_sheet_item(pa_item.id, kpi_item.id).score }}">
+                                                           value="{{ consolidated_score_sheet.get_score_sheet_item(pa_item.id, kpi_item.id).score or '' }}">
                                                 </div>
                                             </div>
                                         {% endfor %}
@@ -129,10 +129,10 @@
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
                                 <a href="{{ url_for('pa.all_approved_pa') }}"
-                                   class="button is-light">Cancel</a>
+                                   class="button is-light">กลับ</a>
                             </div>
                             <div class="control">
-                                <input type="submit" value="submit" class="button is-success"/>
+                                <input type="submit" value="บันทึก" class="button is-success"/>
                             </div>
                         </div>
                     </div>
@@ -142,9 +142,15 @@
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
                                 <a href="{{ url_for('pa.confirm_score', scoresheet_id=consolidated_score_sheet.id) }}"
-                                   class="button is-info">ยืนยันคะแนนสุดท้าย(ไม่สามารถแก้ไขคะแนนได้อีก)</a>
+                                   class="button is-info">
+                                    <span class="icon">
+                                        <i class="fa-solid fa-lock"></i>
+                                    </span>
+                                    <span>ยืนยันผล</span>
+                                </a>
                             </div>
                         </div>
+                        <p class="has-text-danger has-text-centered">เมื่อยืนยันผลแล้วจะไม่สามารถแก้ไขได้</p>
                     </div>
                 </div>
                 {% else %}

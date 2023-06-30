@@ -41,6 +41,15 @@ class PAAgreement(db.Model):
     committees = db.relationship('PACommittee', secondary=pa_committee_assoc_table)
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
 
+    @property
+    def editable(self):
+        if self.approved_at:
+            return False
+        elif self.requests.filter(PARequest.for_=='ขอรับการประเมิน').first():
+            return False
+        else:
+            return True
+
 
 class PARequest(db.Model):
     __tablename__ = 'pa_requests'
