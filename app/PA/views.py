@@ -383,6 +383,7 @@ def summary_scoresheet(pa_id):
     # TODO: show evaluation score of each committees
     pa = PAAgreement.query.filter_by(id=pa_id).first()
     committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ').first()
+    core_competency_items = PACoreCompetencyItem.query.all()
     consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).filter(
         PACommittee.staff == current_user).first()
     if consolidated_score_sheet:
@@ -422,7 +423,7 @@ def summary_scoresheet(pa_id):
     return render_template('PA/head_summary_score.html',
                            score_sheet_items=score_sheet_items,
                            consolidated_score_sheet=consolidated_score_sheet,
-                           approved_scoresheets=approved_scoresheets)
+                           approved_scoresheets=approved_scoresheets, core_competency_items=core_competency_items)
 
 
 @pa.route('/confirm-score/<int:scoresheet_id>')
@@ -439,6 +440,17 @@ def confirm_score(scoresheet_id):
                             next_url=next_url,
                             scoresheet_id=scoresheet_id,
                             for_self=for_self))
+
+
+@pa.route('/confirm-final-score/<int:scoresheet_id>')
+@login_required
+def confirm_final_score(scoresheet_id):
+    scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
+    scoresheet.is_final = True
+    db.session.add(scoresheet)
+    db.session.commit()
+    flash('บันทึกคะแนนเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('pa.summary_scoresheet',pa_id=scoresheet.pa_id))
 
 
 @pa.route('/head/consensus-scoresheets/send-to-hr/<int:scoresheet_id>')
@@ -507,18 +519,23 @@ def all_performance(scoresheet_id):
 @pa.route('/eva/create-consensus-scoresheets/<int:pa_id>')
 @login_required
 def create_consensus_scoresheets(pa_id):
-    # TODO: recheck bug
     pa = PAAgreement.query.filter_by(id=pa_id).first()
     scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True, is_final=True).first()
-    for c in pa.committees:
-        create_approvescore = PAApprovedScoreSheet(
-            score_sheet_id=scoresheet.id,
-            committee_id=c.id
-        )
-        db.session.add(create_approvescore)
-        db.session.commit()
-    flash('ส่งคำขอรับการประเมินผลไปยังกรรมการทั้ง 2 ท่านเรียบร้อยแล้ว สามารถดูการอัพเดทได้ที่เมนู สรุปผล', 'success')
-    return redirect(url_for('pa.all_approved_pa'))
+    if not scoresheet:
+        flash('ยังไม่มีข้อมูลคะแนนสรุปจากคณะกรรมการ กรุณาดำเนินการใส่คะแนนและยืนยันผล','warning')
+    else:
+        for c in pa.committees:
+            already_approved_scoresheet = PAApprovedScoreSheet.query.filter_by(score_sheet_id=scoresheet.id,
+                                                                           committee_id=c.id).first()
+            if not already_approved_scoresheet:
+                create_approvescore = PAApprovedScoreSheet(
+                    score_sheet_id=scoresheet.id,
+                    committee_id=c.id
+                )
+                db.session.add(create_approvescore)
+                db.session.commit()
+        flash('ส่งคำขอรับการประเมินผลไปยังกรรมการทั้ง 2 ท่านเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('pa.summary_scoresheet', pa_id=pa.id))
 
 
 @pa.route('/eva/consensus-scoresheets')
