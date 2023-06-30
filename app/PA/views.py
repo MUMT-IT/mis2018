@@ -19,7 +19,7 @@ from flask_login import login_required, current_user
 def user_performance():
     staff_personal = PAAgreement.query.all()
     rounds = PARound.query.all()
-    return render_template('pa/user_performance.html',
+    return render_template('PA/user_performance.html',
                            staff_personal=staff_personal,
                            name=current_user,
                            rounds=rounds
