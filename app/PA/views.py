@@ -19,7 +19,7 @@ from flask_login import login_required, current_user
 def user_performance():
     staff_personal = PAAgreement.query.all()
     rounds = PARound.query.all()
-    return render_template('pa/user_performance.html',
+    return render_template('PA/user_performance.html',
                            staff_personal=staff_personal,
                            name=current_user,
                            rounds=rounds
@@ -86,7 +86,7 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
-    return render_template('pa/pa_item_edit.html',
+    return render_template('PA/pa_item_edit.html',
                            form=form,
                            pa_round=pa_round,
                            pa=pa,
@@ -121,7 +121,7 @@ def add_kpi(pa_id):
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
-    return render_template('pa/add_kpi.html', form=form, round_id=round_id, pa_id=pa_id)
+    return render_template('PA/add_kpi.html', form=form, round_id=round_id, pa_id=pa_id)
 
 
 @pa.route('/staff/rounds/<int:round_id>/task/view')
@@ -129,14 +129,14 @@ def add_kpi(pa_id):
 def view_pa_item(round_id):
     round = PARound.query.get(round_id)
     agreement = PAAgreement.query.all()
-    return render_template('pa/view_task.html', round=round, agreement=agreement)
+    return render_template('PA/view_task.html', round=round, agreement=agreement)
 
 
 @pa.route('/pa/')
 @login_required
 def index():
     # TODO: create head committee permission for access special part
-    return render_template('pa/index.html', hr_permission=hr_permission, manager_permission=manager_permission)
+    return render_template('PA/index.html', hr_permission=hr_permission, manager_permission=manager_permission)
 
 
 @pa.route('/hr/create-round', methods=['GET', 'POST'])
@@ -194,7 +194,7 @@ def show_commitee():
 @login_required
 def consensus_scoresheets_for_hr():
     approved_scoresheets = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True).all()
-    return render_template('pa/../templates/staff/HR/hr_all_consensus_scores.html',
+    return render_template('staff/HR/hr_all_consensus_scores.html',
                            approved_scoresheets=approved_scoresheets)
 
 
@@ -202,7 +202,7 @@ def consensus_scoresheets_for_hr():
 @login_required
 def detail_consensus_scoresheet_for_hr(scoresheet_id):
     consolidated_score_sheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
-    return render_template('pa/../templates/staff/HR/hr_consensus_score_detail.html',
+    return render_template('staff/HR/hr_consensus_score_detail.html',
                            consolidated_score_sheet=consolidated_score_sheet)
 
 
@@ -231,7 +231,7 @@ def create_request(pa_id):
 @login_required
 def all_request():
     all_req = PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.submitted_at != None).all()
-    return render_template('pa/head_all_request.html', all_req=all_req)
+    return render_template('PA/head_all_request.html', all_req=all_req)
 
 
 @pa.route('/head/request/<int:request_id>/detail')
@@ -290,7 +290,7 @@ def create_scoresheet(pa_id):
                 db.session.commit()
         return redirect(url_for('pa.all_performance', scoresheet_id=create_score_sheet.id))
     else:
-        return render_template('pa/eva_all_performance.html', scoresheet=scoresheet)
+        return render_template('PA/eva_all_performance.html', scoresheet=scoresheet)
 
 
 @pa.route('/create-scoresheet/<int:pa_id>/self-evaluation', methods=['GET', 'POST'])
@@ -363,7 +363,7 @@ def assign_committee(pa_id):
             db.session.commit()
         flash('บันทึกกลุ่มผู้ประเมินเรียบร้อยแล้ว', 'success')
         return redirect(url_for('pa.all_approved_pa'))
-    return render_template('pa/head_assign_committee.html', pa=pa, committee=committee)
+    return render_template('PA/head_assign_committee.html', pa=pa, committee=committee)
 
 
 @pa.route('/head/all-approved-pa')
@@ -373,7 +373,7 @@ def all_approved_pa():
     pa = PAAgreement.query.filter(and_(PARequest.submitted_at is not None,
                                        PARequest.for_ == 'ขอรับการประเมิน',
                                        PARequest.supervisor_id == current_user.id)).all()
-    return render_template('pa/head_all_approved_pa.html', pa=pa)
+    return render_template('PA/head_all_approved_pa.html', pa=pa)
 
 
 @pa.route('/head/all-approved-pa/summary-scoresheet/<int:pa_id>', methods=['GET', 'POST'])
@@ -419,7 +419,7 @@ def summary_scoresheet(pa_id):
                 db.session.add(scoresheet_item)
         db.session.commit()
         flash('บันทึกผลค่าเฉลี่ยเรียบร้อยแล้ว', 'success')
-    return render_template('pa/head_summary_score.html',
+    return render_template('PA/head_summary_score.html',
                            score_sheet_items=score_sheet_items,
                            consolidated_score_sheet=consolidated_score_sheet,
                            approved_scoresheets=approved_scoresheets)
@@ -487,7 +487,7 @@ def rate_performance(scoresheet_id):
                 db.session.add(score_item)
         db.session.commit()
         flash('บันทึกผลการประเมินแล้ว', 'success')
-    return render_template('pa/eva_rate_performance.html',
+    return render_template('PA/eva_rate_performance.html',
                            scoresheet=scoresheet,
                            head_scoresheet=head_scoresheet,
                            next_url=next_url,
@@ -499,7 +499,7 @@ def rate_performance(scoresheet_id):
 @login_required
 def all_performance(scoresheet_id):
     scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
-    return render_template('pa/eva_all_performance.html', scoresheet=scoresheet)
+    return render_template('PA/eva_all_performance.html', scoresheet=scoresheet)
 
 
 @pa.route('/eva/create-consensus-scoresheets/<int:pa_id>')
@@ -528,7 +528,7 @@ def consensus_scoresheets():
     if not committee:
         flash('สำหรับคณะกรรมการประเมิน PA เท่านั้น ขออภัยในความไม่สะดวก', 'warning')
         return redirect(url_for('pa.index'))
-    return render_template('pa/eva_consensus_scoresheet.html', approved_scoresheets=approved_scoresheets)
+    return render_template('PA/eva_consensus_scoresheet.html', approved_scoresheets=approved_scoresheets)
 
 
 @pa.route('/eva/consensus-scoresheets/<int:approved_id>', methods=['GET', 'POST'])
@@ -543,7 +543,7 @@ def detail_consensus_scoresheet(approved_id):
         db.session.commit()
         flash('บันทึกการอนุมัติเรียบร้อยแล้ว', 'success')
         return redirect(url_for('pa.consensus_scoresheets'))
-    return render_template('pa/eva_consensus_scoresheet_detail.html', consolidated_score_sheet=consolidated_score_sheet,
+    return render_template('PA/eva_consensus_scoresheet_detail.html', consolidated_score_sheet=consolidated_score_sheet,
                            approve_scoresheet=approve_scoresheet)
 
 
@@ -556,7 +556,7 @@ def all_scoresheet():
     if not committee:
         flash('สำหรับคณะกรรมการประเมิน PA เท่านั้น ขออภัยในความไม่สะดวก', 'warning')
         return redirect(url_for('pa.index'))
-    return render_template('pa/eva_all_scoresheet.html', scoresheets=scoresheets)
+    return render_template('PA/eva_all_scoresheet.html', scoresheets=scoresheets)
 
 
 @pa.route('/eva/rate_core_competency/<int:scoresheet_id>', methods=['GET', 'POST'])
