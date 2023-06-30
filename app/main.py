@@ -109,9 +109,10 @@ api = Api(app)
 
 # user_loader_callback_loader has renamed to user_lookup_loader in >=4.0
 @jwt.user_lookup_loader
-def user_lookup_callback(identity):
+def user_lookup_callback(identity, payload):
+    print(payload)
     # TODO: Need to allow loading a client from other services.
-    return ScbPaymentServiceApiClientAccount.get_account_by_id(identity)
+    return ScbPaymentServiceApiClientAccount.get_account_by_id(payload.get('sub'))
 
 
 @app.errorhandler(404)
