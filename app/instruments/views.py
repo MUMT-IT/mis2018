@@ -86,20 +86,6 @@ def show_booking_detail(booking_id=None):
         return 'No booking ID specified.'
 
 
-@instruments.route('/bookings/<int:booking_id>', methods=['POST', 'GET'])
-@login_required
-def show_booking_detail(booking_id=None):
-    tz = pytz.timezone('Asia/Bangkok')
-    if booking_id:
-        booking = InstrumentsBooking.query.get(booking_id)
-        if booking:
-            booking.start = booking.start.astimezone(tz)
-            booking.end = booking.end.astimezone(tz)
-            return render_template('instruments/booking_detail.html', booking=booking)
-    else:
-        return 'No booking ID specified.'
-
-
 @instruments.route('instruments_list/reserve/all', methods=['GET', 'POST'])
 @login_required
 def view_all_instruments_to_reserve():
