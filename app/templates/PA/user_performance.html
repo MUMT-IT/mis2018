@@ -21,7 +21,7 @@
                 <div class="column has-text-centered is-two-thirds is-offset-2">
                     <div class="card">
                         <div class="card-content">
-                            <table class="table is-striped is-bordered is-fullwidth">
+                            <table class="table is-bordered is-fullwidth">
                                 <tr>
                                     <p label class="label has-text-left">ส่วนที่ 1 ข้อมูลส่วนบุคคล</p>
                                     <td><label class="label">คำนำหน้า ชื่อ-สกุล ผู้รับการประเมิน </label></td>
@@ -49,37 +49,29 @@
                                 </tr>
                                 <tr>
                                     <td colspan="2">
-                                        <div class="column">
-                                            <table id="data" class="table is-striped is-fullwidth">
-                                                <thead>
-                                                <th>วันที่เริ่มต้น - วันที่สิ้นสุด</th>
-                                                <th></th>
-                                                </thead>
-                                                <tbody>
-                                                {% for round in rounds %}
-                                                    <tr>
-                                                        <td>{{ round }}</td>
-                                                        <td>
-                                                            <a class="button is-small is-rounded is-primary is-outlined"
-                                                               href="{{ url_for('pa.view_pa_item', round_id=round.id) }}">
-                                                                        <span class="icon">
-                                                                           <i class="fas fa-eye"></i>
-                                                                        </span>
-                                                                <span>View</span>
-                                                            </a>
-                                                            <a class="button is-small is-rounded is-info is-outlined"
-                                                               href="{{ url_for('pa.add_pa_item', round_id=round.id) }}">
-                                                                        <span class="icon">
-                                                                           <i class="fas fa-eye"></i>
-                                                                        </span>
-                                                                <span>บันทึกภาระงาน</span>
-                                                            </a>
-                                                        </td>
-                                                    </tr>
-                                                {% endfor %}
-                                                </tbody>
-                                            </table>
-
+                                        <h2 class="subtitle">รอบการประเมิน</h2>
+                                        <table id="data" class="table is-fullwidth">
+                                            <thead>
+                                            <th>วันที่เริ่มต้น - วันที่สิ้นสุด</th>
+                                            <th></th>
+                                            </thead>
+                                            <tbody>
+                                            {% for round in rounds %}
+                                                <tr>
+                                                    <td>{{ round }}</td>
+                                                    <td>
+                                                        <a class="button is-small is-rounded is-info is-outlined"
+                                                           href="{{ url_for('pa.add_pa_item', round_id=round.id) }}">
+                                                                    <span class="icon">
+                                                                        <i class="fa-solid fa-pencil"></i>
+                                                                    </span>
+                                                            <span>บันทึกภาระงาน</span>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
                                     </td>
                                 </tr>
                             </table>
@@ -87,7 +79,6 @@
                                 <div class="column column is-10 is-offset-1">
                                     <div class="columns">
                                         <div class="column has-text-centered">
-                                            <h2 class="subtitle">รอบการประเมิน</h2>
                                         </div>
                                     </div>
                                         <div class="container">

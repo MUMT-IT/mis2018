@@ -26,7 +26,7 @@ class PARound(db.Model):
     # is_closed = db.Column('is_closed', db.Boolean(), default=False)
 
     def __str__(self):
-        return "{} - {}".format(self.start, self.end)
+        return "{} - {}".format(self.start.strftime('%d/%m/%Y'), self.end.strftime('%d/%m/%Y'))
 
 
 class PAAgreement(db.Model):
@@ -41,13 +41,25 @@ class PAAgreement(db.Model):
     committees = db.relationship('PACommittee', secondary=pa_committee_assoc_table)
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
 
+    @property
+    def editable(self):
+        if self.approved_at:
+            return False
+        elif self.requests.filter(PARequest.for_=='ขอรับการประเมิน').first():
+            return False
+        else:
+            return True
+
 
 class PARequest(db.Model):
     __tablename__ = 'pa_requests'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
-    pa = db.relationship('PAAgreement', foreign_keys=[pa_id],
-                         backref=db.backref('requests', lazy='dynamic'),
+    pa = db.relationship('PAAgreement',
+                         foreign_keys=[pa_id],
+                         backref=db.backref('requests',
+                                            lazy='dynamic',
+                                            cascade='all, delete-orphan'),
                          order_by='PARequest.created_at.desc()')
     supervisor_id = db.Column('supervisor_id', db.ForeignKey('staff_account.id'))
     supervisor = db.relationship('StaffAccount', backref=db.backref('request_supervisor', lazy='dynamic'),
@@ -68,6 +80,7 @@ class PALevel(db.Model):
     __tablename__ = 'pa_levels'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     level = db.Column('level', db.String())
+    order = db.Column('order', db.Integer())
 
     def __str__(self):
         return self.level
@@ -77,7 +90,8 @@ class PAKPI(db.Model):
     __tablename__ = 'pa_kpis'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
-    pa = db.relationship('PAAgreement', backref=db.backref('kpis'), foreign_keys=[pa_id])
+    pa = db.relationship('PAAgreement',
+                         backref=db.backref('kpis', cascade='all, delete-orphan'))
     detail = db.Column(db.Text())
     type = db.Column(db.String(), info={'label': 'ประเภท',
                                         'choices': [(c, c) for c in
@@ -93,7 +107,7 @@ class PAKPIItem(db.Model):
     level_id = db.Column('level_id', db.ForeignKey('pa_levels.id'))
     level = db.relationship(PALevel, uselist=False)
     kpi_id = db.Column(db.ForeignKey('pa_kpis.id'))
-    kpi = db.relationship('PAKPI', backref=db.backref('pa_kpi_items'))
+    kpi = db.relationship('PAKPI', backref=db.backref('pa_kpi_items', cascade='all, delete-orphan'))
     goal = db.Column('goal', db.Text())
 
     def __str__(self):
@@ -114,7 +128,8 @@ class PAItem(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     category_id = db.Column(db.ForeignKey('pa_item_categories.id'))
     category = db.relationship(PAItemCategory, backref=db.backref('pa_items', lazy='dynamic'))
-    task = db.Column(db.Text())
+    task = db.Column(db.Text(), info={'label': 'รายละเอียด'})
+    report = db.Column(db.Text(), info={'label': 'ผลการดำเนินการ'})
     percentage = db.Column(db.Numeric())
     pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
     pa = db.relationship('PAAgreement', backref=db.backref('pa_items', cascade='all, delete-orphan'))
@@ -145,22 +160,67 @@ class PAScoreSheet(db.Model):
     __tablename__ = 'pa_score_sheets'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
-    pa = db.relationship('PAAgreement', backref=db.backref('pa_score_sheet'), foreign_keys=[pa_id])
+    pa = db.relationship('PAAgreement', backref=db.backref('pa_score_sheet',
+                                                           lazy='dynamic',
+                                                           cascade='all, delete-orphan'))
+    staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
+    staff = db.relationship(StaffAccount, backref=db.backref('pa_scoresheets',
+                                                             cascade='all, delete-orphan'))
     committee_id = db.Column('committee_id', db.ForeignKey('pa_committees.id'))
-    committee = db.relationship('PACommittee', backref=db.backref('committee_score_sheet'), foreign_keys=[committee_id])
+    committee = db.relationship('PACommittee', backref=db.backref('committee_score_sheet', cascade='all, delete-orphan'))
     is_consolidated = db.Column('is_consolidated', db.Boolean(), default=False)
     is_final = db.Column('is_final', db.Boolean(), default=False)
+    is_appproved = db.Column('is_appproved', db.Boolean(), default=False)
+
+    def get_score_sheet_item(self, pa_item_id, kpi_item_id):
+        return self.score_sheet_items.filter_by(item_id=pa_item_id,
+                                                kpi_item_id=kpi_item_id).first()
+
+    def get_core_competency_score_item(self, comp_item_id):
+        return self.competency_score_items.filter_by(item_id=comp_item_id).first()
 
 
 class PAScoreSheetItem(db.Model):
     __tablename__ = 'pa_score_sheet_items'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     score_sheet_id = db.Column(db.ForeignKey('pa_score_sheets.id'))
-    score_sheet = db.relationship('PAScoreSheet', backref=db.backref('score_sheet_items'), foreign_keys=[score_sheet_id])
+    score_sheet = db.relationship('PAScoreSheet',
+                                  backref=db.backref('score_sheet_items',
+                                                     lazy='dynamic',
+                                                     cascade='all, delete-orphan'))
     item_id = db.Column(db.ForeignKey('pa_items.id'))
-    item = db.relationship('PAItem', backref=db.backref('pa_score_item'), foreign_keys=[item_id])
+    item = db.relationship('PAItem', backref=db.backref('pa_score_item',
+                                                        cascade='all, delete-orphan'))
     kpi_item_id = db.Column(db.ForeignKey('pa_kpi_items.id'))
-    kpi_item = db.relationship('PAKPIItem', backref=db.backref('sore_sheet_kpi_item'), foreign_keys=[kpi_item_id])
+    kpi_item = db.relationship('PAKPIItem', backref=db.backref('sore_sheet_kpi_item',
+                                                               cascade='all, delete-orphan'))
+    score = db.Column('score', db.Numeric())
+    comment = db.Column('comment', db.Text())
+
+    @property
+    def score_tag(self):
+        return f'<div class="control"><div class="tags has-addons"><span class="tag">{self.score_sheet.committee.staff.fullname}</span><span class="tag is-info">{self.score}</span></div></div>'
+
+
+class PACoreCompetencyItem(db.Model):
+    __tablename__ = 'pa_core_competency_items'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    scoresheet_id = db.Column(db.ForeignKey('pa_score_sheets.id'))
+    topic = db.Column('topic', db.String(), nullable=False, info={'label': 'หัวข้อ'})
+    desc = db.Column('desc', db.Text(), info={'label': 'คำอธิบาย'})
+    score = db.Column('score', db.Numeric(), info={'label': 'คะแนนเต็ม'})
+
+
+class PACoreCompetencyScoreItem(db.Model):
+    __tablename__ = 'pa_core_competency_score_items'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    score_sheet_id = db.Column(db.ForeignKey('pa_score_sheets.id'))
+    score_sheet = db.relationship('PAScoreSheet',
+                                  backref=db.backref('competency_score_items',
+                                                     lazy='dynamic',
+                                                     cascade='all, delete-orphan'))
+    item_id = db.Column(db.ForeignKey('pa_core_competency_items.id'))
+    item = db.relationship('PACoreCompetencyItem')
     score = db.Column('score', db.Numeric())
     comment = db.Column('comment', db.Text())
 
@@ -169,6 +229,9 @@ class PAApprovedScoreSheet(db.Model):
     __tablename__ = 'pa_approved_score_sheets'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     score_sheet_id = db.Column(db.ForeignKey('pa_score_sheets.id'))
-    score_sheet = db.relationship('PAScoreSheet', backref=db.backref('approved_score_sheet'), foreign_keys=[score_sheet_id])
+    score_sheet = db.relationship('PAScoreSheet',
+                                  backref=db.backref('approved_score_sheet',
+                                                     cascade='all, delete-orphan'))
     committee_id = db.Column('committee_id', db.ForeignKey('pa_committees.id'))
+    committee = db.relationship('PACommittee', backref=db.backref('committee_approved_score_sheet'), foreign_keys=[committee_id])
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))

@@ -18,18 +18,22 @@
                     <th></th>
                     </thead>
                     <tbody>
-                    {% for scoresheet in scoresheets %}
+                    {% for approved_scoresheet in approved_scoresheets %}
                     <tr>
                         <td>
-                            {{ scoresheet.pa.round }}
+                            {{ approved_scoresheet.score_sheet.pa.round }}
                         </td>
                         <td>
-                            {{ scoresheet.pa.staff.personal_info.fullname }}
+                            {{ approved_scoresheet.score_sheet.pa.staff.personal_info.fullname }}
                         </td>
                         <td>
-                            <a href="{{ url_for('pa.detail_consensus_scoresheet', scoresheet_id=scoresheet.id) }}"
+                            <a href="{{ url_for('pa.detail_consensus_scoresheet', approved_id=approved_scoresheet.id) }}"
                                class="button is-small">
-                                <span>รายละเอียดเพิ่มเติมเพื่ออนุมัติ</span>
+                                {% if approved_scoresheet.approved_at %}
+                                    <span>รายละเอียด(อนุมัติแล้ว)</span>
+                                {% else %}
+                                    <span>รายละเอียดเพิ่มเติมเพื่ออนุมัติ</span>
+                                {% endif %}
                             </a>
                         </td>
                     </tr>
@@ -39,12 +43,12 @@
             </div>
         </div>
         <div class="columns">
-            <div class="column">
-                <a href="{{ url_for('pa.index') }}" class="button is-rounded is-light">
+            <div class="column has-text-centered">
+                <a href="{{ url_for('pa.index') }}" class="button is-light">
                     <span class="icon">
-                        <i class="fas fa-arrow-left"></i>
+                        <i class="fa-solid fa-chevron-left"></i>
                     </span>
-                    <span>กลับหน้าหลัก</span>
+                    <span>กลับ</span>
                 </a>
             </div>
         </div>

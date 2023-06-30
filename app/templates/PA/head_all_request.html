@@ -29,7 +29,7 @@
                         </td>
                         <td>
                             {% if req.for_ =='ขอรับการประเมิน' %}
-                            <a class="tag is-medium is-danger">
+                            <a class="button is-small is-danger">
                             {{ req.for_ }}
                             </a>
                             {% elif req.for_ =='อนุมัติ' %}
@@ -43,12 +43,17 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if req.responded_at %}
                             <a href="{{ url_for('pa.view_request', request_id=req.id) }}"
                                class="button is-small is-rounded is-outlined">
-                                <span>รายละเอียด</span>
+                                {% if req.responded_at %}
+                                    <span class="icon is-small">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </span>
+                                    <span>view</span>
+                                {% else %}
+                                    <span>ดำเนินการ</span>
+                                {% endif %}
                             </a>
-                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -57,12 +62,13 @@
             </div>
         </div>
         <div class="columns">
-            <div class="column">
-                <a href="{{ url_for('pa.index') }}" class="button is-rounded is-light">
+            <div class="column has-text-centered">
+                <a href="{{ url_for('pa.index') }}"
+                   class="button is-light">
                     <span class="icon">
-                        <i class="fas fa-arrow-left"></i>
+                        <i class="fa-solid fa-chevron-left"></i>
                     </span>
-                    <span>กลับหน้าหลัก</span>
+                    <span>กลับ</span>
                 </a>
             </div>
         </div>

@@ -1880,7 +1880,7 @@ def wfh_requests_list():
 @hr_permission.require()
 @login_required
 def for_hr():
-    return render_template('staff/for_hr.html')
+    return render_template('staff/HR/index.html')
 
 
 @staff.route('/api/for-hr/login-report')

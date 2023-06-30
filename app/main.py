@@ -653,6 +653,9 @@ admin.add_view(ModelView(PAItemCategory, db.session, category='PA'))
 admin.add_view(ModelView(PARequest, db.session, category='PA'))
 admin.add_view(ModelView(PAScoreSheet, db.session, category='PA'))
 admin.add_view(ModelView(PAScoreSheetItem, db.session, category='PA'))
+admin.add_view(ModelView(PAApprovedScoreSheet, db.session, category='PA'))
+admin.add_view(ModelView(PACoreCompetencyItem, db.session, category='PA'))
+admin.add_view(ModelView(PACoreCompetencyScoreItem, db.session, category='PA'))
 
 
 # Commands

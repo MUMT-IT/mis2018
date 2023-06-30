@@ -5,7 +5,7 @@
     <section class="section">
     <div class="container">
         <h1 class="title has-text-centered">
-            ส่งคำร้อง
+            ส่งคำขอ
         </h1>
         <h1 class="subtitle has-text-centered">
             รอบการประเมิน {{ pa.round }}
@@ -26,10 +26,10 @@
             </div>
             <div class="field is-grouped is-grouped-centered">
                 <div class="control">
-                    <input type="submit" value="Submit" class="button is-success">
+                    <a class="button is-light" href="{{ url_for('pa.add_pa_item', round_id=pa.round_id) }}">กลับ</a>
                 </div>
                 <div class="control">
-                    <a class="button is-light" href="{{ url_for('pa.add_pa_item', round_id=pa.round_id) }}">Back</a>
+                    <input type="submit" value="ส่ง" class="button is-success">
                 </div>
             </div>
         </form>
