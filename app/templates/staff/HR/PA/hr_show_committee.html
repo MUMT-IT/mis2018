@@ -25,6 +25,7 @@
                     <th>รอบการประเมิน</th>
                     <th>หน่วยงาน</th>
                     <th>ประธานและกรรมการประเมิน</th>
+                    <th>ตำแหน่ง</th>
                     </thead>
                     <tbody>
                     {% for committee in committee_list %}
@@ -36,16 +37,19 @@
                             {{ committee.staff.personal_info.org }}
                         </td>
                         <td>
-                            <div class="tags">
-
-                                {{ committee.staff.personal_info.fullname }}
-
-                            </div>
+                            {{ committee.staff.personal_info.fullname }}
+                        </td>
+                        <td>
+                            {{ committee.role }}
                         </td>
                     </tr>
                     {% endfor %}
                     </tbody>
                 </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
             <div class="buttons is-centered">
                 <a href="{{ url_for('pa.index') }}" class="button is-light">
                     <span>กลับ</span>

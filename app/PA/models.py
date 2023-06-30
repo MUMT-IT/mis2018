@@ -138,6 +138,16 @@ class PAItem(db.Model):
     def __str__(self):
         return self.task
 
+    @property
+    def average_score(self):
+        score = 0
+        n = 0
+        for s in self.pa_score_item:
+            if s.score:
+                score += s.score
+                n += 1
+        return score / n
+
 
 class PACommittee(db.Model):
     __tablename__ = 'pa_committees'
