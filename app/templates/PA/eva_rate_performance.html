@@ -30,7 +30,7 @@
                     {% endif %}
                 </div>
             </div>
-            <form method="post" action="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}">
+            <form method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="columns">
                     <div class="column">
@@ -49,7 +49,7 @@
                             {% for s in scoresheet.score_sheet_items %}
                                 <tr>
                                     <td style="width: 30%">
-                                        <p class="tag is-info">{{ s.item }}</p>
+                                        <p><strong>{{ s.item }}</strong></p>
                                         <p class="help">
                                             {{ s.kpi_item }}
                                         </p>
@@ -63,7 +63,7 @@
                                     <td>
                                     <ul>
                                         {% for kpi in s.kpi_item.kpi.pa_kpi_items %}
-                                            <li><span class="icon"><i class="fa-solid fa-star"></i></span><small>{{ kpi.goal }} ({{ kpi.level }})</small></li>
+                                            <li><span class="icon"><i class="fa-solid fa-star has-text-light has-text-warning"></i></span><small>{{ kpi.goal }} ({{ kpi.level }})</small></li>
                                         {% endfor %}
                                     </ul>
                                     </td>
@@ -132,7 +132,7 @@
                 <div class="columns">
                     <div class="column has-text-centered">
                         <div class="buttons is-centered">
-                            <a href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self) }}")
+                            <a href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}")
                                class="button is-info">
                                 <span class="icon">
                                     <i class="fa-solid fa-paper-plane"></i>
@@ -140,7 +140,12 @@
                                 <span>ส่งคะแนน</span>
                             </a>
                         </div>
-                        <p class="notification is-danger is-light has-text-danger">ท่านไม่สามารถแก้ไขคะแนนได้หลังส่งคะแนน</p>
+                        <p class="notification is-danger is-light has-text-danger">
+                            <span class="icon">
+                                <i class="fa-solid fa-circle-info"></i>
+                            </span>
+                            <span>ท่านไม่สามารถแก้ไขคะแนนได้หลังส่งคะแนน</span>
+                        </p>
                     </div>
                 </div>
                 {% else %}
