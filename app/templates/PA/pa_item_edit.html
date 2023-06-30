@@ -8,7 +8,7 @@
             <div class="columns">
                 <div class="column">
                     {% if task_id %}
-                        <h1 class="title has-text-centered">แก้ไขภาระงาน้</h1>
+                        <h1 class="title has-text-centered">แก้ไขภาระงาน</h1>
                         <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }}</h1>
                     {% else %}
                         <h1 class="title has-text-centered">เพิ่มภาระงาน</h1>
@@ -78,7 +78,7 @@
                                                                                 <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
                                                                         </a>
-                                                                        {% if pa.approved_at == None %}
+                                                                        {% if pa.editable %}
                                                                         <a class="button" hx-swap="none" hx-confirm="คุณต้องการลบรายการนี้หรือไม่" hx-delete="{{ url_for('pa.delete_pa_item', pa_id=pa.id, pa_item_id=pa_item.id) }}">
                                                                             <span class="icon is-small">
                                                                                 <i class="fa-solid fa-trash-can has-text-danger"></i>
@@ -98,7 +98,7 @@
                                     </tbody>
                                 </table>
                                 <a id="edit_form"></a>
-                                {% if pa.approved_at == None %}
+                                {% if pa.editable %}
                                     <p class="title is-size-4 has-text-centered">
                                         เพิ่ม/แก้ไขข้อมูลภาระงานและตัวชี้วัด
                                     </p>
@@ -129,7 +129,7 @@
                                         </div>
                                     </div>
                                 {% endif %}
-                                {% if pa.approved_at == None %}
+                                {% if pa.editable %}
                                     <div class="field">
                                         <label class="label">
                                             {% if pa.approved_at %}

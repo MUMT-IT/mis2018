@@ -134,21 +134,9 @@
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
                                 <a href="{{ url_for('pa.all_request') }}"
-                                   class="button is-light">Back</a>
+                                   class="button is-light">กลับ</a>
                             </div>
                         </div>
-                    {% endif %}
-                    {% if req.pa.approved_at %}
-                    <div class="field is-grouped is-grouped-centered">
-                        <div class="control">
-                            <a href="{{ url_for('pa.create_scoresheet', pa_id=req.pa_id) }}"
-                               class="button is-warning">เริ่มการประเมิน</a>
-                        </div>
-                        <div class="control">
-                            <a href="{{ url_for('pa.assign_committee', pa_id=req.pa_id) }}"
-                                   class="button is-warning">กำหนดผู้ประเมิน</a>
-                        </div>
-                    </div>
                     {% endif %}
                 </div>
             </div>

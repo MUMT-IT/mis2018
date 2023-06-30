@@ -8,12 +8,6 @@
                 <h1 class="title">การประเมินผลงาน</h1>
             </div>
             <div class="column has-text-right">
-                <a href="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}" class="button is-rounded is-warning">
-                    <span class="icon">
-                        <i class="fas fa-plus"></i>
-                    </span>
-                    <span>เริ่มการประเมิน</span>
-                </a>
             </div>
         </div>
         <div class="columns">
@@ -76,12 +70,17 @@
         </div>
         <div class="columns">
             <div class="column">
-                <a href="{{ url_for('pa.all_scoresheet') }}" class="button is-rounded is-light">
-                    <span class="icon">
-                        <i class="fas fa-arrow-left"></i>
-                    </span>
-                    <span>กลับหน้าหลัก</span>
-                </a>
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('pa.all_approved_pa') }}" class="button is-light">
+                        <span>กลับ</span>
+                    </a>
+                    <a href="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}" class="button is-warning">
+                        <span class="icon">
+                            <i class="fa-solid fa-magnifying-glass-chart"></i>
+                        </span>
+                        <span>เริ่มประเมิน</span>
+                    </a>
+                </div>
             </div>
         </div>
     </div>

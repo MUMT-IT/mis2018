@@ -4,32 +4,20 @@
 <section class="section">
     <div class="container" id="app">
         <div class="columns">
-            <div class="column has-text-left">
-                <h1 class="title">กลุ่มผู้ประเมิน</h1>
-            </div>
-            <div class="column has-text-right">
-                <a href="{{ url_for('pa.add_commitee') }}" class="button is-rounded is-success">
-                    <span class="icon">
-                        <i class="fas fa-plus"></i>
-                    </span>
-                    <span>เพิ่มผู้ประเมิน</span>
-                </a>
+            <div class="column">
+                <h1 class="title has-text-centered">กลุ่มผู้ประเมิน</h1>
+                <div class="field">
+                    <label class="label">สังกัด</label>
+                    <div class="select">
+                        <select v-model="department" v-on:change="proceed()">
+                            <option v-for="d in departments" v-bind:value="d.id" key="d.id">
+                                <% d.name %>
+                            </option>
+                        </select>
+                    </div>
+                </div>
             </div>
         </div>
-{#        <div class="columns">#}
-{#            <div class="column">#}
-{#                <div class="field">#}
-{#                    <label class="label">สังกัด</label>#}
-{#                    <div class="select">#}
-{#                        <select v-model="department" v-on:change="proceed()">#}
-{#                            <option v-for="d in departments" v-bind:value="d.id" key="d.id">#}
-{#                                <% d.name %>#}
-{#                            </option>#}
-{#                        </select>#}
-{#                    </div>#}
-{#                </div>#}
-{#            </div>#}
-{#        </div>#}
         <div class="columns">
             <div class="column">
                 <table class="table is-striped is-fullwidth" id="paTable">
@@ -46,7 +34,7 @@
                             {{ committee.round }}
                         </td>
                         <td>
-                            {{ committee.org }}
+                            {{ committee.staff.personal_info.org }}
                         </td>
                         <td>
                             {{ committee.staff.personal_info.fullname }}
@@ -62,12 +50,17 @@
         </div>
         <div class="columns">
             <div class="column">
+            <div class="buttons is-centered">
                 <a href="{{ url_for('pa.index') }}" class="button is-light">
-                    <span class="icon">
-                        <i class="fas fa-arrow-left"></i>
-                    </span>
-                    <span>กลับหน้าหลัก</span>
+                    <span>กลับ</span>
                 </a>
+                <a href="{{ url_for('pa.add_commitee') }}" class="button is-primary">
+                    <span class="icon">
+                        <i class="fa-solid fa-user-plus"></i>
+                    </span>
+                    <span>เพิ่มผู้ประเมิน</span>
+                </a>
+            </div>
             </div>
         </div>
     </div>

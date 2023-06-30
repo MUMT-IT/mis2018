@@ -86,7 +86,25 @@
                 </div>
             </div>
         </div>
-    </section>
+        <div class="columns">
+            {% for r in pa_round %}
+                {{ r.start }} ถึง {{ r.end }}<br>
+            {% endfor %}
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('pa.hr_index') }}" class="button is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                        <span>กลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 {% endblock %}
 {% block scripts %}
     {{ super() }}
