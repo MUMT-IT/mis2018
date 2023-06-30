@@ -202,8 +202,10 @@ def consensus_scoresheets_for_hr():
 @login_required
 def detail_consensus_scoresheet_for_hr(scoresheet_id):
     consolidated_score_sheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
+    core_competency_items = PACoreCompetencyItem.query.all()
     return render_template('staff/HR/PA/hr_consensus_score_detail.html',
-                           consolidated_score_sheet=consolidated_score_sheet)
+                           consolidated_score_sheet=consolidated_score_sheet,
+                           core_competency_items=core_competency_items)
 
 
 @pa.route('/pa/<int:pa_id>/requests', methods=['GET', 'POST'])
