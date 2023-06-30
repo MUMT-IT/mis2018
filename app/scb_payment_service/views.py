@@ -1,3 +1,4 @@
+import datetime
 import os
 
 import requests
@@ -154,7 +155,8 @@ def verify_slip():
 
         headers['authorization'] = 'Bearer {}'.format(access_token)
         resp = requests.get(
-            "{}/{}?sendingBank={}".format(SLIP_VERIFICATION, trnx.transaction_id, trnx.sending_bank_code), headers=headers)
+            "{}/{}?sendingBank={}".format(SLIP_VERIFICATION, trnx.transaction_id, trnx.sending_bank_code),
+            headers=headers)
         return jsonify(resp.json())
     records = ScbPaymentRecord.query.all()
     return render_template('scb_payment_service/verify_slips.html', records=records)
@@ -196,3 +198,54 @@ def transaction_inquiry():
         return jsonify(resp.json())
     records = ScbPaymentRecord.query.all()
     return render_template('scb_payment_service/transaction_inquiry.html', records=records)
+
+
+@scb_payment.route('/api/v1.0/check-payment')
+def check_payment():
+    bill_payment_ref1 = request.args.get('bill_payment_ref1')
+    bill_payment_ref2 = request.args.get('bill_payment_ref2')
+    if bill_payment_ref1 and bill_payment_ref2:
+        trnx = ScbPaymentRecord.query.filter_by(bill_payment_ref1=bill_payment_ref1,
+                                                bill_payment_ref2=bill_payment_ref2).first()
+        if trnx:
+            if trnx.payer_name is None and trnx.payer_account_number is None and trnx.sending_bank_code is None:
+                headers = {
+                    'Content-Type': 'application/json',
+                    'requestUId': str(uuid.uuid4()),
+                    'resourceOwnerId': APP_KEY
+                }
+                response = requests.post(AUTH_URL, headers=headers, json={
+                    'applicationKey': APP_KEY,
+                    'applicationSecret': APP_SECRET
+                })
+                response_data = response.json()
+                access_token = response_data['data']['accessToken']
+
+                headers['authorization'] = 'Bearer {}'.format(access_token)
+                resp = requests.get(
+                    QR30_INQUIRY,
+                    params={"billerId": BILLERID,
+                            "reference1": trnx.bill_payment_ref1,
+                            "transactionDate": trnx.created_datetime.strftime("%Y-%m-%d"),
+                            "eventCode": "00300100"}
+                    , headers=headers)
+                data = resp.json().get('data')
+                if data:
+                    trnx.payer_name = data.get('sender', {}).get('name')
+                    trnx.payer_account_number = data.get('sender', {}).get('account', {}).get('value')
+                    trnx.sending_bank_code = data.get('sendingBank')
+                    trans_date_time = data.get('transDate') + ' ' + data.get('transTime')
+                    trans_date_time = datetime.strptime(trans_date_time, '%Y%m%d %H:%M:%S')
+                    trnx.transaction_dateand_time = trans_date_time
+                    db.session.add(data)
+                    db.session.commit()
+            return jsonify({'data': {
+                'payer_name': trnx.payer_name,
+                'payer_account_number': trnx.payer_account_number,
+                'sending_bank_code': trnx.sending_bank_code,
+                'transaction_dateand_time': trnx.transaction_dateand_time,
+                'bill_payment_ref1': trnx.bill_payment_ref1,
+                'bill_payment_ref2': trnx.bill_payment_ref2,
+                'transaction_id': trnx.transaction_id,
+                'amount': trnx.amount
+            }})

@@ -507,10 +507,10 @@ def download_daily_payment_report():
             u'ผู้รับเงิน/ผู้บันทึก': u"{}".format(receipt.issuer.personal_info.fullname),
             u'ตำแหน่ง': u"{}".format(receipt.issuer.personal_info.position),
             u'วันที่': u"{}".format(receipt.created_datetime.strftime('%d/%m/%Y')),
-            u'หมายเหตุ': u"{}".format(receipt.comment)
-            # u'GL': u"{}".format(receipt.item_gl_list if receipt and receipt.item_gl_list else ''),
-            # u'Cost Center': u"{}".format(receipt.item_cost_center_list if receipt and receipt.item_cost_center_list else ''),
-            # u'IO': u"{}".format(receipt.item_internal_order_list if receipt and receipt.item_internal_order_list else '')
+            u'หมายเหตุ': u"{}".format(receipt.comment),
+            u'GL': u"{}".format(receipt.item_gl_list if receipt and receipt.item_gl_list else ''),
+            u'Cost Center': u"{}".format(receipt.item_cost_center_list if receipt and receipt.item_cost_center_list else ''),
+            u'IO': u"{}".format(receipt.item_internal_order_list if receipt and receipt.item_internal_order_list else '')
         })
     df = DataFrame(records)
     df.to_excel('daily_payment_report.xlsx',
@@ -525,9 +525,9 @@ def download_daily_payment_report():
                          u'ตำแหน่ง',
                          u'วันที่',
                          u'หมายเหตุ',
-                         # u'GL',
-                         # u'Cost Center',
-                         # u'IO'
+                         u'GL',
+                         u'Cost Center',
+                         u'IO'
                          ],
                 index=False,
                 encoding='utf-8')
