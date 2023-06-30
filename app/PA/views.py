@@ -194,7 +194,7 @@ def show_commitee():
 @login_required
 def consensus_scoresheets_for_hr():
     approved_scoresheets = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True).all()
-    return render_template('staff/HR/hr_all_consensus_scores.html',
+    return render_template('staff/HR/PA/hr_all_consensus_scores.html',
                            approved_scoresheets=approved_scoresheets)
 
 
@@ -202,7 +202,7 @@ def consensus_scoresheets_for_hr():
 @login_required
 def detail_consensus_scoresheet_for_hr(scoresheet_id):
     consolidated_score_sheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
-    return render_template('staff/HR/hr_consensus_score_detail.html',
+    return render_template('staff/HR/PA/hr_consensus_score_detail.html',
                            consolidated_score_sheet=consolidated_score_sheet)
 
 
