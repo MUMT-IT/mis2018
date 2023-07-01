@@ -48,19 +48,19 @@
                                     </a>
                                 </div>
                                 <div class="control">
-                                    <a href="{{ url_for('pa.create_scoresheet_for_committee', pa_id=pa.id) }}"
-                                       class="button is-dark is-outlined is-rounded is-small">
-                                        <span class="icon"><i class="fa-solid fa-paper-plane"></i></span>
-                                        <span>ส่งแบบประเมิน</span>
-                                    </a>
-                                </div>
-                                <div class="control">
                                     <a href="{{ url_for('pa.create_scoresheet', pa_id=pa.id) }}"
                                        class="button is-dark is-outlined is-rounded is-small">
                                         <span class="icon">
                                             <i class="fa-solid fa-magnifying-glass-chart"></i>
                                         </span>
                                         <span>ประเมิน</span>
+                                    </a>
+                                </div>
+                                <div class="control">
+                                    <a href="{{ url_for('pa.create_scoresheet_for_committee', pa_id=pa.id) }}"
+                                       class="button is-dark is-outlined is-rounded is-small">
+                                        <span class="icon"><i class="fa-solid fa-paper-plane"></i></span>
+                                        <span>ส่งแบบประเมิน</span>
                                     </a>
                                 </div>
                                 <div class="control">

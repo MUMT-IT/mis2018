@@ -111,7 +111,7 @@ class PAKPIItem(db.Model):
     goal = db.Column('goal', db.Text())
 
     def __str__(self):
-        return f'{self.kpi.detail} เป้าคือ {self.goal} ({self.kpi.type}) ได้ {self.level} คะแนน'
+        return f'{self.kpi.detail} [เป้าหมาย: {self.goal} ({self.level} คะแนน)]'
 
 
 class PAItemCategory(db.Model):

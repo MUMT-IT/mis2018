@@ -41,6 +41,7 @@
                             <th>ประเภท</th>
                             <th>เกณฑ์ตามตัวชี้วัด</th>
                             {% if for_self == 'false' %}
+                            <th>คะแนนประเมินตนเอง</th>
                             <th>ผลการประเมินผู้บังคับบัญชาขั้นต้น</th>
                             {% endif %}
                             <th>คะแนน 0-10</th>
@@ -69,11 +70,14 @@
                                     </td>
                                     {% if for_self == 'false' %}
                                     <td>
-                                        <div class="field is-grouped">
-                                            {{ head_scoresheet.get_score_sheet_item(s.item_id, s.kpi_item.id).score_tag|safe }}
-                                        </div>
-                                    {% endif %}
+                                        {{ self_scoresheet.get_score_sheet_item(s.item_id, s.kpi_item.id).score }}
                                     </td>
+                                    <td>
+                                        <div class="field is-grouped">
+                                            {{ head_scoresheet.get_score_sheet_item(s.item_id, s.kpi_item.id).score }}
+                                        </div>
+                                    </td>
+                                    {% endif %}
                                     <td>
                                         <div class="field">
                                             <div class="control">
