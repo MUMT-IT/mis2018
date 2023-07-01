@@ -409,6 +409,13 @@ def summary_scoresheet(pa_id):
                 )
                 db.session.add(consolidated_score_sheet_item)
                 db.session.commit()
+        for core_item in PACoreCompetencyItem.query.all():
+            core_scoresheet_item = PACoreCompetencyScoreItem(
+                score_sheet_id=consolidated_score_sheet.id,
+                item_id=core_item.id,
+            )
+            db.session.add(core_scoresheet_item)
+            db.session.commit()
         score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     approved_scoresheets = PAApprovedScoreSheet.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     if request.method == 'POST':
@@ -418,8 +425,14 @@ def summary_scoresheet(pa_id):
                 pa_item_id, kpi_item_id = field.split('-')[-2:]
                 scoresheet_item = consolidated_score_sheet.score_sheet_items \
                     .filter_by(item_id=int(pa_item_id), kpi_item_id=int(kpi_item_id)).first()
-                scoresheet_item.score = float(value)
+                scoresheet_item.score = float(value) if value else None
                 db.session.add(scoresheet_item)
+            if field.startswith('core-'):
+                core_scoresheet_id = field.split('-')[-1]
+                core_scoresheet_item = consolidated_score_sheet.competency_score_items \
+                    .filter_by(item_id=int(core_scoresheet_id)).first()
+                core_scoresheet_item.score = float(value) if value else None
+                db.session.add(core_scoresheet_item)
         db.session.commit()
         flash('บันทึกผลค่าเฉลี่ยเรียบร้อยแล้ว', 'success')
     return render_template('PA/head_summary_score.html',
@@ -452,7 +465,7 @@ def confirm_final_score(scoresheet_id):
     db.session.add(scoresheet)
     db.session.commit()
     flash('บันทึกคะแนนเรียบร้อยแล้ว', 'success')
-    return redirect(url_for('pa.summary_scoresheet',pa_id=scoresheet.pa_id))
+    return redirect(url_for('pa.summary_scoresheet', pa_id=scoresheet.pa_id))
 
 
 @pa.route('/head/consensus-scoresheets/send-to-hr/<int:scoresheet_id>')
@@ -487,7 +500,7 @@ def rate_performance(scoresheet_id):
             if field.startswith('pa-item-'):
                 scoresheet_item_id = field.split('-')[-1]
                 scoresheet_item = PAScoreSheetItem.query.get(scoresheet_item_id)
-                scoresheet_item.score = float(value)
+                scoresheet_item.score = float(value) if value else None
                 db.session.add(scoresheet_item)
             if field.startswith('core-'):
                 comp_item_id = field.split('-')[-1]
@@ -495,10 +508,10 @@ def rate_performance(scoresheet_id):
                                                                        score_sheet_id=scoresheet.id).first()
                 if score_item is None:
                     score_item = PACoreCompetencyScoreItem(item_id=comp_item_id,
-                                                           score=float(value),
+                                                           score=float(value) if value else None,
                                                            score_sheet_id=scoresheet.id)
                 else:
-                    score_item.score = float(value)
+                    score_item.score = float(value) if value else None
                 db.session.add(score_item)
         db.session.commit()
         flash('บันทึกผลการประเมินแล้ว', 'success')
@@ -524,11 +537,11 @@ def create_consensus_scoresheets(pa_id):
     pa = PAAgreement.query.filter_by(id=pa_id).first()
     scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True, is_final=True).first()
     if not scoresheet:
-        flash('ยังไม่มีข้อมูลคะแนนสรุปจากคณะกรรมการ กรุณาดำเนินการใส่คะแนนและยืนยันผล','warning')
+        flash('ยังไม่มีข้อมูลคะแนนสรุปจากคณะกรรมการ กรุณาดำเนินการใส่คะแนนและยืนยันผล', 'warning')
     else:
         for c in pa.committees:
             already_approved_scoresheet = PAApprovedScoreSheet.query.filter_by(score_sheet_id=scoresheet.id,
-                                                                           committee_id=c.id).first()
+                                                                               committee_id=c.id).first()
             if not already_approved_scoresheet:
                 create_approvescore = PAApprovedScoreSheet(
                     score_sheet_id=scoresheet.id,
@@ -610,10 +623,10 @@ def rate_core_competency(pa_id=None, scoresheet_id=None):
                                                                        score_sheet_id=scoresheet.id).first()
                 if score_item is None:
                     score_item = PACoreCompetencyScoreItem(item_id=comp_item_id,
-                                                           score=float(value),
+                                                           score=float(value) if value else None,
                                                            score_sheet_id=scoresheet.id)
                 else:
-                    score_item.score = float(value)
+                    score_item.score = float(value) if value else None
                 db.session.add(score_item)
         pa.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(pa)
