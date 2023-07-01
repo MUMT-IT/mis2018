@@ -129,7 +129,7 @@
                                                     {% endif %}
                                                 {% endfor %}
                                                 <div class="control">
-                                                    <input class="input" required step="0.5" min="0" max="10"
+                                                    <input class="input" step="0.5" min="0" max="10"
                                                            type="number"
                                                             {% if consolidated_score_sheet.is_final %}
                                                            readonly {% endif %}
@@ -166,6 +166,7 @@
                                               </div>
                                            {% endif %}
                                         {% endfor %}
+                                        <label class="label">คะแนนสรุป</label>
                                         <div class="field">
                                             <input class="input" type="number"
                                                    name="core-{{ item.id }}"
