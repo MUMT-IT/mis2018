@@ -101,15 +101,15 @@
                     <div class="column">
                         <table class="table is-striped is-fullwidth">
                             <thead>
-                            <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
-                            <th>ร้อยละ</th>
-                            <th>เป้าหมาย</th>
+                                <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
+                                <th>ร้อยละ</th>
+                                <th>เป้าหมาย</th>
                             </thead>
                             <tbody>
                             {% for pa_item in consolidated_score_sheet.pa.pa_items %}
                                 <tr>
                                     <td>
-                                        <p class="tag is-info"> {{ pa_item }}</p>
+                                        <div class="has-background-info-light"> {{ pa_item }}</div>
                                         <p class="help">
                                             {{ pa_item.kpi_item }}
                                         </p>
