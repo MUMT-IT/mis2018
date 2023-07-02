@@ -19,7 +19,8 @@
                             <thead>
                                 <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
                                 <th>ร้อยละ</th>
-                                <th>คะแนนสรุป</th>
+                                <th>คะแนนสรุป(ค่าเฉลี่ย กรณีตัวชี้วัดมากกว่า 1)</th>
+                                <th>คะแนนที่ได้</th>
                                 <th>รายละเอียดคะแนน</th>
                             </thead>
                             <tbody>
@@ -33,7 +34,10 @@
                                         {{ pa_item.percentage }}
                                     </td>
                                     <td>
-                                        {{ pa_item.average_score }}
+                                        {{ pa_item.average_score(consolidated_score_sheet) }}
+                                    </td>
+                                    <td>
+                                        {{ pa_item.total_score(consolidated_score_sheet) }}
                                     </td>
                                     <td class="content">
                                         {% for kpi_item in pa_item.kpi_items %}
@@ -62,7 +66,8 @@
                             <thead>
                             <th>หัวข้อ</th>
                             <th>คะแนนเต็ม</th>
-                            <th>คะแนน</th>
+                            <th>คะแนนที่ได้</th>
+                            <th>คะแนนที่ได้*คะแนนเต็ม</th>
                             </thead>
                             {% for item in core_competency_items %}
                                 <tr>
@@ -82,6 +87,11 @@
                                                 </span>
                                             </div>
                                         </div>
+                                    </td>
+                                    <td>
+                                        <span>
+                                            {{ item.competency_multiply(consolidated_score_sheet) }}
+                                        </span>
                                     </td>
                                 </tr>
                             {% endfor %}
