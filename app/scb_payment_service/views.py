@@ -53,7 +53,7 @@ def generate_qrcode(amount, ref1, ref2, ref3):
         qr_image = qrcode_resp.json()['data']['qrImage']
         return {'qrImage': qr_image}
     else:
-        return None
+        return qrcode_resp.json()
 
 
 @scb_payment.route('/api/v1.0/login', methods=['POST'])
@@ -98,7 +98,7 @@ def create_qrcode():
     if amount is None:
         return jsonify({'message': 'Amount is needed'}), 400
     data = generate_qrcode(amount, ref1=ref1, ref2=ref2, ref3=REF3)
-    if data:
+    if 'qrImage' not in data:
         if not record:
             record = ScbPaymentRecord(bill_payment_ref1=ref1, bill_payment_ref2=ref2,
                                       service=service,
@@ -108,7 +108,7 @@ def create_qrcode():
             db.session.commit()
         return jsonify({'data': data})
     else:
-        return jsonify({'message': 'Error happened.'}), 500
+        return jsonify(data), 500
 
 
 @scb_payment.route('/api/v1.0/payment-confirm', methods=['GET', 'POST'])
