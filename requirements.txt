@@ -94,7 +94,7 @@ PyJWT==2.6.0
 pylint==1.8.4
 pyOpenSSL==23.0.0
 pyparsing==2.2.0
-PyPDF2==1.26.0
+PyPDF2==1.27.9
 Pyphen==0.9.5
 PyQRCode==1.2.1
 python-dateutil==2.8.2
