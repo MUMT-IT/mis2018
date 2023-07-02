@@ -10,16 +10,13 @@
                 </div>
             </div>
             <div class="columns">
-                <div class="column">
+                <div class="column is-half is-offset-3">
                     <div class="box">
                         <div class="field">
-                            <label class="label">ผู้รับการประเมิน: {{ req.pa.staff.personal_info.fullname }}</label>
+                            <label class="label">ผู้รับการประเมิน:</label><label> {{ req.pa.staff.personal_info.fullname }}</label>
                         </div>
                         <div class="field">
-                            <label class="label">รอบการประเมิน</label>
-                            <div>
-                                {{ req.pa.round }}
-                            </div>
+                            <label class="label">รอบการประเมิน: {{ req.pa.round }}</label>
                         </div>
                         <div class="field">
                             <label class="label">ประเภทคำขอ</label>
@@ -59,7 +56,7 @@
                         <tbody>
                         {% for cat in categories %}
                             <tr>
-                                <td width="15%">
+                                <td style="width: 15%">
                                     {{ cat }}
                                 </td>
                                 <td>
@@ -74,8 +71,8 @@
                                             {% for pa_item in cat.pa_items.filter_by(pa_id=req.pa.id) %}
                                                 <tr {% if pa_item_id == pa_item.id %}
                                                     style="background-color: palegreen" {% endif %}>
-                                                    <td width="40%">{{ pa_item.task }}</td>
-                                                    <td width="5%">{{ pa_item.percentage }}</td>
+                                                    <td style="width: 40%">{{ pa_item.task }}</td>
+                                                    <td style="width: 5%">{{ pa_item.percentage }}</td>
                                                     <td>
                                                         <ul>
                                                             {% for kpi_item in pa_item.kpi_items %}
