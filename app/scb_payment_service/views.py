@@ -201,6 +201,7 @@ def transaction_inquiry():
 
 
 @scb_payment.route('/api/v1.0/check-payment')
+@jwt_required()
 def check_payment():
     bill_payment_ref1 = request.args.get('bill_payment_ref1')
     bill_payment_ref2 = request.args.get('bill_payment_ref2')
