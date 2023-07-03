@@ -199,6 +199,22 @@ class PAScoreSheet(db.Model):
     def get_core_competency_score_item(self, comp_item_id):
         return self.competency_score_items.filter_by(item_id=comp_item_id).first()
 
+    def competency_total(self):
+        score = 0
+        for c in self.competency_score_items:
+            if c.score_sheet_id == self.id:
+                if c.score:
+                    score += c.score*10
+        return score
+
+    def competency_net_score(self):
+        score = 0
+        for c in self.competency_score_items:
+            if c.score_sheet_id == self.id:
+                if c.score:
+                    score += c.score*10
+        return (score/700)*20
+
 
 class PAScoreSheetItem(db.Model):
     __tablename__ = 'pa_score_sheet_items'

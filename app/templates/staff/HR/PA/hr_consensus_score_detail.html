@@ -67,7 +67,7 @@
                             <th>หัวข้อ</th>
                             <th>คะแนนเต็ม</th>
                             <th>คะแนนที่ได้</th>
-                            <th>คะแนนที่ได้*คะแนนเต็ม</th>
+                            <th>คะแนนที่ได้xคะแนนเต็ม</th>
                             </thead>
                             {% for item in core_competency_items %}
                                 <tr>
@@ -96,6 +96,12 @@
                                 </tr>
                             {% endfor %}
                         </table>
+                        <h1 class="subtitle has-text-right">
+                            รวมคะแนน: {{ consolidated_score_sheet.competency_total() }}
+                        </h1>
+                        <h1 class="subtitle has-text-right">
+                            คะแนนผลการประเมิน เมื่อคิดตามน้ำหนัก 20%: {{ consolidated_score_sheet.competency_net_score() }}
+                        </h1>
                     </div>
                 </div>
                 <div class="columns">
