@@ -40,6 +40,8 @@ class PAAgreement(db.Model):
     round = db.relationship(PARound, backref=db.backref('agreements', lazy='dynamic'))
     committees = db.relationship('PACommittee', secondary=pa_committee_assoc_table)
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+    performance_score = db.Column('performance_score', db.Numeric())
+    competency_score = db.Column('competency_score', db.Numeric())
 
     @property
     def editable(self):
