@@ -475,6 +475,21 @@ def send_consensus_scoresheets_to_hr(scoresheet_id):
     scoresheet.is_appproved = True
     db.session.add(scoresheet)
     db.session.commit()
+
+    score = 0
+    sum_percentage_score = 0
+    for pa_item in scoresheet.pa.pa_items:
+        for kpi_item in pa_item.kpi_items:
+            score = scoresheet.get_score_sheet_item(pa_item.id, kpi_item.id).score
+        percentage_score = (score * pa_item.percentage)
+        sum_percentage_score += percentage_score
+    performance_net_score = (sum_percentage_score * 80) / 1000
+
+    pa_agreement = PAAgreement.query.filter_by(id=scoresheet.pa_id).first()
+    pa_agreement.performance_score = performance_net_score
+    pa_agreement.competency_score = scoresheet.competency_net_score()
+    db.session.add(pa_agreement)
+    db.session.commit()
     flash('ส่งคะแนนไปยัง hr เรียบร้อยแล้ว', 'success')
     return redirect(request.referrer)
 

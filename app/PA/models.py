@@ -40,6 +40,8 @@ class PAAgreement(db.Model):
     round = db.relationship(PARound, backref=db.backref('agreements', lazy='dynamic'))
     committees = db.relationship('PACommittee', secondary=pa_committee_assoc_table)
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+    performance_score = db.Column('performance_score', db.Numeric())
+    competency_score = db.Column('competency_score', db.Numeric())
 
     @property
     def editable(self):
@@ -138,15 +140,25 @@ class PAItem(db.Model):
     def __str__(self):
         return self.task
 
-    @property
-    def average_score(self):
+    def average_score(self, scoresheet):
         score = 0
         n = 0
         for s in self.pa_score_item:
-            if s.score:
-                score += s.score
-                n += 1
-        return score / n
+            if s.score_sheet_id == scoresheet.id:
+                if s.score:
+                    score = s.score
+                    n += 1
+        return score/n
+
+    def total_score(self, scoresheet):
+        score = 0
+        n = 0
+        for s in self.pa_score_item:
+            if s.score_sheet_id == scoresheet.id:
+                if s.score:
+                    score = s.score
+                    n += 1
+        return (score/n)*self.percentage
 
 
 class PACommittee(db.Model):
@@ -189,6 +201,22 @@ class PAScoreSheet(db.Model):
     def get_core_competency_score_item(self, comp_item_id):
         return self.competency_score_items.filter_by(item_id=comp_item_id).first()
 
+    def competency_total(self):
+        score = 0
+        for c in self.competency_score_items:
+            if c.score_sheet_id == self.id:
+                if c.score:
+                    score += c.score*10
+        return score
+
+    def competency_net_score(self):
+        score = 0
+        for c in self.competency_score_items:
+            if c.score_sheet_id == self.id:
+                if c.score:
+                    score += c.score*10
+        return (score/700)*20
+
 
 class PAScoreSheetItem(db.Model):
     __tablename__ = 'pa_score_sheet_items'
@@ -220,6 +248,13 @@ class PACoreCompetencyItem(db.Model):
     desc = db.Column('desc', db.Text(), info={'label': 'คำอธิบาย'})
     score = db.Column('score', db.Numeric(), info={'label': 'คะแนนเต็ม'})
 
+    def competency_multiply(self, scoresheet):
+        for c in self.core_score_core_item:
+            if c.score_sheet_id == scoresheet.id:
+                if c.score:
+                    score = c.score
+        return score*self.score
+
 
 class PACoreCompetencyScoreItem(db.Model):
     __tablename__ = 'pa_core_competency_score_items'
@@ -230,7 +265,7 @@ class PACoreCompetencyScoreItem(db.Model):
                                                      lazy='dynamic',
                                                      cascade='all, delete-orphan'))
     item_id = db.Column(db.ForeignKey('pa_core_competency_items.id'))
-    item = db.relationship('PACoreCompetencyItem')
+    item = db.relationship('PACoreCompetencyItem', backref=db.backref('core_score_core_item'))
     score = db.Column('score', db.Numeric())
     comment = db.Column('comment', db.Text())
 
