@@ -10,43 +10,38 @@
                 </div>
             </div>
             <div class="columns">
-                <div class="column">
+                <div class="column is-half is-offset-3">
                     <div class="box">
                         <div class="field">
-                            <label class="label">ผู้ขอ</label>
-                            <div>
-                                {{ req.pa.staff.personal_info.fullname }}
-                            </div>
+                            <span>ผู้รับการประเมิน:</span>
+                            <p class="title is-size-4">{{ req.pa.staff.personal_info.fullname }}</p>
                         </div>
                         <div class="field">
-                            <label class="label">รอบการประเมิน</label>
-                            <div>
-                                {{ req.pa.round }}
-                            </div>
+                            <span>รอบการประเมิน:</span>
+                            <label class="label">{{ req.pa.round }}</label>
                         </div>
                         <div class="field">
-                            <label class="label">ประเภทคำขอ</label>
-                            <div>
-                                {{ req.for_ }}
-                            </div>
+                             ประเภทคำขอ: <p class="title is-size-4">{{ req.for_ }}</p>
                         </div>
                         {% if req.detail %}
                             <div class="field">
-                                <label class="label">รายละเอียด</label>
-                                <div>
+                                รายละเอียด
+                                <label class="label">
                                     {{ req.detail}}
-                                </div>
+                                </label>
+                            </div>
                             </div>
                         {% endif %}
                         {% if req.responded_at %}
                             <div class="field">
-                                <label class="label">ผู้บังคับบัญชาขั้นต้น {{ req.status }} เมื่อ</label>
-                                <div>
-                                    {{ req.responded_at|localdatetime }}
-                                </div>
-                                <div>
+                                <span>ผู้บังคับบัญชาขั้นต้น
+                                    <label class="label">"{{ req.status }}" เมื่อ
+                                        {{ req.responded_at|localdatetime }}
+                                    </label>
+                                </span>
+                                <label class="label">
                                     comment: {{ req.supervisor_comment }}
-                                </div>
+                                </label>
                             </div>
                         {% endif %}
                     </div>
@@ -62,7 +57,7 @@
                         <tbody>
                         {% for cat in categories %}
                             <tr>
-                                <td>
+                                <td style="width: 15%">
                                     {{ cat }}
                                 </td>
                                 <td>
@@ -72,14 +67,13 @@
                                             <th>ภาระงาน</th>
                                             <th>ร้อยละ(น้ำหนัก)</th>
                                             <th>ตัวชี้วัด (หากมีหลายตัวชี้วัดคะแนนจะถูกนำมาเฉลี่ย)</th>
-                                            <th></th>
                                             </thead>
                                             <tbody>
                                             {% for pa_item in cat.pa_items.filter_by(pa_id=req.pa.id) %}
                                                 <tr {% if pa_item_id == pa_item.id %}
                                                     style="background-color: palegreen" {% endif %}>
-                                                    <td>{{ pa_item.task }}</td>
-                                                    <td>{{ pa_item.percentage }}</td>
+                                                    <td style="width: 40%">{{ pa_item.task }}</td>
+                                                    <td style="width: 5%">{{ pa_item.percentage }}</td>
                                                     <td>
                                                         <ul>
                                                             {% for kpi_item in pa_item.kpi_items %}
