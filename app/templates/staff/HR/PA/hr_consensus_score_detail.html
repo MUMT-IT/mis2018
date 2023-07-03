@@ -60,6 +60,7 @@
                             {% endfor %}
                             </tbody>
                         </table>
+                        <h1 class="subtitle has-text-right">คะแนนการประเมินผลงานเมื่อคิดคะแนนตามน้ำหนัก 80%: {{ consolidated_score_sheet.pa.performance_score }}</h1>
                         <h1 class="title has-text-centered">คะแนนประเมินสมรรถนะหลัก</h1>
                         <h1 class="subtitle has-text-centered">Core Competency</h1>
                         <table class="table is-fullwidth">
@@ -101,6 +102,9 @@
                         </h1>
                         <h1 class="subtitle has-text-right">
                             คะแนนผลการประเมิน เมื่อคิดตามน้ำหนัก 20%: {{ consolidated_score_sheet.competency_net_score() }}
+                        </h1>
+                        <h1 class="title has-text-centered">
+                            คะแนนรวมทั้งหมด: {{ consolidated_score_sheet.pa.performance_score + consolidated_score_sheet.pa.competency_score}}
                         </h1>
                     </div>
                 </div>
