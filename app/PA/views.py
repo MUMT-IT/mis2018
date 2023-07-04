@@ -126,6 +126,24 @@ def add_kpi(pa_id):
     return render_template('PA/add_kpi.html', form=form, round_id=round_id, pa_id=pa_id)
 
 
+@pa.route('/<int:pa_id>/kpis/<int:kpi_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_kpi(pa_id, kpi_id):
+    kpi = PAKPI.query.get(kpi_id)
+    pa = PAAgreement.query.get(pa_id)
+    form = PAKPIForm(obj=kpi)
+    if form.validate_on_submit():
+        form.populate_obj(kpi)
+        db.session.add(kpi)
+        db.session.commit()
+        flash('แก้ไขตัวชี้วัดเรียบร้อย', 'success')
+        return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+    return render_template('PA/add_kpi.html', form=form, round_id=pa.round_id)
+
+
 @pa.route('/kpis/<int:kpi_id>/delete', methods=['DELETE'])
 @login_required
 def delete_kpi(kpi_id):

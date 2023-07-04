@@ -181,7 +181,7 @@
                                                     </td>
                                                     <td>
                                                         <div class="buttons">
-                                                            <a href=""
+                                                            <a href="{{ url_for('pa.edit_kpi', pa_id=pa.id, kpi_id=item_form.obj_id) }}"
                                                                class="button">
                                                                 <span class="icon is-small">
                                                                     <i class="fa-solid fa-pencil"></i>
@@ -202,28 +202,8 @@
                                                 </tr>
                                             {% endfor %}
                                         </table>
-                                        <div class="field">
-                                            {% if pa.approved_at == None %}
-                                                <a class="button is-info"
-                                                   onclick="return confirm('กรุณาบันทึกการแก้ไขก่อนคลิก OK เพื่อดำเนินการเพิ่มตัวชี้วัด หากไม่มีการแก้ไขเพิ่มเติมคลิก OK เพื่อดำเนินการต่อ')"
-                                                   href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=pa_round.id) }}">
-                                                <span class="icon">
-                                                    <i class="fa-solid fa-location-crosshairs"></i>
-                                                </span>
-                                                    <span>เพิ่มตัวชี้วัด</span>
-                                                </a>
-                                            {% endif %}
-                                        </div>
                                     {% else %}
-                                        <div class="field">
-                                            <a class="button is-info"
-                                               href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=pa_round.id) }}">
-                                                <span class="icon">
-                                                    <i class="fa-solid fa-location-crosshairs"></i>
-                                                </span>
-                                                <span>เพิ่มตัวชี้วัด</span>
-                                            </a>
-                                        </div>
+                                        <p class="notification is-warning is-light"><button class="delete"></button>ท่านยังไม่มีตัวชี้วัดสำหรับประเมินภาระงาน กรุณาเพิ่มตัวชี้วัด</p>
                                     {% endif %}
                                 {% endif %}
                                 {% if pa.approved_at == None or pa_item_id %}
@@ -237,6 +217,16 @@
                         </div>
                     </form>
                     <div class="buttons is-centered">
+                        {% if pa.editable %}
+                            <a class="button is-info"
+                               onclick="return confirm('กรุณาบันทึกการแก้ไขก่อนคลิก OK เพื่อดำเนินการเพิ่มตัวชี้วัด หากไม่มีการแก้ไขเพิ่มเติมคลิก OK เพื่อดำเนินการต่อ')"
+                               href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=pa_round.id) }}">
+                                                <span class="icon">
+                                                    <i class="fa-solid fa-location-crosshairs"></i>
+                                                </span>
+                                <span>เพิ่มตัวชี้วัด</span>
+                            </a>
+                        {% endif %}
                         <a href="{{ url_for('pa.create_request', pa_id=pa.id) }}"
                            class="button is-info is-outlined">
                             <span class="icon">
