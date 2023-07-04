@@ -152,6 +152,15 @@
                                             โดยคะแนนจะมาจากค่าเฉลี่ยของทุกตัว</p>
                                     </div>
                                     {% if pa.kpis %}
+                                        {% with messages = get_flashed_messages(with_categories=True) %}
+                                            {% if messages %}
+                                                {% for cat, msg in messages %}
+                                                    {% if 'ตัวชี้วัด' in msg %}
+                                                    <p class="notification is-{{ cat }} is-light"><button class="delete"></button>{{ msg }}</p>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endwith %}
                                         <table class="table is-fullwidth is-striped">
                                             {% for item_form in form.kpi_items_ %}
                                                 <tr>
@@ -170,30 +179,31 @@
                                                             <input name="{{ item_form.id }}" value="{{ item_form.data or '' }}" type="hidden">
                                                         {% endif %}
                                                     </td>
+                                                    <td>
+                                                        <div class="buttons">
+                                                            <a href="{{ url_for('pa.edit_kpi', pa_id=pa.id, kpi_id=item_form.obj_id) }}"
+                                                               class="button">
+                                                                <span class="icon is-small">
+                                                                    <i class="fa-solid fa-pencil"></i>
+                                                                </span>
+                                                            </a>
+                                                            {% if pa.editable %}
+                                                                <a class="button"
+                                                                   hx-swap="none"
+                                                                   hx-confirm="คุณต้องการลบรายการนี้หรือไม่"
+                                                                   hx-delete="{{ url_for('pa.delete_kpi', kpi_id=item_form.obj_id, pa_id=pa.id) }}">
+                                                                    <span class="icon is-small">
+                                                                        <i class="fa-solid fa-trash-can has-text-danger"></i>
+                                                                    </span>
+                                                                </a>
+                                                            {% endif %}
+                                                        </div>
+                                                    </td>
                                                 </tr>
                                             {% endfor %}
                                         </table>
-                                        <div class="field">
-                                            {% if pa.approved_at == None %}
-                                                <a class="button is-info"
-                                                   href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=pa_round.id) }}">
-                                                <span class="icon">
-                                                    <i class="fa-solid fa-location-crosshairs"></i>
-                                                </span>
-                                                    <span>เพิ่มตัวชี้วัด</span>
-                                                </a>
-                                            {% endif %}
-                                        </div>
                                     {% else %}
-                                        <div class="field">
-                                            <a class="button is-info"
-                                               href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=pa_round.id) }}">
-                                                <span class="icon">
-                                                    <i class="fa-solid fa-location-crosshairs"></i>
-                                                </span>
-                                                <span>เพิ่มตัวชี้วัด</span>
-                                            </a>
-                                        </div>
+                                        <p class="notification is-warning is-light"><button class="delete"></button>ท่านยังไม่มีตัวชี้วัดสำหรับประเมินภาระงาน กรุณาเพิ่มตัวชี้วัด</p>
                                     {% endif %}
                                 {% endif %}
                                 {% if pa.approved_at == None or pa_item_id %}
@@ -207,6 +217,16 @@
                         </div>
                     </form>
                     <div class="buttons is-centered">
+                        {% if pa.editable %}
+                            <a class="button is-info"
+                               onclick="return confirm('กรุณาบันทึกการแก้ไขก่อนคลิก OK เพื่อดำเนินการเพิ่มตัวชี้วัด หากไม่มีการแก้ไขเพิ่มเติมคลิก OK เพื่อดำเนินการต่อ')"
+                               href="{{ url_for('pa.add_kpi', pa_id=pa.id, round_id=pa_round.id) }}">
+                                                <span class="icon">
+                                                    <i class="fa-solid fa-location-crosshairs"></i>
+                                                </span>
+                                <span>เพิ่มตัวชี้วัด</span>
+                            </a>
+                        {% endif %}
                         <a href="{{ url_for('pa.create_request', pa_id=pa.id) }}"
                            class="button is-info is-outlined">
                             <span class="icon">
@@ -248,7 +268,7 @@
                                 <td>{{ req.detail }}</td>
                                 <td>{{ req.status or 'ระหว่างดำเนินการ' }}</td>
                                 <td>{{ req.submitted_at|localdatetime }}</td>
-                                <td>{{ req.responded_at or '' }}</td>
+                                <td>{{ req.responded_at|localdatetime }}</td>
                                 <td>{{ req.supervisor_comment }}</td>
                                 <td>{{ req.supervisor.fullname }}</td>
                             </tr>

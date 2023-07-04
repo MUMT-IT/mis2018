@@ -1,3 +1,4 @@
+from sqlalchemy import desc
 from wtforms import widgets
 
 from app.main import db
@@ -47,10 +48,12 @@ class PAAgreement(db.Model):
     def editable(self):
         if self.approved_at:
             return False
-        elif self.requests.filter(PARequest.for_=='ขอรับการประเมิน').first():
-            return False
         else:
-            return True
+            req = self.requests.order_by(desc(PARequest.id)).first()
+            if req.for_ == 'ขอรับการประเมิน':
+                return False
+            else:
+                return True
 
 
 class PARequest(db.Model):
