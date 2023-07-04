@@ -15,7 +15,7 @@ from wtforms.validators import DataRequired
 from wtforms.widgets import TextInput
 from wtforms_alchemy import (model_form_factory, QuerySelectField)
 from .models import *
-from ..models import Org
+from ..models import Org, CostCenter
 from ..staff.models import StaffPersonalInfo
 
 BaseModelForm = model_form_factory(FlaskForm)
@@ -69,6 +69,8 @@ class ProcurementDetailForm(ModelForm):
         exclude = ['image']
 
     image_file_upload = FileField(u'อัพโหลดรูปภาพ')
+    # cost_center = QuerySelectField(u'ศูนย์ต้นทุน', query_factory=lambda: CostCenter.query.all(),
+    #                             blank_text='Select Cost Center..', allow_blank=True)
     category = QuerySelectField(u'หมวดหมู่/ประเภท', query_factory=lambda: ProcurementCategory.query.all(),
                                 blank_text='Select Category..', allow_blank=True)
     org = QuerySelectField(query_factory=lambda: Org.query.all(),
