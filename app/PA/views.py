@@ -216,7 +216,6 @@ def detail_consensus_scoresheet_for_hr(scoresheet_id):
 
 @pa.route('/pa/<int:pa_id>/requests', methods=['GET', 'POST'])
 def create_request(pa_id):
-    #TODO: reduce redundance function of create new_request
     pa = PAAgreement.query.get(pa_id)
     form = PARequestForm()
     head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ').first()
@@ -234,15 +233,10 @@ def create_request(pa_id):
                     flash('กรุณาประเมินตนเอง ก่อนส่งคำขอรับการประเมิน','warning')
                     return redirect(url_for('pa.create_request', pa_id=pa_id))
                 else:
-                    new_request.pa_id = pa_id
-                    right_now = arrow.now('Asia/Bangkok').datetime
-                    new_request.created_at = right_now
-                    new_request.submitted_at = right_now
-                    new_request.supervisor = supervisor
-                    db.session.add(new_request)
-                    db.session.commit()
-                    flash('ส่งคำขอเรียบร้อยแล้ว', 'success')
+                    create_new_request = True
             else:
+                create_new_request = True
+            if create_new_request == True:
                 new_request.pa_id = pa_id
                 right_now = arrow.now('Asia/Bangkok').datetime
                 new_request.created_at = right_now
@@ -250,6 +244,15 @@ def create_request(pa_id):
                 new_request.supervisor = supervisor
                 db.session.add(new_request)
                 db.session.commit()
+                req_msg = '{}ทำการขออนุมัติ{} ในระบบ PA กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
+                              '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                                current_user.personal_info.fullname, new_request.for_,
+                                url_for("pa.view_request", request_id=new_request.id, _external=True))
+                req_title = 'แจ้งการอนุมัติ' + new_request.for_ + 'ในระบบ PA'
+                if not current_app.debug:
+                    send_mail([supervisor.email + "@mahidol.ac.th"], req_title, req_msg)
+                else:
+                    print(req_msg, supervisor.email)
                 flash('ส่งคำขอเรียบร้อยแล้ว', 'success')
         return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
     return render_template('PA/request_form.html', form=form, pa=pa)
