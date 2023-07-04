@@ -1,8 +1,9 @@
 # -*- coding:utf-8 -*-
 import datetime
+
 import pytz
 import arrow
-from sqlalchemy import and_
+from sqlalchemy import and_, exc
 from . import pa_blueprint as pa
 
 from app.roles import hr_permission, manager_permission
@@ -62,6 +63,7 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         field_ = form.kpi_items_.append_entry(default)
         field_.choices = [('', 'ไม่ระบุเป้าหมาย')] + items
         field_.label = kpi.detail
+        field_.obj_id = kpi.id
 
     if form.validate_on_submit():
         for i in range(len(pa.kpis)):
@@ -122,6 +124,22 @@ def add_kpi(pa_id):
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
     return render_template('PA/add_kpi.html', form=form, round_id=round_id, pa_id=pa_id)
+
+
+@pa.route('/kpis/<int:kpi_id>/delete', methods=['DELETE'])
+@login_required
+def delete_kpi(kpi_id):
+    kpi = PAKPI.query.get(kpi_id)
+    try:
+        db.session.delete(kpi)
+        db.session.commit()
+        flash('ลบตัวชี้วัดแล้ว', 'success')
+    except exc.SQLAlchemyError:
+        db.session.rollback()
+        flash('ไม่สามารถลบตัวชี้วัดได้ เนื่องจากมีภาระงานที่อ้างถึง', 'danger')
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
 
 
 @pa.route('/staff/rounds/<int:round_id>/task/view')

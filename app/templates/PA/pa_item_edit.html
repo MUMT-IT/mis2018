@@ -152,6 +152,15 @@
                                             โดยคะแนนจะมาจากค่าเฉลี่ยของทุกตัว</p>
                                     </div>
                                     {% if pa.kpis %}
+                                        {% with messages = get_flashed_messages(with_categories=True) %}
+                                            {% if messages %}
+                                                {% for cat, msg in messages %}
+                                                    {% if 'ตัวชี้วัด' in msg %}
+                                                    <p class="notification is-{{ cat }} is-light"><button class="delete"></button>{{ msg }}</p>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endwith %}
                                         <table class="table is-fullwidth is-striped">
                                             {% for item_form in form.kpi_items_ %}
                                                 <tr>
@@ -169,6 +178,26 @@
                                                         {% if pa.approved_at %}
                                                             <input name="{{ item_form.id }}" value="{{ item_form.data or '' }}" type="hidden">
                                                         {% endif %}
+                                                    </td>
+                                                    <td>
+                                                        <div class="buttons">
+                                                            <a href=""
+                                                               class="button">
+                                                                <span class="icon is-small">
+                                                                    <i class="fa-solid fa-pencil"></i>
+                                                                </span>
+                                                            </a>
+                                                            {% if pa.editable %}
+                                                                <a class="button"
+                                                                   hx-swap="none"
+                                                                   hx-confirm="คุณต้องการลบรายการนี้หรือไม่"
+                                                                   hx-delete="{{ url_for('pa.delete_kpi', kpi_id=item_form.obj_id, pa_id=pa.id) }}">
+                                                                    <span class="icon is-small">
+                                                                        <i class="fa-solid fa-trash-can has-text-danger"></i>
+                                                                    </span>
+                                                                </a>
+                                                            {% endif %}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             {% endfor %}
