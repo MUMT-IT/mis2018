@@ -27,7 +27,7 @@
                                      <div class="field">
                                          <label class="label">รายละเอียดตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</label>
                                          <div class="control">
-                                             {{ form.detail(class="textarea") }}
+                                             {{ form.detail(class="textarea is-danger", required=True) }}
                                          </div>
                                      </div>
                                     <div class="field">
@@ -67,8 +67,4 @@
             </div>
         </div>
     </section>
-{% endblock %}
-{% block scripts %}
-    {{ super() }}
-
 {% endblock %}
