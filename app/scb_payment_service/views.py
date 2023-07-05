@@ -2,7 +2,7 @@ import datetime
 import os
 
 import requests
-from flask import jsonify, request, render_template
+from flask import jsonify, request, render_template, url_for
 from flask_jwt_extended import (create_access_token, get_jwt_identity, jwt_required, get_current_user,
                                 create_refresh_token)
 from werkzeug.security import check_password_hash
@@ -160,6 +160,39 @@ def verify_slip():
         return jsonify(resp.json())
     records = ScbPaymentRecord.query.all()
     return render_template('scb_payment_service/verify_slips.html', records=records)
+
+
+@scb_payment.route('/slip/view/<int:slip_id>')
+def view_slip_info(slip_id):
+    slip = ScbPaymentRecord.query.get(slip_id)
+    return render_template('scb_payment_service/view_slip_info.html', slip=slip)
+
+
+@scb_payment.route('/api/verify-slip')
+def get_verify_slip_data():
+    query = ScbPaymentRecord.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ScbPaymentRecord.payer_name.like(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['amount'] = u'{:.2f}'.format(item.amount)
+        item_data['transaction_dateand_time'] = item.transaction_dateand_time.strftime('%d-%m-%Y %H:%M:%S')
+        item_data['view_slip'] = '<a href="{}" class="button is-small is-rounded is-primary is-outlined">รายละเอียด</a>'.format(
+            url_for('scb_payment.view_slip_info', slip_id=item.id))
+        item_data['status'] = "จ่ายเงินสำเร็จ" if item.transaction_id else "จ่ายเงินไม่สำเร็จ"
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ScbPaymentRecord.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
 
 
 @scb_payment.route('/transaction-inquiry')
