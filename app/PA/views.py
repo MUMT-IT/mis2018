@@ -1,8 +1,9 @@
 # -*- coding:utf-8 -*-
 import datetime
+
 import pytz
 import arrow
-from sqlalchemy import and_
+from sqlalchemy import and_, exc
 from . import pa_blueprint as pa
 
 from app.roles import hr_permission, manager_permission
@@ -62,8 +63,17 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         field_ = form.kpi_items_.append_entry(default)
         field_.choices = [('', 'ไม่ระบุเป้าหมาย')] + items
         field_.label = kpi.detail
+        field_.obj_id = kpi.id
 
     if form.validate_on_submit():
+        maximum = 100 - pa.total_percentage
+        if item_id:
+            maximum += pa_item.percentage
+
+        if form.percentage.data > maximum:
+            flash('สัดส่วนภาระงานเกิน 100%', 'danger')
+            return redirect(url_for('pa.add_pa_item', round_id=round_id, _anchor=''))
+
         for i in range(len(pa.kpis)):
             form.kpi_items_.pop_entry()
 
@@ -122,6 +132,40 @@ def add_kpi(pa_id):
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
     return render_template('PA/add_kpi.html', form=form, round_id=round_id, pa_id=pa_id)
+
+
+@pa.route('/<int:pa_id>/kpis/<int:kpi_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_kpi(pa_id, kpi_id):
+    kpi = PAKPI.query.get(kpi_id)
+    pa = PAAgreement.query.get(pa_id)
+    form = PAKPIForm(obj=kpi)
+    if form.validate_on_submit():
+        form.populate_obj(kpi)
+        db.session.add(kpi)
+        db.session.commit()
+        flash('แก้ไขตัวชี้วัดเรียบร้อย', 'success')
+        return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+    return render_template('PA/add_kpi.html', form=form, round_id=pa.round_id)
+
+
+@pa.route('/kpis/<int:kpi_id>/delete', methods=['DELETE'])
+@login_required
+def delete_kpi(kpi_id):
+    kpi = PAKPI.query.get(kpi_id)
+    try:
+        db.session.delete(kpi)
+        db.session.commit()
+        flash('ลบตัวชี้วัดแล้ว', 'success')
+    except exc.SQLAlchemyError:
+        db.session.rollback()
+        flash('ไม่สามารถลบตัวชี้วัดได้ เนื่องจากมีภาระงานที่อ้างถึง', 'danger')
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
+    return resp
 
 
 @pa.route('/staff/rounds/<int:round_id>/task/view')
@@ -202,16 +246,18 @@ def consensus_scoresheets_for_hr():
 @login_required
 def detail_consensus_scoresheet_for_hr(scoresheet_id):
     consolidated_score_sheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
+    core_competency_items = PACoreCompetencyItem.query.all()
     return render_template('staff/HR/PA/hr_consensus_score_detail.html',
-                           consolidated_score_sheet=consolidated_score_sheet)
+                           consolidated_score_sheet=consolidated_score_sheet,
+                           core_competency_items=core_competency_items)
 
 
 @pa.route('/pa/<int:pa_id>/requests', methods=['GET', 'POST'])
 def create_request(pa_id):
     pa = PAAgreement.query.get(pa_id)
     form = PARequestForm()
-    supervisor_email = current_user.personal_info.org.head or current_user.personal_info.org.parent.head
-    supervisor = StaffAccount.query.filter_by(email=supervisor_email).first()
+    head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ').first()
+    supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
     if form.validate_on_submit():
         new_request = PARequest()
         form.populate_obj(new_request)
@@ -267,9 +313,9 @@ def respond_request(request_id):
 @pa.route('/head/create-scoresheet/<int:pa_id>', methods=['GET', 'POST'])
 @login_required
 def create_scoresheet(pa_id):
-    scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id).filter(PACommittee.staff == current_user).first()
     pa = PAAgreement.query.filter_by(id=pa_id).first()
     committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ').first()
+    scoresheet = PAScoreSheet.query.filter_by(pa=pa, committee_id=committee.id, is_consolidated=False).first()
     if not scoresheet:
         create_score_sheet = PAScoreSheet(
             pa_id=pa_id,
@@ -290,7 +336,7 @@ def create_scoresheet(pa_id):
                 db.session.commit()
         return redirect(url_for('pa.all_performance', scoresheet_id=create_score_sheet.id))
     else:
-        return render_template('PA/eva_all_performance.html', scoresheet=scoresheet)
+        return redirect(url_for('pa.all_performance', scoresheet_id=scoresheet.id))
 
 
 @pa.route('/create-scoresheet/<int:pa_id>/self-evaluation', methods=['GET', 'POST'])
@@ -383,6 +429,7 @@ def summary_scoresheet(pa_id):
     # TODO: show evaluation score of each committees
     pa = PAAgreement.query.filter_by(id=pa_id).first()
     committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ').first()
+    core_competency_items = PACoreCompetencyItem.query.all()
     consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).filter(
         PACommittee.staff == current_user).first()
     if consolidated_score_sheet:
@@ -406,6 +453,13 @@ def summary_scoresheet(pa_id):
                 )
                 db.session.add(consolidated_score_sheet_item)
                 db.session.commit()
+        for core_item in PACoreCompetencyItem.query.all():
+            core_scoresheet_item = PACoreCompetencyScoreItem(
+                score_sheet_id=consolidated_score_sheet.id,
+                item_id=core_item.id,
+            )
+            db.session.add(core_scoresheet_item)
+            db.session.commit()
         score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     approved_scoresheets = PAApprovedScoreSheet.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     if request.method == 'POST':
@@ -415,14 +469,20 @@ def summary_scoresheet(pa_id):
                 pa_item_id, kpi_item_id = field.split('-')[-2:]
                 scoresheet_item = consolidated_score_sheet.score_sheet_items \
                     .filter_by(item_id=int(pa_item_id), kpi_item_id=int(kpi_item_id)).first()
-                scoresheet_item.score = float(value)
+                scoresheet_item.score = float(value) if value else None
                 db.session.add(scoresheet_item)
+            if field.startswith('core-'):
+                core_scoresheet_id = field.split('-')[-1]
+                core_scoresheet_item = consolidated_score_sheet.competency_score_items \
+                    .filter_by(item_id=int(core_scoresheet_id)).first()
+                core_scoresheet_item.score = float(value) if value else None
+                db.session.add(core_scoresheet_item)
         db.session.commit()
         flash('บันทึกผลค่าเฉลี่ยเรียบร้อยแล้ว', 'success')
     return render_template('PA/head_summary_score.html',
                            score_sheet_items=score_sheet_items,
                            consolidated_score_sheet=consolidated_score_sheet,
-                           approved_scoresheets=approved_scoresheets)
+                           approved_scoresheets=approved_scoresheets, core_competency_items=core_competency_items)
 
 
 @pa.route('/confirm-score/<int:scoresheet_id>')
@@ -441,12 +501,38 @@ def confirm_score(scoresheet_id):
                             for_self=for_self))
 
 
+@pa.route('/confirm-final-score/<int:scoresheet_id>')
+@login_required
+def confirm_final_score(scoresheet_id):
+    scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
+    scoresheet.is_final = True
+    db.session.add(scoresheet)
+    db.session.commit()
+    flash('บันทึกคะแนนเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('pa.summary_scoresheet', pa_id=scoresheet.pa_id))
+
+
 @pa.route('/head/consensus-scoresheets/send-to-hr/<int:scoresheet_id>')
 @login_required
 def send_consensus_scoresheets_to_hr(scoresheet_id):
     scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
     scoresheet.is_appproved = True
     db.session.add(scoresheet)
+    db.session.commit()
+
+    score = 0
+    sum_percentage_score = 0
+    for pa_item in scoresheet.pa.pa_items:
+        for kpi_item in pa_item.kpi_items:
+            score = scoresheet.get_score_sheet_item(pa_item.id, kpi_item.id).score
+        percentage_score = (score * pa_item.percentage)
+        sum_percentage_score += percentage_score
+    performance_net_score = (sum_percentage_score * 80) / 1000
+
+    pa_agreement = PAAgreement.query.filter_by(id=scoresheet.pa_id).first()
+    pa_agreement.performance_score = performance_net_score
+    pa_agreement.competency_score = scoresheet.competency_net_score()
+    db.session.add(pa_agreement)
     db.session.commit()
     flash('ส่งคะแนนไปยัง hr เรียบร้อยแล้ว', 'success')
     return redirect(request.referrer)
@@ -460,6 +546,7 @@ def rate_performance(scoresheet_id):
     pa = PAAgreement.query.get(scoresheet.pa_id)
     head_scoresheet = pa.pa_score_sheet.filter(PACommittee.role == 'ประธานกรรมการ',
                                                PAScoreSheet.is_consolidated == False).first()
+    self_scoresheet = pa.pa_score_sheet.filter(PAScoreSheet.staff_id == pa.staff.id).first()
     core_competency_items = PACoreCompetencyItem.query.all()
     if for_self == 'true':
         next_url = url_for('pa.add_pa_item', round_id=pa.round_id)
@@ -472,7 +559,7 @@ def rate_performance(scoresheet_id):
             if field.startswith('pa-item-'):
                 scoresheet_item_id = field.split('-')[-1]
                 scoresheet_item = PAScoreSheetItem.query.get(scoresheet_item_id)
-                scoresheet_item.score = float(value)
+                scoresheet_item.score = float(value) if value else None
                 db.session.add(scoresheet_item)
             if field.startswith('core-'):
                 comp_item_id = field.split('-')[-1]
@@ -480,16 +567,17 @@ def rate_performance(scoresheet_id):
                                                                        score_sheet_id=scoresheet.id).first()
                 if score_item is None:
                     score_item = PACoreCompetencyScoreItem(item_id=comp_item_id,
-                                                           score=float(value),
+                                                           score=float(value) if value else None,
                                                            score_sheet_id=scoresheet.id)
                 else:
-                    score_item.score = float(value)
+                    score_item.score = float(value) if value else None
                 db.session.add(score_item)
         db.session.commit()
         flash('บันทึกผลการประเมินแล้ว', 'success')
     return render_template('PA/eva_rate_performance.html',
                            scoresheet=scoresheet,
                            head_scoresheet=head_scoresheet,
+                           self_scoresheet=self_scoresheet,
                            next_url=next_url,
                            core_competency_items=core_competency_items,
                            for_self=for_self)
@@ -505,17 +593,23 @@ def all_performance(scoresheet_id):
 @pa.route('/eva/create-consensus-scoresheets/<int:pa_id>')
 @login_required
 def create_consensus_scoresheets(pa_id):
-    # TODO: recheck bug
     pa = PAAgreement.query.filter_by(id=pa_id).first()
     scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True, is_final=True).first()
-    for c in pa.committees:
-        create_approvescore = PAApprovedScoreSheet(
-            score_sheet_id=scoresheet.id,
-            committee_id=c.id
-        )
-        db.session.add(create_approvescore)
-        db.session.commit()
-    return redirect(url_for('pa.all_approved_pa'))
+    if not scoresheet:
+        flash('ยังไม่มีข้อมูลคะแนนสรุปจากคณะกรรมการ กรุณาดำเนินการใส่คะแนนและยืนยันผล', 'warning')
+    else:
+        for c in pa.committees:
+            already_approved_scoresheet = PAApprovedScoreSheet.query.filter_by(score_sheet_id=scoresheet.id,
+                                                                               committee_id=c.id).first()
+            if not already_approved_scoresheet:
+                create_approvescore = PAApprovedScoreSheet(
+                    score_sheet_id=scoresheet.id,
+                    committee_id=c.id
+                )
+                db.session.add(create_approvescore)
+                db.session.commit()
+        flash('ส่งคำขอรับการประเมินผลไปยังกรรมการทั้ง 2 ท่านเรียบร้อยแล้ว', 'success')
+    return redirect(url_for('pa.summary_scoresheet', pa_id=pa.id))
 
 
 @pa.route('/eva/consensus-scoresheets')
@@ -588,10 +682,10 @@ def rate_core_competency(pa_id=None, scoresheet_id=None):
                                                                        score_sheet_id=scoresheet.id).first()
                 if score_item is None:
                     score_item = PACoreCompetencyScoreItem(item_id=comp_item_id,
-                                                           score=float(value),
+                                                           score=float(value) if value else None,
                                                            score_sheet_id=scoresheet.id)
                 else:
-                    score_item.score = float(value)
+                    score_item.score = float(value) if value else None
                 db.session.add(score_item)
         pa.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(pa)
