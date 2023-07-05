@@ -45,6 +45,10 @@ class PAAgreement(db.Model):
     competency_score = db.Column('competency_score', db.Numeric())
 
     @property
+    def total_percentage(self):
+        return sum([item.percentage for item in self.pa_items])
+
+    @property
     def editable(self):
         if self.approved_at:
             return False

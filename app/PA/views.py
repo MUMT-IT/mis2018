@@ -66,6 +66,10 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         field_.obj_id = kpi.id
 
     if form.validate_on_submit():
+        if form.percentage.data > 100 - pa.total_percentage:
+            flash('สัดส่วนภาระงานเกิน 100%', 'danger')
+            return redirect(url_for('pa.add_pa_item', round_id=round_id, _anchor=''))
+
         for i in range(len(pa.kpis)):
             form.kpi_items_.pop_entry()
 

@@ -95,6 +95,10 @@
                                             </td>
                                         </tr>
                                     {% endfor %}
+                                    <tr>
+                                        <td>รวม</td>
+                                        <td><strong>{{ pa.total_percentage }}</strong></td>
+                                    </tr>
                                     </tbody>
                                 </table>
                                 <a id="edit_form"></a>
@@ -279,4 +283,19 @@
             </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function() {
+            $('#percentage').on('keyup', function () {
+                if ($(this).val() > 100 - parseFloat({{ pa.total_percentage|tojson|safe }})) {
+                    $(this).addClass('is-danger')
+                    alert('สัดส่วนภาระงานรวมมากเกิน 100%')
+                } else {
+                    $(this).removeClass('is-danger')
+                }
+            })
+        })
+    </script>
 {% endblock %}
