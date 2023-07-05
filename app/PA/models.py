@@ -113,7 +113,9 @@ class PAKPIItem(db.Model):
     level_id = db.Column('level_id', db.ForeignKey('pa_levels.id'))
     level = db.relationship(PALevel, uselist=False)
     kpi_id = db.Column(db.ForeignKey('pa_kpis.id'))
-    kpi = db.relationship('PAKPI', backref=db.backref('pa_kpi_items', cascade='all, delete-orphan'))
+    kpi = db.relationship('PAKPI', backref=db.backref('pa_kpi_items',
+                                                      order_by='PAKPIItem.level_id',
+                                                      cascade='all, delete-orphan'))
     goal = db.Column('goal', db.Text())
 
     def __str__(self):
