@@ -49,15 +49,12 @@ class PAAgreement(db.Model):
         return sum([item.percentage for item in self.pa_items])
 
     @property
-    def editable(self):
-        if self.approved_at:
-            return False
+    def submitted(self):
+        req = self.requests.order_by(desc(PARequest.id)).first()
+        if req and req.for_ == 'ขอรับการประเมิน':
+            return True
         else:
-            req = self.requests.order_by(desc(PARequest.id)).first()
-            if req.for_ == 'ขอรับการประเมิน':
-                return False
-            else:
-                return True
+            return False
 
 
 class PARequest(db.Model):
