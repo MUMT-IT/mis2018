@@ -288,14 +288,25 @@
     {{ super() }}
     <script>
         $(document).ready(function() {
-            $('#percentage').on('keyup', function () {
-                if ($(this).val() > 100 - parseFloat({{ pa.total_percentage|tojson|safe }})) {
-                    $(this).addClass('is-danger')
-                    alert('สัดส่วนภาระงานรวมมากเกิน 100%')
-                } else {
-                    $(this).removeClass('is-danger')
-                }
-            })
+            {% if not pa_item_id %}
+                $('#percentage').on('keyup', function () {
+                    if ($(this).val() > 100 - parseFloat({{ pa.total_percentage|tojson|safe }})) {
+                        $(this).addClass('is-danger')
+                        alert('สัดส่วนภาระงานรวมมากเกิน 100%')
+                    } else {
+                        $(this).removeClass('is-danger')
+                    }
+                })
+            {% else %}
+                $('#percentage').on('keyup', function () {
+                    if ($(this).val() > 100 + parseFloat({{ form.percentage.data|tojson|safe }}) - parseFloat({{ pa.total_percentage|tojson|safe }})) {
+                        $(this).addClass('is-danger')
+                        alert('สัดส่วนภาระงานรวมมากเกิน 100%')
+                    } else {
+                        $(this).removeClass('is-danger')
+                    }
+                })
+            {% endif %}
         })
     </script>
 {% endblock %}
