@@ -149,7 +149,7 @@ def edit_kpi(pa_id, kpi_id):
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('PA/add_kpi.html', form=form, round_id=pa.round_id)
+    return render_template('PA/add_kpi.html', form=form, round_id=pa.round_id, kpi_id=kpi_id)
 
 
 @pa.route('/kpis/<int:kpi_id>/delete', methods=['DELETE'])
