@@ -23,8 +23,8 @@
                 </a>
             </nav>
             <nav class="panel is-warning">
-                <p class="panel-heading">อยู่ระหว่างการทดสอบ</p>
                 {% if finance_permission.can() %}
+                <p class="panel-heading">อยู่ระหว่างการทดสอบ</p>
                 <a href="{{ url_for('receipt_printing.landing') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-comments-dollar"></i>
@@ -38,12 +38,14 @@
                         <span class="is-size-5">IO/Cost Center</span>
                 </a>
                 {% endif %}
+{#                {% if finance_permission.can() and center_standardization_product_validation_permission.can() %}#}
                 <a href="{{ url_for('scb_payment.verify_slip') }}" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-qrcode"></i>
                         </span>
                     <span class="is-size-5">ระบบ QR Payment Service</span><br>
                 </a>
+{#                {% endif %}#}
             </nav>
         </div>
     </div>
