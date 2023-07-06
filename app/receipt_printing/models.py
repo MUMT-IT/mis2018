@@ -106,3 +106,15 @@ class ElectronicReceiptGL(db.Model):
         return u'{}: {}'.format(self.gl, self.receive_name)
 
 
+class ElectronicReceiptReceivedMoneyFrom(db.Model):
+    __tablename__ = 'electronic_receipt_received_money_from'
+    id = db.Column('id', db.Integer(), autoincrement=True, primary_key=True)
+    received_money_from = db.Column('received_money_from', db.String(), info={'label': u'ได้รับเงินจาก'})
+    address = db.Column('address', db.Text())
+    taxpayer_dentification_no = db.Column('taxpayer_dentification_no', db.String())
+
+
+    def __str__(self):
+        return u'{}: {}'.format(self.received_money_from, self.address)
+
+
