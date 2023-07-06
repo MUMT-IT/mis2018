@@ -13,8 +13,6 @@ from pytz import timezone
 from flask_mail import Message
 import arrow
 
-tz = timezone('Asia/Bangkok')
-
 
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
@@ -32,8 +30,8 @@ def index():
 def create_meeting():
     form = MeetingEventForm()
     if form.validate_on_submit():
-        form.start.data = form.start.data.astimezone(tz)
-        form.end.data = form.end.data.astimezone(tz)
+        form.start.data = arrow.get(form.start.data, 'Asia/Bangkok').datetime
+        form.end.data = arrow.get(form.end.data, 'Asia/Bangkok').datetime
         for event_form in form.meeting_events:
             if event_form.room.data:
                 event_form.start.data = form.start.data
@@ -224,7 +222,7 @@ def list_meetings():
 @login_required
 def list_invitations():
     cat = request.args.get('cat', 'new')
-    now = datetime.datetime.now(tz=tz)
+    now = arrow.now('Asia/Bangkok').datetime
     return render_template('meeting_planner/meeting_invitations.html', cat=cat, now=now)
 
 
@@ -254,8 +252,8 @@ def notify_participant(invitation_id):
     meeting_invitation_link = url_for('meeting_planner.list_invitations',
                                       _external=True,
                                       meeting_id=invitation.meeting_event_id)
-    start = invitation.meeting.start.astimezone(tz)
-    end = invitation.meeting.end.astimezone(tz)
+    start = arrow.get(invitation.meeting.start, 'Asia/Bangkok').datetime
+    end = arrow.get(invitation.meeting.end, 'Asia/Bangkok').datetime
     message = f'''
     ขอเรียนเชิญเข้าร่วมประชุม{invitation.meeting.title}
     ในวันที่ {start.strftime('%d/%m/%Y %H:%M')} - {end.strftime('%d/%m/%Y %H:%M')}
