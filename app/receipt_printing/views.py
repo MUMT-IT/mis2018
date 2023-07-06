@@ -269,10 +269,10 @@ def export_receipt_pdf(receipt_id):
     header_copy.hAlign = 'CENTER'
     header_copy.setStyle(header_styles)
     customer_name = '''<para><font size=12>
-    ได้รับเงินจาก / RECEIVED FROM {received_from}<br/>
+    ได้รับเงินจาก / RECEIVED FROM {received_money_from}<br/>
     ที่อยู่ / ADDRESS {address}
     </font></para>
-    '''.format(received_from=receipt.received_from,
+    '''.format(received_money_from=receipt.received_money_from,
                address=receipt.address)
 
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
@@ -503,7 +503,7 @@ def download_daily_payment_report():
             u'ช่องทางการชำระเงิน': u"{}".format(receipt.payment_method),
             u'เลขที่บัตรเครดิต': u"{}".format(receipt.card_number),
             u'เลขที่เช็ค': u"{}".format(receipt.cheque_number),
-            u'ชื่อผู้ชำระเงิน': u"{}".format(receipt.received_from),
+            u'ชื่อผู้ชำระเงิน': u"{}".format(receipt.received_money_from),
             u'ผู้รับเงิน/ผู้บันทึก': u"{}".format(receipt.issuer.personal_info.fullname),
             u'ตำแหน่ง': u"{}".format(receipt.issuer.personal_info.position),
             u'วันที่': u"{}".format(receipt.created_datetime.strftime('%d/%m/%Y')),
@@ -761,3 +761,10 @@ def io_code_change_active_status(iocode_id):
     db.session.commit()
     flash(u'แก้ไขสถานะเรียบร้อยแล้ว', 'success')
     return redirect(url_for('receipt_printing.show_io_code'))
+
+
+@receipt_printing.route('/api/received_money_from/address')
+def get_received_money_from_by_payer_id():
+    payer_id = request.args.get('payer_id', type=int)
+    payer = ElectronicReceiptReceivedMoneyFrom.query.get(payer_id)
+    return jsonify({'address':payer.address})
