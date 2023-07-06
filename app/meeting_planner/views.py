@@ -1,17 +1,14 @@
-import datetime
-
-from flask import render_template, make_response, request, redirect, url_for, flash, jsonify, current_app
+import arrow
+from flask import (render_template, make_response, request,
+                   redirect, url_for, flash, jsonify, current_app)
 from flask_login import login_required, current_user
-
 from app.main import db
 from app.meeting_planner import meeting_planner
 from app.meeting_planner.forms import MeetingEventForm
 from app.meeting_planner.models import MeetingEvent, MeetingInvitation
 from app.staff.models import StaffPersonalInfo
 from app.main import mail
-from pytz import timezone
 from flask_mail import Message
-import arrow
 
 
 def send_mail(recp, title, message):
@@ -182,7 +179,6 @@ def add_note_to_response(invitation_id):
     keep = request.args.get('keep', 'false')
     invitation = MeetingInvitation.query.get(invitation_id)
     invitation.note = request.args.get('note')
-    print(request.args.get('note'))
     db.session.add(invitation)
     db.session.commit()
     if keep == 'true':
