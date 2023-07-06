@@ -4,8 +4,8 @@ from flask import (render_template, make_response, request,
 from flask_login import login_required, current_user
 from app.main import db
 from app.meeting_planner import meeting_planner
-from app.meeting_planner.forms import MeetingEventForm
-from app.meeting_planner.models import MeetingEvent, MeetingInvitation
+from app.meeting_planner.forms import MeetingEventForm, MeetingAgendaForm
+from app.meeting_planner.models import MeetingEvent, MeetingInvitation, MeetingAgenda
 from app.staff.models import StaffPersonalInfo
 from app.main import mail
 from flask_mail import Message
@@ -52,7 +52,7 @@ def create_meeting():
             {invitation.meeting.rooms}
             
             ลิงค์การประชุมออนไลน์
-            {invitation.meeting.meeting_url}
+            {invitation.meeting.meeting_url or 'ไม่มี'}
             
             กรุณาตอบรับการประชุมในลิงค์ด้านล่าง
             
@@ -136,6 +136,87 @@ def remove_room_event():
         resp += template
     if len(form.meeting_events.entries) == 0:
         resp = '<p>ไม่มีการใช้ห้องสำหรับกิจกรรม</p>'
+    resp = make_response(resp)
+    return resp
+
+
+@meeting_planner.route('/api/meeting_planner/add_agenda', methods=['POST'])
+@login_required
+def add_agenda():
+    form = MeetingEventForm()
+    form.agendas.append_entry()
+    agenda_form = form.agendas[-1]
+    template = u"""
+        <div id="{}">
+            <div class="field">
+                <div class="label">{}</div>
+                <div class="select">
+                    {}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                {}
+                </div>
+            </div>
+        </div>
+    """
+    resp = template.format(agenda_form.id,
+                           agenda_form.group.label,
+                           agenda_form.group(),
+                           agenda_form.number.label,
+                           agenda_form.number(class_='input'),
+                           agenda_form.detail.label,
+                           agenda_form.detail(class_='textarea'),
+                           )
+    resp = make_response(resp)
+    return resp
+
+
+@meeting_planner.route('/api/meeting_planner/add_agenda', methods=['DELETE'])
+@login_required
+def remove_agenda():
+    form = MeetingEventForm()
+    form.agendas.pop_entry()
+    resp = ''
+    for agenda_form in form.agendas:
+        template = u"""
+            <div id="{}">
+                <div class="field">
+                    <div class="label">{}</div>
+                    <div class="select">
+                        {}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control">
+                    {}
+                    </div>
+                </div>
+            </div>
+        """
+        resp += template.format(agenda_form.id,
+                               agenda_form.group.label,
+                               agenda_form.group(),
+                               agenda_form.number.label,
+                               agenda_form.number(class_='input'),
+                               agenda_form.detail.label,
+                               agenda_form.detail(class_='textarea'),
+                               )
     resp = make_response(resp)
     return resp
 
@@ -234,11 +315,19 @@ def get_meetings():
     return jsonify({'data': data})
 
 
-@meeting_planner.route('/meetings/<int:meeting_id>/detail')
+@meeting_planner.route('/meetings/<int:meeting_id>/detail', methods=['GET', 'POST'])
 @login_required
 def detail_meeting(meeting_id):
+    form = MeetingAgendaForm()
+    if form.validate_on_submit():
+        agenda = MeetingAgenda()
+        form.populate_obj(agenda)
+        agenda.meeting_id = meeting_id
+        db.session.add(agenda)
+        db.session.commit()
+        flash('เพิ่มหัวข้อใหม่แล้ว', 'success')
     meeting = MeetingEvent.query.get(meeting_id)
-    return render_template('meeting_planner/meeting_detail.html', meeting=meeting)
+    return render_template('meeting_planner/meeting_detail.html', meeting=meeting, form=form)
 
 
 @meeting_planner.route('/api/invitations/<int:invitation_id>/notify')
@@ -270,4 +359,77 @@ def notify_participant(invitation_id):
         print(message)
     resp = make_response()
     resp.headers['HX-Trigger-After-Swap'] = 'notifyAlert'
+    return resp
+
+
+@meeting_planner.route('/api/meeting_planner/topics/<int:topic_id>/edit', methods=['GET', 'POST', 'DELETE'])
+@login_required
+def edit_topic_form(topic_id):
+    topic = MeetingAgenda.query.get(topic_id)
+    form = MeetingAgendaForm(obj=topic)
+    if request.method == 'GET':
+        template = '''
+        <tr>
+            <td style="width: 10%">{}</td>
+            <td>{}
+            <hr>
+            <label class="label">มติที่ประชุม</label>{}</td>
+            <td style="width: 10%">
+                <a class="button is-success is-outlined"
+                    hx-post="{}" hx-include="closest tr">
+                    <span class="icon"><i class="fas fa-save has-text-success"></i></span>
+                </a>
+            </td>
+        </tr>
+        '''.format(form.number(class_="input"),
+                   form.detail(class_="textarea"),
+                   form.consensus(class_="textarea"),
+                   url_for('meeting_planner.edit_topic_form', topic_id=topic.id),
+                   )
+    if request.method == 'POST':
+        topic.number = request.form.get('number')
+        topic.detail = request.form.get('detail')
+        topic.consensus = request.form.get('consensus')
+        db.session.add(topic)
+        db.session.commit()
+        template = '''
+        <tr>
+            <td style="width: 10%">{}</td>
+            <td>
+            {}
+            <hr>
+            <label class="label">มติที่ประชุม</label>
+            <p class="notification">{}</p>
+            </td>
+            <td style="width: 10%">
+                <div class="field has-addons">
+                    <div class="control">
+                        <a class="button is-light is-outlined"
+                           hx-get="{}">
+                            <span class="icon">
+                               <i class="fas fa-pencil has-text-dark"></i>
+                            </span>
+                        </a>
+                    </div>
+                    <div class="control">
+                        <a class="button is-light is-outlined">
+                            <span class="icon">
+                                <i class="fas fa-trash-alt has-text-danger"></i>
+                            </span>
+                        </a>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        '''.format(topic.number,
+                   topic.detail,
+                   topic.consensus,
+                   url_for('meeting_planner.edit_topic_form', topic_id=topic.id),
+                   )
+    if request.method == 'DELETE':
+        db.session.delete(topic)
+        db.session.commit()
+        template = ""
+
+    resp = make_response(template)
     return resp

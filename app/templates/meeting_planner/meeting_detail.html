@@ -4,7 +4,11 @@
 {% include "meeting_planner/nav.html" %}
 <section class="section">
 <div class="container">
+    {% include "messages.html" %}
     <h1 class="title has-text-centered">รายละเอียดการประชุม</h1>
+    <h1 class="subtitle has-text-centered">
+        {{ meeting.title }}
+    </h1>
     <div class="columns">
         <div class="column">
             <div class="card">
@@ -15,10 +19,6 @@
                 </div>
                 <div class="card-content">
                     <p>
-                        <label class="label">ชื่อ</label>
-                        {{ meeting.title }}
-                    </p>
-                    <p>
                         <label class="label">วันและเวลา</label>
                         {{ meeting.start|localdatetime }} - {{ meeting.end|localdatetime }}
                     </p>
@@ -28,7 +28,7 @@
                     </p>
                     <p>
                         <label class="label">ลิงค์ประชุมออนไลน์</label>
-                        {{ meeting.meeting_url }}
+                        {{ meeting.meeting_url or 'ไม่มี' }}
                     </p>
                 </div>
             </div>
@@ -69,6 +69,108 @@
                 </div>
             </div>
         <br>
+            <div class="card">
+                <div class="card-header">
+                    <p class="card-header-title">หัวข้อการประชุม</p>
+                </div>
+                <div class="card-content">
+                    <table class="table is-fullwidth">
+                        <thead>
+                        <th>วาระ</th>
+                        <th>หัวข้อ</th>
+                        </thead>
+                        <tbody>
+                        {% for group in ['แจ้งเพื่อทราบ', 'เพื่อพิจารณา', 'เรื่องสืบเนื่อง', 'อื่นๆ'] %}
+                        <tr>
+                            <td>{{ group }}</td>
+                            <td>
+                                <table class="table is-fullwidth">
+                                    <thead>
+                                    <th>ลำดับ</th>
+                                    <th></th>
+                                    <th></th>
+                                    </thead>
+                                    <tbody hx-target="closest tr" hx-swap="outerHTML">
+                                    {% for topic in meeting.agendas %}
+                                        {% if topic.group == group %}
+                                            <tr>
+                                                <td style="width: 10%">{{ topic.number }}</td>
+                                                <td>
+                                                    {{ topic.detail }}
+                                                    <hr>
+                                                    <label class="label">มติที่ประชุม</label>
+                                                    <p class="notification">
+                                                        {{ topic.consensus }}
+                                                    </p>
+                                                </td>
+                                                <td style="width: 10%">
+                                                    <div class="field has-addons">
+                                                        <div class="control">
+                                                            <a class="button is-light is-outlined"
+                                                               hx-get="{{ url_for('meeting_planner.edit_topic_form', topic_id=topic.id) }}">
+                                                                <span class="icon">
+                                                                   <i class="fas fa-pencil has-text-dark"></i>
+                                                                </span>
+                                                            </a>
+                                                        </div>
+                                                        <div class="control">
+                                                            <a class="button is-light is-outlined"
+                                                               hx-confirm="ท่านต้องการลบหัวข้อนี้จากกำหนดการประชุมหรือไม่"
+                                                               hx-delete="{{ url_for('meeting_planner.edit_topic_form', topic_id=topic.id) }}">
+                                                                <span class="icon">
+                                                                    <i class="fas fa-trash-alt has-text-danger"></i>
+                                                                </span>
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        <br>
+            <div class="card">
+                <div class="card-header">
+                    <p class="card-header-title">เพิ่มหัวข้อการประชุม</p>
+                </div>
+                <div class="card-content">
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">{{ form.group.label }}</label>
+                            <div class="select">
+                                {{ form.group() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.number.label }}</label>
+                            <div class="control">
+                                {{ form.number(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.detail.label }}</label>
+                            <div class="control">
+                                {{ form.detail(class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="control">
+                                <input type="submit" value="Save" class="button is-success">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        <br>
         <div class="buttons is-centered">
             <a href="{{ url_for('meeting_planner.list_meetings') }}"
                class="button is-light">Back</a>
@@ -85,6 +187,9 @@
         document.addEventListener('notifyAlert', function () {
             alert('ส่งข้อความเตือนเรียบร้อย')
         })
+        document.body.addEventListener('htmx:configRequest', function(evt) {
+            evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }}; // add a new parameter into the mix
+        });
     })
 </script>
 {% endblock %}

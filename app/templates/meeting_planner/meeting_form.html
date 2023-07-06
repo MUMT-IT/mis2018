@@ -55,9 +55,6 @@
                         </div>
                         <div class="card-content">
                             <div id="room_events">
-                                {% if form.meeting_events.entries|length == 0 %}
-                                    <p>ไม่มีการใช้ห้อง</p>
-                                {% endif %}
                                 {% for event_form in form.meeting_events %}
                                     <div id="{{ event_form.name }}">
                                         <div class="field">
@@ -114,7 +111,56 @@
                             </div>
                         </div>
                     </div>
-                <br>
+                    <br>
+                    <div class="card">
+                        <div class="card-header">
+                            <h1 class="card-header-title">หัวข้อการประชุม</h1>
+                        </div>
+                        <div class="card-content">
+                            <div id="agendas">
+                                {% for agenda_form in form.agendas %}
+                                    <div id="{{ agenda_form.id }}">
+                                        <div class="field">
+                                            <div class="label">{{ agenda_form.group.label }}</div>
+                                            <div class="select">
+                                                {{ agenda_form.group() }}
+                                            </div>
+                                        </div>
+                                        <div class="field">
+                                            <label class="label">{{ event_form.request.label }}</label>
+                                            <div class="control">
+                                                {{ agenda_form.number(class="input") }}
+                                            </div>
+                                        </div>
+                                        <div class="field">
+                                            <label class="label">{{ agenda_form.detail.label }}</label>
+                                            {{ agenda_form.detail(class="textarea") }}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        <footer class="card-footer">
+                            <a class="card-footer-item"
+                               hx-post="{{ url_for('meeting_planner.add_agenda') }}"
+                               hx-target="#agendas" hx-swap="beforeend">
+                                        <span class="icon">
+                                            <i class="fas fa-plus"></i>
+                                        </span>
+                                <span>เพิ่ม</span>
+                            </a>
+                            <a class="card-footer-item"
+                               hx-delete="{{ url_for('meeting_planner.remove_agenda') }}"
+                               hx-target="#agendas" hx-swap="innerHTML">
+                                        <span class="icon">
+                                          <i class="far fa-trash-alt has-text-danger"></i>
+                                        </span>
+                                <span class="has-text-danger">ลบ</span>
+                            </a>
+
+                        </footer>
+                    </div>
+                    <br>
                 <div class="field is-grouped is-grouped-centered">
                     <div class="control">
                         <a href="{{ url_for('meeting_planner.index') }}" class="button">Cancel</a>
