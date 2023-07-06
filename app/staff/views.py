@@ -4189,7 +4189,8 @@ def create_qrcode(account_id):
     import base64
     with open("personal_qrcode.png", "rb") as img_file:
         qrcode_base64 = base64.b64encode(img_file.read())
-    return jsonify(qrcode=qrcode_base64, expDateTime=expired_time.astimezone(tz).isoformat())
+    return jsonify(qrcode=qrcode_base64.decode(),
+                   expDateTime=expired_time.astimezone(tz).isoformat())
 
 
 @staff.route('/users/qrcode')
