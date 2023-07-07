@@ -93,7 +93,7 @@ class ProcurementDetail(db.Model):
         qr_img.save('procurement_qrcode.png')
         import base64
         with open("procurement_qrcode.png", "rb") as img_file:
-            self.qrcode = base64.b64encode(img_file.read())
+            self.qrcode = base64.b64encode(img_file.read()).decode()
             db.session.add(self)
             db.session.commit()
 
