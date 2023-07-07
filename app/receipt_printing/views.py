@@ -104,7 +104,7 @@ def list_add_items():
                 {}
         </div>
     </div>
-    '''.format(item_form.name, item_form.item.label, item_form.item(class_="input"), item_form.price.label,
+    '''.format(item_form.name, item_form.item.label, item_form.item(class_="textarea"), item_form.price.label,
                item_form.price(class_="input", placeholder=u"฿",
                                **{'hx-post': url_for("receipt_printing.update_amount"),
                                   'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount',
@@ -167,7 +167,7 @@ def delete_items():
                 {}
         </div>
     </div>
-    '''.format(item_form.name, item_form.item.label, item_form.item(class_="input"), item_form.price.label,
+    '''.format(item_form.name, item_form.item.label, item_form.item(class_="textarea"), item_form.price.label,
                item_form.price(class_="input", placeholder=u"฿"),
                item_form.gl.label, item_form.gl(),
                item_form.cost_center.label, item_form.cost_center(),
