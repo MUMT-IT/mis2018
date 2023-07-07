@@ -1,17 +1,14 @@
-import datetime
-
-from flask import render_template, make_response, request, redirect, url_for, flash, jsonify, current_app
+import arrow
+from flask import (render_template, make_response, request,
+                   redirect, url_for, flash, jsonify, current_app)
 from flask_login import login_required, current_user
-
 from app.main import db
 from app.meeting_planner import meeting_planner
-from app.meeting_planner.forms import MeetingEventForm
-from app.meeting_planner.models import MeetingEvent, MeetingInvitation
+from app.meeting_planner.forms import MeetingEventForm, MeetingAgendaForm
+from app.meeting_planner.models import MeetingEvent, MeetingInvitation, MeetingAgenda
 from app.staff.models import StaffPersonalInfo
 from app.main import mail
-from pytz import timezone
 from flask_mail import Message
-import arrow
 
 
 def send_mail(recp, title, message):
@@ -48,14 +45,15 @@ def create_meeting():
         new_meeting.creator = current_user
         db.session.commit()
         if form.notify_participants.data:
-            meeting_invitation_link = url_for('meeting_planner.list_invitations', _external=True)
+            meeting_invitation_link = url_for('meeting_planner.show_invitation_detail',
+                                              meeting_id=new_meeting.id, _external=True)
             message = f'''
             ขอเรียนเชิญเข้าร่วมประชุม{invitation.meeting.title}
             ในวันที่ {form.start.data.strftime('%d/%m/%Y %H:%M')} - {form.end.data.strftime('%d/%m/%Y %H:%M')}
             {invitation.meeting.rooms}
             
             ลิงค์การประชุมออนไลน์
-            {invitation.meeting.meeting_url}
+            {invitation.meeting.meeting_url or 'ไม่มี'}
             
             กรุณาตอบรับการประชุมในลิงค์ด้านล่าง
             
@@ -143,6 +141,87 @@ def remove_room_event():
     return resp
 
 
+@meeting_planner.route('/api/meeting_planner/add_agenda', methods=['POST'])
+@login_required
+def add_agenda():
+    form = MeetingEventForm()
+    form.agendas.append_entry()
+    agenda_form = form.agendas[-1]
+    template = u"""
+        <div id="{}">
+            <div class="field">
+                <div class="label">{}</div>
+                <div class="select">
+                    {}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                    {}
+                </div>
+            </div>
+            <div class="field">
+                <label class="label">{}</label>
+                <div class="control">
+                {}
+                </div>
+            </div>
+        </div>
+    """
+    resp = template.format(agenda_form.id,
+                           agenda_form.group.label,
+                           agenda_form.group(),
+                           agenda_form.number.label,
+                           agenda_form.number(class_='input'),
+                           agenda_form.detail.label,
+                           agenda_form.detail(class_='textarea'),
+                           )
+    resp = make_response(resp)
+    return resp
+
+
+@meeting_planner.route('/api/meeting_planner/add_agenda', methods=['DELETE'])
+@login_required
+def remove_agenda():
+    form = MeetingEventForm()
+    form.agendas.pop_entry()
+    resp = ''
+    for agenda_form in form.agendas:
+        template = u"""
+            <div id="{}">
+                <div class="field">
+                    <div class="label">{}</div>
+                    <div class="select">
+                        {}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control">
+                        {}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{}</label>
+                    <div class="control">
+                    {}
+                    </div>
+                </div>
+            </div>
+        """
+        resp += template.format(agenda_form.id,
+                               agenda_form.group.label,
+                               agenda_form.group(),
+                               agenda_form.number.label,
+                               agenda_form.number(class_='input'),
+                               agenda_form.detail.label,
+                               agenda_form.detail(class_='textarea'),
+                               )
+    resp = make_response(resp)
+    return resp
+
+
 @meeting_planner.route('/invitations/<int:invitation_id>/rsvp')
 @login_required
 def respond(invitation_id):
@@ -182,7 +261,6 @@ def add_note_to_response(invitation_id):
     keep = request.args.get('keep', 'false')
     invitation = MeetingInvitation.query.get(invitation_id)
     invitation.note = request.args.get('note')
-    print(request.args.get('note'))
     db.session.add(invitation)
     db.session.commit()
     if keep == 'true':
@@ -238,20 +316,35 @@ def get_meetings():
     return jsonify({'data': data})
 
 
-@meeting_planner.route('/meetings/<int:meeting_id>/detail')
+@meeting_planner.route('/meetings/<int:meeting_id>/detail', methods=['GET', 'POST'])
 @login_required
 def detail_meeting(meeting_id):
+    form = MeetingAgendaForm()
+    if form.validate_on_submit():
+        agenda = MeetingAgenda()
+        form.populate_obj(agenda)
+        agenda.meeting_id = meeting_id
+        db.session.add(agenda)
+        db.session.commit()
+        flash('เพิ่มหัวข้อใหม่แล้ว', 'success')
     meeting = MeetingEvent.query.get(meeting_id)
-    return render_template('meeting_planner/meeting_detail.html', meeting=meeting)
+    return render_template('meeting_planner/meeting_detail.html', meeting=meeting, form=form)
+
+
+@meeting_planner.route('/meetings/<int:meeting_id>/detail-member')
+@login_required
+def detail_meeting_member(meeting_id):
+    meeting = MeetingEvent.query.get(meeting_id)
+    return render_template('meeting_planner/meeting_detail_member.html', meeting=meeting)
 
 
 @meeting_planner.route('/api/invitations/<int:invitation_id>/notify')
 @login_required
 def notify_participant(invitation_id):
     invitation = MeetingInvitation.query.get(invitation_id)
-    meeting_invitation_link = url_for('meeting_planner.list_invitations',
+    meeting_invitation_link = url_for('meeting_planner.show_invitation_detail',
                                       _external=True,
-                                      meeting_id=invitation.meeting_event_id)
+                                      meeting_id=invitation.meeting.id)
     start = arrow.get(invitation.meeting.start, 'Asia/Bangkok').datetime
     end = arrow.get(invitation.meeting.end, 'Asia/Bangkok').datetime
     message = f'''
@@ -275,3 +368,160 @@ def notify_participant(invitation_id):
     resp = make_response()
     resp.headers['HX-Trigger-After-Swap'] = 'notifyAlert'
     return resp
+
+
+@meeting_planner.route('/api/meeting_planner/topics/<int:topic_id>/edit', methods=['GET', 'POST', 'DELETE'])
+@login_required
+def edit_topic_form(topic_id):
+    topic = MeetingAgenda.query.get(topic_id)
+    form = MeetingAgendaForm(obj=topic)
+    if request.method == 'GET':
+        template = '''
+        <tr>
+            <td style="width: 10%">{}</td>
+            <td>{}
+            <hr>
+            <label class="label">มติที่ประชุม</label>{}</td>
+            <td style="width: 10%">
+                <a class="button is-success is-outlined"
+                    hx-post="{}" hx-include="closest tr">
+                    <span class="icon"><i class="fas fa-save"></i></span>
+                </a>
+            </td>
+        </tr>
+        '''.format(form.number(class_="input"),
+                   form.detail(class_="textarea"),
+                   form.consensus(class_="textarea"),
+                   url_for('meeting_planner.edit_topic_form', topic_id=topic.id),
+                   )
+    if request.method == 'POST':
+        topic.number = request.form.get('number')
+        topic.detail = request.form.get('detail')
+        topic.consensus = request.form.get('consensus')
+        db.session.add(topic)
+        db.session.commit()
+        template = '''
+        <tr>
+            <td style="width: 10%">{}</td>
+            <td>
+            {}
+            <hr>
+            <label class="label">มติที่ประชุม</label>
+            <p class="notification">{}</p>
+            </td>
+            <td style="width: 10%">
+                <div class="field has-addons">
+                    <div class="control">
+                        <a class="button is-light is-outlined"
+                           hx-get="{}">
+                            <span class="icon">
+                               <i class="fas fa-pencil has-text-dark"></i>
+                            </span>
+                        </a>
+                    </div>
+                    <div class="control">
+                        <a class="button is-light is-outlined">
+                            <span class="icon">
+                                <i class="fas fa-trash-alt has-text-danger"></i>
+                            </span>
+                        </a>
+                    </div>
+                </div>
+            </td>
+        </tr>
+        '''.format(topic.number,
+                   topic.detail,
+                   topic.consensus,
+                   url_for('meeting_planner.edit_topic_form', topic_id=topic.id),
+                   )
+    if request.method == 'DELETE':
+        db.session.delete(topic)
+        db.session.commit()
+        template = ""
+
+    resp = make_response(template)
+    return resp
+
+
+@meeting_planner.route('/api/meeting_planner/invites/<int:invite_id>', methods=['PUT', 'DELETE'])
+@login_required
+def checkin_member(invite_id):
+    invite = MeetingInvitation.query.get(invite_id)
+    if request.method == 'PUT':
+        invite.joined_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(invite)
+        db.session.commit()
+        template = '''
+        <a class="button is-success" hx-delete="{}" hx-target="#checkin-{}">
+            <span class="icon">
+                <i class="fa-solid fa-user-check"></i>
+            </span>
+        </a>
+        <span class="tag">{}</span>
+        '''.format(url_for('meeting_planner.checkin_member', invite_id=invite.id),
+                   invite.id,
+                   invite.joined_at.strftime('%d/%m/%Y %H:%M:%S')
+                   )
+
+    if request.method == 'DELETE':
+        invite.joined_at = None
+        db.session.add(invite)
+        db.session.commit()
+        template = '''
+        <a class="button is-light" hx-put="{}" hx-target="#checkin-{}">
+            <span class="icon">
+                <i class="fa-solid fa-user-clock"></i>
+            </span>
+        </a>
+        '''.format(url_for('meeting_planner.checkin_member', invite_id=invite.id),
+                   invite.id)
+    resp = make_response(template)
+    return resp
+
+
+@meeting_planner.route('/meetings/<int:meeting_id>/invitation-detail')
+def show_invitation_detail(meeting_id=None):
+    meeting = MeetingEvent.query.get(meeting_id)
+    return render_template('meeting_planner/meeting_invitation_detail.html', meeting=meeting)
+
+
+@meeting_planner.route('/meetings/<int:meeting_id>/respond', methods=['GET', 'PUT'])
+@login_required
+def respond_invitation_detail(meeting_id=None):
+    meeting = MeetingEvent.query.get(meeting_id)
+    invite = current_user.invitations.filter_by(meeting_event_id=meeting_id).first()
+
+    if request.method == 'GET':
+        if invite:
+            return render_template('meeting_planner/meeting_invitation_detail.html',
+                                   invite=invite, meeting=meeting)
+    if request.method == 'PUT':
+        response = request.args.get('response')
+        if invite.meeting.cancelled_at is None:
+            invite.response = response
+            invite.responded_at = arrow.now('Asia/Bangkok').datetime
+            if invite.response == 'เข้าร่วม':
+                invite.note = ''
+                resp = f'''
+                <div id="respond-target" hx-swap-oob="true">
+                    <i class="fa-sharp fa-regular fa-circle-check has-text-success"></i>
+                </div>
+                '''
+            elif invite.response == 'ไม่เข้าร่วม':
+                add_note_to_response_url = url_for('meeting_planner.add_note_to_response', invitation_id=invite.id)
+                resp = '''
+                <div id="respond-target" hx-swap-oob="true">
+                    <i class="fa-solid fa-hand has-text-danger"></i>
+                </div>
+                '''
+                resp += f'<div id="note-target" hx-swap-oob="true"><form hx-get="{add_note_to_response_url}"><input type="text" placeholder="โปรดระบุเหตุผล" value="{invite.note}" name="note" class="input is-small"><input class="tag is-light" type="submit" value="Send"></form></div>'
+            else:
+                invite.note = ''
+                resp = f'''
+                <div id="respond-target" hx-swap-oob="true">
+                    <i class="fa-solid fa-hourglass-start"></i>
+                </div>
+                '''
+            db.session.add(invite)
+            db.session.commit()
+            return resp

@@ -23,12 +23,26 @@ class RoomEventForm(ModelForm):
             'end': {'validators': [Optional()]},
             'title': {'validators': [Optional()]}
         }
+
     room = QuerySelectField('ห้อง', query_factory=lambda: RoomResource.query.all(),
                             allow_blank=True, blank_text='กรุณาเลือกห้อง')
+
+
+class MeetingAgendaNoteForm(ModelForm):
+    class Meta:
+        model = MeetingAgendaNote
+
+
+class MeetingAgendaForm(ModelForm):
+    class Meta:
+        model = MeetingAgenda
 
 
 class MeetingEventForm(ModelForm):
     class Meta:
         model = MeetingEvent
         exclude = ['updated_at', 'created_at', 'cancelled_at']
+
     meeting_events = FieldList(FormField(RoomEventForm, default=RoomEvent), min_entries=0)
+    agendas = FieldList(FormField(MeetingAgendaForm, default=MeetingAgenda), min_entries=0)
+

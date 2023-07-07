@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+{% include "meeting_planner/nav.html" %}
+<section class="section">
+<div class="container">
+    {% include "messages.html" %}
+    <h1 class="title has-text-centered">รายละเอียดการประชุม</h1>
+    <h1 class="subtitle has-text-centered">
+        {{ meeting.title }}
+    </h1>
+    <div class="columns">
+        <div class="column">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-header-title">
+                        รายละเอียดการประชุม
+                    </div>
+                </div>
+                <div class="card-content">
+                    <p>
+                        <label class="label">วันและเวลา</label>
+                        {{ meeting.start|localdatetime }} - {{ meeting.end|localdatetime }}
+                    </p>
+                    <p>
+                        <label class="label">ห้อง</label>
+                        {{ meeting.rooms }}
+                    </p>
+                    <p>
+                        <label class="label">ลิงค์ประชุมออนไลน์</label>
+                        {{ meeting.meeting_url or 'ไม่มี' }}
+                    </p>
+                </div>
+            </div>
+            <br>
+            <div class="card">
+                <div class="card-header">
+                    <p class="card-header-title">รายชื่อผู้เข้าประชุม</p>
+                </div>
+                <div class="card-content">
+                    <table class="table">
+                        <thead>
+                        <th>ชื่อ</th>
+                        </thead>
+                        <tbody>
+                        {% for invite in meeting.invitations %}
+                            <tr><td>{{ invite.staff.fullname }}</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        <br>
+            <div class="card">
+                <div class="card-header">
+                    <p class="card-header-title">หัวข้อการประชุม</p>
+                </div>
+                <div class="card-content">
+                    <table class="table is-fullwidth">
+                        <thead>
+                        <th>วาระ</th>
+                        <th>หัวข้อ</th>
+                        </thead>
+                        <tbody>
+                        {% for group in ['แจ้งเพื่อทราบ', 'เพื่อพิจารณา', 'เรื่องสืบเนื่อง', 'อื่นๆ'] %}
+                        <tr>
+                            <td>{{ group }}</td>
+                            <td>
+                                <table class="table is-fullwidth">
+                                    <thead>
+                                    <th>ลำดับ</th>
+                                    <th></th>
+                                    <th></th>
+                                    </thead>
+                                    <tbody hx-target="closest tr" hx-swap="outerHTML">
+                                    {% for topic in meeting.agendas %}
+                                        {% if topic.group == group %}
+                                            <tr>
+                                                <td style="width: 10%">{{ topic.number }}</td>
+                                                <td>
+                                                    {{ topic.detail }}
+                                                    <hr>
+                                                    <label class="label">มติที่ประชุม</label>
+                                                    <p class="notification">
+                                                        {{ topic.consensus }}
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                        {% endif %}
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        <br>
+        <div class="buttons is-centered">
+            <a href="{{ url_for('meeting_planner.list_invitations') }}"
+               class="button is-light">Back</a>
+        </div>
+        </div>
+    </div>
+</div>
+</section>
+{% endblock %}
