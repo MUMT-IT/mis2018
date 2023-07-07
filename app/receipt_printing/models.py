@@ -70,7 +70,7 @@ class ElectronicReceiptDetail(db.Model):
 class ElectronicReceiptItem(db.Model):
     __tablename__ = 'electronic_receipt_items'
     id = db.Column('id', db.Integer(), autoincrement=True, primary_key=True)
-    item = db.Column('item', db.String(), nullable=False, info={'label': u'รายการ'})
+    item = db.Column('item', db.Text(), nullable=False, info={'label': u'รายการ'})
     receipt_id = db.Column('receipt_id', db.ForeignKey('electronic_receipt_details.id'))
     receipt_detail = db.relationship('ElectronicReceiptDetail',
                                      backref=db.backref('items', cascade='all, delete-orphan'))
