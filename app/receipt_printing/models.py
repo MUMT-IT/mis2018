@@ -28,7 +28,9 @@ class ElectronicReceiptDetail(db.Model):
     cheque_number = db.Column('cheque_number', db.String(8), info={'label': u'เช็คเลขที่'})
     other_payment_method = db.Column('other_payment_method', db.String(), info={'label': u'ช่องทางการชำระเงินอื่นๆ'})
     address = db.Column('address', db.Text(), info={'label': u'ที่อยู่'})
-    received_from = db.Column('received_from', db.String(), nullable=False, info={'label': u'ได้รับเงินจาก'})
+    received_money_from_id = db.Column('received_money_from_id', db.ForeignKey('electronic_receipt_received_money_from.id'))
+    received_money_from = db.relationship('ElectronicReceiptReceivedMoneyFrom',
+                                  backref=db.backref('items_received_from'))
     bank_name = db.Column('bank_name', db.String(), info={'label': u'ชื่อธนาคาร'})
     issuer_id = db.Column('issuer_id', db.ForeignKey('staff_account.id'))
     issuer = db.relationship(StaffAccount, foreign_keys=[issuer_id])
@@ -104,5 +106,17 @@ class ElectronicReceiptGL(db.Model):
 
     def __str__(self):
         return u'{}: {}'.format(self.gl, self.receive_name)
+
+
+class ElectronicReceiptReceivedMoneyFrom(db.Model):
+    __tablename__ = 'electronic_receipt_received_money_from'
+    id = db.Column('id', db.Integer(), autoincrement=True, primary_key=True)
+    received_money_from = db.Column('received_money_from', db.String(), info={'label': u'ได้รับเงินจาก'})
+    address = db.Column('address', db.Text())
+    taxpayer_dentification_no = db.Column('taxpayer_dentification_no', db.String())
+
+
+    def __str__(self):
+        return u'{}'.format(self.received_money_from)
 
 

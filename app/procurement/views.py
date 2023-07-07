@@ -402,6 +402,13 @@ def add_category_ref():
     return render_template('procurement/category_ref.html', form=form, category=category, url_callback=request.referrer)
 
 
+@procurement.route('/api/category-code')
+def get_category_by_code():
+    code = request.args.get('category_code')
+    category = ProcurementCategory.query.filter_by(code=code).first()
+    return jsonify({'category_id':category.id})
+
+
 @procurement.route('/status/add', methods=['GET', 'POST'])
 def add_status_ref():
     status = db.session.query(ProcurementStatus)

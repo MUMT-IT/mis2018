@@ -22,7 +22,7 @@
                                      <div class="field">
                                          <label class="label">รายการ</label>
                                          <div class="control">
-                                             {{ i.item(class="input is-danger") }}
+                                             {{ i.item(class="input") }}
                                          </div>
                                      </div>
                                      <div class="field">
@@ -66,13 +66,13 @@
                         <div class="field">
                             <label class="label">ได้รับเงินจาก</label>
                             <div class="control">
-                                {{ form.received_from(class="input is-danger") }}
+                                {{ form.received_money_from(class="select") }}
                             </div>
                         </div>
                         <div class="field">
                             <label class="label">ที่อยู่ในใบเสร็จรับเงิน</label>
                             <div class="control">
-                                {{ form.address(class="textarea is-danger") }}
+                                {{ form.address(class="textarea") }}
                             </div>
                         </div>
                         <div class="field-body">
@@ -220,5 +220,26 @@
         document.addEventListener('clearInput', onClearInput)
         document.addEventListener('initSelect2Input', initSelect2Input)
 
+    </script>
+    <script>
+        $( "#received_money_from" ).on( "select2:select", function() {
+          let payer_id = $(this).val()
+            if (payer_id){
+                    $.ajax({
+                      url: "{{ url_for('receipt_printing.get_received_money_from_by_payer_id') }}",
+                      type: "get", //send it through get method
+                      data: {
+                        payer_id: payer_id,
+                      },
+                      success: function(response) {
+                        //Do Something
+                          $('#address').val(response.address);
+                      },
+                      error: function(xhr) {
+                        //Do Something to handle error
+                      }
+                    });
+                }
+        });
     </script>
 {% endblock %}
