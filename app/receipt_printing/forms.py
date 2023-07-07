@@ -1,8 +1,9 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import FormField, FieldList, FileField, StringField, RadioField
+from wtforms import FormField, FieldList, FileField, StringField, RadioField, Field
 from wtforms.validators import DataRequired
+from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField
 
 from app.main import db
@@ -18,10 +19,28 @@ class ModelForm(BaseModelForm):
         return db.session
 
 
+class NumberTextField(Field):
+    widget = TextInput()
+
+    def _value(self):
+        if self.data:
+            return str(self.data)
+        else:
+            return ''
+
+    def process_formdata(self, value):
+        if value:
+            self.data = float(value[0].replace(',',''))
+        else:
+            self.data = None
+
+
 class ReceiptListForm(ModelForm):
     class Meta:
         model = ElectronicReceiptItem
 
+    price = NumberTextField('จำนวน')
+    paid_amount = NumberTextField('จำนวนเงินรวม')
     cost_center = QuerySelectField('Cost Center',
                                    query_factory=lambda: CostCenter.query.all(),
                                    get_label='id', blank_text='Select Cost Center..', allow_blank=True)
