@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
-{% include "staff/nav.html" %}
+{% if current_user.is_authenticated %}
+    {% include "staff/nav.html" %}
+{% else %}
+    {% include "nav.html" %}
+{% endif %}
 {% block page_content %}
 <section class="section">
     <div class="container">
