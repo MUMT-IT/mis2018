@@ -45,7 +45,8 @@ def create_meeting():
         new_meeting.creator = current_user
         db.session.commit()
         if form.notify_participants.data:
-            meeting_invitation_link = url_for('meeting_planner.list_invitations', _external=True)
+            meeting_invitation_link = url_for('meeting_planner.show_invitation_detail',
+                                              meeting_id=new_meeting.id, _external=True)
             message = f'''
             ขอเรียนเชิญเข้าร่วมประชุม{invitation.meeting.title}
             ในวันที่ {form.start.data.strftime('%d/%m/%Y %H:%M')} - {form.end.data.strftime('%d/%m/%Y %H:%M')}
@@ -330,13 +331,20 @@ def detail_meeting(meeting_id):
     return render_template('meeting_planner/meeting_detail.html', meeting=meeting, form=form)
 
 
+@meeting_planner.route('/meetings/<int:meeting_id>/detail-member')
+@login_required
+def detail_meeting_member(meeting_id):
+    meeting = MeetingEvent.query.get(meeting_id)
+    return render_template('meeting_planner/meeting_detail_member.html', meeting=meeting)
+
+
 @meeting_planner.route('/api/invitations/<int:invitation_id>/notify')
 @login_required
 def notify_participant(invitation_id):
     invitation = MeetingInvitation.query.get(invitation_id)
-    meeting_invitation_link = url_for('meeting_planner.list_invitations',
+    meeting_invitation_link = url_for('meeting_planner.show_invitation_detail',
                                       _external=True,
-                                      meeting_id=invitation.meeting_event_id)
+                                      meeting_id=invitation.meeting.id)
     start = arrow.get(invitation.meeting.start, 'Asia/Bangkok').datetime
     end = arrow.get(invitation.meeting.end, 'Asia/Bangkok').datetime
     message = f'''
@@ -452,7 +460,7 @@ def checkin_member(invite_id):
         <span class="tag">{}</span>
         '''.format(url_for('meeting_planner.checkin_member', invite_id=invite.id),
                    invite.id,
-                   invite.joined_at.strftime('%d/%m/%Y %H:%S:%M')
+                   invite.joined_at.strftime('%d/%m/%Y %H:%M:%S')
                    )
 
     if request.method == 'DELETE':
@@ -469,3 +477,51 @@ def checkin_member(invite_id):
                    invite.id)
     resp = make_response(template)
     return resp
+
+
+@meeting_planner.route('/meetings/<int:meeting_id>/invitation-detail')
+def show_invitation_detail(meeting_id=None):
+    meeting = MeetingEvent.query.get(meeting_id)
+    return render_template('meeting_planner/meeting_invitation_detail.html', meeting=meeting)
+
+
+@meeting_planner.route('/meetings/<int:meeting_id>/respond', methods=['GET', 'PUT'])
+@login_required
+def respond_invitation_detail(meeting_id=None):
+    meeting = MeetingEvent.query.get(meeting_id)
+    invite = current_user.invitations.filter_by(meeting_event_id=meeting_id).first()
+
+    if request.method == 'GET':
+        if invite:
+            return render_template('meeting_planner/meeting_invitation_detail.html',
+                                   invite=invite, meeting=meeting)
+    if request.method == 'PUT':
+        response = request.args.get('response')
+        if invite.meeting.cancelled_at is None:
+            invite.response = response
+            invite.responded_at = arrow.now('Asia/Bangkok').datetime
+            if invite.response == 'เข้าร่วม':
+                invite.note = ''
+                resp = f'''
+                <div id="respond-target" hx-swap-oob="true">
+                    <i class="fa-sharp fa-regular fa-circle-check has-text-success"></i>
+                </div>
+                '''
+            elif invite.response == 'ไม่เข้าร่วม':
+                add_note_to_response_url = url_for('meeting_planner.add_note_to_response', invitation_id=invite.id)
+                resp = '''
+                <div id="respond-target" hx-swap-oob="true">
+                    <i class="fa-solid fa-hand has-text-danger"></i>
+                </div>
+                '''
+                resp += f'<div id="note-target" hx-swap-oob="true"><form hx-get="{add_note_to_response_url}"><input type="text" placeholder="โปรดระบุเหตุผล" value="{invite.note}" name="note" class="input is-small"><input class="tag is-light" type="submit" value="Send"></form></div>'
+            else:
+                invite.note = ''
+                resp = f'''
+                <div id="respond-target" hx-swap-oob="true">
+                    <i class="fa-solid fa-hourglass-start"></i>
+                </div>
+                '''
+            db.session.add(invite)
+            db.session.commit()
+            return resp
