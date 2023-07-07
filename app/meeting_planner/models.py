@@ -58,6 +58,7 @@ class MeetingInvitation(db.Model):
     cancelled_at = db.Column('cancelled_at', db.DateTime(timezone=True))
     responded_at = db.Column('responded_at', db.DateTime(timezone=True))
     response = db.Column('reponse', db.String(), info={'label': 'ตอบรับ'})
+    joined_at = db.Column('joined_at', db.DateTime(timezone=True))
 
 
 class MeetingAgenda(db.Model):
