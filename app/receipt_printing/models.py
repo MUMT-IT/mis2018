@@ -58,7 +58,6 @@ class ElectronicReceiptDetail(db.Model):
             'book_number': self.book_number,
             'number': self.number,
             'created_datetime': self.created_datetime,
-            'received_from': self.received_from,
             'print_number': self.print_number,
             'comment': self.comment,
             'cancelled': self.cancelled,
