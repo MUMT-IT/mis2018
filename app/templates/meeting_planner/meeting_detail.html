@@ -45,6 +45,7 @@
                         <th>การตอบรับ</th>
                         <th>สาเหตุ</th>
                         <th>ส่งข้อความเตือน</th>
+                        <th>บันทึกการเข้าร่วมประชุม</th>
                         </thead>
                         <tbody>
                         {% for invite in meeting.invitations %}
@@ -61,6 +62,15 @@
                                     </span>
                                 </a>
                                 {% endif %}
+                            </td>
+                            <td id="checkin-{{ invite.id }}">
+                                <a class="button is-light"
+                                        hx-target="#checkin-{{ invite.id }}"
+                                        hx-put="{{ url_for('meeting_planner.checkin_member', invite_id=invite.id) }}">
+                                    <span class="icon">
+                                        <i class="fa-solid fa-user-clock"></i>
+                                    </span>
+                                </a>
                             </td>
                             </tr>
                         {% endfor %}

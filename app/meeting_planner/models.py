@@ -25,6 +25,7 @@ class MeetingEvent(db.Model):
                                     info={'label': 'แจ้งเตือนผู้เข้าร่วมประชุม'})
     meeting_events = db.relationship('RoomEvent')
     meeting_url = db.Column('meeting_url', db.Text(), info={'label': 'ลิงค์ประชุมออนไลน์'})
+    doc_url = db.Column('doc_url', db.Text(), info={'label': 'ลิงค์เอกสารประกอบการประชุม'})
 
     @property
     def participants(self):

@@ -11,7 +11,7 @@
     <div class="container">
         {% include "messages.html" %}
         <div class="columns">
-            <div class="column is-half is-offset-3">
+            <div class="box column is-half is-offset-3">
                 {% if meeting_id %}
                     <h1 class="title has-text-centered">Edit Meeting</h1>
                 {% else %}
@@ -47,6 +47,12 @@
                         <label class="label">{{ form.meeting_url.label }}</label>
                         <div class="control">
                             {{ form.meeting_url(class="textarea") }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.doc_url.label }}</label>
+                        <div class="control">
+                            {{ form.doc_url(class="textarea") }}
                         </div>
                     </div>
                     <div class="card">

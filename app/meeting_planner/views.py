@@ -377,7 +377,7 @@ def edit_topic_form(topic_id):
             <td style="width: 10%">
                 <a class="button is-success is-outlined"
                     hx-post="{}" hx-include="closest tr">
-                    <span class="icon"><i class="fas fa-save has-text-success"></i></span>
+                    <span class="icon"><i class="fas fa-save"></i></span>
                 </a>
             </td>
         </tr>
@@ -431,5 +431,41 @@ def edit_topic_form(topic_id):
         db.session.commit()
         template = ""
 
+    resp = make_response(template)
+    return resp
+
+
+@meeting_planner.route('/api/meeting_planner/invites/<int:invite_id>', methods=['PUT', 'DELETE'])
+@login_required
+def checkin_member(invite_id):
+    invite = MeetingInvitation.query.get(invite_id)
+    if request.method == 'PUT':
+        invite.joined_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(invite)
+        db.session.commit()
+        template = '''
+        <a class="button is-success" hx-delete="{}" hx-target="#checkin-{}">
+            <span class="icon">
+                <i class="fa-solid fa-user-check"></i>
+            </span>
+        </a>
+        <span class="tag">{}</span>
+        '''.format(url_for('meeting_planner.checkin_member', invite_id=invite.id),
+                   invite.id,
+                   invite.joined_at.strftime('%d/%m/%Y %H:%S:%M')
+                   )
+
+    if request.method == 'DELETE':
+        invite.joined_at = None
+        db.session.add(invite)
+        db.session.commit()
+        template = '''
+        <a class="button is-light" hx-put="{}" hx-target="#checkin-{}">
+            <span class="icon">
+                <i class="fa-solid fa-user-clock"></i>
+            </span>
+        </a>
+        '''.format(url_for('meeting_planner.checkin_member', invite_id=invite.id),
+                   invite.id)
     resp = make_response(template)
     return resp
