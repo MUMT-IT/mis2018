@@ -13,7 +13,7 @@ cachelib==0.9.0
 cachetools==5.2.0
 cairocffi==1.4.0
 CairoSVG==1.0.22
-certifi==2018.4.16
+certifi==2022.12.7
 cffi==1.15.1
 chardet==3.0.4
 charset-normalizer==2.1.1
