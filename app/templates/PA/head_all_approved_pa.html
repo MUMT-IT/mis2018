@@ -21,16 +21,16 @@
                     <th></th>
                     </thead>
                     <tbody>
-                    {% for pa in pa %}
+                    {% for req in pa_request %}
                     <tr>
                         <td>
-                            {{ pa.round }}
+                            {{ req.pa.round }}
                         </td>
                         <td>
-                            {{ pa.staff.personal_info.fullname }}
+                            {{ req.pa.staff.personal_info.fullname }}
                         </td>
                         <td>
-                            {% for c in pa.committees %}
+                            {% for c in req.pa.committees %}
                                 <a class="tag is-medium">
                                 {{ c.staff.personal_info.fullname }}
                                 </a>
@@ -39,7 +39,7 @@
                         <td>
                             <div class="field has-addons">
                                 <div class="control">
-                                    <a href="{{ url_for('pa.assign_committee', pa_id=pa.id) }}"
+                                    <a href="{{ url_for('pa.assign_committee', pa_id=req.pa.id) }}"
                                        class="button is-dark is-rounded is-outlined is-small">
                                         <span class="icon">
                                             <i class="fa-solid fa-user-plus"></i>
@@ -48,7 +48,7 @@
                                     </a>
                                 </div>
                                 <div class="control">
-                                    <a href="{{ url_for('pa.create_scoresheet', pa_id=pa.id) }}"
+                                    <a href="{{ url_for('pa.create_scoresheet', pa_id=req.pa.id) }}"
                                        class="button is-dark is-outlined is-rounded is-small">
                                         <span class="icon">
                                             <i class="fa-solid fa-magnifying-glass-chart"></i>
@@ -57,21 +57,21 @@
                                     </a>
                                 </div>
                                 <div class="control">
-                                    <a href="{{ url_for('pa.create_scoresheet_for_committee', pa_id=pa.id) }}"
+                                    <a href="{{ url_for('pa.create_scoresheet_for_committee', pa_id=req.pa.id) }}"
                                        class="button is-dark is-outlined is-rounded is-small">
                                         <span class="icon"><i class="fa-solid fa-paper-plane"></i></span>
                                         <span>ส่งแบบประเมิน</span>
                                     </a>
                                 </div>
                                 <div class="control">
-                                    <a href="{{ url_for('pa.summary_scoresheet', pa_id=pa.id) }}"
+                                    <a href="{{ url_for('pa.summary_scoresheet', pa_id=req.pa.id) }}"
                                        class="button is-dark is-outlined is-rounded is-small">
                                         <span class="icon"><i class="fa-solid fa-chart-simple"></i></span>
                                         <span>สรุปผล</span>
                                     </a>
                                 </div>
                                 <div class="control">
-                                    <a href="{{ url_for('pa.create_consensus_scoresheets', pa_id=pa.id) }}"
+                                    <a href="{{ url_for('pa.create_consensus_scoresheets', pa_id=req.pa.id) }}"
                                        class="button is-dark is-outlined is-rounded is-small">
                                         <span class="icon">
                                             <i class="fa-solid fa-square-check"></i>
