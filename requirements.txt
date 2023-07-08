@@ -75,7 +75,7 @@ msal==1.22.0
 multidict==6.0.4
 numpy==1.23.3
 oauth2client==4.1.2
-oauthlib==3.2.1
+oauthlib==3.2.2
 openpyxl==2.5.1
 packaging==21.3
 pandas==1.5.0
