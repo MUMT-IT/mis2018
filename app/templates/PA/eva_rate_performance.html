@@ -110,7 +110,7 @@
                                         <div class="field">
                                             <input class="input" type="number"
                                                    name="core-{{ item.id }}"
-                                                    {% if scoresheet.is_final %} readonly {% endif %}
+                                                    {% if scoresheet.is_final %} readonly {% endif %} max="10"
                                                    value="{{ scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}">
                                         </div>
                                     </td>

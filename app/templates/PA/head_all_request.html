@@ -29,17 +29,17 @@
                         </td>
                         <td>
                             {% if req.for_ =='ขอรับการประเมิน' %}
-                            <a class="button is-small is-danger">
+                            <p style="color:royalblue">
                             {{ req.for_ }}
-                            </a>
+                            </p>
                             {% elif req.for_ =='อนุมัติ' %}
-                            <a class="tag is-medium is-info">
+                            <p style="color:deeppink">
                             {{ req.for_ }}
-                            </a>
+                            </p>
                             {% else %}
-                            <a class="tag is-medium is-warning">
+                            <p style="color:green">
                             {{ req.for_ }}
-                            </a>
+                            </p>
                             {% endif %}
                         </td>
                         <td>
