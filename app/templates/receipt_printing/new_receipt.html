@@ -93,21 +93,21 @@
                         <div class="field" id="card-no">
                             <label class="label">{{ form.card_number.label }}</label>
                             <div class="control">
-                                {{ form.card_number(class="input is-danger", id="card-no") }}
+                                {{ form.card_number(class="input", id="card-no") }}
                             </div>
                             <label class="label">{{ form.bank_name.label }}</label>
-                            <div class="control">
-                                {{ form.bank_name(class="input is-danger", id="card-no") }}
+                            <div>
+                                {{ form.bank_name(class="select", id="card-no") }}
                             </div>
                         </div>
                         <div class="field" id="cheque-no">
                             <label class="label">เช็คเลขที่</label>
                             <div class="control">
-                                {{ form.cheque_number(class="input is-danger", id="cheque-no") }}
+                                {{ form.cheque_number(class="input", id="cheque-no") }}
                             </div>
                             <label class="label">{{ form.bank_name.label }}</label>
-                            <div class="control">
-                                {{ form.bank_name(class="input is-danger", id="cheque-no") }}
+                            <div>
+                                {{ form.bank_name(class="select", id="cheque-no") }}
                             </div>
                         </div>
                         <div class="field" id="other_payment_method">
