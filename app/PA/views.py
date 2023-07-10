@@ -199,8 +199,8 @@ def create_round():
         start = datetime.datetime.strptime(start_d, '%d/%m/%Y')
         end = datetime.datetime.strptime(end_d, '%d/%m/%Y')
         createround = PARound(
-            start=tz.localize(start),
-            end=tz.localize(end)
+            start=start,
+            end=end
         )
         db.session.add(createround)
         db.session.commit()
