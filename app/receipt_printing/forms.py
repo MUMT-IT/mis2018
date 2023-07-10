@@ -56,12 +56,14 @@ class ReceiptDetailForm(ModelForm):
     class Meta:
         model = ElectronicReceiptDetail
         only = ['number', 'copy_number', 'book_number', 'comment', 'paid', 'cancelled', 'cancel_comment',
-                'payment_method', 'paid_amount', 'card_number', 'cheque_number', 'other_payment_method', 'address',
-                'bank_name']
+                'payment_method', 'paid_amount', 'card_number', 'cheque_number', 'other_payment_method', 'address']
 
     received_money_from = QuerySelectField('Received Money From',
                                    query_factory=lambda: ElectronicReceiptReceivedMoneyFrom.query.all(),
                                    blank_text='Select received money from..', allow_blank=True)
+    bank_name = QuerySelectField('Bank Name',
+                                 query_factory=lambda: ElectronicReceiptBankName.query.all(),
+                                 blank_text='Select bank name..', allow_blank=True)
 
     items = FieldList(FormField(ReceiptListForm, default=ElectronicReceiptItem), min_entries=1)
 
