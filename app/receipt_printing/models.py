@@ -31,7 +31,8 @@ class ElectronicReceiptDetail(db.Model):
     received_money_from_id = db.Column('received_money_from_id', db.ForeignKey('electronic_receipt_received_money_from.id'))
     received_money_from = db.relationship('ElectronicReceiptReceivedMoneyFrom',
                                   backref=db.backref('items_received_from'))
-    bank_name = db.Column('bank_name', db.String(), info={'label': u'ชื่อธนาคาร'})
+    bank_name_id = db.Column('bank_name_id', db.ForeignKey('electronic_receipt_bank_names.id'))
+    bank_name = db.relationship('ElectronicReceiptBankName', backref=db.backref('detail_bank_names'))
     issuer_id = db.Column('issuer_id', db.ForeignKey('staff_account.id'))
     issuer = db.relationship(StaffAccount, foreign_keys=[issuer_id])
     print_number = db.Column('print_number', db.Integer, default=0, info={'label': u'จำนวนพิมพ์'})
@@ -114,8 +115,17 @@ class ElectronicReceiptReceivedMoneyFrom(db.Model):
     address = db.Column('address', db.Text())
     taxpayer_dentification_no = db.Column('taxpayer_dentification_no', db.String())
 
-
     def __str__(self):
         return u'{}'.format(self.received_money_from)
 
+
+class ElectronicReceiptBankName(db.Model):
+    __tablename__ = 'electronic_receipt_bank_names'
+    id = db.Column('id', db.Integer(), autoincrement=True, primary_key=True)
+    bank_name = db.Column('bank_name', db.String(), info={'label': u'ชื่อธนาคาร'})
+    bank_type = db.Column('bank_type', db.String(), info={'label': u'ประเภท'})
+    code = db.Column('code', db.String(), info={'label': u'รหัสธนาคาร'})
+
+    def __str__(self):
+        return u'{}: {}'.format(self.bank_name, self.bank_type)
 
