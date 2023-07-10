@@ -45,15 +45,16 @@ class PAAgreement(db.Model):
     competency_score = db.Column('competency_score', db.Numeric())
 
     @property
-    def editable(self):
-        if self.approved_at:
-            return False
+    def total_percentage(self):
+        return sum([item.percentage for item in self.pa_items])
+
+    @property
+    def submitted(self):
+        req = self.requests.order_by(desc(PARequest.id)).first()
+        if req and req.for_ == 'ขอรับการประเมิน':
+            return True
         else:
-            req = self.requests.order_by(desc(PARequest.id)).first()
-            if req.for_ == 'ขอรับการประเมิน':
-                return False
-            else:
-                return True
+            return False
 
 
 class PARequest(db.Model):
@@ -112,7 +113,9 @@ class PAKPIItem(db.Model):
     level_id = db.Column('level_id', db.ForeignKey('pa_levels.id'))
     level = db.relationship(PALevel, uselist=False)
     kpi_id = db.Column(db.ForeignKey('pa_kpis.id'))
-    kpi = db.relationship('PAKPI', backref=db.backref('pa_kpi_items', cascade='all, delete-orphan'))
+    kpi = db.relationship('PAKPI', backref=db.backref('pa_kpi_items',
+                                                      order_by='PAKPIItem.level_id',
+                                                      cascade='all, delete-orphan'))
     goal = db.Column('goal', db.Text())
 
     def __str__(self):

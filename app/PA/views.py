@@ -72,6 +72,14 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         field_.obj_id = kpi.id
 
     if form.validate_on_submit():
+        maximum = 100 - pa.total_percentage
+        if item_id:
+            maximum += pa_item.percentage
+
+        if form.percentage.data > maximum:
+            flash('สัดส่วนภาระงานเกิน 100%', 'danger')
+            return redirect(url_for('pa.add_pa_item', round_id=round_id, _anchor=''))
+
         for i in range(len(pa.kpis)):
             form.kpi_items_.pop_entry()
 
@@ -147,7 +155,7 @@ def edit_kpi(pa_id, kpi_id):
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('PA/add_kpi.html', form=form, round_id=pa.round_id)
+    return render_template('PA/add_kpi.html', form=form, round_id=pa.round_id, kpi_id=kpi_id)
 
 
 @pa.route('/kpis/<int:kpi_id>/delete', methods=['DELETE'])
