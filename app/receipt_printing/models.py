@@ -27,7 +27,6 @@ class ElectronicReceiptDetail(db.Model):
     card_number = db.Column('card_number', db.String(16), info={'label': u'เลขบัตรเครดิต'})
     cheque_number = db.Column('cheque_number', db.String(8), info={'label': u'เช็คเลขที่'})
     other_payment_method = db.Column('other_payment_method', db.String(), info={'label': u'ช่องทางการชำระเงินอื่นๆ'})
-    address = db.Column('address', db.Text(), info={'label': u'ที่อยู่'})
     received_money_from_id = db.Column('received_money_from_id', db.ForeignKey('electronic_receipt_received_money_from.id'))
     received_money_from = db.relationship('ElectronicReceiptReceivedMoneyFrom',
                                   backref=db.backref('items_received_from'))
