@@ -52,8 +52,6 @@ def landing():
 def create_receipt():
     form = ReceiptDetailForm()
     receipt_book = ComHealthReceiptID.query.filter_by(code='MTG').first()
-    if request.method == 'POST':
-        print(form.paid_amount.data)
     if form.validate_on_submit():
         receipt_detail = ElectronicReceiptDetail()
         receipt_detail.issuer = current_user
@@ -62,6 +60,7 @@ def create_receipt():
         receipt_detail.number = receipt_book.next
         receipt_book.count += 1
         receipt_detail.book_number = receipt_book.book_number
+        receipt_detail.received_money_from.address = form.address.data
         db.session.add(receipt_detail)
         db.session.commit()
         flash(u'บันทึกการสร้างใบเสร็จรับเงินสำเร็จ.', 'success')
