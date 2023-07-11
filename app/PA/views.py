@@ -8,7 +8,7 @@ from . import pa_blueprint as pa
 
 from app.roles import hr_permission, manager_permission
 from app.PA.forms import *
-from app.main import mail
+from app.main import mail, StaffEmployment
 
 tz = pytz.timezone('Asia/Bangkok')
 
@@ -193,6 +193,7 @@ def index():
 @login_required
 def create_round():
     pa_round = PARound.query.all()
+    employments = StaffEmployment.query.all()
     if request.method == 'POST':
         form = request.form
         start_d, end_d = form.get('dates').split(' - ')
@@ -204,9 +205,16 @@ def create_round():
         )
         db.session.add(createround)
         db.session.commit()
+
+        createround.employments = []
+        for emp_id in form.getlist("employments"):
+            employment = StaffEmployment.query.get(int(emp_id))
+            createround.employments.append(employment)
+            db.session.add(employment)
+            db.session.commit()
         flash('เพิ่มรอบการประเมินใหม่เรียบร้อยแล้ว', 'success')
         return redirect(url_for('pa.create_round'))
-    return render_template('staff/HR/PA/hr_create_round.html', pa_round=pa_round)
+    return render_template('staff/HR/PA/hr_create_round.html', pa_round=pa_round, employments=employments)
 
 
 @pa.route('/hr/add-committee', methods=['GET', 'POST'])
