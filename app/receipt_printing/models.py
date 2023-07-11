@@ -63,7 +63,13 @@ class ElectronicReceiptDetail(db.Model):
             'comment': self.comment,
             'cancelled': self.cancelled,
             'cancel_comment': self.cancel_comment,
-            'issuer': self.issuer.personal_info.fullname
+            'issuer': self.issuer.personal_info.fullname,
+            'paid_amount': self.paid_amount,
+            'item_list': self.item_list,
+            'item_gl_list': self.item_gl_list,
+            'item_cost_center_list': self.item_cost_center_list,
+            'item_internal_order_list': self.item_internal_order_list
+
         }
 
 
