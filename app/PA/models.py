@@ -64,7 +64,7 @@ class PAAgreement(db.Model):
 
     @property
     def editable(self):
-        req = self.requests.order_by(desc(PARequest.id)).first()
+        req = self.requests.order_by(desc(PARequest.created_at)).first()
         if req:
             if req.for_ == 'ขอรับการประเมิน':
                 return False
