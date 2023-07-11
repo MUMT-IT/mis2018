@@ -271,7 +271,11 @@ def create_request(pa_id):
     pa = PAAgreement.query.get(pa_id)
     form = PARequestForm()
     head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ').first()
-    supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
+    if head_committee:
+        supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
+    else:
+        flash('ไม่พบกรรมการประเมิน กรุณาติดต่อหน่วย HR','warning')
+        return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
     if form.validate_on_submit():
         new_request = PARequest()
         form.populate_obj(new_request)
