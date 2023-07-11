@@ -76,7 +76,7 @@ multidict==6.0.4
 numpy==1.23.3
 oauth2client==4.1.2
 oauthlib==3.2.2
-openpyxl==2.5.1
+openpyxl==3.0.7
 packaging==21.3
 pandas==1.5.0
 pathlib2==2.3.0
