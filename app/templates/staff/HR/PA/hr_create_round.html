@@ -35,6 +35,23 @@
                                     </div>
                                 </div>
                                 <div class="column">
+                                    <div class="field-label is-normal has-text-left">
+                                        <label class="label"><h1>ประเภทการจ้างงาน</h1></label>
+                                    </div>
+                                    <div class="field-body">
+                                        <div class="field">
+                                            <div class="control has-icons-left">
+                                                {% for emp in employments %}
+                                                    <div class="field">
+                                                        <input type="checkbox" name="employments" value="{{ emp.id }}">
+                                                            {{ emp.title }}
+                                                    </div>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="column">
                                     <div class="field">
                                         <div class="column"></div>
                                     </div>
@@ -54,6 +71,7 @@
                         <th>รอบ</th>
                         <th>เริ่มต้น</th>
                         <th>สิ้นสุด</th>
+                        <th>ประเภทการจ้างงาน</th>
                         </thead>
                         <tbody>
                         {% for r in pa_round %}
@@ -66,6 +84,11 @@
                                 </td>
                                 <td>
                                     {{ r.end }}
+                                </td>
+                                <td>
+                                    {% for emp in r.employments %}
+                                    {{ emp.title }}
+                                    {% endfor %}
                                 </td>
                             </tr>
                         {% endfor %}

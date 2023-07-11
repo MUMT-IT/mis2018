@@ -8,7 +8,7 @@ from . import pa_blueprint as pa
 
 from app.roles import hr_permission, manager_permission
 from app.PA.forms import *
-from app.main import mail
+from app.main import mail, StaffEmployment
 
 tz = pytz.timezone('Asia/Bangkok')
 
@@ -193,20 +193,28 @@ def index():
 @login_required
 def create_round():
     pa_round = PARound.query.all()
+    employments = StaffEmployment.query.all()
     if request.method == 'POST':
         form = request.form
         start_d, end_d = form.get('dates').split(' - ')
         start = datetime.datetime.strptime(start_d, '%d/%m/%Y')
         end = datetime.datetime.strptime(end_d, '%d/%m/%Y')
         createround = PARound(
-            start=tz.localize(start),
-            end=tz.localize(end)
+            start=start,
+            end=end
         )
         db.session.add(createround)
         db.session.commit()
+
+        createround.employments = []
+        for emp_id in form.getlist("employments"):
+            employment = StaffEmployment.query.get(int(emp_id))
+            createround.employments.append(employment)
+            db.session.add(employment)
+            db.session.commit()
         flash('เพิ่มรอบการประเมินใหม่เรียบร้อยแล้ว', 'success')
         return redirect(url_for('pa.create_round'))
-    return render_template('staff/HR/PA/hr_create_round.html', pa_round=pa_round)
+    return render_template('staff/HR/PA/hr_create_round.html', pa_round=pa_round, employments=employments)
 
 
 @pa.route('/hr/add-committee', methods=['GET', 'POST'])
@@ -263,7 +271,11 @@ def create_request(pa_id):
     pa = PAAgreement.query.get(pa_id)
     form = PARequestForm()
     head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ').first()
-    supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
+    if head_committee:
+        supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
+    else:
+        flash('ไม่พบกรรมการประเมิน กรุณาติดต่อหน่วย HR','warning')
+        return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
     if form.validate_on_submit():
         new_request = PARequest()
         form.populate_obj(new_request)
