@@ -23,30 +23,30 @@
                 <table class="table is-striped is-fullwidth" id="paTable">
                     <thead>
                     <th>รอบการประเมิน</th>
-                    <th>หน่วยงาน</th>
-                    <th>บุคลากร</th>
                     <th>ประธานและกรรมการประเมิน</th>
                     <th>ตำแหน่ง</th>
+                    <th>หน่วยงาน</th>
+                    <th>บุคลากรในหน่วยงาน</th>
                     </thead>
                     <tbody>
                     {% for committee in committee_list %}
                     <tr>
-                        <td>
+                        <td style="width: 16%">
                             {{ committee.round }}
+                        </td>
+                        <td>
+                            {{ committee.staff.personal_info.fullname }}
+                        </td>
+                        <td style="width: 11%">
+                            {{ committee.role }}
                         </td>
                         <td>
                             {{ committee.org }}
                         </td>
                         <td>
                             {% for staff in committee.org.staff %}
-                            {{ staff }}<br>
-                                {% endfor %}
-                        </td>
-                        <td>
-                            {{ committee.staff.personal_info.fullname }}
-                        </td>
-                        <td>
-                            {{ committee.role }}
+                            {{ staff }}/
+                            {% endfor %}
                         </td>
                     </tr>
                     {% endfor %}
