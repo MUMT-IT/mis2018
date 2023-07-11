@@ -66,7 +66,7 @@
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">ที่อยู่ในใบเสร็จรับเงิน</label>
+                            <label class="label">{{ form.address.label }}</label>
                             <div class="control">
                                 {{ form.address(class="textarea") }}
                             </div>
@@ -89,27 +89,25 @@
                         <div class="field" id="card-no">
                             <label class="label">{{ form.card_number.label }}</label>
                             <div class="control">
-                                {{ form.card_number(class="input", id="card-no") }}
-                            </div>
-                            <label class="label">{{ form.bank_name.label }}</label>
-                            <div>
-                                {{ form.bank_name(class="select", id="card-no") }}
+                                {{ form.card_number(class="input") }}
                             </div>
                         </div>
                         <div class="field" id="cheque-no">
                             <label class="label">เช็คเลขที่</label>
                             <div class="control">
-                                {{ form.cheque_number(class="input", id="cheque-no") }}
-                            </div>
-                            <label class="label">{{ form.bank_name.label }}</label>
-                            <div>
-                                {{ form.bank_name(class="select", id="cheque-no") }}
+                                {{ form.cheque_number(class="input") }}
                             </div>
                         </div>
-                        <div class="field" id="other_payment_method">
+                        <div class="field" id="bank-name-field">
+                            <label class="label">{{ form.bank_name.label }}</label>
+                                <div>
+                                    {{ form.bank_name() }}
+                                </div>
+                        </div>
+                        <div class="field" id="other_payment_method_field">
                             <label class="label">ช่องทางการชำระเงินอื่นๆ</label>
                             <div class="control">
-                                {{ form.other_payment_method(class="input is-danger", id="other_payment_method") }}
+                                {{ form.other_payment_method(class="input is-danger") }}
                             </div>
                         </div>
                         <div class="field">
@@ -177,27 +175,30 @@
         $(document).ready(() => {
             $('#card-no').hide()
             $('#cheque-no').hide()
-            $('#other_payment_method').hide()
+            $('#other_payment_method_field').hide()
+            $('#bank-name-field').hide()
             $('#payment_method').change(e => {
                 $('#card-no').hide()
                 $('#cheque-no').hide()
-                $('#other_payment_method').hide()
+                $('#other_payment_method_field').hide()
+                $('#bank-name-field').hide()
                 if ($('#payment_method').val() === "Credit Card") {
                     $('#card-no').show()
-                } else {
-                    $('#card-no').hide()
-                }
-                if ($('#payment_method').val() === "Cheque") {
+                    $('#bank-name-field').show()
+                }else if ($('#payment_method').val() === "Cheque") {
                     $('#cheque-no').show()
-                } else {
-                    $('#cheque-no').hide()
+                    $('#bank-name-field').show()
                 }
-                if ($('#payment_method').val() === "Other") {
-                    $('#other_payment_method').show()
-                } else {
-                    $('#other_payment_method').hide()
+                else if ($('#payment_method').val() === "Other") {
+                    $('#other_payment_method_field').show()
                 }
             })
+            var cleave = new Cleave('#card_number', {
+                creditCard: true,
+                onCreditCardTypeChanged: function (type) {
+                    // update UI ...
+                }
+            });
         })
     </script>
     <script>
