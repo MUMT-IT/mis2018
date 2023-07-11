@@ -62,6 +62,17 @@ class PAAgreement(db.Model):
         else:
             return False
 
+    @property
+    def editable(self):
+        req = self.requests.order_by(desc(PARequest.id)).first()
+        if req:
+            if req.for_ == 'ขอรับการประเมิน':
+                return False
+            elif req.responded_at == None:
+                return True
+        else:
+            return True
+
 
 class PARequest(db.Model):
     __tablename__ = 'pa_requests'
