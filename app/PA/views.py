@@ -280,36 +280,37 @@ def create_request(pa_id):
         new_request = PARequest()
         form.populate_obj(new_request)
         pa_request = PARequest.query.filter_by(pa_id=pa_id, supervisor=supervisor, for_=new_request.for_).first()
-        if pa_request:
+        if pa_request and not pa_request.responded_at:
             flash('ท่านส่งคำขอประเภทนี้แล้ว สามารถติดตามสถานะได้ที่ "สถานะการประเมินภาระงาน" ซึ่งอยู่ด้านล่างของหน้าต่าง', 'warning')
         else:
             if new_request.for_=='ขอรับการประเมิน':
+                if not pa.approved_at:
+                    flash('กรุณาขอรับรองภาระงานจากหัวหน้าส่วนงานก่อนทำการประเมิน', 'danger')
+                    return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+
                 self_scoresheet = pa.pa_score_sheet.filter(PAScoreSheet.staff_id == pa.staff.id).first()
-                if not self_scoresheet:
-                    flash('กรุณาประเมินตนเอง ก่อนส่งคำขอรับการประเมิน','warning')
+
+                if not self_scoresheet or not self_scoresheet.is_final:
+                    flash('กรุณาส่งคะแนนประเมินตนเองก่อนขอรับการประเมิน','warning')
                     return redirect(url_for('pa.create_request', pa_id=pa_id))
-                else:
-                    create_new_request = True
+
+            new_request.pa_id = pa_id
+            right_now = arrow.now('Asia/Bangkok').datetime
+            new_request.created_at = right_now
+            new_request.submitted_at = right_now
+            new_request.supervisor = supervisor
+            db.session.add(new_request)
+            db.session.commit()
+            req_msg = '{}ทำการขออนุมัติ{} ในระบบ PA กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
+                          '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+                            current_user.personal_info.fullname, new_request.for_,
+                            url_for("pa.view_request", request_id=new_request.id, _external=True))
+            req_title = 'แจ้งการอนุมัติ' + new_request.for_ + 'ในระบบ PA'
+            if not current_app.debug:
+                send_mail([supervisor.email + "@mahidol.ac.th"], req_title, req_msg)
             else:
-                create_new_request = True
-            if create_new_request == True:
-                new_request.pa_id = pa_id
-                right_now = arrow.now('Asia/Bangkok').datetime
-                new_request.created_at = right_now
-                new_request.submitted_at = right_now
-                new_request.supervisor = supervisor
-                db.session.add(new_request)
-                db.session.commit()
-                req_msg = '{}ทำการขออนุมัติ{} ในระบบ PA กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
-                              '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-                                current_user.personal_info.fullname, new_request.for_,
-                                url_for("pa.view_request", request_id=new_request.id, _external=True))
-                req_title = 'แจ้งการอนุมัติ' + new_request.for_ + 'ในระบบ PA'
-                if not current_app.debug:
-                    send_mail([supervisor.email + "@mahidol.ac.th"], req_title, req_msg)
-                else:
-                    print(req_msg, supervisor.email)
-                flash('ส่งคำขอเรียบร้อยแล้ว', 'success')
+                print(req_msg, supervisor.email)
+            flash('ส่งคำขอเรียบร้อยแล้ว', 'success')
         return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
     return render_template('PA/request_form.html', form=form, pa=pa)
 

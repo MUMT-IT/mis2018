@@ -96,14 +96,15 @@
                                                                 </td>
                                                                 <td>
                                                                     <div class="buttons">
+                                                                        {% if pa.editable %}
                                                                         <a href="{{ url_for('pa.add_pa_item', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id, _anchor='edit_form') }}"
                                                                            class="button">
                                                                             <span class="icon is-small">
                                                                                 <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
                                                                         </a>
-                                                                        {% if pa.editable %}
-                                                                        <a class="button" hx-swap="none" hx-confirm="คุณต้องการลบรายการนี้หรือไม่" hx-delete="{{ url_for('pa.delete_pa_item', pa_id=pa.id, pa_item_id=pa_item.id) }}">
+                                                                        <a class="button" hx-swap="none" hx-confirm="คุณต้องการลบรายการนี้หรือไม่"
+                                                                           hx-delete="{{ url_for('pa.delete_pa_item', pa_id=pa.id, pa_item_id=pa_item.id) }}">
                                                                             <span class="icon is-small">
                                                                                 <i class="fa-solid fa-trash-can has-text-danger"></i>
                                                                             </span>
@@ -161,15 +162,15 @@
                                 </div>
                                 <div class="field">
                                     <label class="label">
-                                        {% if pa.approved_at or pa.submitted %}
+                                        {% if not pa.editable %}
                                             <span class="icon"><i class="fa-solid fa-lock"></i></span>
                                         {% endif %}
                                         ร้อยละ(น้ำหนัก)
                                     </label>
                                     <div class="control">
-                                        {% if pa.approved_at or pa.submitted %}
+                                        {% if not pa.editable %}
                                         {{ form.percentage(class="input is-success" if pa_item_id else "input", required=True, disabled=True) }}
-                                        {% elif not pa.approved_at %}
+                                        {% elif pa.editable %}
                                         {{ form.percentage(class="input is-success" if pa_item_id else "input", required=True) }}
                                         {% endif %}
                                         <p class="help has-text-danger" id="percent-warning">สัดส่วนภาระงานรวมเกิน 100%</p>
@@ -177,7 +178,7 @@
                                 </div>
                                 <div class="field">
                                     <label class="label">
-                                        {% if pa.approved_at or pa.submitted %}
+                                        {% if not pa.editable %}
                                             <span class="icon"><i class="fa-solid fa-lock"></i></span>
                                         {% endif %}
                                         ตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน
@@ -190,7 +191,12 @@
                                         {% if messages %}
                                             {% for cat, msg in messages %}
                                                 {% if 'ตัวชี้วัด' in msg %}
-                                                <p class="notification is-{{ cat }} is-light"><button class="delete"></button>{{ msg }}</p>
+                                                <p class="notification is-{{ cat }} is-light"><button class="delete"></button>
+                                                    <span class="icon">
+                                                        <i class="fas fa-info-circle"></i>
+                                                    </span>
+                                                    {{ msg }}
+                                                </p>
                                                 {% endif %}
                                             {% endfor %}
                                         {% endif %}
@@ -207,17 +213,17 @@
                                                 </td>
                                                 <td>
                                                     <div class="select">
-                                                        {% if pa.approved_at or pa.submitted %}
+                                                        {% if not pa.editable %}
                                                             {{ item_form(disabled=True) }}
                                                             <input name="{{ item_form.id }}" value="{{ item_form.data or '' }}" type="hidden">
-                                                        {% elif not pa.approved_at %}
+                                                        {% elif pa.editable %}
                                                             {{ item_form() }}
                                                         {% endif %}
                                                     </div>
                                                 </td>
                                                 <td>
                                                     <div class="buttons">
-                                                        {% if not pa.approved_at %}
+                                                        {% if pa.editable %}
                                                             <a href="{{ url_for('pa.edit_kpi', pa_id=pa.id, kpi_id=item_form.obj_id) }}"
                                                                class="button">
                                                                 <span class="icon is-small">
@@ -243,7 +249,7 @@
                                 {% endif %}
                                 <div class="field">
                                     <label class="label">
-                                        {% if not (pa.approved_at and pa.submitted) %}
+                                        {% if not pa.editable %}
                                             <span class="icon"><i class="fa-solid fa-lock"></i></span>
                                         {% endif %}
                                         {{ form.report.label }}
