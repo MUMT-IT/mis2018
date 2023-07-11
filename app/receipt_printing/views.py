@@ -52,6 +52,8 @@ def landing():
 def create_receipt():
     form = ReceiptDetailForm()
     receipt_book = ComHealthReceiptID.query.filter_by(code='MTG').first()
+    if request.method == 'POST':
+        print(form.paid_amount.data)
     if form.validate_on_submit():
         receipt_detail = ElectronicReceiptDetail()
         receipt_detail.issuer = current_user
@@ -105,32 +107,13 @@ def list_add_items():
         </div>
     </div>
     '''.format(item_form.name, item_form.item.label, item_form.item(class_="textarea"), item_form.price.label,
-               item_form.price(class_="input", type="text", placeholder=u"฿",
-                               **{'hx-post': url_for("receipt_printing.update_amount"),
-                                  'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount_update',
-                                  'hx-swap': 'innerHTML'}),
+               item_form.price(class_="input", type="text", placeholder=u"฿", onkeyup="update_amount()"),
                item_form.gl.label, item_form.gl(),
                item_form.cost_center.label, item_form.cost_center(),
                item_form.internal_order_code.label, item_form.internal_order_code()
                )
     resp = make_response(form_text)
     resp.headers['HX-Trigger-After-Swap'] = 'initInput'
-    return resp
-
-
-@receipt_printing.route('/receipt/create/update-amount', methods=['POST'])
-def update_amount():
-    form = ReceiptDetailForm()
-    total_amount = 0.0
-    for item in form.items.entries:
-        if item.price.data:
-            total_amount += item.price.data
-        else:
-            print(item.name, item.price.data)
-    resp = make_response(f'<span id="paid_amount_value">{total_amount:,.2f}</span>'
-                         f'{form.paid_amount(class_="input", type="hidden", value=str(total_amount))}')
-    print(form.paid_amount(class_="input", readonly=True, value=str(total_amount)))
-    resp.headers['HX-Trigger-After-Swap'] = 'initPaidAmount'
     return resp
 
 
@@ -172,7 +155,7 @@ def delete_items():
         </div>
     </div>
     '''.format(item_form.name, item_form.item.label, item_form.item(class_="textarea"), item_form.price.label,
-               item_form.price(class_="input", placeholder=u"฿"),
+               item_form.price(class_="input", placeholder=u"฿", onkeyup="update_amount()"),
                item_form.gl.label, item_form.gl(),
                item_form.cost_center.label, item_form.cost_center(),
                item_form.internal_order_code.label, item_form.internal_order_code()

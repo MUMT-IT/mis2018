@@ -40,7 +40,6 @@ class ReceiptListForm(ModelForm):
         model = ElectronicReceiptItem
 
     price = NumberTextField('จำนวน')
-    paid_amount = NumberTextField('จำนวนเงินรวม')
     cost_center = QuerySelectField('Cost Center',
                                    query_factory=lambda: CostCenter.query.all(),
                                    get_label='id', blank_text='Select Cost Center..', allow_blank=True)

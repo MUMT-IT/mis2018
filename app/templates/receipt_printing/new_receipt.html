@@ -28,11 +28,7 @@
                                      <div class="field">
                                          <label class="label">จำนวนเงินบาท</label>
                                          <div class="control">
-                                             {{ i.price(class_="input", type="text", placeholder="฿",
-                                            **{'hx-post': url_for("receipt_printing.update_amount"),
-                                            'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount_update',
-                                            'hx-swap': 'innerHTML'})
-                                                     }}
+                                             {{ i.price(class_="input", type="text", placeholder="฿", onkeyup="update_amount()")}}
                                          </div>
                                      </div>
                                      <div class="field">
@@ -167,7 +163,10 @@
                 })
                 console.log(total_amount)
                 $('#paid_amount').val(total_amount)
-                $('#paid_amount_value').html(total_amount.toFixed(2).toLocaleString('en-US'))
+                $('#paid_amount_value').html(total_amount.toLocaleString('th-TH', {
+                    minimumFractionDigits: 2,
+                    style: "currency", currency: "THB"
+                }))
             })
         }
 
@@ -217,16 +216,9 @@
                 })
             })
         }
-        let initPaidAmount = function (){
-            new Cleave('#paid_amount', {
-                    numeral: true,
-                    numeralThousandsGroupStyle: 'thousand'
-            });
-        }
         let initInput = function (){
             initSelect2Input();
             initCleaveJS();
-            initPaidAmount();
         }
         $(document).ready(() => {
             initInput();
@@ -243,7 +235,6 @@
 
         document.addEventListener('clearInput', onClearInput)
         document.addEventListener('initInput', initInput)
-        document.addEventListener('initPaidAmount', initPaidAmount)
 
     </script>
     <script>
