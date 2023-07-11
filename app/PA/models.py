@@ -3,7 +3,7 @@ from wtforms import widgets
 
 from app.main import db
 from app.models import Org
-from app.staff.models import StaffAccount
+from app.staff.models import StaffAccount, StaffEmployment
 
 item_kpi_item_assoc_table = db.Table('item_kpi_item_assoc_assoc',
                                      db.Column('item_id', db.ForeignKey('pa_items.id')),
@@ -17,13 +17,19 @@ pa_committee_assoc_table = db.Table('pa_committee_assoc',
                                               db.ForeignKey('pa_committees.id')),
                                     )
 
+pa_round_employment_assoc_table = db.Table('pa_round_employment_assoc',
+                                           db.Column('pa_round_id', db.ForeignKey('pa_rounds.id')),
+                                           db.Column('employment_id',
+                                                     db.ForeignKey('staff_employments.id')),
+                                           )
+
 
 class PARound(db.Model):
     __tablename__ = 'pa_rounds'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     start = db.Column('start', db.Date())
     end = db.Column('end', db.Date())
-
+    employments = db.relationship('StaffEmployment', secondary=pa_round_employment_assoc_table)
     # is_closed = db.Column('is_closed', db.Boolean(), default=False)
 
     def __str__(self):
@@ -55,6 +61,17 @@ class PAAgreement(db.Model):
             return True
         else:
             return False
+
+    @property
+    def editable(self):
+        req = self.requests.order_by(desc(PARequest.created_at)).first()
+        if req:
+            if req.for_ == 'ขอรับการประเมิน':
+                return False
+            elif req.responded_at == None:
+                return True
+        else:
+            return True
 
 
 class PARequest(db.Model):
@@ -154,7 +171,7 @@ class PAItem(db.Model):
                 if s.score:
                     score = s.score
                     n += 1
-        return score/n
+        return score / n
 
     def total_score(self, scoresheet):
         score = 0
@@ -164,7 +181,7 @@ class PAItem(db.Model):
                 if s.score:
                     score = s.score
                     n += 1
-        return (score/n)*self.percentage
+        return (score / n) * self.percentage
 
 
 class PACommittee(db.Model):
@@ -195,7 +212,8 @@ class PAScoreSheet(db.Model):
     staff = db.relationship(StaffAccount, backref=db.backref('pa_scoresheets',
                                                              cascade='all, delete-orphan'))
     committee_id = db.Column('committee_id', db.ForeignKey('pa_committees.id'))
-    committee = db.relationship('PACommittee', backref=db.backref('committee_score_sheet', cascade='all, delete-orphan'))
+    committee = db.relationship('PACommittee',
+                                backref=db.backref('committee_score_sheet', cascade='all, delete-orphan'))
     is_consolidated = db.Column('is_consolidated', db.Boolean(), default=False)
     is_final = db.Column('is_final', db.Boolean(), default=False)
     is_appproved = db.Column('is_appproved', db.Boolean(), default=False)
@@ -212,7 +230,7 @@ class PAScoreSheet(db.Model):
         for c in self.competency_score_items:
             if c.score_sheet_id == self.id:
                 if c.score:
-                    score += c.score*10
+                    score += c.score * 10
         return score
 
     def competency_net_score(self):
@@ -220,8 +238,8 @@ class PAScoreSheet(db.Model):
         for c in self.competency_score_items:
             if c.score_sheet_id == self.id:
                 if c.score:
-                    score += c.score*10
-        return (score/700)*20
+                    score += c.score * 10
+        return (score / 700) * 20
 
 
 class PAScoreSheetItem(db.Model):
@@ -259,7 +277,7 @@ class PACoreCompetencyItem(db.Model):
             if c.score_sheet_id == scoresheet.id:
                 if c.score:
                     score = c.score
-        return score*self.score
+        return score * self.score
 
 
 class PACoreCompetencyScoreItem(db.Model):
@@ -284,5 +302,6 @@ class PAApprovedScoreSheet(db.Model):
                                   backref=db.backref('approved_score_sheet',
                                                      cascade='all, delete-orphan'))
     committee_id = db.Column('committee_id', db.ForeignKey('pa_committees.id'))
-    committee = db.relationship('PACommittee', backref=db.backref('committee_approved_score_sheet'), foreign_keys=[committee_id])
+    committee = db.relationship('PACommittee', backref=db.backref('committee_approved_score_sheet'),
+                                foreign_keys=[committee_id])
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))

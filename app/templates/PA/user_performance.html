@@ -52,12 +52,18 @@
                                         <h2 class="subtitle">รอบการประเมิน</h2>
                                         <table id="data" class="table is-fullwidth">
                                             <thead>
+                                            <th>ประเภทการจ้าง</th>
                                             <th>วันที่เริ่มต้น - วันที่สิ้นสุด</th>
                                             <th></th>
                                             </thead>
                                             <tbody>
                                             {% for round in rounds %}
                                                 <tr>
+                                                    <td>
+                                                        {% for emp in round.employments %}
+                                                        {{ emp.title }}
+                                                        {% endfor %}
+                                                    </td>
                                                     <td>{{ round }}</td>
                                                     <td>
                                                         <a class="button is-small is-rounded is-info is-outlined"
