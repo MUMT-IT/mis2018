@@ -484,6 +484,38 @@ def daily_payment_report():
                            start_date=start_date, end_date=end_date)
 
 
+@receipt_printing.route('api/daily/payment/report')
+def get_daily_payment_report():
+    query = ElectronicReceiptDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ElectronicReceiptDetail.number.like(u'%{}%'.format(search)),
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['view'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
+            url_for('receipt_printing.view_daily_payment_report', receipt_id=item.id))
+        item_data['created_datetime'] = item_data['created_datetime'].strftime('%d/%m/%Y %H:%M:%S')
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ElectronicReceiptDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
+@receipt_printing.route('/payment/report/view/<int:receipt_id>')
+def view_daily_payment_report(receipt_id):
+    receipt_detail = ElectronicReceiptDetail.query.get(receipt_id)
+    return render_template('receipt_printing/view_daily_payment_report.html',
+                           receipt_detail=receipt_detail)
+
+
 @receipt_printing.route('/daily/payment/report/download')
 def download_daily_payment_report():
     records = []
@@ -504,7 +536,7 @@ def download_daily_payment_report():
             u'เล่มที่': u"{}".format(receipt.book_number),
             u'เลขที่': u"{}".format(receipt.number),
             u'รายการ': u"{}".format(receipt.item_list),
-            u'จำนวนเงิน': u"{}".format(receipt.paid_amount),
+            u'จำนวนเงิน': u"{:,.2f}".format(receipt.paid_amount),
             u'ช่องทางการชำระเงิน': u"{}".format(receipt.payment_method),
             u'เลขที่บัตรเครดิต': u"{}".format(receipt.card_number),
             u'เลขที่เช็ค': u"{}".format(receipt.cheque_number),
@@ -512,7 +544,7 @@ def download_daily_payment_report():
             u'ชื่อผู้ชำระเงิน': u"{}".format(receipt.received_money_from),
             u'ผู้รับเงิน/ผู้บันทึก': u"{}".format(receipt.issuer.personal_info.fullname),
             u'ตำแหน่ง': u"{}".format(receipt.issuer.personal_info.position),
-            u'วันที่': u"{}".format(receipt.created_datetime.strftime('%d/%m/%Y')),
+            u'วันที่': u"{}".format(receipt.created_datetime.strftime('%d/%m/%Y %H:%M:%S')),
             u'หมายเหตุ': u"{}".format(receipt.comment),
             u'GL': u"{}".format(receipt.item_gl_list if receipt and receipt.item_gl_list else ''),
             u'Cost Center': u"{}".format(receipt.item_cost_center_list if receipt and receipt.item_cost_center_list else ''),
@@ -683,7 +715,7 @@ def get_receipt_by_list_type():
         item_data = item.to_dict()
         item_data['preview'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">Preview</a>'.format(
             url_for('receipt_printing.show_receipt_detail', receipt_id=item.id))
-        item_data['created_datetime'] = item_data['created_datetime'].strftime('%d/%m/%Y')
+        item_data['created_datetime'] = item_data['created_datetime'].strftime('%d/%m/%Y %H:%M:%S')
         item_data['status'] = '<i class="fas fa-times has-text-danger"></i>' if item.cancelled else '<i class="far fa-check-circle has-text-success"></i>'
         item_data['issuer'] = item_data['issuer']
         data.append(item_data)
