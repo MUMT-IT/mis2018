@@ -64,14 +64,14 @@ class PAAgreement(db.Model):
 
     @property
     def editable(self):
-        req = self.requests.order_by(desc(PARequest.created_at)).first()
-        if req:
-            if req.for_ == 'ขอรับการประเมิน':
-                return False
-            elif req.responded_at == None:
-                return True
-        else:
-            return True
+        req = self.requests.order_by(desc(PARequest.id)).first()
+        if req and req.for_ == 'ขอแก้ไข':
+            return True if req.status == 'อนุมัติ' else False
+        elif self.approved_at:
+            return False
+        elif self.submitted:
+            return False
+        return True
 
 
 class PARequest(db.Model):
