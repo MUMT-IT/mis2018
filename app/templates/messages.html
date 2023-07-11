@@ -1,7 +1,12 @@
 {% with messages = get_flashed_messages(with_categories=True) %}
 {% if messages %}
     {% for cat, msg in messages %}
-    <p class="notification is-{{ cat }} is-light"><button class="delete"></button>{{ msg }}</p>
+    <p class="notification is-{{ cat }} is-light"><button class="delete"></button>
+        <span class="icon">
+            <i class="fas fa-info-circle"></i>
+        </span>
+        {{ msg }}
+    </p>
     {% endfor %}
 {% endif %}
 {% endwith %}
