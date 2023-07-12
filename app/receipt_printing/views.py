@@ -259,7 +259,7 @@ def export_receipt_pdf(receipt_id):
     ที่อยู่ / ADDRESS {address}
     </font></para>
     '''.format(received_money_from=receipt.received_money_from,
-               address=receipt.address)
+               address=receipt.received_money_from.address)
 
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
                     ]],
@@ -472,6 +472,7 @@ def get_daily_payment_report():
     search = request.args.get('search[value]')
     query = query.filter(db.or_(
         ElectronicReceiptDetail.number.like(u'%{}%'.format(search)),
+        ElectronicReceiptDetail.book_number.like(u'%{}%'.format(search))
     ))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
