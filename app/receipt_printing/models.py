@@ -123,6 +123,14 @@ class ElectronicReceiptReceivedMoneyFrom(db.Model):
     def __str__(self):
         return u'{}'.format(self.received_money_from)
 
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'received_money_from': self.received_money_from,
+            'address': self.address,
+            'taxpayer_dentification_no': self.taxpayer_dentification_no
+        }
+
 
 class ElectronicReceiptBankName(db.Model):
     __tablename__ = 'electronic_receipt_bank_names'
