@@ -790,4 +790,64 @@ def io_code_change_active_status(iocode_id):
 def get_received_money_from_by_payer_id():
     payer_id = request.args.get('payer_id', type=int)
     payer = ElectronicReceiptReceivedMoneyFrom.query.get(payer_id)
-    return jsonify({'address':payer.address})
+    return jsonify({'address': payer.address})
+
+
+@receipt_printing.route('/info/payer/add', methods=['GET', 'POST'])
+@login_required
+def add_info_payer_ref():
+    form = ReceiptInfoPayerForm()
+    if request.method == 'POST':
+       new_info_payer = ElectronicReceiptReceivedMoneyFrom()
+       form.populate_obj(new_info_payer)
+       db.session.add(new_info_payer)
+       db.session.commit()
+       flash('New information payer has been added.', 'success')
+       return redirect(url_for('receipt_printing.view_info_payer'))
+    return render_template('receipt_printing/info_payer_ref.html', form=form, url_callback=request.referrer)
+
+
+@receipt_printing.route('/receipt/information-payer/list')
+def view_info_payer():
+    return render_template('receipt_printing/view_info_payer.html')
+
+
+@receipt_printing.route('/api/data/info-payer')
+def get_info_payer_data():
+    query = ElectronicReceiptReceivedMoneyFrom.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ElectronicReceiptReceivedMoneyFrom.received_money_from.like(u'%{}%'.format(search)),
+        ElectronicReceiptReceivedMoneyFrom.address.like(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for payer_info in query:
+        record_data = payer_info.to_dict()
+        record_data['edit'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">Edit</a>'.format(
+            url_for('receipt_printing.edit_info_payer', payer_info_id=payer_info.id))
+        data.append(record_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ElectronicReceiptReceivedMoneyFrom.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
+@receipt_printing.route('/information/payer<int:payer_info_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_info_payer(payer_info_id):
+    payer_info = ElectronicReceiptReceivedMoneyFrom.query.get(payer_info_id)
+    form = ReceiptInfoPayerForm(obj=payer_info)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(payer_info)
+            db.session.add(payer_info)
+            db.session.commit()
+            flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
+        return redirect(url_for('receipt_printing.view_info_payer', payer_info_id=payer_info_id))
+    return render_template('receipt_printing/edit_info_payer.html', payer_info_id=payer_info_id, form=form)
+
