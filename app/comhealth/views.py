@@ -476,6 +476,8 @@ def edit_record(record_id):
                     profile_item_cost += test_item.price
         special_tests.difference_update(set(profile.test_items))
 
+    if record.finance_contact_id == 1:
+        profile_item_cost = 0
     group_item_cost = sum([item.price for item in record.ordered_tests if item.group])
     special_item_cost = sum([item.price for item in special_tests])
     containers = set([item.test.container for item in record.ordered_tests])
