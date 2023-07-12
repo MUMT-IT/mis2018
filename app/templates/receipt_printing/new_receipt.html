@@ -60,7 +60,11 @@
                             </div>
                          </div>
                         <div class="field">
-                            <label class="label">ได้รับเงินจาก</label>
+                            <label class="label">ได้รับเงินจาก
+                                <a href="{{ url_for('receipt_printing.add_info_payer_ref') }}">
+                                    <i class="far fa-plus-square"></i>
+                                </a>
+                            </label>
                             <div class="control">
                                 {{ form.received_money_from(class="select") }}
                             </div>
