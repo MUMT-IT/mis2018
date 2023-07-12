@@ -101,6 +101,11 @@ class IOCodeForm(ModelForm):
     io = StringField(u'Internal Order/IO')
 
 
+class ReceiptInfoPayerForm(ModelForm):
+    class Meta:
+        model = ElectronicReceiptReceivedMoneyFrom
+
+
 
 
 
