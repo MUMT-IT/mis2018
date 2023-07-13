@@ -25,8 +25,9 @@
                     <th>รอบการประเมิน</th>
                     <th>ประธานและกรรมการประเมิน</th>
                     <th>ตำแหน่ง</th>
-                    <th>หน่วยงาน</th>
+                    <th>หน่วยงานที่ถูกประเมิน</th>
                     <th>บุคลากรในหน่วยงาน</th>
+                    <th>ผู้ถูกประเมิน</th>
                     </thead>
                     <tbody>
                     {% for committee in committee_list %}
@@ -47,6 +48,11 @@
                             {% for staff in committee.org.staff %}
                             {{ staff }}/
                             {% endfor %}
+                        </td>
+                        <td>
+                            {% if committee.subordinate %}
+                            {{ committee.subordinate.personal_info.fullname }}
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

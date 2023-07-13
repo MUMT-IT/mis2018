@@ -197,7 +197,7 @@ class PACommittee(db.Model):
     role = db.Column('role', db.String(), info={'label': 'ประเภท',
                                                 'choices': [(c, c) for c in ('ประธานกรรมการ', 'กรรมการ')]})
     subordinate_account_id = db.Column(db.ForeignKey('staff_account.id'))
-    subordinate = db.relationship('StaffAccount', backref=db.backref('subordinate_commitee', lazy='dynamic'),
+    subordinate = db.relationship('StaffAccount', backref=db.backref('subordinate_committee', lazy='dynamic'),
                                   foreign_keys=[subordinate_account_id])
 
     def __str__(self):

@@ -3,12 +3,12 @@ import datetime
 
 import pytz
 import arrow
-from sqlalchemy import and_, exc
+from sqlalchemy import exc
 from . import pa_blueprint as pa
 
-from app.roles import hr_permission, manager_permission
+from app.roles import hr_permission
 from app.PA.forms import *
-from app.main import mail, StaffEmployment
+from app.main import mail, StaffEmployment, StaffSpecialGroup
 
 tz = pytz.timezone('Asia/Bangkok')
 
@@ -185,8 +185,8 @@ def view_pa_item(round_id):
 @pa.route('/pa/')
 @login_required
 def index():
-    # TODO: create head committee permission for access special part
-    return render_template('PA/index.html', hr_permission=hr_permission, manager_permission=manager_permission)
+    is_head_committee = PACommittee.query.filter_by(staff=current_user, role='ประธานกรรมการ').first()
+    return render_template('PA/index.html', is_head_committee=is_head_committee)
 
 
 @pa.route('/hr/create-round', methods=['GET', 'POST'])
@@ -270,9 +270,13 @@ def detail_consensus_scoresheet_for_hr(scoresheet_id):
 def create_request(pa_id):
     pa = PAAgreement.query.get(pa_id)
     form = PARequestForm()
-    head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ').first()
+    head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ', round=pa.round).first()
+    head_individual = PACommittee.query.filter_by(subordinate=current_user,  role='ประธานกรรมการ', round=pa.round).first()
+    print(head_individual, pa.round)
     if head_committee:
         supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
+    elif head_individual:
+        supervisor = StaffAccount.query.filter_by(email=head_individual.staff.email).first()
     else:
         flash('ไม่พบกรรมการประเมิน กรุณาติดต่อหน่วย HR','warning')
         return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
