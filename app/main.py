@@ -275,6 +275,7 @@ admin.add_views(ModelView(ElectronicReceiptDetail, db.session, category='Receipt
 admin.add_views(ModelView(ElectronicReceiptItem, db.session, category='ReceiptPrinting'))
 admin.add_views(ModelView(ElectronicReceiptRequest, db.session, category='ReceiptPrinting'))
 admin.add_views(ModelView(ElectronicReceiptReceivedMoneyFrom, db.session, category='ReceiptPrinting'))
+admin.add_views(ModelView(ElectronicReceiptBankName, db.session, category='ReceiptPrinting'))
 admin.add_views(ElectronicReceiptGLModel(ElectronicReceiptGL, db.session, category='ReceiptPrinting'))
 
 from app.instruments import instrumentsbp as instruments_blueprint
