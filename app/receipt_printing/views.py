@@ -730,13 +730,13 @@ def select_btw_io_code_and_cost_center():
 @receipt_printing.route('/cost_center/show')
 def show_cost_center():
     cost_center = CostCenter.query.all()
-    return render_template('receipt_printing/show_cost_center.html', cost_center=cost_center)
+    return render_template('receipt_printing/show_cost_center.html', cost_center=cost_center, url_back=request.referrer)
 
 
 @receipt_printing.route('/io_code/show')
 def show_io_code():
     io_code = IOCode.query.all()
-    return render_template('receipt_printing/show_io_code.html', io_code=io_code)
+    return render_template('receipt_printing/show_io_code.html', io_code=io_code, url_back=request.referrer)
 
 
 @receipt_printing.route('/cost_center/new', methods=['POST', 'GET'])
