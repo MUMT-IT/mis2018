@@ -2630,7 +2630,9 @@ def export_login_summary():
                 index=False,
                 columns=columns,
                 encoding='utf-8')
-    return send_from_directory(os.getcwd(), filename='login_summary.xlsx', as_attachment=True)
+    return send_from_directory(os.getcwd(),
+                               path='login_summary.xlsx',
+                               as_attachment=True)
 
 
 @staff.route('/api/staffids')
