@@ -43,7 +43,7 @@
                 </div>
                 <div class="navbar-item has-dropdown is-hoverable">
                     <a class="navbar-link">
-                        Report
+                        รายงาน
                     </a>
                     <div class="navbar-dropdown is-boxed">
                         <a class="navbar-item" href="{{ url_for('receipt_printing.daily_payment_report') }}">
@@ -64,6 +64,14 @@
                             <a class="navbar-item" href="{{ url_for('receipt_printing.view_info_payer') }}">
                                 <span class="icon"><i class="fas fa-plus-square"></i></span>
                                 <span>ดูข้อมูลผู้จ่ายเงิน</span>
+                            </a>
+                            <a class="navbar-item" href="{{ url_for('receipt_printing.show_cost_center') }}">
+                                <span class="icon"><i class="fas fa-plus-square"></i></span>
+                                <span>เพิ่ม Cost Center</span>
+                            </a>
+                            <a class="navbar-item" href="{{ url_for('receipt_printing.show_io_code') }}">
+                                <span class="icon"><i class="fas fa-plus-square"></i></span>
+                                <span>เพิ่ม Internal Order/IO</span>
                             </a>
                         </div>
                     </div>
