@@ -256,10 +256,12 @@ def export_receipt_pdf(receipt_id):
     header_copy.setStyle(header_styles)
     customer_name = '''<para><font size=12>
     ได้รับเงินจาก / RECEIVED FROM {received_money_from}<br/>
-    ที่อยู่ / ADDRESS {address}
+    ที่อยู่ / ADDRESS {address}<br/>
+    เลขประจำตัวผู้เสียภาษี / TIN {taxpayer_dentification_no}
     </font></para>
     '''.format(received_money_from=receipt.received_money_from,
-               address=receipt.received_money_from.address)
+               address=receipt.received_money_from.address,
+               taxpayer_dentification_no=receipt.received_money_from.taxpayer_dentification_no)
 
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
                     ]],
