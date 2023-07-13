@@ -21,7 +21,7 @@ from reportlab.lib import colors
 from reportlab.lib.enums import TA_RIGHT, TA_CENTER
 from reportlab.lib.utils import ImageReader
 from reportlab.platypus import (SimpleDocTemplate, Table, Image,
-                                Spacer, Paragraph, TableStyle, PageBreak)
+                                Spacer, Paragraph, TableStyle, PageBreak, KeepTogether)
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
@@ -476,6 +476,8 @@ def edit_record(record_id):
                     profile_item_cost += test_item.price
         special_tests.difference_update(set(profile.test_items))
 
+    if record.finance_contact_id == 1:
+        profile_item_cost = 0
     group_item_cost = sum([item.price for item in record.ordered_tests if item.group])
     special_item_cost = sum([item.price for item in special_tests])
     containers = set([item.test.container for item in record.ordered_tests])
@@ -1971,13 +1973,13 @@ def export_receipt_pdf(receipt_id):
     </font>
     '''
     issued_date = datetime.now().strftime('%d/%m/%Y')
-    receipt_info_ori = receipt_info.format(original=u'ต้นฉบับ<br/>(Original)'.encode('utf-8'),
+    receipt_info_ori = receipt_info.format(original=u'ต้นฉบับ<br/>(Original)',
                                            book_id=book_id,
                                            receipt_number=receipt_number,
                                            issued_date=issued_date,
                                            )
 
-    receipt_info_copy = receipt_info.format(original=u'สำเนา<br/>(Copy)'.encode('utf-8'),
+    receipt_info_copy = receipt_info.format(original=u'สำเนา<br/>(Copy)',
                                             book_id=book_id,
                                             receipt_number=receipt_number,
                                             issued_date=issued_date,
@@ -2011,22 +2013,22 @@ def export_receipt_pdf(receipt_id):
         ได้รับเงินจาก / RECEIVED FROM {issued_for} ({customer_name})<br/>
         ที่อยู่ / ADDRESS {address}
         </font></para>
-        '''.format(issued_for=receipt.issued_for.encode('utf-8'),
-                   customer_name=receipt.record.customer.fullname.encode('utf-8'),
-                   address=receipt.address.encode('utf-8'),
+        '''.format(issued_for=receipt.issued_for,
+                   customer_name=receipt.record.customer.fullname,
+                   address=receipt.address,
                    )
     else:
         customer_name = '''<para><font size=12>
         ได้รับเงินจาก / RECEIVED FROM {customer_name}
         </font></para>
-        '''.format(customer_name=receipt.record.customer.fullname.encode('utf-8'),
+        '''.format(customer_name=receipt.record.customer.fullname,
                    )
     customer_labno = '''<para><font size=11>
     หมายเลขรายการ / NUMBER {customer_labno}<br/>
     สถานที่ออก / ISSUED AT {venue}
     </font></para>
     '''.format(customer_labno=receipt.record.labno,
-               venue=receipt.issued_at.encode('utf-8'))
+               venue=receipt.issued_at)
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
                        Paragraph(customer_labno, style=style_sheet['ThaiStyle'])]],
                      colWidths=[300, 200]
@@ -2073,7 +2075,7 @@ def export_receipt_pdf(receipt_id):
                 number_test += 1
                 item = [Paragraph('<font size=12>{}</font>'.format(number_test), style=style_sheet['ThaiStyleCenter']),
                         Paragraph('<font size=12>{} ({})</font>'
-                                  .format(t.test_item.test.name.encode('utf-8'),
+                                  .format(t.test_item.test.name,
                                           t.test_item.test.gov_code or '-'),
                                   style=style_sheet['ThaiStyle'])
                         ]
@@ -2105,7 +2107,7 @@ def export_receipt_pdf(receipt_id):
         n += 1
 
     total_thai = bahttext(total)
-    total_text = "รวมเงินทั้งสิ้น {}".format(total_thai.encode('utf-8'))
+    total_text = "รวมเงินทั้งสิ้น {}".format(total_thai)
     items.append([
         Paragraph('<font size=12>{}</font>'.format(total_text), style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -2156,29 +2158,29 @@ def export_receipt_pdf(receipt_id):
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbspลงชื่อ ............................................ ผู้รับเงิน / Cashier<br/>
     ({})<br/>
     ตำแหน่ง / Position {}
-    </font></para>'''.format(receipt.issuer.staff.personal_info.fullname.encode('utf-8'),
-                             receipt.issuer.position.encode('utf-8'))
+    </font></para>'''.format(receipt.issuer.staff.personal_info.fullname,
+                             receipt.issuer.position)
 
     number_of_copies = 2 if receipt.copy_number == 1 else 1
     for i in range(number_of_copies):
         if i == 0 and receipt.copy_number == 1:
-            data.append(header_ori)
+            data.append(KeepTogether(header_ori))
         else:
-            data.append(header_copy)
-        data.append(Paragraph('<para align=center><font size=18>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
-                              style=style_sheet['ThaiStyle']))
-        data.append(customer)
-        data.append(Spacer(1, 12))
-        data.append(Spacer(1, 6))
-        data.append(item_table)
-        data.append(Spacer(1, 6))
-        data.append(total_table)
-        data.append(Spacer(1, 6))
-        data.append(Spacer(1, 12))
-        data.append(Paragraph(sign_text, style=style_sheet['ThaiStyle']))
-        data.append(Spacer(1, 6))
-        data.append(notice)
-        data.append(PageBreak())
+            data.append(KeepTogether(header_copy))
+        data.append(KeepTogether(Paragraph('<para align=center><font size=18>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
+                              style=style_sheet['ThaiStyle'])))
+        data.append(KeepTogether(customer))
+        data.append(KeepTogether(Spacer(1, 12)))
+        data.append(KeepTogether(Spacer(1, 6)))
+        data.append(KeepTogether(item_table))
+        data.append(KeepTogether(Spacer(1, 6)))
+        data.append(KeepTogether(total_table))
+        data.append(KeepTogether(Spacer(1, 6)))
+        data.append(KeepTogether(Spacer(1, 12)))
+        data.append(KeepTogether(Paragraph(sign_text, style=style_sheet['ThaiStyle'])))
+        data.append(KeepTogether(Spacer(1, 6)))
+        data.append(KeepTogether(notice))
+        data.append(KeepTogether(PageBreak()))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
 
     # updated the copy number
@@ -2234,13 +2236,13 @@ def export_blank_receipt_pdf():
     </font>
     '''
     issued_date = datetime.now().strftime('%d/%m/%Y')
-    receipt_info_ori = receipt_info.format(original=u'ต้นฉบับ<br/>(Original)'.encode('utf-8'),
+    receipt_info_ori = receipt_info.format(original=u'ต้นฉบับ<br/>(Original)',
                                            book_id=book_id,
                                            receipt_number=receipt_number,
                                            issued_date=issued_date,
                                            )
 
-    receipt_info_copy = receipt_info.format(original=u'สำเนา<br/>(Copy)'.encode('utf-8'),
+    receipt_info_copy = receipt_info.format(original=u'สำเนา<br/>(Copy)',
                                             book_id=book_id,
                                             receipt_number=receipt_number,
                                             issued_date=issued_date,
@@ -2323,7 +2325,7 @@ def export_blank_receipt_pdf():
         n += 1
 
     total_thai = bahttext(total)
-    total_text = "รวมเงินทั้งสิ้น {}".format(total_thai.encode('utf-8'))
+    total_text = "รวมเงินทั้งสิ้น {}".format(total_thai)
     items.append([
         Paragraph('<font size=12>{}</font>'.format(total_text), style=style_sheet['ThaiStyle']),
         Paragraph('<font size=12></font>', style=style_sheet['ThaiStyle']),
@@ -2368,24 +2370,24 @@ def export_blank_receipt_pdf():
     </font></para>'''.format('-', '-')
 
     if request.args.get('receipt_copy') == 'copy':
-        data.append(header_copy)
+        data.append(KeepTogether(header_copy))
     else:
-        data.append(header_ori)
+        data.append(KeepTogether(header_ori))
 
-    data.append(Paragraph('<para align=center><font size=18>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
-                          style=style_sheet['ThaiStyle']))
-    data.append(customer)
-    data.append(Spacer(1, 12))
-    data.append(Spacer(1, 6))
-    data.append(item_table)
-    data.append(Spacer(1, 6))
-    data.append(total_table)
-    data.append(Spacer(1, 6))
-    data.append(Spacer(1, 12))
-    data.append(Paragraph(sign_text, style=style_sheet['ThaiStyle']))
-    data.append(Spacer(1, 6))
-    data.append(notice)
-    data.append(PageBreak())
+    data.append(KeepTogether(Paragraph('<para align=center><font size=18>ใบเสร็จรับเงิน / RECEIPT<br/><br/></font></para>',
+                          style=style_sheet['ThaiStyle'])))
+    data.append(KeepTogether(customer))
+    data.append(KeepTogether(Spacer(1, 12)))
+    data.append(KeepTogether(Spacer(1, 6)))
+    data.append(KeepTogether(item_table))
+    data.append(KeepTogether(Spacer(1, 6)))
+    data.append(KeepTogether(total_table))
+    data.append(KeepTogether(Spacer(1, 6)))
+    data.append(KeepTogether(Spacer(1, 12)))
+    data.append(KeepTogether(Paragraph(sign_text, style=style_sheet['ThaiStyle'])))
+    data.append(KeepTogether(Spacer(1, 6)))
+    data.append(KeepTogether(notice))
+    data.append(KeepTogether(PageBreak()))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
 
     return send_file('receipt.pdf')
