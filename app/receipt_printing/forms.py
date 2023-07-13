@@ -1,8 +1,9 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import FormField, FieldList, FileField, StringField, RadioField
+from wtforms import FormField, FieldList, FileField, StringField, RadioField, Field, TextAreaField
 from wtforms.validators import DataRequired
+from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField
 
 from app.main import db
@@ -18,10 +19,27 @@ class ModelForm(BaseModelForm):
         return db.session
 
 
+class NumberTextField(Field):
+    widget = TextInput()
+
+    def _value(self):
+        if self.data:
+            return str(self.data)
+        else:
+            return ''
+
+    def process_formdata(self, value):
+        if value:
+            self.data = float(value[0].replace(',',''))
+        else:
+            self.data = None
+
+
 class ReceiptListForm(ModelForm):
     class Meta:
         model = ElectronicReceiptItem
 
+    price = NumberTextField('จำนวน')
     cost_center = QuerySelectField('Cost Center',
                                    query_factory=lambda: CostCenter.query.all(),
                                    get_label='id', blank_text='Select Cost Center..', allow_blank=True)
@@ -37,12 +55,15 @@ class ReceiptDetailForm(ModelForm):
     class Meta:
         model = ElectronicReceiptDetail
         only = ['number', 'copy_number', 'book_number', 'comment', 'paid', 'cancelled', 'cancel_comment',
-                'payment_method', 'paid_amount', 'card_number', 'cheque_number', 'other_payment_method', 'address',
-                'bank_name']
+                'payment_method', 'paid_amount', 'card_number', 'cheque_number', 'other_payment_method']
 
     received_money_from = QuerySelectField('Received Money From',
                                    query_factory=lambda: ElectronicReceiptReceivedMoneyFrom.query.all(),
                                    blank_text='Select received money from..', allow_blank=True)
+    bank_name = QuerySelectField('Bank Name',
+                                 query_factory=lambda: ElectronicReceiptBankName.query.all(),
+                                 blank_text='Select bank name..', allow_blank=True)
+    address = TextAreaField('ที่อยู่ในใบเสร็จรับเงิน')
 
     items = FieldList(FormField(ReceiptListForm, default=ElectronicReceiptItem), min_entries=1)
 
@@ -78,6 +99,11 @@ class IOCodeForm(ModelForm):
                            label=u'ภาควิชา/หน่วยงาน',
                            blank_text='Select Org..', allow_blank=True)
     io = StringField(u'Internal Order/IO')
+
+
+class ReceiptInfoPayerForm(ModelForm):
+    class Meta:
+        model = ElectronicReceiptReceivedMoneyFrom
 
 
 

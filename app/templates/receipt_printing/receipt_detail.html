@@ -10,18 +10,18 @@
                     <p class="has-text-info">SALAYA, NAKHONPATHOM, 73170 THAILAND</p>
                     <p class="has-text-info">เลขประจำตัวผู้เสียภาษี/ Tax ID Number 0994000158378</p>
                     <br>
-                    <p><strong>ชื่อ</strong> {{ receipt.received_from or '' }}</p>
-                    {% if receipt.issued_for %}
-                    <p><strong>ออกใบเสร็จในนาม</strong> {{ receipt.issued_for }}</p>
+                    <p><strong>ได้รับเงินจาก</strong> {{ receipt.received_money_from or '' }}</p>
+                    {% if receipt.received_money_from.address %}
+                    <p><strong>ที่อยู่ในใบเสร็จรับเงิน</strong> {{ receipt.received_money_from.address or '' }}</p>
                     {% endif %}
-                    {% if receipt.address %}
-                    <p><strong>ที่อยู่ในใบเสร็จรับเงิน</strong> {{ receipt.address }}</p>
+                    {% if receipt.issuer %}
+                    <p><strong>ผู้ออกใบเสร็จ</strong> {{ receipt.issuer.fullname }}</p>
                     {% endif %}
                 </div>
                 <div class="column has-text-centered is-one-third">
                     <img width="100" src="{{ url_for('static', filename='img/logo-MU_Color.png')}}">
                     <h4 class="title is-size-4">คณะเทคนิคการแพทย์ <br/>มหาวิทยาลัยมหิดล</h4>
-                    <h1 class="title is-size-3">ใบเสร็จรับเงิน / RECEIPT</h1>
+                    <h3 class="title is-size-3">Preview <br/>ใบเสร็จรับเงิน / RECEIPT</h3>
                 </div>
                 <div class="column">
                     <div class="has-text-right">
@@ -46,14 +46,14 @@
                             {% for n, item in enumerate(receipt.items, start=1) %}
                                 <td>{{ n }}</td>
                                 <td>{{ item.item }}</td>
-                                <td>{{ item.price }}</td>
+                                <td>{{ item.price|moneyformat  }}</td>
                         </tr>
                         <tr></tr>
                         {% endfor %}
                         <tr style="background-color: #ededed;">
                             <td></td>
                             <td><strong>รวม</strong></td>
-                            <td class="has-text-right">{{ total }}</td>
+                            <td class="has-text-right">{{ total|moneyformat  }}</td>
                         </tr>
                         </tbody>
                     </table>
@@ -74,12 +74,12 @@
                         </tr>
                         <tr>
                             <td class="is-size-4">
-                                {% if receipt.payment_method == 'cash' %}
+                                {% if receipt.payment_method == 'Cash' %}
                                 <span class="icon has-text-success">
                                     <i class="fas fa-dollar-sign"></i>
                                 </span>
                                 <span class="has-text-success">ชำระด้วยเงินสด</span>
-                                {% elif receipt.payment_method == 'card' %}
+                                {% elif receipt.payment_method == 'Credit Card' %}
                                 <span class="icon has-text-success">
                                     <i class="far fa-credit-card"></i>
                                 </span>

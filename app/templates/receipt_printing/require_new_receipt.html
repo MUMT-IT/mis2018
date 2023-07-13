@@ -23,6 +23,10 @@
                             <td><strong>เลขที่</strong></td>
                             <td>{{ receipt.number }}</td>
                         </tr>
+                        <tr>
+                            <td><strong>ได้รับเงินจาก</strong></td>
+                            <td>{{ receipt.received_money_from.received_money_from }}</td>
+                        </tr>
                     </table>
                     <form action="{{ url_for('receipt_printing.require_new_receipt', receipt_id=receipt.id) }}" method="POST" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
