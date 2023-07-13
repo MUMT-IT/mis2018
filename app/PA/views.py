@@ -359,7 +359,9 @@ def respond_request(request_id):
 @login_required
 def create_scoresheet(pa_id):
     pa = PAAgreement.query.filter_by(id=pa_id).first()
-    committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ').first()
+    committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ', round=pa.round).first()
+    if not committee:
+        committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
     scoresheet = PAScoreSheet.query.filter_by(pa=pa, committee_id=committee.id, is_consolidated=False).first()
     if not scoresheet:
         create_score_sheet = PAScoreSheet(
@@ -457,8 +459,11 @@ def create_scoresheet_for_committee(pa_id):
 @login_required
 def assign_committee(pa_id):
     pa = PAAgreement.query.filter_by(id=pa_id).first()
-    committee = PACommittee.query.filter_by(round_id=pa.round_id, org=pa.staff.personal_info.org).filter(
+    committee = PACommittee.query.filter_by(round=pa.round, org=pa.staff.personal_info.org).filter(
         PACommittee.staff != current_user).all()
+    if not committee:
+        committee = PACommittee.query.filter_by(round=pa.round, subordinate=pa.staff).filter(
+                        PACommittee.staff != current_user).all()
     if request.method == 'POST':
         form = request.form
         pa.committees = []
@@ -485,7 +490,7 @@ def all_approved_pa():
 def summary_scoresheet(pa_id):
     # TODO: fixed position of item
     pa = PAAgreement.query.filter_by(id=pa_id).first()
-    committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ').first()
+    committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ', round=pa.round).first()
     core_competency_items = PACoreCompetencyItem.query.all()
     consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).filter(
         PACommittee.staff == current_user).first()
