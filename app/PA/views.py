@@ -582,6 +582,15 @@ def confirm_final_score(scoresheet_id):
 @login_required
 def send_consensus_scoresheets_to_hr(scoresheet_id):
     scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
+    pa_approved = PAApprovedScoreSheet.query.filter_by(score_sheet=scoresheet).all()
+    if not pa_approved:
+        flash('กรุณาบันทึกคะแนนสรุป และส่งขอรับรองคะแนนยังคณะกรรมการ ก่อนส่งผลคะแนนไปยัง HR', 'warning')
+        return redirect(request.referrer)
+    for approved in pa_approved:
+        print(approved.approved_at)
+        if not approved.approved_at:
+            flash('จำเป็นต้องมีการรับรองผลโดยคณะกรรมการทั้งหมด ก่อนส่งผลคะแนนไปยัง HR', 'warning')
+            return redirect(request.referrer)
     scoresheet.is_appproved = True
     db.session.add(scoresheet)
     db.session.commit()
@@ -717,7 +726,7 @@ def consensus_scoresheets():
 def detail_consensus_scoresheet(approved_id):
     approve_scoresheet = PAApprovedScoreSheet.query.filter_by(id=approved_id).first()
     consolidated_score_sheet = PAScoreSheet.query.filter_by(id=approve_scoresheet.score_sheet_id).first()
-
+    core_competency_items = PACoreCompetencyItem.query.all()
     if request.method == 'POST':
         approve_scoresheet.approved_at = datetime.datetime.now(tz)
         db.session.add(approve_scoresheet)
@@ -725,7 +734,7 @@ def detail_consensus_scoresheet(approved_id):
         flash('บันทึกการอนุมัติเรียบร้อยแล้ว', 'success')
         return redirect(url_for('pa.consensus_scoresheets'))
     return render_template('PA/eva_consensus_scoresheet_detail.html', consolidated_score_sheet=consolidated_score_sheet,
-                           approve_scoresheet=approve_scoresheet)
+                           approve_scoresheet=approve_scoresheet, core_competency_items=core_competency_items)
 
 
 @pa.route('/eva/all-scoresheet')
