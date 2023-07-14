@@ -71,9 +71,15 @@
         <div class="columns">
             <div class="column">
                 <div class="buttons is-centered">
+                    {% if is_head_committee %}
                     <a href="{{ url_for('pa.all_approved_pa') }}" class="button is-light">
                         <span>กลับ</span>
                     </a>
+                    {% else %}
+                    <a href="{{ url_for('pa.all_scoresheet') }}" class="button is-light">
+                        <span>กลับ</span>
+                    </a>
+                    {% endif %}
                     <a href="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}" class="button is-warning">
                         <span class="icon">
                             <i class="fa-solid fa-magnifying-glass-chart"></i>
