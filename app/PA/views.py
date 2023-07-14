@@ -418,40 +418,42 @@ def create_scoresheet_for_self_evaluation(pa_id):
 def create_scoresheet_for_committee(pa_id):
     pa = PAAgreement.query.get(pa_id)
     mails = []
-
-    for c in pa.committees:
-        scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id, committee_id=c.id).first()
-        if not scoresheet:
-            create_scoresheet = PAScoreSheet(
-                pa_id=pa_id,
-                committee_id=c.id
-            )
-            db.session.add(create_scoresheet)
-            db.session.commit()
-            pa_item = PAItem.query.filter_by(pa_id=pa_id).all()
-            for item in pa_item:
-                for kpi_item in item.kpi_items:
-                    create_scoresheet_item = PAScoreSheetItem(
-                        score_sheet_id=create_scoresheet.id,
-                        item_id=item.id,
-                        kpi_item_id=kpi_item.id
-                    )
-                    db.session.add(create_scoresheet_item)
-                    db.session.commit()
-            scoresheet_id = create_scoresheet.id
+    if pa.committees:
+        for c in pa.committees:
+            scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id, committee_id=c.id).first()
+            if not scoresheet:
+                create_scoresheet = PAScoreSheet(
+                    pa_id=pa_id,
+                    committee_id=c.id
+                )
+                db.session.add(create_scoresheet)
+                db.session.commit()
+                pa_item = PAItem.query.filter_by(pa_id=pa_id).all()
+                for item in pa_item:
+                    for kpi_item in item.kpi_items:
+                        create_scoresheet_item = PAScoreSheetItem(
+                            score_sheet_id=create_scoresheet.id,
+                            item_id=item.id,
+                            kpi_item_id=kpi_item.id
+                        )
+                        db.session.add(create_scoresheet_item)
+                        db.session.commit()
+                scoresheet_id = create_scoresheet.id
+            else:
+                scoresheet_id = scoresheet.id
+            mails.append(c.staff.email + "@mahidol.ac.th")
+            print(c.staff.email)
+        req_title = 'แจ้งคำขอเข้ารับการประเมินการปฏิบัติงาน(PA)'
+        req_msg = '{} ขอรับการประเมิน PA กรุณาดำเนินการตาม Link ที่แนบมานี้ {}' \
+                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(pa.staff.personal_info.fullname,
+                    url_for("pa.all_performance",scoresheet_id=scoresheet_id, _external=True))
+        if not current_app.debug:
+            send_mail(mails, req_title, req_msg)
         else:
-            scoresheet_id = scoresheet.id
-        mails.append(c.staff.email + "@mahidol.ac.th")
-        print(c.staff.email)
-    req_title = 'แจ้งคำขอเข้ารับการประเมินการปฏิบัติงาน(PA)'
-    req_msg = '{} ขอรับการประเมิน PA กรุณาดำเนินการตาม Link ที่แนบมานี้ {}' \
-              '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(pa.staff.personal_info.fullname,
-                url_for("pa.all_performance",scoresheet_id=scoresheet_id, _external=True))
-    if not current_app.debug:
-        send_mail(mails, req_title, req_msg)
+            print(req_msg, pa.staff.personal_info.fullname)
+        flash('ส่งการประเมินไปยังกลุ่มผู้ประเมินเรียบร้อยแล้ว', 'success')
     else:
-        print(req_msg, pa.staff.personal_info.fullname)
-    flash('ส่งการประเมินไปยังกลุ่มผู้ประเมินเรียบร้อยแล้ว', 'success')
+        flash('กรุณาระบุกลุ่มผู้ประเมินก่อนส่งแบบประเมินไปยังกรรรมการ (ปุ่ม กรรมการ)', 'warning')
     return redirect(url_for('pa.all_approved_pa'))
 
 
@@ -491,9 +493,11 @@ def summary_scoresheet(pa_id):
     # TODO: fixed position of item
     pa = PAAgreement.query.filter_by(id=pa_id).first()
     committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ', round=pa.round).first()
+    if not committee:
+        committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
     core_competency_items = PACoreCompetencyItem.query.all()
     consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).filter(
-        PACommittee.staff == current_user).first()
+                                                                PACommittee.staff == current_user).first()
     if consolidated_score_sheet:
         score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     else:
@@ -606,8 +610,11 @@ def rate_performance(scoresheet_id):
     for_self = request.args.get('for_self', 'false')
     scoresheet = PAScoreSheet.query.get(scoresheet_id)
     pa = PAAgreement.query.get(scoresheet.pa_id)
-    head_scoresheet = pa.pa_score_sheet.filter(PACommittee.role == 'ประธานกรรมการ',
-                                               PAScoreSheet.is_consolidated == False).first()
+    committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ',
+                                            round=pa.round).first()
+    if not committee:
+        committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
+    head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, committee=committee, is_consolidated=False).first()
     self_scoresheet = pa.pa_score_sheet.filter(PAScoreSheet.staff_id == pa.staff.id).first()
     core_competency_items = PACoreCompetencyItem.query.all()
     if for_self == 'true':
@@ -649,7 +656,8 @@ def rate_performance(scoresheet_id):
 @login_required
 def all_performance(scoresheet_id):
     scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
-    return render_template('PA/eva_all_performance.html', scoresheet=scoresheet)
+    is_head_committee = PACommittee.query.filter_by(staff=current_user, role='ประธานกรรมการ').first()
+    return render_template('PA/eva_all_performance.html', scoresheet=scoresheet, is_head_committee=is_head_committee)
 
 
 @pa.route('/eva/create-consensus-scoresheets/<int:pa_id>')
