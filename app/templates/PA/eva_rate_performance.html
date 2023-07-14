@@ -91,6 +91,7 @@
                             {% endfor %}
                             </tbody>
                         </table>
+                        <progress class="progress" value="100" max="100"></progress>
                         <h1 class="title has-text-centered">ประเมินสมรรถนะหลัก</h1>
                         <h1 class="subtitle has-text-centered">Core Competency</h1>
                         <div class="column is-one-third is-offset-4">
@@ -102,28 +103,20 @@
                             <th>คะแนนเต็ม</th>
                             </thead>
                             <tr>
-                                <td>แสดงพฤติกรรมแทบทุกครั้ง/สม่ำเสมอ
-                                </td>
-                                <td>10 - 9
-                                </td>
+                                <td>แสดงพฤติกรรมแทบทุกครั้ง/สม่ำเสมอ</td>
+                                <td>10 - 9</td>
                             </tr>
                             <tr>
-                                <td>แสดงพฤติกรรมบ่อยครั้ง/เกือบสม่ำเสมอ
-                                </td>
-                                <td>8 - 6
-                                </td>
+                                <td>แสดงพฤติกรรมบ่อยครั้ง/เกือบสม่ำเสมอ</td>
+                                <td>8 - 6</td>
                             </tr>
                             <tr>
-                                <td>แสดงพฤติกรรมเป็นบางครั้ง
-                                </td>
-                                <td>5 - 3
-                                </td>
+                                <td>แสดงพฤติกรรมเป็นบางครั้ง</td>
+                                <td>5 - 3</td>
                             </tr>
                             <tr>
-                                <td>ไม่เคย/แทบจะไม่เคยแสดงพฤติกรรม
-                                </td>
-                                <td>2 - 0
-                                </td>
+                                <td>ไม่เคย/แทบจะไม่เคยแสดงพฤติกรรม</td>
+                                <td>2 - 0</td>
                             </tr>
                         </table>
                             </div>
@@ -132,6 +125,10 @@
                             <thead>
                             <th>หัวข้อ</th>
                             <th>คะแนนเต็ม</th>
+                            {% if for_self == 'false' %}
+                            <th>คะแนนประเมินตนเอง</th>
+                            <th>ผลการประเมินผู้บังคับบัญชาขั้นต้น</th>
+                            {% endif %}
                             <th>คะแนน</th>
                             </thead>
                             {% for item in core_competency_items %}
@@ -141,6 +138,10 @@
                                         <p class="help">{{ item.desc }}</p>
                                     </td>
                                     <td>{{ item.score }}</td>
+                                    {% if for_self == 'false' %}
+                                    <td>{{ self_scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}</td>
+                                    <td>{{ head_scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}</td>
+                                    {% endif %}
                                     <td>
                                         <div class="field">
                                             <input class="input" type="number"
