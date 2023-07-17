@@ -1,9 +1,9 @@
 from flask_wtf import FlaskForm
-from .models import PACommittee, PARound, PARequest
-from wtforms import FieldList, FormField, FloatField, SelectField, TextAreaField, widgets
+from wtforms import FieldList, FormField, FloatField, SelectField, TextAreaField
 from wtforms_alchemy import model_form_factory, QuerySelectField
-
+from sqlalchemy import and_
 from app.PA.models import *
+from app.staff.models import StaffSpecialGroup
 from app.main import db
 from ..models import Org, StaffAccount
 
@@ -56,7 +56,7 @@ class PACommitteeForm(ModelForm):
                              allow_blank=False,
                              query_factory=lambda: PARound.query.all())
 
-    org = QuerySelectField('หน่วยงาน',
+    org = QuerySelectField('ประเมินหน่วยงาน',
                            get_label='name',
                            allow_blank=False,
                            query_factory=lambda: Org.query.all())
@@ -66,6 +66,13 @@ class PACommitteeForm(ModelForm):
                              allow_blank=False,
                              query_factory=lambda: StaffAccount.query.filter(
                                  StaffAccount.personal_info.has(retired=False)).all())
+
+    subordinate = QuerySelectField('ผู้รับการประเมิน(ระบุกรณีอยู่ในทีมบริหาร)',
+                                   get_label='fullname',
+                                   allow_blank=True,
+                                   query_factory=lambda: StaffAccount.query.filter(
+                                       StaffAccount.personal_info.has(retired=False)).all())
+
 
 
 class PARequestForm(ModelForm):
