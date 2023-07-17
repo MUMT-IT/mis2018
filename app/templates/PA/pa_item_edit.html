@@ -198,14 +198,14 @@
                                     <table class="table is-fullwidth is-striped">
                                         {% for item_form in form.kpi_items_ %}
                                             <tr>
-                                                <td>
+                                                <td style="width: 40%">
                                                     <div class="field">
                                                         <label class="label">
                                                             {{ loop.index }}) {{ item_form.label }}
                                                         </label>
                                                     </div>
                                                 </td>
-                                                <td>
+                                                <td style="width: 45%">
                                                     <div class="select">
                                                         {% if pa.approved_at or pa.submitted %}
                                                             {{ item_form(disabled=True) }}
