@@ -5,6 +5,18 @@
     <section class="section">
         <div class="container">
             {% include "messages.html" %}
+             {% if for_self == 'false' %}
+             <div class="columns">
+                <div class="column is-half is-offset-3 has-text-centered">
+                       <div class="notification is-link is-light">
+                        <h1 class="subtitle">
+                            ผู้รับการประเมิน {{ scoresheet.pa.staff.personal_info.fullname }}<br>
+                            รอบวันที่ {{ scoresheet.pa.round }}
+                        </h1>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
             <div class="columns">
                 <div class="column has-text-centered">
                     <h1 class="title">ประเมินผลงาน(Performance)</h1>
