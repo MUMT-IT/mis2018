@@ -103,13 +103,6 @@
                                     </td>
                                     <td>{{ item.score }}</td>
                                     <td class="content">
-                                        {% for sc in consolidated_score_sheet.pa.pa_score_sheet %}
-                                           {% if sc.is_consolidated == False %}
-                                              <div class="field is-grouped">
-                                                  {{ sc.get_core_competency_score_item(comp_item_id=item.id).score }}
-                                              </div>
-                                           {% endif %}
-                                        {% endfor %}
                                         <div class="control">
                                             <div class="tags has-addons">
                                                 <span class="tag">
