@@ -4212,7 +4212,7 @@ def geo_checkin():
         now = datetime.now(pytz.utc)
         date_id = StaffWorkLogin.generate_date_id(now.astimezone(tz))
 
-        if place == 'mtc':
+        if place == 'gj':
             num_scans = 1
             record = StaffWorkLogin(
                 date_id=date_id,
