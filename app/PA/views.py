@@ -711,10 +711,14 @@ def create_consensus_scoresheets(pa_id):
 @pa.route('/eva/consensus-scoresheets')
 @login_required
 def consensus_scoresheets():
-    # TODO: recheck bug
     committee = PACommittee.query.filter_by(staff=current_user).all()
-    for c in committee:
-        approved_scoresheets = PAApprovedScoreSheet.query.filter_by(committee_id=c.id).all()
+    approved_scoresheets = []
+    for committee in committee:
+        print(committee.id)
+        approved_scoresheet = PAApprovedScoreSheet.query.filter_by(committee_id=committee.id).all()
+        for s in approved_scoresheet:
+            print(s.id)
+            approved_scoresheets.append(s)
     if not committee:
         flash('สำหรับคณะกรรมการประเมิน PA เท่านั้น ขออภัยในความไม่สะดวก', 'warning')
         return redirect(url_for('pa.index'))
