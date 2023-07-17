@@ -19,19 +19,13 @@
                     <form method="post" enctype="multipart/form-data">
                         {{ form.hidden_tag() }}
                         <div class="field">
-                            <label class="label">สำหรับรอบการประเมิน</label>
+                            <label class="label">รอบการประเมิน</label>
                             <div class="select">
                                 {{ form.round() }}
                             </div>
                         </div>
                         <div class="field">
-                            <label class="label">{{ form.org.label }}</label>
-                            <div class="select">
-                                {{ form.org() }}
-                            </div>
-                        </div>
-                        <div class="field">
-                            <label class="label">{{ form.role.label }}</label>
+                            <label class="label">ประเภทกรรมการ</label>
                             <div class="select">
                                 {{ form.role() }}
                             </div>
@@ -40,6 +34,17 @@
                             <label class="label">{{ form.staff.label }}</label>
                             {{ form.staff() }}
                         </div>
+                        <div class="field">
+                            <label class="label">{{ form.org.label }}</label>
+                            <div class="select">
+                                {{ form.org() }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.subordinate.label }}</label>
+                            {{ form.subordinate() }}
+                        </div>
+
                         <div class="field is-grouped is-grouped-centered">
                             <div class="control">
                                 <a href="{{ url_for('pa.show_commitee') }}"
@@ -73,5 +78,8 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
         $('#staff').select2()
+    </script>
+    <script>
+        $('#subordinate').select2()
     </script>
 {% endblock %}
