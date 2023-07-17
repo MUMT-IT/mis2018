@@ -741,8 +741,11 @@ def detail_consensus_scoresheet(approved_id):
 @login_required
 def all_scoresheet():
     committee = PACommittee.query.filter_by(staff=current_user).all()
-    for c in committee:
-        scoresheets = PAScoreSheet.query.filter_by(committee_id=c.id).all()
+    scoresheets = []
+    for committee in committee:
+        scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False).all()
+        for s in scoresheet:
+            scoresheets.append(s)
     if not committee:
         flash('สำหรับคณะกรรมการประเมิน PA เท่านั้น ขออภัยในความไม่สะดวก', 'warning')
         return redirect(url_for('pa.index'))
