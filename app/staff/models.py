@@ -400,6 +400,13 @@ class StaffEmployment(db.Model):
         return self.title
 
 
+class StaffJobPosition(db.Model):
+    __tablename__ = 'staff_job_positions'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    en_title = db.Column('en_title', db.String())
+    th_title = db.Column('th_title', db.String())
+
+
 class StaffSpecialGroup(db.Model):
     __tablename__ = 'staff_special_groups'
     id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
