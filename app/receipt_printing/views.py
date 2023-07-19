@@ -325,6 +325,9 @@ def export_receipt_pdf(receipt_id):
     elif receipt.payment_method == 'Cheque':
         payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: เช็คสั่งจ่าย / CHEQUE NUMBER {}**** {}</font>'.format(receipt.cheque_number[:4], receipt.bank_name),
                                  style=style_sheet['ThaiStyle'])
+    elif receipt.payment_method == 'Other':
+        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: วิธีการอื่นๆ / OTHER {}</font>'.format(receipt.other_payment_method),
+                                 style=style_sheet['ThaiStyle'])
     else:
         payment_info = Paragraph('<font size=11>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])
 
