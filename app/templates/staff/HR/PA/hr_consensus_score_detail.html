@@ -103,9 +103,43 @@
                         <h1 class="subtitle has-text-right">
                             คะแนนผลการประเมิน เมื่อคิดตามน้ำหนัก 20%: {{ consolidated_score_sheet.competency_net_score() }}
                         </h1>
-                        <h1 class="title has-text-centered">
-                            คะแนนรวมทั้งหมด: {{ consolidated_score_sheet.pa.performance_score + consolidated_score_sheet.pa.competency_score}}
-                        </h1>
+                        <progress class="progress" value="100" max="100"></progress>
+                        <div class="columns is-grouped-centered">
+                            <div class="column is-one-third is-offset-4">
+                                <table class="table">
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                คะแนน Performance 80%
+                                            </td>
+                                            <td>
+                                                {{ consolidated_score_sheet.pa.performance_score }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                คะแนน Core Competency 20%
+                                            </td>
+                                            <td>
+                                                {{ consolidated_score_sheet.competency_net_score() }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="title">
+                                                    คะแนนรวม
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="title">
+                                                {{ consolidated_score_sheet.pa.performance_score + consolidated_score_sheet.pa.competency_score}}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="columns">
