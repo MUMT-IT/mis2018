@@ -16,6 +16,7 @@
                     <th>รอบการประเมิน</th>
                     <th>ผู้รับการประเมิน</th>
                     <th>สังกัด</th>
+                    <th>คะแนนรวม</th>
                     <th></th>
                     </thead>
                     <tbody>
@@ -29,6 +30,9 @@
                         </td>
                         <td>
                             {{ approved_scoresheet.pa.staff.personal_info.org }}
+                        </td>
+                        <td>
+                            {{ approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score }}
                         </td>
                         <td>
                             <a href="{{ url_for('pa.detail_consensus_scoresheet_for_hr',
