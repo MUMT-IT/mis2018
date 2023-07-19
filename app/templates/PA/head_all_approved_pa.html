@@ -44,7 +44,7 @@
                                         <span class="icon">
                                             <i class="fa-solid fa-user-plus"></i>
                                         </span>
-                                        <span>กรรมการ</span>
+                                        <span>1. กรรมการ</span>
                                     </a>
                                 </div>
                                 <div class="control">
@@ -53,21 +53,21 @@
                                         <span class="icon">
                                             <i class="fa-solid fa-magnifying-glass-chart"></i>
                                         </span>
-                                        <span>ประเมิน</span>
+                                        <span>2. ประเมิน</span>
                                     </a>
                                 </div>
                                 <div class="control">
                                     <a href="{{ url_for('pa.create_scoresheet_for_committee', pa_id=req.pa.id) }}"
                                        class="button is-dark is-outlined is-rounded is-small">
                                         <span class="icon"><i class="fa-solid fa-paper-plane"></i></span>
-                                        <span>ส่งแบบประเมิน</span>
+                                        <span>3. ส่งแบบประเมิน</span>
                                     </a>
                                 </div>
                                 <div class="control">
                                     <a href="{{ url_for('pa.summary_scoresheet', pa_id=req.pa.id) }}"
                                        class="button is-dark is-outlined is-rounded is-small">
                                         <span class="icon"><i class="fa-solid fa-chart-simple"></i></span>
-                                        <span>สรุปผล</span>
+                                        <span>4. สรุปผล</span>
                                     </a>
                                 </div>
                                 <div class="control">
@@ -76,7 +76,7 @@
                                         <span class="icon">
                                             <i class="fa-solid fa-square-check"></i>
                                         </span>
-                                        <span>ขอรับรองผล</span>
+                                        <span>5. ขอรับรองผล</span>
                                     </a>
                                 </div>
                             </div>

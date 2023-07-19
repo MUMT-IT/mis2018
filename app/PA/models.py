@@ -121,7 +121,7 @@ class PAKPI(db.Model):
                                                     ('ปริมาณ', 'คุณภาพ', 'เวลา', 'ความคุ้มค่า', 'ความพึงพอใจ')]})
 
     def __str__(self):
-        return f'ประเภท{self.type} {self.detail}'
+        return f'{self.detail} (ประเภท {self.type})'
 
 
 class PAKPIItem(db.Model):

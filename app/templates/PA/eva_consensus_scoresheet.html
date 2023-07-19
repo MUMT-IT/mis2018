@@ -27,12 +27,13 @@
                             {{ approved_scoresheet.score_sheet.pa.staff.personal_info.fullname }}
                         </td>
                         <td>
-                            <a href="{{ url_for('pa.detail_consensus_scoresheet', approved_id=approved_scoresheet.id) }}"
-                               class="button is-small">
+                            <a href="{{ url_for('pa.detail_consensus_scoresheet', approved_id=approved_scoresheet.id) }}">
                                 {% if approved_scoresheet.approved_at %}
-                                    <span>รายละเอียด(อนุมัติแล้ว)</span>
+                                    <div class="button is-light">
+                                        <span>รายละเอียด(อนุมัติแล้ว)</span></div>
                                 {% else %}
-                                    <span>รายละเอียดเพิ่มเติมเพื่ออนุมัติ</span>
+                                    <div class="button is-info">
+                                        <span>รายละเอียดเพิ่มเติมเพื่ออนุมัติ</span></div>
                                 {% endif %}
                             </a>
                         </td>

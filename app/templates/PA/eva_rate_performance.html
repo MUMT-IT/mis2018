@@ -5,9 +5,21 @@
     <section class="section">
         <div class="container">
             {% include "messages.html" %}
+             {% if for_self == 'false' %}
+             <div class="columns">
+                <div class="column is-half is-offset-3 has-text-centered">
+                       <div class="notification is-link is-light">
+                        <h1 class="subtitle">
+                            ผู้รับการประเมิน {{ scoresheet.pa.staff.personal_info.fullname }}<br>
+                            รอบวันที่ {{ scoresheet.pa.round }}
+                        </h1>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="title">ประเมินภาระงาน</h1>
+                    <h1 class="title">ประเมินผลงาน(Performance)</h1>
                 </div>
             </div>
             <div class="columns">
@@ -42,9 +54,9 @@
                             <th>เกณฑ์ตามตัวชี้วัด</th>
                             {% if for_self == 'false' %}
                             <th>คะแนนประเมินตนเอง</th>
-                            <th>ผลการประเมินผู้บังคับบัญชาขั้นต้น</th>
+                            <th>คะแนนจากผู้บังคับบัญชาขั้นต้น</th>
                             {% endif %}
-                            <th>คะแนน 0-10</th>
+                            <th>กรอกคะแนน(0-10)</th>
                             </thead>
                             <tbody>
                             {% for s in scoresheet.score_sheet_items %}
@@ -92,31 +104,18 @@
                             </tbody>
                         </table>
                         <progress class="progress" value="100" max="100"></progress>
-                        <h1 class="title has-text-centered">ประเมินสมรรถนะหลัก</h1>
-                        <h1 class="subtitle has-text-centered">Core Competency</h1>
-                        <div class="column is-one-third is-offset-4">
+                        <h1 class="subtitle has-text-centered">ประเมินสมรรถนะหลัก(Core Competency)</h1>
+                        <div class="column ">
                             <div class="box">
                                 <table class="table is-fullwidth">
                             <thead>
                             <div class="subtitle has-text-centered">เกณฑ์การประเมิน</div>
-                            <th>หัวข้อ</th>
-                            <th>คะแนนเต็ม</th>
                             </thead>
                             <tr>
-                                <td>แสดงพฤติกรรมแทบทุกครั้ง/สม่ำเสมอ</td>
-                                <td>10 - 9</td>
-                            </tr>
-                            <tr>
-                                <td>แสดงพฤติกรรมบ่อยครั้ง/เกือบสม่ำเสมอ</td>
-                                <td>8 - 6</td>
-                            </tr>
-                            <tr>
-                                <td>แสดงพฤติกรรมเป็นบางครั้ง</td>
-                                <td>5 - 3</td>
-                            </tr>
-                            <tr>
-                                <td>ไม่เคย/แทบจะไม่เคยแสดงพฤติกรรม</td>
-                                <td>2 - 0</td>
+                                <td>คะแนนเต็ม 10 - 9 <br>แสดงพฤติกรรมแทบทุกครั้ง/สม่ำเสมอ </td>
+                                <td>คะแนนเต็ม 8 - 6 <br>แสดงพฤติกรรมบ่อยครั้ง/เกือบสม่ำเสมอ</td>
+                                <td>คะแนนเต็ม 5 - 3 <br>แสดงพฤติกรรมเป็นบางครั้ง</td>
+                                <td>คะแนนเต็ม 2 - 0 <br>ไม่เคย/แทบจะไม่เคยแสดงพฤติกรรม</td>
                             </tr>
                         </table>
                             </div>
@@ -127,9 +126,9 @@
                             <th>คะแนนเต็ม</th>
                             {% if for_self == 'false' %}
                             <th>คะแนนประเมินตนเอง</th>
-                            <th>ผลการประเมินผู้บังคับบัญชาขั้นต้น</th>
+                            <th>คะแนนจากผู้บังคับบัญชาขั้นต้น</th>
                             {% endif %}
-                            <th>คะแนน</th>
+                            <th>กรอกคะแนน(0-10)</th>
                             </thead>
                             {% for item in core_competency_items %}
                                 <tr>
