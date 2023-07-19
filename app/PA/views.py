@@ -818,3 +818,10 @@ def rate_core_competency(pa_id=None, scoresheet_id=None):
 @hr_permission.require()
 def hr_index():
     return render_template('staff/HR/PA/pa_index.html')
+
+
+@pa.route('/hr/all-scoresheets')
+@login_required
+def scoresheets_for_hr():
+    scoresheets = PAScoreSheet.query.filter(PAScoreSheet.staff == None).all()
+    return render_template('staff/HR/PA/hr_all_scoresheets.html', scoresheets=scoresheets)
