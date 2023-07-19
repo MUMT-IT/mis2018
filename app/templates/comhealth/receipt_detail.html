@@ -209,6 +209,12 @@
                                     <label for="cash-radio">
                                         เงินสด
                                     </label>
+                                     <input type="radio" class="is-checkradio"
+                                           id="cash-radio" value="QR"
+                                           v-model="payMethod" name="pay_method">
+                                    <label for="cash-radio">
+                                        QR
+                                    </label>
                                     <input type="radio" class="is-checkradio"
                                            id="card-radio" value="card"
                                            v-model="payMethod" name="pay_method">
@@ -352,6 +358,12 @@
                 payChange: function() {
                     if (this.payAmount > 0 && this.payMethod == 'cash') {
                         return this.payAmount - this.totalCost;
+                    } else if (this.payMethod == 'QR') {
+                        this.payAmount = this.totalCost;
+                        return this.payAmount
+                    } else if (this.payMethod == 'card') {
+                        this.payAmount = 0.0;
+                        return 0.0;
                     } else {
                         return 0.0;
                     }
