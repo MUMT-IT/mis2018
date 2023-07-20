@@ -169,7 +169,7 @@ class PAItem(db.Model):
         for s in self.pa_score_item:
             if s.score_sheet_id == scoresheet.id:
                 if s.score:
-                    score = s.score
+                    score += s.score
                     n += 1
         return score / n
 
@@ -179,7 +179,7 @@ class PAItem(db.Model):
         for s in self.pa_score_item:
             if s.score_sheet_id == scoresheet.id:
                 if s.score:
-                    score = s.score
+                    score += s.score
                     n += 1
         return (score / n) * self.percentage
 
@@ -308,3 +308,26 @@ class PAApprovedScoreSheet(db.Model):
     committee = db.relationship('PACommittee', backref=db.backref('committee_approved_score_sheet'),
                                 foreign_keys=[committee_id])
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+
+#
+# class PAFunctionalCompetency(db.Model):
+#     __tablename__ = 'pa_functional_competency'
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     code = db.Column('code', db.String(), nullable=False, info={'label': 'รหัส'})
+#     score = db.Column('score', db.Numeric(), info={'label': 'คะแนนเต็ม'})
+#
+#
+# class PAFunctionalCompetencyItem(db.Model):
+#     __tablename__ = 'pa_functional_competency_items'
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     function_id = db.Column(db.ForeignKey('pa_functional_competency.id'))
+#     topic = db.Column('topic', db.String(), nullable=False, info={'label': 'หัวข้อ'})
+#     desc = db.Column('desc', db.Text(), info={'label': 'คำอธิบาย'})
+#
+#
+# class PAFunctionalCompetency(db.Model):
+#     __tablename__ = 'pa_functional_competency_items'
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     code = db.Column('code', db.String(), nullable=False, info={'label': 'รหัส'})
+#     desc = db.Column('desc', db.Text(), info={'label': 'คำอธิบาย'})
+#     desc = db.Column('desc', db.Text(), info={'label': 'คำอธิบาย'})
