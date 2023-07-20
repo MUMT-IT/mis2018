@@ -51,12 +51,28 @@ def landing():
 @receipt_printing.route('/receipt/create', methods=['POST', 'GET'])
 def create_receipt():
     form = ReceiptDetailForm()
+    form.payer.choices = [(None, 'Add or select payer')] + [(r.id, r.received_money_from)
+                                for r in ElectronicReceiptReceivedMoneyFrom.query.all()]
     receipt_book = ComHealthReceiptID.query.filter_by(code='MTG').first()
+    payer = None
+    if request.method == 'POST':
+        if form.payer.data:
+            try:
+                payer_id = int(form.payer.data)
+            except ValueError:
+                payer = ElectronicReceiptReceivedMoneyFrom(received_money_from=form.payer.data)
+                db.session.add(payer)
+                db.session.commit()
+            else:
+                payer = ElectronicReceiptReceivedMoneyFrom.query.get(payer_id)
+
     if form.validate_on_submit():
         receipt_detail = ElectronicReceiptDetail()
         receipt_detail.issuer = current_user
         receipt_detail.created_datetime = datetime.now(tz=bangkok)
         form.populate_obj(receipt_detail)  #insert data from Form to Model
+        if payer:
+            receipt_detail.received_money_from = payer
         receipt_detail.number = receipt_book.next
         receipt_book.count += 1
         receipt_detail.book_number = receipt_book.book_number
