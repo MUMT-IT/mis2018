@@ -352,7 +352,7 @@ def respond_request(request_id):
         db.session.add(req)
         db.session.commit()
         flash('ดำเนินการอนุมัติเรียบร้อยแล้ว', 'success')
-    return redirect(url_for('pa.all_request'))
+    return redirect(url_for('pa.view_request', request_id=request_id))
 
 
 @pa.route('/head/create-scoresheet/<int:pa_id>', methods=['GET', 'POST'])
