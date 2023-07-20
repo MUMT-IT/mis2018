@@ -66,7 +66,7 @@
                                 </a>
                             </label>
                             <div class="control">
-                                {{ form.received_money_from(class="select") }}
+                                {{ form.payer(placeholder="Add or select a payer", class="select", **{'data-tags':"true"}) }}
                             </div>
                         </div>
                         <div class="field">
@@ -243,7 +243,7 @@
 
     </script>
     <script>
-        $( "#received_money_from" ).on( "select2:select", function() {
+        $( "#payer" ).on( "select2:select", function() {
           let payer_id = $(this).val()
             if (payer_id){
                     $.ajax({
