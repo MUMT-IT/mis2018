@@ -33,7 +33,6 @@ def generate_qrcode(amount, ref1, ref2, ref3):
         'applicationSecret': APP_SECRET
     })
     response_data = response.json()
-    print(response.text)
     access_token = response_data['data']['accessToken']
 
     headers['authorization'] = 'Bearer {}'.format(access_token)
@@ -98,14 +97,16 @@ def create_qrcode():
     if amount is None:
         return jsonify({'message': 'Amount is needed'}), 400
     data = generate_qrcode(amount, ref1=ref1, ref2=ref2, ref3=REF3)
-    if 'qrImage' not in data:
+    if 'qrImage' in data:
         if not record:
             record = ScbPaymentRecord(bill_payment_ref1=ref1, bill_payment_ref2=ref2,
                                       service=service,
                                       customer1=customer1, customer2=customer2,
                                       amount=amount)
-            db.session.add(record)
-            db.session.commit()
+        else:
+            record.amount = amount
+        db.session.add(record)
+        db.session.commit()
         return jsonify({'data': data})
     else:
         return jsonify(data), 500
