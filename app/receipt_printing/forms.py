@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
 from flask_wtf import FlaskForm
-from wtforms import FormField, FieldList, FileField, StringField, RadioField, Field, TextAreaField
+from wtforms import FormField, FieldList, FileField, StringField, RadioField, Field, TextAreaField, SelectField
 from wtforms.validators import DataRequired
 from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField
@@ -57,9 +57,7 @@ class ReceiptDetailForm(ModelForm):
         only = ['number', 'copy_number', 'book_number', 'comment', 'paid', 'cancelled', 'cancel_comment',
                 'payment_method', 'paid_amount', 'card_number', 'cheque_number', 'other_payment_method']
 
-    received_money_from = QuerySelectField('Received Money From',
-                                   query_factory=lambda: ElectronicReceiptReceivedMoneyFrom.query.all(),
-                                   blank_text='Select received money from..', allow_blank=True)
+    payer = SelectField('Received Money From', validate_choice=False)
     bank_name = QuerySelectField('Bank Name',
                                  query_factory=lambda: ElectronicReceiptBankName.query.all(),
                                  blank_text='Select bank name..', allow_blank=True)
