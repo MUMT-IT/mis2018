@@ -155,6 +155,21 @@
                         </form>
                     </div>
                 {% else %}
+                    {% if not req.for_ == 'ขอรับรอง' %}
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                            <a href="{{ url_for('pa.all_approved_pa') }}"
+                               class="button is-success is-light is-medium">
+                                <span class="icon">
+                                    <i class="fa-solid fa-magnifying-glass-chart"></i>
+                                </span>
+                                <span>
+                                    ดำเนินการเพิ่มกรรมการประเมิน และทำการประเมิน
+                                </span>
+                            </a>
+                        </div>
+                        </div>
+                    {% endif %}
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
                             <a href="{{ url_for('pa.all_request') }}"
