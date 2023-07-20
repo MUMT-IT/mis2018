@@ -77,7 +77,13 @@
                                                 <td>
                                                     <ul>
                                                         {% for kpi_item in pa_item.kpi_items %}
-                                                            <li>{{ kpi_item }}</li>
+                                                            <li>
+                                                                <span class="icon">
+                                                                    <i class="fa-solid fa-star has-text-warning"></i>
+                                                                </span>
+                                                                <small>
+                                                                {{ kpi_item }}
+                                                                </small></li>
                                                         {% endfor %}
                                                     </ul>
                                                 </td>
