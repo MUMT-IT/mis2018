@@ -109,7 +109,7 @@ def create_qrcode():
         db.session.commit()
         return jsonify({'data': data})
     else:
-        return jsonify(data), 500
+        return jsonify({'error': data}), 500
 
 
 @scb_payment.route('/api/v1.0/payment-confirm', methods=['GET', 'POST'])
