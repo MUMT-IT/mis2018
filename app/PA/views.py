@@ -222,11 +222,15 @@ def create_round():
 def add_commitee():
     form = PACommitteeForm()
     if form.validate_on_submit():
-        commitee = PACommittee()
-        form.populate_obj(commitee)
-        db.session.add(commitee)
-        db.session.commit()
-        flash('เพิ่มผู้ประเมินใหม่เรียบร้อยแล้ว', 'success')
+        is_committee = PACommittee.query.filter_by(staff=form.staff.data, org=form.org.data, round=form.round.data).first()
+        if is_committee:
+            flash('มีรายชื่อผู้ประเมิน ร่วมกับหน่วยงานนี้แล้ว กรุณาตรวจสอบใหม่อีกครั้ง', 'warning')
+        else:
+            commitee = PACommittee()
+            form.populate_obj(commitee)
+            db.session.add(commitee)
+            db.session.commit()
+            flash('เพิ่มผู้ประเมินใหม่เรียบร้อยแล้ว', 'success')
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
