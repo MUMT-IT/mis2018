@@ -173,6 +173,9 @@ class StaffPersonalInfo(db.Model):
     finger_scan_id = db.Column('finger_scan_id', db.Integer)
     academic_staff = db.Column('academic_staff', db.Boolean())
     retired = db.Column('retired', db.Boolean(), default=False)
+    job_position_id = db.Column(db.ForeignKey('staff_job_positions.id'))
+    job_position = db.relationship('StaffJobPosition',
+                                 backref=db.backref('job_position_staff'))
     position = db.Column('position', db.String(), info={'label': u'ตำแหน่ง'})
     mobile_phone = db.Column('mobile_phone', db.String(), info={'label': u'มือถือ'})
     telephone = db.Column('telephone', db.String(), info={'label': u'โทร'})
@@ -398,6 +401,13 @@ class StaffEmployment(db.Model):
 
     def __str__(self):
         return self.title
+
+
+class StaffJobPosition(db.Model):
+    __tablename__ = 'staff_job_positions'
+    id = db.Column('id', db.Integer(), primary_key=True, autoincrement=True)
+    en_title = db.Column('en_title', db.String())
+    th_title = db.Column('th_title', db.String())
 
 
 class StaffSpecialGroup(db.Model):

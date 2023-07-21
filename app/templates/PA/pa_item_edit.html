@@ -132,30 +132,30 @@
                                 </p>
                                 <div class="field">
                                     <label class="label">
-                                        {% if pa.approved_at or pa.submitted %}
+                                        {% if not pa.editable %}
                                             <span class="icon"><i class="fa-solid fa-lock"></i></span>
                                         {% endif %}
                                         {{ form.category.label }}
                                     </label>
                                     <div class="select {% if pa_item_id %}is-success{% endif %}">
-                                        {% if pa.approved_at or pa.submitted %}
+                                        {% if not pa.editable %}
                                             {{ form.category(disabled=True) }}
-                                        {% elif not pa.approved_at %}
+                                        {% else %}
                                             {{ form.category() }}
                                         {% endif %}
                                     </div>
                                 </div>
                                 <div class="field">
                                     <label class="label">
-                                        {% if pa.approved_at or pa.submitted %}
+                                        {% if not pa.editable %}
                                             <span class="icon"><i class="fa-solid fa-lock"></i></span>
                                         {% endif %}
                                         {{ form.task.label }}
                                     </label>
                                     <div class="control">
-                                        {% if pa.approved_at or pa.submitted %}
+                                        {% if not pa.editable %}
                                             {{ form.task(required=True, class="textarea is-success" if pa_item_id else "textarea", disabled=True) }}
-                                        {% elif not pa.approved_at %}
+                                        {% else %}
                                             {{ form.task(required=True, class="textarea is-success" if pa_item_id else "textarea") }}
                                         {% endif %}
                                     </div>
@@ -170,7 +170,7 @@
                                     <div class="control">
                                         {% if not pa.editable %}
                                         {{ form.percentage(class="input is-success" if pa_item_id else "input", required=True, disabled=True) }}
-                                        {% elif pa.editable %}
+                                        {% else %}
                                         {{ form.percentage(class="input is-success" if pa_item_id else "input", required=True) }}
                                         {% endif %}
                                         <p class="help has-text-danger" id="percent-warning">สัดส่วนภาระงานรวมเกิน 100%</p>
@@ -204,14 +204,14 @@
                                     <table class="table is-fullwidth is-striped">
                                         {% for item_form in form.kpi_items_ %}
                                             <tr>
-                                                <td>
+                                                <td style="width: 40%">
                                                     <div class="field">
                                                         <label class="label">
                                                             {{ loop.index }}) {{ item_form.label }}
                                                         </label>
                                                     </div>
                                                 </td>
-                                                <td>
+                                                <td style="width: 45%">
                                                     <div class="select">
                                                         {% if not pa.editable %}
                                                             {{ item_form(disabled=True) }}
