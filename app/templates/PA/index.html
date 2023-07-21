@@ -5,7 +5,7 @@
 <section class="section">
     <h1 class="title has-text-centered">ระบบประเมินผลการปฏิบัติงาน</h1>
     {% include "messages.html" %}
-    {% if current_user.personal_info.org.head == current_user.email %}
+    {% if is_head_committee %}
     <div class="columns">
         <div class="column is-one-third is-offset-4">
             <nav class="panel is-warning">
