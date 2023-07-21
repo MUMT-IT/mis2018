@@ -288,7 +288,7 @@ def create_request(pa_id):
         pa_request = PARequest.query.filter_by(pa_id=pa_id, supervisor=supervisor, for_=new_request.for_).first()
         if pa_request and not pa_request.responded_at:
             flash('ท่านส่งคำขอประเภทนี้แล้ว สามารถติดตามสถานะได้ที่ "สถานะการประเมินภาระงาน" ซึ่งอยู่ด้านล่างของหน้าต่าง', 'warning')
-        elif pa_request.for_ == 'ขอรับรอง':
+        elif pa_request and pa_request.for_ == 'ขอรับรอง':
             if pa.approved_at:
                 flash('ท่านได้รับการรับรองแล้ว หากต้องการแก้ไข ให้ส่งคำร้องขอแก้ไข', 'warning')
         else:
