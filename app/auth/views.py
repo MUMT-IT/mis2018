@@ -11,7 +11,7 @@ from flask_login import login_user, current_user, logout_user, login_required
 from flask_principal import Identity, identity_changed, AnonymousIdentity, identity_loaded, UserNeed
 from app.staff.models import StaffAccount, StaffLeaveApprover
 from .forms import LoginForm, ForgotPasswordForm, ResetPasswordForm
-from itsdangerous import TimedSerializer as TimedJSONWebSignatureSerializer
+from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 import requests
 from linebot import (LineBotApi, WebhookHandler)
 
@@ -112,7 +112,7 @@ def reset_password():
     email = request.args.get('email')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     try:
-        token_data = serializer.loads(token)
+        token_data = serializer.loads(token, max_age=72000)
     except:
         return u'Bad JSON Web token. You need a valid token to reset the password. รหัสสำหรับทำการตั้งค่า password หมดอายุหรือไม่ถูกต้อง'
     if token_data.get('email') != email:
@@ -160,7 +160,7 @@ def forgot_password():
             if not user:
                 flash(u'User not found. ไม่พบบัญชีในฐานข้อมูล', 'warning')
                 return render_template('auth/forgot_password.html', form=form, errors=form.errors)
-            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'), expires_in=72000)
+            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
             token = serializer.dumps({'email': form.email.data})
             url = url_for('auth.reset_password', token=token, email=form.email.data, _external=True)
             message = u'Click the link below to reset the password.'\
