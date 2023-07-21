@@ -67,6 +67,8 @@ class PAAgreement(db.Model):
         req = self.requests.order_by(desc(PARequest.id)).first()
         if req and req.for_ == 'ขอแก้ไข':
             return True if req.status == 'อนุมัติ' else False
+        elif req and req.for_ == 'ขอรับรอง':
+            return True if req.status == 'ไม่อนุมัติ' else False
         elif self.approved_at:
             return False
         elif self.submitted:
