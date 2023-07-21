@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import datetime
+import textwrap
 
 import pytz
 import arrow
@@ -62,7 +63,7 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         items = []
         default = None
         for item in kpi.pa_kpi_items:
-            items.append((item.id, item.goal))
+            items.append((item.id, textwrap.shorten(item.goal, width=100, placeholder='...')))
             if pa_item:
                 if item in pa_item.kpi_items:
                     default = item.id
@@ -185,8 +186,9 @@ def view_pa_item(round_id):
 @pa.route('/pa/')
 @login_required
 def index():
+    new_requests = PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.responded_at == None).all()
     is_head_committee = PACommittee.query.filter_by(staff=current_user, role='ประธานกรรมการ').first()
-    return render_template('PA/index.html', is_head_committee=is_head_committee)
+    return render_template('PA/index.html', is_head_committee=is_head_committee, new_requests=new_requests)
 
 
 @pa.route('/hr/create-round', methods=['GET', 'POST'])
@@ -286,6 +288,9 @@ def create_request(pa_id):
         pa_request = PARequest.query.filter_by(pa_id=pa_id, supervisor=supervisor, for_=new_request.for_).first()
         if pa_request and not pa_request.responded_at:
             flash('ท่านส่งคำขอประเภทนี้แล้ว สามารถติดตามสถานะได้ที่ "สถานะการประเมินภาระงาน" ซึ่งอยู่ด้านล่างของหน้าต่าง', 'warning')
+        elif pa_request.for_ == 'ขอรับรอง':
+            if pa.approved_at:
+                flash('ท่านได้รับการรับรองแล้ว หากต้องการแก้ไข ให้ส่งคำร้องขอแก้ไข', 'warning')
         else:
             if new_request.for_=='ขอรับการประเมิน':
                 if not pa.approved_at:

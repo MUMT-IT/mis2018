@@ -14,7 +14,8 @@
                     <span class="panel-icon">
                         <i class="fa fa-user-edit"></i>
                     </span>
-                    <span class="is-size-5">รายการคำร้อง</span><br>
+                    <span class="is-size-5">รายการคำร้อง</span>
+                    <span class="tag is-rounded is-danger">{{ new_requests|length }}</span>
                 </a>
                 <a href="{{ url_for('pa.all_approved_pa') }}" class="panel-block">
                     <span class="panel-icon">
