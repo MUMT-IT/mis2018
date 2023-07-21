@@ -204,14 +204,14 @@
                                     <table class="table is-fullwidth is-striped">
                                         {% for item_form in form.kpi_items_ %}
                                             <tr>
-                                                <td style="width: 30%">
+                                                <td style="width: 40%">
                                                     <div class="field">
                                                         <label class="label">
                                                             {{ loop.index }}) {{ item_form.label }}
                                                         </label>
                                                     </div>
                                                 </td>
-                                                <td>
+                                                <td style="width: 45%">
                                                     <div class="select">
                                                         {% if not pa.editable %}
                                                             {{ item_form(disabled=True) }}

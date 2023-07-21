@@ -274,11 +274,11 @@ def create_request(pa_id):
     form = PARequestForm()
     head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ', round=pa.round).first()
     head_individual = PACommittee.query.filter_by(subordinate=current_user,  role='ประธานกรรมการ', round=pa.round).first()
-    print(head_individual, pa.round)
-    if head_committee:
-        supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
-    elif head_individual:
+    print(head_individual,head_committee, pa.round)
+    if head_individual:
         supervisor = StaffAccount.query.filter_by(email=head_individual.staff.email).first()
+    elif head_committee:
+        supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
     else:
         flash('ไม่พบกรรมการประเมิน กรุณาติดต่อหน่วย HR','warning')
         return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
@@ -365,9 +365,12 @@ def respond_request(request_id):
 @login_required
 def create_scoresheet(pa_id):
     pa = PAAgreement.query.filter_by(id=pa_id).first()
-    committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ', round=pa.round).first()
+    committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
     if not committee:
-        committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
+        committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ', round=pa.round).first()
+        if not committee:
+            flash('ไม่สามารถสร้าง scoresheet ได้ กรุณาติดต่อหน่วยIT', 'warning')
+            return redirect(request.referrer)
     scoresheet = PAScoreSheet.query.filter_by(pa=pa, committee_id=committee.id, is_consolidated=False).first()
     if not scoresheet:
         create_score_sheet = PAScoreSheet(
@@ -467,11 +470,11 @@ def create_scoresheet_for_committee(pa_id):
 @login_required
 def assign_committee(pa_id):
     pa = PAAgreement.query.filter_by(id=pa_id).first()
-    committee = PACommittee.query.filter_by(round=pa.round, org=pa.staff.personal_info.org).filter(
+    committee = PACommittee.query.filter_by(round=pa.round, subordinate=pa.staff).filter(
         PACommittee.staff != current_user).all()
     if not committee:
-        committee = PACommittee.query.filter_by(round=pa.round, subordinate=pa.staff).filter(
-                        PACommittee.staff != current_user).all()
+        committee = PACommittee.query.filter_by(round=pa.round, org=pa.staff.personal_info.org).filter(
+            PACommittee.staff != current_user).all()
     if request.method == 'POST':
         form = request.form
         pa.committees = []
@@ -498,9 +501,12 @@ def all_approved_pa():
 def summary_scoresheet(pa_id):
     # TODO: fixed position of item
     pa = PAAgreement.query.filter_by(id=pa_id).first()
-    committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ', round=pa.round).first()
+    committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
     if not committee:
-        committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
+        committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ', round=pa.round).first()
+        if not committee:
+            flash('ไม่พบรายการสรุป scoresheet กรุณาติดต่อหน่วย IT', 'warning')
+            return redirect(request.referrer)
     core_competency_items = PACoreCompetencyItem.query.all()
     consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).filter(
                                                                 PACommittee.staff == current_user).first()
@@ -625,10 +631,13 @@ def rate_performance(scoresheet_id):
     for_self = request.args.get('for_self', 'false')
     scoresheet = PAScoreSheet.query.get(scoresheet_id)
     pa = PAAgreement.query.get(scoresheet.pa_id)
-    committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ',
-                                            round=pa.round).first()
+    committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
     if not committee:
-        committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
+        committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ',
+                                                round=pa.round).first()
+        if not committee:
+            flash('ไม่พบรายการให้คะแนน scoresheet กรุณาติดต่อหน่วย IT', 'warning')
+            return redirect(request.referrer)
     head_scoresheet = PAScoreSheet.query.filter_by(pa=pa, committee=committee, is_consolidated=False).first()
     self_scoresheet = pa.pa_score_sheet.filter(PAScoreSheet.staff_id == pa.staff.id).first()
     core_competency_items = PACoreCompetencyItem.query.all()
@@ -717,10 +726,14 @@ def create_consensus_scoresheets(pa_id):
 @pa.route('/eva/consensus-scoresheets')
 @login_required
 def consensus_scoresheets():
-    # TODO: recheck bug
     committee = PACommittee.query.filter_by(staff=current_user).all()
-    for c in committee:
-        approved_scoresheets = PAApprovedScoreSheet.query.filter_by(committee_id=c.id).all()
+    approved_scoresheets = []
+    for committee in committee:
+        print(committee.id)
+        approved_scoresheet = PAApprovedScoreSheet.query.filter_by(committee_id=committee.id).all()
+        for s in approved_scoresheet:
+            print(s.id)
+            approved_scoresheets.append(s)
     if not committee:
         flash('สำหรับคณะกรรมการประเมิน PA เท่านั้น ขออภัยในความไม่สะดวก', 'warning')
         return redirect(url_for('pa.index'))
@@ -747,8 +760,11 @@ def detail_consensus_scoresheet(approved_id):
 @login_required
 def all_scoresheet():
     committee = PACommittee.query.filter_by(staff=current_user).all()
-    for c in committee:
-        scoresheets = PAScoreSheet.query.filter_by(committee_id=c.id).all()
+    scoresheets = []
+    for committee in committee:
+        scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False).all()
+        for s in scoresheet:
+            scoresheets.append(s)
     if not committee:
         flash('สำหรับคณะกรรมการประเมิน PA เท่านั้น ขออภัยในความไม่สะดวก', 'warning')
         return redirect(url_for('pa.index'))
@@ -808,3 +824,10 @@ def rate_core_competency(pa_id=None, scoresheet_id=None):
 @hr_permission.require()
 def hr_index():
     return render_template('staff/HR/PA/pa_index.html')
+
+
+@pa.route('/hr/all-scoresheets')
+@login_required
+def scoresheets_for_hr():
+    scoresheets = PAScoreSheet.query.filter(PAScoreSheet.staff == None).all()
+    return render_template('staff/HR/PA/hr_all_scoresheets.html', scoresheets=scoresheets)

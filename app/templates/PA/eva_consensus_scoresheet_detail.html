@@ -42,21 +42,21 @@
                     <div class="column">
                         <table class="table is-striped is-fullwidth">
                             <thead>
-                                <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
+                                <th>ข้อตกลงการปฏิบัติงาน</th>
                                 <th>ร้อยละ</th>
                                 <th>คะแนนสรุป</th>
                             </thead>
                             <tbody>
                             {% for pa_item in consolidated_score_sheet.pa.pa_items %}
                                 <tr>
-                                    <td>
+                                    <td style="width: 30%">
                                         <p> {{ pa_item }}</p>
                                             {{ pa_item.kpi_item }}
                                     </td>
-                                    <td>
+                                    <td style="width: 7%">
                                         {{ pa_item.percentage }}
                                     </td>
-                                    <td class="content">
+                                    <td class="content" style="width: 70%">
                                         {% for kpi_item in pa_item.kpi_items %}
                                             <div class="field is-grouped is-grouped-centered">
                                                 <label class="label">{{ kpi_item }}</label>
@@ -103,13 +103,6 @@
                                     </td>
                                     <td>{{ item.score }}</td>
                                     <td class="content">
-                                        {% for sc in consolidated_score_sheet.pa.pa_score_sheet %}
-                                           {% if sc.is_consolidated == False %}
-                                              <div class="field is-grouped">
-                                                  {{ sc.get_core_competency_score_item(comp_item_id=item.id).score }}
-                                              </div>
-                                           {% endif %}
-                                        {% endfor %}
                                         <div class="control">
                                             <div class="tags has-addons">
                                                 <span class="tag">
