@@ -13,6 +13,7 @@
             <div class="column">
                 <table class="table is-striped is-fullwidth" id="reqTable">
                     <thead>
+                    <th>วันที่ส่งคำขอ</th>
                     <th>รอบการประเมิน</th>
                     <th>ผู้ยื่นคำขอ</th>
                     <th>ประเภทคำขอ</th>
@@ -21,6 +22,9 @@
                     <tbody>
                     {% for req in all_req %}
                     <tr>
+                        <td>
+                            {{ req.created_at |localdatetime }}
+                        </td>
                         <td>
                             {{ req.pa.round }}
                         </td>
