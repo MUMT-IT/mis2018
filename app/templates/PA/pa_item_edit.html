@@ -4,6 +4,12 @@
 {% block head %}
 {{ super() }}
 <style>
+.htmx-swapping {
+  opacity: 0;
+  transition: opacity 1s ease-out;
+}
+</style>
+<style>
 #myBtn {
   display: none; /* Hidden by default */
   position: fixed; /* Fixed/sticky position */
@@ -103,7 +109,10 @@
                                                                                 <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
                                                                         </a>
-                                                                        <a class="button" hx-swap="none" hx-confirm="คุณต้องการลบรายการนี้หรือไม่"
+                                                                        <a class="button"
+                                                                           hx-swap="outerHTML swap:1s"
+                                                                           hx-target="closest tr"
+                                                                           hx-confirm="คุณต้องการลบรายการนี้หรือไม่"
                                                                            hx-delete="{{ url_for('pa.delete_pa_item', pa_id=pa.id, pa_item_id=pa_item.id) }}">
                                                                             <span class="icon is-small">
                                                                                 <i class="fa-solid fa-trash-can has-text-danger"></i>
@@ -265,7 +274,12 @@
                                 {% if not pa.submitted %}
                                 <div class="field is-grouped is-grouped-centered">
                                     <div class="control">
-                                        <input type="submit" value="บันทึกภาระงาน" class="button is-success">
+                                        <button type="submit" class="button is-success">
+                                            <span class="icon">
+                                                <i class="fas fa-save"></i>
+                                            </span>
+                                            <span>บันทึก</span>
+                                        </button>
                                     </div>
                                 </div>
                                 {% endif %}
@@ -315,6 +329,7 @@
                         <th>ตอบกลับเมื่อ</th>
                         <th>comment</th>
                         <th>หัวหน้าส่วนงาน</th>
+                        <th>ยกเลิก</th>
                         </thead>
                         <tbody>
                         {% for req in pa.requests %}
@@ -322,11 +337,53 @@
                                 <td>{{ req.created_at|localdatetime }}</td>
                                 <td>{{ req.for_ }}</td>
                                 <td>{{ req.detail }}</td>
-                                <td>{{ req.status or 'ระหว่างดำเนินการ' }}</td>
+                                {% if req.status %}
+                                    <td>
+                                        {% if req.status == 'อนุมัติ' %}
+                                            <span class="tag is-rounded is-success">
+                                                <span class="icon">
+                                                    <i class="far fa-check-circle"></i>
+                                                </span>
+                                                <span>{{ req.status }}</span>
+                                            </span>
+                                        {% else %}
+                                            <span class="tag is-rounded is-danger">
+                                                <span class="icon">
+                                                    <i class="far fa-times-circle"></i>
+                                                </span>
+                                                <span>{{ req.status }}</span>
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                {% else %}
+                                    <td>
+                                    <span class="tag is-rounded is-warning">
+                                        <span class="icon">
+                                            <i class="fas fa-hourglass-half"></i>
+                                        </span>
+                                        <span>รอพิจารณา</span>
+                                    </span>
+                                    </td>
+                                {% endif %}
                                 <td>{{ req.submitted_at|localdatetime }}</td>
-                                <td>{{ req.responded_at|localdatetime }}</td>
+                                <td>{{ req.responded_at|localdatetime or '' }}</td>
                                 <td>{{ req.supervisor_comment }}</td>
                                 <td>{{ req.supervisor.fullname }}</td>
+                                <td>
+                                    {% if not req.responded_at %}
+                                        <a class="button"
+                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                           hx-swap="none"
+                                           hx-confirm="คุณต้องการยกเลิกรายการนี้หรือไม่"
+                                           hx-target="closest tr"
+                                           hx-delete="{{ url_for('pa.delete_request', request_id=req.id) }}">
+                                            <span class="icon is-small">
+                                                <i class="fa-solid fa-trash-can has-text-danger"></i>
+                                            </span>
+                                            <span class="has-text-danger">ยกเลิก</span>
+                                        </a>
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% endfor %}
                         </tbody>
