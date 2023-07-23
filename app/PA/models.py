@@ -1,5 +1,4 @@
 from sqlalchemy import desc
-from wtforms import widgets
 
 from app.main import db
 from app.models import Org
