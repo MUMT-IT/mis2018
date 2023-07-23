@@ -17,29 +17,20 @@
                     <div class="column">
                         <table class="table is-striped is-fullwidth">
                             <thead>
-                                <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
+                                <th>ภาระงาน</th>
+                                <th>รายละเอียดคะแนน (ตัวชี้วัด เป้าหมาย คะแนนสรุป)</th>
                                 <th>ร้อยละ</th>
                                 <th>คะแนนสรุป(ค่าเฉลี่ย กรณีตัวชี้วัดมากกว่า 1)</th>
                                 <th>คะแนนที่ได้</th>
-                                <th>รายละเอียดคะแนน</th>
                             </thead>
                             <tbody>
                             {% for pa_item in consolidated_score_sheet.pa.pa_items %}
                                 <tr>
-                                    <td>
+                                    <td style="width: 30%">
                                         <p> {{ pa_item }}</p>
                                             {{ pa_item.kpi_item }}
                                     </td>
-                                    <td>
-                                        {{ pa_item.percentage }}
-                                    </td>
-                                    <td>
-                                        {{ pa_item.average_score(consolidated_score_sheet) }}
-                                    </td>
-                                    <td>
-                                        {{ pa_item.total_score(consolidated_score_sheet) }}
-                                    </td>
-                                    <td class="content">
+                                    <td class="content" style="width: 45%">
                                         {% for kpi_item in pa_item.kpi_items %}
                                             <div class="field is-grouped is-grouped-centered">
                                                 <label class="label">{{ kpi_item }}</label>
@@ -55,6 +46,15 @@
                                                 </div>
                                             </div>
                                         {% endfor %}
+                                    </td>
+                                    <td>
+                                        {{ pa_item.percentage }}
+                                    </td>
+                                    <td>
+                                        {{ pa_item.average_score(consolidated_score_sheet) }}
+                                    </td>
+                                    <td>
+                                        {{ pa_item.total_score(consolidated_score_sheet) }}
                                     </td>
                                 </tr>
                             {% endfor %}

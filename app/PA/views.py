@@ -235,11 +235,15 @@ def create_round():
 def add_commitee():
     form = PACommitteeForm()
     if form.validate_on_submit():
-        commitee = PACommittee()
-        form.populate_obj(commitee)
-        db.session.add(commitee)
-        db.session.commit()
-        flash('เพิ่มผู้ประเมินใหม่เรียบร้อยแล้ว', 'success')
+        is_committee = PACommittee.query.filter_by(staff=form.staff.data, org=form.org.data, round=form.round.data).first()
+        if is_committee:
+            flash('มีรายชื่อผู้ประเมิน ร่วมกับหน่วยงานนี้แล้ว กรุณาตรวจสอบใหม่อีกครั้ง', 'warning')
+        else:
+            commitee = PACommittee()
+            form.populate_obj(commitee)
+            db.session.add(commitee)
+            db.session.commit()
+            flash('เพิ่มผู้ประเมินใหม่เรียบร้อยแล้ว', 'success')
     else:
         for err in form.errors:
             flash('{}: {}'.format(err, form.errors[err]), 'danger')
@@ -382,7 +386,7 @@ def respond_request(request_id):
         db.session.add(req)
         db.session.commit()
         flash('ดำเนินการอนุมัติเรียบร้อยแล้ว', 'success')
-    return redirect(url_for('pa.all_request'))
+    return redirect(url_for('pa.view_request', request_id=request_id))
 
 
 @pa.route('/head/create-scoresheet/<int:pa_id>', methods=['GET', 'POST'])
@@ -631,14 +635,11 @@ def send_consensus_scoresheets_to_hr(scoresheet_id):
     db.session.add(scoresheet)
     db.session.commit()
 
-    score = 0
-    sum_percentage_score = 0
+    net_total = 0
     for pa_item in scoresheet.pa.pa_items:
-        for kpi_item in pa_item.kpi_items:
-            score = scoresheet.get_score_sheet_item(pa_item.id, kpi_item.id).score
-        percentage_score = (score * pa_item.percentage)
-        sum_percentage_score += percentage_score
-    performance_net_score = (sum_percentage_score * 80) / 1000
+        total_score = pa_item.total_score(scoresheet)
+        net_total += total_score
+    performance_net_score = ((net_total * 80) / 1000)
 
     pa_agreement = PAAgreement.query.filter_by(id=scoresheet.pa_id).first()
     pa_agreement.performance_score = performance_net_score
