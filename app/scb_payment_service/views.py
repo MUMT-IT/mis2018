@@ -138,29 +138,8 @@ def test_login():
 
 @scb_payment.route('/verify-slip')
 def verify_slip():
-    transaction_id = request.args.get('transaction_id')
-    print(transaction_id)
-    if transaction_id:
-        trnx = ScbPaymentRecord.query.filter_by(transaction_id=transaction_id).first()
-        headers = {
-            'Content-Type': 'application/json',
-            'requestUId': str(uuid.uuid4()),
-            'resourceOwnerId': APP_KEY
-        }
-        response = requests.post(AUTH_URL, headers=headers, json={
-            'applicationKey': APP_KEY,
-            'applicationSecret': APP_SECRET
-        })
-        response_data = response.json()
-        access_token = response_data['data']['accessToken']
-
-        headers['authorization'] = 'Bearer {}'.format(access_token)
-        resp = requests.get(
-            "{}/{}?sendingBank={}".format(SLIP_VERIFICATION, trnx.transaction_id, trnx.sending_bank_code),
-            headers=headers)
-        return jsonify(resp.json())
-    records = ScbPaymentRecord.query.all()
-    return render_template('scb_payment_service/verify_slips.html', records=records)
+    list_type = request.args.get('list_type')
+    return render_template('scb_payment_service/verify_slips.html', list_type=list_type)
 
 
 @scb_payment.route('/slip/view/<int:slip_id>')
@@ -171,20 +150,25 @@ def view_slip_info(slip_id):
 
 @scb_payment.route('/api/verify-slip')
 def get_verify_slip_data():
+    list_type = request.args.get('list_type')
     query = ScbPaymentRecord.query
+    if list_type is None:
+        query = ScbPaymentRecord.query
     search = request.args.get('search[value]')
     query = query.filter(db.or_(
-        ScbPaymentRecord.payer_name.like(u'%{}%'.format(search))
+        ScbPaymentRecord.customer1.like(u'%{}%'.format(search))
     ))
     start = request.args.get('start', type=int)
     length = request.args.get('length', type=int)
+    if list_type == 'unsuccess':
+        query = ScbPaymentRecord.query.filter_by(transaction_id=None)
     total_filtered = query.count()
     query = query.offset(start).limit(length)
     data = []
     for item in query:
         item_data = item.to_dict()
         item_data['amount'] = u'{:.2f}'.format(item.amount)
-        item_data['transaction_dateand_time'] = item.transaction_dateand_time.strftime('%d-%m-%Y %H:%M:%S')
+        item_data['transaction_dateand_time'] = item_data['transaction_dateand_time'].strftime('%d-%m-%Y %H:%M:%S') if item_data['transaction_dateand_time'] else ''
         item_data['view_slip'] = '<a href="{}" class="button is-small is-rounded is-primary is-outlined">รายละเอียด</a>'.format(
             url_for('scb_payment.view_slip_info', slip_id=item.id))
         item_data['status'] = "จ่ายเงินสำเร็จ" if item.transaction_id else "จ่ายเงินไม่สำเร็จ"
