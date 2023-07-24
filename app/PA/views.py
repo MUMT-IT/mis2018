@@ -369,8 +369,7 @@ def all_request():
 def view_request(request_id):
     categories = PAItemCategory.query.all()
     req = PARequest.query.get(request_id)
-    return render_template('PA/head_respond_request.html',
-                           categories=categories, req=req)
+    return render_template('PA/head_respond_request.html', categories=categories, req=req)
 
 
 @pa.route('/head/request/<int:request_id>', methods=['GET', 'POST'])
