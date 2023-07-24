@@ -168,12 +168,25 @@
                                                 <tr>
                                                     <td>ส่งขอรับการประเมิน</td>
                                                     <td>
-                                                        {% if pa.approved_at %}
+                                                        {% if pa.submitted_at %}
                                                             <span class="tag is-info is-rounded">
                                                                 <span class="icon">
                                                                     <i class="fas fa-check-circle"></i>
                                                                 </span>
                                                                 <span>{{ pa.submitted_at|localdatetime }}</span>
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>ส่งผลคะแนนให้ทาง HR</td>
+                                                    <td>
+                                                        {% if pa.evaluated_at %}
+                                                            <span class="tag is-danger is-rounded">
+                                                                <span class="icon">
+                                                                    <i class="fas fa-check-circle"></i>
+                                                                </span>
+                                                                <span>{{ pa.evaluated_at|localdatetime }}</span>
                                                             </span>
                                                         {% endif %}
                                                     </td>
@@ -372,7 +385,7 @@
             <div class="columns">
                 <div class="column">
                     <h1 class="title">สถานะการประเมินภาระงาน</h1>
-                    <table class="table">
+                    <table class="table is-fullwidth">
                         <thead>
                         <th>สร้างเมื่อ</th>
                         <th>เพื่อ</th>

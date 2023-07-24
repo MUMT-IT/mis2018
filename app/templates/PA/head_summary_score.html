@@ -60,7 +60,7 @@
                             <div class="columns">
                                 <div class="column">
                                     <div class="control has-text-centered">
-                                        <a href="{{ url_for('pa.send_consensus_scoresheets_to_hr', scoresheet_id=consolidated_score_sheet.id) }}"
+                                        <a href="{{ url_for('pa.send_consensus_scoresheets_to_hr', pa_id=consolidated_score_sheet.pa.id) }}"
                                            class="button is-info is-outlined is-rounded is-small">
                                 <span class="icon">
                                     <i class="fa-solid fa-paper-plane"></i>
@@ -69,6 +69,10 @@
                                         </a>
                                     </div>
                                 </div>
+                            </div>
+                        {% else %}
+                            <div class="control has-text-centered">
+                            ส่งคะแนนไปยัง HR เรียบร้อยแล้ว
                             </div>
                         {% endif %}
                     </div>
