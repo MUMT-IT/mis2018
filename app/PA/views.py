@@ -634,6 +634,10 @@ def send_consensus_scoresheets_to_hr(scoresheet_id):
     pa_agreement.competency_score = scoresheet.competency_net_score()
     db.session.add(pa_agreement)
     db.session.commit()
+    pa = scoresheet.pa
+    pa.evaluated_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(pa)
+    db.session.commit()
     flash('ส่งคะแนนไปยัง hr เรียบร้อยแล้ว', 'success')
     return redirect(request.referrer)
 
