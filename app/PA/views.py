@@ -319,15 +319,16 @@ def create_request(pa_id):
                 flash('ท่านได้ส่งภาระงานเพื่อขอรับการประเมินแล้ว', 'danger')
                 return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
             else:
+                self_scoresheet = pa.pa_score_sheet.filter(PAScoreSheet.staff_id == pa.staff.id).first()
+
+                if not self_scoresheet or not self_scoresheet.is_final:
+                    flash('กรุณาส่งคะแนนประเมินตนเองก่อนขอรับการประเมิน', 'warning')
+                    return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+
                 pa.submitted_at = arrow.now('Asia/Bangkok').datetime
                 db.session.add(pa)
                 db.session.commit()
 
-            self_scoresheet = pa.pa_score_sheet.filter(PAScoreSheet.staff_id == pa.staff.id).first()
-
-            if not self_scoresheet or not self_scoresheet.is_final:
-                flash('กรุณาส่งคะแนนประเมินตนเองก่อนขอรับการประเมิน', 'warning')
-                return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
         elif new_request.for_ == 'ขอแก้ไข' and pa.submitted_at:
             flash('ท่านได้ส่งภาระงานเพื่อขอรับการประเมินแล้ว ไม่สามารถขอแก้ไขได้', 'danger')
             return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
