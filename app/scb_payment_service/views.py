@@ -127,9 +127,9 @@ def confirm_payment():
     record.assign_data_from_request(data)
     db.session.add(record)
     db.session.commit()
-    title = 'แจ้งเตือน QR Payment บริการอัตโนมัติแจ้งเตือนการทำธุรกรรมของ {}'.format(record.payer_name)
-    message = 'เรียน คุณพิชญาสินี\n\n แจ้งเตือนชื่อผู้จ่าย {} ผู้รับ {} จำนวน {} transaction id {}' \
-        .format(record.payer_name, record.payee_name, record.amount, record.transaction_id)
+    title = 'แจ้งเตือน QR Payment บริการอัตโนมัติแจ้งเตือนการทำธุรกรรมของคุณ {}'.format(record.payer_name)
+    message = 'เรียน คุณพิชญาสินี\n\n แจ้งเตือนชื่อผู้จ่าย {} ผู้รับ {} จำนวน {} ref1: {} ref2: {} transaction id: {}' \
+        .format(record.payer_name, record.payee_name, record.amount, record.bill_payment_ref1, record.bill_payment_ref2, record.transaction_id)
     message += '\n\n======================================================'
     message += '\nอีเมลฉบับนี้เป็นการแจ้งข้อมูลจากระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
                'หากมีข้อสงสัยหรือต้องการสอบถามรายละเอียดเพิ่มเติม ปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อ yada.boo@mahidol.ac.th หน่วยข้อมูลและสารสนเทศ '
@@ -186,7 +186,7 @@ def get_verify_slip_data():
         item_data['transaction_dateand_time'] = item_data['transaction_dateand_time'].strftime('%d-%m-%Y %H:%M:%S') if item_data['transaction_dateand_time'] else ''
         item_data['view_slip'] = '<a href="{}" class="button is-small is-rounded is-primary is-outlined">รายละเอียด</a>'.format(
             url_for('scb_payment.view_slip_info', slip_id=item.id))
-        item_data['status'] = "จ่ายเงินสำเร็จ" if item.transaction_id else "จ่ายเงินไม่สำเร็จ"
+        item_data['status'] = "จ่ายเงินสำเร็จ" if item.transaction_id else "ยังไม่ได้จ่ายเงิน"
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
