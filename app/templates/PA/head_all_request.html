@@ -83,11 +83,3 @@
     </div>
 </section>
 {% endblock %}
-{% block scripts %}
-{{ super() }}
-    <script>
-        $(document).ready(function(){
-            $('#reqTable').DataTable();
-        });
-    </script>
-{% endblock %}
