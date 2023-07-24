@@ -11,6 +11,8 @@ from . import scb_payment
 from .models import ScbPaymentServiceApiClientAccount, ScbPaymentRecord
 from ..main import csrf, db
 import uuid
+from flask_mail import Message
+from ..main import mail
 
 AUTH_URL = os.environ.get('SCB_AUTH_URL')
 QRCODE_URL = os.environ.get('SCB_QRCODE_URL')
@@ -20,6 +22,10 @@ BILLERID = os.environ.get('BILLERID')
 REF3 = os.environ.get('SCB_REF3')
 QR30_INQUIRY = os.environ.get('QR30_INQUIRY')
 SLIP_VERIFICATION = os.environ.get('SLIP_VERIFICATION')
+
+def send_mail(recp, title, message):
+    message = Message(subject=title, body=message, recipients=recp)
+    mail.send(message)
 
 
 def generate_qrcode(amount, ref1, ref2, ref3):
@@ -121,6 +127,15 @@ def confirm_payment():
     record.assign_data_from_request(data)
     db.session.add(record)
     db.session.commit()
+    title = 'แจ้งเตือน QR Payment บริการอัตโนมัติแจ้งเตือนการทำธุรกรรมของ {}'.format(record.payer_name)
+    message = 'เรียน คุณพิชญาสินี\n\n แจ้งเตือนชื่อผู้จ่าย {} ผู้รับ {} จำนวน {} transaction id {}' \
+        .format(record.payer_name, record.payee_name, record.amount, record.transaction_id)
+    message += '\n\n======================================================'
+    message += '\nอีเมลฉบับนี้เป็นการแจ้งข้อมูลจากระบบอัตโนมัติ กรุณาอย่าตอบกลับ ' \
+               'หากมีข้อสงสัยหรือต้องการสอบถามรายละเอียดเพิ่มเติม ปัญหาใดๆเกี่ยวกับเว็บไซต์กรุณาติดต่อ yada.boo@mahidol.ac.th หน่วยข้อมูลและสารสนเทศ '
+    message += '\nThis email was sent by an automated system. Please do not reply.' \
+               ' If you have any problem about website, please contact the IT unit.'
+    send_mail(['pichayasini.jit@mahidol.ac.th'], title, message)
     print(data)
     return jsonify({
         'resCode': '00',
