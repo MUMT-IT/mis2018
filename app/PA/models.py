@@ -248,7 +248,8 @@ class PAScoreSheet(db.Model):
             if c.score_sheet_id == self.id:
                 if c.score:
                     score += c.score * 10
-        return (score / 700) * 20
+        net_score = (score / 700) * 20
+        return round(net_score,2)
 
 
 class PAScoreSheetItem(db.Model):
