@@ -19,12 +19,14 @@
                         เพื่อเลือกกลุ่มกรรมการที่จะประเมินผู้รับประเมินในรอบนั้นๆ<br><br>
                         2. เลือกเมนู <span class="icon"><i class="fa-solid fa-magnifying-glass-chart"></i></span>
                         <span>ประเมิน</span> เพื่อดำเนินการประเมินสำหรับผู้บังคับบัญชาชั้นต้น<br><br>
-                        3. เลือกเมนูู <span class="icon"><i class="fa-solid fa-paper-plane"></i></span>
+                        3. เลือกเมนู <span class="icon"><i class="fa-solid fa-paper-plane"></i></span>
                         <span>ส่งแบบประเมิน</span> เพื่อส่งให้กลุ่มกรรมการดำเนินการประเมินต่อ<br><br>
                         4. เลือกเมนู  <span class="icon"><i class="fa-solid fa-chart-simple"></i></span>
                         <span>สรุปผล</span> เพื่อสรุปคะแนนประเมินจากคะแนนทั้งหมด<br><br>
                         5. เลือกเมนู <span class="icon"><i class="fa-solid fa-square-check"></i></span>
-                        <span>ขอรับรองผล</span> เพื่อส่งคะแนนสรุปไปยัง HR
+                        <span>ขอรับรองผล</span> เพื่อส่งขอรับรองคะแนนสรุปไปยังกลุ่มกรรมการ<br><br>
+                        6. เลือกเมนู <span class="icon"><i class="fa-solid fa-flag"></i></span>
+                        <span>ส่งคะแนน</span> เพื่อส่งคะแนนสรุปที่ได้รับรองคะแนนแล้ว ไปยัง HR
                     </span>
                 </div>
             </div>
@@ -76,7 +78,7 @@
                                     </a>
                                 </div>
                                 <div class="control">
-                                    <a href="{{ url_for('pa.create_scoresheet_for_committee', pa_id=req.pa.id) }}"
+                                    <a href="{{ url_for('pa.confirm_send_scoresheet_for_committee', pa_id=req.pa.id) }}"
                                        class="button is-dark is-outlined is-rounded is-small">
                                         <span class="icon"><i class="fa-solid fa-paper-plane"></i></span>
                                         <span>3. ส่งแบบประเมิน</span>
@@ -96,6 +98,15 @@
                                             <i class="fa-solid fa-square-check"></i>
                                         </span>
                                         <span>5. ขอรับรองผล</span>
+                                    </a>
+                                </div>
+                                <div class="control">
+                                    <a href="{{ url_for('pa.send_consensus_scoresheets_to_hr', pa_id=req.pa.id) }}"
+                                       class="button is-dark is-outlined is-rounded is-small">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-flag"></i>
+                                        </span>
+                                        <span>6. ส่งคะแนนHR</span>
                                     </a>
                                 </div>
                             </div>
