@@ -1,5 +1,4 @@
 from sqlalchemy import desc
-from wtforms import widgets
 
 from app.main import db
 from app.models import Org
@@ -47,6 +46,8 @@ class PAAgreement(db.Model):
     round = db.relationship(PARound, backref=db.backref('agreements', lazy='dynamic'))
     committees = db.relationship('PACommittee', secondary=pa_committee_assoc_table)
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+    submitted_at = db.Column('submitted_at', db.DateTime(timezone=True))
+    evaluated_at = db.Column('evaluated_at', db.DateTime(timezone=True))
     performance_score = db.Column('performance_score', db.Numeric())
     competency_score = db.Column('competency_score', db.Numeric())
 
@@ -67,11 +68,16 @@ class PAAgreement(db.Model):
         req = self.requests.order_by(desc(PARequest.id)).first()
         if req and req.for_ == 'ขอแก้ไข':
             return True if req.status == 'อนุมัติ' else False
+        elif req and req.for_ == 'ขอรับรอง':
+            return True if req.status == 'ไม่อนุมัติ' else False
         elif self.approved_at:
             return False
         elif self.submitted:
             return False
         return True
+
+    def can_enter_result(self):
+        return True if self.approved_at else False
 
 
 class PARequest(db.Model):
@@ -121,7 +127,7 @@ class PAKPI(db.Model):
                                                     ('ปริมาณ', 'คุณภาพ', 'เวลา', 'ความคุ้มค่า', 'ความพึงพอใจ')]})
 
     def __str__(self):
-        return f'ประเภท{self.type} {self.detail}'
+        return f'{self.detail} (ประเภท {self.type})'
 
 
 class PAKPIItem(db.Model):
@@ -169,7 +175,7 @@ class PAItem(db.Model):
         for s in self.pa_score_item:
             if s.score_sheet_id == scoresheet.id:
                 if s.score:
-                    score = s.score
+                    score += s.score
                     n += 1
         return score / n
 
@@ -179,7 +185,7 @@ class PAItem(db.Model):
         for s in self.pa_score_item:
             if s.score_sheet_id == scoresheet.id:
                 if s.score:
-                    score = s.score
+                    score += s.score
                     n += 1
         return (score / n) * self.percentage
 
@@ -242,7 +248,8 @@ class PAScoreSheet(db.Model):
             if c.score_sheet_id == self.id:
                 if c.score:
                     score += c.score * 10
-        return (score / 700) * 20
+        net_score = (score / 700) * 20
+        return round(net_score,2)
 
 
 class PAScoreSheetItem(db.Model):
@@ -308,3 +315,26 @@ class PAApprovedScoreSheet(db.Model):
     committee = db.relationship('PACommittee', backref=db.backref('committee_approved_score_sheet'),
                                 foreign_keys=[committee_id])
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+
+#
+# class PAFunctionalCompetency(db.Model):
+#     __tablename__ = 'pa_functional_competency'
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     code = db.Column('code', db.String(), nullable=False, info={'label': 'รหัส'})
+#     score = db.Column('score', db.Numeric(), info={'label': 'คะแนนเต็ม'})
+#
+#
+# class PAFunctionalCompetencyItem(db.Model):
+#     __tablename__ = 'pa_functional_competency_items'
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     function_id = db.Column(db.ForeignKey('pa_functional_competency.id'))
+#     topic = db.Column('topic', db.String(), nullable=False, info={'label': 'หัวข้อ'})
+#     desc = db.Column('desc', db.Text(), info={'label': 'คำอธิบาย'})
+#
+#
+# class PAFunctionalCompetency(db.Model):
+#     __tablename__ = 'pa_functional_competency_items'
+#     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+#     code = db.Column('code', db.String(), nullable=False, info={'label': 'รหัส'})
+#     desc = db.Column('desc', db.Text(), info={'label': 'คำอธิบาย'})
+#     desc = db.Column('desc', db.Text(), info={'label': 'คำอธิบาย'})

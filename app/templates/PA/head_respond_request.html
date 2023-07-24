@@ -4,6 +4,7 @@
     <section class="section">
         <div class="container">
             {% include "messages.html" %}
+            {% if req %}
             <div class="columns">
                 <div class="column">
                     <h1 class="title has-text-centered">คำขอ {{ req.for_ }} PA</h1>
@@ -46,118 +47,153 @@
                     {% endif %}
                 </div>
             </div>
-        </div>
-        <div class="columns">
-            <div class="column">
-                <table class="table is-fullwidth is-bordered">
-                    <thead>
-                    <th>หมวด</th>
-                    <th>ภาระงาน</th>
-                    </thead>
-                    <tbody>
-                    {% for cat in categories %}
-                        <tr>
-                            <td style="width: 15%">
-                                {{ cat }}
-                            </td>
-                            <td>
-                                {% if cat.pa_items.filter_by(pa_id=req.pa.id).all() %}
-                                    <table class="table is-fullwidth">
-                                        <thead>
-                                        <th>ภาระงาน</th>
-                                        <th>ร้อยละ(น้ำหนัก)</th>
-                                        <th>ตัวชี้วัด (หากมีหลายตัวชี้วัดคะแนนจะถูกนำมาเฉลี่ย)</th>
-                                        </thead>
-                                        <tbody>
-                                        {% for pa_item in cat.pa_items.filter_by(pa_id=req.pa.id) %}
-                                            <tr {% if pa_item_id == pa_item.id %}
-                                                style="background-color: palegreen" {% endif %}>
-                                                <td style="width: 40%">{{ pa_item.task }}</td>
-                                                <td style="width: 5%">{{ pa_item.percentage }}</td>
-                                                <td>
-                                                    <ul>
-                                                        {% for kpi_item in pa_item.kpi_items %}
-                                                            <li>{{ kpi_item }}</li>
-                                                        {% endfor %}
-                                                    </ul>
-                                                </td>
-                                            </tr>
-                                        {% endfor %}
-                                        </tbody>
-                                    </table>
-                                {% endif %}
-                            </td>
-                        </tr>
-                    {% endfor %}
-                    </tbody>
-                </table>
-                {% if not req.responded_at %}
-                    <div class="box">
-                        <form method="post" action="{{ url_for('pa.respond_request', request_id=req.id) }}">
-                            <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
-                            <h1 class="title has-text-centered">
-                                สถานะการอนุมัติคำขอ "{{ req.for_ }}"
-                            </h1>
-                            <div class="columns">
-                                <div class="column is-3"></div>
-                                <div class="column">
-                                    <div class="column is-half is-offset-3">
-                                        <div class="container has-text-centered">
-                                            <div class="button " style="width: 200px;">
-                                                <div class="control">
-                                                    <label class="label">
-                                                        <input type="radio" name="approval" value="ไม่อนุมัติ">
-                                                        ไม่อนุมัติ
-                                                    </label>
+            <div class="columns">
+                <div class="column">
+                    <table class="table is-fullwidth is-bordered">
+                        <thead>
+                        <th>หมวด</th>
+                        <th>ภาระงาน</th>
+                        </thead>
+                        <tbody>
+                        {% for cat in categories %}
+                            <tr>
+                                <td style="width: 15%">
+                                    {{ cat }}
+                                </td>
+                                <td>
+                                    {% if cat.pa_items.filter_by(pa_id=req.pa.id).all() %}
+                                        <table class="table is-fullwidth">
+                                            <thead>
+                                            <th>ภาระงาน</th>
+                                            <th>ร้อยละ(น้ำหนัก)</th>
+                                            <th>ตัวชี้วัด (หากมีหลายตัวชี้วัดคะแนนจะถูกนำมาเฉลี่ย)</th>
+                                            </thead>
+                                            <tbody>
+                                            {% for pa_item in cat.pa_items.filter_by(pa_id=req.pa.id) %}
+                                                <tr {% if pa_item_id == pa_item.id %}
+                                                    style="background-color: palegreen" {% endif %}>
+                                                    <td style="width: 40%">{{ pa_item.task }}</td>
+                                                    <td style="width: 5%">{{ pa_item.percentage }}</td>
+                                                    <td>
+                                                        <ul>
+                                                            {% for kpi_item in pa_item.kpi_items %}
+                                                                <li>
+                                                                <span class="icon">
+                                                                    <i class="fa-solid fa-star has-text-warning"></i>
+                                                                </span>
+                                                                    <small>
+                                                                        {{ kpi_item }}
+                                                                    </small></li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                    {% if not req.responded_at %}
+                        <div class="box">
+                            <form method="post" action="{{ url_for('pa.respond_request', request_id=req.id) }}">
+                                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                                <h1 class="title has-text-centered">
+                                    สถานะการอนุมัติคำขอ "{{ req.for_ }}"
+                                </h1>
+                                <div class="columns">
+                                    <div class="column is-3"></div>
+                                    <div class="column">
+                                        <div class="column is-half is-offset-3">
+                                            <div class="container has-text-centered">
+                                                <div class="button " style="width: 200px;">
+                                                    <div class="control">
+                                                        <label class="label">
+                                                            <input type="radio" name="approval" value="ไม่อนุมัติ">
+                                                            ไม่อนุมัติ
+                                                        </label>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="column">
-                                    <div class="column is-half is-offset-3">
-                                        <div class="container has-text-centered">
-                                            <div class="button " style="width: 200px;">
-                                                <div class="control">
-                                                    <label class="label">
-                                                        <input type="radio" checked name="approval" value="อนุมัติ">
-                                                        อนุมัติ
-                                                    </label>
+                                    <div class="column">
+                                        <div class="column is-half is-offset-3">
+                                            <div class="container has-text-centered">
+                                                <div class="button " style="width: 200px;">
+                                                    <div class="control">
+                                                        <label class="label">
+                                                            <input type="radio" checked name="approval" value="อนุมัติ">
+                                                            อนุมัติ
+                                                        </label>
+                                                    </div>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                    <div class="column"></div>
+                                    <div class="column"></div>
                                 </div>
-                                <div class="column"></div>
-                                <div class="column"></div>
-                            </div>
-                            <div class="field">
-                                <label class="label">Comment</label>
-                                <div class="control">
-                                    <textarea name="supervisor_comment" class="textarea"></textarea>
+                                <div class="field">
+                                    <label class="label">Comment</label>
+                                    <div class="control">
+                                        <textarea name="supervisor_comment" class="textarea"></textarea>
+                                    </div>
                                 </div>
-                            </div>
+                                <div class="field is-grouped is-grouped-centered">
+                                    <div class="control">
+                                        <a href="{{ url_for('pa.all_request') }}"
+                                           class="button is-light">Back</a>
+                                    </div>
+                                    <div class="control">
+                                        <input type="submit" value="Submit" class="button is-success"/>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    {% else %}
+                        {% if not req.for_ == 'ขอรับรอง' %}
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="control">
-                                    <a href="{{ url_for('pa.all_request') }}"
-                                       class="button is-light">Back</a>
-                                </div>
-                                <div class="control">
-                                    <input type="submit" value="Submit" class="button is-success"/>
+                                    <a href="{{ url_for('pa.all_approved_pa') }}"
+                                       class="button is-success is-light is-medium">
+                                <span class="icon">
+                                    <i class="fa-solid fa-magnifying-glass-chart"></i>
+                                </span>
+                                        <span>
+                                    ดำเนินการเพิ่มกรรมการประเมิน และทำการประเมิน
+                                </span>
+                                    </a>
                                 </div>
                             </div>
-                        </form>
-                    </div>
-                {% else %}
-                    <div class="field is-grouped is-grouped-centered">
-                        <div class="control">
-                            <a href="{{ url_for('pa.all_request') }}"
-                               class="button is-light">กลับ</a>
+                        {% endif %}
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="control">
+                                <a href="{{ url_for('pa.all_request') }}"
+                                   class="button is-light">กลับ</a>
+                            </div>
                         </div>
-                    </div>
-                {% endif %}
+                    {% endif %}
+                </div>
             </div>
-        </div>
+            {% else %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">คำขอนี้ได้ถูกยกเลิกแล้วโดยผู้รับการประเมิน</h1>
+                    <a class="button is-light" href="{{ url_for('pa.all_request')  }}">
+                        <span class="icon">
+                            <i class="fas fa-chevron-left"></i>
+                        </span>
+                        <span>
+                            รายการคำร้อง
+                        </span>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
         </div>
     </section>
 {% endblock %}

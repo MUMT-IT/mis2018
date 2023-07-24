@@ -5,7 +5,7 @@
     <div class="container" id="app">
         <div class="columns">
             <div class="column has-text-left">
-                <h1 class="title">รายการผลคะแนนประเมินผลงาน</h1>
+                <h1 class="title">สถานะการประเมินทั้งหมด</h1>
             </div>
         </div>
     {% include "messages.html" %}
@@ -14,31 +14,42 @@
                 <table class="table is-striped is-fullwidth" id="paTable">
                     <thead>
                     <th>รอบการประเมิน</th>
+                    <th>ผู้ประเมิน</th>
                     <th>ผู้รับการประเมิน</th>
-                    <th>สังกัด</th>
-                    <th>คะแนนรวม</th>
-                    <th></th>
+                    <th>สังกัดผู้รับประเมิน</th>
+                    <th>คะแนนสรุป</th>
+                    <th>สถานะ confirm คะแนน</th>
                     </thead>
                     <tbody>
-                    {% for approved_scoresheet in approved_scoresheets %}
+                    {% for scoresheet in scoresheets %}
                     <tr>
                         <td>
-                            {{ approved_scoresheet.pa.round }}
+                            {{ scoresheet.pa.round }}
                         </td>
                         <td>
-                            {{ approved_scoresheet.pa.staff.personal_info.fullname }}
+                            {{ scoresheet.committee }}
                         </td>
                         <td>
-                            {{ approved_scoresheet.pa.staff.personal_info.org }}
+                            {{ scoresheet.pa.staff.personal_info.fullname }}
                         </td>
                         <td>
-                            {{ approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score }}
+                            {{ scoresheet.pa.staff.personal_info.org }}
                         </td>
                         <td>
-                            <a href="{{ url_for('pa.detail_consensus_scoresheet_for_hr',
-                                scoresheet_id=approved_scoresheet.id) }}" class="button is-small">
-                                <span>รายละเอียด</span>
-                            </a>
+                            {% if scoresheet.is_consolidated %}
+                                <i class="fas fa-check"></i>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if scoresheet.is_final %}
+                                 <p style="color:royalblue">
+                                    <i class="fas fa-check"></i> confirmed
+                                 </p>
+                            {% else %}
+                                 <p style="color:red">
+                                    <i class="fas fa-multiply"></i>
+                                 </p>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}

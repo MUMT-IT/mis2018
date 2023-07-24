@@ -17,29 +17,20 @@
                     <div class="column">
                         <table class="table is-striped is-fullwidth">
                             <thead>
-                                <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
+                                <th>ภาระงาน</th>
+                                <th>รายละเอียดคะแนน (ตัวชี้วัด เป้าหมาย คะแนนสรุป)</th>
                                 <th>ร้อยละ</th>
                                 <th>คะแนนสรุป(ค่าเฉลี่ย กรณีตัวชี้วัดมากกว่า 1)</th>
                                 <th>คะแนนที่ได้</th>
-                                <th>รายละเอียดคะแนน</th>
                             </thead>
                             <tbody>
                             {% for pa_item in consolidated_score_sheet.pa.pa_items %}
                                 <tr>
-                                    <td>
+                                    <td style="width: 30%">
                                         <p> {{ pa_item }}</p>
                                             {{ pa_item.kpi_item }}
                                     </td>
-                                    <td>
-                                        {{ pa_item.percentage }}
-                                    </td>
-                                    <td>
-                                        {{ pa_item.average_score(consolidated_score_sheet) }}
-                                    </td>
-                                    <td>
-                                        {{ pa_item.total_score(consolidated_score_sheet) }}
-                                    </td>
-                                    <td class="content">
+                                    <td class="content" style="width: 45%">
                                         {% for kpi_item in pa_item.kpi_items %}
                                             <div class="field is-grouped is-grouped-centered">
                                                 <label class="label">{{ kpi_item }}</label>
@@ -55,6 +46,15 @@
                                                 </div>
                                             </div>
                                         {% endfor %}
+                                    </td>
+                                    <td>
+                                        {{ pa_item.percentage }}
+                                    </td>
+                                    <td>
+                                        {{ pa_item.average_score(consolidated_score_sheet) }}
+                                    </td>
+                                    <td>
+                                        {{ pa_item.total_score(consolidated_score_sheet) }}
                                     </td>
                                 </tr>
                             {% endfor %}
@@ -103,9 +103,43 @@
                         <h1 class="subtitle has-text-right">
                             คะแนนผลการประเมิน เมื่อคิดตามน้ำหนัก 20%: {{ consolidated_score_sheet.competency_net_score() }}
                         </h1>
-                        <h1 class="title has-text-centered">
-                            คะแนนรวมทั้งหมด: {{ consolidated_score_sheet.pa.performance_score + consolidated_score_sheet.pa.competency_score}}
-                        </h1>
+                        <progress class="progress" value="100" max="100"></progress>
+                        <div class="columns is-grouped-centered">
+                            <div class="column is-one-third is-offset-4">
+                                <table class="table">
+                                    <tbody>
+                                        <tr>
+                                            <td>
+                                                คะแนน Performance 80%
+                                            </td>
+                                            <td>
+                                                {{ consolidated_score_sheet.pa.performance_score }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                คะแนน Core Competency 20%
+                                            </td>
+                                            <td>
+                                                {{ consolidated_score_sheet.competency_net_score() }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td>
+                                                <div class="title">
+                                                    คะแนนรวม
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="title">
+                                                {{ consolidated_score_sheet.pa.performance_score + consolidated_score_sheet.pa.competency_score}}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="columns">

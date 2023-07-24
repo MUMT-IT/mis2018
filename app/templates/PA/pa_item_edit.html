@@ -4,6 +4,12 @@
 {% block head %}
 {{ super() }}
 <style>
+.htmx-swapping {
+  opacity: 0;
+  transition: opacity 1s ease-out;
+}
+</style>
+<style>
 #myBtn {
   display: none; /* Hidden by default */
   position: fixed; /* Fixed/sticky position */
@@ -37,9 +43,6 @@
                     {% else %}
                         <h1 class="title has-text-centered">เพิ่มภาระงาน</h1>
                         <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }}</h1>
-                        <p>
-                        <span class="icon"><i class="fa-solid fa-clock-rotate-left"></i></span>{{ pa.updated_at|localdatetime }}
-                        </p>
                     {% endif %}
                     <form method="post">
                         {{ form.hidden_tag() }}
@@ -59,6 +62,7 @@
                                     เกณฑ์การประเมิน เป็นลายลักษณ์อักษร
                                     พร้อมให้ผู้รับการประเมินและผู้บังคับบัญชาชั้นต้นลงลายมือชื่อไว้ด้วย</p>
                                 <p class="subtitle is-6">2.1 ภาระงานและตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</p>
+                                <a id="pa_table"></a>
                                 <table class="table is-fullwidth is-bordered">
                                     <thead>
                                     <th>หมวด</th>
@@ -96,14 +100,19 @@
                                                                 </td>
                                                                 <td>
                                                                     <div class="buttons">
-                                                                        {% if pa.editable %}
+                                                                        {% if pa.editable or pa.can_enter_result %}
                                                                         <a href="{{ url_for('pa.add_pa_item', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id, _anchor='edit_form') }}"
                                                                            class="button">
                                                                             <span class="icon is-small">
                                                                                 <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
                                                                         </a>
-                                                                        <a class="button" hx-swap="none" hx-confirm="คุณต้องการลบรายการนี้หรือไม่"
+                                                                        {% endif %}
+                                                                        {% if pa.editable %}
+                                                                        <a class="button"
+                                                                           hx-swap="outerHTML swap:1s"
+                                                                           hx-target="closest tr"
+                                                                           hx-confirm="คุณต้องการลบรายการนี้หรือไม่"
                                                                            hx-delete="{{ url_for('pa.delete_pa_item', pa_id=pa.id, pa_item_id=pa_item.id) }}">
                                                                             <span class="icon is-small">
                                                                                 <i class="fa-solid fa-trash-can has-text-danger"></i>
@@ -121,8 +130,69 @@
                                         </tr>
                                     {% endfor %}
                                     <tr>
-                                        <td>รวม</td>
-                                        <td><strong>{{ pa.total_percentage }}</strong></td>
+                                        <td>รวมสัดส่วนภาระงาน</td>
+                                        <td><strong>{{ pa.total_percentage }} %</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>สถานะแบบประเมิน</td>
+                                        <td>
+                                            <table class="table">
+                                                <tr>
+                                                    <td>แก้ไขล่าสุด</td>
+                                                    <td>
+                                                        {% if pa.updated_at %}
+                                                            <span class="tag is-rounded">
+                                                                <span class="icon">
+                                                                    <i class="fa-solid fa-clock-rotate-left"></i>
+                                                                </span>
+                                                                <span>
+                                                                    {{ pa.updated_at|localdatetime }}
+                                                                </span>
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>รับรอง</td>
+                                                    <td>
+                                                        {% if pa.approved_at %}
+                                                            <span class="tag is-success is-rounded">
+                                                                <span class="icon">
+                                                                    <i class="fas fa-check-circle"></i>
+                                                                </span>
+                                                                <span>{{ pa.approved_at|localdatetime }}</span>
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>ส่งขอรับการประเมิน</td>
+                                                    <td>
+                                                        {% if pa.submitted_at %}
+                                                            <span class="tag is-info is-rounded">
+                                                                <span class="icon">
+                                                                    <i class="fas fa-check-circle"></i>
+                                                                </span>
+                                                                <span>{{ pa.submitted_at|localdatetime }}</span>
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>ส่งผลคะแนนให้ทาง HR</td>
+                                                    <td>
+                                                        {% if pa.evaluated_at %}
+                                                            <span class="tag is-danger is-rounded">
+                                                                <span class="icon">
+                                                                    <i class="fas fa-check-circle"></i>
+                                                                </span>
+                                                                <span>{{ pa.evaluated_at|localdatetime }}</span>
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
                                     </tr>
                                     </tbody>
                                 </table>
@@ -132,30 +202,30 @@
                                 </p>
                                 <div class="field">
                                     <label class="label">
-                                        {% if pa.approved_at or pa.submitted %}
+                                        {% if not pa.editable %}
                                             <span class="icon"><i class="fa-solid fa-lock"></i></span>
                                         {% endif %}
                                         {{ form.category.label }}
                                     </label>
                                     <div class="select {% if pa_item_id %}is-success{% endif %}">
-                                        {% if pa.approved_at or pa.submitted %}
+                                        {% if not pa.editable %}
                                             {{ form.category(disabled=True) }}
-                                        {% elif not pa.approved_at %}
+                                        {% else %}
                                             {{ form.category() }}
                                         {% endif %}
                                     </div>
                                 </div>
                                 <div class="field">
                                     <label class="label">
-                                        {% if pa.approved_at or pa.submitted %}
+                                        {% if not pa.editable %}
                                             <span class="icon"><i class="fa-solid fa-lock"></i></span>
                                         {% endif %}
                                         {{ form.task.label }}
                                     </label>
                                     <div class="control">
-                                        {% if pa.approved_at or pa.submitted %}
+                                        {% if not pa.editable %}
                                             {{ form.task(required=True, class="textarea is-success" if pa_item_id else "textarea", disabled=True) }}
-                                        {% elif not pa.approved_at %}
+                                        {% else %}
                                             {{ form.task(required=True, class="textarea is-success" if pa_item_id else "textarea") }}
                                         {% endif %}
                                     </div>
@@ -170,7 +240,7 @@
                                     <div class="control">
                                         {% if not pa.editable %}
                                         {{ form.percentage(class="input is-success" if pa_item_id else "input", required=True, disabled=True) }}
-                                        {% elif pa.editable %}
+                                        {% else %}
                                         {{ form.percentage(class="input is-success" if pa_item_id else "input", required=True) }}
                                         {% endif %}
                                         <p class="help has-text-danger" id="percent-warning">สัดส่วนภาระงานรวมเกิน 100%</p>
@@ -204,14 +274,14 @@
                                     <table class="table is-fullwidth is-striped">
                                         {% for item_form in form.kpi_items_ %}
                                             <tr>
-                                                <td>
+                                                <td style="width: 40%">
                                                     <div class="field">
                                                         <label class="label">
                                                             {{ loop.index }}) {{ item_form.label }}
                                                         </label>
                                                     </div>
                                                 </td>
-                                                <td>
+                                                <td style="width: 45%">
                                                     <div class="select">
                                                         {% if not pa.editable %}
                                                             {{ item_form(disabled=True) }}
@@ -265,7 +335,12 @@
                                 {% if not pa.submitted %}
                                 <div class="field is-grouped is-grouped-centered">
                                     <div class="control">
-                                        <input type="submit" value="บันทึกภาระงาน" class="button is-success">
+                                        <button type="submit" class="button is-success">
+                                            <span class="icon">
+                                                <i class="fas fa-save"></i>
+                                            </span>
+                                            <span>บันทึก</span>
+                                        </button>
                                     </div>
                                 </div>
                                 {% endif %}
@@ -290,7 +365,7 @@
                             </span>
                             <span>ส่งคำขอ</span>
                         </a>
-                        {% if not pa.submitted and pa.approved_at %}
+                        {% if pa.approved_at %}
                         <a href="{{ url_for('pa.create_scoresheet_for_self_evaluation', pa_id=pa.id) }}"
                            class="button is-warning is-outlined">
                             <span class="icon">
@@ -300,12 +375,17 @@
                         </a>
                         {% endif %}
                     </div>
+                    {% if not pa.editable %}
+                    <div class="has-text-centered">
+                        <p style="color:red">หากต้องการปรับแก้ไขภาระงาน/ตัวชี้วัด ให้ส่งคำขอแก้ไข</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             <div class="columns">
                 <div class="column">
                     <h1 class="title">สถานะการประเมินภาระงาน</h1>
-                    <table class="table">
+                    <table class="table is-fullwidth">
                         <thead>
                         <th>สร้างเมื่อ</th>
                         <th>เพื่อ</th>
@@ -315,6 +395,7 @@
                         <th>ตอบกลับเมื่อ</th>
                         <th>comment</th>
                         <th>หัวหน้าส่วนงาน</th>
+                        <th>ยกเลิก</th>
                         </thead>
                         <tbody>
                         {% for req in pa.requests %}
@@ -322,11 +403,53 @@
                                 <td>{{ req.created_at|localdatetime }}</td>
                                 <td>{{ req.for_ }}</td>
                                 <td>{{ req.detail }}</td>
-                                <td>{{ req.status or 'ระหว่างดำเนินการ' }}</td>
+                                {% if req.status %}
+                                    <td>
+                                        {% if req.status == 'อนุมัติ' %}
+                                            <span class="tag is-rounded is-success">
+                                                <span class="icon">
+                                                    <i class="far fa-check-circle"></i>
+                                                </span>
+                                                <span>{{ req.status }}</span>
+                                            </span>
+                                        {% else %}
+                                            <span class="tag is-rounded is-danger">
+                                                <span class="icon">
+                                                    <i class="far fa-times-circle"></i>
+                                                </span>
+                                                <span>{{ req.status }}</span>
+                                            </span>
+                                        {% endif %}
+                                    </td>
+                                {% else %}
+                                    <td>
+                                    <span class="tag is-rounded is-warning">
+                                        <span class="icon">
+                                            <i class="fas fa-hourglass-half"></i>
+                                        </span>
+                                        <span>รอพิจารณา</span>
+                                    </span>
+                                    </td>
+                                {% endif %}
                                 <td>{{ req.submitted_at|localdatetime }}</td>
-                                <td>{{ req.responded_at|localdatetime }}</td>
+                                <td>{{ req.responded_at|localdatetime or '' }}</td>
                                 <td>{{ req.supervisor_comment }}</td>
                                 <td>{{ req.supervisor.fullname }}</td>
+                                <td>
+                                    {% if not req.responded_at %}
+                                        <a class="button"
+                                           hx-headers='{"X-CSRF-Token": {{ csrf_token()|tojson|safe }} }'
+                                           hx-swap="none"
+                                           hx-confirm="คุณต้องการยกเลิกรายการนี้หรือไม่"
+                                           hx-target="closest tr"
+                                           hx-delete="{{ url_for('pa.delete_request', request_id=req.id) }}">
+                                            <span class="icon is-small">
+                                                <i class="fa-solid fa-trash-can has-text-danger"></i>
+                                            </span>
+                                            <span class="has-text-danger">ยกเลิก</span>
+                                        </a>
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% endfor %}
                         </tbody>

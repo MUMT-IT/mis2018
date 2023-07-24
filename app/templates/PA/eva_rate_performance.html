@@ -5,9 +5,21 @@
     <section class="section">
         <div class="container">
             {% include "messages.html" %}
+             {% if for_self == 'false' %}
+             <div class="columns">
+                <div class="column is-half is-offset-3 has-text-centered">
+                       <div class="notification is-link is-light">
+                        <h1 class="subtitle">
+                            ผู้รับการประเมิน {{ scoresheet.pa.staff.personal_info.fullname }}<br>
+                            รอบวันที่ {{ scoresheet.pa.round }}
+                        </h1>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
             <div class="columns">
                 <div class="column has-text-centered">
-                    <h1 class="title">ประเมินภาระงาน</h1>
+                    <h1 class="title">ประเมินผลงาน(Performance)</h1>
                 </div>
             </div>
             <div class="columns">
@@ -38,47 +50,48 @@
                             <thead>
                             <th>ข้อตกลงการปฏิบัติงาน(เป้าหมาย)</th>
                             <th>%</th>
-                            <th>ประเภท</th>
                             <th>เกณฑ์ตามตัวชี้วัด</th>
+                            <th>ผลการดำเนินการ</th>
                             {% if for_self == 'false' %}
                             <th>คะแนนประเมินตนเอง</th>
-                            <th>ผลการประเมินผู้บังคับบัญชาขั้นต้น</th>
+                            <th>คะแนนผู้บังคับบัญชาขั้นต้น</th>
                             {% endif %}
-                            <th>คะแนน 0-10</th>
+                            <th>กรอกคะแนน<br>(0-10)</th>
                             </thead>
                             <tbody>
                             {% for s in scoresheet.score_sheet_items %}
                                 <tr>
-                                    <td style="width: 30%">
+                                    <td style="width: 38%">
                                         <p><strong>{{ s.item }}</strong></p>
                                         <p class="help">
                                             {{ s.kpi_item }}
                                         </p>
                                     </td>
-                                    <td style="width: 10%">
+                                    <td style="width: 2%">
                                         {{ s.item.percentage }}
                                     </td>
-                                    <td>
-                                        {{ s.kpi_item.kpi.type }}
-                                    </td>
-                                    <td>
+                                    <td style="width: 20%">
                                     <ul>
+                                        {{ s.kpi_item.kpi.type }}
                                         {% for kpi in s.kpi_item.kpi.pa_kpi_items %}
                                             <li><span class="icon"><i class="fa-solid fa-star has-text-light has-text-warning"></i></span><small>{{ kpi.goal }} ({{ kpi.level }})</small></li>
                                         {% endfor %}
                                     </ul>
                                     </td>
+                                    <td style="width: 28%">
+                                        {{ s.item.report }}
+                                    </td>
                                     {% if for_self == 'false' %}
-                                    <td>
+                                    <td style="width: 2%">
                                         {{ self_scoresheet.get_score_sheet_item(s.item_id, s.kpi_item.id).score }}
                                     </td>
-                                    <td>
+                                    <td style="width: 2%">
                                         <div class="field is-grouped">
                                             {{ head_scoresheet.get_score_sheet_item(s.item_id, s.kpi_item.id).score }}
                                         </div>
                                     </td>
                                     {% endif %}
-                                    <td>
+                                    <td style="width: 7%">
                                         <div class="field">
                                             <div class="control">
                                                 <input class="input" required name="pa-item-{{ s.id }}"  type="number"
@@ -92,31 +105,18 @@
                             </tbody>
                         </table>
                         <progress class="progress" value="100" max="100"></progress>
-                        <h1 class="title has-text-centered">ประเมินสมรรถนะหลัก</h1>
-                        <h1 class="subtitle has-text-centered">Core Competency</h1>
-                        <div class="column is-one-third is-offset-4">
+                        <h1 class="subtitle has-text-centered">ประเมินสมรรถนะหลัก(Core Competency)</h1>
+                        <div class="column ">
                             <div class="box">
                                 <table class="table is-fullwidth">
                             <thead>
                             <div class="subtitle has-text-centered">เกณฑ์การประเมิน</div>
-                            <th>หัวข้อ</th>
-                            <th>คะแนนเต็ม</th>
                             </thead>
                             <tr>
-                                <td>แสดงพฤติกรรมแทบทุกครั้ง/สม่ำเสมอ</td>
-                                <td>10 - 9</td>
-                            </tr>
-                            <tr>
-                                <td>แสดงพฤติกรรมบ่อยครั้ง/เกือบสม่ำเสมอ</td>
-                                <td>8 - 6</td>
-                            </tr>
-                            <tr>
-                                <td>แสดงพฤติกรรมเป็นบางครั้ง</td>
-                                <td>5 - 3</td>
-                            </tr>
-                            <tr>
-                                <td>ไม่เคย/แทบจะไม่เคยแสดงพฤติกรรม</td>
-                                <td>2 - 0</td>
+                                <td>คะแนนเต็ม 10 - 9 <br>แสดงพฤติกรรมแทบทุกครั้ง/สม่ำเสมอ </td>
+                                <td>คะแนนเต็ม 8 - 6 <br>แสดงพฤติกรรมบ่อยครั้ง/เกือบสม่ำเสมอ</td>
+                                <td>คะแนนเต็ม 5 - 3 <br>แสดงพฤติกรรมเป็นบางครั้ง</td>
+                                <td>คะแนนเต็ม 2 - 0 <br>ไม่เคย/แทบจะไม่เคยแสดงพฤติกรรม</td>
                             </tr>
                         </table>
                             </div>
@@ -127,9 +127,9 @@
                             <th>คะแนนเต็ม</th>
                             {% if for_self == 'false' %}
                             <th>คะแนนประเมินตนเอง</th>
-                            <th>ผลการประเมินผู้บังคับบัญชาขั้นต้น</th>
+                            <th>คะแนนผู้บังคับบัญชาขั้นต้น</th>
                             {% endif %}
-                            <th>คะแนน</th>
+                            <th>กรอกคะแนน<br>(0-10)</th>
                             </thead>
                             {% for item in core_competency_items %}
                                 <tr>
@@ -137,12 +137,12 @@
                                         <label class="label">{{ item.topic }}</label>
                                         <p class="help">{{ item.desc }}</p>
                                     </td>
-                                    <td>{{ item.score }}</td>
+                                    <td style="width: 8%">{{ item.score }}</td>
                                     {% if for_self == 'false' %}
-                                    <td>{{ self_scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}</td>
-                                    <td>{{ head_scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}</td>
+                                    <td style="width: 8%">{{ self_scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}</td>
+                                    <td style="width: 8%">{{ head_scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}</td>
                                     {% endif %}
-                                    <td>
+                                    <td style="width: 10%">
                                         <div class="field">
                                             <input class="input" type="number"
                                                    name="core-{{ item.id }}"
