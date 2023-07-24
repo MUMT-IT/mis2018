@@ -266,7 +266,7 @@
                                 <h1 class="is-size-3">ยอดรวม</h1>
                             </td>
                             <td class="has-text-right">
-                                <span class="has-text-danger is-size-3"><% totalCost.toFixed(2) %></span>
+                                <span class="has-text-danger is-size-3"><% Intl.NumberFormat('en-US',{style: 'currency',currency: 'USD',}).format(totalCost) %></span>
                             </td>
                             <td>
                                 <span class="is-size-3">บาท</span>
@@ -277,7 +277,7 @@
                                 <h1 class="is-size-3">รับมา</h1>
                             </td>
                             <td class="has-text-right">
-                                <span class="is-size-3 has-text-success"><% (+payAmount).toFixed(2) %></span>
+                                <span class="is-size-3 has-text-success"><% Intl.NumberFormat('en-US',{style: 'currency',currency: 'USD',}).format(+payAmount) %></span>
                             </td>
                             <td>
                                 <span class="is-size-3">บาท</span>
@@ -288,7 +288,7 @@
                                 <h1 class="is-size-3">ทอน</h1>
                             </td>
                             <td class="has-text-right">
-                                <span class="is-size-3"><% (+payChange).toFixed(2) %></span>
+                                <span class="is-size-3"><% Intl.NumberFormat('en-US',{style: 'currency',currency: 'USD',}).format(+payChange) %></span>
                             </td>
                             <td>
                                 <span class="is-size-3">บาท</span>
