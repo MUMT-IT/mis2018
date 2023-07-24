@@ -7,6 +7,22 @@
         <div class="columns">
             <div class="column has-text-centered">
                 <h4 class="title is-4">ข้อมูลรายละเอียด Verify Slips</h4>
+                <div class="tabs is-centered" id="type_tab">
+            <ul>
+                <li {% if list_type == None %} class="is-active" {% endif %}>
+                    <a href="{{ url_for('scb_payment.verify_slip') }}">
+                        <span class="icon is-small"><i class="fas fa-check-circle"></i></span>
+                        <span>ข้อมูลจ่ายเงินทั้งหมด</span>
+                    </a>
+                </li>
+                <li {% if list_type == 'unsuccess' %} class="is-active" {% endif %}>
+                    <a href="{{ url_for('scb_payment.verify_slip', list_type='unsuccess') }}">
+                        <span class="icon is-small"><i class="fas fa-times-circle"></i></span>
+                        <span>ข้อมูลยังไม่ได้จ่ายเงิน</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
             </div>
         </div>
         <div class="container">
@@ -51,7 +67,7 @@
         $(document).ready(function () {
             $('#data').DataTable({
                 searchDelay: 350,
-                ajax: '{{ url_for("scb_payment.get_verify_slip_data") }}',
+                ajax: '{{ url_for("scb_payment.get_verify_slip_data", list_type=list_type) }}',
                 serverSide: true,
                 columns: [
                     {data: 'bill_payment_ref1'},

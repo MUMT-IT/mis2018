@@ -51,12 +51,28 @@ def landing():
 @receipt_printing.route('/receipt/create', methods=['POST', 'GET'])
 def create_receipt():
     form = ReceiptDetailForm()
+    form.payer.choices = [(None, 'Add or select payer')] + [(r.id, r.received_money_from)
+                                for r in ElectronicReceiptReceivedMoneyFrom.query.all()]
     receipt_book = ComHealthReceiptID.query.filter_by(code='MTG').first()
+    payer = None
+    if request.method == 'POST':
+        if form.payer.data:
+            try:
+                payer_id = int(form.payer.data)
+            except ValueError:
+                payer = ElectronicReceiptReceivedMoneyFrom(received_money_from=form.payer.data)
+                db.session.add(payer)
+                db.session.commit()
+            else:
+                payer = ElectronicReceiptReceivedMoneyFrom.query.get(payer_id)
+
     if form.validate_on_submit():
         receipt_detail = ElectronicReceiptDetail()
         receipt_detail.issuer = current_user
         receipt_detail.created_datetime = datetime.now(tz=bangkok)
         form.populate_obj(receipt_detail)  #insert data from Form to Model
+        if payer:
+            receipt_detail.received_money_from = payer
         receipt_detail.number = receipt_book.next
         receipt_book.count += 1
         receipt_detail.book_number = receipt_book.book_number
@@ -324,6 +340,9 @@ def export_receipt_pdf(receipt_id):
                                  style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == 'Cheque':
         payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: เช็คสั่งจ่าย / CHEQUE NUMBER {}**** {}</font>'.format(receipt.cheque_number[:4], receipt.bank_name),
+                                 style=style_sheet['ThaiStyle'])
+    elif receipt.payment_method == 'Other':
+        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: วิธีการอื่นๆ / OTHER {}</font>'.format(receipt.other_payment_method),
                                  style=style_sheet['ThaiStyle'])
     else:
         payment_info = Paragraph('<font size=11>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])
