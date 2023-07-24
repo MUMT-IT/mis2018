@@ -43,9 +43,6 @@
                     {% else %}
                         <h1 class="title has-text-centered">เพิ่มภาระงาน</h1>
                         <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }}</h1>
-                        <p>
-                        <span class="icon"><i class="fa-solid fa-clock-rotate-left"></i></span>{{ pa.updated_at|localdatetime }}
-                        </p>
                     {% endif %}
                     <form method="post">
                         {{ form.hidden_tag() }}
@@ -65,6 +62,7 @@
                                     เกณฑ์การประเมิน เป็นลายลักษณ์อักษร
                                     พร้อมให้ผู้รับการประเมินและผู้บังคับบัญชาชั้นต้นลงลายมือชื่อไว้ด้วย</p>
                                 <p class="subtitle is-6">2.1 ภาระงานและตัวชี้วัดเป้าหมายความสำเร็จของภาระงาน</p>
+                                <a id="pa_table"></a>
                                 <table class="table is-fullwidth is-bordered">
                                     <thead>
                                     <th>หมวด</th>
@@ -102,13 +100,15 @@
                                                                 </td>
                                                                 <td>
                                                                     <div class="buttons">
-                                                                        {% if pa.editable %}
+                                                                        {% if pa.editable or pa.can_enter_result %}
                                                                         <a href="{{ url_for('pa.add_pa_item', round_id=pa_round.id, item_id=pa_item.id, pa_id=pa.id, _anchor='edit_form') }}"
                                                                            class="button">
                                                                             <span class="icon is-small">
                                                                                 <i class="fa-solid fa-pencil {% if pa_item_id == pa_item.id %} has-text-success {% endif %}"></i>
                                                                             </span>
                                                                         </a>
+                                                                        {% endif %}
+                                                                        {% if pa.editable %}
                                                                         <a class="button"
                                                                            hx-swap="outerHTML swap:1s"
                                                                            hx-target="closest tr"
@@ -130,8 +130,56 @@
                                         </tr>
                                     {% endfor %}
                                     <tr>
-                                        <td>รวม</td>
-                                        <td><strong>{{ pa.total_percentage }}</strong></td>
+                                        <td>รวมสัดส่วนภาระงาน</td>
+                                        <td><strong>{{ pa.total_percentage }} %</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>สถานะแบบประเมิน</td>
+                                        <td>
+                                            <table class="table">
+                                                <tr>
+                                                    <td>แก้ไขล่าสุด</td>
+                                                    <td>
+                                                        {% if pa.updated_at %}
+                                                            <span class="tag is-rounded">
+                                                                <span class="icon">
+                                                                    <i class="fa-solid fa-clock-rotate-left"></i>
+                                                                </span>
+                                                                <span>
+                                                                    {{ pa.updated_at|localdatetime }}
+                                                                </span>
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>รับรอง</td>
+                                                    <td>
+                                                        {% if pa.approved_at %}
+                                                            <span class="tag is-success is-rounded">
+                                                                <span class="icon">
+                                                                    <i class="fas fa-check-circle"></i>
+                                                                </span>
+                                                                <span>{{ pa.approved_at|localdatetime }}</span>
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>ส่งขอรับการประเมิน</td>
+                                                    <td>
+                                                        {% if pa.approved_at %}
+                                                            <span class="tag is-info is-rounded">
+                                                                <span class="icon">
+                                                                    <i class="fas fa-check-circle"></i>
+                                                                </span>
+                                                                <span>{{ pa.submitted_at|localdatetime }}</span>
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </td>
                                     </tr>
                                     </tbody>
                                 </table>

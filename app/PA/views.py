@@ -99,8 +99,8 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         pa.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(pa_item)
         db.session.commit()
-        flash('เพิ่มรายละเอียดภาระงานเรียบร้อย', 'success')
-        return redirect(url_for('pa.add_pa_item', round_id=round_id))
+        flash('เพิ่ม/แก้ไขรายละเอียดภาระงานเรียบร้อย', 'success')
+        return redirect(url_for('pa.add_pa_item', round_id=round_id, _anchor='pa_table'))
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
@@ -311,25 +311,29 @@ def create_request(pa_id):
                   ' "สถานะการประเมินภาระงาน" ซึ่งอยู่ด้านล่างของหน้าต่าง', 'warning')
             return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
 
-        same_request = PARequest.query.filter_by(pa_id=pa_id, supervisor=supervisor, for_=new_request.for_).first()
-        if same_request:
-            if same_request.status == 'อนุมัติ':
-                flash('ท่านส่งคำขอประเภทนี้แล้วและได้รับอนุมัติแล้ว กรุณาดำเนินการขั้นตอนต่อไป', 'warning')
-                return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
-            elif same_request.for_ == 'ขอรับรอง' and pa.approved_at:
-                flash('ท่านได้รับการรับรองแล้ว หากต้องการแก้ไข ให้ส่งคำร้องขอแก้ไข', 'warning')
-                return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
-
         if new_request.for_ == 'ขอรับการประเมิน':
             if not pa.approved_at:
                 flash('กรุณาขอรับรองภาระงานจากหัวหน้าส่วนงานก่อนทำการประเมิน', 'danger')
                 return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+            elif pa.submitted_at:
+                flash('ท่านได้ส่งภาระงานเพื่อขอรับการประเมินแล้ว', 'danger')
+                return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+            else:
+                pa.submitted_at = arrow.now('Asia/Bangkok').datetime
+                db.session.add(pa)
+                db.session.commit()
 
             self_scoresheet = pa.pa_score_sheet.filter(PAScoreSheet.staff_id == pa.staff.id).first()
 
             if not self_scoresheet or not self_scoresheet.is_final:
                 flash('กรุณาส่งคะแนนประเมินตนเองก่อนขอรับการประเมิน', 'warning')
-                return redirect(url_for('pa.create_request', pa_id=pa_id))
+                return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+        elif new_request.for_ == 'ขอแก้ไข' and pa.submitted_at:
+            flash('ท่านได้ส่งภาระงานเพื่อขอรับการประเมินแล้ว ไม่สามารถขอแก้ไขได้', 'danger')
+            return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+        elif new_request.for_ == 'ขอรับรอง' and pa.approved_at:
+            flash('ภาระงานของท่านได้รับการรับรองแล้ว', 'danger')
+            return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
 
         new_request.pa_id = pa_id
         right_now = arrow.now('Asia/Bangkok').datetime
