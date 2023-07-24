@@ -606,10 +606,17 @@ def confirm_final_score(scoresheet_id):
     return redirect(url_for('pa.summary_scoresheet', pa_id=scoresheet.pa_id))
 
 
-@pa.route('/head/consensus-scoresheets/send-to-hr/<int:scoresheet_id>')
+@pa.route('/head/consensus-scoresheets/send-to-hr/<int:pa_id>')
 @login_required
-def send_consensus_scoresheets_to_hr(scoresheet_id):
-    scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
+def send_consensus_scoresheets_to_hr(pa_id):
+    consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).filter(
+        PACommittee.staff == current_user).first()
+    if consolidated_score_sheet:
+        scoresheet = PAScoreSheet.query.filter_by(id=consolidated_score_sheet.id).first()
+    else:
+        flash('ไม่พบคะแนนสรุป กรุณาสรุปผลคะแนนและรับรองผล ก่อนการส่งคะแนนไปยัง HR', 'warning')
+        return redirect(request.referrer)
+
     pa_approved = PAApprovedScoreSheet.query.filter_by(score_sheet=scoresheet).all()
     if not pa_approved:
         flash('กรุณาบันทึกคะแนนสรุป และส่งขอรับรองคะแนนยังคณะกรรมการ ก่อนส่งผลคะแนนไปยัง HR', 'warning')
@@ -619,26 +626,31 @@ def send_consensus_scoresheets_to_hr(scoresheet_id):
         if not approved.approved_at:
             flash('จำเป็นต้องมีการรับรองผลโดยคณะกรรมการทั้งหมด ก่อนส่งผลคะแนนไปยัง HR', 'warning')
             return redirect(request.referrer)
-    scoresheet.is_appproved = True
-    db.session.add(scoresheet)
-    db.session.commit()
-
-    net_total = 0
-    for pa_item in scoresheet.pa.pa_items:
-        total_score = pa_item.total_score(scoresheet)
-        net_total += total_score
-    performance_net_score = ((net_total * 80) / 1000)
-
     pa_agreement = PAAgreement.query.filter_by(id=scoresheet.pa_id).first()
-    pa_agreement.performance_score = performance_net_score
-    pa_agreement.competency_score = scoresheet.competency_net_score()
-    db.session.add(pa_agreement)
-    db.session.commit()
-    pa = scoresheet.pa
-    pa.evaluated_at = arrow.now('Asia/Bangkok').datetime
-    db.session.add(pa)
-    db.session.commit()
-    flash('ส่งคะแนนไปยัง hr เรียบร้อยแล้ว', 'success')
+    if pa_agreement.performance_score:
+        flash('ส่งคะแนนเรียบร้อยแล้ว', 'success')
+    else:
+        scoresheet.is_appproved = True
+        db.session.add(scoresheet)
+        db.session.commit()
+
+        net_total = 0
+        for pa_item in scoresheet.pa.pa_items:
+            total_score = pa_item.total_score(scoresheet)
+            net_total += total_score
+        performance_net_score = round(((net_total * 80) / 1000),2)
+
+
+        pa_agreement.performance_score = performance_net_score
+        pa_agreement.competency_score = scoresheet.competency_net_score()
+        db.session.add(pa_agreement)
+        db.session.commit()
+
+        pa = scoresheet.pa
+        pa.evaluated_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(pa)
+        db.session.commit()
+        flash('ส่งคะแนนไปยัง hr เรียบร้อยแล้ว', 'success')
     return redirect(request.referrer)
 
 
