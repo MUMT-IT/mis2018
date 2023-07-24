@@ -420,6 +420,24 @@ def create_scoresheet_for_self_evaluation(pa_id):
                     )
 
 
+@pa.route('/head/confirm-send-scoresheet/<int:pa_id>', methods=['GET', 'POST'])
+@login_required
+def confirm_send_scoresheet_for_committee(pa_id):
+    pa = PAAgreement.query.get(pa_id)
+    if pa.committees:
+        committee = PACommittee.query.filter_by(round=pa.round, subordinate=pa.staff).filter(
+            PACommittee.staff != current_user).all()
+        if not committee:
+            committee = PACommittee.query.filter_by(round=pa.round, org=pa.staff.personal_info.org).filter(
+                PACommittee.staff != current_user).all()
+        for c in pa.committees:
+            scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id, committee_id=c.id).first()
+            is_confirm = True if scoresheet else False
+        return render_template('PA/head_confirm_send_scoresheet.html', pa=pa, committee=committee, is_confirm=is_confirm)
+    else:
+        flash('กรุณาระบุกลุ่มผู้ประเมินก่อนส่งแบบประเมินไปยังกรรรมการ (ปุ่ม กรรมการ)', 'warning')
+        return redirect(url_for('pa.all_approved_pa'))
+
 @pa.route('/head/create-scoresheet/<int:pa_id>/for-committee', methods=['GET', 'POST'])
 @login_required
 def create_scoresheet_for_committee(pa_id):
