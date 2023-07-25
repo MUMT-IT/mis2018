@@ -12,39 +12,38 @@
             </div>
             <div class="columns">
                 <div class="column is-half is-offset-3">
-                    <div class="box">
-                        <div class="field">
-                            <span>ผู้รับการประเมิน:</span>
-                            <p class="title is-size-4">{{ req.pa.staff.personal_info.fullname }}</p>
-                        </div>
-                        <div class="field">
-                            <span>รอบการประเมิน:</span>
-                            <label class="label">{{ req.pa.round }}</label>
-                        </div>
-                        <div class="field">
-                            ประเภทคำขอ: <p class="title is-size-4">{{ req.for_ }}</p>
-                        </div>
-                        {% if req.detail %}
-                            <div class="field">
-                                รายละเอียด
-                                <label class="label">
-                                    {{ req.detail }}
-                                </label>
-                            </div>
-                            </div>
-                        {% endif %}
-                    {% if req.responded_at %}
-                        <div class="field">
-                                <span>ผู้บังคับบัญชาขั้นต้น
-                                    <label class="label">"{{ req.status }}" เมื่อ
-                                        {{ req.responded_at|localdatetime }}
-                                    </label>
-                                </span>
-                            <label class="label">
-                                comment: {{ req.supervisor_comment }}
-                            </label>
-                        </div>
-                    {% endif %}
+                    <table class="table is-bordered is-fullwidth">
+                        <thead>
+                        <th>ผู้รับการประเมิน</th>
+                        <th>รอบการประเมิน</th>
+                        <th>ประเภทคำขอ</th>
+                        <th>รายละเอียด</th>
+                        <th>ความเห็นผู้บังคับบัญชา</th>
+                        <th>ข้อเสนอแนะ</th>
+                        </thead>
+                        <tr>
+                            <td>
+                                <strong>{{ req.pa.staff.personal_info.fullname }}</strong>
+                            </td>
+                            <td>
+                                <strong>{{ req.pa.round }}</strong>
+                            </td>
+                            <td>
+                                <strong>{{ req.for_ }}</strong>
+                            </td>
+                            <td>
+                                {{ req.detail }}
+                            </td>
+                            <td>
+                                {% if req.responded_at %}
+                                    <strong>{{ req.status }}</strong> เมื่อ {{ req.responded_at|localdatetime }}
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ req.supervisor_comment }}</strong>
+                            </td>
+                        </tr>
+                    </table>
                 </div>
             </div>
             <div class="columns">
