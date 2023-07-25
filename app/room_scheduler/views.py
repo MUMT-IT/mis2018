@@ -112,8 +112,8 @@ def show_event_detail(event_id=None):
     if event_id:
         event = RoomEvent.query.get(event_id)
         if event:
-            event.start = arrow.get(event.start, 'Asia/Bangkok').datetime
-            event.end = arrow.get(event.end, 'Asia/Bangkok').datetime
+            event.start = event.start.astimezone(pytz.timezone('Asia/Bangkok'))
+            event.end = event.end.astimezone(pytz.timezone('Asia/Bangkok'))
             return render_template(
                 'scheduler/event_detail.html', event=event)
     else:
