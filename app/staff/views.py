@@ -8,8 +8,9 @@ from app.eduqa.models import EduQAInstructor
 from . import staffbp as staff
 from app.main import get_weekdays, mail, app, csrf
 from app.models import Holidays
-from flask import jsonify, render_template, request, redirect, url_for, flash, session, send_from_directory, \
-    make_response, current_app
+from flask import (jsonify, render_template, request,
+                   redirect, url_for, flash, session, send_from_directory,
+                   make_response, current_app)
 from datetime import date, timedelta
 from collections import defaultdict, namedtuple
 import pytz
@@ -24,7 +25,7 @@ import gviz_api
 import os
 from flask_mail import Message
 from flask_admin import BaseView, expose
-from itsdangerous import TimedSerializer as TimedJSONWebSignatureSerializer
+from itsdangerous.url_safe import URLSafeTimedSerializer as TimedJSONWebSignatureSerializer
 import qrcode
 from app.staff.forms import StaffSeminarForm, create_seminar_attend_form
 from app.roles import admin_permission, hr_permission, secretary_permission, manager_permission
@@ -1133,7 +1134,7 @@ def request_cancel_leave_request(req_id):
         db.session.add(req)
         db.session.commit()
         for approval in StaffLeaveApproval.query.filter_by(request_id=req_id):
-            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'), expires_in=259200)
+            serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
             token = serializer.dumps({'approver_id': approval.approver_id, 'req_id': req.id})
             req_to_cancel_msg = u'{} ยื่นคำขอยกเลิก {} วันที่ {} ถึง {}\nคลิกที่ Link {} เพื่อยกเลิกการลา' \
                                 u'\n\n\n หน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'. \
@@ -1165,7 +1166,7 @@ def info_request_cancel_leave_request():
     token = request.args.get('token')
     serializer = TimedJSONWebSignatureSerializer(app.config.get('SECRET_KEY'))
     try:
-        token_data = serializer.loads(token)
+        token_data = serializer.loads(token, max_age=259200)
     except:
         return u'Bad JSON Web token. You need a valid token to cancelled leave request. รหัสสำหรับยกเลิกการลา หมดอายุหรือไม่ถูกต้อง'
     req_id = token_data.get("req_id")
