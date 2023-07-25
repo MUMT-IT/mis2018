@@ -2,6 +2,7 @@
 
 import dateutil.parser
 import arrow
+import pytz
 from dateutil import parser
 from flask import render_template, jsonify, request, flash, redirect, url_for, current_app
 from flask_login import login_required, current_user
@@ -75,8 +76,8 @@ def get_events():
             'location': room.number,
             'title': u'(Rm{}) {}'.format(room.number, event.title),
             'description': event.note,
-            'start': arrow.get(start, 'Asia/Bangkok').datetime.isoformat(),
-            'end': arrow.get(end, 'Asia/Bangkok').datetime.isoformat(),
+            'start': start.astimezone(pytz.timezone('Asia/Bangkok')).isoformat(),
+            'end': end.astimezone(pytz.timezone('Asia/Bangkok')).isoformat(),
             'resourceId': room.number,
             'status': event.approved,
             'borderColor': border_color,
@@ -225,7 +226,6 @@ def room_reserve(room_id):
             db.session.add(new_event)
             db.session.commit()
 
-            print(new_event.participants, new_event.notify_participants)
             if new_event.participants and new_event.notify_participants:
                 participant_emails = [f'{account.email}@mahidol.ac.th' for account in new_event.participants]
                 title = f'แจ้งนัดหมาย{new_event.category}'
@@ -245,7 +245,6 @@ def room_reserve(room_id):
             flash(u'บันทึกการจองห้องเรียบร้อยแล้ว', 'success')
             return redirect(url_for('room.show_event_detail', event_id=new_event.id))
     else:
-        print(request.form.get('start'))
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
         flash(f'{form.start.data}', 'warning')
