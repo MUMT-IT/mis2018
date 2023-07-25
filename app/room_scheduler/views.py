@@ -1,10 +1,9 @@
 # -*- coding: utf8 -*-
-import os
 
 import dateutil.parser
 import arrow
 from dateutil import parser
-from flask import render_template, jsonify, request, flash, redirect, url_for
+from flask import render_template, jsonify, request, flash, redirect, url_for, current_app
 from flask_login import login_required, current_user
 from linebot.models import TextSendMessage
 from sqlalchemy import and_
@@ -133,7 +132,7 @@ def cancel(event_id=None):
     db.session.add(event)
     db.session.commit()
     msg = f'{event.creator} ได้ยกเลิกการจอง {room} สำหรับ {event.title} เวลา {event.start} - {event.end}.'
-    if os.environ["FLASK_ENV"] == "production":
+    if not current_app.debug:
         if event.room.coordinator and event.room.coordinator.line_id:
             line_bot_api.push_message(to=event.room.coordinator.line_id,
                                       messages=TextSendMessage(text=msg))
@@ -238,7 +237,7 @@ def room_reserve(room_id):
                 print('The email has been sent to the participants.')
 
             msg = f'{new_event.creator.fullname} ได้จองห้อง {room} สำหรับ {new_event.title} เวลา {new_event.start.strftime("%d/%m/%Y %H:%M")} - {new_event.end.strftime("%d/%m/%Y %H:%M")}.'
-            if os.environ["FLASK_ENV"] == "production":
+            if not current_app.debug:
                 if room.coordinator and room.coordinator.line_id:
                     line_bot_api.push_message(to=room.coordinator.line_id, messages=TextSendMessage(text=msg))
             else:
