@@ -2,8 +2,7 @@
 import os
 
 import dateutil.parser
-import pytz
-from datetime import datetime
+import arrow
 from dateutil import parser
 from flask import render_template, jsonify, request, flash, redirect, url_for
 from flask_login import login_required, current_user
@@ -15,11 +14,9 @@ from .forms import RoomEventForm
 from ..auth.views import line_bot_api
 from ..main import db
 from . import roombp as room
-from .models import RoomResource, RoomEvent, EventCategory
+from .models import RoomResource, RoomEvent
 from ..models import IOCode
 from flask_mail import Message
-
-tz = pytz.timezone('Asia/Bangkok')
 
 
 def send_mail(recp, title, message):
@@ -79,8 +76,8 @@ def get_events():
             'location': room.number,
             'title': u'(Rm{}) {}'.format(room.number, event.title),
             'description': event.note,
-            'start': start.astimezone(tz).isoformat(),
-            'end': end.astimezone(tz).isoformat(),
+            'start': arrow.get(start, 'Asia/Bangkok').datetime.isoformat(),
+            'end': arrow.get(end, 'Asia/Bangkok').datetime.isoformat(),
             'resourceId': room.number,
             'status': event.approved,
             'borderColor': border_color,
@@ -115,8 +112,8 @@ def show_event_detail(event_id=None):
     if event_id:
         event = RoomEvent.query.get(event_id)
         if event:
-            event.start = event.start.astimezone(tz)
-            event.end = event.end.astimezone(tz)
+            event.start = arrow.get(event.start, 'Asia/Bangkok').datetime
+            event.end = arrow.get(event.end, 'Asia/Bangkok').datetime
             return render_template(
                 'scheduler/event_detail.html', event=event)
     else:
@@ -129,7 +126,7 @@ def cancel(event_id=None):
     if not event_id:
         return redirect(url_for('room.index'))
 
-    cancelled_datetime = tz.localize(datetime.utcnow(), is_dst=None)
+    cancelled_datetime = arrow.now('Asia/Bangkok').datetime
     event = RoomEvent.query.get(event_id)
     event.cancelled_at = cancelled_datetime
     event.cancelled_by = current_user.id
@@ -152,7 +149,7 @@ def approve_event(event_id):
     event = RoomEvent.query.get(event_id)
     event.approved = True
     event.approved_by = current_user.id
-    event.approved_at = tz.localize(datetime.utcnow(), is_dst=None)
+    event.approved_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(event)
     db.session.commit()
     flash(u'อนุมัติการจองห้องเรียบร้อยแล้ว', 'success')
@@ -168,9 +165,9 @@ def edit_detail(event_id):
         form.populate_obj(event)
         if event.partipants:
             event.occupancy = len(event.partipants)
-        event.start = form.start.data.astimezone(tz)
-        event.end = form.end.data.astimezone(tz)
-        event.updated_at = datetime.utcnow().astimezone(tz)
+        event.start = arrow.get(form.start.data, 'Asia/Bangkok').datetime
+        event.end = arrow.get(form.end.data, 'Asia/Bangkok').datetime
+        event.updated_at = arrow.now('Asia/Bangkok').datetime
         event.updated_by = current_user.id
         db.session.add(event)
         db.session.commit()
@@ -208,11 +205,11 @@ def room_reserve(room_id):
     if form.validate_on_submit():
         new_event = RoomEvent()
         if form.start.data:
-            startdatetime = form.start.data.astimezone(tz)
+            startdatetime = arrow.get(form.start.data, 'Asia/Bangkok').datetime
         else:
             startdatetime = None
         if form.end.data:
-            enddatetime = form.end.data.astimezone(tz)
+            enddatetime = arrow.get(form.end.data, 'Asia/Bangkok').datetime
         else:
             enddatetime = None
 
@@ -220,7 +217,7 @@ def room_reserve(room_id):
             form.populate_obj(new_event)
             new_event.start = startdatetime
             new_event.end = enddatetime
-            new_event.created_at = tz.localize(datetime.utcnow())
+            new_event.created_at = arrow.now('Asia/Bangkok').datetime
             new_event.creator = current_user
             new_event.room_id = room.id
             if new_event.participants:
