@@ -483,8 +483,8 @@ def edit_session(course_id, session_id):
             form.populate_obj(a_session)
             a_session.course = course
             course.updater = current_user
-            a_session.start = arrow.now('Asia/Bangkok').datetime
-            a_session.end = arrow.now('Asia/Bangkok').datetime
+            a_session.start = arrow.get(form.start.data, 'Asia/Bangkok').datetime
+            a_session.end = arrow.get(form.end.data, 'Asia/Bangkok').datetime
             if not is_datetime_valid(a_session.start, a_session.end):
                 form.start.data = a_session.start
                 form.end.data = a_session.end
