@@ -268,6 +268,11 @@ data_process_assoc = db.Table('data_process_assoc',
                               db.Column('process_id', db.Integer, db.ForeignKey('db_processes.id'), primary_key=True),
                               )
 
+data_process_staff_assoc = db.Table('data_process_staff_assoc',
+                              db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id'), primary_key=True),
+                              db.Column('process_id', db.Integer, db.ForeignKey('db_processes.id'), primary_key=True),
+                              )
+
 dataset_service_assoc = db.Table('dataset_service_assoc',
                                  db.Column('dataset_id', db.Integer, db.ForeignKey('db_datasets.id'), primary_key=True),
                                  db.Column('core_service_id', db.Integer, db.ForeignKey('db_core_services.id'),
@@ -355,6 +360,8 @@ class Process(db.Model):
     kpis = db.relationship(KPI, secondary=kpi_process_assoc, lazy='subquery',
                            backref=db.backref('processes', lazy=True))
     datasets = db.relationship('Dataset', secondary=dataset_process_assoc, lazy='subquery',
+                               backref=db.backref('processes', lazy=True))
+    staff = db.relationship('StaffAccount', secondary=data_process_staff_assoc, lazy='subquery',
                                backref=db.backref('processes', lazy=True))
 
 
