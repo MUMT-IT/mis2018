@@ -247,7 +247,6 @@ def room_reserve(room_id):
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-        flash(f'{form.start.data}', 'warning')
 
     if room:
         return render_template('scheduler/reserve_form.html', room=room, form=form)
