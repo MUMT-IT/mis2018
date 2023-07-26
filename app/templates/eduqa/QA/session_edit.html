@@ -176,6 +176,8 @@
     <script src="https://unpkg.com/htmx.org@1.9.2"></script>
     <script>
         $(document).ready(function () {
+            moment.locale('th')
+            const DATETIME_FORMAT = 'DD-MM-YYYY HH:mm:ss'
             $('input[name="start"]').daterangepicker({
                 singleDatePicker: true,
                 timePicker: true,
@@ -188,7 +190,7 @@
                     startDate: moment().startOf('hour'),
                 {% endif %}
                 locale: {
-                    format: 'YYYY-MM-DD HH:mm:ss'
+                    format: DATETIME_FORMAT
                 }
             });
             $('input[name="end"]').daterangepicker({
@@ -203,21 +205,22 @@
                     startDate: moment().startOf('hour'),
                 {% endif %}
                 locale: {
-                    format: 'YYYY-MM-DD HH:mm:ss'
+                    format: DATETIME_FORMAT
                 }
             });
             $('input[name="start"]').change(function () {
-                $('input[name="end"]').data('daterangepicker').setStartDate(moment($(this).val()).add(1, 'hours'))
+                $('input[name="end"]').data('daterangepicker')
+                    .setStartDate(moment($(this).val(), DATETIME_FORMAT).add(2, 'hours'))
                 $('.js-example-basic-single').each(function () {
                     $(this).trigger('select2:select')
                 })
             })
             $('input[name="end"]').on('apply.daterangepicker', function () {
-                let endDateTime = moment($('input[name="end"]').val())
-                let startDateTime = moment($('input[name="start"]').val())
+                let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
+                let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
                 if (startDateTime.format() == endDateTime.format()) {
                     alert('กรุณาตรวจสอบวันและเวลาเริ่มและสิ้นสุดอีกครั้ง')
-                    $('input[name="end"]').data('daterangepicker').setStartDate(startDateTime.add(1, 'hours'))
+                    $('input[name="end"]').data('daterangepicker').setStartDate(startDateTime.add(2, 'hours'))
                 } else {
                     $('.js-example-basic-single').each(function () {
                         $(this).trigger('select2:select')
@@ -229,8 +232,8 @@
                     $(this).select2()
                     $(this).on('select2:select', function (e) {
                         let roomId = $(this).find(':selected').val()
-                        let endDateTime = moment($('input[name="end"]').val())
-                        let startDateTime = moment($('input[name="start"]').val())
+                        let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
+                        let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
                         htmx.ajax('GET',
                             '{{ url_for("room.check_room_availability") }}',
                             {
@@ -253,8 +256,8 @@
                 let roomId = $(this).find(':selected').val()
                 // let event = new Event('change')
                 // document.querySelector('#'+ $(this).attr('id')).dispatchEvent(event)
-                let endDateTime = moment($('input[name="end"]').val())
-                let startDateTime = moment($('input[name="start"]').val())
+                let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
+                let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
                 htmx.ajax('GET',
                     '{{ url_for("room.check_room_availability") }}',
                     {
