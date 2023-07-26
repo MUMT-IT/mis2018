@@ -30,9 +30,7 @@
                                     <span class="subtitle is-6">
                                         <span class="icon">
                                             <i class="far fa-clock"></i>
-                                        </span>
-                                            &nbsp;{{ event.start.strftime('%d/%m/%Y') }} {{ event.start.strftime('%H:%M') }}
-                                        ถึง {{ event.end.strftime('%d/%m/%Y') }} {{ event.end.strftime('%H:%M') }}
+                                        </span>{{ event.start|localdatetime }} ถึง {{ event.end|localdatetime }}
                                     </span>
                                 </p>
                                 <p>
