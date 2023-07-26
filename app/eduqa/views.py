@@ -441,8 +441,8 @@ def add_session(course_id):
     form = InstructorForm()
     if request.method == 'POST':
         for event_form in form.events:
-            event_form.start.data = form.start.data
-            event_form.end.data = form.end.data
+            event_form.start.data = arrow.get(form.start.data, 'Asia/Bangkok').datetime
+            event_form.end.data = arrow.get(form.end.data, 'Asia/Bangkok').datetime
             event_form.title.data = f'{course.en_code}'
         if form.validate_on_submit():
             new_session = EduQACourseSession()
@@ -476,8 +476,8 @@ def edit_session(course_id, session_id):
     if request.method == 'POST':
         for event_form in form.events:
             if event_form.room.data:
-                event_form.start.data = form.start.data
-                event_form.end.data = form.end.data
+                event_form.start.data = arrow.get(form.start.data, 'Asia/Bangkok').datetime
+                event_form.end.data = arrow.get(form.end.data, 'Asia/Bangkok').datetime
                 event_form.title.data = f'{course.en_code}'
         if form.validate_on_submit():
             form.populate_obj(a_session)
