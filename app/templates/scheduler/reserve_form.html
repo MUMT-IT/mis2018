@@ -37,6 +37,16 @@
                     </div>
                     <div class="field is-horizontal">
                         <div class="field-label is-normal">
+                            <label class="label">สถานะ</label>
+                        </div>
+                        <div class="field-body">
+                            <div class="field">
+                                <span id="availability"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field is-horizontal">
+                        <div class="field-label is-normal">
                             <label class="label">วิทยาเขต</label>
                         </div>
                         <div class="field-body">
@@ -179,8 +189,10 @@
 {{super()}}
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+<script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment-with-locales.min.js"></script>
 <script type="text/javascript">
     $(document).ready(()=> {
+        const DATETIME_FORMAT = 'DD-MM-YYYY HH:mm:ss'
         $('.js-example-basic-multiple').select2({
             width: '100%',
         });
@@ -196,10 +208,10 @@
             {% if not form.start.data %}
                 startDate: moment().startOf('hour'),
             {% else %}
-                startDate: moment({{ form.start.data.isoformat()|tojson|safe }}).format('DD-MM-YYYY HH:mm:ss'),
+                startDate: moment({{ form.start.data.isoformat()|tojson|safe }}).format(DATETIME_FORMAT),
             {% endif %}
             locale: {
-                format: 'DD-MM-YYYY HH:mm:ss'
+                format: DATETIME_FORMAT
             }
         });
         $('input[name="end"]').daterangepicker({
@@ -214,12 +226,65 @@
             {% if not form.end.data %}
                 startDate: moment().startOf('hour').add(1, 'hour'),
             {% else %}
-                startDate: moment({{ form.end.data.isoformat()|tojson|safe }}).format('DD-MM-YYYY HH:mm:ss'),
+                startDate: moment({{ form.end.data.isoformat()|tojson|safe }}).format(DATETIME_FORMAT),
             {% endif %}
             locale: {
-                format: 'DD-MM-YYYY HH:mm:ss'
+                format: DATETIME_FORMAT
             }
         });
+        $('input[name="start"]').change(function () {
+            $('input[name="end"]').data('daterangepicker')
+                .setStartDate(moment($(this).val(), DATETIME_FORMAT).add(1, 'hours'))
+            let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
+            let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
+            htmx.ajax('GET',
+                '{{ url_for("room.check_room_availability") }}',
+                {
+                    source: '#' + $(this).attr('id'),
+                    target: '#availability',
+                    values: {
+                        'room': {{ room.id|tojson|safe }},
+                        'start': startDateTime.format(),
+                        'end': endDateTime.format(),
+                        'session_id': null,
+                    }
+                })
+        })
+        $('input[name="end"]').on('apply.daterangepicker', function () {
+            let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
+            let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
+            if (startDateTime.format() == endDateTime.format()) {
+                alert('กรุณาตรวจสอบวันและเวลาเริ่มและสิ้นสุดอีกครั้ง')
+                $('input[name="end"]').data('daterangepicker')
+                    .setStartDate(startDateTime.add(1, 'hours'))
+            }
+            htmx.ajax('GET',
+                '{{ url_for("room.check_room_availability") }}',
+                {
+                    source: '#' + $(this).attr('id'),
+                    target: '#availability',
+                    values: {
+                        'room': {{ room.id|tojson|safe }},
+                        'start': startDateTime.format(),
+                        'end': endDateTime.format(),
+                        'session_id': null,
+                    }
+                })
+        })
+        let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
+        let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
+        htmx.ajax('GET',
+            '{{ url_for("room.check_room_availability") }}',
+            {
+                source: '#' + $('input[name="start"]').attr('id'),
+                target: '#availability',
+                values: {
+                    'room': {{ room.id|tojson|safe }},
+                    'start': startDateTime.format(),
+                    'end': endDateTime.format(),
+                    'session_id': null,
+                }
+            })
     });
 </script>
 {% endblock %}
