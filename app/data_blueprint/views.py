@@ -9,7 +9,7 @@ from flask_login import current_user, login_required
 from pytz import timezone
 
 from app.models import DataFile, DataTag
-from app.staff.models import StaffAccount
+from app.staff.models import StaffAccount, StaffPersonalInfo
 
 tz = timezone('Asia/Bangkok')
 
@@ -98,13 +98,23 @@ def process_form(process_id=None):
                 form.populate_obj(new_data)
                 new_data.creator_id = current_user.id
                 db.session.add(new_data)
+                staff_list = []
+                for p_id in request.form.getlist('staff'):
+                    staff_info = StaffPersonalInfo.query.get(int(p_id))
+                    staff_list.append(staff_info.staff_account)
+                new_data.staff = staff_list
             else:
                 form.populate_obj(data_)
+                staff_list = []
+                for p_id in request.form.getlist('staff'):
+                    staff_info = StaffPersonalInfo.query.get(int(p_id))
+                    staff_list.append(staff_info.staff_account)
+                data_.staff = staff_list
                 db.session.add(data_)
             db.session.commit()
             flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
             return redirect(url_for('data_bp.index'))
-    return render_template('data_blueprint/process_form.html', form=form)
+    return render_template('data_blueprint/process_form.html', form=form, staff_list=data_.staff)
 
 
 @data_bp.route('/kpi/new', methods=['GET', 'POST'])
