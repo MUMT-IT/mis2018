@@ -23,6 +23,14 @@
                             <td>{{ process.org.name }}</td>
                         </tr>
                         <tr>
+                            <td>ผู้รับผิดชอบ</td>
+                            <td>
+                            {% for staff in process.staff %}
+                                {{ staff.personal_info.fullname }}
+                            {% endfor %}
+                            </td>
+                        </tr>
+                        <tr>
                             <td>แก้ไขเมื่อ</td>
                             <td>{{ process.updated_at|localdatetime }}</td>
                         </tr>
