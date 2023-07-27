@@ -140,6 +140,9 @@ def create_assignment_instructors_form(course):
         class Meta:
             model = EduQACourseAssignmentSession
 
+        start = DateTimePickerField('เริ่มต้น')
+        end = DateTimePickerField('สิ้นสุด')
+
         instructors = QuerySelectMultipleField(u'ผู้รับผิดชอบ',
                                                get_label='fullname',
                                                query_factory=lambda: course.instructors,
