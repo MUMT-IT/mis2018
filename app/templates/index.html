@@ -31,7 +31,6 @@
                                             <a
                                                 hx-get="{{ url_for('meeting_planner.invitation_detail', invitation_id=invite.id) }}"
                                                 hx-target="#target-{{ invite.id }}"
-                                                hx-boost="true"
                                             >
                                                 <strong>{{ invite.meeting.title }}</strong>
                                             </a>
@@ -53,19 +52,16 @@
                                         <nav class="level is-mobile">
                                             <div class="level-left">
                                                     <a class="level-item"
-                                                       hx-boost="true"
                                                        hx-target="#left-icon-{{ invite.id }}"
                                                        hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='เข้าร่วม') }}">
                                                         <span class="tag is-success">เข้าร่วม</span>
                                                     </a>
                                                     <a class="level-item"
-                                                       hx-boost="true"
                                                        hx-target="#left-icon-{{ invite.id }}"
                                                        hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่เข้าร่วม') }}">
                                                         <span class="tag is-danger">ไม่เข้าร่วม</span>
                                                     </a>
                                                     <a class="level-item"
-                                                       hx-boost="true"
                                                        hx-target="#left-icon-{{ invite.id }}"
                                                        hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่แน่ใจ') }}">
                                                         <span class="tag is-light">ไม่แน่ใจ</span>
@@ -331,12 +327,4 @@
         </div>
     </div>
 </section>
-{% endblock %}
-
-{% block scripts %}
-    <script>
-    document.body.addEventListener('htmx:configRequest', (event) => {
-        event.detail.headers['X-CSRF-Token'] = '{{ csrf_token()|tojson|safe }}';
-    })
-    </script>
 {% endblock %}

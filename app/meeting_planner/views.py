@@ -276,13 +276,13 @@ def invitation_detail(invitation_id):
     return f'''
     <nav class="level is-mobile">
         <div class="level-left">
-            <a class="level-item" hx-boost="true" hx-target="#left-icon-{invite.id}" hx-get="{url_for('meeting_planner.respond', invitation_id=invite.id, response='เข้าร่วม')}">
+            <a class="level-item" hx-target="#left-icon-{invite.id}" hx-get="{url_for('meeting_planner.respond', invitation_id=invite.id, response='เข้าร่วม')}">
                 <span class="tag is-success">เข้าร่วม</span>
             </a>
-            <a class="level-item" hx-boost="true" hx-target="#left-icon-{invite.id}" hx-get="{url_for('meeting_planner.respond', invitation_id=invite.id, response='ไม่เข้าร่วม')}">
+            <a class="level-item" hx-target="#left-icon-{invite.id}" hx-get="{url_for('meeting_planner.respond', invitation_id=invite.id, response='ไม่เข้าร่วม')}">
                 <span class="tag is-danger">ไม่เข้าร่วม</span>
             </a>
-            <a class="level-item" hx-boost="true" hx-target="#left-icon-{invite.id}" hx-get="{url_for('meeting_planner.respond', invitation_id=invite.id, response='ไม่แน่ใจ')}">
+            <a class="level-item" hx-target="#left-icon-{invite.id}" hx-get="{url_for('meeting_planner.respond', invitation_id=invite.id, response='ไม่แน่ใจ')}">
                 <span class="tag is-light">ไม่แน่ใจ</span>
             </a>
         </div>
