@@ -238,7 +238,7 @@ def respond(invitation_id):
                 resp += f'<div id="target-{invitation.id}" hx-swap-oob="true"></div>'
         elif invitation.response == 'ไม่เข้าร่วม':
             add_note_to_response_url = url_for('meeting_planner.add_note_to_response', invitation_id=invitation.id, keep=keep)
-            resp = '<i class="fa-solid fa-hand has-text-danger"></i>'
+            resp = '<i class="fas fa-times-circle has-text-danger"></i>'
             resp += f'<div id="note-target-{invitation.id}" hx-swap-oob="true"><form hx-get="{add_note_to_response_url}"><input type="text" placeholder="โปรดระบุเหตุผล" value="{invitation.note}" name="note" class="input is-small"><input class="tag is-light" type="submit" value="Send"></form></div>'
             '''
             if keep == 'false':
@@ -246,7 +246,7 @@ def respond(invitation_id):
             '''
         else:
             invitation.note = ''
-            resp = '<i class="fa-solid fa-hourglass-start"></i>'
+            resp = '<i class="fas fa-hourglass-start"></i>'
             if keep == 'false':
                 resp += f'<div id="target-{invitation.id}" hx-swap-oob="true"></div>'
         db.session.add(invitation)
@@ -276,13 +276,13 @@ def invitation_detail(invitation_id):
     return f'''
     <nav class="level is-mobile">
         <div class="level-left">
-            <a class="level-item" hx-target="#left-icon-{invite.id}" hx-get="{url_for('meeting_planner.respond', invitation_id=invite.id, response='เข้าร่วม')}">
+            <a class="level-item" hx-boost="true" hx-target="#left-icon-{invite.id}" hx-get="{url_for('meeting_planner.respond', invitation_id=invite.id, response='เข้าร่วม')}">
                 <span class="tag is-success">เข้าร่วม</span>
             </a>
-            <a class="level-item" hx-target="#left-icon-{invite.id}" hx-get="{url_for('meeting_planner.respond', invitation_id=invite.id, response='ไม่เข้าร่วม')}">
+            <a class="level-item" hx-boost="true" hx-target="#left-icon-{invite.id}" hx-get="{url_for('meeting_planner.respond', invitation_id=invite.id, response='ไม่เข้าร่วม')}">
                 <span class="tag is-danger">ไม่เข้าร่วม</span>
             </a>
-            <a class="level-item" hx-target="#left-icon-{invite.id}" hx-get="{url_for('meeting_planner.respond', invitation_id=invite.id, response='ไม่แน่ใจ')}">
+            <a class="level-item" hx-boost="true" hx-target="#left-icon-{invite.id}" hx-get="{url_for('meeting_planner.respond', invitation_id=invite.id, response='ไม่แน่ใจ')}">
                 <span class="tag is-light">ไม่แน่ใจ</span>
             </a>
         </div>
