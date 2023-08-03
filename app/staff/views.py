@@ -4360,3 +4360,9 @@ def show_teaching_hours_summary():
                            instructor=instructor,
                            sum_hours=sum_hours,
                            years=years)
+
+
+@staff.route('/work-processes')
+@login_required
+def list_work_processes():
+    return render_template('staff/work_processes.html')
