@@ -377,6 +377,8 @@ class Process(db.Model):
                                backref=db.backref('processes', lazy=True))
     staff = db.relationship('StaffAccount', secondary=data_process_staff_assoc, lazy='subquery',
                             backref=db.backref('processes', lazy=True))
+    parent_id = db.Column('parent_id', db.ForeignKey('db_processes.id'))
+    subprocesses = db.relationship('Process', backref=db.backref('parent', remote_side=[id]))
 
 
 class Dataset(db.Model):
