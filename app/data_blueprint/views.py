@@ -18,18 +18,18 @@ tz = timezone('Asia/Bangkok')
 def index():
     data = Data.query.all()
     core_services = CoreService.query.all()
-    back_office_processes = Process.query.filter_by(category='back_office').all()
-    crm_processes = Process.query.filter_by(category='crm').all()
-    performance_processes = Process.query.filter_by(category='performance').all()
-    regulation_processes = Process.query.filter_by(category='regulation').all()
+    back_office_processes = Process.query.filter_by(category='back_office', parent_id=None).all()
+    crm_processes = Process.query.filter_by(category='crm', parent_id=None).all()
+    performance_processes = Process.query.filter_by(category='performance', parent_id=None).all()
+    regulation_processes = Process.query.filter_by(category='regulation', parent_id=None).all()
     return render_template('data_blueprint/index.html',
-                                core_services=core_services,
-                                data=data,
-                                back_office_processes=back_office_processes,
-                                crm_processes=crm_processes,
-                                performance_processes=performance_processes,
-                                regulation_processes=regulation_processes,
-                                )
+                           core_services=core_services,
+                           data=data,
+                           back_office_processes=back_office_processes,
+                           crm_processes=crm_processes,
+                           performance_processes=performance_processes,
+                           regulation_processes=regulation_processes,
+                           )
 
 
 @data_bp.route('/core-services/new', methods=['GET', 'POST'])
@@ -305,7 +305,7 @@ def core_service_detail(service_id):
                         data.append([ds.name + '(ds)', kpi.name + '(kpi)', 1])
                         kpis_from_datasets.add(kpi)
                 if not ds.kpis:
-                        data.append([(ds.name or ds.reference) + '(ds)', u'ไม่มีตัวชี้วัด', 1])
+                    data.append([(ds.name or ds.reference) + '(ds)', u'ไม่มีตัวชี้วัด', 1])
     for kpi in cs.kpis:
         if kpi not in kpis_from_datasets:
             data.append([cs.service, kpi.name + '(kpi)', 1])

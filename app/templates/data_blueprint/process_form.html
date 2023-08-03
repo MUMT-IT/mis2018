@@ -24,6 +24,10 @@
                         </div>
                     </div>
                     <div class="field">
+                        <label class="label">{{ form.parent.label }}</label>
+                        {{ form.parent(class="js-example-basic-single") }}
+                    </div>
+                    <div class="field">
                         <label class="label">{{ form.name.label }}</label>
                         <div class="control">
                             {{form.name(class="input")}}
@@ -67,6 +71,9 @@
                     url: "{{ url_for('staff.get_all_employees') }}",
                     dataType: "json"
                 }
+            });
+            $('.js-example-basic-single').select2({
+                width: '100%',
             });
         });
     </script>
