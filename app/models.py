@@ -347,8 +347,12 @@ class Process(db.Model):
     __tablename__ = 'db_processes'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     category = db.Column('category', db.String(), nullable=False,
-                         info={'label': u'กลุ่มงาน', 'choices': [(c, c) for c in ['back_office', 'regulation',
-                                                                                  'performance', 'crm']]})
+                         info={'label': u'กลุ่มงาน', 'choices': [c for c in
+                                                                 [('back_office', 'Back Office'),
+                                                                  ('regulation', 'Law/Compliance'),
+                                                                  ('performance', 'Performance Management'),
+                                                                  ('crm', 'Experience Management')]]
+                               })
     name = db.Column('name', db.String(255), nullable=False, info={'label': u'กระบวนการ'})
     org_id = db.Column('org_id', db.ForeignKey('orgs.id'))
     org = db.relationship(Org, backref=db.backref('processes', lazy=True))

@@ -91,6 +91,7 @@ def process_form(process_id=None):
         form = ProcessForm(obj=data_)
     else:
         form = ProcessForm()
+        data_ = None
     if request.method == 'POST':
         if form.validate_on_submit():
             if not process_id:
@@ -114,7 +115,11 @@ def process_form(process_id=None):
             db.session.commit()
             flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
             return redirect(url_for('data_bp.index'))
-    return render_template('data_blueprint/process_form.html', form=form, staff_list=data_.staff)
+    if data_:
+        staff_list = data_.staff
+    else:
+        staff_list = []
+    return render_template('data_blueprint/process_form.html', form=form, staff_list=staff_list)
 
 
 @data_bp.route('/kpi/new', methods=['GET', 'POST'])
