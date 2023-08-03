@@ -44,6 +44,46 @@
                         <h1 class="title has-text-centered">เพิ่มภาระงาน</h1>
                         <h1 class="subtitle has-text-centered">รอบการประเมิน {{ pa_round }}</h1>
                     {% endif %}
+                    {% if current_user.processes %}
+                    <div class="card">
+                        <div class="card-header">
+                            <p class="card-header-title">กระบวนการทำงานที่รับผิดชอบ</p>
+                        </div>
+                        <div class="card-content">
+                            <table class="table is-fullwidth">
+                            <thead>
+                            <th>ชื่อกระบวนการ</th>
+                            <th>กระบวนการหลัก</th>
+                            <th>กระบวนการย่อย</th>
+                            </thead>
+                                {% for proc in current_user.processes %}
+                                    <tr>
+                                    <td>
+                                        {{ proc.name }}
+                                    </td>
+                                    <td>
+                                        {% if not proc.parent %}
+                                            <span class="icon">
+                                                <i class="fas fa-check has-text-success"></i>
+                                            </span>
+                                        {% endif %}
+                                        <span>
+                                            {{ proc.parent.name or '' }}
+                                        </span>
+                                    </td>
+                                        <td>
+                                            {% if proc.parent %}
+                                                <span class="icon">
+                                                    <i class="fas fa-check has-text-success"></i>
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </table>
+                        </div>
+                    </div>
+                    {% endif %}
                     <form method="post">
                         {{ form.hidden_tag() }}
                         <br>
