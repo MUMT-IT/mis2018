@@ -39,8 +39,10 @@ def core_service_form(service_id=None):
     if service_id:
         service_ = CoreService.query.get(service_id)
         form = CoreServiceForm(obj=service_)
+        staff_list = service_.staff
     else:
         form = CoreServiceForm()
+        staff_list = []
     if request.method == 'POST':
         if form.validate_on_submit():
             if not service_id:
@@ -48,13 +50,24 @@ def core_service_form(service_id=None):
                 form.populate_obj(new_service)
                 new_service.creator_id = current_user.id
                 db.session.add(new_service)
+                staff_list = []
+                for p_id in request.form.getlist('staff'):
+                    staff_info = StaffPersonalInfo.query.get(int(p_id))
+                    staff_list.append(staff_info.staff_account)
+                new_service.staff = staff_list
             else:
                 form.populate_obj(service_)
+                staff_list = []
+                for p_id in request.form.getlist('staff'):
+                    staff_info = StaffPersonalInfo.query.get(int(p_id))
+                    staff_list.append(staff_info.staff_account)
+                service_.staff = staff_list
                 db.session.add(service_)
             db.session.commit()
             flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
             return redirect(url_for('data_bp.index'))
-    return render_template('data_blueprint/core_services.html', form=form, service_id=service_id)
+    return render_template('data_blueprint/core_services.html',
+                           form=form, service_id=service_id, staff_list=staff_list)
 
 
 @data_bp.route('/data/new', methods=['GET', 'POST'])
