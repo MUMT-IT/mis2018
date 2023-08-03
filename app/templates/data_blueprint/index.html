@@ -70,7 +70,7 @@
                     <div class="tags">
                         {% for p in back_office_processes %}
                         <a href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
-                            <span class="tag is-light is-medium is-warning">
+                            <span class="tag is-light is-medium is-warning is-rounded">
                             {{ p.name }}
                             </span>
                         </a>

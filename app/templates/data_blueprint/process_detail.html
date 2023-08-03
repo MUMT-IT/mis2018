@@ -25,9 +25,13 @@
                         <tr>
                             <td>ผู้รับผิดชอบ</td>
                             <td>
-                            {% for staff in process.staff %}
-                                {{ staff.personal_info.fullname }}
-                            {% endfor %}
+                            <div class="tags">
+                                {% for staff in process.staff %}
+                                    <span class="tag">
+                                    {{ staff.personal_info.fullname }}
+                                </span>
+                                {% endfor %}
+                            </div>
                             </td>
                         </tr>
                         <tr>
@@ -55,13 +59,11 @@
                                     <tr>
                                         <td colspan="2">
                                             <a href="{{ url_for('data_bp.kpi_form', process_id=process.id) }}"
-                                               class="button is-small is-info">
+                                               class="button is-small is-primary">
                                             <span class="icon">
                                                 <i class="fas fa-plus-circle"></i>
                                             </span>
-                                                <span>
-                                                เพิ่มตัวชี้วัด
-                                            </span>
+                                                <span>เพิ่ม</span>
                                             </a>
                                         </td>
                                     </tr>
@@ -73,6 +75,16 @@
             </div>
             <div class="columns">
                 <div class="column">
+                    <div class="buttons is-centered">
+                        <a class="button" href="{{ url_for('data_bp.index') }}">กลับ</a>
+                        <a class="button is-info"
+                           href="{{ url_for('data_bp.process_form', process_id=process.id) }}">
+                            <span class="icon">
+                                <i class="fas fa-pencil-alt"></i>
+                            </span>
+                            <span>แก้ไข</span>
+                        </a>
+                    </div>
                     <h1 class="title has-text-centered is-size-4">ผังข้อมูล</h1>
                     <div class="select">
                         <select id="kpi_selection" onchange="select_handler(this.value)">
@@ -84,11 +96,6 @@
                         </select>
                     </div>
                     <div id="sankey_basic"></div>
-                    <div class="buttons is-centered">
-                        <a class="button is-light" href="{{ url_for('data_bp.index') }}">Back</a>
-                        <a class="button is-outlined is-light is-danger"
-                           href="{{ url_for('data_bp.process_form', process_id=process.id) }}">แก้ไข</a>
-                    </div>
                 </div>
             </div>
         </div>
