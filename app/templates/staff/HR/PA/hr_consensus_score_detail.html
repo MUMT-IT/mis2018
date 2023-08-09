@@ -30,10 +30,10 @@
                                         <p> {{ pa_item }}</p>
                                             {{ pa_item.kpi_item }}
                                     </td>
-                                    <td class="content" style="width: 45%">
+                                    <td style="width: 45%">
                                         {% for kpi_item in pa_item.kpi_items %}
-                                            <div class="field is-grouped is-grouped-centered">
-                                                <label class="label">{{ kpi_item }}</label>
+                                            <div class="field">
+                                                {{ kpi_item }}
                                                 <div class="control">
                                                     <div class="tags has-addons">
                                                         <span class="tag">
