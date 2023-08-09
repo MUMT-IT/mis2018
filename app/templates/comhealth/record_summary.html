@@ -192,19 +192,19 @@
                                 <tr>
                                     <td><h1 class="subtitle">Profile Total</h1></td>
                                     <td class="has-text-right">
-                                        <h1 class="subtitle">{{ profile_item_cost }} บาท</h1>
+                                        <h1 class="subtitle">{{ "{:,}".format(profile_item_cost) }} บาท</h1>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td><h1 class="subtitle">Others Total</h1></td>
                                     <td class="has-text-right">
-                                        <h1 class="subtitle">{{ group_item_cost }} บาท</h1>
+                                        <h1 class="subtitle">{{ "{:,}".format(group_item_cost) }} บาท</h1>
                                     </td>
                                 </tr>
                                 <tr>
                                     <td><h1 class="title">Grand Total</h1></td>
                                     <td class="has-text-right">
-                                        <h1 class="title">{{ profile_item_cost + group_item_cost }} บาท</h1>
+                                        <h1 class="title">{{ "{:,}".format(profile_item_cost + group_item_cost) }} บาท</h1>
                                     </td>
                                 </tr>
                                 </tbody>
