@@ -781,7 +781,7 @@ def create_consensus_scoresheets(pa_id):
             send_mail(mails, req_title, req_msg)
         else:
             print(req_msg)
-        flash('ส่งคำขอรับการประเมินผลไปยังกรรมการทั้ง 2 ท่านเรียบร้อยแล้ว', 'success')
+        flash('ส่งคำขอรับการประเมินผลไปยังกลุ่มกรรมการเรียบร้อยแล้ว', 'success')
     return redirect(url_for('pa.summary_scoresheet', pa_id=pa.id))
 
 
