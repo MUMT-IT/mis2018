@@ -427,10 +427,7 @@ def edit_record(record_id):
             else:
                 flash(u'หมายเลข lab number ไม่ถูกต้อง', 'warning')
                 return redirect(url_for('comhealth.edit_record', record_id=record_id))
-        finance_contact = request.form.get('finance_contact', '')
-        if finance_contact == '0':
-            flash(u'กรุณาระบุติดต่อเจ้าหน้าที่การเงินด้วยหรือไม่', 'warning')
-            return redirect(url_for('comhealth.edit_record', record_id=record_id))
+
         record.ordered_tests = []
         for field in request.form:
             if field.startswith('test_'):
@@ -456,6 +453,8 @@ def edit_record(record_id):
         record.note = request.form.get('note')
         if department_id > 0:
             record.customer.dept_id = department_id
+        if group_item_cost > 0:
+            record.finance_contact_id = 1
 
         record.updated_at = datetime.now(tz=bangkok)
         db.session.add(record)
@@ -1043,9 +1042,9 @@ def get_specimens_summary_data(service_id):
             d = {'labno': rec.labno}
             for ct in containers:
                 if ct.name in rec.container_set:
-                    d[ct.id] = '''<td><span class="icon"><i class="fa-solid fa-circle-check has-text-success"></i></span></td>'''
+                    d[str(ct.id)] = '''<td><span class="icon"><i class="fa-solid fa-circle-check has-text-success"></i></span></td>'''
                 else:
-                    d[ct.id] = None
+                    d[str(ct.id)] = None
             data.append(d)
     return jsonify({'data': data,
                     'recordsFiltered': query.count(),
