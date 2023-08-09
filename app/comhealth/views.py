@@ -1042,9 +1042,9 @@ def get_specimens_summary_data(service_id):
             d = {'labno': rec.labno}
             for ct in containers:
                 if ct.name in rec.container_set:
-                    d[ct.id] = '''<td><span class="icon"><i class="fa-solid fa-circle-check has-text-success"></i></span></td>'''
+                    d[str(ct.id)] = '''<td><span class="icon"><i class="fa-solid fa-circle-check has-text-success"></i></span></td>'''
                 else:
-                    d[ct.id] = None
+                    d[str(ct.id)] = None
             data.append(d)
     return jsonify({'data': data,
                     'recordsFiltered': query.count(),
