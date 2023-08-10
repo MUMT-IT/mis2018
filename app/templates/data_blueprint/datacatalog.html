@@ -3,7 +3,6 @@
 {% block page_content %}
 <section class="section" id="app">
     {% include "messages.html" %}
-
     <div class="columns">
         <div class="column is-2">
             <aside class="menu">
@@ -47,7 +46,7 @@
                                     <i class="fas fa-cloud-upload"></i>
                                 </span>
                                 <span>
-                                    <a href>{{ dataset.name }}</a>
+                                    <a href={{ url_for('data_bp.datacatalog_dataset_detail', set_id=dataset.id) }}>{{ dataset.name }}</a>
                                 </span>
                                 <p class="help">{{ dataset.desc }}</p>
                                 <p class="help">วันที่ปรับปรุงล่าสุด: {{ dataset.updated_at|localdatetime }}</p>

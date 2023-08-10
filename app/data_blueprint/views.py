@@ -417,3 +417,11 @@ def datacatalog():
         else:
             datasets.append(dataset)
     return render_template('data_blueprint/datacatalog.html', tags=tags, all_data=all_data, datasets=datasets, tag_id=tag_id)
+
+
+@data_bp.route('/datasets/datacatalog/<int:set_id>')
+def datacatalog_dataset_detail(set_id):
+    dataset = Dataset.query.get(set_id)
+    file_id = request.args.get('file_id')
+    file_detail = DataFile.query.filter_by(id=file_id).first()
+    return render_template('data_blueprint/datacatalog_dataset_detail.html', dataset=dataset, file_detail=file_detail)
