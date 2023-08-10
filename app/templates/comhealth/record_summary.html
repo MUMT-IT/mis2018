@@ -144,30 +144,6 @@
                                         <h1 class="subtitle">{{ record.note }}</h1>
                                     </td>
                                 </tr>
-                                <tr>
-                                    <td><h1 class="subtitle">ติดต่อการเงิน / Contact Cashier</h1>
-                                        <form method="post" action="{{ url_for('comhealth.update_finance_contact') }}">
-                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                            <input type="hidden" name="record_id" value="{{ record.id }}">
-                                            <div class="select">
-                                                <select name="finance_contact">
-                                                    <option value="0">ไม่ระบุ</option>
-                                                    {% for reason in finance_contact_reasons %}
-                                                    <option value="{{ reason.id }}"
-                                                            {% if reason.id == record.finance_contact_id %}
-                                                            selected
-                                                            {% endif %}
-                                                    >{{ reason.reason }}</option>
-                                                    {% endfor %}
-                                                </select>
-                                            </div>
-                                            <button class="button is-success" type="submit">Save</button>
-                                        </form>
-                                    </td>
-                                    <td>
-                                        <h3 class="title is-size-4">{{ record.finance_contact.reason }}</h3>
-                                    </td>
-                                </tr>
                                 </tbody>
                             </table>
                             <div class="has-text-centered">
@@ -205,6 +181,32 @@
                                     <td><h1 class="title">Grand Total</h1></td>
                                     <td class="has-text-right">
                                         <h1 class="title">{{ "{:,}".format(profile_item_cost + group_item_cost) }} บาท</h1>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <h3 class="title is-size-4">{{ record.finance_contact.reason }}</h3>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><h1 class="subtitle">ติดต่อการเงิน / Contact Cashier</h1>
+                                        <form method="post" action="{{ url_for('comhealth.update_finance_contact') }}">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <input type="hidden" name="record_id" value="{{ record.id }}">
+                                            <div class="select">
+                                                <select name="finance_contact">
+                                                    <option value="0">ไม่ระบุ</option>
+                                                    {% for reason in finance_contact_reasons %}
+                                                    <option value="{{ reason.id }}"
+                                                            {% if reason.id == record.finance_contact_id %}
+                                                            selected
+                                                            {% endif %}
+                                                    >{{ reason.reason }}</option>
+                                                    {% endfor %}
+                                                </select>
+                                            </div>
+                                            <button class="button is-success" type="submit">Save</button>
+                                        </form>
                                     </td>
                                 </tr>
                                 </tbody>

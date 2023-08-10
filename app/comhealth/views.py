@@ -455,6 +455,8 @@ def edit_record(record_id):
             record.customer.dept_id = department_id
         if group_item_cost > 0:
             record.finance_contact_id = 1
+        else:
+            record.finance_contact_id = None
 
         record.updated_at = datetime.now(tz=bangkok)
         db.session.add(record)
@@ -475,7 +477,7 @@ def edit_record(record_id):
                     profile_item_cost += test_item.price
         special_tests.difference_update(set(profile.test_items))
 
-    if record.finance_contact_id == 1:
+    if record.finance_contact_id == 1 or record.finance_contact_id == None:
         profile_item_cost = 0
     group_item_cost = sum([item.price for item in record.ordered_tests if item.group])
     special_item_cost = sum([item.price for item in special_tests])
@@ -530,6 +532,8 @@ def add_item_to_order(record_id, item_id):
         item = ComHealthTestItem.query.get(item_id)
 
         if item not in record.ordered_tests:
+            if item.group:
+                record.finance_contact_id = 1
             record.ordered_tests.append(item)
             record.updated_at = datetime.now(tz=bangkok)
             db.session.add(record)
@@ -548,6 +552,12 @@ def remove_item_from_order(record_id, item_id):
         if item in record.ordered_tests:
             record.ordered_tests.remove(item)
             record.updated_at = datetime.now(tz=bangkok)
+            check_item_group = None
+            for item in record.ordered_tests:
+                if item.group:
+                    check_item_group = 1
+            if check_item_group == None:
+                record.finance_contact_id = None
             db.session.add(record)
             db.session.commit()
             flash('{} has been removed from the order.'.format(item.test.name), 'success')

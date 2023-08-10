@@ -135,19 +135,6 @@
                                         </div>
                                         <br>
                                         <br>
-                                        <p class="label"><strong>โปรดติดต่อเจ้าหน้าที่การเงินเพื่อ</strong></p>
-                                        <div class="select is-warning">
-                                            <select name="finance_contact">
-                                                <option value="0">ไม่ระบุ</option>
-                                                {% for reason in finance_contact_reasons %}
-                                                <option value="{{ reason.id }}"
-                                                        {% if reason.id == record.finance_contact_id %}
-                                                        selected
-                                                        {% endif %}
-                                                >{{ reason.reason }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
                                     </div>
                                     <div class="column is-3">
                                         <p class="label"><strong>อายุ / Age</strong></p>
