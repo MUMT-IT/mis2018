@@ -411,7 +411,9 @@ def datacatalog():
             for tag in dataset.tags:
                 if tag == datatag:
                     datasets.append(dataset)
-        else:
+        elif data_id:
             if data == dataset.data:
                 datasets.append(dataset)
+        else:
+            datasets.append(dataset)
     return render_template('data_blueprint/datacatalog.html', tags=tags, all_data=all_data, datasets=datasets, tag_id=tag_id)
