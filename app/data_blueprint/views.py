@@ -400,11 +400,18 @@ def get_all_tags():
 @data_bp.route('/datasets/datacatalog')
 def datacatalog():
     tags = DataTag.query.all()
+    all_data = Data.query.all()
     tag_id = request.args.get('tag_id')
+    data_id = request.args.get('data_id')
+    data = Data.query.get(data_id)
     datatag = DataTag.query.get(tag_id)
     datasets = []
     for dataset in Dataset.query.all():
-        for tag in dataset.tags:
-            if tag == datatag:
+        if tag_id:
+            for tag in dataset.tags:
+                if tag == datatag:
+                    datasets.append(dataset)
+        else:
+            if data == dataset.data:
                 datasets.append(dataset)
-    return render_template('data_blueprint/datacatalog.html', tags=tags, datasets=datasets, tag_id=tag_id)
+    return render_template('data_blueprint/datacatalog.html', tags=tags, all_data=all_data, datasets=datasets, tag_id=tag_id)
