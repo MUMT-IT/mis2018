@@ -11,32 +11,6 @@
             <div class="column">
                 <div class="card">
                     <div class="card-content">
-                        <div class="columns">
-                            <div class="column">
-                                <table class="table">
-                                    <thead>
-                                    <th>ตัวชี้วัด</th>
-                                    <th>เกณฑ์การประเมิน</th>
-                                    </thead>
-                                    <tbody>
-                                    {% for kpi in pa.kpis %}
-                                        <tr>
-                                            <td style="width: 50%">
-                                                {{ kpi }}
-                                            </td>
-                                            <td class="content" style="width: 50%">
-                                                <ul>
-                                                    {% for kpi_item in kpi.pa_kpi_items %}
-                                                        <li>{{ kpi_item }}</li>
-                                                    {% endfor %}
-                                                </ul>
-                                            </td>
-                                        </tr>
-                                    {% endfor %}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
                         <table class="table is-fullwidth is-bordered">
                             <thead>
                             <th>หมวด</th>
@@ -87,6 +61,32 @@
                             </tr>
                             </tbody>
                         </table>
+                        <div class="columns">
+                            <div class="column">
+                                <table class="table">
+                                    <thead>
+                                    <th>ตัวชี้วัด</th>
+                                    <th>เกณฑ์การประเมิน</th>
+                                    </thead>
+                                    <tbody>
+                                    {% for kpi in pa.kpis %}
+                                        <tr>
+                                            <td style="width: 50%">
+                                                {{ kpi }}
+                                            </td>
+                                            <td class="content" style="width: 50%">
+                                                <ul>
+                                                    {% for kpi_item in kpi.pa_kpi_items %}
+                                                        <li>{{ kpi_item }}</li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
