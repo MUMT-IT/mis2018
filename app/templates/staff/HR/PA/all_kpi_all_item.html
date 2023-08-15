@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">KPI ทั้งหมด</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="kpisTable">
+                    <thead>
+                    <th>ตัวชี้วัด</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for kpi in kpis %}
+                    <tr>
+                        <td>
+                        {% for kpi_item in kpi.pa_kpi_items %}
+                            <li>{{ kpi_item.kpi.detail }} {{ kpi_item.goal }} คะแนน {{ kpi_item.level }}</li>
+                        {% endfor %}
+                        </td>
+                        <td>
+
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">ภาระงานทั้งหมด</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="itemsTable">
+                    <thead>
+                    <th>ภาระงาน</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for item in items %}
+                    <tr>
+                        <td>
+                            {{ item.task }}
+                        </td>
+                        <td>
+
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('pa.hr_index') }}" class="button is-rounded is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับหน้าหลัก</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#kpisTable').DataTable();
+            $('#itemsTable').DataTable();
+        });
+    </script>
+{% endblock %}
