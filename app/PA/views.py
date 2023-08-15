@@ -891,3 +891,38 @@ def hr_index():
 def scoresheets_for_hr():
     scoresheets = PAScoreSheet.query.filter(PAScoreSheet.staff == None).all()
     return render_template('staff/HR/PA/hr_all_scoresheets.html', scoresheets=scoresheets)
+
+@pa.route('/hr/all-pa')
+@login_required
+def all_pa():
+    pa = PAAgreement.query.all()
+    return render_template('staff/HR/PA/hr_all_pa.html', pa=pa)
+
+
+@pa.route('/rounds/<int:round_id>/pa/<int:pa_id>')
+@login_required
+def pa_detail(round_id, pa_id):
+    pa_round = PARound.query.get(round_id)
+    categories = PAItemCategory.query.all()
+    if pa_id:
+        pa = PAAgreement.query.get(pa_id)
+    else:
+        pa = PAAgreement.query.filter_by(round_id=round_id,
+                                         staff=current_user).first()
+
+    for kpi in pa.kpis:
+        items = []
+        for item in kpi.pa_kpi_items:
+            items.append((item.id, item.goal))
+    return render_template('staff/HR/PA/pa_detail.html',
+                           pa_round=pa_round,
+                           pa=pa,
+                           categories=categories)
+
+
+@pa.route('/hr/all-kpis-all-items')
+@login_required
+def all_kpi_all_item():
+    kpis = PAKPI.query.all()
+    items = PAItem.query.all()
+    return render_template('staff/HR/PA/all_kpi_all_item.html', kpis=kpis, items=items)
