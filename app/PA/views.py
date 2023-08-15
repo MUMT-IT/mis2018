@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import datetime
+import textwrap
 
 import pytz
 import arrow
@@ -15,6 +16,7 @@ tz = pytz.timezone('Asia/Bangkok')
 from flask import render_template, flash, redirect, url_for, request, make_response, current_app
 from flask_login import login_required, current_user
 from flask_mail import Message
+
 
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
@@ -62,7 +64,7 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         items = []
         default = None
         for item in kpi.pa_kpi_items:
-            items.append((item.id, item.goal))
+            items.append((item.id, textwrap.shorten(item.goal, width=100, placeholder='...')))
             if pa_item:
                 if item in pa_item.kpi_items:
                     default = item.id
@@ -97,8 +99,8 @@ def add_pa_item(round_id, item_id=None, pa_id=None):
         pa.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(pa_item)
         db.session.commit()
-        flash('เพิ่มรายละเอียดภาระงานเรียบร้อย', 'success')
-        return redirect(url_for('pa.add_pa_item', round_id=round_id))
+        flash('เพิ่ม/แก้ไขรายละเอียดภาระงานเรียบร้อย', 'success')
+        return redirect(url_for('pa.add_pa_item', round_id=round_id, _anchor='pa_table'))
     else:
         for er in form.errors:
             flash("{}:{}".format(er, form.errors[er]), 'danger')
@@ -117,7 +119,17 @@ def delete_pa_item(pa_id, pa_item_id):
     db.session.delete(pa_item)
     db.session.commit()
     resp = make_response()
-    resp.headers['HX-Refresh'] = "true"
+    return resp
+
+
+@pa.route('/requests/<int:request_id>/delete', methods=['DELETE'])
+@login_required
+def delete_request(request_id):
+    req = PARequest.query.get(request_id)
+    db.session.delete(req)
+    db.session.commit()
+    resp = make_response()
+    resp.headers['HX-Refresh'] = 'true'
     return resp
 
 
@@ -185,8 +197,9 @@ def view_pa_item(round_id):
 @pa.route('/pa/')
 @login_required
 def index():
+    new_requests = PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.responded_at == None).all()
     is_head_committee = PACommittee.query.filter_by(staff=current_user, role='ประธานกรรมการ').first()
-    return render_template('PA/index.html', is_head_committee=is_head_committee)
+    return render_template('PA/index.html', is_head_committee=is_head_committee, new_requests=new_requests)
 
 
 @pa.route('/hr/create-round', methods=['GET', 'POST'])
@@ -274,50 +287,72 @@ def detail_consensus_scoresheet_for_hr(scoresheet_id):
 def create_request(pa_id):
     pa = PAAgreement.query.get(pa_id)
     form = PARequestForm()
-    head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ', round=pa.round).first()
-    head_individual = PACommittee.query.filter_by(subordinate=current_user,  role='ประธานกรรมการ', round=pa.round).first()
-    print(head_individual,head_committee, pa.round)
+    head_committee = PACommittee.query.filter_by(org=current_user.personal_info.org, role='ประธานกรรมการ',
+                                                 round=pa.round).first()
+    head_individual = PACommittee.query.filter_by(subordinate=current_user, role='ประธานกรรมการ',
+                                                  round=pa.round).first()
     if head_individual:
         supervisor = StaffAccount.query.filter_by(email=head_individual.staff.email).first()
     elif head_committee:
         supervisor = StaffAccount.query.filter_by(email=head_committee.staff.email).first()
     else:
-        flash('ไม่พบกรรมการประเมิน กรุณาติดต่อหน่วย HR','warning')
+        flash('ไม่พบกรรมการประเมิน กรุณาติดต่อหน่วย HR', 'warning')
         return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
     if form.validate_on_submit():
         new_request = PARequest()
         form.populate_obj(new_request)
-        pa_request = PARequest.query.filter_by(pa_id=pa_id, supervisor=supervisor, for_=new_request.for_).first()
-        if pa_request:
-            flash('ท่านส่งคำขอประเภทนี้แล้ว สามารถติดตามสถานะได้ที่ "สถานะการประเมินภาระงาน" ซึ่งอยู่ด้านล่างของหน้าต่าง', 'warning')
-        else:
-            if new_request.for_=='ขอรับการประเมิน':
-                self_scoresheet = pa.pa_score_sheet.filter(PAScoreSheet.staff_id == pa.staff.id).first()
-                if not self_scoresheet:
-                    flash('กรุณาประเมินตนเอง ก่อนส่งคำขอรับการประเมิน','warning')
-                    return redirect(url_for('pa.create_request', pa_id=pa_id))
-                else:
-                    create_new_request = True
+
+        # Search for a pending request.
+        # User must wait for the response before creating another request.
+        pending_request = PARequest.query.filter_by(pa_id=pa_id, supervisor=supervisor)\
+            .filter(PARequest.responded_at == None).first()
+        if pending_request:
+            flash('คำขอก่อนหน้านี้กำลังรอผลการอนุมัติ สามารถติดตามสถานะได้ที่'
+                  ' "สถานะการประเมินภาระงาน" ซึ่งอยู่ด้านล่างของหน้าต่าง', 'warning')
+            return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+
+        if new_request.for_ == 'ขอรับการประเมิน':
+            if not pa.approved_at:
+                flash('กรุณาขอรับรองภาระงานจากหัวหน้าส่วนงานก่อนทำการประเมิน', 'danger')
+                return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+            elif pa.submitted_at:
+                flash('ท่านได้ส่งภาระงานเพื่อขอรับการประเมินแล้ว', 'danger')
+                return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
             else:
-                create_new_request = True
-            if create_new_request == True:
-                new_request.pa_id = pa_id
-                right_now = arrow.now('Asia/Bangkok').datetime
-                new_request.created_at = right_now
-                new_request.submitted_at = right_now
-                new_request.supervisor = supervisor
-                db.session.add(new_request)
+                self_scoresheet = pa.pa_score_sheet.filter(PAScoreSheet.staff_id == pa.staff.id).first()
+
+                if not self_scoresheet or not self_scoresheet.is_final:
+                    flash('กรุณาส่งคะแนนประเมินตนเองก่อนขอรับการประเมิน', 'warning')
+                    return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+
+                pa.submitted_at = arrow.now('Asia/Bangkok').datetime
+                db.session.add(pa)
                 db.session.commit()
-                req_msg = '{}ทำการขออนุมัติ{} ในระบบ PA กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
-                              '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
-                                current_user.personal_info.fullname, new_request.for_,
-                                url_for("pa.view_request", request_id=new_request.id, _external=True))
-                req_title = 'แจ้งการอนุมัติ' + new_request.for_ + 'ในระบบ PA'
-                if not current_app.debug:
-                    send_mail([supervisor.email + "@mahidol.ac.th"], req_title, req_msg)
-                else:
-                    print(req_msg, supervisor.email)
-                flash('ส่งคำขอเรียบร้อยแล้ว', 'success')
+
+        elif new_request.for_ == 'ขอแก้ไข' and pa.submitted_at:
+            flash('ท่านได้ส่งภาระงานเพื่อขอรับการประเมินแล้ว ไม่สามารถขอแก้ไขได้', 'danger')
+            return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+        elif new_request.for_ == 'ขอรับรอง' and pa.approved_at:
+            flash('ภาระงานของท่านได้รับการรับรองแล้ว', 'danger')
+            return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
+
+        new_request.pa_id = pa_id
+        right_now = arrow.now('Asia/Bangkok').datetime
+        new_request.created_at = right_now
+        new_request.submitted_at = right_now
+        new_request.supervisor = supervisor
+        db.session.add(new_request)
+        db.session.commit()
+        req_msg = '{}ทำการขออนุมัติ{} ในระบบ PA กรุณาคลิก link เพื่อดำเนินการต่อไป {}' \
+                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+            current_user.personal_info.fullname, new_request.for_,
+            url_for("pa.view_request", request_id=new_request.id, _external=True))
+        req_title = 'แจ้งการอนุมัติ' + new_request.for_ + 'ในระบบ PA'
+        if not current_app.debug:
+            send_mail([supervisor.email + "@mahidol.ac.th"], req_title, req_msg)
+        else:
+            print(req_msg, supervisor.email)
+        flash('ส่งคำขอเรียบร้อยแล้ว', 'success')
         return redirect(url_for('pa.add_pa_item', round_id=pa.round_id))
     return render_template('PA/request_form.html', form=form, pa=pa)
 
@@ -334,8 +369,7 @@ def all_request():
 def view_request(request_id):
     categories = PAItemCategory.query.all()
     req = PARequest.query.get(request_id)
-    return render_template('PA/head_respond_request.html',
-                           categories=categories, req=req)
+    return render_template('PA/head_respond_request.html', categories=categories, req=req)
 
 
 @pa.route('/head/request/<int:request_id>', methods=['GET', 'POST'])
@@ -346,11 +380,11 @@ def respond_request(request_id):
     if request.method == 'POST':
         form = request.form
         req.status = form.get('approval')
-        if req.for_ == 'ขอรับรอง':
-            req.pa.approved_at = arrow.now('Asia/Bangkok').datetime
-        elif req.for_ == 'ขอแก้ไข':
-            req.pa.approved_at = None
-        # TODO: recheck arrow.now datetime
+        if req.status == 'อนุมัติ':
+            if req.for_ == 'ขอรับรอง':
+                req.pa.approved_at = arrow.now('Asia/Bangkok').datetime
+            elif req.for_ == 'ขอแก้ไข':
+                req.pa.approved_at = None
         req.responded_at = arrow.now('Asia/Bangkok').datetime
         req.supervisor_comment = form.get('supervisor_comment')
         db.session.add(req)
@@ -365,7 +399,8 @@ def create_scoresheet(pa_id):
     pa = PAAgreement.query.filter_by(id=pa_id).first()
     committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
     if not committee:
-        committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ', round=pa.round).first()
+        committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ',
+                                                round=pa.round).first()
         if not committee:
             flash('ไม่สามารถสร้าง scoresheet ได้ กรุณาติดต่อหน่วยIT', 'warning')
             return redirect(request.referrer)
@@ -398,12 +433,10 @@ def create_scoresheet(pa_id):
 def create_scoresheet_for_self_evaluation(pa_id):
     scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id, staff=current_user).first()
     pa_items = PAItem.query.filter_by(pa_id=pa_id).all()
-    print('pa_items:', pa_items)
     if not scoresheet:
         scoresheet = PAScoreSheet(pa_id=pa_id, staff=current_user)
         pa_items = PAItem.query.filter_by(pa_id=pa_id).all()
         for item in pa_items:
-            print('kpi_items', item.kpi_items)
             for kpi_item in item.kpi_items:
                 scoresheet_item = PAScoreSheetItem(
                     item_id=item.id,
@@ -467,11 +500,12 @@ def create_scoresheet_for_committee(pa_id):
             else:
                 scoresheet_id = scoresheet.id
             mails.append(c.staff.email + "@mahidol.ac.th")
-            print(c.staff.email)
         req_title = 'แจ้งคำขอเข้ารับการประเมินการปฏิบัติงาน(PA)'
         req_msg = '{} ขอรับการประเมิน PA กรุณาดำเนินการตาม Link ที่แนบมานี้ {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(pa.staff.personal_info.fullname,
-                    url_for("pa.all_performance",scoresheet_id=scoresheet_id, _external=True))
+                                                                                       url_for("pa.all_performance",
+                                                                                               scoresheet_id=scoresheet_id,
+                                                                                               _external=True))
         if not current_app.debug:
             send_mail(mails, req_title, req_msg)
         else:
@@ -519,13 +553,14 @@ def summary_scoresheet(pa_id):
     pa = PAAgreement.query.filter_by(id=pa_id).first()
     committee = PACommittee.query.filter_by(round=pa.round, role='ประธานกรรมการ', subordinate=pa.staff).first()
     if not committee:
-        committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ', round=pa.round).first()
+        committee = PACommittee.query.filter_by(org=pa.staff.personal_info.org, role='ประธานกรรมการ',
+                                                round=pa.round).first()
         if not committee:
             flash('ไม่พบรายการสรุป scoresheet กรุณาติดต่อหน่วย IT', 'warning')
             return redirect(request.referrer)
     core_competency_items = PACoreCompetencyItem.query.all()
     consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).filter(
-                                                                PACommittee.staff == current_user).first()
+        PACommittee.staff == current_user).first()
     if consolidated_score_sheet:
         score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     else:
@@ -622,7 +657,6 @@ def send_consensus_scoresheets_to_hr(pa_id):
         flash('กรุณาบันทึกคะแนนสรุป และส่งขอรับรองคะแนนยังคณะกรรมการ ก่อนส่งผลคะแนนไปยัง HR', 'warning')
         return redirect(request.referrer)
     for approved in pa_approved:
-        print(approved.approved_at)
         if not approved.approved_at:
             flash('จำเป็นต้องมีการรับรองผลโดยคณะกรรมการทั้งหมด ก่อนส่งผลคะแนนไปยัง HR', 'warning')
             return redirect(request.referrer)
@@ -738,7 +772,6 @@ def create_consensus_scoresheets(pa_id):
                 approved_id = already_approved_scoresheet.id
 
             mails.append(c.staff.email + "@mahidol.ac.th")
-            print(c.staff.email)
 
         req_title = 'แจ้งขอรับรองผลการประเมิน PA'
         req_msg = 'กรุณาดำเนินการรับรองคะแนนการประเมิน ตาม Link ที่แนบมานี้ {} หากมีข้อแก้ไข กรุณาติดต่อผู้บังคับบัญชาขั้นต้นโดยตรง' \
@@ -758,10 +791,8 @@ def consensus_scoresheets():
     committee = PACommittee.query.filter_by(staff=current_user).all()
     approved_scoresheets = []
     for committee in committee:
-        print(committee.id)
         approved_scoresheet = PAApprovedScoreSheet.query.filter_by(committee_id=committee.id).all()
         for s in approved_scoresheet:
-            print(s.id)
             approved_scoresheets.append(s)
     if not committee:
         flash('สำหรับคณะกรรมการประเมิน PA เท่านั้น ขออภัยในความไม่สะดวก', 'warning')

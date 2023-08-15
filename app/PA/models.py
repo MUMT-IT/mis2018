@@ -1,5 +1,4 @@
 from sqlalchemy import desc
-from wtforms import widgets
 
 from app.main import db
 from app.models import Org
@@ -47,6 +46,8 @@ class PAAgreement(db.Model):
     round = db.relationship(PARound, backref=db.backref('agreements', lazy='dynamic'))
     committees = db.relationship('PACommittee', secondary=pa_committee_assoc_table)
     approved_at = db.Column('approved_at', db.DateTime(timezone=True))
+    submitted_at = db.Column('submitted_at', db.DateTime(timezone=True))
+    evaluated_at = db.Column('evaluated_at', db.DateTime(timezone=True))
     performance_score = db.Column('performance_score', db.Numeric())
     competency_score = db.Column('competency_score', db.Numeric())
 
@@ -64,14 +65,19 @@ class PAAgreement(db.Model):
 
     @property
     def editable(self):
-        req = self.requests.order_by(desc(PARequest.created_at)).first()
-        if req:
-            if req.for_ == 'ขอรับการประเมิน':
-                return False
-            elif req.responded_at == None:
-                return True
-        else:
-            return True
+        req = self.requests.order_by(desc(PARequest.id)).first()
+        if req and req.for_ == 'ขอแก้ไข':
+            return True if req.status == 'อนุมัติ' else False
+        elif req and req.for_ == 'ขอรับรอง':
+            return True if req.status == 'ไม่อนุมัติ' else False
+        elif self.approved_at:
+            return False
+        elif self.submitted:
+            return False
+        return True
+
+    def can_enter_result(self):
+        return True if self.approved_at else False
 
 
 class PARequest(db.Model):
