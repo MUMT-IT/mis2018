@@ -887,3 +887,11 @@ def pa_detail(round_id, pa_id):
                            pa_round=pa_round,
                            pa=pa,
                            categories=categories)
+
+
+@pa.route('/hr/all-kpis-all-items')
+@login_required
+def all_kpi_all_item():
+    kpis = PAKPI.query.all()
+    items = PAItem.query.all()
+    return render_template('staff/HR/PA/all_kpi_all_item.html', kpis=kpis, items=items)
