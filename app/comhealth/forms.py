@@ -57,6 +57,7 @@ class CustomerForm(FlaskForm):
     phone = StringField('Phone', validators=[optional()])
     emptype = SelectField('Employment Type', validators=[DataRequired()], coerce=int)
     emp_id  = StringField('Employee ID', validators=[optional()])
+    email =  StringField('Email', validators=[optional()])
     dept = StringField('Deparment', validators=[optional()])
     division = StringField('Division', validators=[optional()])
     unit = StringField('Unit', validators=[optional()])

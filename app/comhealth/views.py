@@ -1277,6 +1277,7 @@ def add_customer_to_service_org(service_id, org_id):
                                      phone=form.phone.data,
                                      dob=dob,
                                      emp_id=form.emp_id.data,
+                                     email=form.email.data,
                                      dept=department,
                                      division=division,
                                      unit=form.unit.data,
