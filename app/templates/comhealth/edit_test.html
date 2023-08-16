@@ -1,10 +1,51 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block page_content %}
+    <section class="section">
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <div>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <div class="control">
+                                {{ form.code(class="input is-rounded is-medium is-danger", placeholder="รหัส") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="control">
+                                {{ form.name(class="input is-rounded is-medium is-danger", placeholder="ชื่อการทดสอบ") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="control">
+                                {{ form.desc(class="input is-rounded is-medium is-danger", placeholder="คำอธิบาย") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <div class="control">
+                                {{ form.default_price(type="number", placeholder="ราคา", class="input is-rounded is-medium") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.container.label }}</label>
+                            <div class="control">
+                                <div class="select is-rounded">
+                                    {{ form.container(class="select") }}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="has-text-centered">
+                            <button type="submit" class="button is-link is-rounded is-medium">
+                                    <span class="icon">
+                                        <i class="fas fa-plus"></i>
+                                    </span>
+                                <span>Submit</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

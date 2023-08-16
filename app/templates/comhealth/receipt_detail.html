@@ -362,8 +362,7 @@
                         this.payAmount = this.totalCost;
                         return this.payAmount
                     } else if (this.payMethod == 'card') {
-                        this.payAmount = 0.0;
-                        return 0.0;
+                        return this.payAmount - this.totalCost;
                     } else {
                         return 0.0;
                     }
