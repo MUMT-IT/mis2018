@@ -465,12 +465,14 @@ def edit_record(record_id):
     special_tests = set(record.ordered_tests)
 
     profile_item_cost = Decimal(0.0)
+    check_profile_quote = False
     for profile in record.service.profiles:
         ordered_profile_tests = set(profile.test_items).intersection(record.ordered_tests)
         if len(ordered_profile_tests) != 0:
             if profile.quote > 0:
                 #if profiletest have price quote use quote
                 profile_item_cost += profile.quote
+                check_profile_quote = True
             else:
                 #if profiletest price quote = 0 use sum each test price
                 for test_item in ordered_profile_tests:
@@ -478,7 +480,8 @@ def edit_record(record_id):
         special_tests.difference_update(set(profile.test_items))
 
     if record.finance_contact_id == 1 or record.finance_contact_id == None:
-        profile_item_cost = 0
+        if check_profile_quote == False:
+            profile_item_cost = 0
     group_item_cost = sum([item.price for item in record.ordered_tests if item.group])
     special_item_cost = sum([item.price for item in special_tests])
     containers = set([item.test.container for item in record.ordered_tests])
