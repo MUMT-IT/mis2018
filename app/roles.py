@@ -20,7 +20,8 @@ with app.app_context():
         head_finance_role = Role.query.filter_by(role_need='head_finance', action_need=None, resource_id=None).first()
         manager_role = Role.query.filter_by(role_need='manager', action_need=None, resource_id=None).first()
         secretary_role = Role.query.filter_by(role_need='secretary', action_need=None, resource_id=None).first()
-
+        center_standardization_product_validation_role = Role.query.filter_by(role_need='center_standardization_product_validation',
+                                                                              action_need=None, resource_id=None).first()
     except ProgrammingError:
         admin_permission = Permission()
         hr_permission = Permission()
@@ -32,6 +33,7 @@ with app.app_context():
         finance_head_permission = Permission()
         manager_permission = Permission()
         secretary_permission = Permission()
+        center_standardization_product_validation_permission = Permission()
     else:
         admin_permission = Permission(admin_role.to_tuple())
         hr_permission = Permission(hr_role.to_tuple())
@@ -43,3 +45,4 @@ with app.app_context():
         finance_head_permission = Permission(head_finance_role.to_tuple())
         manager_permission = Permission(manager_role.to_tuple())
         secretary_permission = Permission(secretary_role.to_tuple())
+        center_standardization_product_validation_permission = Permission(center_standardization_product_validation_role.to_tuple())

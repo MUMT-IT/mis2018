@@ -6,7 +6,7 @@
     <div class="container">
         {% include 'messages.html' %}
         <div class="columns">
-            <div class="column is-one-third">
+            <div class="column is-one-third" hx-headers='{"X-CSRFToken": "{{ csrf_token() }}"}'>
                 <div class="card">
                     <div class="card-header">
                         <p class="card-header-title">การนัดหมายประชุม</p>
@@ -19,46 +19,60 @@
                                     {% if invite.response == 'เข้าร่วม' %}
                                     <i class="fa-sharp fa-regular fa-circle-check has-text-success"></i>
                                     {% elif invite.response == 'ไม่เข้าร่วม' %}
-                                    <i class="fa-solid fa-hand has-text-danger"></i>
+                                    <i class="fas fa-times-circle has-text-danger"></i>
                                     {% else %}
-                                    <i class="fa-solid fa-hourglass-start"></i>
+                                    <i class="fas fa-question-circle"></i>
                                     {% endif %}
                                 </span>
                             </div>
                                 <div class="media-content">
                                     <div class="content">
                                         <p>
-                                            <a hx-get="{{ url_for('meeting_planner.invitation_detail', invitation_id=invite.id) }}"
-                                            hx-target="#target-{{ invite.id }}">
-                                                <strong>{{ invite.meeting.title }}</strong>
-                                            </a>
+                                            <strong>{{ invite.meeting.title }}</strong>
                                             <br>
                                             <span class="icon">
                                                 <i class="fa-regular fa-clock"></i>
                                             </span>
                                             <small>{{ invite.meeting.start|humanizedt }}</small>
                                             <br>
-                                            <small>({{ invite.meeting.start|localdatetime }}-{{ invite.meeting.end|localdatetime }})</small>
+                                            <span class="icon"><i class="fas fa-info-circle"></i></span>
+                                            <small>
+                                                {{ invite.meeting.detail or 'ไม่มีรายละเอียด' }}
+                                            </small>
                                             <br>
-                                            {{ invite.meeting.rooms }}
-                                            <br>
-                                            {{ invite.meeting.detail }}
+                                            <a
+                                                hx-get="{{ url_for('meeting_planner.invitation_detail', invitation_id=invite.id) }}"
+                                                hx-target="#target-{{ invite.id }}"
+                                            >
+                                                <span class="icon"><i class="fas fa-reply"></i></span>
+                                                <small>
+                                                    <span id="response-time-{{ invite.id }}">
+                                                        {{ invite.responded_at|localdatetime or 'ยังไม่ตอบรับ' }}
+                                                    </span>
+                                                </small>
+                                            </a>
                                         </p>
                                     </div>
                                         <div id="target-{{ invite.id }}">
                                         {% if invite.response == None %}
                                         <nav class="level is-mobile">
                                             <div class="level-left">
-                                                    <a class="level-item" hx-target="#left-icon-{{ invite.id }}"
-                                                       hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='เข้าร่วม') }}">
+                                                    <a class="level-item"
+                                                       hx-boost="true"
+                                                       hx-target="#left-icon-{{ invite.id }}"
+                                                       hx-patch="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='เข้าร่วม') }}">
                                                         <span class="tag is-success">เข้าร่วม</span>
                                                     </a>
-                                                    <a class="level-item" hx-target="#left-icon-{{ invite.id }}"
-                                                       hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่เข้าร่วม') }}">
+                                                    <a class="level-item"
+                                                       hx-boost="true"
+                                                       hx-target="#left-icon-{{ invite.id }}"
+                                                       hx-patch="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่เข้าร่วม') }}">
                                                         <span class="tag is-danger">ไม่เข้าร่วม</span>
                                                     </a>
-                                                    <a class="level-item" hx-target="#left-icon-{{ invite.id }}"
-                                                       hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่แน่ใจ') }}">
+                                                    <a class="level-item"
+                                                       hx-boost="true"
+                                                       hx-target="#left-icon-{{ invite.id }}"
+                                                       hx-patch="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่แน่ใจ') }}">
                                                         <span class="tag is-light">ไม่แน่ใจ</span>
                                                     </a>
                                                 </div>
@@ -72,6 +86,13 @@
                             </article>
                         {% endfor %}
                     </div>
+                    <footer class="card-footer">
+                        <p class="card-footer-item">
+                            <strong>
+                                <small>คลิกที่ <span><i class="fas fa-reply"></i></span> เพื่อแก้ไข</small>
+                            </strong>
+                        </p>
+                    </footer>
                 </div>
             </div>
             <div class="column is-half">
@@ -311,12 +332,6 @@
                         </span>
                         <span class="is-size-5">ระบบงานทรัพยากรบุคคล</span>
                     </a>
-                    <a href="{{ url_for('receipt_printing.select_btw_io_code_and_cost_center') }}" class="panel-block">
-                        <span class="panel-icon">
-                            <i class="fas fa-user-alt"></i>
-                        </span>
-                        <span class="is-size-5">IO/Cost Center</span>
-                    </a>
                     <a href="/admin" class="panel-block">
                         <span class="panel-icon">
                             <i class="fas fa-user-alt"></i>
@@ -328,12 +343,4 @@
         </div>
     </div>
 </section>
-{% endblock %}
-
-{% block scripts %}
-    <script>
-    document.body.addEventListener('htmx:configRequest', (event) => {
-        event.detail.headers['X-CSRF-Token'] = '{{ csrf_token()|tojson|safe }}';
-    })
-    </script>
 {% endblock %}

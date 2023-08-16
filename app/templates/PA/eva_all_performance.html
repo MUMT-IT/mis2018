@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">การประเมินผลงาน</h1>
+            </div>
+            <div class="column has-text-right">
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="notification is-info">
+                    <h1 class="subtitle">ผู้รับการประเมิน {{ scoresheet.pa.staff.personal_info.fullname }}<br>
+                        ตำแหน่ง {{ scoresheet.pa.staff.personal_info.position }}<br>
+                        ลักษณะการจ้าง {{ scoresheet.pa.staff.personal_info.employment }}
+                    </h1>
+                </div>
+            </div>
+            <div class="column">
+                <div class="notification is-info is-light">
+                    <span>
+                        * วิธีคิดคะแนนประเมินผลงาน<br>
+                        1.  ให้นำคะแนนประเมินผลของคณะกรรมการประเมินผลการปฏิบัติงานในแต่ละข้อคูณค่าน้ำหนักของภาระงานในข้อนั้นๆ<br>
+                        2.  รวมคะแนนประเมินทั้งหมดที่คำนวณแล้วทุกข้อ<br>
+                        3.  เทียบบัญญัติไตรยางศ์คะแนนประเมินรวมตามร้อยละที่กำหนด
+                    </span>
+                </div>
+            </div>
+        </div>
+    {% include "messages.html" %}
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="reqTable">
+                    <thead>
+                    <th>ภาระงาน</th>
+                    <th>ร้อยละ (น้ำหนัก)</th>
+                    <th>เป้าหมาย: ปริมาณ</th>
+                    <th>เป้าหมาย: คุณภาพ</th>
+                    <th>เป้าหมาย: เวลา</th>
+                    <th>เป้าหมาย: ความคุ้มค่า</th>
+                    <th>เป้าหมาย: ความพึงพอใจ</th>
+                    </thead>
+                    <tbody>
+                    {% for item in scoresheet.pa.pa_items %}
+                    <tr>
+                        <td>
+                            {{ item.task }}
+                        </td>
+                        <td>
+                            {{ item.percentage }}
+                        </td>
+                        {% for t in ['ปริมาณ', 'คุณภาพ', 'เวลา', 'ความคุ้มค่า', 'ความพึงพอใจ'] %}
+                        <td>
+                            {% for kpi_item in item.kpi_items %}
+                                {% if kpi_item.kpi.type == t %}
+                                    {{ kpi_item }}<br>
+                                    <p style="color:cornflowerblue">
+                                        คะแนนที่ให้ {{ scoresheet.get_score_sheet_item(item.id, kpi_item.id).score }}
+                                    </p>
+                                {% endif %}
+                            {% endfor %}
+                        </td>
+                        {% endfor %}
+
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('pa.rate_performance', scoresheet_id=scoresheet.id) }}" class="button is-warning">
+                        <span class="icon">
+                            <i class="fa-solid fa-magnifying-glass-chart"></i>
+                        </span>
+                        <span>เริ่มประเมิน</span>
+                    </a>
+                </div>
+                <div class="buttons is-centered">
+                    {% if is_head_committee %}
+                    <a href="{{ url_for('pa.all_approved_pa') }}" class="button is-light">
+                        <span>กลับหน้าจัดการสำหรับประธานกรรมการ</span>
+                    </a>
+                    <a href="{{ url_for('pa.all_scoresheet') }}" class="button is-light">
+                        <span>กลับหน้ารายการประเมินผลงานสำหรับกรรมการ</span>
+                    </a>
+                    {% else %}
+                    <a href="{{ url_for('pa.all_scoresheet') }}" class="button is-light">
+                        <span>กลับ</span>
+                    </a>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#reqTable').DataTable();
+        });
+    </script>
+{% endblock %}

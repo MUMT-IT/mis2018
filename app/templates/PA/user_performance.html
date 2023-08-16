@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="breadcrumbs">
+                <ul>
+                    <li><a href="{{ url_for('pa.user_performance') }}">หน้าหลัก</a></li>
+                    <li class="is-active"><a href="#" aria-current="page">แบบข้อตกลงและประเมินผลการปฏิบัติงาน</a></li>
+                </ul>
+            </nav>
+            {% include "messages.html" %}
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <img width="100" src="{{ url_for('static', filename='img/logo-MU_black-white-2-1.png' ) }}"
+                         width="70"/>
+                    <h1 class="title has-text-centered">แบบประเมินผลการปฏิบัติงาน</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column has-text-centered is-two-thirds is-offset-2">
+                    <div class="card">
+                        <div class="card-content">
+                            <table class="table is-bordered is-fullwidth">
+                                <tr>
+                                    <p label class="label has-text-left">ส่วนที่ 1 ข้อมูลส่วนบุคคล</p>
+                                    <td><label class="label">คำนำหน้า ชื่อ-สกุล ผู้รับการประเมิน </label></td>
+                                    <td>{{ name.fullname }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ตำแหน่ง</label></td>
+                                    <td>{{ current_user.personal_info.position }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">สังกัดภาควิชา</label></td>
+                                    <td>{{ current_user.personal_info.org.parent or current_user.personal_info.org}}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">คณะ/เทียบเท่า</label></td>
+                                    <td>คณะเทคนิคการแพทย์</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">ประเภท</label></td>
+                                    <td>{{ current_user.personal_info.employment.title }}</td>
+                                </tr>
+                                <tr>
+                                    <td><label class="label">คำนำหน้า ชื่อ-สกุลผู้ประเมิน(ผู้บังคับบัญชาชั้นต้น)</label></td>
+                                    <td>{{ current_user.personal_info.org.parent.head or current_user.personal_info.org.head }}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2">
+                                        <h2 class="subtitle">รอบการประเมิน</h2>
+                                        <table id="data" class="table is-fullwidth">
+                                            <thead>
+                                            <th>ประเภทการจ้าง</th>
+                                            <th>วันที่เริ่มต้น - วันที่สิ้นสุด</th>
+                                            <th></th>
+                                            </thead>
+                                            <tbody>
+                                            {% for round in rounds %}
+                                                <tr>
+                                                    <td>
+                                                        {% for emp in round.employments %}
+                                                        {{ emp.title }}
+                                                        {% endfor %}
+                                                    </td>
+                                                    <td>{{ round }}</td>
+                                                    <td>
+                                                        <a class="button is-small is-rounded is-info is-outlined"
+                                                           href="{{ url_for('pa.add_pa_item', round_id=round.id) }}">
+                                                                    <span class="icon">
+                                                                        <i class="fa-solid fa-pencil"></i>
+                                                                    </span>
+                                                            <span>บันทึกภาระงาน</span>
+                                                        </a>
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                            </table>
+                            <div class="columns">
+                                <div class="column column is-10 is-offset-1">
+                                    <div class="columns">
+                                        <div class="column has-text-centered">
+                                        </div>
+                                    </div>
+                                        <div class="container">
+                                            <div class="columns">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+{% block scripts %}
+    {{ super }}
+
+{% endblock %}

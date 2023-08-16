@@ -1,109 +1,93 @@
 # -*- coding:utf-8 -*-
-import os
-
-import dateutil
-import requests
+import pytz
+from dateutil import parser
 from flask import render_template, jsonify, request, url_for, flash, redirect
+from flask_login import current_user, login_required
 from . import instrumentsbp as instruments
 from app.models import *
 from app.instruments.forms import InstrumentsBookingForm
 from app.procurement.models import ProcurementDetail
+from .models import InstrumentsBooking
+from datetime import datetime
 
-from google.oauth2.service_account import Credentials
-
-if os.environ.get('FLASK_ENV') == 'development':
-    CALENDAR_ID = 'cl05me2rhh57a5n3i76nqao7ng@group.calendar.google.com'
-else:
-    CALENDAR_ID = 'anatjgngk7bcv9kte15p38l7mg@group.calendar.google.com'
-
-service_account_info = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).json()
-credentials = Credentials.from_service_account_info(service_account_info)
+tz = pytz.timezone('Asia/Bangkok')
 
 
 @instruments.route('/api/instruments')
 def get_instruments():
     instruments = ProcurementDetail.query.filter_by(is_instruments=True)
     resources = []
-    for ins in instruments:
+    for instrument in instruments:
         resources.append({
-            'id': ins.id,
-            'title': ins.name
+            'id': instrument.id,
+            'title': instrument.name
         })
         print(resources)
     return jsonify(resources)
 
 
-@instruments.route('/api/events')
-def get_events():
+@instruments.route('/api/bookings')
+def get_bookings():
     start = request.args.get('start')
     end = request.args.get('end')
     if start:
-        start = dateutil.parser.isoparse(start)
+        start = parser.isoparse(start)
     if end:
-        end = dateutil.parser.isoparse(end)
-    events = InstrumentsBooking.query.filter(InstrumentsBooking.start >= start) \
-        .filter(InstrumentsBooking.end <= end)
-    all_events = []
-    for event in events:
-        if event.is_closed:
+        end = parser.isoparse(end)
+    all_bookings = []
+    for booking in InstrumentsBooking.query.filter(InstrumentsBooking.start.between(start, end)):
+        start = booking.start
+        end = booking.end
+        if booking.start:
             text_color = '#ffffff'
-            bg_color = '#066b02'
-            border_color = '#ffffff'
-        elif event.cancelled_at:
-            text_color = '#ffffff'
-            bg_color = '#ff6666'
+            bg_color = '#2b8c36'
             border_color = '#ffffff'
         else:
             text_color = '#000000'
             bg_color = '#f0f0f5'
-            border_color = '#ffffff'
-        evt = event.to_dict()
-        evt['borderColor'] = border_color
-        evt['backgroundColor'] = bg_color
-        evt['textColor'] = text_color
-        all_events.append(evt)
-    return jsonify(all_events)
+            border_color = '#ff4d4d'
+        book = {
+            'title': booking.title,
+            'start': start.astimezone(tz).isoformat(),
+            'end': end.astimezone(tz).isoformat(),
+            'resourceId': booking.detail_id,
+            'borderColor': border_color,
+            'backgroundColor': bg_color,
+            'textColor': text_color,
+            'id': booking.id,
+        }
+        all_bookings.append(book)
+    return jsonify(all_bookings)
 
 
 @instruments.route('/index')
+@login_required
 def index_of_instruments():
     return render_template('instruments/index.html', list_type='default')
 
 
-@instruments.route('/events/<list_type>')
-def event_instruments_list(list_type='timelineDay'):
-    return render_template('instruments/event_list.html', list_type=list_type)
+@instruments.route('/bookings/<list_type>')
+@login_required
+def booking_instruments_list(list_type='timelineDay'):
+    return render_template('instruments/booking_list.html', list_type=list_type)
 
 
-@instruments.route('/events/<int:event_id>', methods=['POST', 'GET'])
-def show_event_detail(event_id=None):
+@instruments.route('/bookings/<int:booking_id>', methods=['POST', 'GET'])
+@login_required
+def show_booking_detail(booking_id=None):
     tz = pytz.timezone('Asia/Bangkok')
-    if event_id:
-        event = InstrumentsBooking.query.get(event_id)
-        if event:
-            event.start = event.start.astimezone(tz)
-            event.end = event.end.astimezone(tz)
-            return render_template('instruments/event_detail.html', event=event)
+    if booking_id:
+        booking = InstrumentsBooking.query.get(booking_id)
+        if booking:
+            booking.start = booking.start.astimezone(tz)
+            booking.end = booking.end.astimezone(tz)
+            return render_template('instruments/booking_detail.html', booking=booking)
     else:
-        return 'No event ID specified.'
-
-
-@instruments.route('/events/new')
-def new_event():
-    return render_template('instruments/new_event.html')
-
-
-@instruments.route('/list', methods=['POST', 'GET'])
-def instruments_list():
-    erp_code = request.form.get('erp_code', None)
-    if erp_code:
-        procurements = ProcurementDetail.query.filter_by(erp_code=erp_code)
-    else:
-        procurements = []
-    return render_template('instruments/instruments_list.html', procurements=procurements)
+        return 'No booking ID specified.'
 
 
 @instruments.route('instruments_list/reserve/all', methods=['GET', 'POST'])
+@login_required
 def view_all_instruments_to_reserve():
     return render_template('instruments/view_all_instruments_to_reserve.html')
 
@@ -126,6 +110,10 @@ def get_instruments_to_reserve():
         item_data = item.to_dict()
         item_data['reserve'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">จอง</a>'.format(
             url_for('instruments.instruments_reserve', procurement_no=item.procurement_no))
+        if item.current_record:
+            item_data['location'] = item.current_record.location
+        else:
+            item_data['location'] = None
         data.append(item_data)
     return jsonify({'data': data,
                     'recordsFiltered': total_filtered,
@@ -135,16 +123,55 @@ def get_instruments_to_reserve():
 
 
 @instruments.route('/reserve/<string:procurement_no>', methods=['GET', 'POST'])
+@login_required
 def instruments_reserve(procurement_no):
     procurement = ProcurementDetail.query.filter_by(procurement_no=procurement_no).first()
     form = InstrumentsBookingForm()
     if form.validate_on_submit():
         reservation = InstrumentsBooking()
+        reservation.created_by = current_user.id
+        reservation.created_at = tz.localize(datetime.utcnow())
+        reservation.detail_id = procurement.id
         form.populate_obj(reservation)
         db.session.add(reservation)
         db.session.commit()
-        return redirect(url_for('instruments.index'))
+        return redirect(url_for('instruments.show_booking_detail', booking_id=reservation.id))
     else:
         for err in form.errors.values():
             flash(', '.join(err), 'danger')
     return render_template('instruments/reserve_form.html', form=form, procurement=procurement)
+
+
+@instruments.route('/reserve/edit/<int:booking_id>', methods=['POST', 'GET'])
+@login_required
+def edit_detail(booking_id):
+    booking = InstrumentsBooking.query.get(booking_id)
+    form = InstrumentsBookingForm(obj=booking)
+    if form.validate_on_submit():
+        form.populate_obj(booking)
+        booking.start = form.start.data.astimezone(tz)
+        booking.end = form.end.data.astimezone(tz)
+        booking.updated_at = datetime.utcnow().astimezone(tz)
+        booking.updated_by = current_user.id
+        db.session.add(booking)
+        db.session.commit()
+        flash(u'อัพเดตรายการเรียบร้อย', 'success')
+        return redirect(url_for('instruments.show_booking_detail', booking_id=booking.id))
+    else:
+        for field, error in form.errors.items():
+            flash(f'{field}: {error}', 'danger')
+    return render_template('instruments/reserve_form.html', booking=booking, form=form)
+
+
+@instruments.route('/reserve/cancel/<int:booking_id>')
+@login_required
+def cancel(booking_id=None):
+    if not booking_id:
+        return redirect(url_for('instruments.index_of_instruments'))
+    booking = InstrumentsBooking.query.get(booking_id)
+    booking.cancelled_at = tz.localize(datetime.utcnow())
+    booking.cancelled_by = current_user.id
+    db.session.add(booking)
+    db.session.commit()
+    return redirect(url_for('instruments.index_of_instruments'))
+

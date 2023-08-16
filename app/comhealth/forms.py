@@ -1,6 +1,18 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, DateField, SelectField, IntegerField, HiddenField, FloatField
 from wtforms.validators import DataRequired, optional
+from wtforms_alchemy import model_form_factory, QuerySelectField
+
+from app.comhealth.models import ComHealthTest, ComHealthContainer
+from app.main import db
+
+BaseModelForm = model_form_factory(FlaskForm)
+
+
+class ModelForm(BaseModelForm):
+    @classmethod
+    def get_session(self):
+        return db.session
 
 
 class ServiceForm(FlaskForm):
@@ -36,12 +48,12 @@ class TestListForm(FlaskForm):
     test_list = HiddenField('Test List', validators=[DataRequired()])
 
 
-class TestForm(FlaskForm):
-    code = StringField('Code', validators=[DataRequired()])
-    name = StringField('Name', validators=[DataRequired()])
-    desc = StringField('Description', validators=[DataRequired()])
-    default_price = FloatField('Default Price', validators=[optional()])
-    container = SelectField('Container', coerce=int)
+class TestForm(ModelForm):
+    class Meta:
+        model = ComHealthTest
+    container = QuerySelectField('Container',
+                                 query_factory=lambda: ComHealthContainer.query.all(),
+                                 allow_blank=True, blank_text='กรุณาระบุภาชนะ')
 
 
 class CustomerForm(FlaskForm):

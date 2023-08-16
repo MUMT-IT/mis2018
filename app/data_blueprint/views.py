@@ -9,7 +9,7 @@ from flask_login import current_user, login_required
 from pytz import timezone
 
 from app.models import DataFile, DataTag
-from app.staff.models import StaffAccount
+from app.staff.models import StaffAccount, StaffPersonalInfo
 
 tz = timezone('Asia/Bangkok')
 
@@ -18,18 +18,18 @@ tz = timezone('Asia/Bangkok')
 def index():
     data = Data.query.all()
     core_services = CoreService.query.all()
-    back_office_processes = Process.query.filter_by(category='back_office').all()
-    crm_processes = Process.query.filter_by(category='crm').all()
-    performance_processes = Process.query.filter_by(category='performance').all()
-    regulation_processes = Process.query.filter_by(category='regulation').all()
+    back_office_processes = Process.query.filter_by(category='back_office', parent_id=None).all()
+    crm_processes = Process.query.filter_by(category='crm', parent_id=None).all()
+    performance_processes = Process.query.filter_by(category='performance', parent_id=None).all()
+    regulation_processes = Process.query.filter_by(category='regulation', parent_id=None).all()
     return render_template('data_blueprint/index.html',
-                                core_services=core_services,
-                                data=data,
-                                back_office_processes=back_office_processes,
-                                crm_processes=crm_processes,
-                                performance_processes=performance_processes,
-                                regulation_processes=regulation_processes,
-                                )
+                           core_services=core_services,
+                           data=data,
+                           back_office_processes=back_office_processes,
+                           crm_processes=crm_processes,
+                           performance_processes=performance_processes,
+                           regulation_processes=regulation_processes,
+                           )
 
 
 @data_bp.route('/core-services/new', methods=['GET', 'POST'])
@@ -39,8 +39,10 @@ def core_service_form(service_id=None):
     if service_id:
         service_ = CoreService.query.get(service_id)
         form = CoreServiceForm(obj=service_)
+        staff_list = service_.staff
     else:
         form = CoreServiceForm()
+        staff_list = []
     if request.method == 'POST':
         if form.validate_on_submit():
             if not service_id:
@@ -48,13 +50,24 @@ def core_service_form(service_id=None):
                 form.populate_obj(new_service)
                 new_service.creator_id = current_user.id
                 db.session.add(new_service)
+                staff_list = []
+                for p_id in request.form.getlist('staff'):
+                    staff_info = StaffPersonalInfo.query.get(int(p_id))
+                    staff_list.append(staff_info.staff_account)
+                new_service.staff = staff_list
             else:
                 form.populate_obj(service_)
+                staff_list = []
+                for p_id in request.form.getlist('staff'):
+                    staff_info = StaffPersonalInfo.query.get(int(p_id))
+                    staff_list.append(staff_info.staff_account)
+                service_.staff = staff_list
                 db.session.add(service_)
             db.session.commit()
             flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
             return redirect(url_for('data_bp.index'))
-    return render_template('data_blueprint/core_services.html', form=form, service_id=service_id)
+    return render_template('data_blueprint/core_services.html',
+                           form=form, service_id=service_id, staff_list=staff_list)
 
 
 @data_bp.route('/data/new', methods=['GET', 'POST'])
@@ -91,6 +104,7 @@ def process_form(process_id=None):
         form = ProcessForm(obj=data_)
     else:
         form = ProcessForm()
+        data_ = None
     if request.method == 'POST':
         if form.validate_on_submit():
             if not process_id:
@@ -98,13 +112,27 @@ def process_form(process_id=None):
                 form.populate_obj(new_data)
                 new_data.creator_id = current_user.id
                 db.session.add(new_data)
+                staff_list = []
+                for p_id in request.form.getlist('staff'):
+                    staff_info = StaffPersonalInfo.query.get(int(p_id))
+                    staff_list.append(staff_info.staff_account)
+                new_data.staff = staff_list
             else:
                 form.populate_obj(data_)
+                staff_list = []
+                for p_id in request.form.getlist('staff'):
+                    staff_info = StaffPersonalInfo.query.get(int(p_id))
+                    staff_list.append(staff_info.staff_account)
+                data_.staff = staff_list
                 db.session.add(data_)
             db.session.commit()
             flash(u'บันทึกข้อมูลเรียบร้อยแล้ว', 'success')
             return redirect(url_for('data_bp.index'))
-    return render_template('data_blueprint/process_form.html', form=form)
+    if data_:
+        staff_list = data_.staff
+    else:
+        staff_list = []
+    return render_template('data_blueprint/process_form.html', form=form, staff_list=staff_list)
 
 
 @data_bp.route('/kpi/new', methods=['GET', 'POST'])
@@ -277,7 +305,7 @@ def core_service_detail(service_id):
                         data.append([ds.name + '(ds)', kpi.name + '(kpi)', 1])
                         kpis_from_datasets.add(kpi)
                 if not ds.kpis:
-                        data.append([(ds.name or ds.reference) + '(ds)', u'ไม่มีตัวชี้วัด', 1])
+                    data.append([(ds.name or ds.reference) + '(ds)', u'ไม่มีตัวชี้วัด', 1])
     for kpi in cs.kpis:
         if kpi not in kpis_from_datasets:
             data.append([cs.service, kpi.name + '(kpi)', 1])

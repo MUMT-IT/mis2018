@@ -1,11 +1,10 @@
 # -*- coding: utf8 -*-
-import os
 
 import dateutil.parser
+import arrow
 import pytz
-from datetime import datetime
 from dateutil import parser
-from flask import render_template, jsonify, request, flash, redirect, url_for
+from flask import render_template, jsonify, request, flash, redirect, url_for, current_app
 from flask_login import login_required, current_user
 from linebot.models import TextSendMessage
 from sqlalchemy import and_
@@ -15,11 +14,9 @@ from .forms import RoomEventForm
 from ..auth.views import line_bot_api
 from ..main import db
 from . import roombp as room
-from .models import RoomResource, RoomEvent, EventCategory
+from .models import RoomResource, RoomEvent
 from ..models import IOCode
 from flask_mail import Message
-
-tz = pytz.timezone('Asia/Bangkok')
 
 
 def send_mail(recp, title, message):
@@ -79,8 +76,8 @@ def get_events():
             'location': room.number,
             'title': u'(Rm{}) {}'.format(room.number, event.title),
             'description': event.note,
-            'start': start.astimezone(tz).isoformat(),
-            'end': end.astimezone(tz).isoformat(),
+            'start': start.astimezone(pytz.timezone('Asia/Bangkok')).isoformat(),
+            'end': end.astimezone(pytz.timezone('Asia/Bangkok')).isoformat(),
             'resourceId': room.number,
             'status': event.approved,
             'borderColor': border_color,
@@ -115,8 +112,8 @@ def show_event_detail(event_id=None):
     if event_id:
         event = RoomEvent.query.get(event_id)
         if event:
-            event.start = event.start.astimezone(tz)
-            event.end = event.end.astimezone(tz)
+            event.start = event.start.astimezone(pytz.timezone('Asia/Bangkok'))
+            event.end = event.end.astimezone(pytz.timezone('Asia/Bangkok'))
             return render_template(
                 'scheduler/event_detail.html', event=event)
     else:
@@ -129,14 +126,14 @@ def cancel(event_id=None):
     if not event_id:
         return redirect(url_for('room.index'))
 
-    cancelled_datetime = tz.localize(datetime.utcnow(), is_dst=None)
+    cancelled_datetime = arrow.now('Asia/Bangkok').datetime
     event = RoomEvent.query.get(event_id)
     event.cancelled_at = cancelled_datetime
     event.cancelled_by = current_user.id
     db.session.add(event)
     db.session.commit()
     msg = f'{event.creator} ได้ยกเลิกการจอง {room} สำหรับ {event.title} เวลา {event.start} - {event.end}.'
-    if os.environ["FLASK_ENV"] == "production":
+    if not current_app.debug:
         if event.room.coordinator and event.room.coordinator.line_id:
             line_bot_api.push_message(to=event.room.coordinator.line_id,
                                       messages=TextSendMessage(text=msg))
@@ -152,7 +149,7 @@ def approve_event(event_id):
     event = RoomEvent.query.get(event_id)
     event.approved = True
     event.approved_by = current_user.id
-    event.approved_at = tz.localize(datetime.utcnow(), is_dst=None)
+    event.approved_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(event)
     db.session.commit()
     flash(u'อนุมัติการจองห้องเรียบร้อยแล้ว', 'success')
@@ -166,11 +163,11 @@ def edit_detail(event_id):
     form = RoomEventForm(obj=event)
     if form.validate_on_submit():
         form.populate_obj(event)
-        if event.partipants:
-            event.occupancy = len(event.partipants)
-        event.start = form.start.data.astimezone(tz)
-        event.end = form.end.data.astimezone(tz)
-        event.updated_at = datetime.utcnow().astimezone(tz)
+        if event.participants:
+            event.occupancy = len(event.participants)
+        event.start = arrow.get(form.start.data, 'Asia/Bangkok').datetime
+        event.end = arrow.get(form.end.data, 'Asia/Bangkok').datetime
+        event.updated_at = arrow.now('Asia/Bangkok').datetime
         event.updated_by = current_user.id
         db.session.add(event)
         db.session.commit()
@@ -208,11 +205,11 @@ def room_reserve(room_id):
     if form.validate_on_submit():
         new_event = RoomEvent()
         if form.start.data:
-            startdatetime = form.start.data.astimezone(tz)
+            startdatetime = arrow.get(form.start.data, 'Asia/Bangkok').datetime
         else:
             startdatetime = None
         if form.end.data:
-            enddatetime = form.end.data.astimezone(tz)
+            enddatetime = arrow.get(form.end.data, 'Asia/Bangkok').datetime
         else:
             enddatetime = None
 
@@ -220,7 +217,7 @@ def room_reserve(room_id):
             form.populate_obj(new_event)
             new_event.start = startdatetime
             new_event.end = enddatetime
-            new_event.created_at = tz.localize(datetime.utcnow())
+            new_event.created_at = arrow.now('Asia/Bangkok').datetime
             new_event.creator = current_user
             new_event.room_id = room.id
             if new_event.participants:
@@ -229,7 +226,6 @@ def room_reserve(room_id):
             db.session.add(new_event)
             db.session.commit()
 
-            print(new_event.participants, new_event.notify_participants)
             if new_event.participants and new_event.notify_participants:
                 participant_emails = [f'{account.email}@mahidol.ac.th' for account in new_event.participants]
                 title = f'แจ้งนัดหมาย{new_event.category}'
@@ -241,7 +237,7 @@ def room_reserve(room_id):
                 print('The email has been sent to the participants.')
 
             msg = f'{new_event.creator.fullname} ได้จองห้อง {room} สำหรับ {new_event.title} เวลา {new_event.start.strftime("%d/%m/%Y %H:%M")} - {new_event.end.strftime("%d/%m/%Y %H:%M")}.'
-            if os.environ["FLASK_ENV"] == "production":
+            if not current_app.debug:
                 if room.coordinator and room.coordinator.line_id:
                     line_bot_api.push_message(to=room.coordinator.line_id, messages=TextSendMessage(text=msg))
             else:
@@ -249,10 +245,8 @@ def room_reserve(room_id):
             flash(u'บันทึกการจองห้องเรียบร้อยแล้ว', 'success')
             return redirect(url_for('room.show_event_detail', event_id=new_event.id))
     else:
-        print(request.form.get('start'))
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-        flash(f'{form.start.data}', 'warning')
 
     if room:
         return render_template('scheduler/reserve_form.html', room=room, form=form)

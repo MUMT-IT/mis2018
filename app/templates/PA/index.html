@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% include "PA/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    <h1 class="title has-text-centered">ระบบประเมินผลการปฏิบัติงาน</h1>
+    {% include "messages.html" %}
+    {% if is_head_committee %}
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            <nav class="panel is-warning">
+                <p class="panel-heading">สำหรับประธานกรรมการ</p>
+                <a href="{{ url_for('pa.all_request') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fa fa-user-edit"></i>
+                    </span>
+                    <span class="is-size-5">รายการคำร้อง</span>
+                    <span class="tag is-rounded is-danger">{{ new_requests|length }}</span>
+                </a>
+                <a href="{{ url_for('pa.all_approved_pa') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fa fa-list"></i>
+                    </span>
+                    <span class="is-size-5">จัดการแบบประเมิน</span><br>
+                </a>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+    <div class="columns">
+        <div class="column is-one-third is-offset-4">
+            <nav class="panel is-warning">
+                <p class="panel-heading">สำหรับกลุ่มผู้ประเมิน</p>
+                <a href="{{ url_for('pa.all_scoresheet') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fa fa-edit"></i>
+                    </span>
+                    <span class="is-size-5">ประเมินผลงาน</span><br>
+                </a>
+                <a href="{{ url_for('pa.consensus_scoresheets') }}" class="panel-block">
+                    <span class="panel-icon">
+                        <i class="fa fa-check"></i>
+                    </span>
+                    <span class="is-size-5">รับรองคะแนนประเมิน</span><br>
+                </a>
+            </nav>
+        </div>
+    </div>
+</section>
+{% endblock %}

@@ -43,12 +43,6 @@ json_keyfile = requests.get(os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')).js
 ALLOWED_EXTENSION = {'txt', 'pdf', 'png', 'jpg', 'jpeg', 'gif'}
 
 
-@receipt_printing.route('/index')
-@finance_permission.require()
-def index():
-    return render_template('receipt_printing/index.html')
-
-
 @receipt_printing.route('/landing')
 def landing():
     return render_template('receipt_printing/landing.html')
@@ -57,15 +51,32 @@ def landing():
 @receipt_printing.route('/receipt/create', methods=['POST', 'GET'])
 def create_receipt():
     form = ReceiptDetailForm()
+    form.payer.choices = [(None, 'Add or select payer')] + [(r.id, r.received_money_from)
+                                for r in ElectronicReceiptReceivedMoneyFrom.query.all()]
     receipt_book = ComHealthReceiptID.query.filter_by(code='MTG').first()
+    payer = None
+    if request.method == 'POST':
+        if form.payer.data:
+            try:
+                payer_id = int(form.payer.data)
+            except ValueError:
+                payer = ElectronicReceiptReceivedMoneyFrom(received_money_from=form.payer.data)
+                db.session.add(payer)
+                db.session.commit()
+            else:
+                payer = ElectronicReceiptReceivedMoneyFrom.query.get(payer_id)
+
     if form.validate_on_submit():
         receipt_detail = ElectronicReceiptDetail()
         receipt_detail.issuer = current_user
         receipt_detail.created_datetime = datetime.now(tz=bangkok)
         form.populate_obj(receipt_detail)  #insert data from Form to Model
+        if payer:
+            receipt_detail.received_money_from = payer
         receipt_detail.number = receipt_book.next
         receipt_book.count += 1
         receipt_detail.book_number = receipt_book.book_number
+        receipt_detail.received_money_from.address = form.address.data
         db.session.add(receipt_detail)
         db.session.commit()
         flash(u'บันทึกการสร้างใบเสร็จรับเงินสำเร็จ.', 'success')
@@ -110,30 +121,15 @@ def list_add_items():
                 {}
         </div>
     </div>
-    '''.format(item_form.name, item_form.item.label, item_form.item(class_="input"), item_form.price.label,
-               item_form.price(class_="input", placeholder=u"฿",
-                               **{'hx-post': url_for("receipt_printing.update_amount"),
-                                  'hx-trigger': 'keyup changed delay:500ms', 'hx-target': '#paid_amount',
-                                  'hx-swap': 'outerHTML'}),
+    '''.format(item_form.name, item_form.item.label, item_form.item(class_="textarea"), item_form.price.label,
+               item_form.price(class_="input", type="text", placeholder=u"฿", onkeyup="update_amount()"),
                item_form.gl.label, item_form.gl(),
                item_form.cost_center.label, item_form.cost_center(),
                item_form.internal_order_code.label, item_form.internal_order_code()
                )
     resp = make_response(form_text)
-    resp.headers['HX-Trigger-After-Swap'] = 'initSelect2Input'
+    resp.headers['HX-Trigger-After-Swap'] = 'initInput'
     return resp
-
-
-@receipt_printing.route('/receipt/create/update-amount', methods=['POST'])
-def update_amount():
-    form = ReceiptDetailForm()
-    total_amount = 0.0
-    for item in form.items.entries:
-        if item.price.data:
-            total_amount += float(item.price.data)
-        else:
-            print(item.name)
-    return form.paid_amount(class_="input", readonly=True, value=total_amount)
 
 
 @receipt_printing.route('/receipt/create/items-delete', methods=['POST', 'GET'])
@@ -173,8 +169,8 @@ def delete_items():
                 {}
         </div>
     </div>
-    '''.format(item_form.name, item_form.item.label, item_form.item(class_="input"), item_form.price.label,
-               item_form.price(class_="input", placeholder=u"฿"),
+    '''.format(item_form.name, item_form.item.label, item_form.item(class_="textarea"), item_form.price.label,
+               item_form.price(class_="input", placeholder=u"฿", onkeyup="update_amount()"),
                item_form.gl.label, item_form.gl(),
                item_form.cost_center.label, item_form.cost_center(),
                item_form.internal_order_code.label, item_form.internal_order_code()
@@ -275,11 +271,13 @@ def export_receipt_pdf(receipt_id):
     header_copy.hAlign = 'CENTER'
     header_copy.setStyle(header_styles)
     customer_name = '''<para><font size=12>
-    ได้รับเงินจาก / RECEIVED FROM {received_from}<br/>
-    ที่อยู่ / ADDRESS {address}
+    ได้รับเงินจาก / RECEIVED FROM {received_money_from}<br/>
+    ที่อยู่ / ADDRESS {address}<br/>
+    เลขประจำตัวผู้เสียภาษี / TIN {taxpayer_dentification_no}
     </font></para>
-    '''.format(received_from=receipt.received_from,
-               address=receipt.address)
+    '''.format(received_money_from=receipt.received_money_from,
+               address=receipt.received_money_from.address,
+               taxpayer_dentification_no=receipt.received_money_from.taxpayer_dentification_no)
 
     customer = Table([[Paragraph(customer_name, style=style_sheet['ThaiStyle']),
                     ]],
@@ -330,18 +328,21 @@ def export_receipt_pdf(receipt_id):
     item_table.setStyle([('VALIGN', (0, 0), (-1, -1), 'MIDDLE')])
     item_table.setStyle([('SPAN', (0, -1), (1, -1))])
 
-    if receipt.payment_method == u'เงินสด':
+    if receipt.payment_method == 'Cash':
         payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
-    elif receipt.payment_method == u'บัตรเครดิต':
-        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: บัตรเครดิต / CREDIT CARD NUMBER {}-****-****-{}</font>'.format(receipt.card_number[:4], receipt.card_number[-4:]),
+    elif receipt.payment_method == 'Credit Card':
+        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: บัตรเครดิต / CREDIT CARD NUMBER {}-****-****-{} {}</font>'.format(receipt.card_number[:4], receipt.card_number[-4:], receipt.bank_name),
                                  style=style_sheet['ThaiStyle'])
-    elif receipt.payment_method == u'Scan QR Code':
+    elif receipt.payment_method == u'QR Payment':
         payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: สแกนคิวอาร์โค้ด / SCAN QR CODE</font>', style=style_sheet['ThaiStyle'])
-    elif receipt.payment_method == u'โอนผ่านระบบธนาคารอัตโนมัติ':
+    elif receipt.payment_method == 'Bank Transfer':
         payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: โอนผ่านระบบธนาคารอัตโนมัติ / TRANSFER TO BANK</font>',
                                  style=style_sheet['ThaiStyle'])
-    elif receipt.payment_method == u'เช็คสั่งจ่าย':
-        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: เช็คสั่งจ่าย / CHEQUE NUMBER {}****</font>'.format(receipt.cheque_number[:4]),
+    elif receipt.payment_method == 'Cheque':
+        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: เช็คสั่งจ่าย / CHEQUE NUMBER {}**** {}</font>'.format(receipt.cheque_number[:4], receipt.bank_name),
+                                 style=style_sheet['ThaiStyle'])
+    elif receipt.payment_method == 'Other':
+        payment_info = Paragraph('<font size=14>ชำระโดย / PAID BY: วิธีการอื่นๆ / OTHER {}</font>'.format(receipt.other_payment_method),
                                  style=style_sheet['ThaiStyle'])
     else:
         payment_info = Paragraph('<font size=11>ยังไม่ชำระเงิน / UNPAID</font>', style=style_sheet['ThaiStyle'])
@@ -387,8 +388,8 @@ def export_receipt_pdf(receipt_id):
                 data.append(KeepTogether(header_ori))
                 data.append(KeepTogether(cancel_receipts))
             else:
-                data.append(KeepTogether(cancel_receipts))
                 data.append(KeepTogether(header_copy))
+                data.append(KeepTogether(cancel_receipts))
 
             data.append(KeepTogether(customer))
             data.append(KeepTogether(Spacer(1, 12)))
@@ -405,7 +406,7 @@ def export_receipt_pdf(receipt_id):
             data.append(KeepTogether(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
                                   style=style_sheet['ThaiStyle'])))
             data.append(KeepTogether(notice))
-            data.append(KeepTogether(PageBreak()))
+            # data.append(KeepTogether(PageBreak()))
     else:
         number_of_copies = 2 if receipt.copy_number == 1 else 1
         for i in range(number_of_copies):
@@ -429,7 +430,7 @@ def export_receipt_pdf(receipt_id):
             data.append(KeepTogether(Paragraph('Time {}'.format(receipt.created_datetime.astimezone(bangkok).strftime('%H:%M:%S')),
                                   style=style_sheet['ThaiStyle'])))
             data.append(KeepTogether(notice))
-            data.append(KeepTogether(PageBreak()))
+            # data.append(KeepTogether(PageBreak()))
     doc.build(data, onLaterPages=all_page_setup, onFirstPage=all_page_setup)
 
     receipt.print_number += 1
@@ -486,6 +487,39 @@ def daily_payment_report():
                            start_date=start_date, end_date=end_date)
 
 
+@receipt_printing.route('api/daily/payment/report')
+def get_daily_payment_report():
+    query = ElectronicReceiptDetail.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ElectronicReceiptDetail.number.like(u'%{}%'.format(search)),
+        ElectronicReceiptDetail.book_number.like(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for item in query:
+        item_data = item.to_dict()
+        item_data['view'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">View</a>'.format(
+            url_for('receipt_printing.view_daily_payment_report', receipt_id=item.id))
+        item_data['created_datetime'] = item_data['created_datetime'].strftime('%d/%m/%Y %H:%M:%S')
+        data.append(item_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ElectronicReceiptDetail.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
+@receipt_printing.route('/payment/report/view/<int:receipt_id>')
+def view_daily_payment_report(receipt_id):
+    receipt_detail = ElectronicReceiptDetail.query.get(receipt_id)
+    return render_template('receipt_printing/view_daily_payment_report.html',
+                           receipt_detail=receipt_detail)
+
+
 @receipt_printing.route('/daily/payment/report/download')
 def download_daily_payment_report():
     records = []
@@ -506,17 +540,19 @@ def download_daily_payment_report():
             u'เล่มที่': u"{}".format(receipt.book_number),
             u'เลขที่': u"{}".format(receipt.number),
             u'รายการ': u"{}".format(receipt.item_list),
+            u'จำนวนเงิน': u"{:,.2f}".format(receipt.paid_amount),
             u'ช่องทางการชำระเงิน': u"{}".format(receipt.payment_method),
             u'เลขที่บัตรเครดิต': u"{}".format(receipt.card_number),
             u'เลขที่เช็ค': u"{}".format(receipt.cheque_number),
-            u'ชื่อผู้ชำระเงิน': u"{}".format(receipt.received_from),
+            u'ธนาคาร': u"{}".format(receipt.bank_name),
+            u'ชื่อผู้ชำระเงิน': u"{}".format(receipt.received_money_from),
             u'ผู้รับเงิน/ผู้บันทึก': u"{}".format(receipt.issuer.personal_info.fullname),
             u'ตำแหน่ง': u"{}".format(receipt.issuer.personal_info.position),
-            u'วันที่': u"{}".format(receipt.created_datetime.strftime('%d/%m/%Y')),
-            u'หมายเหตุ': u"{}".format(receipt.comment)
-            # u'GL': u"{}".format(receipt.item_gl_list if receipt and receipt.item_gl_list else ''),
-            # u'Cost Center': u"{}".format(receipt.item_cost_center_list if receipt and receipt.item_cost_center_list else ''),
-            # u'IO': u"{}".format(receipt.item_internal_order_list if receipt and receipt.item_internal_order_list else '')
+            u'วันที่': u"{}".format(receipt.created_datetime.strftime('%d/%m/%Y %H:%M:%S')),
+            u'หมายเหตุ': u"{}".format(receipt.comment),
+            u'GL': u"{}".format(receipt.item_gl_list if receipt and receipt.item_gl_list else ''),
+            u'Cost Center': u"{}".format(receipt.item_cost_center_list if receipt and receipt.item_cost_center_list else ''),
+            u'IO': u"{}".format(receipt.item_internal_order_list if receipt and receipt.item_internal_order_list else '')
         })
     df = DataFrame(records)
     df.to_excel('daily_payment_report.xlsx',
@@ -524,16 +560,18 @@ def download_daily_payment_report():
                 columns=[u'เล่มที่',
                          u'เลขที่',
                          u'รายการ',
+                         u'จำนวนเงิน',
                          u'ช่องทางการชำระเงิน',
                          u'เลขที่บัตรเครดิต',
                          u'เลขที่เช็ค',
+                         u'ธนาคาร',
                          u'ผู้รับเงิน/ผู้บันทึก',
                          u'ตำแหน่ง',
                          u'วันที่',
                          u'หมายเหตุ',
-                         # u'GL',
-                         # u'Cost Center',
-                         # u'IO'
+                         u'GL',
+                         u'Cost Center',
+                         u'IO'
                          ],
                 index=False,
                 encoding='utf-8')
@@ -681,7 +719,7 @@ def get_receipt_by_list_type():
         item_data = item.to_dict()
         item_data['preview'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">Preview</a>'.format(
             url_for('receipt_printing.show_receipt_detail', receipt_id=item.id))
-        item_data['created_datetime'] = item_data['created_datetime'].strftime('%d/%m/%Y, %H:%M:%S')
+        item_data['created_datetime'] = item_data['created_datetime'].strftime('%d/%m/%Y %H:%M:%S')
         item_data['status'] = '<i class="fas fa-times has-text-danger"></i>' if item.cancelled else '<i class="far fa-check-circle has-text-success"></i>'
         item_data['issuer'] = item_data['issuer']
         data.append(item_data)
@@ -713,13 +751,13 @@ def select_btw_io_code_and_cost_center():
 @receipt_printing.route('/cost_center/show')
 def show_cost_center():
     cost_center = CostCenter.query.all()
-    return render_template('receipt_printing/show_cost_center.html', cost_center=cost_center)
+    return render_template('receipt_printing/show_cost_center.html', cost_center=cost_center, url_back=request.referrer)
 
 
 @receipt_printing.route('/io_code/show')
 def show_io_code():
     io_code = IOCode.query.all()
-    return render_template('receipt_printing/show_io_code.html', io_code=io_code)
+    return render_template('receipt_printing/show_io_code.html', io_code=io_code, url_back=request.referrer)
 
 
 @receipt_printing.route('/cost_center/new', methods=['POST', 'GET'])
@@ -767,3 +805,70 @@ def io_code_change_active_status(iocode_id):
     db.session.commit()
     flash(u'แก้ไขสถานะเรียบร้อยแล้ว', 'success')
     return redirect(url_for('receipt_printing.show_io_code'))
+
+
+@receipt_printing.route('/api/received_money_from/address')
+def get_received_money_from_by_payer_id():
+    payer_id = request.args.get('payer_id', type=int)
+    payer = ElectronicReceiptReceivedMoneyFrom.query.get(payer_id)
+    return jsonify({'address': payer.address})
+
+
+@receipt_printing.route('/info/payer/add', methods=['GET', 'POST'])
+@login_required
+def add_info_payer_ref():
+    form = ReceiptInfoPayerForm()
+    if request.method == 'POST':
+       new_info_payer = ElectronicReceiptReceivedMoneyFrom()
+       form.populate_obj(new_info_payer)
+       db.session.add(new_info_payer)
+       db.session.commit()
+       flash('New information payer has been added.', 'success')
+       return redirect(url_for('receipt_printing.view_info_payer'))
+    return render_template('receipt_printing/info_payer_ref.html', form=form, url_callback=request.referrer)
+
+
+@receipt_printing.route('/receipt/information-payer/list')
+def view_info_payer():
+    return render_template('receipt_printing/view_info_payer.html')
+
+
+@receipt_printing.route('/api/data/info-payer')
+def get_info_payer_data():
+    query = ElectronicReceiptReceivedMoneyFrom.query
+    search = request.args.get('search[value]')
+    query = query.filter(db.or_(
+        ElectronicReceiptReceivedMoneyFrom.received_money_from.like(u'%{}%'.format(search)),
+        ElectronicReceiptReceivedMoneyFrom.address.like(u'%{}%'.format(search))
+    ))
+    start = request.args.get('start', type=int)
+    length = request.args.get('length', type=int)
+    total_filtered = query.count()
+    query = query.offset(start).limit(length)
+    data = []
+    for payer_info in query:
+        record_data = payer_info.to_dict()
+        record_data['edit'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">Edit</a>'.format(
+            url_for('receipt_printing.edit_info_payer', payer_info_id=payer_info.id))
+        data.append(record_data)
+    return jsonify({'data': data,
+                    'recordsFiltered': total_filtered,
+                    'recordsTotal': ElectronicReceiptReceivedMoneyFrom.query.count(),
+                    'draw': request.args.get('draw', type=int),
+                    })
+
+
+@receipt_printing.route('/information/payer<int:payer_info_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_info_payer(payer_info_id):
+    payer_info = ElectronicReceiptReceivedMoneyFrom.query.get(payer_info_id)
+    form = ReceiptInfoPayerForm(obj=payer_info)
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            form.populate_obj(payer_info)
+            db.session.add(payer_info)
+            db.session.commit()
+            flash(u'แก้ไขข้อมูลเรียบร้อย', 'success')
+        return redirect(url_for('receipt_printing.view_info_payer', payer_info_id=payer_info_id))
+    return render_template('receipt_printing/edit_info_payer.html', payer_info_id=payer_info_id, form=form)
+

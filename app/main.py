@@ -83,6 +83,7 @@ def create_app():
     app.config['MAIL_SERVER'] = 'smtp.gmail.com'
     app.config['MAIL_PORT'] = 587
     app.config['MAIL_USE_TLS'] = True
+    app.config['PREFERRED_URL_SCHEME'] = 'https'
     app.config['MAIL_USERNAME'] = os.environ.get('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.environ.get('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = ('MUMT-MIS',
@@ -109,9 +110,10 @@ api = Api(app)
 
 # user_loader_callback_loader has renamed to user_lookup_loader in >=4.0
 @jwt.user_lookup_loader
-def user_lookup_callback(identity):
+def user_lookup_callback(identity, payload):
+    print(payload)
     # TODO: Need to allow loading a client from other services.
-    return ScbPaymentServiceApiClientAccount.get_account_by_id(identity)
+    return ScbPaymentServiceApiClientAccount.get_account_by_id(payload.get('sub'))
 
 
 @app.errorhandler(404)
@@ -232,7 +234,13 @@ from app.procurement import procurementbp as procurement_blueprint
 app.register_blueprint(procurement_blueprint, url_prefix='/procurement')
 from app.procurement.models import *
 
-admin.add_views(ModelView(ProcurementDetail, db.session, category='Procurement'))
+
+class MyProcurementModelView(ModelView):
+    form_excluded_columns = ('qrcode', 'records', 'repair_records',
+                             'computer_info', 'borrow_items')
+
+
+admin.add_views(MyProcurementModelView(ProcurementDetail, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementCategory, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementStatus, db.session, category='Procurement'))
 admin.add_views(ModelView(ProcurementRecord, db.session, category='Procurement'))
@@ -272,6 +280,8 @@ class ElectronicReceiptGLModel(ModelView):
 admin.add_views(ModelView(ElectronicReceiptDetail, db.session, category='ReceiptPrinting'))
 admin.add_views(ModelView(ElectronicReceiptItem, db.session, category='ReceiptPrinting'))
 admin.add_views(ModelView(ElectronicReceiptRequest, db.session, category='ReceiptPrinting'))
+admin.add_views(ModelView(ElectronicReceiptReceivedMoneyFrom, db.session, category='ReceiptPrinting'))
+admin.add_views(ModelView(ElectronicReceiptBankName, db.session, category='ReceiptPrinting'))
 admin.add_views(ElectronicReceiptGLModel(ElectronicReceiptGL, db.session, category='ReceiptPrinting'))
 
 from app.instruments import instrumentsbp as instruments_blueprint
@@ -281,7 +291,6 @@ app.register_blueprint(instruments_blueprint, url_prefix='/instruments')
 from app.instruments.models import *
 
 admin.add_views(ModelView(InstrumentsBooking, db.session, category='Instruments'))
-
 
 from app.alumni import alumnibp as alumni_blueprint
 
@@ -304,6 +313,7 @@ admin.add_views(ModelView(StaffEduDegree, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffAcademicPositionRecord, db.session, category='Staff'))
 admin.add_views(ModelView(StaffEmployment, db.session, category='Staff'))
+admin.add_views(ModelView(StaffJobPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffHeadPosition, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveType, db.session, category='Staff'))
 admin.add_views(ModelView(StaffLeaveQuota, db.session, category='Staff'))
@@ -392,6 +402,7 @@ class RoomModelView(ModelView):
     can_view_details = True
     form_excluded_columns = ['items', 'reservations', 'equipments']
 
+
 admin.add_views(RoomModelView(RoomResource, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomEvent, db.session, category='Physicals'))
 admin.add_views(ModelView(RoomType, db.session, category='Physicals'))
@@ -417,8 +428,13 @@ app.register_blueprint(linebot_blueprint, url_prefix='/linebot')
 
 from app import database
 
+
+class MyOrgModelView(ModelView):
+    form_excluded_columns = ('procurements', 'vehicle_bookings', 'document_approval', 'ot_records')
+
+
 admin.add_view(ModelView(models.Student, db.session, category='Student Affairs'))
-admin.add_view(ModelView(Org, db.session, category='Organization'))
+admin.add_view(MyOrgModelView(Org, db.session, category='Organization'))
 admin.add_view(ModelView(Mission, db.session, category='Organization'))
 admin.add_view(ModelView(Dashboard, db.session, category='Organization'))
 admin.add_view(ModelView(OrgStructure, db.session, category='Organization'))
@@ -629,11 +645,12 @@ from app.scb_payment_service.models import *
 admin.add_view(ModelView(ScbPaymentServiceApiClientAccount, db.session, category='SCB Payment Service'))
 admin.add_view(ModelView(ScbPaymentRecord, db.session, category='SCB Payment Service'))
 
-
 from app.meeting_planner import meeting_planner as meeting_planner_blueprint
+
 app.register_blueprint(meeting_planner_blueprint)
 
 from app.meeting_planner.models import *
+
 admin.add_view(ModelView(MeetingEvent, db.session, category='Meeting'))
 admin.add_view(ModelView(MeetingInvitation, db.session, category='Meeting'))
 
@@ -642,6 +659,7 @@ from app.PA import pa_blueprint
 app.register_blueprint(pa_blueprint)
 
 from app.PA.models import *
+
 admin.add_view(ModelView(PARound, db.session, category='PA'))
 admin.add_view(ModelView(PAAgreement, db.session, category='PA'))
 admin.add_view(ModelView(PAKPI, db.session, category='PA'))
@@ -649,9 +667,13 @@ admin.add_view(ModelView(PAKPIItem, db.session, category='PA'))
 admin.add_view(ModelView(PALevel, db.session, category='PA'))
 admin.add_view(ModelView(PACommittee, db.session, category='PA'))
 admin.add_view(ModelView(PAItem, db.session, category='PA'))
+admin.add_view(ModelView(PAItemCategory, db.session, category='PA'))
 admin.add_view(ModelView(PARequest, db.session, category='PA'))
 admin.add_view(ModelView(PAScoreSheet, db.session, category='PA'))
 admin.add_view(ModelView(PAScoreSheetItem, db.session, category='PA'))
+admin.add_view(ModelView(PAApprovedScoreSheet, db.session, category='PA'))
+admin.add_view(ModelView(PACoreCompetencyItem, db.session, category='PA'))
+admin.add_view(ModelView(PACoreCompetencyScoreItem, db.session, category='PA'))
 
 
 # Commands
@@ -985,8 +1007,8 @@ def import_chem_items(excel_file):
 
 @app.template_filter('upcoming_meeting_events')
 def filter_upcoming_events(events):
-    tz = timezone('Asia/Bangkok')
-    return [event for event in events if event.meeting.start >= datetime.now(tz=tz)]
+    return [event for event in events
+            if event.meeting.start >= arrow.now('Asia/Bangkok').datetime]
 
 
 @app.template_filter('total_hours')
@@ -1243,14 +1265,14 @@ def update_leave_information(current_date, staff_email):
         pending_days = staff.personal_info.get_total_pending_leaves_request(quota.id,
                                                                             tz.localize(start_fiscal_date),
                                                                             tz.localize(end_fiscal_date))
-        total_leave_days = staff.personal_info.get_total_leaves(quota.id,tz.localize(start_fiscal_date),
+        total_leave_days = staff.personal_info.get_total_leaves(quota.id, tz.localize(start_fiscal_date),
                                                                 tz.localize(end_fiscal_date))
         delta = staff.personal_info.get_employ_period()
         max_cum_quota = staff.personal_info.get_max_cum_quota_per_year(quota)
         if delta.years > 0 or delta.months > 5:
             if max_cum_quota:
                 last_used_quota = StaffLeaveUsedQuota.query.filter_by(staff=staff,
-                                                                      fiscal_year=end_fiscal_date.year-1,
+                                                                      fiscal_year=end_fiscal_date.year - 1,
                                                                       leave_type=type_).first()
                 if last_used_quota:
                     remaining_days = last_used_quota.quota_days - last_used_quota.used_days

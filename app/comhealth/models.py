@@ -249,13 +249,14 @@ class ComHealthContainer(db.Model):
 class ComHealthTest(db.Model):
     __tablename__ = 'comhealth_tests'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
-    code = db.Column('code', db.String(64), index=True, nullable=False)
-    name = db.Column('name', db.String(64), index=True, nullable=False)
-    desc = db.Column('desc', db.Text())
-    gov_code = db.Column('gov_code', db.String(16))
-    default_price = db.Column('default_price', db.Numeric(), default=0)
+    code = db.Column('code', db.String(64), index=True, nullable=False, info={'label': 'รหัส'})
+    name = db.Column('name', db.String(64), index=True, nullable=False, info={'label': 'ชื่อการทดสอบ'})
+    desc = db.Column('desc', db.Text(), info={'label': 'รายละเอียด'})
+    gov_code = db.Column('gov_code', db.String(16), info={'label': 'รหัสกรมบัญชีกลาง'})
+    default_price = db.Column('default_price', db.Numeric(), default=0, info={'label': 'ราคาตั้งต้น'})
     container_id = db.Column('container_id', db.ForeignKey('comhealth_containers.id'))
     container = db.relationship('ComHealthContainer', backref=db.backref('tests'))
+    reimbursable = db.Column('reimbursable', db.Boolean(), default=False, info={'label': 'เบิกได้'})
 
     def __str__(self):
         return self.name

@@ -890,7 +890,15 @@ def add_new_test():
 @comhealth.route('/test/tests/edit/<int:test_id>', methods=['GET', 'POST'])
 @login_required
 def edit_test(test_id):
-    return render_template('comhealth/edit_test.html')
+    test = ComHealthTest.query.get(test_id)
+    form = TestForm(obj=test)
+    if form.validate_on_submit():
+        form.populate_obj(test)
+        db.session.add(test)
+        db.session.commit()
+        flash('แก้ไขข้อมูลเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('comhealth.test_test_index'))
+    return render_template('comhealth/edit_test.html', form=form)
 
 
 @comhealth.route('/services/new', methods=['GET', 'POST'])
