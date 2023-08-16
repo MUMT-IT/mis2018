@@ -238,7 +238,7 @@
                             </div>
                             <div class="field">
                                 <div class="control has-icons-left">
-                                    <input type="text" placeholder="หมายเลขบัตรเครดิต" id="card-input"
+                                    <input type="text" v-model="cardNumber" placeholder="หมายเลขบัตรเครดิต" id="card-input"
                                            :disabled="payMethod=='cash'"
                                            class="input is-medium" name="card_number">
                                     <span class="icon is-left">
@@ -352,18 +352,20 @@
                     totalCost: {{ total_cost_float|tojson|safe }},
                     payMethod: 'cash',
                     payAmount: 0.0,
+                    cardNumber: '',
                 }
             },
             computed: {
                 payChange: function() {
                     if (this.payAmount > 0 && this.payMethod == 'cash') {
+                        this.cardNumber = '';
                         return this.payAmount - this.totalCost;
                     } else if (this.payMethod == 'QR') {
                         this.payAmount = this.totalCost;
+                        this.cardNumber = '';
                         return this.payAmount
                     } else if (this.payMethod == 'card') {
-                        this.payAmount = 0.0;
-                        return 0.0;
+                        return this.payAmount - this.totalCost;
                     } else {
                         return 0.0;
                     }

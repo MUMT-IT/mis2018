@@ -64,7 +64,7 @@
                                                 <td>
                                                     <div class="field">
                                                         <input class="is-checkradio is-info reimbursable"
-                                                               {% if record.finance_contact_id == 1 %}
+                                                               {% if ti.test.reimbursable %}
                                                                     checked
                                                                {% endif %}
                                                                id="{{ ti.test.code }}_reimbursable_profile" value="yes"
