@@ -28,7 +28,7 @@ from reportlab.platypus import Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 from ..main import csrf
-from ..roles import procurement_committee_permission, procurement_permission
+from ..roles import procurement_committee_permission, procurement_permission, finance_permission
 
 style_sheet = getSampleStyleSheet()
 style_sheet.add(ParagraphStyle(name='ThaiStyle', fontName='Times-Bold'))
@@ -85,7 +85,7 @@ def add_procurement():
 @procurement.route('/main')
 @login_required
 def main_procurement_page():
-    return render_template('procurement/main_procurement_page.html')
+    return render_template('procurement/main_procurement_page.html', finance_permission=finance_permission)
 
 
 @procurement.route('/official/login')
@@ -400,6 +400,13 @@ def add_category_ref():
             flash('New category has been added.', 'success')
             return redirect(url_for('procurement.add_procurement'))
     return render_template('procurement/category_ref.html', form=form, category=category, url_callback=request.referrer)
+
+
+@procurement.route('/api/category-code')
+def get_category_by_code():
+    code = request.args.get('category_code')
+    category = ProcurementCategory.query.filter_by(code=code).first()
+    return jsonify({'category_id':category.id})
 
 
 @procurement.route('/status/add', methods=['GET', 'POST'])
@@ -1606,7 +1613,7 @@ def get_repair_online_history_by_it_and_maintenance():
         item_data['notice_date'] = item_data['notice_date'].strftime('%d/%m/%Y') if item_data[
             'notice_date'] else ''
         item_data['status'] = u"รอดำเนินการ"
-        item_data['detail'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">รายละเอียด</a>'.format(
+        item_data['detail'] = '<a href="{}" class="button is-small is-rounded is-info is-outlined">รับทราบ</a>'.format(
             url_for('procurement.view_desc_procurement_to_check_instruments', procurement_id=item.id))
         data.append(item_data)
     return jsonify({'data': data,

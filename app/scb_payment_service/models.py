@@ -87,3 +87,26 @@ class ScbPaymentRecord(db.Model):
                 pass
             else:
                 print(snake_key, getattr(self, snake_key))
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'payer_name': self.payer_name,
+            'payee_name': self.payee_name,
+            'transaction_dateand_time': self.transaction_dateand_time,
+            'bill_payment_ref1': self.bill_payment_ref1,
+            'bill_payment_ref2': self.bill_payment_ref2,
+            'bill_payment_ref3': self.bill_payment_ref3,
+            'amount': self.amount,
+            'currency_code': self.currency_code,
+            'transaction_id': self.transaction_id,
+            'receiving_bank_code': self.receiving_bank_code,
+            'sending_bank_code': self.sending_bank_code,
+            'payer_account_number': self.payer_account_number,
+            'payee_account_number': self.payee_account_number,
+            'channel_code': self.channel_code,
+            'customer1': self.customer1,
+            'customer2': self.customer2,
+            'service': self.service
+
+        }

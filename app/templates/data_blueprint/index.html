@@ -7,45 +7,39 @@
     {% include "messages.html" %}
     <div>
         <h1 class="title has-text-centered has-text-info">Organizational Data Blueprint</h1>
+        <div class="buttons is-centered">
+            <a class="button is-light" href={{ url_for('data_bp.process_form') }}>
+                <span class="icon">
+                    <i class="fas fa-plus"></i>
+                </span>
+                <span>เพิ่มกระบวนการ</span>
+            </a>
+        </div>
         <div class="tile is-ancestor">
             <div class="tile is-parent">
                 <article class="tile is-child notification is-success">
-                    <h1 class="title is-size-4 has-text-centered">Performance Management
-                        <a class="button is-small is-inverted is-outlined is-success" href={{ url_for('data_bp.process_form') }}>
-                            <span class="icon">
-                                <i class="fas fa-plus"></i>
-                            </span>
-                        </a>
-                    </h1>
+                    <h1 class="title is-size-4 has-text-centered">Performance Management</h1>
                     <div class="tags">
                         {% for p in performance_processes %}
-                        <p class="tag is-medium is-success">
                         <a href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
+                            <span class="tag is-medium is-success is-light is-rounded">
                             {{ p.name }}
+                            </span>
                         </a>
-                            <a href="{{ url_for('data_bp.process_form', process_id=p.id) }}" class="delete is-small"></a>
-                        </p>
                         {% endfor %}
                     </div>
                 </article>
             </div>
             <div class="tile is-parent">
                 <article class="tile is-child notification is-success">
-                    <h1 class="title is-size-4 has-text-centered">Experience Management
-                        <a class="button is-small is-inverted is-outlined is-success" href={{ url_for('data_bp.process_form') }}>
-                            <span class="icon">
-                                <i class="fas fa-plus"></i>
-                            </span>
-                        </a>
-                    </h1>
+                    <h1 class="title is-size-4 has-text-centered">Experience Management</h1>
                     <div class="tags">
                         {% for p in crm_processes %}
-                        <p class="tag is-medium is-success">
                         <a href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
+                            <span class="tag is-medium is-success is-light is-rounded">
                             {{ p.name }}
+                            </span>
                         </a>
-                            <a href="{{ url_for('data_bp.process_form', process_id=p.id) }}" class="delete is-small"></a>
-                        </p>
                         {% endfor %}
                     </div>
                 </article>
@@ -53,39 +47,33 @@
             <div class="tile is-parent is-4">
                 <article class="tile is-child notification is-info">
                     <h1 class="title is-size-4 has-text-centered">Core Services
-                        <a class="button is-small is-inverted is-outlined is-info" href={{ url_for('data_bp.core_service_form') }}>
-                            <span class="icon">
+                        <a href={{ url_for('data_bp.core_service_form') }}>
+                            <span class="tag is-small">
                                 <i class="fas fa-plus"></i>
                             </span>
                         </a>
                     </h1>
                     <div class="tags">
                         {% for sv in core_services %}
-                        <p class="tag is-info is-medium">
-                            <a href="{{url_for('data_bp.core_service_detail', service_id=sv.id)}}">{{ sv.service }}</a>
-                            <a href="{{ url_for('data_bp.core_service_form', service_id=sv.id) }}" class="delete is-small"></a>
-                        </p>
+                            <a href="{{url_for('data_bp.core_service_detail', service_id=sv.id)}}">
+                                <span class="tag is-light is-info is-medium is-rounded">
+                                {{ sv.service }}
+                                </span>
+                            </a>
                         {% endfor %}
                     </div>
                 </article>
             </div>
             <div class="tile is-parent">
                 <article class="tile is-child notification is-warning">
-                    <h1 class="title is-size-4 has-text-centered">Back Office
-                        <a class="button is-small is-inverted is-outlined is-warning" href={{ url_for('data_bp.process_form') }}>
-                            <span class="icon">
-                                <i class="fas fa-plus"></i>
-                            </span>
-                        </a>
-                    </h1>
+                    <h1 class="title is-size-4 has-text-centered">Back Office</h1>
                     <div class="tags">
                         {% for p in back_office_processes %}
-                        <p class="tag is-light is-medium is-warning">
                         <a href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
+                            <span class="tag is-light is-medium is-warning is-rounded">
                             {{ p.name }}
+                            </span>
                         </a>
-                            <a href="{{ url_for('data_bp.process_form', process_id=p.id) }}" class="delete is-small"></a>
-                        </p>
                         {% endfor %}
                     </div>
                 </article>
@@ -93,20 +81,14 @@
             <div class="tile is-parent">
                 <article class="tile is-child notification is-warning">
                     <h1 class="title is-size-4 has-text-centered">Law, Compliance
-                        <a class="button is-small is-inverted is-outlined is-warning" href={{ url_for('data_bp.process_form') }}>
-                            <span class="icon">
-                                <i class="fas fa-plus"></i>
-                            </span>
-                        </a>
                     </h1>
                     <div class="tags">
                         {% for p in regulation_processes %}
-                        <p class="tag is-light is-medium is-warning">
                         <a href="{{url_for('data_bp.process_detail', process_id=p.id)}}">
+                            <span class="tag is-light is-medium is-warning is-rounded">
                             {{ p.name }}
+                            </span>
                         </a>
-                            <a href="{{ url_for('data_bp.process_form', process_id=p.id) }}" class="delete is-small"></a>
-                        </p>
                         {% endfor %}
                     </div>
                 </article>
@@ -116,20 +98,19 @@
             <div class="tile is-parent">
                 <article class="tile is-child notification is-danger">
                     <h1 class="title is-size-4 has-text-centered">Data
-                        <a class="button is-small is-inverted is-outlined is-danger" href={{ url_for('data_bp.data_form') }}>
-                            <span class="icon">
+                        <a href={{ url_for('data_bp.data_form') }}>
+                            <span class="tag is-small">
                                 <i class="fas fa-plus"></i>
                             </span>
                         </a>
                     </h1>
                     <div class="tags">
                         {% for dt in data %}
-                        <p class="tag is-danger is-medium">
                             <a href="{{ url_for('data_bp.data_detail', data_id=dt.id) }}">
+                                <p class="tag is-danger is-medium is-light is-rounded">
                                 {{ dt.name }}
+                                </p>
                             </a>
-                            <a href="{{ url_for('data_bp.data_form', data_id=dt.id) }}" class="delete is-small"></a>
-                        </p>
                         {% endfor %}
                     </div>
                 </article>

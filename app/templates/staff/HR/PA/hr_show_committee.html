@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column">
+                <h1 class="title has-text-centered">กลุ่มผู้ประเมิน</h1>
+                <div class="field">
+                    <label class="label">สังกัด</label>
+                    <div class="select">
+                        <select v-model="department" v-on:change="proceed()">
+                            <option v-for="d in departments" v-bind:value="d.id" key="d.id">
+                                <% d.name %>
+                            </option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="paTable">
+                    <thead>
+                    <th>รอบการประเมิน</th>
+                    <th>ประธานและกรรมการประเมิน</th>
+                    <th>ตำแหน่ง</th>
+                    <th>หน่วยงานที่ถูกประเมิน</th>
+                    <th>บุคลากรในหน่วยงาน</th>
+                    <th>ผู้ถูกประเมิน</th>
+                    </thead>
+                    <tbody>
+                    {% for committee in committee_list %}
+                    <tr>
+                        <td style="width: 16%">
+                            {{ committee.round }}
+                        </td>
+                        <td>
+                            {{ committee.staff.personal_info.fullname }}
+                        </td>
+                        <td style="width: 11%">
+                            {{ committee.role }}
+                        </td>
+                        <td>
+                            {{ committee.org }}
+                        </td>
+                        <td>
+                            {% for staff in committee.org.staff %}
+                            {{ staff }}/
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% if committee.subordinate %}
+                            {{ committee.subordinate.personal_info.fullname }}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+            <div class="buttons is-centered">
+                <a href="{{ url_for('pa.hr_index') }}" class="button is-light">
+                    <span>กลับ</span>
+                </a>
+                <a href="{{ url_for('pa.add_commitee') }}" class="button is-primary">
+                    <span class="icon">
+                        <i class="fa-solid fa-user-plus"></i>
+                    </span>
+                    <span>เพิ่มผู้ประเมิน</span>
+                </a>
+            </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#paTable').DataTable();
+        });
+    </script>
+    <script>
+    new Vue({
+        el : "#app",
+        delimiters : ["<%", "%>"],
+        data(){
+            return {
+                departments : {{ departments|tojson|safe }},
+                department : {{ sel_dept|tojson|safe }}
+            }
+        },
+        methods: {
+            proceed: function() {
+                if (this.department !== null){
+                    window.location.href = "/pa/hr/committee?deptid="+this.department;
+                }
+            }
+        }
+    })
+</script>
+{% endblock %}

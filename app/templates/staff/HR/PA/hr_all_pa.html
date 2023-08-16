@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% include "nav.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container" id="app">
+        <div class="columns">
+            <div class="column has-text-left">
+                <h1 class="title">PA ทั้งหมด</h1>
+            </div>
+        </div>
+    {% include "messages.html" %}
+        <div class="columns">
+            <div class="column">
+                <table class="table is-striped is-fullwidth" id="paTable">
+                    <thead>
+                    <th>รอบการประเมิน</th>
+                    <th>ผู้รับการประเมิน</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for pa in pa %}
+                    <tr>
+                        <td>
+                            {{ pa.round }}
+                        </td>
+                        <td>
+                            {{ pa.staff.personal_info.fullname }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('pa.pa_detail',
+                                pa_id=pa.id, round_id=pa.round.id) }}" class="button is-small">
+                                <span>รายละเอียด</span>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <a href="{{ url_for('pa.hr_index') }}" class="button is-rounded is-light">
+                    <span class="icon">
+                        <i class="fas fa-arrow-left"></i>
+                    </span>
+                    <span>กลับหน้าหลัก</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#paTable').DataTable();
+        });
+    </script>
+{% endblock %}

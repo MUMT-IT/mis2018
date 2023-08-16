@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">รายละเอียดสลิป</h1>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column has-text-centered is-two-thirds is-offset-2">
+                <div class="card">
+                    <div class="card-content">
+                        <table class="table is-striped is-bordered is-fullwidth">
+                            <colgroup>
+                                <col span="1" style="width: 25%;">
+                                <col span="1" style="width: 75%;">
+                            </colgroup>
+                             <tr>
+                                <td><label class="label">Transaction ID</label></td>
+                                <td>{{ slip.transaction_id }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">รหัสสกุลเงิน</label></td>
+                                <td>{{ slip.currency_code }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">รหัสธนาคารรับเงิน</label></td>
+                                <td>{{ slip.receiving_bank_code }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">รหัสธนาคารจ่ายเงิน</label></td>
+                                <td>{{ slip.sending_bank_code }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">รหัสช่อง</label></td>
+                                <td>{{ slip.channel_code }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ลูกค้า 1</label></td>
+                                <td>{{ slip.customer1 }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">ลูกค้า 2</label></td>
+                                <td>{{ slip.customer2 }}</td>
+                            </tr>
+                            <tr>
+                                <td><label class="label">การบริการ</label></td>
+                                <td>{{ slip.service }}</td>
+                            </tr>
+                        </table>
+                        <div class="buttons is-centered">
+                            <a href="{{ url_for('scb_payment.verify_slip') }}" class="button is-light">กลับ</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+{% block scripts %}
+{{ super }}
+
+{% endblock %}

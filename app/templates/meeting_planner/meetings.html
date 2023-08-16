@@ -30,6 +30,7 @@
             let table = $('#meetings').DataTable({
                 ajax: "{{ url_for('meeting_planner.get_meetings') }}",
                 dataSrc: "data",
+                order: [[1, 'desc']],
                 columns: [
                     { data : 'title'},
                     {
