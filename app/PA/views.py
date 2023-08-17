@@ -28,11 +28,14 @@ def send_mail(recp, title, message):
 def user_performance():
     staff_personal = PAAgreement.query.all()
     rounds = PARound.query.all()
+    head_email = current_user.personal_info.org.parent.head if current_user.personal_info.org.parent.head \
+        else current_user.personal_info.org.head
+    head = StaffAccount.query.filter_by(email=head_email).first()
     return render_template('PA/user_performance.html',
                            staff_personal=staff_personal,
                            name=current_user,
-                           rounds=rounds
-                           )
+                           rounds=rounds,
+                           head=head)
 
 
 @pa.route('/rounds/<int:round_id>/items/add', methods=['GET', 'POST'])
@@ -686,6 +689,31 @@ def send_consensus_scoresheets_to_hr(pa_id):
         db.session.commit()
         flash('ส่งคะแนนไปยัง hr เรียบร้อยแล้ว', 'success')
     return redirect(request.referrer)
+
+
+@pa.route('/head/all-approved-pa/send_comment/<int:pa_id>', methods=['GET', 'POST'])
+@login_required
+def send_evaluation_comment(pa_id):
+    consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).filter(
+                                PACommittee.staff == current_user).first()
+    if consolidated_score_sheet:
+        consolidated_score_sheet = PAScoreSheet.query.filter_by(id=consolidated_score_sheet.id).first()
+    else:
+        flash('ไม่พบคะแนนสรุป กรุณาสรุปผลคะแนนและรับรองผล ก่อนส่งคะแนนไปยังผู้รับการประเมิน', 'warning')
+        return redirect(request.referrer)
+
+    core_competency_items = PACoreCompetencyItem.query.all()
+    if request.method == 'POST':
+        form = request.form
+        consolidated_score_sheet.strengths = form.get('strengths')
+        consolidated_score_sheet.weaknesses = form.get('weaknesses')
+        consolidated_score_sheet.inform_score_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(consolidated_score_sheet)
+        db.session.commit()
+        flash('ดำเนินการอนุมัติเรียบร้อยแล้ว', 'success')
+    return render_template('PA/head_evaluation_comment.html',
+                           consolidated_score_sheet=consolidated_score_sheet,
+                           core_competency_items=core_competency_items)
 
 
 @pa.route('/eva/rate_performance/<int:scoresheet_id>', methods=['GET', 'POST'])
