@@ -2154,6 +2154,8 @@ def export_receipt_pdf(receipt_id):
 
     if receipt.payment_method == 'cash':
         payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD เงินสด / CASH</font>', style=style_sheet['ThaiStyle'])
+    elif receipt.payment_method == 'QR':
+        payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD QR / QR</font>', style=style_sheet['ThaiStyle'])
     elif receipt.payment_method == 'card':
         payment_info = Paragraph('<font size=14>ชำระเงินด้วย / PAYMENT METHOD บัตรเครดิต / CREDIT CARD หมายเลข / NUMBER {}-****-****-{}</font>'.format(receipt.card_number[:4], receipt.card_number[-4:]),
                                  style=style_sheet['ThaiStyle'])
