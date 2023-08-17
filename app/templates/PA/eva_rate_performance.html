@@ -87,7 +87,9 @@
                                     </td>
                                     <td style="width: 2%">
                                         <div class="field is-grouped">
+                                            {% if head_scoresheet %}
                                             {{ head_scoresheet.get_score_sheet_item(s.item_id, s.kpi_item.id).score }}
+                                            {% endif %}
                                         </div>
                                     </td>
                                     {% endif %}
@@ -140,7 +142,11 @@
                                     <td style="width: 8%">{{ item.score }}</td>
                                     {% if for_self == 'false' %}
                                     <td style="width: 8%">{{ self_scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}</td>
-                                    <td style="width: 8%">{{ head_scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}</td>
+                                    <td style="width: 8%">
+                                        {% if head_scoresheet %}
+                                        {{ head_scoresheet.get_core_competency_score_item(comp_item_id=item.id).score }}
+                                        {% endif %}
+                                    </td>
                                     {% endif %}
                                     <td style="width: 10%">
                                         <div class="field">
