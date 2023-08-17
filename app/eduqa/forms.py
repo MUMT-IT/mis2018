@@ -1,8 +1,10 @@
 # -*- coding:utf-8 -*-
+from datetime import datetime
 
 from flask_wtf import FlaskForm
-from wtforms import SelectMultipleField, widgets, FieldList, FormField, IntegerField, HiddenField
+from wtforms import SelectMultipleField, widgets, FieldList, FormField, IntegerField, HiddenField, Field
 from wtforms.validators import Optional, ValidationError
+from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField, ModelFormField, \
     ModelFieldList
 from app.eduqa.models import *
@@ -23,6 +25,22 @@ class ModelForm(BaseModelForm):
 class MultiCheckboxField(SelectMultipleField):
     widget = widgets.ListWidget(prefix_label=False)
     option_widget = widgets.CheckboxInput()
+
+
+class DateTimePickerField(Field):
+    widget = TextInput()
+
+    def _value(self):
+        if self.data:
+            return self.data.strftime('%d-%m-%Y %H:%M:%S')
+        else:
+            return ''
+
+    def process_formdata(self, value):
+        if value[0]:
+            self.data = datetime.strptime(value[0], '%d-%m-%Y %H:%M:%S')
+        else:
+            self.data = None
 
 
 class ProgramForm(ModelForm):
@@ -108,6 +126,8 @@ def create_instructors_form(course):
                                                query_factory=lambda: course.instructors,
                                                widget=widgets.ListWidget(prefix_label=False),
                                                option_widget=widgets.CheckboxInput())
+        start = DateTimePickerField('เริ่มต้น')
+        end = DateTimePickerField('สิ้นสุด')
         topics = FieldList(FormField(EduCourseSessionTopicForm,
                                      default=EduQACourseSessionTopic), min_entries=1)
         events = FieldList(FormField(RoomEventForm, default=RoomEvent), min_entries=0)
@@ -119,6 +139,9 @@ def create_assignment_instructors_form(course):
     class EduCourseAssignmentSessionForm(ModelForm):
         class Meta:
             model = EduQACourseAssignmentSession
+
+        start = DateTimePickerField('เริ่มต้น')
+        end = DateTimePickerField('สิ้นสุด')
 
         instructors = QuerySelectMultipleField(u'ผู้รับผิดชอบ',
                                                get_label='fullname',

@@ -17,7 +17,7 @@
                     <th>รอบการประเมิน</th>
                     <th>ผู้ยื่นคำขอ</th>
                     <th>ประเภทคำขอ</th>
-                    <th></th>
+                    <th>ตอบกลับเมื่อ</th>
                     </thead>
                     <tbody>
                     {% for req in all_req %}
@@ -33,29 +33,48 @@
                         </td>
                         <td>
                             {% if req.for_ =='ขอรับการประเมิน' %}
-                            <p style="color:royalblue">
-                            {{ req.for_ }}
+                            <p class="tag is-rounded is-danger">
+                                <span class="icon">
+                                    <i class="fas fa-chart-line"></i>
+                                </span>
+                                <span>
+                                    {{ req.for_ }}
+                                </span>
                             </p>
                             {% elif req.for_ =='ขอแก้ไข' %}
-                            <p style="color:orangered">
-                            {{ req.for_ }}
+                            <p class="tag is-warning is-rounded">
+                                <span class="icon">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </span>
+                                <span>
+                                    {{ req.for_ }}
+                                </span>
                             </p>
                             {% else %}
-                            <p style="color:green">
-                            {{ req.for_ }}
+                            <p class="tag is-success is-rounded">
+                                <span class="icon">
+                                    <i class="far fa-thumbs-up"></i>
+                                </span>
+                                <span>
+                                    {{ req.for_ }}
+                                </span>
                             </p>
                             {% endif %}
                         </td>
                         <td>
-                            <a href="{{ url_for('pa.view_request', request_id=req.id) }}"
-                               class="button is-small is-rounded is-outlined">
+                            <a href="{{ url_for('pa.view_request', request_id=req.id) }}">
                                 {% if req.responded_at %}
-                                    <span class="icon is-small">
-                                        <i class="fa-solid fa-eye"></i>
+                                    <span class="tag is-rounded">
+                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                        <span>
+                                            {{ req.responded_at|localdatetime }}
+                                        </span>
                                     </span>
-                                    <span>view</span>
                                 {% else %}
-                                    <span>ดำเนินการ</span>
+                                    <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                    </span>
+                                    <span class="has-text-danger">รอดำเนินการ</span>
                                 {% endif %}
                             </a>
                         </td>
@@ -72,18 +91,10 @@
                     <span class="icon">
                         <i class="fa-solid fa-chevron-left"></i>
                     </span>
-                    <span>กลับ</span>
+                    <span>หน้าหลัก</span>
                 </a>
             </div>
         </div>
     </div>
 </section>
-{% endblock %}
-{% block scripts %}
-{{ super() }}
-    <script>
-        $(document).ready(function(){
-            $('#reqTable').DataTable();
-        });
-    </script>
 {% endblock %}

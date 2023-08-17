@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 import pandas as pd
-from datetime import datetime
 
+import arrow
 from flask import render_template, request, flash, redirect, url_for, session, jsonify, make_response
 from flask_login import current_user, login_required
 from sqlalchemy.orm import make_transient
@@ -265,9 +265,9 @@ def add_course(revision_id):
             form.populate_obj(course)
             course.revision_id = revision_id
             course.creator = current_user
-            course.created_at = localtz.localize(datetime.now())
+            course.created_at = arrow.now('Asia/Bangkok').datetime
             course.updater = current_user
-            course.updated_at = localtz.localize(datetime.now())
+            course.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(course)
             db.session.commit()
             flash(u'บันทึกข้อมูลรายวิชาเรียบร้อย', 'success')
@@ -286,7 +286,7 @@ def edit_course(course_id):
         if form.validate_on_submit():
             form.populate_obj(course)
             course.updater = current_user
-            course.updated_at = localtz.localize(datetime.now())
+            course.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(course)
             db.session.commit()
             flash(u'บันทึกข้อมูลรายวิชาเรียบร้อย', 'success')
@@ -320,9 +320,9 @@ def copy_course(course_id):
     course.th_code = course.th_code + '(copy)'
     course.academic_year = None
     course.creator = current_user
-    course.created_at = localtz.localize(datetime.now())
+    course.created_at = arrow.now('Asia/Bangkok').datetime
     course.updater = current_user
-    course.updated_at = localtz.localize(datetime.now())
+    course.updated_at = arrow.now('Asia/Bangkok').datetime
     course.id = None
     the_course = EduQACourse.query.get(course_id)
     for instructor in the_course.instructors:
@@ -383,7 +383,7 @@ def add_instructor_to_list(course_id, account_id):
         instructor = EduQAInstructor(account_id=account_id)
     course.course_instructor_associations.append(EduQACourseInstructorAssociation(instructor=instructor))
     course.updater = current_user
-    course.updated_at = localtz.localize(datetime.now())
+    course.updated_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(instructor)
     db.session.add(course)
     db.session.commit()
@@ -426,7 +426,7 @@ def remove_instructor_from_list(course_id, instructor_id):
             db.session.add(s)
     course.instructors.remove(instructor)
     course.updater = current_user
-    course.updated_at = localtz.localize(datetime.now())
+    course.updated_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(course)
     db.session.commit()
     flash(u'ลบรายชื่อผู้สอนเรียบร้อยแล้ว', 'success')
@@ -441,21 +441,21 @@ def add_session(course_id):
     form = InstructorForm()
     if request.method == 'POST':
         for event_form in form.events:
-            event_form.start.data = form.start.data
-            event_form.end.data = form.end.data
+            event_form.start.data = arrow.get(form.start.data, 'Asia/Bangkok').datetime
+            event_form.end.data = arrow.get(form.end.data, 'Asia/Bangkok').datetime
             event_form.title.data = f'{course.en_code}'
         if form.validate_on_submit():
             new_session = EduQACourseSession()
             form.populate_obj(new_session)
             new_session.course = course
-            new_session.start = localtz.localize(new_session.start)
-            new_session.end = localtz.localize(new_session.end)
+            new_session.start = arrow.get(form.start.data, 'Asia/Bangkok').datetime
+            new_session.end = arrow.get(form.end.data, 'Asia/Bangkok').datetime
             if not is_datetime_valid(new_session.start, new_session.end):
                 form.start.data = new_session.start
                 form.end.data = new_session.end
                 return render_template('eduqa/QA/session_edit.html',
                                        form=form, course=course, localtz=localtz)
-            course.updated_at = localtz.localize(datetime.now())
+            course.updated_at = arrow.now('Asia/Bangkok').datetime
             course.updater = current_user
             db.session.add(new_session)
             db.session.commit()
@@ -476,21 +476,21 @@ def edit_session(course_id, session_id):
     if request.method == 'POST':
         for event_form in form.events:
             if event_form.room.data:
-                event_form.start.data = form.start.data
-                event_form.end.data = form.end.data
+                event_form.start.data = arrow.get(form.start.data, 'Asia/Bangkok').datetime
+                event_form.end.data = arrow.get(form.end.data, 'Asia/Bangkok').datetime
                 event_form.title.data = f'{course.en_code}'
         if form.validate_on_submit():
             form.populate_obj(a_session)
             a_session.course = course
             course.updater = current_user
-            a_session.start = localtz.localize(a_session.start)
-            a_session.end = localtz.localize(a_session.end)
+            a_session.start = arrow.get(form.start.data, 'Asia/Bangkok').datetime
+            a_session.end = arrow.get(form.end.data, 'Asia/Bangkok').datetime
             if not is_datetime_valid(a_session.start, a_session.end):
                 form.start.data = a_session.start
                 form.end.data = a_session.end
                 return render_template('eduqa/QA/session_edit.html',
                                        form=form, course=course, localtz=localtz)
-            course.updated_at = localtz.localize(datetime.now())
+            course.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(a_session)
             db.session.commit()
             flash(u'แก้ไขรายการสอนเรียบร้อยแล้ว', 'success')
@@ -773,14 +773,14 @@ def add_session_assignment(course_id):
             new_session = EduQACourseAssignmentSession()
             form.populate_obj(new_session)
             new_session.course = course
-            new_session.start = localtz.localize(new_session.start)
-            new_session.end = localtz.localize(new_session.end)
+            new_session.start = arrow.get(new_session.start, 'Asia/Bangkok').datetime
+            new_session.end = arrow.get(new_session.end, 'Asia/Bangkok').datetime
             if not is_datetime_valid(new_session.start, new_session.end):
                 form.start.data = new_session.start
                 form.end.data = new_session.end
                 return render_template('eduqa/QA/assignment_session_edit.html',
                                        form=form, course=course, localtz=localtz)
-            course.updated_at = localtz.localize(datetime.now())
+            course.updated_at = arrow.now('Asia/Bangkok').datetime
             course.updater = current_user
             db.session.add(new_session)
             db.session.commit()
@@ -803,14 +803,14 @@ def edit_session_assignment(course_id, session_id):
             form.populate_obj(a_session)
             a_session.course = course
             course.updater = current_user
-            a_session.start = localtz.localize(a_session.start)
-            a_session.end = localtz.localize(a_session.end)
+            a_session.start = arrow.get(a_session.start, 'Asia/Bangkok').datetime
+            a_session.end = arrow.get(a_session.end, 'Asia/Bangkok').datetime
             if not is_datetime_valid(a_session.start, a_session.end):
                 form.start.data = a_session.start
                 form.end.data = a_session.end
                 return render_template('eduqa/QA/session_edit.html',
                                        form=form, course=course, localtz=localtz)
-            course.updated_at = localtz.localize(datetime.now())
+            course.updated_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(a_session)
             db.session.commit()
             flash(u'แก้ไขรายการสอนเรียบร้อยแล้ว', 'success')

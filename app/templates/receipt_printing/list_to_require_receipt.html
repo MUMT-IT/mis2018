@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% include "receipt_printing/nav_for_menu.html" %}
 {% block page_content %}
     <section class="section">
         {% include "messages.html" %}
@@ -16,7 +17,6 @@
                             <th>หมายเลขเล่ม</th>
                             <th>เลขที่</th>
                             <th>ออกวันที่</th>
-                            <th>ได้รับเงินจาก</th>
                             <th>หมายเหตุ</th>
                             <th>สถานะ</th>
                             <th>สาเหตุของการยกเลิก</th>
@@ -52,7 +52,6 @@
                     {data: 'book_number'},
                     {data: 'number'},
                     {data: 'created_datetime'},
-                    {data: 'received_from'},
                     {data: 'comment'},
                     {data: 'cancelled'},
                     {data: 'cancel_comment'},

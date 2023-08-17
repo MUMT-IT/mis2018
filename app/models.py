@@ -3,11 +3,10 @@ import textwrap
 from app.main import db, ma
 from sqlalchemy.sql import func
 
-
 dataset_tag_assoc = db.Table('db_dataset_tag_assoc',
-                          db.Column('dataset_id', db.ForeignKey('db_datasets.id'), primary_key=True),
-                          db.Column('tag_id', db.ForeignKey('db_datatags.id'), primary_key=True)
-                          )
+                             db.Column('dataset_id', db.ForeignKey('db_datasets.id'), primary_key=True),
+                             db.Column('tag_id', db.ForeignKey('db_datatags.id'), primary_key=True)
+                             )
 
 
 class Org(db.Model):
@@ -200,16 +199,17 @@ class Mission(db.Model):
     def __str__(self):
         return u'{}'.format(self.name)
 
+
 cost_center_iocode_assoc = db.Table('cost_center_iocode_assoc',
-                              db.Column('cost_center_id', db.String(), db.ForeignKey('cost_centers.id'), primary_key=True),
-                              db.Column('iocode_id', db.String(), db.ForeignKey('iocodes.id'), primary_key=True),
-                              )
+                                    db.Column('cost_center_id', db.String(), db.ForeignKey('cost_centers.id'),
+                                              primary_key=True),
+                                    db.Column('iocode_id', db.String(), db.ForeignKey('iocodes.id'), primary_key=True),
+                                    )
 
 
 class CostCenter(db.Model):
     __tablename__ = 'cost_centers'
     id = db.Column('id', db.String(12), primary_key=True)
-
 
     def __repr__(self):
         return u'{}'.format(self.id)
@@ -268,6 +268,20 @@ data_process_assoc = db.Table('data_process_assoc',
                               db.Column('process_id', db.Integer, db.ForeignKey('db_processes.id'), primary_key=True),
                               )
 
+data_process_staff_assoc = db.Table('data_process_staff_assoc',
+                                    db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id'),
+                                              primary_key=True),
+                                    db.Column('process_id', db.Integer, db.ForeignKey('db_processes.id'),
+                                              primary_key=True),
+                                    )
+
+service_staff_assoc = db.Table('service_staff_assoc',
+                               db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id'),
+                                         primary_key=True),
+                               db.Column('core_service_id', db.Integer, db.ForeignKey('db_core_services.id'),
+                                         primary_key=True),
+                               )
+
 dataset_service_assoc = db.Table('dataset_service_assoc',
                                  db.Column('dataset_id', db.Integer, db.ForeignKey('db_datasets.id'), primary_key=True),
                                  db.Column('core_service_id', db.Integer, db.ForeignKey('db_core_services.id'),
@@ -296,12 +310,11 @@ kpi_process_assoc = db.Table('kpi_process_assoc',
                              db.Column('process_id', db.Integer, db.ForeignKey('db_processes.id'), primary_key=True)
                              )
 
-
 pdpa_coordinators = db.Table('pdpa_coordinators',
-                        db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id'), primary_key=True),
-                        db.Column('db_core_service_id', db.Integer, db.ForeignKey('db_core_services.id'), primary_key=True)
-                        )
-
+                             db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id'), primary_key=True),
+                             db.Column('db_core_service_id', db.Integer, db.ForeignKey('db_core_services.id'),
+                                       primary_key=True)
+                             )
 
 from app.staff.models import StaffAccount
 
@@ -323,7 +336,9 @@ class CoreService(db.Model):
     datasets = db.relationship('Dataset', secondary=dataset_service_assoc, lazy='subquery',
                                backref=db.backref('core_services', lazy=True))
     pdpa_coordinators = db.relationship(StaffAccount, secondary=pdpa_coordinators, lazy='subquery',
-                           backref=db.backref('pdpa_services', lazy=True))
+                                        backref=db.backref('pdpa_services', lazy=True))
+    staff = db.relationship('StaffAccount', secondary=service_staff_assoc, lazy='subquery',
+                            backref=db.backref('core_services', lazy=True))
 
     def __str__(self):
         return u'{}'.format(self.service)
@@ -342,8 +357,12 @@ class Process(db.Model):
     __tablename__ = 'db_processes'
     id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
     category = db.Column('category', db.String(), nullable=False,
-                         info={'label': u'กลุ่มงาน', 'choices': [(c, c) for c in ['back_office', 'regulation',
-                                                                                  'performance', 'crm']]})
+                         info={'label': u'กลุ่มงาน', 'choices': [c for c in
+                                                                 [('back_office', 'Back Office'),
+                                                                  ('regulation', 'Law/Compliance'),
+                                                                  ('performance', 'Performance Management'),
+                                                                  ('crm', 'Experience Management')]]
+                               })
     name = db.Column('name', db.String(255), nullable=False, info={'label': u'กระบวนการ'})
     org_id = db.Column('org_id', db.ForeignKey('orgs.id'))
     org = db.relationship(Org, backref=db.backref('processes', lazy=True))
@@ -356,6 +375,10 @@ class Process(db.Model):
                            backref=db.backref('processes', lazy=True))
     datasets = db.relationship('Dataset', secondary=dataset_process_assoc, lazy='subquery',
                                backref=db.backref('processes', lazy=True))
+    staff = db.relationship('StaffAccount', secondary=data_process_staff_assoc, lazy='subquery',
+                            backref=db.backref('processes', lazy=True))
+    parent_id = db.Column('parent_id', db.ForeignKey('db_processes.id'))
+    subprocesses = db.relationship('Process', backref=db.backref('parent', remote_side=[id]))
 
 
 class Dataset(db.Model):
@@ -390,9 +413,9 @@ class DataTag(db.Model):
 
     def to_dict(self):
         return {
-                'id': self.tag,
-                'text': self.tag
-                }
+            'id': self.tag,
+            'text': self.tag
+        }
 
 
 class DataFile(db.Model):
@@ -430,7 +453,6 @@ class DataStorage(db.Model):
                                                                               u'กระดาษ',
                                                                               u'อื่น ๆ']]})
     desc = db.Column('desc', db.String(), info={'label': u'รายละเอียด'})
-
 
 
 class ROPA(db.Model):

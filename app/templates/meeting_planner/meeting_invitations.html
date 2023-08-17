@@ -3,61 +3,76 @@
 {% include "staff/nav.html" %}
 
 {% block page_content %}
-    <section class="section">
+    <section class="section" hx-headers='{"X-CSRFToken": {{ csrf_token()|tojson|safe }} }'>
         <div class="container">
             <div class="columns">
                 <div class="column">
                     <h1 class="title has-text-centered">Meeting Invitations</h1>
-                    <h1 class="subtitle has-text-centered has-text-danger">แสดงเฉพาะการประชุมที่ในอนาคตเท่านั้น</h1>
                     <div class="tabs is-boxed">
                         <ul>
                             <li {% if cat == 'new' %}class="is-active"{% endif %}>
                                 <a href="{{ url_for('meeting_planner.list_invitations', cat='new') }}">
                                     <span class="icon is-small"><i class="fa-solid fa-envelope"></i></span>
-                                    <span>New</span>
+                                    <span>ใหม่</span>
                                 </a>
                             </li>
                             <li {% if cat == 'pending' %}class="is-active"{% endif %}>
                                 <a href="{{ url_for('meeting_planner.list_invitations', cat='pending') }}">
                                     <span class="icon is-small"><i class="fa-solid fa-hourglass-start"></i></span>
-                                    <span>Pending</span>
+                                    <span>ไม่แน่ใจ</span>
+                                </a>
+                            </li>
+                            <li {% if cat == 'all' %}class="is-active"{% endif %}>
+                                <a href="{{ url_for('meeting_planner.list_invitations', cat='all') }}">
+                                    <span class="icon is-small"><i class="fa-solid fa-clock-rotate-left"></i></span>
+                                    <span>ทั้งหมด</span>
                                 </a>
                             </li>
                         </ul>
                     </div>
-                    <table class="table is-fullwidth">
+                    <table id="meetings" class="table is-fullwidth">
                         <thead>
                         <th>ชื่อ</th>
                         <th>เริ่ม</th>
                         <th>สิ้นสุด</th>
                         <th>ห้อง</th>
+                        <th>รายละเอียด</th>
                         <th>ผู้เข้าร่วมประชุม</th>
                         <th>การเข้าร่วม</th>
                         <th></th>
                         </thead>
                         <tbody>
                         {% if cat == 'new' %}
-                            {% set invitations = current_user.new_invitationsupcoming_meeting_events %}
+                            {% set invitations = current_user.new_invitations|upcoming_meeting_events %}
+                        {% elif cat == 'all' %}
+                            {% set invitations = current_user.invitations %}
                         {% else %}
                             {% set invitations = current_user.pending_invitations|upcoming_meeting_events %}
                         {% endif %}
                         {% for i in invitations %}
                             <tr>
                                 <td>{{ i.meeting.title }}</td>
-                                <td>{{ i.meeting.start.strftime('%d/%m/%Y %H:%M') }}</td>
-                                <td>{{ i.meeting.end.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>{{ i.meeting.start.isoformat() }}</td>
+                                <td>{{ i.meeting.end.isoformat() }}</td>
                                 <td>{{ i.meeting.rooms }}</td>
+                                <td>
+                                    <a href="{{ url_for('meeting_planner.detail_meeting_member', meeting_id=i.meeting.id) }}">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-circle-info"></i>
+                                        </span>
+                                    </a>
+                                </td>
                                 <td>
                                     {{ i.meeting.participants|join(', ') }}
                                 </td>
                                 <td>
                                 <span class="icon" id="left-icon-{{ i.id }}">
                                     {% if i.response == 'เข้าร่วม' %}
-                                        <i class="fa-sharp fa-regular fa-circle-check has-text-success"></i>
+                                        <i class="fas fa-circle-check has-text-success"></i>
                                     {% elif i.response == 'ไม่เข้าร่วม' %}
-                                        <i class="fa-solid fa-hand has-text-danger"></i>
+                                        <i class="fas fa-times-circle has-text-danger"></i>
                                     {% else %}
-                                        <i class="fa-solid fa-hourglass-start"></i>
+                                        <i class="far fa-question-circle"></i>
                                     {% endif %}
                                 </span>
                                 </td>
@@ -66,21 +81,21 @@
                                         <div class="control">
                                             <a class="button is-rounded is-small is-success"
                                                hx-target="#left-icon-{{ i.id }}"
-                                               hx-get="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='เข้าร่วม', keep="true") }}">
+                                               hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='เข้าร่วม', keep="true") }}">
                                                 เข้าร่วม
                                             </a>
                                         </div>
                                         <div class="control">
                                             <a class="button is-rounded is-small is-danger"
                                                hx-target="#left-icon-{{ i.id }}"
-                                               hx-get="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='ไม่เข้าร่วม', keep="true") }}">
+                                               hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='ไม่เข้าร่วม', keep="true") }}">
                                                 ไม่เข้าร่วม
                                             </a>
                                         </div>
                                         <div class="control">
                                             <a class="button is-rounded is-small is-light"
                                                hx-target="#left-icon-{{ i.id }}"
-                                               hx-get="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='ไม่แน่ใจ', keep="true") }}">
+                                               hx-patch="{{ url_for('meeting_planner.respond', invitation_id=i.id, next_url=request.url, response='ไม่แน่ใจ', keep="true") }}">
                                                 ไม่แน่ใจ
                                             </a>
                                         </div>
@@ -100,4 +115,28 @@
             </div>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script src="https://cdn.datatables.net/datetime/1.5.0/js/dataTables.dateTime.min.js"></script>
+    <script>
+    $(document).ready(function() {
+        $('#meetings').DataTable({
+            order: [[1, 'desc']],
+            columnDefs: [
+                {
+                    targets: [1,2],
+                    render: function(data, type, row) {
+                        if (data !== '') {
+                            let d = moment(data)
+                            return d.format('lll')
+                        } else {
+                            return '-'
+                        }
+                    }
+                },
+           ]
+        })
+    })
+    </script>
 {% endblock %}

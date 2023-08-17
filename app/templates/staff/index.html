@@ -56,6 +56,13 @@
                     <span class="is-size-5">ระบบประเมินภาระงาน</span>
                     <span class="tag is-rounded is-success">New</span>
                 </a>
+                <a class="panel-block" href="{{ url_for('staff.list_work_processes') }}">
+                    <span class="panel-icon">
+                        <i class="fas fa-tasks"></i>
+                    </span>
+                    <span class="is-size-5">กระบวนการทำงานที่รับผิดชอบ (Work Processes)</span>
+                    <span class="tag is-rounded is-success">New</span>
+                </a>
             </nav>
             {% if current_user.personal_info.org.head == current_user.email %}
             <nav class="panel is-link">

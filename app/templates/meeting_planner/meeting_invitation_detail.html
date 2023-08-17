@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
-{% include "staff/nav.html" %}
+{% if current_user.is_authenticated %}
+    {% include "staff/nav.html" %}
+{% else %}
+    {% include "nav.html" %}
+{% endif %}
 {% block page_content %}
 <section class="section">
     <div class="container">
@@ -31,34 +35,119 @@
                 <br>
                 <div class="card">
                     <div class="card-header">
+                        <p class="card-header-title">หัวข้อการประชุม</p>
+                    </div>
+                    <div class="card-content">
+                        <table class="table is-fullwidth">
+                            <thead>
+                            <th>วาระ</th>
+                            <th>หัวข้อ</th>
+                            </thead>
+                            <tbody>
+                            {% for group in ['แจ้งเพื่อทราบ', 'เพื่อพิจารณา', 'เรื่องสืบเนื่อง', 'อื่นๆ'] %}
+                                <tr>
+                                    <td>{{ group }}</td>
+                                    <td>
+                                        <table class="table is-fullwidth">
+                                            <thead>
+                                            <th>ลำดับ</th>
+                                            <th></th>
+                                            <th></th>
+                                            </thead>
+                                            <tbody>
+                                            {% for topic in meeting.agendas %}
+                                                {% if topic.group == group %}
+                                                    <tr>
+                                                        <td style="width: 10%">{{ topic.number }}</td>
+                                                        <td>
+                                                            {{ topic.detail }}
+                                                            <hr>
+                                                            <label class="label">มติที่ประชุม</label>
+                                                            <p class="notification">
+                                                                {{ topic.consensus }}
+                                                            </p>
+                                                        </td>
+                                                    </tr>
+                                                {% endif %}
+                                            {% endfor %}
+                                            </tbody>
+                                        </table>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <br>
+                <div class="card">
+                    <div class="card-header">
                         <p class="card-header-title">รายชื่อผู้เข้าประชุม</p>
                     </div>
                     <div class="card-content">
-                        {% for invite in meeting.invitations %}
+                        {% for i in meeting.invitations %}
                             <span class="tag is-light is-info">
-                                {{ invite.staff.fullname }}
+                                {{ i.staff.fullname }}
                             </span>
+                            {% if i.staff == current_user %}
+                            <div id="respond-target">
+                                <span class="icon">
+                                {% if i.response == 'เข้าร่วม' %}
+                                   <i class="fa-regular fa-circle-check has-text-success"></i>
+                                {% elif i.response == 'ไม่เข้าร่วม' %}
+                                    <i class="fa-solid fa-hand has-text-danger"></i>
+                                {% else %}
+                                    <i class="fa-solid fa-hourglass"></i>
+                                {% endif %}
+                                </span>
+                            </div>
+                            {% endif %}
                         {% endfor %}
+                        <div id="note-target"></div>
                     </div>
-                    {% if invite.response == None %}
-                    <footer class="card-footer">
-                        <a class="card-footer-item" hx-target="#left-icon-{{ invite.id }}"
-                           hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='เข้าร่วม') }}">
-                            <span class="tag is-success">เข้าร่วม</span>
-                        </a>
-                        <a class="card-footer-item" hx-target="#left-icon-{{ invite.id }}"
-                           hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่เข้าร่วม') }}">
-                            <span class="tag is-danger">ไม่เข้าร่วม</span>
-                        </a>
-                        <a class="card-footer-item" hx-target="#left-icon-{{ invite.id }}"
-                           hx-get="{{ url_for('meeting_planner.respond', invitation_id=invite.id, next_url=request.url, response='ไม่แน่ใจ') }}">
-                            <span class="tag is-light">ไม่แน่ใจ</span>
-                        </a>
-                    </footer>
+                    {% if invite %}
+                        <footer class="card-footer">
+                            <a class="card-footer-item"
+                               hx-swap="none"
+                               hx-put="{{ url_for('meeting_planner.respond_invitation_detail', meeting_id=meeting.id, response='เข้าร่วม') }}">
+                                <span class="tag is-success">เข้าร่วม</span>
+                            </a>
+                            <a class="card-footer-item"
+                               hx-swap="none"
+                               hx-put="{{ url_for('meeting_planner.respond_invitation_detail', meeting_id=meeting.id, response='ไม่เข้าร่วม') }}">
+                                <span class="tag is-danger">ไม่เข้าร่วม</span>
+                            </a>
+                            <a class="card-footer-item"
+                               hx-swap="none"
+                               hx-put="{{ url_for('meeting_planner.respond_invitation_detail', meeting_id=meeting.id, response='ไม่แน่ใจ') }}">
+                                <span class="tag is-light">ไม่แน่ใจ</span>
+                            </a>
+                        </footer>
                     {% endif %}
                 </div>
+                {% if not invite %}
+                    <br>
+                    <div class="buttons is-centered">
+                        <a class="button is-success" href="{{ url_for('meeting_planner.respond_invitation_detail', meeting_id=meeting.id) }}">
+                            <span class="icon">
+                                <i class="fa-solid fa-reply"></i>
+                            </span>
+                            <span>ตอบกลับคำเชิญ</span>
+                        </a>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        $(document).ready(function () {
+            document.body.addEventListener('htmx:configRequest', function(evt) {
+                evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }}; // add a new parameter into the mix
+            });
+        })
+    </script>
 {% endblock %}

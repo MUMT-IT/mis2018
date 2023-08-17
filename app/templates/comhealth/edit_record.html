@@ -135,19 +135,10 @@
                                         </div>
                                         <br>
                                         <br>
-                                        <p class="label"><strong>โปรดติดต่อเจ้าหน้าที่การเงินเพื่อ</strong></p>
-                                        <div class="select is-warning">
-                                            <select name="finance_contact">
-                                                <option value="0">ไม่ระบุ</option>
-                                                {% for reason in finance_contact_reasons %}
-                                                <option value="{{ reason.id }}"
-                                                        {% if reason.id == record.finance_contact_id %}
-                                                        selected
-                                                        {% endif %}
-                                                >{{ reason.reason }}</option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
+                                        <p class="label"><strong>Email</strong></p>
+                                        <p>
+                                            {{ record.customer.email }}
+                                        </p>
                                     </div>
                                     <div class="column is-3">
                                         <p class="label"><strong>อายุ / Age</strong></p>
@@ -219,13 +210,30 @@
                         </div>
                     </div>
                 </div>
-                {% for profile in record.service.profiles %}
-                    <div class="columns">
-                        <div class="column">
-                            <div class="card">
-                                <div class="card-header">
+                <div class="columns">
+                    <div class="column">
+                        <h1 class="title is-size-4">รายการตรวจทั่วไป (Test Profiles)</h1>
+                        {% for profile in record.service.profiles %}
+                            <b-collapse @open="isOpen = {{ profile.id }}"
+                                        :open="isOpen == {{ profile.id }}"
+                                        class="card"
+                                        animation="slide"
+                                        :key="{{ profile.id }}"
+                            >
+                                <div class="card-header"
+                                     slot="trigger"
+                                     open="false"
+                                     slot-scope="props"
+                                     class="card-header"
+                                     role="button">
                                     <p class="card-header-title">
-                                        <span>Profile</span>&nbsp;<span>{{ profile.name }}</span></p>
+                                        <span>Profile</span>&nbsp;<span>{{ profile.name }}</span>
+                                    </p>
+                                    <a class="card-header-icon">
+                                        <b-icon
+                                                :icon="props.open ? 'menu-down' : 'menu-up'">
+                                        </b-icon>
+                                    </a>
                                 </div>
                                 <div class="card-content">
                                     <p class="subtitle is-size-6">{{ profile.desc }}</p>
@@ -250,10 +258,10 @@
                                         </tbody>
                                     </table>
                                 </div>
-                            </div>
-                        </div>
+                            </b-collapse>
+                        {% endfor %}
                     </div>
-                {% endfor %}
+                </div>
                 {% if record.service.groups %}
                 <div class="columns">
                     <div class="column">
@@ -261,7 +269,7 @@
                             <button class="button is-medium is-link" type="submit" :disabled="!is_labno_valid">
                                 <span>ต่อไป</span>
                                 <span class="icon">
-                                    <i class="fa-solid fa-minus"></i>
+                                    <i class="fas fa-chevron-right"></i>
                                 </span>
                             </button>
                         </div>
@@ -349,6 +357,7 @@
             delimiters: ['<%', '%>'],
             data() {
                 return {
+                    isOpen: 0,
                     birthday: {{ record.customer.thai_dob|tojson|safe }},
                     firstname: {{ record.customer.firstname|tojson|safe }},
                     lastname: {{ record.customer.lastname|tojson|safe }},

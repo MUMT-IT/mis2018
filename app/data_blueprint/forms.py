@@ -50,6 +50,10 @@ class ProcessForm(ModelForm):
                                      query_factory=lambda: Data.query.all(),
                                      widget=widgets.ListWidget(prefix_label=False),
                                      option_widget=widgets.CheckboxInput())
+    parent = QuerySelectField(u'กระบวนการหลัก', get_label='name',
+                              allow_blank=True,
+                              blank_text='ระบุกระบวนการหลัก (ถ้ามี)',
+                              query_factory=lambda: Process.query.filter_by(parent_id=None).all())
 
 
 class KPIForm(ModelForm):
