@@ -228,6 +228,7 @@ class PAScoreSheet(db.Model):
     is_appproved = db.Column('is_appproved', db.Boolean(), default=False)
     strengths = db.Column('strengths', db.Text())
     weaknesses = db.Column('weaknesses', db.Text())
+    inform_score_at = db.Column('inform_score_at', db.DateTime(timezone=True))
 
     def get_score_sheet_item(self, pa_item_id, kpi_item_id):
         return self.score_sheet_items.filter_by(item_id=pa_item_id,
