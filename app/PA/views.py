@@ -707,11 +707,55 @@ def send_evaluation_comment(pa_id):
         form = request.form
         consolidated_score_sheet.strengths = form.get('strengths')
         consolidated_score_sheet.weaknesses = form.get('weaknesses')
-        consolidated_score_sheet.inform_score_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(consolidated_score_sheet)
+        pa = PAAgreement.query.filter_by(id=consolidated_score_sheet.pa_id).first()
+        pa.inform_score_at = arrow.now('Asia/Bangkok').datetime
+        db.session.add(pa)
         db.session.commit()
-        flash('ดำเนินการอนุมัติเรียบร้อยแล้ว', 'success')
+
+        req_msg = '{} แจ้งผลประเมินการปฏิบัติงานให้แก่ท่านแล้ว กรุณาคลิก link เพื่อดำเนินการรับทราบผล {}' \
+                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(current_user.personal_info.fullname,
+                    url_for("pa.accept_overall_score", pa_id=pa.id, _external=True))
+        req_title = 'แจ้งผลประเมิน PA'
+        if not current_app.debug:
+            send_mail([pa.staff.email + "@mahidol.ac.th"], req_title, req_msg)
+        else:
+            print(req_msg, pa.staff.email)
+        flash('แจ้งผลประเมินการปฏิบัติงานให้ผู้รับการประเมินทราบ เรียบร้อยแล้ว', 'success')
     return render_template('PA/head_evaluation_comment.html',
+                           consolidated_score_sheet=consolidated_score_sheet,
+                           core_competency_items=core_competency_items)
+
+
+@pa.route('/overall-score/<int:pa_id>')
+@login_required
+def accept_overall_score(pa_id):
+    consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).filter(
+                                PAAgreement.inform_score_at != None).first()
+    if consolidated_score_sheet:
+        consolidated_score_sheet = PAScoreSheet.query.filter_by(id=consolidated_score_sheet.id).first()
+    else:
+        flash('ยังไม่พบข้อมูลผลการประเมิน กรุณาติดต่อผู้บังคับบัญชาชั้นต้น', 'warning')
+        return redirect(request.referrer)
+
+    core_competency_items = PACoreCompetencyItem.query.all()
+    return render_template('PA/overall_score.html',
+                           consolidated_score_sheet=consolidated_score_sheet,
+                           core_competency_items=core_competency_items)
+
+
+@pa.route('/overall-score/<int:pa_id>/accept/<int:scoresheet_id>')
+@login_required
+def stamp_accept_score(pa_id, scoresheet_id):
+    pa = PAAgreement.query.get(pa_id)
+    pa.accept_score_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(pa)
+    db.session.commit()
+    flash('บันทึกข้อมูล การรับทราบผลประเมินเรียบร้อยแล้ว', 'success')
+
+    consolidated_score_sheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
+    core_competency_items = PACoreCompetencyItem.query.all()
+    return render_template('PA/overall_score.html',
                            consolidated_score_sheet=consolidated_score_sheet,
                            core_competency_items=core_competency_items)
 
