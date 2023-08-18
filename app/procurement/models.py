@@ -82,7 +82,8 @@ class ProcurementDetail(db.Model):
             'erp_code': self.erp_code,
             'budget_year': self.budget_year,
             'received_date': self.received_date,
-            'available': self.available
+            'available': self.available,
+            'is_audio_visual_equipment': self.is_audio_visual_equipment
         }
 
     def generate_qrcode(self):
