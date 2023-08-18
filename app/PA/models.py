@@ -50,6 +50,7 @@ class PAAgreement(db.Model):
     evaluated_at = db.Column('evaluated_at', db.DateTime(timezone=True))
     performance_score = db.Column('performance_score', db.Numeric())
     competency_score = db.Column('competency_score', db.Numeric())
+    inform_score_at = db.Column('inform_score_at', db.DateTime(timezone=True))
     accept_score_at = db.Column('accept_score_at', db.DateTime(timezone=True))
 
     @property
