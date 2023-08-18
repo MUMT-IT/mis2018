@@ -336,3 +336,13 @@ def check_room_availability():
     else:
         return '<span class="tag is-success">ห้องว่าง</span>'
 
+
+@room.route('/qrcode/scan')
+def scan_qrcode_room():
+    return render_template('scheduler/scan_qrcode_room.html')
+
+
+@room.route('/qrcode/scan/room/view/<int:room_id>', methods=['GET', 'POST'])
+def view_feature_after_scan_qrcode_room(room_id):
+    room = RoomResource.query.get(room_id)
+    return render_template('scheduler/view_feature_after_scan_qrcode_room.html', room=room)
