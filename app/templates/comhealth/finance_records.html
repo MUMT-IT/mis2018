@@ -57,7 +57,10 @@
                         </span>
                     </a>
                 </b-table-column>
-                 <b-table-column field="note" label="Note." sortable numeric>
+                 <b-table-column field="note" label="Paid" sortable numeric>
+                    <% props.row.receipts.length > 0 ? (props.row.receipts[props.row.receipts.length-1])['paid'] ? 'ชำระแล้ว':'' : ''  %>
+                </b-table-column>
+                <b-table-column field="note" label="Note." sortable numeric>
                     <% props.row.note %>
                 </b-table-column>
             </template>
