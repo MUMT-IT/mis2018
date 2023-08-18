@@ -1,86 +1,36 @@
 {% extends "base.html" %}
-{% block title %}Room Scheduler Page{% endblock %}
-{% block head %}
-{{ super() }}
-  <link rel="stylesheet" href="https://unpkg.com/bulma@0.9.4/css/bulma.min.css" />
-  <script async type="text/javascript" src="../js/bulma.js"></script>
-{% endblock head %}
-{% include "scheduler/nav.html" %}
-{% block page_content %}
-  <!-- Navigation bar -->
-  <nav class="navbar is-link is-fixed-top">
-    <div class="navbar-brand">
-      <div class="navbar-burger burger" data-target="navbarExampleTransparentExample">
-        <span></span>
-        <span></span>
-        <span></span>
-      </div>
-    </div>
 
-    <div id="navbarExampleTransparentExample" class="navbar-menu">
-      <div class="navbar-end">
-        <a class="navbar-item" href="#about">
-          <span class="icon">
-            <i class="fas fa-info"></i>
-          </span>
-          <span>About</span>
-        </a>
-        <a class="navbar-item" href="#services">
-          <span class="icon">
-            <i class="fas fa-bars"></i>
-          </span>
-          <span>Services</span>
-        </a>
-        <a class="navbar-item" href="#contact">
-          <span class="icon">
-            <i class="fas fa-envelope"></i>
-          </span>
-          <span>Contact</span>
-        </a>
-      </div>
-    </div>
-  </nav>
-  <!-- Services -->
-  <section class="section" id="services">
-    <div class="section-heading">
-      <h3 class="title is-2">Services</h3>
-      <h4 class="subtitle is-5">What can I help for you?</h4>
-    </div>
+{% block page_content %}
+<section class="section">
     <div class="container">
-      <div class="columns">
-        <div class="column">
-          <div class="box">
-            <div class="content">
-              <h4 class="title is-5">Reserve Room</h4>
-              การจองห้อง เพื่อสำรองคิวในการใช้ห้องประชุมต่างๆ
+        {% include 'messages.html' %}
+        <div class="columns">
+            <div class="column has-text-centered">
+                <h1 class="title">Services</h1>
+                <h1 class="subtitle">What can I help for you?</h1>
             </div>
-            <div class="card-image">
-                <figure class="image is-4by3">
-                    <img src="{{ url_for('static', filename='img/reserve-room.png') }}" alt="Logo" width="75">
-                </figure>
-            </div>
-            <div class="buttons has-addons is-centered">
-              <a href="{{ url_for('room.room_reserve', room_id=room.id) }}" class="button is-link">จองห้อง</a>
-            </div>
-          </div>
         </div>
-        <div class="column">
-          <div class="box">
-            <div class="content">
-              <h4 class="title is-5">Report a Problem</h4>
-              การแจ้งปัญหา
+        <div class="columns">
+            <div class="column is-half is-offset-one-quarter">
+                <nav class="panel is-info">
+                    <p class="panel-heading">Feature</p>
+                    <a class="panel-block"
+                       href="{{ url_for('room.room_reserve', room_id=room.id) }}">
+                        <span class="panel-icon"><i class="fas fa-list"></i></span>
+                        <span class="is-size-5">
+                            จองห้อง
+                        </span>
+                    </a>
+                    <a class="panel-block"
+                       href="{{ url_for('comp_tracker.index') }}">
+                        <span class="panel-icon"><i class="fas fa-list"></i></span>
+                        <span class="is-size-5">
+                            แจ้งปัญหา
+                        </span>
+                    </a>
+                </nav>
             </div>
-            <div class="card-image">
-                <figure class="image is-4by3">
-                    <img src="{{ url_for('static', filename='img/request-problem.png') }}" alt="Logo" width="75">
-                </figure>
-            </div>
-            <div class="buttons has-addons is-centered">
-              <a href="{{ url_for('comp_tracker.index') }}" class="button is-link">แจ้งปัญหา</a>
-            </div>
-          </div>
         </div>
-      </div>
     </div>
-  </section>
+</section>
 {% endblock page_content %}
