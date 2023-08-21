@@ -209,6 +209,12 @@
                                     <label for="cash-radio">
                                         เงินสด
                                     </label>
+                                     <input type="radio" class="is-checkradio"
+                                           id="cash-radio" value="QR"
+                                           v-model="payMethod" name="pay_method">
+                                    <label for="cash-radio">
+                                        QR
+                                    </label>
                                     <input type="radio" class="is-checkradio"
                                            id="card-radio" value="card"
                                            v-model="payMethod" name="pay_method">
@@ -232,7 +238,7 @@
                             </div>
                             <div class="field">
                                 <div class="control has-icons-left">
-                                    <input type="text" placeholder="หมายเลขบัตรเครดิต" id="card-input"
+                                    <input type="text" v-model="cardNumber" placeholder="หมายเลขบัตรเครดิต" id="card-input"
                                            :disabled="payMethod=='cash'"
                                            class="input is-medium" name="card_number">
                                     <span class="icon is-left">
@@ -260,7 +266,7 @@
                                 <h1 class="is-size-3">ยอดรวม</h1>
                             </td>
                             <td class="has-text-right">
-                                <span class="has-text-danger is-size-3"><% totalCost.toFixed(2) %></span>
+                                <span class="has-text-danger is-size-3"><% Intl.NumberFormat('en-US',{style: 'currency',currency: 'USD',}).format(totalCost) %></span>
                             </td>
                             <td>
                                 <span class="is-size-3">บาท</span>
@@ -271,7 +277,7 @@
                                 <h1 class="is-size-3">รับมา</h1>
                             </td>
                             <td class="has-text-right">
-                                <span class="is-size-3 has-text-success"><% (+payAmount).toFixed(2) %></span>
+                                <span class="is-size-3 has-text-success"><% Intl.NumberFormat('en-US',{style: 'currency',currency: 'USD',}).format(+payAmount) %></span>
                             </td>
                             <td>
                                 <span class="is-size-3">บาท</span>
@@ -282,7 +288,7 @@
                                 <h1 class="is-size-3">ทอน</h1>
                             </td>
                             <td class="has-text-right">
-                                <span class="is-size-3"><% (+payChange).toFixed(2) %></span>
+                                <span class="is-size-3"><% Intl.NumberFormat('en-US',{style: 'currency',currency: 'USD',}).format(+payChange) %></span>
                             </td>
                             <td>
                                 <span class="is-size-3">บาท</span>
@@ -346,11 +352,19 @@
                     totalCost: {{ total_cost_float|tojson|safe }},
                     payMethod: 'cash',
                     payAmount: 0.0,
+                    cardNumber: '',
                 }
             },
             computed: {
                 payChange: function() {
                     if (this.payAmount > 0 && this.payMethod == 'cash') {
+                        this.cardNumber = '';
+                        return this.payAmount - this.totalCost;
+                    } else if (this.payMethod == 'QR') {
+                        this.payAmount = this.totalCost;
+                        this.cardNumber = '';
+                        return this.payAmount
+                    } else if (this.payMethod == 'card') {
                         return this.payAmount - this.totalCost;
                     } else {
                         return 0.0;

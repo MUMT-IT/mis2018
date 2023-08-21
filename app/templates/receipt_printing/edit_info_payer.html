@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Electronic Receipt Received Money From Edit Page{% endblock %}
+{% include "receipt_printing/nav_for_menu.html" %}
+{% block page_content %}
+    <section class="section">
+        <div class="container">
+            <div class="columns">
+                <div class="column has-text-centered">
+                    <h1 class="title">แก้ไขข้อมูลผู้จ่ายเงิน</h1>
+                </div>
+            </div>
+            <div class="columns">
+                <div class="column is-half is-offset-one-quarter">
+                    <div class="box">
+                        <form method="post">
+                            {{ form.hidden_tag() }}
+                            <div class="field">
+                                <label class="label">{{ form.received_money_from.label }}</label>
+                                <div class="control">
+                                    {{ form.received_money_from(class="input") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">ที่อยู่ใบเสร็จรับเงิน</label>
+                                <div class="control">
+                                    {{ form.address(class="textarea") }}
+                                </div>
+                            </div>
+                            <div class="field">
+                                <label class="label">เลขประจำตัวผู้เสียภาษี</label>
+                                <div class="control">
+                                    {{ form.taxpayer_dentification_no(class="input") }}
+                                </div>
+                            </div>
+                            <br>
+                            <div class="field is-grouped is-grouped-centered">
+                                <div class="buttons">
+                                    <button class="button is-success" type="submit" value="submit">บันทึก</button>
+                                    <a href="{{ url_for('receipt_printing.view_info_payer') }}" class="button is-danger">ยกเลิก</a>
+                                </div>
+                            </div>
+                            <hr>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

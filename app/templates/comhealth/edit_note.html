@@ -10,7 +10,7 @@
         </div>
         <div class="box">
             <h3 class="title has-text-centered">เพิ่ม/แก้ไข Note</h3>
-            <form method="post">
+            <form method="post" action="{{ url_for('comhealth.edit_note_data',record_id=record.id, next=request.referrer)}}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="record_id" value="{{ record.id }}">
                 <div class="field">
@@ -18,7 +18,7 @@
                             <textarea class="textarea" name="note">{{ record.note or "" }}</textarea>
                     </div>
                 </div>
-                <a class="button is-light" href="{{ request.referrer }}">Cancel</a>
+                <a class="button is-light" href="{{ request.referrer or url_for('comhealth.edit_note_data',record_id=record.id) }}">Cancel</a>
                 <button class="button is-success" type="submit">Save</button>
             </form>
         </div>

@@ -1,10 +1,57 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Title</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-</body>
-</html>
+{% block page_content %}
+    <section class="section">
+        <div class="columns">
+            <div class="column is-two-thirds is-offset-2">
+                <div class="box">
+                    <h1 class="title has-text-centered">รายการทดสอบ</h1>
+                    <form method="post">
+                        {{ form.hidden_tag() }}
+                        <div class="field">
+                            <label class="label">{{ form.code.label }}</label>
+                            <div class="control">
+                                {{ form.code(class="input is-danger", placeholder="รหัส") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.name.label }}</label>
+                            <div class="control">
+                                {{ form.name(class="input is-danger", placeholder="ชื่อการทดสอบ") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.desc.label }}</label>
+                            <div class="control">
+                                {{ form.desc(class="textarea is-danger", placeholder="คำอธิบาย") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.default_price.label }}</label>
+                            <div class="control">
+                                {{ form.default_price(type="number", placeholder="ราคา", class="input") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="label">{{ form.container.label }}</label>
+                            <div class="select">
+                                {{ form.container(class="select") }}
+                            </div>
+                        </div>
+                        <div class="field">
+                            <label class="checkbox">
+                                {{ form.reimbursable() }}
+                                {{ form.reimbursable.label }}
+                            </label>
+                        </div>
+                        <div class="has-text-centered">
+                            <button type="submit" class="button is-link">
+                                <span>Submit</span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+{% endblock %}

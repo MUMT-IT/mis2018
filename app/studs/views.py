@@ -23,7 +23,6 @@ def show_assignments(revision_id):
 @stud.route('/api/assignments')
 @login_required
 def get_assignments():
-    print(request.args)
     student_year = request.args.get('student_year', 'ปี 1')
     revision_id = request.args.get('revision_id')
     events = []

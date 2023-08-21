@@ -50,6 +50,8 @@ class PAAgreement(db.Model):
     evaluated_at = db.Column('evaluated_at', db.DateTime(timezone=True))
     performance_score = db.Column('performance_score', db.Numeric())
     competency_score = db.Column('competency_score', db.Numeric())
+    inform_score_at = db.Column('inform_score_at', db.DateTime(timezone=True))
+    accept_score_at = db.Column('accept_score_at', db.DateTime(timezone=True))
 
     @property
     def total_percentage(self):
@@ -165,6 +167,7 @@ class PAItem(db.Model):
     pa_id = db.Column('pa_id', db.ForeignKey('pa_agreements.id'))
     pa = db.relationship('PAAgreement', backref=db.backref('pa_items', cascade='all, delete-orphan'))
     kpi_items = db.relationship('PAKPIItem', secondary=item_kpi_item_assoc_table)
+    number = db.Column(db.Integer)
 
     def __str__(self):
         return self.task
@@ -226,6 +229,8 @@ class PAScoreSheet(db.Model):
     is_consolidated = db.Column('is_consolidated', db.Boolean(), default=False)
     is_final = db.Column('is_final', db.Boolean(), default=False)
     is_appproved = db.Column('is_appproved', db.Boolean(), default=False)
+    strengths = db.Column('strengths', db.Text())
+    weaknesses = db.Column('weaknesses', db.Text())
 
     def get_score_sheet_item(self, pa_item_id, kpi_item_id):
         return self.score_sheet_items.filter_by(item_id=pa_item_id,

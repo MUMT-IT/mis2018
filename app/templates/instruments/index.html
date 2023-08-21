@@ -15,7 +15,7 @@
             <div class="column has-text-centered">
                 {% include "messages.html" %}
                 <div class="buttons is-centered">
-                    <a id="add_evt_btn" class="button is-info" href="{{ url_for('instruments.new_event') }}">
+                    <a id="add_evt_btn" class="button is-info" href="{{ url_for('instruments.view_all_instruments_to_reserve') }}">
                         <span class="icon"><i class="far fa-calendar-plus"></i></span>
                         <span>เพิ่มรายการจอง</span>
                     </a>
@@ -29,13 +29,13 @@
                             </a>
                         </li>
                         <li {% if list_type == 'timelineDay' %} class="is-active" {% endif %}>
-                            <a href="{{ url_for('instruments.event_instruments_list', list_type='timelineDay') }}">
+                            <a href="{{ url_for('instruments.booking_instruments_list', list_type='timelineDay') }}">
                                 <span class="icon"><i class="fas fa-list-ol"></i></span>
                                 <span>ดูเครื่องมือวิจัย</span>
                             </a>
                         </li>
                         <li {% if list_type == 'agendaWeek' %} class="is-active" {% endif %}>
-                            <a href="{{ url_for('instruments.event_instruments_list', list_type='agendaWeek') }}">
+                            <a href="{{ url_for('instruments.booking_instruments_list', list_type='agendaWeek') }}">
                                 <span class="icon"><i class="far fa-eye"></i></span>
                                 <span>ดูรายสัปดาห์</span>
                             </a>
@@ -46,7 +46,7 @@
         </div>
         <div class="columns">
             <div class="column">
-                <div id=instr_calendar"></div>
+                <div id="reserve_calendar"></div>
             </div>
         </div>
         <div class="level-right">
@@ -62,17 +62,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/fullcalendar/3.9.0/fullcalendar.min.js"></script>
     <script>
         $(function () {
-            $('#instr_calendar').fullCalendar({
+            $('#reserve_calendar').fullCalendar({
                 header: {
                     left: 'title',
                 },
-                events: "{{ url_for('instruments.get_events') }}",
+                events: '/instruments/api/bookings',
                 lazyFetching: true,
                 eventLimit: true,
-                resources: "{{ url_for('instruments.get_instruments') }}",
-                resourceLabelText: 'Instruments',
                 eventClick: function (calEvent, jsEvent, view) {
-                    window.location = '/instruments/events/' + calEvent.id;
+                    window.location = '/instruments/bookings/' + calEvent.id;
                 }
             });
         });
