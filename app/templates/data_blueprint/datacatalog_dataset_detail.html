@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% include "data_blueprint/nav.html" %}
+
+{% block page_content %}
+<section class="section">
+    <div class="container">
+        <nav class="breadcrumb" aria-label="breadcrumbs">
+          <ul>
+            <li><a href="{{url_for('data_bp.datacatalog', data_id=dataset.data.id ) }}">กลับหน้าหลัก</a></li>
+          </ul>
+        </nav>
+        <div class="notification is-light is-success has-text-centered is-size-4">
+            {{ dataset.name }}
+        </div>
+        <div class="columns">
+        <div class="column is-2">
+            <aside class="menu">
+                <ul class="menu-list">
+                    <p class="menu-label">
+                        รายการไฟล์
+                    </p>
+                    {% for file in dataset.files %}
+                    <li>
+                        <a {% if file_id==file.id %} class="is-active" {% endif %}
+                              href="{{ url_for('data_bp.datacatalog_dataset_detail', set_id=dataset.id, file_id=file.id) }}">
+                        {{ file.name }}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </aside>
+        </div>
+        <div class="column box">
+            <table class="table">
+                <tbody>
+                        {% if file_detail %}
+                            <tr>
+                                <td style="width: 20%">รายละเอียด</td>
+                                <td>{{ file_detail.desc }}</td>
+                            </tr>
+                            <tr>
+                                <td>URL</td>
+                                <td>{{ file_detail.url }}</td>
+                            </tr>
+                            <tr>
+                                <td style="width: 15%">รูปแบบของไฟล์ชุดข้อมูล</td>
+                                <td>{{ file_detail.file_type }}</td>
+                            </tr>
+                            <tr>
+                                <td><p class="help">วันที่สร้าง</p>
+                                    <p class="help">วันที่ปรับปรุง</p>
+                                </td>
+                                <td>
+                                    <p class="help">{{ file_detail.created_at|localdatetime }}</p>
+                                    <p class="help">{{ file_detail.updated_at|localdatetime }}</p>
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr>
+                                <td>
+                                    คลิกไฟล์ซ้ายมือ เพื่อดูรายละเอียดเพิ่มเติม
+                                </td>
+                            </tr>
+                        {% endif %}
+                </tbody>
+            </table>
+            </div>
+        </div>`
+        <div class="columns">
+            <div class="column box">
+                <h1 class="subtitle">ข้อมูลเพิ่มเติม</h1>
+                <table class="table is-bordered is-fullwidth">
+                    <tr>
+                        <td>รหัสชุดข้อมูล</td>
+                        <td>{{ dataset.reference }}</td>
+                    </tr>
+                    <tr>
+                        <td>กลุ่มข้อมูล</td>
+                        <td>{{ dataset.data.name }}</td>
+                    </tr>
+                    <tr>
+                        <td>คำสำคัญ</td>
+                        <td>{% for tag in dataset.tags %}
+                            <div class="tag is-rounded is-light is-small">{{ tag.tag }}</div>
+                        {% endfor %}</td>
+                    </tr>
+                    <tr>
+                        <td>วัตถุประสงค์</td>
+                        <td>{{ dataset.goal }}</td>
+                    </tr>
+                    <tr>
+                        <td>วันที่สร้าง</td>
+                        <td>{{ dataset.created_at|localdatetime }}</td>
+                    </tr>
+                    <tr>
+                        <td>วันที่ปรับปรุง</td>
+                        <td>{{ dataset.updated_at|localdatetime }}</td>
+                    </tr>
+                    <tr>
+                        <td>ประเภทชุดข้อมูล</td>
+                        <td>{{ dataset.data_type }}</td>
+                    </tr>
+                    <tr>
+                        <td>หมวดหมู่ข้อมูล</td>
+                        <td>
+                            {% if dataset.personal %}
+                            <a class="button is-small is-light is-info"
+                                href="{{ url_for('data_bp.get_ropa_detail', dataset_id=dataset.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-user-secret has-text-info"></i>
+                                </span>
+                                <span>ROPA ข้อมูลส่วนบุคคล</span>
+                            </a>
+                            {% endif %}
+                            {% if dataset.sensitive %}
+                            <a class="button is-small is-light is-danger"
+                                href="{{ url_for('data_bp.get_ropa_detail', dataset_id=dataset.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-heartbeat has-text-danger"></i>
+                                </span>
+                                <span>
+                                    ROPA ข้อมูลอ่อนไหว
+                                </span>
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>ชื่อผู้ติดต่อ</td>
+                        <td><li>ผู้สร้าง {{ dataset.creator.personal_info.fullname }} </li>
+                            {% if dataset.maintainer %}<li>
+                                ผู้ดูแล {{ dataset.maintainer.personal_info.fullname }}</li>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>หน่วยความถี่ของการปรับปรุงข้อมูล</td>
+                        <td>{{ dataset.frequency }}</td>
+                    </tr>
+                    <tr>
+                        <td>รูปแบบการเก็บข้อมูล</td>
+                        <td>
+                        {% for file in dataset.files %}
+                            <li>{{ file.file_type }}</li>
+                        {% endfor %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
