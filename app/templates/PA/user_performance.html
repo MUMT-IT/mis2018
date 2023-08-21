@@ -44,8 +44,8 @@
                                     <td>{{ current_user.personal_info.employment.title }}</td>
                                 </tr>
                                 <tr>
-                                    <td><label class="label">คำนำหน้า ชื่อ-สกุลผู้ประเมิน(ผู้บังคับบัญชาชั้นต้น)</label></td>
-                                    <td>{{ current_user.personal_info.org.parent.head or current_user.personal_info.org.head }}</td>
+                                    <td><label class="label">ผู้ประเมิน(ผู้บังคับบัญชาชั้นต้น)</label></td>
+                                    <td>{{ head.personal_info.fullname }}</td>
                                 </tr>
                                 <tr>
                                     <td colspan="2">

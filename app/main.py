@@ -675,7 +675,10 @@ admin.add_view(ModelView(PAApprovedScoreSheet, db.session, category='PA'))
 admin.add_view(ModelView(PACoreCompetencyItem, db.session, category='PA'))
 admin.add_view(ModelView(PACoreCompetencyScoreItem, db.session, category='PA'))
 
+from app.models import Dataset, DataFile
 
+admin.add_view(ModelView(Dataset, db.session, category='Data'))
+admin.add_view(ModelView(DataFile, db.session, category='Data'))
 # Commands
 
 @app.cli.command()

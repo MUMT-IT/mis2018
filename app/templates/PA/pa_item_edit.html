@@ -231,6 +231,32 @@
                                                         {% endif %}
                                                     </td>
                                                 </tr>
+                                                <tr>
+                                                    <td>แจ้งผลให้ผู้รับการประเมิน</td>
+                                                    <td>
+                                                        {% if pa.inform_score_at %}
+                                                            <span class="tag is-info is-light is-rounded">
+                                                                <span class="icon">
+                                                                    <i class="fas fa-check-circle"></i>
+                                                                </span>
+                                                                <span>{{ pa.inform_score_at|localdatetime }}</span>
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <td>รับทราบผลการประเมิน</td>
+                                                    <td>
+                                                        {% if pa.accept_score_at %}
+                                                            <span class="tag is-info is-light is-rounded">
+                                                                <span class="icon">
+                                                                    <i class="fas fa-check-circle"></i>
+                                                                </span>
+                                                                <span>{{ pa.accept_score_at|localdatetime }}</span>
+                                                            </span>
+                                                        {% endif %}
+                                                    </td>
+                                                </tr>
                                             </table>
                                         </td>
                                     </tr>
@@ -499,6 +525,24 @@
                     </button>
                 </div>
             </div>
+            {% if not pa.accept_score_at %}
+            <div class="buttons is-centered">
+                <a href="{{ url_for('pa.accept_overall_score', pa_id=pa.id) }}"
+                           class="button is-info is-outlined is-large">
+                    <span class="icon">
+                        <i class="fa-sharp fa-solid fa-circle-check"></i>
+                    </span>
+                    <span>รับทราบผลการประเมิน</span>
+                </a>
+            </div>
+            {% else %}
+            <div class="buttons is-centered">
+                <a href="{{ url_for('pa.accept_overall_score', pa_id=pa.id) }}"
+                           class="button is-info is-outlined">
+                    <span>ผลการประเมิน</span>
+                </a>
+            </div>
+            {% endif %}
         </div>
     </section>
 {% endblock %}
