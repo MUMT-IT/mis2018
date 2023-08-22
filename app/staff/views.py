@@ -3483,6 +3483,7 @@ def staff_create_info():
             en_firstname=form.get('en_firstname'),
             en_lastname=form.get('en_lastname'),
             th_firstname=form.get('th_firstname'),
+            th_title=form.get('th_title'),
             th_lastname=form.get('th_lastname'),
             position=form.get('position'),
             # TODO: try removing localize
