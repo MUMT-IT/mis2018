@@ -67,7 +67,7 @@
                                     <span class="tag is-rounded">
                                     <span class="icon"><i class="fas fa-eye"></i></span>
                                         <span>
-                                            {{ req.responded_at|localdatetime }}
+                                            {{ req.status }} {{ req.responded_at|localdatetime }}
                                         </span>
                                     </span>
                                 {% else %}
@@ -97,4 +97,12 @@
         </div>
     </div>
 </section>
+{% endblock %}
+{% block scripts %}
+{{ super() }}
+    <script>
+        $(document).ready(function(){
+            $('#reqTable').DataTable();
+        });
+    </script>
 {% endblock %}
