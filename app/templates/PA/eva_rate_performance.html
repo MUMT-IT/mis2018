@@ -178,7 +178,8 @@
                 <div class="columns">
                     <div class="column has-text-centered">
                         <div class="buttons is-centered">
-                            <a href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}")
+                            <a  onclick="return confirm('กรุณาบันทึกคะแนน(ปุ่มเขียว)ก่อนคลิก OK หากบันทึกเรียบร้อยแล้วคลิก OK เพื่อดำเนินการส่งคะแนนต่อไป')"
+                                    href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}")
                                class="button is-info">
                                 <span class="icon">
                                     <i class="fa-solid fa-paper-plane"></i>
