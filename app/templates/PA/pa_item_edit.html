@@ -432,7 +432,8 @@
                             <span>ส่งคำขอ</span>
                         </a>
                         {% if pa.approved_at %}
-                        <a href="{{ url_for('pa.create_scoresheet_for_self_evaluation', pa_id=pa.id) }}"
+                        <a onclick="return confirm('เมื่อประเมินตนเองแล้ว จะไม่สามารถแก้ไขตัวชี้วัดและภาระงานได้อีก หากแน่ใจแล้วคลิก OK เพื่อดำเนินการประเมินตนเอง')"
+                           href="{{ url_for('pa.create_scoresheet_for_self_evaluation', pa_id=pa.id) }}"
                            class="button is-warning is-outlined">
                             <span class="icon">
                                 <i class="fa-solid fa-star"></i>
