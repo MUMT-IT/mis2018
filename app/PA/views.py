@@ -9,11 +9,11 @@ from . import pa_blueprint as pa
 
 from app.roles import hr_permission
 from app.PA.forms import *
-from app.main import mail, StaffEmployment
+from app.main import mail, StaffEmployment, StaffLeaveUsedQuota
 
 tz = pytz.timezone('Asia/Bangkok')
 
-from flask import render_template, flash, redirect, url_for, request, make_response, current_app
+from flask import render_template, flash, redirect, url_for, request, make_response, current_app, jsonify
 from flask_login import login_required, current_user
 from flask_mail import Message
 
@@ -129,6 +129,9 @@ def delete_pa_item(pa_id, pa_item_id):
 @login_required
 def delete_request(request_id):
     req = PARequest.query.get(request_id)
+    if req.for_ == 'ขอรับการประเมิน':
+        if req.pa.submitted_at:
+            req.pa.submitted_at = None
     db.session.delete(req)
     db.session.commit()
     resp = make_response()
@@ -364,7 +367,14 @@ def create_request(pa_id):
 @login_required
 def all_request():
     all_req = PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.submitted_at != None).all()
-    return render_template('PA/head_all_request.html', all_req=all_req)
+    current_requests = []
+    # for req in all_req:
+    #     current_requests = req.requests.order_by(PARequest.submitted_at.desc()).first()
+    # for key, group in itertools.groupby(all_req, lambda x: x in all_req['pa_id']):
+    #     current_requests.append(max(group, key=lambda y: y[all_req.submitted_at]))
+    # df = DataFrame(all_req)
+    # current_requests = df.groupby(all_req[pa_id])[all_request.submitted_at].max()
+    return render_template('PA/head_all_request.html', all_req=all_req, current_requests=current_requests)
 
 
 @pa.route('/head/request/<int:request_id>/detail')
@@ -445,7 +455,6 @@ def create_scoresheet(pa_id):
 @login_required
 def create_scoresheet_for_self_evaluation(pa_id):
     scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id, staff=current_user).first()
-    pa_items = PAItem.query.filter_by(pa_id=pa_id).all()
     if not scoresheet:
         scoresheet = PAScoreSheet(pa_id=pa_id, staff=current_user)
         pa_items = PAItem.query.filter_by(pa_id=pa_id).all()
@@ -1008,3 +1017,19 @@ def all_kpi_all_item():
     kpis = PAKPI.query.all()
     items = PAItem.query.all()
     return render_template('staff/HR/PA/all_kpi_all_item.html', kpis=kpis, items=items)
+
+
+# @pa.route('/api/leave-used-quota/<int:staff_id>')
+# @login_required
+# def get_leave_used_quota(staff_id):
+#     leaves = []
+#     for used_quota in StaffLeaveUsedQuota.query.filter_by(id=staff_id).all():
+#         leaves.append({
+#             'id': used_quota.id,
+#             'fiscal_year': used_quota.fiscal_year,
+#             'used_days': used_quota.used_days,
+#             'pending_days': used_quota.pending_days,
+#             'quota_days': used_quota.quota_days,
+#             'leave_type': used_quota.leave_type.type_
+#         })
+#     return jsonify(leaves)
