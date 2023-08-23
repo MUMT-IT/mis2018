@@ -368,12 +368,9 @@ def create_request(pa_id):
 def all_request():
     all_req = PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.submitted_at != None).all()
     current_requests = []
-    # for req in all_req:
-    #     current_requests = req.requests.order_by(PARequest.submitted_at.desc()).first()
-    # for key, group in itertools.groupby(all_req, lambda x: x in all_req['pa_id']):
-    #     current_requests.append(max(group, key=lambda y: y[all_req.submitted_at]))
-    # df = DataFrame(all_req)
-    # current_requests = df.groupby(all_req[pa_id])[all_request.submitted_at].max()
+    for pa in PAAgreement.query.filter(PARequest.supervisor_id == current_user.id and PARequest.submitted_at != None):
+        req_ = pa.requests.order_by(PARequest.submitted_at.desc()).first()
+        current_requests.append(req_)
     return render_template('PA/head_all_request.html', all_req=all_req, current_requests=current_requests)
 
 
