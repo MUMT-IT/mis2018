@@ -28,7 +28,7 @@ def send_mail(recp, title, message):
 def user_performance():
     staff_personal = PAAgreement.query.all()
     rounds = PARound.query.all()
-    head_email = current_user.personal_info.org.parent.head if current_user.personal_info.org.parent.head \
+    head_email = current_user.personal_info.org.parent.head if current_user.personal_info.org.parent \
         else current_user.personal_info.org.head
     head = StaffAccount.query.filter_by(email=head_email).first()
     return render_template('PA/user_performance.html',
@@ -1016,17 +1016,17 @@ def all_kpi_all_item():
     return render_template('staff/HR/PA/all_kpi_all_item.html', kpis=kpis, items=items)
 
 
-# @pa.route('/api/leave-used-quota/<int:staff_id>')
-# @login_required
-# def get_leave_used_quota(staff_id):
-#     leaves = []
-#     for used_quota in StaffLeaveUsedQuota.query.filter_by(id=staff_id).all():
-#         leaves.append({
-#             'id': used_quota.id,
-#             'fiscal_year': used_quota.fiscal_year,
-#             'used_days': used_quota.used_days,
-#             'pending_days': used_quota.pending_days,
-#             'quota_days': used_quota.quota_days,
-#             'leave_type': used_quota.leave_type.type_
-#         })
-#     return jsonify(leaves)
+@pa.route('/api/leave-used-quota/<int:staff_id>')
+@login_required
+def get_leave_used_quota(staff_id):
+    leaves = []
+    for used_quota in StaffLeaveUsedQuota.query.filter_by(id=staff_id).all():
+        leaves.append({
+            'id': used_quota.id,
+            'fiscal_year': used_quota.fiscal_year,
+            'used_days': used_quota.used_days,
+            'pending_days': used_quota.pending_days,
+            'quota_days': used_quota.quota_days,
+            'leave_type': used_quota.leave_type.type_
+        })
+    return jsonify(leaves)
