@@ -118,6 +118,7 @@
                                                 {% if cat.pa_items.filter_by(pa_id=pa.id).all() %}
                                                     <table class="table is-fullwidth">
                                                         <thead>
+                                                        <th>ลำดับ</th>
                                                         <th>งานที่รับผิดชอบ</th>
                                                         <th>%</th>
                                                         <th>ผลการดำเนินการ</th>
@@ -128,6 +129,7 @@
                                                         {% for pa_item in cat.pa_items.filter_by(pa_id=pa.id) %}
                                                             <tr {% if pa_item_id == pa_item.id %}
                                                                 style="background-color: palegreen" {% endif %}>
+                                                                <td style="width: 20%">{{ pa_item.number|safe }}</td>
                                                                 <td style="width: 20%">{{ pa_item.task|safe }}</td>
                                                                 <td style="width: 10%">{{ pa_item.percentage }}</td>
                                                                 <td style="width: 30%;">{{ pa_item.report|safe }}</td>
@@ -266,6 +268,14 @@
                                 <p class="title is-size-4 has-text-centered">
                                     เพิ่ม/แก้ไขข้อมูลภาระงานและตัวชี้วัด
                                 </p>
+                                <div class="field">
+                                    <label class="label">
+                                        ลำดับที่ (ลำดับที่ของภาระงาน ใส่เฉพาะตัวเลขจำนวนเต็ม)
+                                    </label>
+                                    <div class="control">
+                                        {{ form.number(class="input is-success" if pa_item_id else "input", required=True) }}
+                                    </div>
+                                </div>
                                 <div class="field">
                                     <label class="label">
                                         {% if not pa.editable %}
@@ -527,15 +537,17 @@
                 </div>
             </div>
             {% if not pa.accept_score_at %}
-            <div class="buttons is-centered">
-                <a href="{{ url_for('pa.accept_overall_score', pa_id=pa.id) }}"
-                           class="button is-info is-outlined is-large">
-                    <span class="icon">
-                        <i class="fa-sharp fa-solid fa-circle-check"></i>
-                    </span>
-                    <span>รับทราบผลการประเมิน</span>
-                </a>
-            </div>
+                {% if pa.inform_score_at %}
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('pa.accept_overall_score', pa_id=pa.id) }}"
+                               class="button is-info is-outlined is-large">
+                        <span class="icon">
+                            <i class="fa-sharp fa-solid fa-circle-check"></i>
+                        </span>
+                        <span>รับทราบผลการประเมิน</span>
+                    </a>
+                </div>
+                {% endif %}
             {% else %}
             <div class="buttons is-centered">
                 <a href="{{ url_for('pa.accept_overall_score', pa_id=pa.id) }}"
