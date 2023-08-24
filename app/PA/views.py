@@ -9,11 +9,11 @@ from . import pa_blueprint as pa
 
 from app.roles import hr_permission
 from app.PA.forms import *
-from app.main import mail, StaffEmployment
+from app.main import mail, StaffEmployment, StaffLeaveUsedQuota
 
 tz = pytz.timezone('Asia/Bangkok')
 
-from flask import render_template, flash, redirect, url_for, request, make_response, current_app
+from flask import render_template, flash, redirect, url_for, request, make_response, current_app, jsonify
 from flask_login import login_required, current_user
 from flask_mail import Message
 
@@ -28,7 +28,7 @@ def send_mail(recp, title, message):
 def user_performance():
     staff_personal = PAAgreement.query.all()
     rounds = PARound.query.all()
-    head_email = current_user.personal_info.org.parent.head if current_user.personal_info.org.parent.head \
+    head_email = current_user.personal_info.org.parent.head if current_user.personal_info.org.parent \
         else current_user.personal_info.org.head
     head = StaffAccount.query.filter_by(email=head_email).first()
     return render_template('PA/user_performance.html',
@@ -129,6 +129,9 @@ def delete_pa_item(pa_id, pa_item_id):
 @login_required
 def delete_request(request_id):
     req = PARequest.query.get(request_id)
+    if req.for_ == 'ขอรับการประเมิน':
+        if req.pa.submitted_at:
+            req.pa.submitted_at = None
     db.session.delete(req)
     db.session.commit()
     resp = make_response()
@@ -364,7 +367,11 @@ def create_request(pa_id):
 @login_required
 def all_request():
     all_req = PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.submitted_at != None).all()
-    return render_template('PA/head_all_request.html', all_req=all_req)
+    current_requests = []
+    for pa in PAAgreement.query.filter(PARequest.supervisor_id == current_user.id and PARequest.submitted_at != None):
+        req_ = pa.requests.order_by(PARequest.submitted_at.desc()).first()
+        current_requests.append(req_)
+    return render_template('PA/head_all_request.html', all_req=all_req, current_requests=current_requests)
 
 
 @pa.route('/head/request/<int:request_id>/detail')
@@ -445,7 +452,6 @@ def create_scoresheet(pa_id):
 @login_required
 def create_scoresheet_for_self_evaluation(pa_id):
     scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id, staff=current_user).first()
-    pa_items = PAItem.query.filter_by(pa_id=pa_id).all()
     if not scoresheet:
         scoresheet = PAScoreSheet(pa_id=pa_id, staff=current_user)
         pa_items = PAItem.query.filter_by(pa_id=pa_id).all()
@@ -1008,3 +1014,19 @@ def all_kpi_all_item():
     kpis = PAKPI.query.all()
     items = PAItem.query.all()
     return render_template('staff/HR/PA/all_kpi_all_item.html', kpis=kpis, items=items)
+
+
+@pa.route('/api/leave-used-quota/<int:staff_id>')
+@login_required
+def get_leave_used_quota(staff_id):
+    leaves = []
+    for used_quota in StaffLeaveUsedQuota.query.filter_by(id=staff_id).all():
+        leaves.append({
+            'id': used_quota.id,
+            'fiscal_year': used_quota.fiscal_year,
+            'used_days': used_quota.used_days,
+            'pending_days': used_quota.pending_days,
+            'quota_days': used_quota.quota_days,
+            'leave_type': used_quota.leave_type.type_
+        })
+    return jsonify(leaves)
