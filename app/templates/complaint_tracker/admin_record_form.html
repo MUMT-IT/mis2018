@@ -24,9 +24,15 @@
                         </div>
                         <div class="field">
                             <label class="label">หัวข้อ</label>
-                            <div class="control">
-                                <input class="input" readonly value="{{ record.topic.topic }}">
-                            </div>
+                            {% if forward == 'true' %}
+                                <div class="select">
+                                {{ form.topic() }}
+                                </div>
+                            {% else %}
+                                <div class="control">
+                                    <input class="input" readonly value="{{ record.topic.topic }}">
+                                </div>
+                            {% endif %}
                         </div>
                         <div class="field">
                             <label class="label">{{ form.desc.label }}</label>
@@ -60,14 +66,46 @@
                                 </div>
                             </div>
                         {% endfor %}
+                        <div class="field is-grouped is-grouped-centered">
+                            <div class="buttons">
+                                <a href="{{ url_for('procurement.search_by_erp_code_with_repair_online') }}" class="button is-warning">แจ้งซ่อมบริษัท</a>
+                                {% if forward != 'true' %}
+                                <a href="{{ url_for('comp_tracker.edit_record_admin', forward='true', record_id=record.id) }}" class="button is-warning">Forward</a>
+                                {% endif %}
+                            </div>
+                        </div>
                         <div class="field">
                             <div class="control">
                                 <a class="button is-light" href="{{ url_for('comp_tracker.admin_index') }}">Back</a>
-                                <input class="button is-primary" type="submit" value="Submit">
+                                <button class="button is-primary" type="submit">
+                                    {% if forward == 'true' %}
+                                    Forward
+                                    {% else %}
+                                    Save
+                                    {% endif %}
+                                </button>
                             </div>
                         </div>
                     </form>
                 </div>
+            </div>
+        </div>
+        <div class="columns">
+            <div class="column">
+                <table class="table is-bordered">
+                    <thead>
+                    <th>ID</th>
+                    <th>Topic</th>
+                    </thead>
+                    <tbody>
+                    {% for c in record.children %}
+                    <tr>
+                        <td>{{ c.id }}</td>
+                        <td>{{ c.topic.topic }}</td>
+                    </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
