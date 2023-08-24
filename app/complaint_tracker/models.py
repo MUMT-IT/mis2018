@@ -70,6 +70,7 @@ class ComplaintRecord(db.Model):
     status_id = db.Column('status', db.ForeignKey('complaint_statuses.id'))
     status = db.relationship(ComplaintStatus, backref=db.backref('records', cascade='all, delete-orphan'))
     origin_id = db.Column('origin_id', db.ForeignKey('complaint_records.id'))
+    children = db.relationship('ComplaintRecord', backref=db.backref('parent', remote_side=[id]))
     # room_id = db.Column('room_id', db.ForeignKey('scheduler_room_resources.id'))
     # room = db.relationship(RoomResource, backref=db.backref('room_records', lazy='dynamic'))
 
