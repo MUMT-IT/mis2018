@@ -102,22 +102,28 @@
 
                         <td>
                             {% for req in current_requests %}
+                            {% if req.supervisor_id == current_user.id %}
                             {% if req.for_ =='ขอรับรอง' %}
                                 <p class="tag">{{ req.pa.staff.fullname }}</p>
                             {% endif %}
-                            {% endfor %}
-                        </td>
-                        <td>
-                            {% for req in current_requests %}
-                            {% if req.for_ =='ขอแก้ไข' %}
-                                <p class="tag">{{ req.pa.staff.fullname }}</p>
                             {% endif %}
                             {% endfor %}
                         </td>
                         <td>
                             {% for req in current_requests %}
+                            {% if req.supervisor_id == current_user.id %}
+                            {% if req.for_ =='ขอแก้ไข' %}
+                                <p class="tag">{{ req.pa.staff.fullname }}</p>
+                            {% endif %}
+                            {% endif %}
+                            {% endfor %}
+                        </td>
+                        <td>
+                            {% for req in current_requests %}
+                            {% if req.supervisor_id == current_user.id %}
                             {% if req.for_ =='ขอรับการประเมิน' %}
                                 <p class="tag">{{ req.pa.staff.fullname }}</p>
+                            {% endif %}
                             {% endif %}
                             {% endfor %}
                         </td>
