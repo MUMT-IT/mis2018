@@ -28,14 +28,10 @@ def send_mail(recp, title, message):
 def user_performance():
     staff_personal = PAAgreement.query.all()
     rounds = PARound.query.all()
-    head_email = current_user.personal_info.org.parent.head if current_user.personal_info.org.parent \
-        else current_user.personal_info.org.head
-    head = StaffAccount.query.filter_by(email=head_email).first()
     return render_template('PA/user_performance.html',
                            staff_personal=staff_personal,
                            name=current_user,
-                           rounds=rounds,
-                           head=head)
+                           rounds=rounds)
 
 
 @pa.route('/rounds/<int:round_id>/items/add', methods=['GET', 'POST'])
