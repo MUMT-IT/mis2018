@@ -1,4 +1,5 @@
 # -*- coding:utf-8 -*-
+from sqlalchemy import func
 
 from app.main import db
 from app.room_scheduler.models import RoomResource
@@ -71,6 +72,7 @@ class ComplaintRecord(db.Model):
     status = db.relationship(ComplaintStatus, backref=db.backref('records', cascade='all, delete-orphan'))
     origin_id = db.Column('origin_id', db.ForeignKey('complaint_records.id'))
     children = db.relationship('ComplaintRecord', backref=db.backref('parent', remote_side=[id]))
+    created_at = db.Column('created_at', db.DateTime(timezone=True), server_default=func.now())
     # room_id = db.Column('room_id', db.ForeignKey('scheduler_room_resources.id'))
     # room = db.relationship(RoomResource, backref=db.backref('room_records', lazy='dynamic'))
 
