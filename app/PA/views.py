@@ -708,7 +708,8 @@ def send_consensus_scoresheets_to_hr(pa_id):
 def send_evaluation_comment(pa_id):
     consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True, is_final=True).filter(
                                 PACommittee.staff == current_user).first()
-    if consolidated_score_sheet:
+    pa = PAAgreement.query.filter_by(id=pa_id).first()
+    if consolidated_score_sheet and pa.performance_score:
         consolidated_score_sheet = PAScoreSheet.query.filter_by(id=consolidated_score_sheet.id).first()
     else:
         flash('ไม่พบคะแนนสรุป กรุณาสรุปผลคะแนนและรับรองผล ก่อนส่งคะแนนไปยังผู้รับการประเมิน', 'warning')
