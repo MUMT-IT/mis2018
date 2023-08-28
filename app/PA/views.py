@@ -606,6 +606,14 @@ def summary_scoresheet(pa_id):
             db.session.commit()
         score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     approved_scoresheets = PAApprovedScoreSheet.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
+
+    net_total = 0
+    for pa_item in consolidated_score_sheet.pa.pa_items:
+        total_score = pa_item.total_score(consolidated_score_sheet)
+        net_total += total_score
+    if net_total > 0:
+        performance_score = round(((net_total * 80) / 1000), 2)
+        competency_score = consolidated_score_sheet.competency_net_score()
     if request.method == 'POST':
         form = request.form
         for field, value in form.items():
@@ -623,10 +631,13 @@ def summary_scoresheet(pa_id):
                 db.session.add(core_scoresheet_item)
         db.session.commit()
         flash('บันทึกผลค่าเฉลี่ยเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('pa.summary_scoresheet', pa_id=pa_id))
     return render_template('PA/head_summary_score.html',
                            score_sheet_items=score_sheet_items,
                            consolidated_score_sheet=consolidated_score_sheet,
-                           approved_scoresheets=approved_scoresheets, core_competency_items=core_competency_items)
+                           approved_scoresheets=approved_scoresheets, core_competency_items=core_competency_items,
+                           net_total=net_total,
+                           performance_score=performance_score, competency_score=competency_score)
 
 
 @pa.route('/confirm-score/<int:scoresheet_id>')
