@@ -706,7 +706,7 @@ def send_consensus_scoresheets_to_hr(pa_id):
 @pa.route('/head/all-approved-pa/send_comment/<int:pa_id>', methods=['GET', 'POST'])
 @login_required
 def send_evaluation_comment(pa_id):
-    consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).filter(
+    consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True, is_final=True).filter(
                                 PACommittee.staff == current_user).first()
     if consolidated_score_sheet:
         consolidated_score_sheet = PAScoreSheet.query.filter_by(id=consolidated_score_sheet.id).first()
