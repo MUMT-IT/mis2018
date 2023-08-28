@@ -225,10 +225,11 @@
                         </div>
                     </div>
                     <div class="columns">
-                        <div class="column">
+                        <div class="column has-text-centered">
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="control">
-                                    <a href="{{ url_for('pa.confirm_final_score', scoresheet_id=consolidated_score_sheet.id) }}"
+                                    <a onclick="return confirm('กรุณาบันทึกคะแนน(ปุ่มเขียว)ก่อนคลิก OK หากบันทึกเรียบร้อยแล้วคลิก OK เพื่อยืนยันผล')"
+                                       href="{{ url_for('pa.confirm_final_score', scoresheet_id=consolidated_score_sheet.id) }}"
                                        class="button is-info">
                                     <span class="icon">
                                         <i class="fa-solid fa-lock"></i>
@@ -237,7 +238,14 @@
                                     </a>
                                 </div>
                             </div>
-                            <p class="has-text-danger has-text-centered">เมื่อยืนยันผลแล้วจะไม่สามารถแก้ไขได้</p>
+                            <p class="notification is-danger is-light has-text-danger">
+                                <span class="icon">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                </span>
+                                <span>กด บันทึก ทุกครั้ง<br>ก่อนยืนยันคะแนนครั้งสุดท้าย<br>
+                                    **เมื่อยืนยันผลแล้วจะไม่สามารถแก้ไขได้
+                                </span>
+                            </p>
                         </div>
                     </div>
                 {% else %}
