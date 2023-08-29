@@ -1,0 +1,44 @@
+<div class="modal is-active" id="clo-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">New CLO</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <form hx-post="{{ url_for('eduqa.edit_clo', course_id=course_id) }}"
+              hx-target="#clo-table">
+            {{ form.hidden_tag() }}
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">{{ form.number.label }}</label>
+                    <div class="control">
+                        {{ form.number(class="input") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.detail.label }}</label>
+                    <div class="control">
+                        {{ form.detail(class="textarea") }}
+                    </div>
+                </div>
+                <div class="field">
+                    <label class="label">{{ form.score_weight.label }}</label>
+                    <div class="control">
+                        {{ form.score_weight(class="input") }}
+                    </div>
+                </div>
+            </section>
+            <footer class="modal-card-foot">
+              <button class="button is-success">Save</button>
+            </footer>
+        </form>
+    </div>
+</div>
+<script>
+  window.document.getElementById("cancelButton").addEventListener("click", function() {
+      htmx.removeClass(htmx.find('#clo-modal'), 'is-active')
+  })
+  window.addEventListener('closeModal', (evt)=>{
+      htmx.removeClass(htmx.find('#clo-modal'), 'is-active')
+  })
+</script>

@@ -836,6 +836,57 @@ def delete_session_assignment(session_id):
     return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
 
 
+@edu.route('/qa/courses/<int:course_id>/learning-outcomes-form-modal', methods=['GET', 'POST', 'DELETE', 'PUT'])
+@edu.route('/qa/courses/<int:course_id>/learning-outcomes-form-modal/<int:clo_id>', methods=['GET', 'POST', 'DELETE', 'PUT'])
+@login_required
+def edit_clo(course_id, clo_id=None):
+    course = EduQACourse.query.get(course_id)
+    if clo_id:
+        clo = EduQACourseLearningOutcome.query.get(clo_id)
+        form = EduCourseLearningOutcomeForm(obj=clo)
+    else:
+        form = EduCourseLearningOutcomeForm()
+    if request.method == 'GET':
+        return render_template('eduqa/partials/clo_form_modal.html', form=form, course_id=course_id)
+    elif request.method == 'POST':
+        if form.validate_on_submit():
+            new_clo = EduQACourseLearningOutcome()
+            form.populate_obj(new_clo)
+            new_clo.course_id = course_id
+            db.session.add(new_clo)
+            db.session.commit()
+    elif request.method == 'PUT':
+        form.populate_obj(clo)
+        db.session.add(clo)
+        db.session.commit()
+    elif request.method == 'DELETE':
+        db.session.delete(clo)
+        db.session.commit()
+
+    template = ''.join(['''
+    <tr>
+        <td>{}</td>
+        <td>{}</td>
+        <td>{}</td>
+        <td>
+            <a hx-delete="{}" hx-confirm="ต้องการลบ CLO นี้หรือไม่">
+                <span class="icon">
+                    <i class="far fa-trash-alt has-text-danger"></i>
+                </span>
+            </button>
+        </td>
+    </tr>
+    '''.format(c.number, c.detail, c.score_weight,
+               url_for('eduqa.edit_clo', course_id=course_id, clo_id=c.id)) for c in course.outcomes])
+    print(template)
+    resp = make_response(template)
+    if request.method == 'DELETE':
+        resp.headers['HX-Refresh'] = 'true'
+    else:
+        resp.headers['HX-Trigger-After-Swap'] = 'closeModal'
+    return resp
+
+
 @edu.route('/qa/revisions/<int:revision_id>/summary/hours')
 def show_hours_summary_all(revision_id):
     revision = EduQACurriculumnRevision.query.get(revision_id)

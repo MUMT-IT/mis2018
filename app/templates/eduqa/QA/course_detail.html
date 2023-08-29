@@ -47,7 +47,7 @@
         </div>
         <div class="columns">
             <div class="column">
-                <h5 class="title is-size-4">ข้อมูลทั่วไป</h5>
+                <h5 class="title is-size-4">หมวดที่ 1 ข้อมูลทั่วไป</h5>
                 <table class="table is-striped is-bordered is-fullwidth">
                     <tr>
                         <td>
@@ -108,6 +108,25 @@
                         </td>
                     </tr>
                     <tr>
+                      <td>
+                        <label class="label">เพิ่มรายวิชาโดย</label>
+                      </td>
+                      <td>
+                        {{ course.creator.fullname }}
+                      </td>
+                    </tr>
+                </table>
+                <h5 class="title is-size-4">หมวดที่ 2 เป้าหมายและคำอธิบายรายวิชา</h5>
+                <table class="table is-striped is-bordered is-fullwidth">
+                    <tr>
+                        <td>
+                            <label class="label">เป้าหมายรายวิชา</label>
+                        </td>
+                        <td>
+                            {{ course.goal }}
+                        </td>
+                    </tr>
+                    <tr>
                         <td>
                             <label class="label">คำอธิบายรายวิชา</label>
                         </td>
@@ -122,14 +141,6 @@
                         <td>
                             {{ course.en_desc }}
                         </td>
-                    </tr>
-                    <tr>
-                      <td>
-                        <label class="label">เพิ่มรายวิชาโดย</label>
-                      </td>
-                      <td>
-                        {{ course.creator.fullname }}
-                      </td>
                     </tr>
                 </table>
                 <div class="buttons is-centered">
@@ -149,6 +160,59 @@
                     </a>
                     {% endif %}
                 </div>
+                <a id="section-3"></a>
+                <h5 class="title is-size-4">หมวดที่ 3 วัตถุประสงค์ ผลลัพธ์การเรียนรู้และแผนการดำเนินการ</h5>
+                <table class="table is-striped is-fullwidth is-bordered">
+                    <tr>
+                        <td>
+                            <label class="label">วัตถุประสงค์รายวิชา (Course objective)</label>
+                        </td>
+                        <td>
+                            {{ course.objective }}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <label class="label">ผลลัพธ์การเรียนรู้ (Course learning outcomes)</label>
+                        </td>
+                        <td>
+                            <table class="table is-fullwidth">
+                                <thead>
+                                <th>ลำดับ</th>
+                                <th>ผลลัพธ์การเรียนรู้</th>
+                                <th>สัดส่วนคะแนน (ร้อยละ)</th>
+                                <th></th>
+                                </thead>
+                                <tbody id="clo-table">
+                                {% for clo in course.outcomes %}
+                                    <tr>
+                                    <td>{{ clo.number }}</td>
+                                    <td>{{ clo.detail }}</td>
+                                    <td>{{ clo.score_weight }}</td>
+                                    <td>
+                                        <a hx-confirm="ต้องการลบ CLO นี้หรือไม่"
+                                            hx-delete="{{ url_for('eduqa.edit_clo', course_id=course.id, clo_id=clo.id) }}">
+                                            <span class="icon">
+                                                <i class="far fa-trash-alt has-text-danger"></i>
+                                            </span>
+                                        </a>
+                                    </td>
+                                    </tr>
+                                {% endfor %}
+                                </tbody>
+                            </table>
+                            <div id="clo-form"></div>
+                            <button class="button is-rounded is-small"
+                                    hx-target="#clo-form"
+                                    hx-get="{{ url_for('eduqa.edit_clo', course_id=course.id) }}">
+                                <span class="icon">
+                                    <i class="fa-solid fa-plus"></i>
+                                </span>
+                                <span>เพิ่ม</span>
+                            </button>
+                        </td>
+                    </tr>
+                </table>
                 <h5 class="title is-size-4">ข้อมูลการจัดการเรียนการสอน</h5>
                 <table class="table is-striped is-fullwidth is-bordered">
                     <tr>
@@ -433,6 +497,11 @@
                 })
             }
         }
+    })
+    $(document).ready(function () {
+        document.body.addEventListener('htmx:configRequest', function(evt) {
+            evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }}; // add a new parameter into the mix
+        });
     })
 </script>
 {% endblock %}

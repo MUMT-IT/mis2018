@@ -188,3 +188,8 @@ class EduCourseInstructorRoleFormField(ModelForm):
 
 class EduCourseInstructorRoleForm(ModelForm):
     roles = ModelFieldList(ModelFormField(EduCourseInstructorRoleFormField), min_entries=0)
+
+
+class EduCourseLearningOutcomeForm(ModelForm):
+    class Meta:
+        model = EduQACourseLearningOutcome
