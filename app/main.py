@@ -682,8 +682,11 @@ admin.add_view(ModelView(DataFile, db.session, category='Data'))
 
 
 from app.e_sign_api.models import CertificateFile
+from app.e_sign_api import esign as esign_blueprint
 
 admin.add_views(ModelView(CertificateFile, db.session, category='E-sign'))
+
+app.register_blueprint(esign_blueprint)
 
 # Commands
 
