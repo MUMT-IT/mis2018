@@ -679,6 +679,12 @@ from app.models import Dataset, DataFile
 
 admin.add_view(ModelView(Dataset, db.session, category='Data'))
 admin.add_view(ModelView(DataFile, db.session, category='Data'))
+
+
+from app.e_sign_api.models import CertificateFile
+
+admin.add_views(ModelView(CertificateFile, db.session, category='E-sign'))
+
 # Commands
 
 @app.cli.command()
