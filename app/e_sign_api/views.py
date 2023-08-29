@@ -1,3 +1,4 @@
+import arrow
 from flask import render_template, flash, url_for, redirect, send_file
 from flask_login import login_required, current_user
 from pyhanko import stamp
@@ -10,6 +11,12 @@ from pyhanko.pdf_utils import images, text
 from pyhanko.sign import signers
 from pyhanko.sign.fields import SigFieldSpec, append_signature_field
 from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
+
+
+@esign.route('/')
+@login_required
+def index():
+    return render_template('e_sign_api/index.html')
 
 
 @esign.route('/test', methods=['GET', 'POST'])
@@ -41,7 +48,7 @@ def test_file():
     return render_template('e_sign_api/test.html', form=form)
 
 
-@esign.route('/', methods=['GET', 'POST'])
+@esign.route('/upload', methods=['GET', 'POST'])
 @login_required
 def upload():
     form = CertificateFileForm()
@@ -54,8 +61,9 @@ def upload():
                 dc = CertificateFile(staff=current_user)
             dc.file = form.file_upload.data.read()
             dc.image = form.image_upload.data.read()
+            dc.created_at = arrow.now('Asia/Bangkok').datetime
             db.session.add(dc)
             db.session.commit()
             flash('File uploaded successfully', 'success')
-            return redirect(url_for('staff.index'))
+            return redirect(url_for('e_sign.index'))
     return render_template('e_sign_api/upload.html', form=form)
