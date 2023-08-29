@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+    <div class="container">
+        <div class="columns">
+            <div class="column">
+                <h1 class="title has-text-centered">Credentials</h1>
+                <table class="table is-fullwidth">
+                    <thead>
+                    <th>Digital Signature File (PFX file)</th>
+                    <th>Signature Image</th>
+                    <th>Uploaded At</th>
+                    <th></th>
+                    </thead>
+                    <tr>
+                        <td>
+                            {% if current_user.digital_cert_file.file %}
+                                <span class="icon">
+                                    <i class="fa-solid fa-circle-check has-text-success"></i>
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if current_user.digital_cert_file.file %}
+                                <span class="icon">
+                                    <i class="fa-solid fa-circle-check has-text-success"></i>
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {{ current_user.digital_cert_file.created_at|localdatetime }}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('e_sign.upload') }}" class="button">upload</a>
+                        </td>
+                    </tr>
+                </table>
+                <div class="buttons is-centered">
+                    <a href="{{ url_for('e_sign.test_file') }}" class="button is-primary">ทดสอบ</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    </section>
+{% endblock %}

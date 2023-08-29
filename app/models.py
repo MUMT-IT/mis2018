@@ -387,7 +387,7 @@ class Dataset(db.Model):
     reference = db.Column('reference', db.String(255),
                           nullable=False, info={'label': u'รหัสข้อมูล'})
     name = db.Column('name', db.String(255), info={'label': u'ชื่อ'})
-    # desc = db.Column('desc', db.Text(), info={'label': u'รายละเอียด'})
+    desc = db.Column('desc', db.Text(), info={'label': u'รายละเอียด'})
     # goal = db.Column('goal', db.Text(), info={'label': u'วัตถุประสงค์'})
     # data_type = db.Column('data_type', db.String(),
     #                      info={'label': u'ประเภทชุดข้อมูล', 'choices': [(c, c) for c in ['ข้อมูลระเบียน', 'ข้อมูลสถิติ',
