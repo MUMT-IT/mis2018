@@ -193,7 +193,8 @@ class EduCourseInstructorRoleForm(ModelForm):
 
 class EduCourseLearningActivityForm(ModelForm):
     learning_activity = QuerySelectField('Learning Activity',
-                                         query_factory=lambda: EduQALearningActivity.query.all())
+                                         query_factory=lambda: EduQALearningActivity.query.all(),
+                                         allow_blank=True, blank_text='Please select')
     assessments = SelectMultipleField('Assessments',
                                       widget=widgets.ListWidget(prefix_label=False),
                                       option_widget=widgets.CheckboxInput(),

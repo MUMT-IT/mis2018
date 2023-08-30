@@ -226,7 +226,6 @@
                     <thead>
                     <th>CLO</th>
                     <th>วิธีจัดประสบการณ์การเรียนรู้/การประเมินผล</th>
-                    <th></th>
                     </thead>
                     <tbody>
                     {% for clo in course.outcomes|sort(attribute='number') %}
@@ -234,17 +233,41 @@
                         <td>CLO{{ clo.number }} {{ clo.detail }}</td>
                         <td>
                             <table class="table">
-                                <tbody></tbody>
+                                <thead>
+                                <th>รูปแบบ</th>
+                                <th>การประเมินผล</th>
+                                <th>
+                                    <a class="button is-small is-rounded is-light is-info"
+                                       hx-swap="innerHTML"
+                                       hx-target="#learning-activity-form"
+                                       hx-get="{{ url_for('eduqa.edit_learning_activity', clo_id=clo.id, course_id=course.id) }}">
+                                        <span class="icon">
+                                           <i class="fa-solid fa-plus"></i>
+                                        </span>
+                                        <span>เพิ่ม</span>
+                                    </a>
+                                </th>
+                                </thead>
+                                <tbody>
+                                {% for activity in clo.learning_activities %}
+                                   <tr>
+                                   <td>{{ activity }}</td>
+                                   <td>
+                                       {{ activity.assessment_pairs|join(',') }}
+                                   </td>
+                                   <td>
+                                       <a hx-target="#learning-activity-form"
+                                          hx-swap="innerHTML"
+                                          hx-get="{{ url_for('eduqa.edit_learning_activity', clo_id=clo.id, course_id=course.id, activity_id=activity.id) }}">
+                                           <span class="icon">
+                                               <i class="fas fa-pencil-alt"></i>
+                                           </span>
+                                       </a>
+                                   </td>
+                                   </tr>
+                                {% endfor %}
+                                </tbody>
                             </table>
-                        </td>
-                        <td>
-                            <a hx-target="#learning-activity-form"
-                               hx-swap="innerHTML"
-                               hx-get="{{ url_for('eduqa.edit_learning_activity', clo_id=clo.id) }}">
-                                <span class="icon">
-                                    <i class="fas fa-pencil-alt"></i>
-                                </span>
-                            </a>
                         </td>
                         </tr>
                     {% endfor %}

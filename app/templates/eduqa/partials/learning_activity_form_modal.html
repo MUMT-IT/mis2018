@@ -2,25 +2,32 @@
     <div class="modal-background"></div>
     <div class="modal-card">
         <header class="modal-card-head">
-            <p class="modal-card-title">Edit Learning Activities</p>
+            <p class="modal-card-title">Learning Activities Form</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
         <form>
             {{ form.hidden_tag() }}
             <section class="modal-card-body">
-            {% for aform in form.learning_activity_assessment_forms %}
             <div class="field">
+                {% if activity_id %}
+                    {{ form.learning_activity(class="input", disabled=True) }}
+                {% else %}
                 <div class="select">
-                    {{ aform.learning_activity() }}
+                    {{ form.learning_activity(**{'hx-target': '#assessment', 'hx-swap': 'innerHTML', 'hx-post': url_for('eduqa.get_assessment_methods', clo_id=clo_id)}) }}
                 </div>
+                {% endif %}
             </div>
-            <div class="field">
-                {{ aform.assessments() }}
+            <div class="field" id="assessment">
+                {{ form.assessments() }}
             </div>
-            {% endfor %}
             </section>
             <footer class="modal-card-foot">
                 <button class="button is-success">Save</button>
+                {% if activity_id %}
+                <button class="button is-danger">
+                    Remove
+                </button>
+                {% endif %}
             </footer>
         </form>
     </div>

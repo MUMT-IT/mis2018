@@ -214,8 +214,12 @@ class EduQALearningActivityAssessmentPair(db.Model):
     clo_id = db.Column(db.ForeignKey('eduqa_course_learning_outcomes.id'))
     clo = db.relationship(EduQACourseLearningOutcome,
                           backref=db.backref('learning_activity_assessment_pairs', cascade='all, delete-orphan'))
-    learning_activity = db.relationship(EduQALearningActivity)
+    learning_activity = db.relationship(EduQALearningActivity, backref=db.backref('assessment_pairs',
+                                                                                  cascade='all, delete-orphan'))
     learning_activity_assessment = db.relationship(EduQALearningActivityAssessment)
+
+    def __str__(self):
+        return self.learning_activity_assessment.detail
 
 
 class EduQAInstructor(db.Model):
