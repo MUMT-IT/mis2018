@@ -897,6 +897,25 @@ def edit_clo(course_id, clo_id=None):
     return resp
 
 
+@edu.route('/qa/clos/<int:clo_id>/learning-activities', methods=['GET', 'PUT', 'POST', 'DELETE'])
+@login_required
+def edit_learning_activity(clo_id):
+    clo = EduQACourseLearningOutcome.query.get(clo_id)
+    form = EduCourseLearningOutcomeForm(obj=clo)
+    if request.method == 'GET':
+        for activity in clo.learning_activities:
+            subform = form.learning_activity_assessment_forms.append_entry({'learning_activity': activity})
+            # choices must be assigned after entry has been appended.
+            subform.assessments.choices = [(c.id, str(c)) for c in activity.assessments]
+            subform.assessments.data = [c.learning_activity_assessment_id for c in
+                                        EduQALearningActivityAssessmentPair.query.filter_by(clo=clo,
+                                                                                            learning_activity=activity)]
+
+        template = render_template('eduqa/partials/learning_activity_form_modal.html', form=form, clo_id=clo_id)
+        print(template)
+        return template
+
+
 @edu.route('/qa/revisions/<int:revision_id>/summary/hours')
 def show_hours_summary_all(revision_id):
     revision = EduQACurriculumnRevision.query.get(revision_id)

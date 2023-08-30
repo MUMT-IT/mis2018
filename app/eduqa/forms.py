@@ -112,6 +112,7 @@ class RoomEventForm(ModelForm):
             'end': {'validators': [Optional()]},
             'title': {'validators': [Optional()]}
         }
+
     room = QuerySelectField('ห้อง', query_factory=lambda: RoomResource.query.all(),
                             allow_blank=True, blank_text='กรุณาเลือกห้อง')
 
@@ -190,6 +191,20 @@ class EduCourseInstructorRoleForm(ModelForm):
     roles = ModelFieldList(ModelFormField(EduCourseInstructorRoleFormField), min_entries=0)
 
 
+class EduCourseLearningActivityForm(ModelForm):
+    learning_activity = QuerySelectField('Learning Activity',
+                                         query_factory=lambda: EduQALearningActivity.query.all())
+    assessments = SelectMultipleField('Assessments',
+                                      widget=widgets.ListWidget(prefix_label=False),
+                                      option_widget=widgets.CheckboxInput(),
+                                      coerce=int,
+                                      validate_choice=False
+                                      )
+
+
 class EduCourseLearningOutcomeForm(ModelForm):
     class Meta:
         model = EduQACourseLearningOutcome
+
+    learning_activity_assessment_forms = FieldList(FormField(EduCourseLearningActivityForm,
+                                                             default=EduQALearningActivity), min_entries=0)

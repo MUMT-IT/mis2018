@@ -220,6 +220,36 @@
                         </td>
                     </tr>
                 </table>
+                <h5 class="title is-size-4">แผนการดำเนินการที่สอดคล้องกับการเรียนรู้ของรายวิชา</h5>
+                <div id="learning-activity-form"></div>
+                <table class="table is-striped is-bordered is-fullwidth">
+                    <thead>
+                    <th>CLO</th>
+                    <th>วิธีจัดประสบการณ์การเรียนรู้/การประเมินผล</th>
+                    <th></th>
+                    </thead>
+                    <tbody>
+                    {% for clo in course.outcomes|sort(attribute='number') %}
+                        <tr>
+                        <td>CLO{{ clo.number }} {{ clo.detail }}</td>
+                        <td>
+                            <table class="table">
+                                <tbody></tbody>
+                            </table>
+                        </td>
+                        <td>
+                            <a hx-target="#learning-activity-form"
+                               hx-swap="innerHTML"
+                               hx-get="{{ url_for('eduqa.edit_learning_activity', clo_id=clo.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </span>
+                            </a>
+                        </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
                 <h5 class="title is-size-4">ข้อมูลการจัดการเรียนการสอน</h5>
                 <table class="table is-striped is-fullwidth is-bordered">
                     <tr>

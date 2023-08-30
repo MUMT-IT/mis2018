@@ -1,10 +1,35 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>$Title$</title>
-</head>
-<body>
-$END$
-</body>
-</html>
+<div class="modal is-active" id="learning-activity-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Edit Learning Activities</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <form>
+            {{ form.hidden_tag() }}
+            <section class="modal-card-body">
+            {% for aform in form.learning_activity_assessment_forms %}
+            <div class="field">
+                <div class="select">
+                    {{ aform.learning_activity() }}
+                </div>
+            </div>
+            <div class="field">
+                {{ aform.assessments() }}
+            </div>
+            {% endfor %}
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success">Save</button>
+            </footer>
+        </form>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function() {
+        htmx.removeClass(htmx.find('#learning-activity-modal'), 'is-active')
+    })
+    window.addEventListener('closeModal', (evt)=>{
+        htmx.removeClass(htmx.find('#learning-activity-modal'), 'is-active')
+    })
+</script>

@@ -480,6 +480,10 @@ admin.add_view(ModelView(EduQACurriculum, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQACurriculumnRevision, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQAInstructorRole, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQACourseSessionDetailRoleItem, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQACourseLearningOutcome, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQALearningActivity, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQALearningActivityAssessment, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQALearningActivityAssessmentPair, db.session, category='EduQA'))
 
 from app.chemdb import chemdbbp as chemdb_blueprint
 from app.chemdb.models import *
