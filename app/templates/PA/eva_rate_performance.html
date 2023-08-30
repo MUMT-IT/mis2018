@@ -198,6 +198,25 @@
                     </div>
                 </div>
                 {% else %}
+                {% if for_self == 'true' %}
+                    {% if not scoresheet.pa.submitted_at %}
+                        <div class="columns">
+                            <div class="column">
+                                <div class="buttons is-centered">
+                                    <a href="{{ url_for('pa.create_request', pa_id=scoresheet.pa_id) }}"
+                                       class="button is-info">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-magnifying-glass-chart"></i>
+                                        </span>
+                                        <span>
+                                            ส่งคำขอ 'ขอรับการประเมิน'
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endif %}
                 <div class="columns">
                     <div class="column">
                         <div class="buttons is-centered">
