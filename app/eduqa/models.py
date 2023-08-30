@@ -21,6 +21,13 @@ session_assignment_instructors = db.Table('eduqa_session_assignment_instructor_a
                                                     db.ForeignKey('eduqa_course_instructors.id')),
                                           )
 
+learning_activity_assessments = db.Table('eduqa_learning_activity_assessment_assoc',
+                                         db.Column('learning_activity_id', db.Integer,
+                                                   db.ForeignKey('eduqa_course_learning_activities.id')),
+                                         db.Column('learning_assessment_id', db.Integer,
+                                                   db.ForeignKey('eduqa_course_learning_activity_assessments.id')),
+                                         )
+
 
 class EduQACourseInstructorAssociation(db.Model):
     __tablename__ = 'eduqa_course_instructor_assoc'
@@ -172,17 +179,31 @@ class EduQACourseLearningOutcome(db.Model):
                                                              cascade='all, delete-orphan'))
     score_weight = db.Column('score_weight', db.Numeric())
 
+    def __str__(self):
+        return f'{self.course.en_code}:{self.detail}'
+
 
 class EduQALearningActivity(db.Model):
     __tablename__ = 'eduqa_course_learning_activities'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     detail = db.Column('detail', db.String(), nullable=False)
+    clo_id = db.Column('clo_id', db.ForeignKey('eduqa_course_learning_outcomes.id'))
+    clo = db.relationship(EduQACourseLearningOutcome,
+                          backref=db.backref('learning_activities', cascade='all, delete-orphan'))
+
+    def __str__(self):
+        return self.detail
 
 
 class EduQALearningActivityAssessment(db.Model):
     __tablename__ = 'eduqa_course_learning_activity_assessments'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     detail = db.Column('detail', db.String(), nullable=False)
+    learning_activities = db.relationship(EduQALearningActivity,
+                                          secondary=learning_activity_assessments, backref=db.backref('assessments'))
+
+    def __str__(self):
+        return self.detail
 
 
 class EduQALearningActivityAssessmentPair(db.Model):
@@ -190,9 +211,11 @@ class EduQALearningActivityAssessmentPair(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     learning_activity_id = db.Column(db.ForeignKey('eduqa_course_learning_activities.id'))
     learning_activity_assessment_id = db.Column(db.ForeignKey('eduqa_course_learning_activity_assessments.id'))
-    course_id = db.Column(db.ForeignKey('eduqa_courses.id'))
-    course = db.relationship(EduQACourse, backref=db.backref('learning_activity_assessment_pairs',
-                                                             cascade='all, delete-orphan'))
+    clo_id = db.Column(db.ForeignKey('eduqa_course_learning_outcomes.id'))
+    clo = db.relationship(EduQACourseLearningOutcome,
+                          backref=db.backref('learning_activity_assessment_pairs', cascade='all, delete-orphan'))
+    learning_activity = db.relationship(EduQALearningActivity)
+    learning_activity_assessment = db.relationship(EduQALearningActivityAssessment)
 
 
 class EduQAInstructor(db.Model):
