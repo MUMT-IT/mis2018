@@ -180,13 +180,13 @@
                                 <thead>
                                 <th>ลำดับ</th>
                                 <th>ผลลัพธ์การเรียนรู้</th>
-                                <th>สัดส่วนคะแนน (ร้อยละ)</th>
+                                <th>สัดส่วนคะแนน (<span id="clo-percent">{{ course.total_clo_percent or 0 }}</span>)</th>
                                 <th></th>
                                 </thead>
                                 <tbody id="clo-table">
-                                {% for clo in course.outcomes %}
+                                {% for clo in course.outcomes|sort(attribute='number') %}
                                     <tr>
-                                    <td>{{ clo.number }}</td>
+                                    <td>CLO{{ clo.number }}</td>
                                     <td>{{ clo.detail }}</td>
                                     <td>{{ clo.score_weight }}</td>
                                     <td>
@@ -194,6 +194,12 @@
                                             hx-delete="{{ url_for('eduqa.edit_clo', course_id=course.id, clo_id=clo.id) }}">
                                             <span class="icon">
                                                 <i class="far fa-trash-alt has-text-danger"></i>
+                                            </span>
+                                        </a>
+                                        <a hx-get="{{ url_for('eduqa.edit_clo', course_id=course.id, clo_id=clo.id) }}"
+                                            hx-target="#clo-form" hx-swap="innerHTML">
+                                            <span class="icon">
+                                                <i class="fas fa-pencil-alt"></i>
                                             </span>
                                         </a>
                                     </td>
@@ -502,6 +508,11 @@
         document.body.addEventListener('htmx:configRequest', function(evt) {
             evt.detail.headers['X-CSRF-Token'] = {{ csrf_token()|tojson|safe }}; // add a new parameter into the mix
         });
+        document.addEventListener("closeModal", function(evt){
+            htmx.removeClass(htmx.find('#clo-form'), 'is-active')
+            let total = evt.detail.value
+            $('#clo-percent').html('รวม ' + total + '%')
+        })
     })
 </script>
 {% endblock %}

@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import pandas as pd
+import json
 
 import arrow
 from flask import render_template, request, flash, redirect, url_for, session, jsonify, make_response
@@ -847,7 +848,8 @@ def edit_clo(course_id, clo_id=None):
     else:
         form = EduCourseLearningOutcomeForm()
     if request.method == 'GET':
-        return render_template('eduqa/partials/clo_form_modal.html', form=form, course_id=course_id)
+        return render_template('eduqa/partials/clo_form_modal.html',
+                               form=form, course_id=course_id, clo_id=clo_id)
     elif request.method == 'POST':
         if form.validate_on_submit():
             new_clo = EduQACourseLearningOutcome()
@@ -865,7 +867,7 @@ def edit_clo(course_id, clo_id=None):
 
     template = ''.join(['''
     <tr>
-        <td>{}</td>
+        <td>CLO{}</td>
         <td>{}</td>
         <td>{}</td>
         <td>
@@ -873,17 +875,25 @@ def edit_clo(course_id, clo_id=None):
                 <span class="icon">
                     <i class="far fa-trash-alt has-text-danger"></i>
                 </span>
-            </button>
+            </a>
+            <a hx-get="{}"
+                hx-target="#clo-table" hx-swap="innerHTML">
+                <span class="icon">
+                    <i class="fas fa-pencil-alt"></i>
+                </span>
+            </a>
         </td>
     </tr>
     '''.format(c.number, c.detail, c.score_weight,
-               url_for('eduqa.edit_clo', course_id=course_id, clo_id=c.id)) for c in course.outcomes])
-    print(template)
+               url_for('eduqa.edit_clo', course_id=course_id, clo_id=c.id),
+               url_for('eduqa.edit_clo', course_id=course.id, clo_id=c.id))
+                        for c in sorted(course.outcomes, key=lambda x: x.number)])
     resp = make_response(template)
+    print(template)
     if request.method == 'DELETE':
         resp.headers['HX-Refresh'] = 'true'
     else:
-        resp.headers['HX-Trigger-After-Swap'] = 'closeModal'
+        resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(course.total_clo_percent)})
     return resp
 
 

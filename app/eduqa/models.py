@@ -147,6 +147,10 @@ class EduQACourse(db.Model):
                                                      back_populates='course', cascade='all, delete-orphan')
 
     @property
+    def total_clo_percent(self):
+        return sum([c.score_weight for c in self.outcomes])
+
+    @property
     def credits(self):
         return self.lecture_credit + self.lab_credit
 
