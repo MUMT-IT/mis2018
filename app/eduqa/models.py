@@ -177,7 +177,7 @@ class EduQACourseLearningOutcome(db.Model):
     detail = db.Column('detail', db.Text())
     course = db.relationship(EduQACourse, backref=db.backref('outcomes',
                                                              cascade='all, delete-orphan'))
-    score_weight = db.Column('score_weight', db.Numeric())
+    score_weight = db.Column('score_weight', db.Numeric(), default=0.0)
 
     def __str__(self):
         return f'{self.course.en_code}:{self.detail}'
@@ -217,6 +217,7 @@ class EduQALearningActivityAssessmentPair(db.Model):
     learning_activity = db.relationship(EduQALearningActivity, backref=db.backref('assessment_pairs',
                                                                                   cascade='all, delete-orphan'))
     learning_activity_assessment = db.relationship(EduQALearningActivityAssessment)
+    score_weight = db.Column('weight', db.Numeric(), default=0.0)
 
     def __str__(self):
         return self.learning_activity_assessment.detail
