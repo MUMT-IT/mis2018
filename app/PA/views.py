@@ -392,6 +392,9 @@ def respond_request(request_id):
                 req.pa.approved_at = arrow.now('Asia/Bangkok').datetime
             elif req.for_ == 'ขอแก้ไข':
                 req.pa.approved_at = None
+        else:
+            if req.for_ == 'ขอรับการประเมิน':
+                req.pa.submitted_at = None
         req.responded_at = arrow.now('Asia/Bangkok').datetime
         req.supervisor_comment = form.get('supervisor_comment')
         db.session.add(req)
