@@ -26,4 +26,4 @@ class ComplaintRecordForm(ModelForm):
     status = QuerySelectField('สถานะ', query_factory=lambda: ComplaintStatus.query.all(), allow_blank=True)
     priority = QuerySelectField('ระดับความสำคัญ', query_factory=lambda: ComplaintPriority.query.all(), allow_blank=True)
     actions = FieldList(FormField(ComplaitActionRecordForm, default=ComplaintActionRecord), min_entries=1)
-    topic = QuerySelectField('หัวข้อ', query_factory=lambda: ComplaintTopic.query.all())
+    topic = QuerySelectField('หัวข้อ', query_factory=lambda: ComplaintTopic.query.all(), allow_blank=True)
