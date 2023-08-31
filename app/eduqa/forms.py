@@ -2,7 +2,7 @@
 from datetime import datetime
 
 from flask_wtf import FlaskForm
-from wtforms import SelectMultipleField, widgets, FieldList, FormField, IntegerField, HiddenField, Field
+from wtforms import SelectMultipleField, widgets, FieldList, FormField, FloatField, HiddenField, Field, SelectField
 from wtforms.validators import Optional, ValidationError
 from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField, ModelFormField, \
@@ -195,12 +195,12 @@ class EduCourseLearningActivityForm(ModelForm):
     learning_activity = QuerySelectField('Learning Activity',
                                          query_factory=lambda: EduQALearningActivity.query.all(),
                                          allow_blank=True, blank_text='Please select')
-    assessments = SelectMultipleField('Assessments',
-                                      widget=widgets.ListWidget(prefix_label=False),
-                                      option_widget=widgets.CheckboxInput(),
-                                      coerce=int,
-                                      validate_choice=False
-                                      )
+    assessments = SelectField('Assessments',
+                              widget=widgets.ListWidget(prefix_label=False),
+                              option_widget=widgets.RadioInput(),
+                              coerce=int,
+                              validate_choice=False)
+    score_weight = FloatField('Weight')
 
 
 class EduCourseLearningOutcomeForm(ModelForm):

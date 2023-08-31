@@ -902,44 +902,38 @@ def edit_clo(course_id, clo_id=None):
 
 
 @edu.route('/qa/clos/<int:clo_id>/learning-activities', methods=['GET', 'PUT', 'POST', 'DELETE'])
-@edu.route('/qa/clos/<int:clo_id>/learning-activities/<int:activity_id>', methods=['GET', 'PUT', 'POST', 'DELETE'])
+@edu.route('/qa/clos/<int:clo_id>/learning-activities/<int:pair_id>', methods=['GET', 'PUT', 'POST', 'DELETE'])
 @login_required
-def edit_learning_activity(clo_id, activity_id=None):
+def edit_learning_activity(clo_id, pair_id=None):
     clo = EduQACourseLearningOutcome.query.get(clo_id)
     if request.method == 'GET':
-        if activity_id:
-            activity = EduQALearningActivity.query.get(activity_id)
+        if pair_id:
+            pair = EduQALearningActivityAssessmentPair.query.get(pair_id)
             form = EduCourseLearningActivityForm()
-            form.learning_activity.data = activity
-            form.assessments.choices = [(c.id, str(c)) for c in activity.assessments]
-            form.assessments.data = [c.learning_activity_assessment_id for c in
-                                     EduQALearningActivityAssessmentPair
-                                     .query.filter_by(clo=clo, learning_activity=activity)]
+            form.learning_activity.data = pair.learning_activity
+            form.assessments.choices = [(c.id, str(c)) for c in pair.learning_activity.assessments]
+            form.assessments.data = pair.learning_activity_assessment_id
+            form.score_weight.data = pair.score_weight
         else:
             form = EduCourseLearningActivityForm()
             form.assessments.choices = []
         return render_template('eduqa/partials/learning_activity_form_modal.html',
                                form=form,
                                clo_id=clo_id,
-                               activity_id=activity_id)
+                               pair_id=pair_id)
     elif request.method == 'POST':
         form = EduCourseLearningActivityForm()
         activity = form.learning_activity.data
-
-        for pair in EduQALearningActivityAssessmentPair.query.filter_by(clo=clo, learning_activity=activity):
-            db.session.delete(pair)
-        db.session.commit()
-
-        for a_id in form.assessments.data:
-            pair = EduQALearningActivityAssessmentPair.query.filter_by(clo=clo,
-                                                                       learning_activity=activity,
-                                                                       learning_activity_assessment_id=a_id).first()
-            if pair is None:
-                pair = EduQALearningActivityAssessmentPair(clo=clo,
-                                                           learning_activity=activity,
-                                                           learning_activity_assessment_id=a_id)
-                db.session.add(pair)
-        db.session.add(activity)
+        assessment_id = form.assessments.data
+        if pair_id:
+            pair = EduQALearningActivityAssessmentPair.query.get(pair_id)
+            pair.learning_activity_assessment_id = assessment_id
+            pair.score_weight = form.score_weight.data
+        else:
+            pair = EduQALearningActivityAssessmentPair(clo=clo,
+                                                       learning_activity=activity,
+                                                       learning_activity_assessment_id=assessment_id)
+        db.session.add(pair)
         db.session.commit()
         resp = make_response()
         resp.headers['HX-Refresh'] = 'true'
