@@ -12,7 +12,11 @@
         {% include 'messages.html' %}
         <div class="columns">
             <div class="column">
+            {% if forward == 'true' %}
+                <h1 class="title has-text-centered">ส่งต่อข้อร้องเรียน</h1>
+            {% else %}
                 <h1 class="title has-text-centered">ระบบบริหารจัดการข้อร้องเรียน</h1>
+            {% endif %}
                 <div class="box">
                     <form method="post">
                         {{ form.hidden_tag() }}
@@ -68,7 +72,6 @@
                         {% endfor %}
                         <div class="field is-grouped is-grouped-centered">
                             <div class="buttons">
-                                <a href="{{ url_for('procurement.search_by_erp_code_with_repair_online') }}" class="button is-warning">แจ้งซ่อมบริษัท</a>
                                 {% if forward != 'true' %}
                                 <a href="{{ url_for('comp_tracker.edit_record_admin', forward='true', record_id=record.id) }}" class="button is-warning">Forward</a>
                                 {% endif %}
@@ -92,6 +95,7 @@
         </div>
         <div class="columns">
             <div class="column">
+            <h2 class="subtitle">สรุปข้อมูลการส่งต่อข้อร้องเรียน</h2>
                 <table class="table is-bordered">
                     <thead>
                     <th>ID</th>
