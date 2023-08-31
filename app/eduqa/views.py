@@ -399,7 +399,7 @@ def assign_roles(course_id):
     form = EduCourseInstructorRoleForm()
     if form.validate_on_submit():
         for form_field in form.roles:
-            course_inst = EduQACourseInstructorAssociation.query\
+            course_inst = EduQACourseInstructorAssociation.query \
                 .filter_by(course_id=course_id).filter_by(instructor_id=int(form_field.instructor_id.data)).first()
             course_inst.role = form_field.role.data
             db.session.add(course_inst)
@@ -415,6 +415,7 @@ def assign_roles(course_id):
             instructor = None
             instructor_role = None
     return render_template('eduqa/QA/role_edit.html', course=course, instructor=instructor, form=form)
+
 
 @edu.route('/qa/courses/<int:course_id>/instructors/remove/<int:instructor_id>')
 @login_required
@@ -499,7 +500,8 @@ def edit_session(course_id, session_id):
         else:
             for field, error in form.errors.items():
                 flash('{}: {}'.format(field, error), 'danger')
-    return render_template('eduqa/QA/session_edit.html', form=form, course=course, session_id=session_id, localtz=localtz)
+    return render_template('eduqa/QA/session_edit.html', form=form, course=course, session_id=session_id,
+                           localtz=localtz)
 
 
 @edu.route('/qa/courses/<int:course_id>/sessions/<int:session_id>/duplicate', methods=['GET', 'POST'])
@@ -508,19 +510,19 @@ def duplicate_session(course_id, session_id):
     course = EduQACourse.query.get(course_id)
     a_session = EduQACourseSession.query.get(session_id)
     new_session = EduQACourseSession(
-            course_id=course_id,
-            start=a_session.start,
-            end=a_session.end,
-            type_=a_session.type_,
-            desc=a_session.desc,
-            instructors=a_session.instructors,
-            format=a_session.format,
-            )
+        course_id=course_id,
+        start=a_session.start,
+        end=a_session.end,
+        type_=a_session.type_,
+        desc=a_session.desc,
+        instructors=a_session.instructors,
+        format=a_session.format,
+    )
     for topic in a_session.topics:
         new_topic = EduQACourseSessionTopic(
-                topic=topic.topic,
-                method=topic.method,
-                )
+            topic=topic.topic,
+            method=topic.method,
+        )
         new_session.topics.append(new_topic)
         db.session.add(new_topic)
 
@@ -549,7 +551,7 @@ def delete_session(session_id):
 def add_session_detail(course_id, session_id):
     course = EduQACourse.query.get(course_id)
     a_session = EduQACourseSession.query.get(session_id)
-    session_detail = EduQACourseSessionDetail.query\
+    session_detail = EduQACourseSessionDetail.query \
         .filter_by(session_id=session_id, staff_id=current_user.id).first()
     EduCourseSessionDetailForm = CourseSessionDetailFormFactory(a_session.type_)
     factor = 1
@@ -704,6 +706,7 @@ def remove_session_room_event(course_id):
     resp = make_response(resp)
     return resp
 
+
 @edu.route('/api/qa/courses/<int:course_id>/sessions/<int:session_id>/roles', methods=['POST'])
 @login_required
 def add_session_role(course_id, session_id):
@@ -838,7 +841,8 @@ def delete_session_assignment(session_id):
 
 
 @edu.route('/qa/courses/<int:course_id>/learning-outcomes-form-modal', methods=['GET', 'POST', 'DELETE', 'PUT'])
-@edu.route('/qa/courses/<int:course_id>/learning-outcomes-form-modal/<int:clo_id>', methods=['GET', 'POST', 'DELETE', 'PUT'])
+@edu.route('/qa/courses/<int:course_id>/learning-outcomes-form-modal/<int:clo_id>',
+           methods=['GET', 'POST', 'DELETE', 'PUT'])
 @login_required
 def edit_clo(course_id, clo_id=None):
     course = EduQACourse.query.get(course_id)
@@ -902,25 +906,40 @@ def edit_clo(course_id, clo_id=None):
 @login_required
 def edit_learning_activity(clo_id, activity_id=None):
     clo = EduQACourseLearningOutcome.query.get(clo_id)
-    if activity_id:
-        activity = EduQALearningActivity.query.get(activity_id)
-        form = EduCourseLearningActivityForm(obj=activity)
-        form.assessments.choices = [(c.id, str(c)) for c in activity.assessments]
-        form.assessments.data = [c.learning_activity_assessment_id for c in
-                                 EduQALearningActivityAssessmentPair.query.filter_by(clo=clo,
-                                                                                     learning_activity=activity)]
-    else:
-        form = EduCourseLearningActivityForm()
-        form.assessments.choices = []
     if request.method == 'GET':
-        # form.assessments.choices = [(c.id, str(c)) for c in activity.assessments]
-        # form.assessments.data = [c.learning_activity_assessment_id for c in
-        #                          EduQALearningActivityAssessmentPair.query.filter_by(clo=clo,
-        #                                                                              learning_activity=activity)]
+        if activity_id:
+            activity = EduQALearningActivity.query.get(activity_id)
+            form = EduCourseLearningActivityForm(obj=activity)
+            form.assessments.choices = [(c.id, str(c)) for c in activity.assessments]
+            form.assessments.data = [c.learning_activity_assessment_id for c in
+                                     EduQALearningActivityAssessmentPair.query.filter_by(clo=clo,
+                                                                                         learning_activity=activity)]
+        else:
+            form = EduCourseLearningActivityForm()
+            form.assessments.choices = []
         return render_template('eduqa/partials/learning_activity_form_modal.html',
                                form=form,
                                clo_id=clo_id,
                                activity_id=activity_id)
+    elif request.method == 'POST':
+        form = EduCourseLearningActivityForm()
+        print(form.learning_activity.data)
+        activity = form.learning_activity.data
+
+        for pair in EduQALearningActivityAssessmentPair.query.filter_by(clo=clo, learning_activity=activity):
+            db.session.delete(pair)
+        db.session.commit()
+
+        for a_id in form.assessments.data:
+            pair = EduQALearningActivityAssessmentPair.query.filter_by(clo=clo,
+                                                                       learning_activity=activity,
+                                                                       learning_activity_assessment_id=a_id).first()
+            db.session.add(pair)
+        db.session.add(activity)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Refresh'] = 'true'
+        return resp
 
 
 @edu.route('/qa/clos/<int:clo_id>/assessment-methods', methods=['POST'])
@@ -958,10 +977,10 @@ def show_hours_summary_all(revision_id):
             data.append(d)
     df = pd.DataFrame(data)
     sum_hours = df.pivot_table(index='instructor',
-                   columns='course',
-                   values='seconds',
-                   aggfunc='sum',
-                   margins=True).apply(lambda x: (x // 3600) / 40.0).fillna('')
+                               columns='course',
+                               values='seconds',
+                               aggfunc='sum',
+                               margins=True).apply(lambda x: (x // 3600) / 40.0).fillna('')
     return render_template('eduqa/QA/mtc/summary_hours_all_courses.html',
                            sum_hours=sum_hours,
                            revision_id=revision_id)
@@ -980,13 +999,13 @@ def show_hours_summary_by_year(revision_id):
     year = request.args.get('year', type=int)
     revision = EduQACurriculumnRevision.query.get(revision_id)
     data = []
-    all_years = EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id))\
+    all_years = EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id)) \
         .with_entities(extract('year', EduQACourseSession.start)).distinct()
     all_years = sorted([int(y[0]) for y in all_years])
     if all_years:
         if not year:
             year = all_years[0]
-        for session in EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id))\
+        for session in EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id)) \
                 .filter(extract('year', EduQACourseSession.start) == year):
             for instructor in session.instructors:
                 session_detail = session.details.filter_by(staff_id=instructor.account_id).first()

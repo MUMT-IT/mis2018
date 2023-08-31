@@ -2,15 +2,22 @@
     <div class="modal-background"></div>
     <div class="modal-card">
         <header class="modal-card-head">
-            <p class="modal-card-title">Learning Activities Form</p>
+            <p class="modal-card-title">Learning Activities Form {{ clo_id }}</p>
             <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
         </header>
-        <form>
+        <form
+                {% if activity_id %}
+                hx-post="{{ url_for('eduqa.edit_learning_activity', clo_id=clo_id, activity_id=activity_id) }}"
+                {% else %}
+                hx-post="{{ url_for('eduqa.edit_learning_activity', clo_id=clo_id) }}"
+                {% endif %}
+                hx-swap="none"
+        >
             {{ form.hidden_tag() }}
             <section class="modal-card-body">
             <div class="field">
                 {% if activity_id %}
-                    {{ form.learning_activity(class="input", disabled=True) }}
+                    {{ form.learning_activity(class="input") }}
                 {% else %}
                 <div class="select">
                     {{ form.learning_activity(**{'hx-target': '#assessment', 'hx-swap': 'innerHTML', 'hx-post': url_for('eduqa.get_assessment_methods', clo_id=clo_id)}) }}

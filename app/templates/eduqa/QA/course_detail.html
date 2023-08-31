@@ -249,16 +249,16 @@
                                 </th>
                                 </thead>
                                 <tbody>
-                                {% for activity in clo.learning_activities %}
+                                {% for pair in clo.learning_activity_assessment_pairs %}
                                    <tr>
-                                   <td>{{ activity }}</td>
+                                   <td>{{ pair.learning_activity }}</td>
                                    <td>
-                                       {{ activity.assessment_pairs|join(',') }}
+                                       {{ pair.learning_activity_assessment }}
                                    </td>
                                    <td>
                                        <a hx-target="#learning-activity-form"
                                           hx-swap="innerHTML"
-                                          hx-get="{{ url_for('eduqa.edit_learning_activity', clo_id=clo.id, course_id=course.id, activity_id=activity.id) }}">
+                                          hx-get="{{ url_for('eduqa.edit_learning_activity', clo_id=clo.id, course_id=course.id, activity_id=pair.learning_activity.id) }}">
                                            <span class="icon">
                                                <i class="fas fa-pencil-alt"></i>
                                            </span>
