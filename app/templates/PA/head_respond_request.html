@@ -154,7 +154,7 @@
                             </form>
                         </div>
                     {% else %}
-                        {% if req.for_ == 'ขอรับการประเมิน' %}
+                        {% if req.for_ == 'ขอรับการประเมิน' and req.status == 'อนุมัติ' %}
                             <div class="field is-grouped is-grouped-centered">
                                 <div class="control">
                                     <a href="{{ url_for('pa.all_approved_pa') }}"
