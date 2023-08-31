@@ -909,11 +909,12 @@ def edit_learning_activity(clo_id, activity_id=None):
     if request.method == 'GET':
         if activity_id:
             activity = EduQALearningActivity.query.get(activity_id)
-            form = EduCourseLearningActivityForm(obj=activity)
+            form = EduCourseLearningActivityForm()
+            form.learning_activity.data = activity
             form.assessments.choices = [(c.id, str(c)) for c in activity.assessments]
             form.assessments.data = [c.learning_activity_assessment_id for c in
-                                     EduQALearningActivityAssessmentPair.query.filter_by(clo=clo,
-                                                                                         learning_activity=activity)]
+                                     EduQALearningActivityAssessmentPair
+                                     .query.filter_by(clo=clo, learning_activity=activity)]
         else:
             form = EduCourseLearningActivityForm()
             form.assessments.choices = []
@@ -923,7 +924,6 @@ def edit_learning_activity(clo_id, activity_id=None):
                                activity_id=activity_id)
     elif request.method == 'POST':
         form = EduCourseLearningActivityForm()
-        print(form.learning_activity.data)
         activity = form.learning_activity.data
 
         for pair in EduQALearningActivityAssessmentPair.query.filter_by(clo=clo, learning_activity=activity):
@@ -934,7 +934,11 @@ def edit_learning_activity(clo_id, activity_id=None):
             pair = EduQALearningActivityAssessmentPair.query.filter_by(clo=clo,
                                                                        learning_activity=activity,
                                                                        learning_activity_assessment_id=a_id).first()
-            db.session.add(pair)
+            if pair is None:
+                pair = EduQALearningActivityAssessmentPair(clo=clo,
+                                                           learning_activity=activity,
+                                                           learning_activity_assessment_id=a_id)
+                db.session.add(pair)
         db.session.add(activity)
         db.session.commit()
         resp = make_response()
@@ -957,6 +961,15 @@ def get_assessment_methods(clo_id, activity_id=None):
         return form.assessments()
     else:
         return ''
+
+
+@edu.route('/qa/learning-activity-assessment-method-pair/<int:pair_id>', methods=['DELETE'])
+@login_required
+def delete_learning_activity_assessment_pair(pair_id):
+    pair = EduQALearningActivityAssessmentPair.query.get(pair_id)
+    db.session.delete(pair)
+    db.session.commit()
+    return ''
 
 
 @edu.route('/qa/revisions/<int:revision_id>/summary/hours')

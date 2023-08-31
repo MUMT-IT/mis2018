@@ -1,5 +1,14 @@
 {% extends "base.html" %}
 {% block title %}MUMT MIS: Quality Assurance for Education {% endblock %}
+{% block head %}
+{{ super() }}
+<style>
+.htmx-swapping {
+  opacity: 0;
+  transition: opacity 1s ease-out;
+}
+</style>
+{% endblock %}
 {% include "eduqa/QA/nav.html" %}
 {% block page_content %}
 <section class="section">
@@ -261,6 +270,15 @@
                                           hx-get="{{ url_for('eduqa.edit_learning_activity', clo_id=clo.id, course_id=course.id, activity_id=pair.learning_activity.id) }}">
                                            <span class="icon">
                                                <i class="fas fa-pencil-alt"></i>
+                                           </span>
+                                       </a>
+                                       <a hx-delete="{{ url_for('eduqa.delete_learning_activity_assessment_pair', pair_id=pair.id) }}"
+                                          hx-swap="outerHTML swap:1s"
+                                          hx-confirm="Are you sure?"
+                                          hx-target="closest tr"
+                                       >
+                                           <span class="icon">
+                                               <i class="far fa-trash-alt has-text-danger"></i>
                                            </span>
                                        </a>
                                    </td>
