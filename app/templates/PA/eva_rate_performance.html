@@ -184,18 +184,39 @@
                                 <span class="icon">
                                     <i class="fa-solid fa-paper-plane"></i>
                                 </span>
-                                <span>ส่งคะแนน</span>
+                                <span>confirm คะแนน**</span>
                             </a>
                         </div>
                         <p class="notification is-danger is-light has-text-danger">
                             <span class="icon">
                                 <i class="fa-solid fa-circle-info"></i>
                             </span>
-                            <span>ท่านไม่สามารถแก้ไขคะแนนได้หลังส่งคะแนน</span>
+                            <span>กด บันทึก ทุกครั้ง<br>ก่อนconfirmคะแนนครั้งสุดท้าย<br>
+                                **ไม่สามารถแก้ไขคะแนนได้หลังconfirmคะแนน
+                            </span>
                         </p>
                     </div>
                 </div>
                 {% else %}
+                {% if for_self == 'true' %}
+                    {% if not scoresheet.pa.submitted_at %}
+                        <div class="columns">
+                            <div class="column">
+                                <div class="buttons is-centered">
+                                    <a href="{{ url_for('pa.create_request', pa_id=scoresheet.pa_id) }}"
+                                       class="button is-info">
+                                        <span class="icon">
+                                            <i class="fa-solid fa-magnifying-glass-chart"></i>
+                                        </span>
+                                        <span>
+                                            ส่งคำขอ 'ขอรับการประเมิน'
+                                        </span>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endif %}
                 <div class="columns">
                     <div class="column">
                         <div class="buttons is-centered">
