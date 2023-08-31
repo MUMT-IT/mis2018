@@ -270,7 +270,8 @@ def show_commitee():
 @pa.route('/hr/all-consensus-scoresheets')
 @login_required
 def consensus_scoresheets_for_hr():
-    approved_scoresheets = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True).all()
+    approved_scoresheets = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True)\
+                                            .filter(PAAgreement.evaluated_at != None).all()
     return render_template('staff/HR/PA/hr_all_consensus_scores.html',
                            approved_scoresheets=approved_scoresheets)
 
@@ -606,6 +607,14 @@ def summary_scoresheet(pa_id):
             db.session.commit()
         score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     approved_scoresheets = PAApprovedScoreSheet.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
+
+    net_total = 0
+    for pa_item in consolidated_score_sheet.pa.pa_items:
+        total_score = pa_item.total_score(consolidated_score_sheet)
+        net_total += total_score
+    if net_total > 0:
+        performance_score = round(((net_total * 80) / 1000), 2)
+        competency_score = consolidated_score_sheet.competency_net_score()
     if request.method == 'POST':
         form = request.form
         for field, value in form.items():
@@ -623,10 +632,13 @@ def summary_scoresheet(pa_id):
                 db.session.add(core_scoresheet_item)
         db.session.commit()
         flash('บันทึกผลค่าเฉลี่ยเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('pa.summary_scoresheet', pa_id=pa_id))
     return render_template('PA/head_summary_score.html',
                            score_sheet_items=score_sheet_items,
                            consolidated_score_sheet=consolidated_score_sheet,
-                           approved_scoresheets=approved_scoresheets, core_competency_items=core_competency_items)
+                           approved_scoresheets=approved_scoresheets, core_competency_items=core_competency_items,
+                           net_total=net_total,
+                           performance_score=performance_score, competency_score=competency_score)
 
 
 @pa.route('/confirm-score/<int:scoresheet_id>')
@@ -706,9 +718,10 @@ def send_consensus_scoresheets_to_hr(pa_id):
 @pa.route('/head/all-approved-pa/send_comment/<int:pa_id>', methods=['GET', 'POST'])
 @login_required
 def send_evaluation_comment(pa_id):
-    consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).filter(
+    consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True, is_final=True).filter(
                                 PACommittee.staff == current_user).first()
-    if consolidated_score_sheet:
+    pa = PAAgreement.query.filter_by(id=pa_id).first()
+    if consolidated_score_sheet and pa.performance_score:
         consolidated_score_sheet = PAScoreSheet.query.filter_by(id=consolidated_score_sheet.id).first()
     else:
         flash('ไม่พบคะแนนสรุป กรุณาสรุปผลคะแนนและรับรองผล ก่อนส่งคะแนนไปยังผู้รับการประเมิน', 'warning')
