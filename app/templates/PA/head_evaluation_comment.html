@@ -8,8 +8,8 @@
             <div class="columns">
                 <div class="column">
                     <h1 class="title has-text-centered">แบบสรุปและแจ้งผลการประเมินการปฏิบัติงาน</h1>
-                    <h1 class="subtitle has-text-centered">รอบการประเมิน {{ consolidated_score_sheet.pa.round }}</h1>
-                    <h1 class="subtitle has-text-centered">ผู้รับการประเมิน {{ consolidated_score_sheet.pa.staff.personal_info.fullname}}</h1>
+                    <h1 class="title has-text-centered">รอบการประเมิน {{ consolidated_score_sheet.pa.round }}</h1>
+                    <h1 class="title has-text-centered">ผู้รับการประเมิน {{ consolidated_score_sheet.pa.staff.personal_info.fullname}}</h1>
                 </div>
             </div>
             <div class="card">
@@ -105,7 +105,7 @@
                     คะแนนผลการประเมิน เมื่อคิดตามน้ำหนัก 20%: {{ consolidated_score_sheet.competency_net_score() }}
                 </h1>
             </div>
-            <div class="box">
+            <div class="card">
                 <div class="columns">
                     <div class="column is-offset-4 has-text-centered">
                         <table class="table">
@@ -141,7 +141,7 @@
                 <div class="column">
                     <table class="table is-fullwidth">
                         <thead>
-                        <div class="subtitle has-text-centered">ระดับผลการประเมินการปฏิบัติงาน</div>
+                            <div class="subtitle has-text-centered">ระดับผลการประเมินการปฏิบัติงาน</div>
                         </thead>
                         <tr>
                             {% if consolidated_score_sheet.pa.performance_score + consolidated_score_sheet.pa.competency_score >= 90 %}
@@ -188,48 +188,55 @@
                             </td>
                         </tr>
                     </table>
+                </div>
             </div>
-            </div>
+            <br>
             <div class="columns">
                 <div class="column">
                     <h1 class="title has-text-centered">ความเห็น/ข้อเสนอแนะของผู้ประเมิน</h1>
                 </div>
             </div>
-            <div class="box">
-                <form method="post" action="{{ url_for('pa.send_evaluation_comment', pa_id=consolidated_score_sheet.pa.id) }}">
-                    <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
-                    <div class="field">
-                        <label class="label">จุดเด่นของผู้รับการประเมิน</label>
+            <form method="post" action="{{ url_for('pa.send_evaluation_comment', pa_id=consolidated_score_sheet.pa.id) }}">
+                <input type="hidden" value="{{ csrf_token() }}" name="csrf_token">
+                <article class="panel is-info">
+                    <p class="panel-heading">
+                        จุดเด่นของผู้รับการประเมิน
+                    </p>
+                    <div class="panel-block">
                         <div class="control">
-                            <textarea name="strengths" class="textarea">{{ consolidated_score_sheet.strengths }}</textarea>
+                                <textarea name="strengths" class="textarea">{{ consolidated_score_sheet.strengths }}</textarea>
                         </div>
                     </div>
-                    <div class="field">
-                        <label class="label">ข้อควรพัฒนาของผู้รับการประเมิน</label>
+                </article>
+                <article class="panel is-info">
+                    <p class="panel-heading">
+                        ข้อควรพัฒนาของผู้รับการประเมิน
+                    </p>
+                    <div class="panel-block">
                         <div class="control">
-                            <textarea name="weaknesses" class="textarea">{{ consolidated_score_sheet.weaknesses }}</textarea>
+                                <textarea name="weaknesses" class="textarea">{{ consolidated_score_sheet.weaknesses }}</textarea>
                         </div>
                     </div>
-                    {% if not consolidated_score_sheet.pa.inform_score_at %}
+                </article>
+                {% if not consolidated_score_sheet.pa.inform_score_at %}
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
                             <a href="{{ url_for('pa.all_approved_pa') }}"
-                               class="button is-light">Back</a>
+                                   class="button is-light">Back</a>
                         </div>
                         <div class="control">
                             <input type="submit" value="Submit" class="button is-success"/>
                         </div>
                     </div>
-                    {% else %}
+                {% else %}
                     <div class="field is-grouped is-grouped-centered">
                         <div class="control">
                             <a href="{{ url_for('pa.all_approved_pa') }}"
-                               class="button is-light">Back</a>
+                                   class="button is-light">Back</a>
                         </div>
                     </div>
-                    {% endif %}
-                </form>
-            </div>
+                {% endif %}
+            </form>
         </div>
         </div>
     </section>
