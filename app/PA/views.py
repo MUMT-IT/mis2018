@@ -613,8 +613,11 @@ def summary_scoresheet(pa_id):
 
     net_total = 0
     for pa_item in consolidated_score_sheet.pa.pa_items:
-        total_score = pa_item.total_score(consolidated_score_sheet)
-        net_total += total_score
+        try:
+            total_score = pa_item.total_score(consolidated_score_sheet)
+            net_total += total_score
+        except ZeroDivisionError:
+            flash('คะแนนยังไม่ครบ คะแนนสรุปจะยังไม่ถูกต้อง')
     if net_total > 0:
         performance_score = round(((net_total * 80) / 1000), 2)
         competency_score = consolidated_score_sheet.competency_net_score()
@@ -700,21 +703,25 @@ def send_consensus_scoresheets_to_hr(pa_id):
 
         net_total = 0
         for pa_item in scoresheet.pa.pa_items:
-            total_score = pa_item.total_score(scoresheet)
-            net_total += total_score
-        performance_net_score = round(((net_total * 80) / 1000),2)
+            try:
+                total_score = pa_item.total_score(scoresheet)
+                net_total += total_score
+            except ZeroDivisionError:
+                flash('คะแนนไม่สมบูรณ์ กรุณาตรวจสอบความถูกต้อง', 'danger')
+        if net_total >0:
+            performance_net_score = round(((net_total * 80) / 1000),2)
 
 
-        pa_agreement.performance_score = performance_net_score
-        pa_agreement.competency_score = scoresheet.competency_net_score()
-        db.session.add(pa_agreement)
-        db.session.commit()
+            pa_agreement.performance_score = performance_net_score
+            pa_agreement.competency_score = scoresheet.competency_net_score()
+            db.session.add(pa_agreement)
+            db.session.commit()
 
-        pa = scoresheet.pa
-        pa.evaluated_at = arrow.now('Asia/Bangkok').datetime
-        db.session.add(pa)
-        db.session.commit()
-        flash('ส่งคะแนนไปยัง hr เรียบร้อยแล้ว', 'success')
+            pa = scoresheet.pa
+            pa.evaluated_at = arrow.now('Asia/Bangkok').datetime
+            db.session.add(pa)
+            db.session.commit()
+            flash('ส่งคะแนนไปยัง hr เรียบร้อยแล้ว', 'success')
     return redirect(request.referrer)
 
 
