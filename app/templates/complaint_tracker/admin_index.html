@@ -13,9 +13,11 @@
                     <thead>
                     <th>หมวด</th>
                     <th>หัวข้อ</th>
+                    <th>วันที่สร้าง</th>
                     <th>สถานะ</th>
                     <th>ความสำคัญ</th>
                     <th>แก้ไข</th>
+                    <th>ดูข้อมูล</th>
                     <th>การดำเนินการ</th>
                     </thead>
                     <tbody>
@@ -24,6 +26,7 @@
                         <tr>
                         <td>{{ item.topic.category }}</td>
                         <td>{{ item.topic }}</td>
+                        <td>{{ record.created_at|localdatetime }}</td>
                         <td>
                             <span class="tag {{ record.status.color }}">
                                 {{ record.status }}
@@ -36,6 +39,13 @@
                             <a href="{{ url_for('comp_tracker.edit_record_admin', record_id=record.id) }}">
                                 <span class="icon">
                                     <i class="fas fa-pencil-alt"></i>
+                                </span>
+                            </a>
+                        </td>
+                        <td>
+                            <a href="{{ url_for('comp_tracker.view_record_admin', record_id=record.id) }}">
+                                <span class="icon">
+                                    <i class="fas fa-eye"></i>
                                 </span>
                             </a>
                         </td>
