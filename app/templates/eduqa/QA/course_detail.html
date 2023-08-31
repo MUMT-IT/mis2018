@@ -234,7 +234,7 @@
                 <table class="table is-striped is-bordered is-fullwidth">
                     <thead>
                     <th>CLO</th>
-                    <th>วิธีจัดประสบการณ์การเรียนรู้/การประเมินผล</th>
+                    <th>การจัดประสบการณ์การเรียนรู้</th>
                     </thead>
                     <tbody>
                     {% for clo in course.outcomes|sort(attribute='number') %}
@@ -244,7 +244,7 @@
                             <table class="table">
                                 <thead>
                                 <th>รูปแบบ</th>
-                                <th>การประเมินผล</th>
+                                <th>การวัดผลลัพธ์</th>
                                 <th>
                                     <a class="button is-small is-rounded is-light is-info"
                                        hx-swap="innerHTML"
