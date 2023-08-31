@@ -68,3 +68,9 @@ def edit_record_admin(record_id):
 def admin_index():
     admin_list = ComplaintAdmin.query.filter_by(admin=current_user)
     return render_template('complaint_tracker/admin_index.html', admin_list=admin_list)
+
+
+@complaint_tracker.route('/record/view/<int:record_id>')
+def view_record_admin(record_id):
+    record = ComplaintRecord.query.get(record_id)
+    return render_template('complaint_tracker/view_record_admin.html', record=record)
