@@ -4,8 +4,9 @@
 {{ super() }}
 <style>
 .htmx-swapping {
-  opacity: 0;
-  transition: opacity 1s ease-out;
+    opacity: 0;
+    background-color: lightcoral;
+    transition: opacity 1s ease-out;
 }
 </style>
 {% endblock %}
@@ -201,7 +202,7 @@
                                 <p class="box">
                                     {{ clo.detail }}
                                 </p>
-                                <table class="table">
+                                <table class="table" id="clo-table-{{ clo.id }}">
                                     <thead>
                                     <th>รูปแบบ</th>
                                     <th>การวัดผลลัพธ์</th>

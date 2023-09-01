@@ -928,15 +928,43 @@ def edit_learning_activity(clo_id, pair_id=None):
         if pair_id:
             pair = EduQALearningActivityAssessmentPair.query.get(pair_id)
             pair.learning_activity_assessment_id = assessment_id
-            pair.score_weight = form.score_weight.data
         else:
             pair = EduQALearningActivityAssessmentPair(clo=clo,
                                                        learning_activity=activity,
                                                        learning_activity_assessment_id=assessment_id)
+        pair.score_weight = form.score_weight.data
         db.session.add(pair)
         db.session.commit()
-        resp = make_response()
-        resp.headers['HX-Refresh'] = 'true'
+        template = f'''
+            <tr>
+                <td>{ pair.learning_activity }</td>
+                <td>
+                    { pair.learning_activity_assessment }
+                </td>
+                <td>
+                    { pair.score_weight or 0.0 }
+                </td>
+                <td>
+                    <a hx-target="#learning-activity-form"
+                       hx-swap="innerHTML"
+                       hx-get="{ url_for('eduqa.edit_learning_activity', clo_id=clo.id, course_id=clo.course_id, pair_id=pair.id) }">
+                       <span class="icon">
+                           <i class="fas fa-pencil-alt"></i>
+                       </span>
+                    </a>
+                    <a hx-delete="{ url_for('eduqa.delete_learning_activity_assessment_pair', pair_id=pair.id) }"
+                       hx-swap="outerHTML swap:1s"
+                       hx-confirm="Are you sure?"
+                       hx-target="closest tr">
+                       <span class="icon">
+                           <i class="far fa-trash-alt has-text-danger"></i>
+                       </span>
+                    </a>
+                </td>
+            </tr>
+        '''
+        resp = make_response(template)
+        resp.headers['HX-Trigger-After-Swap'] = 'closeModal'
         return resp
 
 
