@@ -173,11 +173,11 @@ class EduQACourseLearningOutcome(db.Model):
     __tablename__ = 'eduqa_course_learning_outcomes'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     course_id = db.Column('course_id', db.ForeignKey('eduqa_courses.id'))
-    number = db.Column('number', db.Integer())
-    detail = db.Column('detail', db.Text())
+    number = db.Column('number', db.Integer(), info={'label': 'ลำดับ'})
+    detail = db.Column('detail', db.Text(), info={'label': 'รายละเอียด'})
     course = db.relationship(EduQACourse, backref=db.backref('outcomes',
                                                              cascade='all, delete-orphan'))
-    score_weight = db.Column('score_weight', db.Numeric(), default=0.0)
+    score_weight = db.Column('score_weight', db.Numeric(), default=0.0, info={'label': 'สัดส่วน'})
 
     def __str__(self):
         return f'{self.course.en_code}:{self.detail}'
