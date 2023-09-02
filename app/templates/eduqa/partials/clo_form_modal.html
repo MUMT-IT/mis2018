@@ -1,4 +1,4 @@
-<div class="modal is-active" id="clo-modal">
+<div class="modal is-active animate__animated" id="clo-modal">
     <div class="modal-background"></div>
     <div class="modal-card">
         <header class="modal-card-head">
@@ -11,7 +11,7 @@
                 {% else %}
                     hx-post="{{ url_for('eduqa.edit_clo', course_id=course_id) }}"
                 {% endif %}
-              hx-target="#clo-table" hx-swap="innerHTML">
+              hx-target="#clo-table" hx-swap="beforeend">
             {{ form.hidden_tag() }}
             <section class="modal-card-body">
                 <div class="field">
@@ -41,9 +41,11 @@
 </div>
 <script>
   window.document.getElementById("cancelButton").addEventListener("click", function() {
-      htmx.removeClass(htmx.find('#clo-modal'), 'is-active')
+      htmx.addClass(htmx.find('#clo-modal'), 'animate__fadeOut')
+      htmx.removeClass(htmx.find('#clo-modal'), 'is-active', 500)
   })
   window.addEventListener('closeModal', (evt)=>{
-      htmx.removeClass(htmx.find('#clo-modal'), 'is-active')
+      htmx.addClass(htmx.find('#clo-modal'), 'animate__fadeOut')
+      htmx.removeClass(htmx.find('#clo-modal'), 'is-active', 500)
   })
 </script>

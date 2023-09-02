@@ -861,6 +861,50 @@ def edit_clo(course_id, clo_id=None):
             new_clo.course_id = course_id
             db.session.add(new_clo)
             db.session.commit()
+            template = f'''
+                <tr>
+                    <td>CLO{ new_clo.number }</td>
+                    <td>
+                        <p class="box">
+                            { new_clo.detail }
+                        </p>
+                        <table class="table" id="clo-table-{ new_clo.id }">
+                            <thead>
+                            <th>รูปแบบ</th>
+                            <th>การวัดผลลัพธ์</th>
+                            <th>น้ำหนัก</th>
+                            <th>
+                                <a class="button is-small is-rounded is-light is-info"
+                                   hx-swap="innerHTML"
+                                   hx-target="#learning-activity-form"
+                                   hx-get="{ url_for('eduqa.edit_learning_activity', clo_id=new_clo.id, course_id=course_id) }">
+                                <span class="icon">
+                                   <i class="fa-solid fa-plus"></i>
+                                </span>
+                                    <span>เพิ่ม</span>
+                                </a>
+                            </th>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </td>
+                    <td><span class="tag is-rounded is-success">{ new_clo.score_weight }</span></td>
+                    <td>
+                        <a hx-get="{ url_for('eduqa.edit_clo', course_id=course_id, clo_id=new_clo.id) }"
+                           hx-target="#clo-form" hx-swap="innerHTML">
+                           <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                        </a>
+                        <a hx-confirm="ต้องการลบ CLO นี้หรือไม่" hx-swap="outerHTML"
+                           hx-target="closest tr"
+                           hx-delete="{ url_for('eduqa.edit_clo', course_id=course_id, clo_id=new_clo.id) }">
+                            <span class="icon"><i class="far fa-trash-alt has-text-danger"></i></span>
+                        </a>
+                    </td>
+                </tr>
+            '''
+            resp = make_response(template)
+            resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(course.total_clo_percent)})
+            return resp
     elif request.method == 'PUT':
         form.populate_obj(clo)
         db.session.add(clo)
@@ -868,6 +912,9 @@ def edit_clo(course_id, clo_id=None):
     elif request.method == 'DELETE':
         db.session.delete(clo)
         db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(course.total_clo_percent)})
+        return resp
 
     template = ''.join(['''
     <tr>

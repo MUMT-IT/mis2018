@@ -261,6 +261,7 @@
                                             </span>
                                 </a>
                                 <a hx-confirm="ต้องการลบ CLO นี้หรือไม่"
+                                   hx-target="closest tr" hx-swap="outHTML"
                                    hx-delete="{{ url_for('eduqa.edit_clo', course_id=course.id, clo_id=clo.id) }}">
                                             <span class="icon">
                                                 <i class="far fa-trash-alt has-text-danger"></i>
