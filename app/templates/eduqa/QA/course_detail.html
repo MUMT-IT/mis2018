@@ -539,6 +539,12 @@
                         </td>
                     </tr>
                 </table>
+                <h5 class="title is-size-4">การให้เกรด</h5>
+                <form>
+                    <div class="field">
+                        {{ grade_form.schemes() }}
+                    </div>
+                </form>
                 <div class="buttons is-centered">
                     <a class="button is-rounded is-light" href="{{ url_for('eduqa.show_revision_detail', revision_id=course.revision.id) }}">
                         Back

@@ -374,3 +374,37 @@ class EduQACourseSessionDetailRoleItem(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     role = db.Column('role', db.String(), info={'label': u'บทบาท'})
     format = db.Column('format', db.String(), info={'label': u'รูปแบบการสอน'})
+
+
+class EduQAGradingScheme(db.Model):
+    __tablename__ = 'eduqa_grading_schemes'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(), nullable=False, info={'label': 'ชื่อ'})
+
+    def __str__(self):
+        return self.name
+
+
+class EduQAGradingSchemeItem(db.Model):
+    __tablename__ = 'eduqa_grading_scheme_items'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    symbol = db.Column(db.String(), nullable=False, info={'label': 'สัญลักษณ์'})
+    detail = db.Column(db.String(), info={'label': 'รายละเอียด'})
+    scheme_id = db.Column(db.ForeignKey('eduqa_grading_schemes.id'))
+    scheme = db.relationship(EduQAGradingScheme, backref=db.backref('items'))
+
+    def __str__(self):
+        return self.symbol
+
+class EduQAGradingSchemeItemCriteria(db.Model):
+    __tablename__ = 'eduqa_grading_scheme_item_criteria'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    course_id = db.Column(db.ForeignKey('eduqa_courses.id'))
+    course = db.relationship(EduQACourse, backref=db.backref('grading_item_criteria',
+                                                             order_by='EduQAGradingSchemeItem.symbol.desc()'))
+    scheme_item_id = db.Column(db.ForeignKey('eduqa_grading_scheme_items.id'))
+    scheme_item = db.relationship(EduQAGradingSchemeItem)
+    criteria = db.Column(db.Text(), info={'label': 'เกณฑ์ (ระบุช่วงคะแนน)'})
+
+    def __str__(self):
+        return f'{self.course}:{self.symbol} {self.criteria}'
