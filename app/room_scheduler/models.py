@@ -2,6 +2,7 @@ from app.main import db, ma
 from sqlalchemy.sql import func
 from app.asset.models import AssetItem
 from app.eduqa.models import EduQACourseSession
+from sqlalchemy_utils import DateTimeRangeType
 
 event_participant_assoc = db.Table('event_participant_assoc',
                                    db.Column('staff_id', db.Integer, db.ForeignKey('staff_account.id')),
@@ -85,6 +86,7 @@ class RoomEvent(db.Model):
     title = db.Column('title', db.String(255), nullable=False)
     start = db.Column('start', db.DateTime(timezone=True), nullable=False)
     end = db.Column('end', db.DateTime(timezone=True), nullable=False)
+    datetime = db.Column(DateTimeRangeType())
     iocode_id = db.Column('iocode_id', db.ForeignKey('iocodes.id'))
     occupancy = db.Column('occupancy', db.Integer())
     # number of sets of food/refreshment requested
