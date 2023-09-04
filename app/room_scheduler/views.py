@@ -147,7 +147,7 @@ def cancel(event_id=None):
             title = f'แจ้งยกเลิกการนัดหมาย{event.category}'
             message = f'ท่านได้รับเชิญให้เข้าร่วม {event.title}'
             message += f' เวลา {start.strftime("%d/%m/%Y %H:%M")} - {end.strftime("%d/%m/%Y %H:%M")}'
-            message += f' ณ ห้อง {room.number} {room.location}'
+            message += f' ณ ห้อง {event.room.number} {event.room.location}'
             message += f'\n\nขอความอนุเคราะห์เข้าร่วมในวันและเวลาดังกล่าว'
             send_mail(participant_emails, title, message)
     else:
@@ -197,18 +197,18 @@ def edit_detail(event_id):
             title = f'แจ้งแก้ไขการนัดหมาย{event.category}'
             message = f'ท่านได้รับเชิญให้เข้าร่วม {event.title}'
             message += f' เวลา {event_start.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {event_end.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}'
-            message += f' ณ ห้อง {room.number} {room.location}'
+            message += f' ณ ห้อง {event.room.number} {event.room.location}'
             message += f'\n\nขอความอนุเคราะห์เข้าร่วมในวันและเวลาดังกล่าว'
             if not current_app.debug:
                 send_mail(participant_emails, title, message)
             else:
                 print(message)
-        msg = f'{event.creator.fullname} ได้แก้ไขการจองห้อง {room} สำหรับ {event.title} เวลา {event_start.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {event_end.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}.'
+        msg = f'{event.creator.fullname} ได้แก้ไขการจองห้อง {event.room} สำหรับ {event.title} เวลา {event_start.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {event_end.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}.'
         if not current_app.debug:
-            if room.coordinator and room.coordinator.line_id:
-                line_bot_api.push_message(to=room.coordinator.line_id, messages=TextSendMessage(text=msg))
+            if event.room.coordinator and event.room.coordinator.line_id:
+                line_bot_api.push_message(to=event.room.coordinator.line_id, messages=TextSendMessage(text=msg))
         else:
-            print(msg, room.coordinator)
+            print(msg, event.room.coordinator)
         flash(u'อัพเดตรายการเรียบร้อย', 'success')
         return redirect(url_for('room.index'))
     else:
