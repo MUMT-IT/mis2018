@@ -305,18 +305,20 @@ def get_overlaps(room_id, start, end, session_id=None, session_attr=None):
         for evt in query.filter(start >= event_start, end <= event_end):
             events.add(evt)
 
-        for evt in query.filter(start >= event_start, end <= event_end):
-            events.add(evt)
-
         # check for outer overlaps
-        for evt in query.filter(and_(start <= event_start,
-                                      end > event_start,
-                                      end <= event_end)):
+        # |--------------|
+        #     ||---------------||
+        for evt in query.filter(and_(start <= event_start, end > event_start, end <= event_end)):
             events.add(evt)
 
-        for evt in query.filter(and_(start >= event_start,
-                                      end >= event_end,
-                                      start < event_end)):
+        #       |--------------|
+        # ||---------------||
+        for evt in query.filter(and_(start >= event_start, end >= event_end, start < event_end)):
+            events.add(evt)
+
+        # |-----------------------|
+        #   ||---------------||
+        for evt in query.filter(and_(start <= event_start, end >= event_end)):
             events.add(evt)
     else:
         # check for inner overlaps
@@ -336,6 +338,11 @@ def get_overlaps(room_id, start, end, session_id=None, session_attr=None):
                                       end >= event_end,
                                       session_id != getattr(RoomEvent, session_attr),
                                       start < event_end)):
+            events.add(evt)
+
+        for evt in query.filter(and_(start <= event_start,
+                                     end >= event_end,
+                                     session_id != getattr(RoomEvent, session_attr))):
             events.add(evt)
     return events
 
@@ -364,6 +371,14 @@ def check_room_availability():
     else:
         template = '<span class="tag is-success">ห้องว่าง</span>'
         template += '<span id="overlaps" hx-swap-oob="true" class="tags"></span>'
+    resp = make_response(template)
+    return resp
+
+
+@room.route('/api/room-availability/clear')
+@login_required
+def clear_status():
+    template = '<span id="overlaps" hx-swap-oob="true" class="tags"></span>'
     resp = make_response(template)
     return resp
 
