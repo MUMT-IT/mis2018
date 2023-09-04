@@ -30,13 +30,14 @@
                             <a href="{{ url_for('pa.all_performance', scoresheet_id=scoresheet.id) }}">
                                {% if not scoresheet.is_consolidated %}
                                    {% if scoresheet.is_final %}
-                                       <p class="tag is-light is-rounded">
-                                       <span>ให้คะแนนแล้ว</span>
+                                       <p class="tag is-success is-rounded">
+                                       <span>ส่งคะแนนแล้ว</span>
                                        </p>
                                    {% else %}
-                                       <p class="tag is-success  is-rounded">
-                                       <span>ให้คะแนน</span>
-                                       </p>
+                                       <span class="icon">
+                                        <i class="fas fa-star has-text-warning fa-pulse"></i>
+                                        </span>
+                                        <span class="has-text-danger">รอดำเนินการ</span>
                                    {% endif %}
                                {% else %}
                                    <p class="tag is-light is-rounded">
