@@ -163,8 +163,6 @@ def edit_detail(event_id):
     form = RoomEventForm(obj=event)
     if form.validate_on_submit():
         form.populate_obj(event)
-        if event.participants:
-            event.occupancy = len(event.participants)
         event.start = arrow.get(form.start.data, 'Asia/Bangkok').datetime
         event.end = arrow.get(form.end.data, 'Asia/Bangkok').datetime
         event.updated_at = arrow.now('Asia/Bangkok').datetime

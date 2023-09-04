@@ -38,7 +38,17 @@
                                         <span class="icon">
                                             <i class="fas fa-users"></i>
                                         </span>
-                                        &nbsp;{{ event.occupancy }} คน
+                                        &nbsp;จำนวน {{ event.occupancy }} คน
+                                    </span>
+                                </p>
+                                <p>
+                                <span class="subtitle is-6">
+                                        <span class="icon">
+                                            <i class="fas fa-users"></i>
+                                        </span>
+                                    <span>
+                                        รายชื่อผู้เข้าร่วม {{ event.participants|length }} คน
+                                    </span>
                                     </span>
                                 </p>
                             </div>
