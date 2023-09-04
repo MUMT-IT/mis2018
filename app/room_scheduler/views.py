@@ -234,7 +234,7 @@ def room_reserve(room_id):
                 participant_emails = [f'{account.email}@mahidol.ac.th' for account in new_event.participants]
                 title = f'แจ้งนัดหมาย{new_event.category}'
                 message = f'ท่านได้รับเชิญให้เข้าร่วม {new_event.title}'
-                message += f' เวลา {new_event.start.strftime("%d/%m/%Y %H:%M")} - {new_event.end.strftime("%d/%m/%Y %H:%M")}'
+                message += f' เวลา {new_event.start.astimezone(pytz.timezone("Asia/Bangkok")).strftime("%d/%m/%Y %H:%M")} - {new_event.end.astimezone(pytz.timezone("Asia/Bangkok")).strftime("%d/%m/%Y %H:%M")}'
                 message += f' ณ ห้อง {room.number} {room.location}'
                 message += f'\n\nขอความอนุเคราะห์เข้าร่วมในวันและเวลาดังกล่าว'
                 send_mail(participant_emails, title, message)
@@ -292,7 +292,7 @@ def room_event_list():
     return render_template('scheduler/room_event_list.html')
 
 
-def get_overlaps(room_id, start, end, session_id=None, session_attr=None):
+def get_overlaps(room_id, start, end, session_id=None, session_attr=None, no_cancellation=True):
     query = RoomEvent.query.filter_by(room_id=room_id)
     events = set()
     for evt in query.filter(RoomEvent.datetime.op('&&')(DateTimeRange(lower=start, upper=end, bounds='[]'))):
@@ -336,6 +336,8 @@ def get_overlaps(room_id, start, end, session_id=None, session_attr=None):
     #                                   session_id != getattr(RoomEvent, session_attr),
     #                                   start < event_end)):
     #         events.add(evt)
+    if no_cancellation:
+        return set([e for e in events if e.cancelled_at is None])
     return events
 
 
@@ -348,19 +350,29 @@ def check_room_availability():
     event_id = request.args.get('event_id', type=int)
     start = request.args.get('start')
     end = request.args.get('end')
-    start = dateutil.parser.isoparse(start)
-    end = dateutil.parser.isoparse(end)
+    start = dateutil.parser.isoparse(start).astimezone(pytz.timezone('Asia/Bangkok'))
+    end = dateutil.parser.isoparse(end).astimezone(pytz.timezone('Asia/Bangkok'))
     overlaps = get_overlaps(room_id, start, end, session_id, session_attr)
     overlaps = [evt for evt in overlaps if evt.id != event_id]
     if overlaps:
-        temp = '<span class="tag is-warning">{} {}</span>'
+        temp = '<span class="tag is-warning">{}-{} {}</span>'
         template = '<span class="tag is-danger">ห้องไม่ว่าง</span>'
         template += '<span id="overlaps" hx-swap-oob="true" class="tags">'
-        template += ''.join([temp.format(evt.datetime.lower.strftime('%H:%M'), evt.title) for evt in overlaps])
+        template += ''.join([temp.format(evt.start.astimezone(pytz.timezone('Asia/Bangkok')).strftime('%H:%M'),
+                                         evt.end.astimezone(pytz.timezone('Asia/Bangkok')).strftime('%H:%M'),
+                                         evt.title) for evt in overlaps])
         template += '</span>'
     else:
         template = '<span class="tag is-success">ห้องว่าง</span>'
         template += '<span id="overlaps" hx-swap-oob="true" class="tags"></span>'
+    resp = make_response(template)
+    return resp
+
+
+@room.route('/api/room-availability/clear')
+@login_required
+def clear_status():
+    template = '<span id="overlaps" hx-swap-oob="true" class="tags"></span>'
     resp = make_response(template)
     return resp
 
