@@ -348,6 +348,8 @@ def check_room_availability():
     end = request.args.get('end')
     start = dateutil.parser.isoparse(start)
     end = dateutil.parser.isoparse(end)
+    start = arrow.get(start, 'Asia/Bangkok').datetime
+    end = arrow.get(end, 'Asia/Bangkok').datetime
     overlaps = get_overlaps(room_id, start, end, session_id, session_attr)
     overlaps = [evt for evt in overlaps if evt.id != event_id]
     if overlaps:
