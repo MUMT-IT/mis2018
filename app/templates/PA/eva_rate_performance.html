@@ -59,7 +59,7 @@
                             <th>กรอกคะแนน<br>(0-10)</th>
                             </thead>
                             <tbody>
-                            {% for s in scoresheet.score_sheet_items %}
+                            {% for s in scoresheet.score_sheet_items|sort(attribute='item_id') %}
                                 <tr>
                                     <td style="width: 38%">
                                         <p><strong>{{ s.item }}</strong></p>
