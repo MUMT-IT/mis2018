@@ -144,8 +144,8 @@ def cancel(event_id=None):
                                       messages=TextSendMessage(text=msg))
         if event.participants and event.notify_participants:
             participant_emails = [f'{account.email}@mahidol.ac.th' for account in event.participants]
-            title = f'แจ้งยกเลิกการนัดหมาย{new_event.category}'
-            message = f'ท่านได้รับเชิญให้เข้าร่วม {new_event.title}'
+            title = f'แจ้งยกเลิกการนัดหมาย{event.category}'
+            message = f'ท่านได้รับเชิญให้เข้าร่วม {event.title}'
             message += f' เวลา {start.strftime("%d/%m/%Y %H:%M")} - {end.strftime("%d/%m/%Y %H:%M")}'
             message += f' ณ ห้อง {room.number} {room.location}'
             message += f'\n\nขอความอนุเคราะห์เข้าร่วมในวันและเวลาดังกล่าว'
@@ -194,8 +194,8 @@ def edit_detail(event_id):
         db.session.commit()
         if event.participants and event.notify_participants:
             participant_emails = [f'{account.email}@mahidol.ac.th' for account in event.participants]
-            title = f'แจ้งแก้ไขการนัดหมาย{new_event.category}'
-            message = f'ท่านได้รับเชิญให้เข้าร่วม {new_event.title}'
+            title = f'แจ้งแก้ไขการนัดหมาย{event.category}'
+            message = f'ท่านได้รับเชิญให้เข้าร่วม {event.title}'
             message += f' เวลา {event_start.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {event_end.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}'
             message += f' ณ ห้อง {room.number} {room.location}'
             message += f'\n\nขอความอนุเคราะห์เข้าร่วมในวันและเวลาดังกล่าว'
@@ -203,7 +203,7 @@ def edit_detail(event_id):
                 send_mail(participant_emails, title, message)
             else:
                 print(message)
-        msg = f'{new_event.creator.fullname} ได้แก้ไขการจองห้อง {room} สำหรับ {new_event.title} เวลา {event_start.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {event_end.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}.'
+        msg = f'{event.creator.fullname} ได้แก้ไขการจองห้อง {room} สำหรับ {event.title} เวลา {event_start.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {event_end.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}.'
         if not current_app.debug:
             if room.coordinator and room.coordinator.line_id:
                 line_bot_api.push_message(to=room.coordinator.line_id, messages=TextSendMessage(text=msg))
