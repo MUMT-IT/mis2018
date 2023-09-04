@@ -235,7 +235,7 @@ def room_reserve(room_id):
                 participant_emails = [f'{account.email}@mahidol.ac.th' for account in new_event.participants]
                 title = f'แจ้งนัดหมาย{new_event.category}'
                 message = f'ท่านได้รับเชิญให้เข้าร่วม {new_event.title}'
-                message += f' เวลา {new_event.start.to("Asia/Bangkok").strftime("%d/%m/%Y %H:%M")} - {new_event.end.to("Asia/Bangkok").strftime("%d/%m/%Y %H:%M")}'
+                message += f' เวลา {new_event.start.astimezone(pytz.timezone("Asia/Bangkok")).strftime("%d/%m/%Y %H:%M")} - {new_event.end.to("Asia/Bangkok").strftime("%d/%m/%Y %H:%M")}'
                 message += f' ณ ห้อง {room.number} {room.location}'
                 message += f'\n\nขอความอนุเคราะห์เข้าร่วมในวันและเวลาดังกล่าว'
                 send_mail(participant_emails, title, message)
