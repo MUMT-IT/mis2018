@@ -69,8 +69,8 @@ def get_events():
     for event in RoomEvent.query.filter(func.timezone('Asia/Bangkok', RoomEvent.start) >= cal_start) \
             .filter(func.timezone('Asia/Bangkok', RoomEvent.end) <= cal_end).filter_by(cancelled_at=None):
         # The event object is a dict object with a 'summary' key.
-        start = event.start
-        end = event.end
+        start = localtz.localize(event.datetime.lower)
+        end = localtz.localize(event.datetime.upper)
         room = event.room
         text_color = '#ffffff'
         bg_color = '#2b8c36'
@@ -79,8 +79,8 @@ def get_events():
             'location': room.number,
             'title': u'(Rm{}) {}'.format(room.number, event.title),
             'description': event.note,
-            'start': start.astimezone(pytz.timezone('Asia/Bangkok')).isoformat(),
-            'end': end.astimezone(pytz.timezone('Asia/Bangkok')).isoformat(),
+            'start': start.isoformat(),
+            'end': end.isoformat(),
             'resourceId': room.number,
             'status': event.approved,
             'borderColor': border_color,
