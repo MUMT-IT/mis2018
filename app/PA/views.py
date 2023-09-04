@@ -1004,9 +1004,31 @@ def hr_index():
 
 @pa.route('/hr/all-scoresheets')
 @login_required
+@hr_permission.require()
 def scoresheets_for_hr():
     scoresheets = PAScoreSheet.query.filter(PAScoreSheet.staff == None).all()
-    return render_template('staff/HR/PA/hr_all_scoresheets.html', scoresheets=scoresheets)
+    self_scoresheets = PAScoreSheet.query.filter(PAScoreSheet.staff != None).all()
+    return render_template('staff/HR/PA/hr_all_scoresheets.html',
+                           scoresheets=scoresheets, self_scoresheets=self_scoresheets)
+
+
+@pa.route('/hr/all-scoresheets/edit-status/<int:scoresheet_id>')
+@login_required
+@hr_permission.require()
+def edit_confirm_scoresheet(scoresheet_id):
+    scoresheet = PAScoreSheet.query.get(scoresheet_id)
+    scoresheet.is_final = False
+    scoresheet.confirm_at = None
+    db.session.add(scoresheet)
+    db.session.commit()
+    if scoresheet.committee:
+        flash('แก้ไขสถานะคะแนนของผู้ประเมิน: {} ผู้รับการประเมิน: {} เป็น"ไม่ยืนยัน" เรียบร้อยแล้ว'.format(
+            scoresheet.committee.staff.personal_info.fullname, scoresheet.pa.staff.personal_info.fullname), 'success')
+    else:
+        flash('แก้ไขสถานะคะแนนประเมินตนเอง {} เป็น"ไม่ยืนยัน" เรียบร้อยแล้ว'.format(
+            scoresheet.pa.staff.personal_info.fullname), 'success')
+    return redirect(url_for('pa.scoresheets_for_hr'))
+
 
 @pa.route('/hr/all-pa')
 @login_required
