@@ -296,11 +296,16 @@ def room_event_list():
 def get_overlaps(room_id, start, end, session_id=None, session_attr=None):
     query = RoomEvent.query.filter_by(room_id=room_id)
     events = set()
-    event_start = func.timezone('Asia/Bangkok', RoomEvent.start)
-    event_end = func.timezone('Asia/Bangkok', RoomEvent.end)
+    event_start = RoomEvent.start
+    event_end = RoomEvent.end
+    # event_start = func.timezone('Asia/Bangkok', RoomEvent.start)
+    # event_end = func.timezone('Asia/Bangkok', RoomEvent.end)
+    # start = start.to('Asia/Bangkok')
+    # end = end.to('Asia/Bangkok')
     if not session_id:
         # check for inner overlaps
-        overlaps = query.filter(start >= event_start, end <= event_end).count()
+        for evt in query.filter(start >= event_start, end <= event_end):
+            events.add(evt)
 
         for evt in query.filter(start >= event_start, end <= event_end):
             events.add(evt)
