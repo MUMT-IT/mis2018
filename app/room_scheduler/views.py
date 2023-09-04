@@ -293,11 +293,11 @@ def room_event_list():
     return render_template('scheduler/room_event_list.html')
 
 
-def get_overlaps(room_id, start, end, session_id=None, session_attr=None):
+def get_overlaps(room_id, start, end, session_id=None, session_attr=None, no_cancellation=True):
     query = RoomEvent.query.filter_by(room_id=room_id)
     events = set()
-    event_start = func.timezone('Asia/Bangkok', RoomEvent.start)
-    event_end = func.timezone('Asia/Bangkok', RoomEvent.end)
+    event_start = RoomEvent.start
+    event_end = RoomEvent.end
     # start = start.to('Asia/Bangkok')
     # end = end.to('Asia/Bangkok')
     if not session_id:
@@ -344,7 +344,10 @@ def get_overlaps(room_id, start, end, session_id=None, session_attr=None):
                                      end >= event_end,
                                      session_id != getattr(RoomEvent, session_attr))):
             events.add(evt)
-    return events
+    if no_cancellation:
+        return set([event for event in events if event.cancelled_at is None])
+    else:
+        return events
 
 
 @room.route('/api/room-availability')
