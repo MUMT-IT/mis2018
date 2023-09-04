@@ -135,7 +135,9 @@ def cancel(event_id=None):
     event.cancelled_by = current_user.id
     db.session.add(event)
     db.session.commit()
-    msg = f'{event.creator} ได้ยกเลิกการจอง {room} สำหรับ {event.title} เวลา {event.start} - {event.end}.'
+    start = localtz.localize(event.datetime.lower)
+    end = localtz.localize(event.datetime.upper)
+    msg = f'{event.creator} ได้ยกเลิกการจอง {room.number} สำหรับ {event.title} เวลา {start.strftime("%d/%m/%Y %H:%M")} - {end.strftime("%d/%m/%Y %H:%M")}.'
     if not current_app.debug:
         if event.room.coordinator and event.room.coordinator.line_id:
             line_bot_api.push_message(to=event.room.coordinator.line_id,
@@ -164,6 +166,8 @@ def approve_event(event_id):
 def edit_detail(event_id):
     event = RoomEvent.query.get(event_id)
     form = RoomEventForm(obj=event)
+    start = localtz.localize(event.datetime.lower)
+    end = localtz.localize(event.datetime.upper)
     if form.validate_on_submit():
         event_start = arrow.get(form.start.data, 'Asia/Bangkok').datetime
         event_end = arrow.get(form.end.data, 'Asia/Bangkok').datetime
@@ -174,6 +178,8 @@ def edit_detail(event_id):
             return redirect(url_for('room.edit_detail', event_id=event_id))
 
         form.populate_obj(event)
+        event.datetime = DateTimeRange(lower=event_start, upper=event_end, bounds='[]')
+        print(event.datetime)
         event.updated_at = arrow.now('Asia/Bangkok').datetime
         event.updated_by = current_user.id
         db.session.add(event)
@@ -183,7 +189,7 @@ def edit_detail(event_id):
     else:
         for field, error in form.errors.items():
             flash(f'{field}: {error}', 'danger')
-    return render_template('scheduler/reserve_form.html', event=event, form=form, room=event.room)
+    return render_template('scheduler/reserve_form.html', event=event, form=form, room=event.room, start=start, end=end)
 
 
 @room.route('/list', methods=['POST', 'GET'])
