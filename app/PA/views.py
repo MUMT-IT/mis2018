@@ -1020,13 +1020,17 @@ def edit_confirm_scoresheet(scoresheet_id):
     scoresheet.is_final = False
     scoresheet.confirm_at = None
     db.session.add(scoresheet)
-    db.session.commit()
     if scoresheet.committee:
-        flash('แก้ไขสถานะคะแนนของผู้ประเมิน: {} ผู้รับการประเมิน: {} เป็น"ไม่ยืนยัน" เรียบร้อยแล้ว'.format(
+        approved_records = PAApprovedScoreSheet.query.filter_by(score_sheet_id=scoresheet_id).all()
+        if approved_records:
+            for approve in approved_records:
+                approve.approved_at = None
+        flash('แก้ไขสถานะคะแนนของผู้ประเมิน: {} ผู้รับการประเมิน: {} เป็น"ไม่ยืนยัน" และลบการรับรองผลของกรรมการเรียบร้อยแล้ว'.format(
             scoresheet.committee.staff.personal_info.fullname, scoresheet.pa.staff.personal_info.fullname), 'success')
     else:
         flash('แก้ไขสถานะคะแนนประเมินตนเอง {} เป็น"ไม่ยืนยัน" เรียบร้อยแล้ว'.format(
             scoresheet.pa.staff.personal_info.fullname), 'success')
+    db.session.commit()
     return redirect(url_for('pa.scoresheets_for_hr'))
 
 
