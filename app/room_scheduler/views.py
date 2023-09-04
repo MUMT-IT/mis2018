@@ -363,8 +363,8 @@ def check_room_availability():
         temp = '<span class="tag is-warning">{}-{} {}</span>'
         template = '<span class="tag is-danger">ห้องไม่ว่าง</span>'
         template += '<span id="overlaps" hx-swap-oob="true" class="tags">'
-        template += ''.join([temp.format(evt.datetime.lower.astimezone(pytz.timezone('Asia/Bangkok')).strftime('%H:%M'),
-                                         evt.datetime.upper.astimezone(pytz.timezone('Asia/Bangkok')).strftime('%H:%M'),
+        template += ''.join([temp.format(localtz.localize(evt.datetime.lower).strftime('%H:%M'),
+                                         localtz.localize(evt.datetime.upper).strftime('%H:%M'),
                                          evt.title) for evt in overlaps])
         template += '</span>'
     else:
