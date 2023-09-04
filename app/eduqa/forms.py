@@ -2,7 +2,7 @@
 from datetime import datetime
 
 from flask_wtf import FlaskForm
-from wtforms import SelectMultipleField, widgets, FieldList, FormField, IntegerField, HiddenField, Field
+from wtforms import SelectMultipleField, widgets, FieldList, FormField, FloatField, HiddenField, Field, SelectField
 from wtforms.validators import Optional, ValidationError
 from wtforms.widgets import TextInput
 from wtforms_alchemy import model_form_factory, QuerySelectField, QuerySelectMultipleField, ModelFormField, \
@@ -112,6 +112,7 @@ class RoomEventForm(ModelForm):
             'end': {'validators': [Optional()]},
             'title': {'validators': [Optional()]}
         }
+
     room = QuerySelectField('ห้อง', query_factory=lambda: RoomResource.query.all(),
                             allow_blank=True, blank_text='กรุณาเลือกห้อง')
 
@@ -188,3 +189,31 @@ class EduCourseInstructorRoleFormField(ModelForm):
 
 class EduCourseInstructorRoleForm(ModelForm):
     roles = ModelFieldList(ModelFormField(EduCourseInstructorRoleFormField), min_entries=0)
+
+
+class EduCourseLearningActivityForm(ModelForm):
+    learning_activity = QuerySelectField('Learning Activity',
+                                         query_factory=lambda: EduQALearningActivity.query.all(),
+                                         allow_blank=True, blank_text='Please select')
+    assessments = SelectField('Assessments',
+                              widget=widgets.ListWidget(prefix_label=False),
+                              option_widget=widgets.RadioInput(),
+                              coerce=int,
+                              validate_choice=False)
+    score_weight = FloatField('Weight')
+
+
+class EduCourseLearningOutcomeForm(ModelForm):
+    class Meta:
+        model = EduQACourseLearningOutcome
+
+    learning_activity_assessment_forms = FieldList(FormField(EduCourseLearningActivityForm,
+                                                             default=EduQALearningActivity), min_entries=0)
+
+
+class EduGradingSchemeForm(ModelForm):
+    grading_scheme = QuerySelectField('Scheme',
+                                      query_factory=lambda: EduQAGradingScheme.query.all(),
+                                      widget=widgets.ListWidget(prefix_label=False),
+                                      option_widget=widgets.RadioInput(),
+                                      get_label='name')

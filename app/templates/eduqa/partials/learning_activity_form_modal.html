@@ -1,0 +1,57 @@
+<div class="modal is-active animate__animated" id="learning-activity-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title">Learning Activities Form {{ clo_id }}</p>
+            <button type="button" id="cancelButton" class="delete" aria-label="close"></button>
+        </header>
+        <form
+                {% if pair_id %}
+                hx-post="{{ url_for('eduqa.edit_learning_activity', clo_id=clo_id, pair_id=pair_id) }}"
+                {% else %}
+                hx-post="{{ url_for('eduqa.edit_learning_activity', clo_id=clo_id) }}"
+                {% endif %}
+                hx-target="#clo-table-{{ clo_id }}"
+                hx-swap="beforeend"
+        >
+            {{ form.hidden_tag() }}
+            <section class="modal-card-body">
+            <div class="field">
+                <label class="label">Activity</label>
+                {% if activity_id %}
+                    <div class="select" style="pointer-events: none;">
+                        {{ form.learning_activity() }}
+                    </div>
+                {% else %}
+                <div class="select">
+                    {{ form.learning_activity(**{'hx-target': '#assessment', 'hx-swap': 'innerHTML', 'hx-post': url_for('eduqa.get_assessment_methods', clo_id=clo_id)}) }}
+                </div>
+                {% endif %}
+            </div>
+            <div class="field" id="assessment">
+                <label class="label">Assessment Methods</label>
+                {{ form.assessments() }}
+            </div>
+            <div class="field">
+                <label class="label">{{ form.score_weight.label }}</label>
+                <div class="control">
+                    {{ form.score_weight(class="input") }}
+                </div>
+            </div>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button is-success">Save</button>
+            </footer>
+        </form>
+    </div>
+</div>
+<script>
+    window.document.getElementById("cancelButton").addEventListener("click", function() {
+        htmx.addClass(htmx.find('#learning-activity-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#learning-activity-modal'), 'is-active', 500)
+    })
+    window.addEventListener('closeModal', (evt)=>{
+        htmx.addClass(htmx.find('#learning-activity-modal'), 'animate__fadeOut')
+        htmx.removeClass(htmx.find('#learning-activity-modal'), 'is-active', 500)
+    })
+</script>
