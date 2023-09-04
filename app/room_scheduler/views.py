@@ -4,7 +4,7 @@ import dateutil.parser
 import arrow
 import pytz
 from dateutil import parser
-from flask import render_template, jsonify, request, flash, redirect, url_for, current_app
+from flask import render_template, jsonify, request, flash, redirect, url_for, current_app, make_response
 from flask_login import login_required, current_user
 from linebot.models import TextSendMessage
 from sqlalchemy import and_
@@ -293,35 +293,67 @@ def room_event_list():
 
 def get_overlaps(room_id, start, end, session_id=None, session_attr=None):
     query = RoomEvent.query.filter_by(room_id=room_id)
+    events = set()
     if not session_id:
         # check for inner overlaps
         overlaps = query.filter(start >= RoomEvent.start, end <= RoomEvent.end).count()
+
+        for evt in query.filter(start >= RoomEvent.start, end <= RoomEvent.end):
+            print(evt)
+            events.add(evt)
 
         # check for outer overlaps
         overlaps += query.filter(and_(start <= RoomEvent.start,
                                       end > RoomEvent.start,
                                       end <= RoomEvent.end)).count()
+        for evt in query.filter(and_(start <= RoomEvent.start,
+                                      end > RoomEvent.start,
+                                      end <= RoomEvent.end)):
+            print(evt)
+            events.add(evt)
 
         overlaps += query.filter(and_(start >= RoomEvent.start,
                                       end >= RoomEvent.end,
                                       start < RoomEvent.end)).count()
+        for evt in query.filter(and_(start >= RoomEvent.start,
+                                      end >= RoomEvent.end,
+                                      start < RoomEvent.end)):
+            print(evt)
+            events.add(evt)
     else:
         # check for inner overlaps
         overlaps = query.filter(start >= RoomEvent.start,
                                 end <= RoomEvent.end,
                                 session_id != getattr(RoomEvent, session_attr)).count()
+        for evt in query.filter(start >= RoomEvent.start,
+                                end <= RoomEvent.end,
+                                session_id != getattr(RoomEvent, session_attr)):
+            print(evt)
+            events.add(evt)
 
         # check for outer overlaps
         overlaps += query.filter(and_(start <= RoomEvent.start,
                                       end > RoomEvent.start,
                                       session_id != getattr(RoomEvent, session_attr),
                                       end <= RoomEvent.end)).count()
+        for evt in query.filter(and_(start <= RoomEvent.start,
+                                      end > RoomEvent.start,
+                                      session_id != getattr(RoomEvent, session_attr),
+                                      end <= RoomEvent.end)):
+            print(evt)
+            events.add(evt)
 
         overlaps += query.filter(and_(start >= RoomEvent.start,
                                       end >= RoomEvent.end,
                                       session_id != getattr(RoomEvent, session_attr),
                                       start < RoomEvent.end)).count()
-    return overlaps
+        for evt in query.filter(and_(start >= RoomEvent.start,
+                                      end >= RoomEvent.end,
+                                      session_id != getattr(RoomEvent, session_attr),
+                                      start < RoomEvent.end)):
+            print(evt)
+            events.add(evt)
+    return events
 
 
 @room.route('/api/room-availability')
@@ -334,8 +366,16 @@ def check_room_availability():
     end = request.args.get('end')
     start = dateutil.parser.isoparse(start)
     end = dateutil.parser.isoparse(end)
-    if get_overlaps(room_id, start, end, session_id, session_attr):
-        return '<span class="tag is-danger">ห้องไม่ว่าง/จองซ้อน</span>'
+    overlaps = get_overlaps(room_id, start, end, session_id, session_attr)
+    if overlaps:
+        temp = '<span class="tag is-light is-danger">{} {}</span>'
+        template = '<span class="tag is-danger">ห้องไม่ว่าง/จองซ้อน</span>'
+        template += '<span id="overlaps" hx-swap-oob="true" class="tags">'
+        template += ''.join([temp.format(evt.start.strftime('%H:%M'), evt.title) for evt in overlaps])
+        template += '</span>'
     else:
-        return '<span class="tag is-success">ห้องว่าง</span>'
+        template = '<span class="tag is-success">ห้องว่าง</span>'
+        template += '<span id="overlaps" hx-swap-oob="true" class="tags"></span>'
+    resp = make_response(template)
+    return resp
 

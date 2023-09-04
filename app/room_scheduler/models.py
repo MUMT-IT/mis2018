@@ -124,3 +124,6 @@ class RoomEvent(db.Model):
             'category': self.category.category if self.category else None,
             'note': self.note
         }
+
+    def __str__(self):
+        return f'{self.room.number}[ID={self.room.id}]: {self.start.isoformat()}-{self.end.isoformat()}'
