@@ -260,7 +260,9 @@
                         'start': startDateTime.format(),
                         'end': endDateTime.format(),
                         'session_id': null,
+                        {% if event %}
                         'event_id': {{ event.id|tojson|safe }}
+                        {% endif %}
                     }
                 })
         })
@@ -282,7 +284,9 @@
                         'start': startDateTime.format(),
                         'end': endDateTime.format(),
                         'session_id': null,
-                        'event_id': {{ event.id|tojson|safe }}
+                        {% if event %}
+                            'event_id': {{ event.id|tojson|safe }}
+                        {% endif %}
                     }
                 })
         })
@@ -298,7 +302,9 @@
                     'start': startDateTime.format(),
                     'end': endDateTime.format(),
                     'session_id': null,
-                    'event_id': {{ event.id|tojson|safe }}
+                    {% if event %}
+                        'event_id': {{ event.id|tojson|safe }}
+                    {% endif %}
                 }
             })
     });
