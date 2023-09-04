@@ -126,7 +126,7 @@
                                                         <th></th>
                                                         </thead>
                                                         <tbody>
-                                                        {% for pa_item in cat.pa_items.filter_by(pa_id=pa.id) %}
+                                                        {% for pa_item in cat.pa_items.filter_by(pa_id=pa.id)|sort(attribute='id') %}
                                                             <tr {% if pa_item_id == pa_item.id %}
                                                                 style="background-color: palegreen" {% endif %}>
                                                                 {#<td style="width: 20%">{{ pa_item.number|safe }}</td>#}
