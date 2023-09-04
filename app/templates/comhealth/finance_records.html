@@ -30,7 +30,7 @@
                     <% moment(props.row.checkin_datetime).format('lll') %>
                 </b-table-column>
                 <b-table-column field="customer.firstname" label="First Name" sortable>
-                    <% props.row.customer.title + props.row.customer.firstname %>
+                    <% props.row.customer.title + ' ' + props.row.customer.firstname %>
                 </b-table-column>
                 <b-table-column field="customer.lastname" label="Last Name" sortable>
                     <% props.row.customer.lastname %>
@@ -57,10 +57,10 @@
                         </span>
                     </a>
                 </b-table-column>
-                 <b-table-column field="note" label="Paid" sortable numeric>
+                 <b-table-column field="note" label="Paid" sortable>
                     <% props.row.receipts.length > 0 ? (props.row.receipts[props.row.receipts.length-1])['paid'] ? 'ชำระแล้ว':'' : ''  %>
                 </b-table-column>
-                <b-table-column field="note" label="Note." sortable numeric>
+                <b-table-column field="note" label="Note." sortable>
                     <% props.row.note %>
                 </b-table-column>
             </template>

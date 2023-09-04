@@ -1834,7 +1834,7 @@ def create_receipt(record_id):
         receipt_code.updated_datetime = datetime.now(tz=bangkok)
         db.session.add(receipt_code)
         for test_item in record.ordered_tests:
-            if test_item.profile and print_profile != 'individual':
+            if test_item.profile and print_profile == '':
                 continue
             visible = test_item.test.code + '_visible'
             billed = test_item.test.code + '_billed'
@@ -1917,6 +1917,17 @@ def show_receipt_detail(receipt_id):
 
     total_profile_cost_reimbursable = sum([t.test_item.price for t in receipt.invoices
                                            if t.billed and t.reimbursable and t.test_item.profile])
+    profile_quote = 0
+    for s in receipt.invoices:
+        if s.billed and s.reimbursable and s.test_item.profile:
+            print(s.test_item.profile.quote)
+            profile_quote = s.test_item.profile.quote
+            if s.test_item.profile.quote > 0:
+                break
+    if profile_quote > 0:
+        total_profile_cost_reimbursable = profile_quote
+        total_cost = total_profile_cost_reimbursable + total_special_cost
+        total_cost_float = float(total_cost)
 
     total_profile_cost_not_reimbursable = total_profile_cost - total_profile_cost_reimbursable
     total_special_cost_not_reimbursable = total_special_cost - total_special_cost_reimbursable
