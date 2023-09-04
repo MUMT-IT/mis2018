@@ -239,13 +239,15 @@ def room_reserve(room_id):
                 participant_emails = [f'{account.email}@mahidol.ac.th' for account in new_event.participants]
                 title = f'แจ้งนัดหมาย{new_event.category}'
                 message = f'ท่านได้รับเชิญให้เข้าร่วม {new_event.title}'
-                message += f' เวลา {new_event.start.astimezone(pytz.timezone("Asia/Bangkok")).strftime("%d/%m/%Y %H:%M")} - {new_event.end.astimezone(pytz.timezone("Asia/Bangkok")).strftime("%d/%m/%Y %H:%M")}'
+                message += f' เวลา {startdatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {enddatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}'
                 message += f' ณ ห้อง {room.number} {room.location}'
                 message += f'\n\nขอความอนุเคราะห์เข้าร่วมในวันและเวลาดังกล่าว'
-                send_mail(participant_emails, title, message)
-                print('The email has been sent to the participants.')
+                if not current_app.debug:
+                    send_mail(participant_emails, title, message)
+                else:
+                    print(message)
 
-            msg = f'{new_event.creator.fullname} ได้จองห้อง {room} สำหรับ {new_event.title} เวลา {new_event.start.strftime("%d/%m/%Y %H:%M")} - {new_event.end.strftime("%d/%m/%Y %H:%M")}.'
+            msg = f'{new_event.creator.fullname} ได้จองห้อง {room} สำหรับ {new_event.title} เวลา {startdatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {enddatetime.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}.'
             if not current_app.debug:
                 if room.coordinator and room.coordinator.line_id:
                     line_bot_api.push_message(to=room.coordinator.line_id, messages=TextSendMessage(text=msg))
