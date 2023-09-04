@@ -1177,9 +1177,8 @@ def migrate_room_datetime():
         if event.start > event.end:
             print(f'{event.id}')
         else:
-            start = arrow.get(event.start, 'Asia/Bangkok').datetime
-            end = arrow.get(event.end, 'Asia/Bangkok').datetime
-            event.datetime = DateTimeRange(lower=start, upper=end, bounds='[]')
+            event.datetime = DateTimeRange(lower=event.start.astimezone(bangkok),
+                                           upper=event.end.astimezone(bangkok), bounds='[]')
             db.session.add(event)
     db.session.commit()
 
