@@ -63,8 +63,8 @@ def get_events():
     if cal_end:
         cal_end = parser.isoparse(cal_end)
     all_events = []
-    for event in RoomEvent.query.filter(RoomEvent.start >= cal_start) \
-            .filter(RoomEvent.end <= cal_end).filter_by(cancelled_at=None):
+    for event in RoomEvent.query.filter(func.timezone('Asia/Bangkok', RoomEvent.start) >= cal_start) \
+            .filter(func.timezone('Asia/Bangkok', RoomEvent.end) <= cal_end).filter_by(cancelled_at=None):
         # The event object is a dict object with a 'summary' key.
         start = event.start
         end = event.end
@@ -348,8 +348,6 @@ def check_room_availability():
     end = request.args.get('end')
     start = dateutil.parser.isoparse(start)
     end = dateutil.parser.isoparse(end)
-    start = arrow.get(start, 'Asia/Bangkok').datetime
-    end = arrow.get(end, 'Asia/Bangkok').datetime
     overlaps = get_overlaps(room_id, start, end, session_id, session_attr)
     overlaps = [evt for evt in overlaps if evt.id != event_id]
     if overlaps:
