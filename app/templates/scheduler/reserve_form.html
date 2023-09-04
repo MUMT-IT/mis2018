@@ -256,7 +256,7 @@
                 applyButtonClasses: 'is-info',
                 cancelButtonClasses: 'is-text',
                 showDropdowns: true,
-                {% if not form.start.data %}
+                {% if not start %}
                     startDate: moment().startOf('hour'),
                 {% else %}
                     startDate: moment({{ start.isoformat()|tojson|safe }}).format(DATETIME_FORMAT),
@@ -274,7 +274,7 @@
                 buttonClasses: 'button is-small',
                 applyButtonClasses: 'is-info',
                 cancelButtonClasses: 'is-text',
-                {% if not form.end.data %}
+                {% if not end %}
                     startDate: moment().startOf('hour').add(1, 'hour'),
                 {% else %}
                     startDate: moment({{ end.isoformat()|tojson|safe }}).format(DATETIME_FORMAT),
