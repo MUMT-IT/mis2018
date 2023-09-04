@@ -143,7 +143,7 @@ def cancel(event_id=None):
             line_bot_api.push_message(to=event.room.coordinator.line_id,
                                       messages=TextSendMessage(text=msg))
         if event.participants and event.notify_participants:
-            participant_emails = [f'{account.email}@mahidol.ac.th' for account in new_event.participants]
+            participant_emails = [f'{account.email}@mahidol.ac.th' for account in event.participants]
             title = f'แจ้งยกเลิกการนัดหมาย{new_event.category}'
             message = f'ท่านได้รับเชิญให้เข้าร่วม {new_event.title}'
             message += f' เวลา {start.strftime("%d/%m/%Y %H:%M")} - {end.strftime("%d/%m/%Y %H:%M")}'
@@ -193,7 +193,7 @@ def edit_detail(event_id):
         db.session.add(event)
         db.session.commit()
         if event.participants and event.notify_participants:
-            participant_emails = [f'{account.email}@mahidol.ac.th' for account in new_event.participants]
+            participant_emails = [f'{account.email}@mahidol.ac.th' for account in event.participants]
             title = f'แจ้งแก้ไขการนัดหมาย{new_event.category}'
             message = f'ท่านได้รับเชิญให้เข้าร่วม {new_event.title}'
             message += f' เวลา {event_start.astimezone(localtz).strftime("%d/%m/%Y %H:%M")} - {event_end.astimezone(localtz).strftime("%d/%m/%Y %H:%M")}'
