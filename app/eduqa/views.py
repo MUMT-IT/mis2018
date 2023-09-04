@@ -353,6 +353,8 @@ def copy_course(course_id):
 @login_required
 def show_course_detail(course_id):
     course = EduQACourse.query.get(course_id)
+    grading_form = EduGradingSchemeForm()
+    grading_form.grading_scheme.data = course.grading_scheme
     admin = None
     instructor = None
     instructor_role = None
@@ -364,6 +366,7 @@ def show_course_detail(course_id):
             instructor_role = asc.role
     return render_template('eduqa/QA/course_detail.html', course=course,
                            instructor=instructor,
+                           grading_form=grading_form,
                            admin=admin,
                            instructor_role=instructor_role)
 
@@ -1030,6 +1033,24 @@ def get_assessment_methods(clo_id, activity_id=None):
         return form.assessments()
     else:
         return ''
+
+
+@edu.route('/qa/courses/<int:course_id>/grading-schemes', methods=['POST'])
+@login_required
+def update_grading_scheme(course_id):
+    course = EduQACourse.query.get(course_id)
+    form = EduGradingSchemeForm()
+    resp = make_response()
+    if form.validate_on_submit():
+        form.populate_obj(course)
+        db.session.add(course)
+        db.session.commit()
+        resp.headers['HX-Trigger-After-Swap'] = json.dumps({"successAlert": "Grading scheme has been changed."})
+    else:
+        resp.headers['HX-Trigger-After-Swap'] = json.dumps({"dangerAlert": "Error happened."})
+    return resp
+
+
 
 
 @edu.route('/qa/learning-activity-assessment-method-pair/<int:pair_id>', methods=['DELETE'])

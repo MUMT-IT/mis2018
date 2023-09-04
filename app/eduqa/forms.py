@@ -209,3 +209,11 @@ class EduCourseLearningOutcomeForm(ModelForm):
 
     learning_activity_assessment_forms = FieldList(FormField(EduCourseLearningActivityForm,
                                                              default=EduQALearningActivity), min_entries=0)
+
+
+class EduGradingSchemeForm(ModelForm):
+    grading_scheme = QuerySelectField('Scheme',
+                                      query_factory=lambda: EduQAGradingScheme.query.all(),
+                                      widget=widgets.ListWidget(prefix_label=False),
+                                      option_widget=widgets.RadioInput(),
+                                      get_label='name')

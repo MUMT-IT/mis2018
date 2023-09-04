@@ -79,7 +79,7 @@
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js@10.0.1/dist/css/shepherd.css"/>
         <link href="https://cdn.datatables.net/fixedcolumns/4.2.1/css/fixedColumns.dataTables.min.css"/>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-"
+        <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
     {% endblock %}
 </head>
 <body>
@@ -157,6 +157,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bulma-accordion@2.0.1/dist/js/bulma-accordion.min.js"></script>
     <script src="https://cdn.datatables.net/1.12.0/js/dataTables.bulma.min.js"></script>
     <script src="https://cdn.datatables.net/fixedcolumns/4.2.1/js/dataTables.fixedColumns.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
     <script>
         moment.locale('th');
         $(document).ready(function () {
@@ -178,6 +179,40 @@
                     });
                 });
             })
+        document.body.addEventListener('successAlert', function(evt) {
+            let msg = evt.detail.value
+            Toastify({
+                text: msg,
+                className: "is-success",
+                style: {
+                    background: "green"
+                }
+            }).showToast();
+        })
+        document.body.addEventListener('dangerAlert', function(evt) {
+            let msg = evt.detail.value
+            Toastify({
+                text: msg,
+                className: "is-danger",
+                style: {
+                    background: "red"
+                }
+            }).showToast();
+        })
+        document.body.addEventListener('htmx:confirm', function(evt) {
+            evt.preventDefault();
+            swal({
+              title: "ยืนยัน",
+              text: "ท่านมั่นใจว่าจะดำเนินการต่อหรือไม่",
+              icon: "warning",
+              buttons: true,
+              dangerMode: true,
+            }).then((confirmed) => {
+              if (confirmed) {
+                evt.detail.issueRequest();
+              }
+           });
+        });
     </script>
 {% endblock %}
 </body>

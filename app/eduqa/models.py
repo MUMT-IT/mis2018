@@ -152,6 +152,8 @@ class EduQACourse(db.Model):
     instructors = association_proxy('course_instructor_associations', 'instructor')
     course_instructor_associations = db.relationship('EduQACourseInstructorAssociation',
                                                      back_populates='course', cascade='all, delete-orphan')
+    grading_scheme_id = db.Column('grading_scheme_id', db.ForeignKey('eduqa_grading_schemes.id'))
+    grading_scheme = db.relationship('EduQAGradingScheme')
 
     @property
     def total_clo_percent(self):

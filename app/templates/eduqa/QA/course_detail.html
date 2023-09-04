@@ -239,7 +239,6 @@
                                                 </a>
                                                 <a hx-delete="{{ url_for('eduqa.delete_learning_activity_assessment_pair', pair_id=pair.id) }}"
                                                    hx-swap="outerHTML swap:1s"
-                                                   hx-confirm="Are you sure?"
                                                    hx-target="closest tr"
                                                 >
                                            <span class="icon">
@@ -540,11 +539,16 @@
                     </tr>
                 </table>
                 <h5 class="title is-size-4">การให้เกรด</h5>
-                <form>
-                    <div class="field">
-                        {{ grade_form.schemes() }}
-                    </div>
-                </form>
+                <ul>
+                    {% for field in grading_form.grading_scheme %}
+                        <li class="field">
+                            <label>
+                                {{ field(**{'hx-swap': 'none', 'hx-post': url_for('eduqa.update_grading_scheme', course_id=course.id)}) }}
+                                {{ field.label }}
+                            </label>
+                        </li>
+                    {% endfor %}
+                </ul>
                 <div class="buttons is-centered">
                     <a class="button is-rounded is-light" href="{{ url_for('eduqa.show_revision_detail', revision_id=course.revision.id) }}">
                         Back
