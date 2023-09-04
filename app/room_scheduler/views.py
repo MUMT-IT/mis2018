@@ -162,9 +162,13 @@ def edit_detail(event_id):
     event = RoomEvent.query.get(event_id)
     form = RoomEventForm(obj=event)
     if form.validate_on_submit():
+        event_start = arrow.get(form.start.data, 'Asia/Bangkok').datetime
+        event_end = arrow.get(form.end.data, 'Asia/Bangkok').datetime
+        if get_overlaps(event.room.id, event_start, event_end):
+            flash(f'ไม่สามารถจองได้เนื่องจากมีการจองในช่วงเวลาเดียวกัน', 'danger')
+            return redirect(url_for('room.edit_detail', event_id=event_id))
+
         form.populate_obj(event)
-        event.start = arrow.get(form.start.data, 'Asia/Bangkok').datetime
-        event.end = arrow.get(form.end.data, 'Asia/Bangkok').datetime
         event.updated_at = arrow.now('Asia/Bangkok').datetime
         event.updated_by = current_user.id
         db.session.add(event)
@@ -212,6 +216,10 @@ def room_reserve(room_id):
             enddatetime = None
 
         if room_id and startdatetime and enddatetime:
+            if get_overlaps(room_id, startdatetime, enddatetime):
+                flash(f'ไม่สามารถจองได้เนื่องจากมีการจองในช่วงเวลาเดียวกัน', 'danger')
+                return render_template('scheduler/reserve_form.html', room=room, form=form)
+
             form.populate_obj(new_event)
             new_event.start = startdatetime
             new_event.end = enddatetime
