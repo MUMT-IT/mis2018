@@ -16,7 +16,10 @@
                     <th>รอบการประเมิน</th>
                     <th>ผู้รับการประเมิน</th>
                     <th>สังกัด</th>
+                    <th>Performance</th>
+                    <th>Core Competency</th>
                     <th>คะแนนรวม</th>
+                    <th>ระดับ</th>
                     <th></th>
                     </thead>
                     <tbody>
@@ -32,7 +35,29 @@
                             {{ approved_scoresheet.pa.staff.personal_info.org }}
                         </td>
                         <td>
+                            {{ approved_scoresheet.pa.performance_score }}
+                        </td>
+                        <td>
+                            {{ approved_scoresheet.pa.competency_score }}
+                        </td>
+                        <td>
                             {{ approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score }}
+                        </td>
+                        <td>
+                        {% if approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 90 %}
+                            ดีเด่น
+                        {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 80
+                            and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 89.99%}
+                            ดีมาก
+                        {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >= 70
+                            and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 79.99 %}
+                            ดี
+                        {% elif approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score >=60
+                            and approved_scoresheet.pa.performance_score + approved_scoresheet.pa.competency_score <= 69.99 %}
+                            พอใช้
+                        {% else %}
+                            ควรปรับปรุง
+                        {% endif %}
                         </td>
                         <td>
                             <a href="{{ url_for('pa.detail_consensus_scoresheet_for_hr',
