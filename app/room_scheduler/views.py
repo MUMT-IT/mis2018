@@ -235,7 +235,7 @@ def room_reserve(room_id):
                 participant_emails = [f'{account.email}@mahidol.ac.th' for account in new_event.participants]
                 title = f'แจ้งนัดหมาย{new_event.category}'
                 message = f'ท่านได้รับเชิญให้เข้าร่วม {new_event.title}'
-                message += f' เวลา {new_event.start.strftime("%d/%m/%Y %H:%M")} - {new_event.end.strftime("%d/%m/%Y %H:%M")}'
+                message += f' เวลา {new_event.start.to("Asia/Bangkok").strftime("%d/%m/%Y %H:%M")} - {new_event.end.to("Asia/Bangkok").strftime("%d/%m/%Y %H:%M")}'
                 message += f' ณ ห้อง {room.number} {room.location}'
                 message += f'\n\nขอความอนุเคราะห์เข้าร่วมในวันและเวลาดังกล่าว'
                 send_mail(participant_emails, title, message)
@@ -359,7 +359,7 @@ def check_room_availability():
         temp = '<span class="tag is-warning">{} {}</span>'
         template = '<span class="tag is-danger">ห้องไม่ว่าง</span>'
         template += '<span id="overlaps" hx-swap-oob="true" class="tags">'
-        template += ''.join([temp.format(evt.start.strftime('%H:%M'), evt.title) for evt in overlaps])
+        template += ''.join([temp.format(evt.start.astimezone('Asia/Bangkok').strftime('%H:%M'), evt.title) for evt in overlaps])
         template += '</span>'
     else:
         template = '<span class="tag is-success">ห้องว่าง</span>'
