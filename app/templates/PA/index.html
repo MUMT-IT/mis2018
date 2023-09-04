@@ -35,7 +35,9 @@
                     <span class="panel-icon">
                         <i class="fa fa-edit"></i>
                     </span>
-                    <span class="is-size-5">ประเมินผลงาน</span><br>
+                    <span class="is-size-5">ประเมินผลงาน</span>
+                    <span class="tag is-rounded is-danger">{{ final_scoresheets|length }}</span>
+                    <br>
                 </a>
                 <a href="{{ url_for('pa.consensus_scoresheets') }}" class="panel-block">
                     <span class="panel-icon">
