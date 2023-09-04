@@ -145,10 +145,10 @@ def cancel(event_id=None):
         if event.participants and event.notify_participants:
             participant_emails = [f'{account.email}@mahidol.ac.th' for account in event.participants]
             title = f'แจ้งยกเลิกการนัดหมาย{event.category}'
-            message = f'ท่านได้รับเชิญให้เข้าร่วม {event.title}'
+            message = f'ขอแจ้งยกเลิกคำเชิญเข้าร่วม {event.title}'
             message += f' เวลา {start.strftime("%d/%m/%Y %H:%M")} - {end.strftime("%d/%m/%Y %H:%M")}'
             message += f' ณ ห้อง {event.room.number} {event.room.location}'
-            message += f'\n\nขอความอนุเคราะห์เข้าร่วมในวันและเวลาดังกล่าว'
+            message += f'\n\nขออภัยในความไม่สะดวก'
             send_mail(participant_emails, title, message)
     else:
         print(msg, event.room.coordinator)
