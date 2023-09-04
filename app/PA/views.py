@@ -643,6 +643,7 @@ def summary_scoresheet(pa_id):
                     .filter_by(item_id=int(core_scoresheet_id)).first()
                 core_scoresheet_item.score = float(value) if value else None
                 db.session.add(core_scoresheet_item)
+        consolidated_score_sheet.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.commit()
         flash('บันทึกผลค่าเฉลี่ยเรียบร้อยแล้ว', 'success')
         return redirect(url_for('pa.summary_scoresheet', pa_id=pa_id))
@@ -659,6 +660,7 @@ def confirm_score(scoresheet_id):
     next_url = request.args.get('next_url')
     scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
     scoresheet.is_final = True
+    scoresheet.confirm_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(scoresheet)
     db.session.commit()
     flash('บันทึกคะแนนเรียบร้อยแล้ว', 'success')
@@ -673,6 +675,7 @@ def confirm_score(scoresheet_id):
 def confirm_final_score(scoresheet_id):
     scoresheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
     scoresheet.is_final = True
+    scoresheet.confirm_at = arrow.now('Asia/Bangkok').datetime
     db.session.add(scoresheet)
     db.session.commit()
     flash('บันทึกคะแนนเรียบร้อยแล้ว', 'success')
@@ -840,6 +843,7 @@ def rate_performance(scoresheet_id):
                 else:
                     score_item.score = float(value) if value else None
                 db.session.add(score_item)
+        scoresheet.updated_at = arrow.now('Asia/Bangkok').datetime
         db.session.commit()
         flash('บันทึกผลการประเมินแล้ว', 'success')
     return render_template('PA/eva_rate_performance.html',
