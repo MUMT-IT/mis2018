@@ -20,6 +20,7 @@ from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
+from psycopg2._range import DateTimeRange
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 from flask_mail import Mail
@@ -1167,6 +1168,18 @@ def get_fiscal_date(date):
 
 
 from datetime import datetime
+
+
+@dbutils.command('migrate-room-datetime')
+def migrate_room_datetime():
+    print('Migrating...')
+    for event in RoomEvent.query:
+        if event.start > event.end:
+            print(f'{event.id}')
+        else:
+            event.datetime = DateTimeRange(lower=event.start, upper=event.end, bounds='[]')
+            db.session.add(event)
+    db.session.commit()
 
 
 @dbutils.command('calculate-leave-quota')
