@@ -121,6 +121,6 @@ class RoomEvent(db.Model):
             'cancelled_at': self.cancelled_at.isoformat() if self.cancelled_at else None,
             'end': self.end.isoformat(),
             'creator': self.creator.fullname if self.creator else None,
-            'category': self.category.category,
+            'category': self.category.category if self.category else None,
             'note': self.note
         }

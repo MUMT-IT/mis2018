@@ -271,7 +271,7 @@ def get_room_event_list():
     search = request.args.get('search[value]')
     room = RoomResource.query.filter_by(number=search).first()
     if room_query == 'some':
-        query = RoomEvent.query.filter(RoomEvent.room.has(coordinator=current_user))
+        query = query.filter(RoomEvent.room.has(coordinator=current_user))
     if search:
         query = query.filter(db.or_(
             RoomEvent.room.has(RoomEvent.room == room),
