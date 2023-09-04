@@ -66,14 +66,15 @@
                                             <th>ภาระงาน</th>
                                             <th>ร้อยละ(น้ำหนัก)</th>
                                             <th>ตัวชี้วัด (หากมีหลายตัวชี้วัดคะแนนจะถูกนำมาเฉลี่ย)</th>
+                                            {% if req.for_ == 'ขอรับการประเมิน' %}<th>ผลการดำเนินการ</th>{% endif %}
                                             </thead>
                                             <tbody>
                                             {% for pa_item in cat.pa_items.filter_by(pa_id=req.pa.id) %}
                                                 <tr {% if pa_item_id == pa_item.id %}
                                                     style="background-color: palegreen" {% endif %}>
-                                                    <td style="width: 40%">{{ pa_item.task }}</td>
+                                                    <td style="width: 50%">{{ pa_item.task }}</td>
                                                     <td style="width: 5%">{{ pa_item.percentage }}</td>
-                                                    <td>
+                                                    <td style="width: 25%">
                                                         <ul>
                                                             {% for kpi_item in pa_item.kpi_items %}
                                                                 <li>
@@ -86,6 +87,9 @@
                                                             {% endfor %}
                                                         </ul>
                                                     </td>
+                                                    {% if req.for_ == 'ขอรับการประเมิน' %}
+                                                    <td style="width: 25%">{{ pa_item.report }}</td>
+                                                    {% endif %}
                                                 </tr>
                                             {% endfor %}
                                             </tbody>

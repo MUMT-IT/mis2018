@@ -201,7 +201,14 @@ def view_pa_item(round_id):
 def index():
     new_requests = PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.responded_at == None).all()
     is_head_committee = PACommittee.query.filter_by(staff=current_user, role='ประธานกรรมการ').first()
-    return render_template('PA/index.html', is_head_committee=is_head_committee, new_requests=new_requests)
+    committee = PACommittee.query.filter_by(staff=current_user).all()
+    final_scoresheets = []
+    for committee in committee:
+        final_scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False, is_final=False).all()
+        for s in final_scoresheet:
+            final_scoresheets.append(s)
+    return render_template('PA/index.html', is_head_committee=is_head_committee, new_requests=new_requests,
+                                            final_scoresheets=final_scoresheets)
 
 
 @pa.route('/hr/create-round', methods=['GET', 'POST'])
