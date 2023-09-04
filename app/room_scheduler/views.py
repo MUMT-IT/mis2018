@@ -226,9 +226,6 @@ def room_reserve(room_id):
             new_event.created_at = arrow.now('Asia/Bangkok').datetime
             new_event.creator = current_user
             new_event.room_id = room.id
-            if new_event.participants:
-                new_event.occupancy = len(new_event.participants)
-
             db.session.add(new_event)
             db.session.commit()
 
