@@ -286,10 +286,10 @@
             $('input[name="start"]').change(function () {
                 let endDateTime = moment($('input[name="end"]').val(), DATETIME_FORMAT)
                 let startDateTime = moment($('input[name="start"]').val(), DATETIME_FORMAT)
+                $('input[name="end"]').data('daterangepicker')
+                    .setStartDate(startDateTime.add(1, 'hours'))
                 if (startDateTime.format() == endDateTime.format()) {
                     alert('กรุณาตรวจสอบวันและเวลาเริ่มและสิ้นสุดอีกครั้ง')
-                    $('input[name="end"]').data('daterangepicker')
-                        .setStartDate(startDateTime.add(1, 'hours'))
                 } else {
                     htmx.ajax('GET',
                         '{{ url_for("room.clear_status") }}',
