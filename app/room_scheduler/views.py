@@ -354,10 +354,12 @@ def check_room_availability():
     overlaps = get_overlaps(room_id, start, end, session_id, session_attr)
     overlaps = [evt for evt in overlaps if evt.id != event_id]
     if overlaps:
-        temp = '<span class="tag is-warning">{} {}</span>'
+        temp = '<span class="tag is-warning">{}-{} {}</span>'
         template = '<span class="tag is-danger">ห้องไม่ว่าง</span>'
         template += '<span id="overlaps" hx-swap-oob="true" class="tags">'
-        template += ''.join([temp.format(evt.start.astimezone(pytz.timezone('Asia/Bangkok')).strftime('%H:%M'), evt.title) for evt in overlaps])
+        template += ''.join([temp.format(evt.start.astimezone(pytz.timezone('Asia/Bangkok')).strftime('%H:%M'),
+                                         evt.end.astimezone(pytz.timezone('Asia/Bangkok')).strftime('%H:%M'),
+                                         evt.title) for evt in overlaps])
         template += '</span>'
     else:
         template = '<span class="tag is-success">ห้องว่าง</span>'
