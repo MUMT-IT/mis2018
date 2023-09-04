@@ -8,6 +8,7 @@ from flask import render_template, jsonify, request, flash, redirect, url_for, c
 from flask_login import login_required, current_user
 from linebot.models import TextSendMessage
 from sqlalchemy import and_, func
+from psycopg2.extras import DateTimeRange
 
 from app.main import mail
 from .forms import RoomEventForm
@@ -112,10 +113,7 @@ def show_event_detail(event_id=None):
     if event_id:
         event = RoomEvent.query.get(event_id)
         if event:
-            event.start = event.start.astimezone(pytz.timezone('Asia/Bangkok'))
-            event.end = event.end.astimezone(pytz.timezone('Asia/Bangkok'))
-            return render_template(
-                'scheduler/event_detail.html', event=event)
+            return render_template('scheduler/event_detail.html', event=event)
     else:
         return 'No event ID specified.'
 
@@ -223,6 +221,7 @@ def room_reserve(room_id):
                 return render_template('scheduler/reserve_form.html', room=room, form=form)
 
             form.populate_obj(new_event)
+            new_event.datetime = DateTimeRange(lower=startdatetime, upper=enddatetime, bounds='[]')
             new_event.start = startdatetime
             new_event.end = enddatetime
             new_event.created_at = arrow.now('Asia/Bangkok').datetime
@@ -296,45 +295,47 @@ def room_event_list():
 def get_overlaps(room_id, start, end, session_id=None, session_attr=None):
     query = RoomEvent.query.filter_by(room_id=room_id)
     events = set()
-    event_start = func.timezone('Asia/Bangkok', RoomEvent.start)
-    event_end = func.timezone('Asia/Bangkok', RoomEvent.end)
-    if not session_id:
-        # check for inner overlaps
-        for evt in query.filter(start >= event_start, end <= event_end):
-            events.add(evt)
-
-        for evt in query.filter(start >= event_start, end <= event_end):
-            events.add(evt)
-
-        # check for outer overlaps
-        for evt in query.filter(and_(start <= event_start,
-                                      end > event_start,
-                                      end <= event_end)):
-            events.add(evt)
-
-        for evt in query.filter(and_(start >= event_start,
-                                      end >= event_end,
-                                      start < event_end)):
-            events.add(evt)
-    else:
-        # check for inner overlaps
-        for evt in query.filter(start >= event_start,
-                                end <= event_end,
-                                session_id != getattr(RoomEvent, session_attr)):
-            events.add(evt)
-
-        # check for outer overlaps
-        for evt in query.filter(and_(start <= event_start,
-                                      end > event_start,
-                                      session_id != getattr(RoomEvent, session_attr),
-                                      end <= event_end)):
-            events.add(evt)
-
-        for evt in query.filter(and_(start >= event_start,
-                                      end >= event_end,
-                                      session_id != getattr(RoomEvent, session_attr),
-                                      start < event_end)):
-            events.add(evt)
+    for evt in query.filter(RoomEvent.datetime.op('&&')(DateTimeRange(lower=start, upper=end, bounds='[]'))):
+        events.add(evt)
+    # event_start = func.timezone('Asia/Bangkok', RoomEvent.start)
+    # event_end = func.timezone('Asia/Bangkok', RoomEvent.end)
+    # if not session_id:
+    #     # check for inner overlaps
+    #     for evt in query.filter(start >= event_start, end <= event_end):
+    #         events.add(evt)
+    #
+    #     for evt in query.filter(start >= event_start, end <= event_end):
+    #         events.add(evt)
+    #
+    #     # check for outer overlaps
+    #     for evt in query.filter(and_(start <= event_start,
+    #                                   end > event_start,
+    #                                   end <= event_end)):
+    #         events.add(evt)
+    #
+    #     for evt in query.filter(and_(start >= event_start,
+    #                                   end >= event_end,
+    #                                   start < event_end)):
+    #         events.add(evt)
+    # else:
+    #     # check for inner overlaps
+    #     for evt in query.filter(start >= event_start,
+    #                             end <= event_end,
+    #                             session_id != getattr(RoomEvent, session_attr)):
+    #         events.add(evt)
+    #
+    #     # check for outer overlaps
+    #     for evt in query.filter(and_(start <= event_start,
+    #                                   end > event_start,
+    #                                   session_id != getattr(RoomEvent, session_attr),
+    #                                   end <= event_end)):
+    #         events.add(evt)
+    #
+    #     for evt in query.filter(and_(start >= event_start,
+    #                                   end >= event_end,
+    #                                   session_id != getattr(RoomEvent, session_attr),
+    #                                   start < event_end)):
+    #         events.add(evt)
     return events
 
 
@@ -355,7 +356,7 @@ def check_room_availability():
         temp = '<span class="tag is-warning">{} {}</span>'
         template = '<span class="tag is-danger">ห้องไม่ว่าง</span>'
         template += '<span id="overlaps" hx-swap-oob="true" class="tags">'
-        template += ''.join([temp.format(evt.start.strftime('%H:%M'), evt.title) for evt in overlaps])
+        template += ''.join([temp.format(evt.datetime.lower.strftime('%H:%M'), evt.title) for evt in overlaps])
         template += '</span>'
     else:
         template = '<span class="tag is-success">ห้องว่าง</span>'

@@ -30,7 +30,8 @@
                                     <span class="subtitle is-6">
                                         <span class="icon">
                                             <i class="far fa-clock"></i>
-                                        </span>{{ event.start|localdatetime }} ถึง {{ event.end|localdatetime }}
+                                        </span>
+                                        {{ event.datetime.lower|localdatetime }} - {{ event.datetime.upper|localdatetime }}
                                     </span>
                                 </p>
                                 <p>
