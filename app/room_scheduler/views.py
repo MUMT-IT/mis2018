@@ -19,6 +19,8 @@ from .models import RoomResource, RoomEvent
 from ..models import IOCode
 from flask_mail import Message
 
+localtz = pytz.timezone('Asia/Bangkok')
+
 
 def send_mail(recp, title, message):
     message = Message(subject=title, body=message, recipients=recp)
@@ -113,7 +115,10 @@ def show_event_detail(event_id=None):
     if event_id:
         event = RoomEvent.query.get(event_id)
         if event:
-            return render_template('scheduler/event_detail.html', event=event)
+            return render_template('scheduler/event_detail.html', event=event,
+                                   event_start=localtz.localize(event.datetime.lower),
+                                   event_end=localtz.localize(event.datetime.upper),
+                                   )
     else:
         return 'No event ID specified.'
 
