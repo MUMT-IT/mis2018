@@ -162,11 +162,13 @@ def edit_detail(event_id):
     event = RoomEvent.query.get(event_id)
     form = RoomEventForm(obj=event)
     if form.validate_on_submit():
+        event_start = arrow.get(form.start.data, 'Asia/Bangkok').datetime
+        event_end = arrow.get(form.end.data, 'Asia/Bangkok').datetime
+        if get_overlaps(event.room.id, event_start, event_end):
+            flash(f'ไม่สามารถจองได้เนื่องจากมีการจองในช่วงเวลาเดียวกัน', 'danger')
+            return redirect(url_for('room.edit_detail', event_id=event_id))
+
         form.populate_obj(event)
-        if event.participants:
-            event.occupancy = len(event.participants)
-        event.start = arrow.get(form.start.data, 'Asia/Bangkok').datetime
-        event.end = arrow.get(form.end.data, 'Asia/Bangkok').datetime
         event.updated_at = arrow.now('Asia/Bangkok').datetime
         event.updated_by = current_user.id
         db.session.add(event)
@@ -214,6 +216,10 @@ def room_reserve(room_id):
             enddatetime = None
 
         if room_id and startdatetime and enddatetime:
+            if get_overlaps(room_id, startdatetime, enddatetime):
+                flash(f'ไม่สามารถจองได้เนื่องจากมีการจองในช่วงเวลาเดียวกัน', 'danger')
+                return render_template('scheduler/reserve_form.html', room=room, form=form)
+
             form.populate_obj(new_event)
             new_event.start = startdatetime
             new_event.end = enddatetime
@@ -265,7 +271,7 @@ def get_room_event_list():
     search = request.args.get('search[value]')
     room = RoomResource.query.filter_by(number=search).first()
     if room_query == 'some':
-        query = RoomEvent.query.filter(RoomEvent.room.has(coordinator=current_user))
+        query = query.filter(RoomEvent.room.has(coordinator=current_user))
     if search:
         query = query.filter(db.or_(
             RoomEvent.room.has(RoomEvent.room == room),
