@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% include "staff/nav.html" %}
+
+{% block page_content %}
+    <section class="section">
+    <div class="container">
+        <div class="columns">
+            {% include "messages.html" %}
+            <div class="column is-half is-offset-3">
+                <h1 class="title has-text-centered">File Upload</h1>
+                <form class="box" enctype="multipart/form-data" method="post">
+                    {{ form.hidden_tag() }}
+                    <div class="field">
+                        <label class="label">{{ form.file_upload.label }}</label>
+                        <div class="control">
+                            {{ form.file_upload() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">{{ form.image_upload.label }}</label>
+                        <div class="control">
+                            {{ form.image_upload() }}
+                        </div>
+                    </div>
+                    <div class="field">
+                        <div class="control">
+                            <button class="button is-success" type="submit">Upload</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    </section>
+
+{% endblock %}

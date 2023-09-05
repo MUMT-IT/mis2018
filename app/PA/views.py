@@ -9,11 +9,11 @@ from . import pa_blueprint as pa
 
 from app.roles import hr_permission
 from app.PA.forms import *
-from app.main import mail, StaffEmployment, StaffSpecialGroup
+from app.main import mail, StaffEmployment, StaffLeaveUsedQuota
 
 tz = pytz.timezone('Asia/Bangkok')
 
-from flask import render_template, flash, redirect, url_for, request, make_response, current_app
+from flask import render_template, flash, redirect, url_for, request, make_response, current_app, jsonify
 from flask_login import login_required, current_user
 from flask_mail import Message
 
@@ -31,8 +31,7 @@ def user_performance():
     return render_template('PA/user_performance.html',
                            staff_personal=staff_personal,
                            name=current_user,
-                           rounds=rounds
-                           )
+                           rounds=rounds)
 
 
 @pa.route('/rounds/<int:round_id>/items/add', methods=['GET', 'POST'])
@@ -126,6 +125,9 @@ def delete_pa_item(pa_id, pa_item_id):
 @login_required
 def delete_request(request_id):
     req = PARequest.query.get(request_id)
+    if req.for_ == 'ขอรับการประเมิน':
+        if req.pa.submitted_at:
+            req.pa.submitted_at = None
     db.session.delete(req)
     db.session.commit()
     resp = make_response()
@@ -199,7 +201,14 @@ def view_pa_item(round_id):
 def index():
     new_requests = PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.responded_at == None).all()
     is_head_committee = PACommittee.query.filter_by(staff=current_user, role='ประธานกรรมการ').first()
-    return render_template('PA/index.html', is_head_committee=is_head_committee, new_requests=new_requests)
+    committee = PACommittee.query.filter_by(staff=current_user).all()
+    final_scoresheets = []
+    for committee in committee:
+        final_scoresheet = PAScoreSheet.query.filter_by(committee_id=committee.id, is_consolidated=False, is_final=False).all()
+        for s in final_scoresheet:
+            final_scoresheets.append(s)
+    return render_template('PA/index.html', is_head_committee=is_head_committee, new_requests=new_requests,
+                                            final_scoresheets=final_scoresheets)
 
 
 @pa.route('/hr/create-round', methods=['GET', 'POST'])
@@ -268,7 +277,8 @@ def show_commitee():
 @pa.route('/hr/all-consensus-scoresheets')
 @login_required
 def consensus_scoresheets_for_hr():
-    approved_scoresheets = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True).all()
+    approved_scoresheets = PAScoreSheet.query.filter_by(is_consolidated=True, is_final=True, is_appproved=True)\
+                                            .filter(PAAgreement.evaluated_at != None).all()
     return render_template('staff/HR/PA/hr_all_consensus_scores.html',
                            approved_scoresheets=approved_scoresheets)
 
@@ -361,7 +371,11 @@ def create_request(pa_id):
 @login_required
 def all_request():
     all_req = PARequest.query.filter_by(supervisor_id=current_user.id).filter(PARequest.submitted_at != None).all()
-    return render_template('PA/head_all_request.html', all_req=all_req)
+    current_requests = []
+    for pa in PAAgreement.query.filter(PARequest.supervisor_id == current_user.id and PARequest.submitted_at != None):
+        req_ = pa.requests.order_by(PARequest.submitted_at.desc()).first()
+        current_requests.append(req_)
+    return render_template('PA/head_all_request.html', all_req=all_req, current_requests=current_requests)
 
 
 @pa.route('/head/request/<int:request_id>/detail')
@@ -385,11 +399,24 @@ def respond_request(request_id):
                 req.pa.approved_at = arrow.now('Asia/Bangkok').datetime
             elif req.for_ == 'ขอแก้ไข':
                 req.pa.approved_at = None
+        else:
+            if req.for_ == 'ขอรับการประเมิน':
+                req.pa.submitted_at = None
         req.responded_at = arrow.now('Asia/Bangkok').datetime
         req.supervisor_comment = form.get('supervisor_comment')
         db.session.add(req)
         db.session.commit()
-        flash('ดำเนินการอนุมัติเรียบร้อยแล้ว', 'success')
+        flash('ดำเนินการเรียบร้อยแล้ว', 'success')
+
+        req_msg = '{} {}คำขอในระบบ PA ท่านแล้ว รายละเอียดกรุณาคลิก link {}' \
+                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(
+            current_user.personal_info.fullname, req.status,
+            url_for("pa.add_pa_item", round_id=req.pa.round_id, pa_id=req.pa_id, _external=True))
+        req_title = 'แจ้งผลคำขอ PA'
+        if not current_app.debug:
+            send_mail([req.pa.staff.email + "@mahidol.ac.th"], req_title, req_msg)
+        else:
+            print(req_msg, req.pa.staff.email)
     return redirect(url_for('pa.view_request', request_id=request_id))
 
 
@@ -432,7 +459,6 @@ def create_scoresheet(pa_id):
 @login_required
 def create_scoresheet_for_self_evaluation(pa_id):
     scoresheet = PAScoreSheet.query.filter_by(pa_id=pa_id, staff=current_user).first()
-    pa_items = PAItem.query.filter_by(pa_id=pa_id).all()
     if not scoresheet:
         scoresheet = PAScoreSheet(pa_id=pa_id, staff=current_user)
         pa_items = PAItem.query.filter_by(pa_id=pa_id).all()
@@ -591,6 +617,17 @@ def summary_scoresheet(pa_id):
             db.session.commit()
         score_sheet_items = PAScoreSheetItem.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
     approved_scoresheets = PAApprovedScoreSheet.query.filter_by(score_sheet_id=consolidated_score_sheet.id).all()
+
+    # net_total = 0
+    # for pa_item in consolidated_score_sheet.pa.pa_items:
+    #     try:
+    #         total_score = pa_item.total_score(consolidated_score_sheet)
+    #         net_total += total_score
+    #     except ZeroDivisionError:
+    #         flash('คะแนนยังไม่ครบ คะแนนสรุปจะยังไม่ถูกต้อง')
+    # if net_total > 0:
+    #     performance_score = round(((net_total * 80) / 1000), 2)
+    #     competency_score = consolidated_score_sheet.competency_net_score()
     if request.method == 'POST':
         form = request.form
         for field, value in form.items():
@@ -608,6 +645,7 @@ def summary_scoresheet(pa_id):
                 db.session.add(core_scoresheet_item)
         db.session.commit()
         flash('บันทึกผลค่าเฉลี่ยเรียบร้อยแล้ว', 'success')
+        return redirect(url_for('pa.summary_scoresheet', pa_id=pa_id))
     return render_template('PA/head_summary_score.html',
                            score_sheet_items=score_sheet_items,
                            consolidated_score_sheet=consolidated_score_sheet,
@@ -670,22 +708,96 @@ def send_consensus_scoresheets_to_hr(pa_id):
 
         net_total = 0
         for pa_item in scoresheet.pa.pa_items:
-            total_score = pa_item.total_score(scoresheet)
-            net_total += total_score
-        performance_net_score = round(((net_total * 80) / 1000),2)
+            try:
+                total_score = pa_item.total_score(scoresheet)
+                net_total += total_score
+            except ZeroDivisionError:
+                flash('คะแนนไม่สมบูรณ์ กรุณาตรวจสอบความถูกต้อง', 'danger')
+        if net_total >0:
+            performance_net_score = round(((net_total * 80) / 1000),2)
 
 
-        pa_agreement.performance_score = performance_net_score
-        pa_agreement.competency_score = scoresheet.competency_net_score()
-        db.session.add(pa_agreement)
-        db.session.commit()
+            pa_agreement.performance_score = performance_net_score
+            pa_agreement.competency_score = scoresheet.competency_net_score()
+            db.session.add(pa_agreement)
+            db.session.commit()
 
-        pa = scoresheet.pa
-        pa.evaluated_at = arrow.now('Asia/Bangkok').datetime
+            pa = scoresheet.pa
+            pa.evaluated_at = arrow.now('Asia/Bangkok').datetime
+            db.session.add(pa)
+            db.session.commit()
+            flash('ส่งคะแนนไปยัง hr เรียบร้อยแล้ว', 'success')
+    return redirect(request.referrer)
+
+
+@pa.route('/head/all-approved-pa/send_comment/<int:pa_id>', methods=['GET', 'POST'])
+@login_required
+def send_evaluation_comment(pa_id):
+    consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True, is_final=True).filter(
+                                PACommittee.staff == current_user).first()
+    pa = PAAgreement.query.filter_by(id=pa_id).first()
+    if consolidated_score_sheet and pa.performance_score:
+        consolidated_score_sheet = PAScoreSheet.query.filter_by(id=consolidated_score_sheet.id).first()
+    else:
+        flash('ไม่พบคะแนนสรุป กรุณาสรุปผลคะแนนและรับรองผล ก่อนส่งคะแนนไปยังผู้รับการประเมิน', 'warning')
+        return redirect(request.referrer)
+
+    core_competency_items = PACoreCompetencyItem.query.all()
+    if request.method == 'POST':
+        form = request.form
+        consolidated_score_sheet.strengths = form.get('strengths')
+        consolidated_score_sheet.weaknesses = form.get('weaknesses')
+        db.session.add(consolidated_score_sheet)
+        pa = PAAgreement.query.filter_by(id=consolidated_score_sheet.pa_id).first()
+        pa.inform_score_at = arrow.now('Asia/Bangkok').datetime
         db.session.add(pa)
         db.session.commit()
-        flash('ส่งคะแนนไปยัง hr เรียบร้อยแล้ว', 'success')
-    return redirect(request.referrer)
+
+        req_msg = '{} แจ้งผลประเมินการปฏิบัติงานให้แก่ท่านแล้ว กรุณาคลิก link เพื่อดำเนินการรับทราบผล {}' \
+                  '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(current_user.personal_info.fullname,
+                    url_for("pa.accept_overall_score", pa_id=pa.id, _external=True))
+        req_title = 'แจ้งผลประเมิน PA'
+        if not current_app.debug:
+            send_mail([pa.staff.email + "@mahidol.ac.th"], req_title, req_msg)
+        else:
+            print(req_msg, pa.staff.email)
+        flash('แจ้งผลประเมินการปฏิบัติงานให้ผู้รับการประเมินทราบ เรียบร้อยแล้ว', 'success')
+    return render_template('PA/head_evaluation_comment.html',
+                           consolidated_score_sheet=consolidated_score_sheet,
+                           core_competency_items=core_competency_items)
+
+
+@pa.route('/overall-score/<int:pa_id>')
+@login_required
+def accept_overall_score(pa_id):
+    consolidated_score_sheet = PAScoreSheet.query.filter_by(pa_id=pa_id, is_consolidated=True).filter(
+                                PAAgreement.inform_score_at != None).first()
+    if consolidated_score_sheet:
+        consolidated_score_sheet = PAScoreSheet.query.filter_by(id=consolidated_score_sheet.id).first()
+    else:
+        flash('ยังไม่พบข้อมูลผลการประเมิน กรุณาติดต่อผู้บังคับบัญชาชั้นต้น', 'warning')
+        return redirect(request.referrer)
+
+    core_competency_items = PACoreCompetencyItem.query.all()
+    return render_template('PA/overall_score.html',
+                           consolidated_score_sheet=consolidated_score_sheet,
+                           core_competency_items=core_competency_items)
+
+
+@pa.route('/overall-score/<int:pa_id>/accept/<int:scoresheet_id>')
+@login_required
+def stamp_accept_score(pa_id, scoresheet_id):
+    pa = PAAgreement.query.get(pa_id)
+    pa.accept_score_at = arrow.now('Asia/Bangkok').datetime
+    db.session.add(pa)
+    db.session.commit()
+    flash('บันทึกข้อมูล การรับทราบผลประเมินเรียบร้อยแล้ว', 'success')
+
+    consolidated_score_sheet = PAScoreSheet.query.filter_by(id=scoresheet_id).first()
+    core_competency_items = PACoreCompetencyItem.query.all()
+    return render_template('PA/overall_score.html',
+                           consolidated_score_sheet=consolidated_score_sheet,
+                           core_competency_items=core_competency_items)
 
 
 @pa.route('/eva/rate_performance/<int:scoresheet_id>', methods=['GET', 'POST'])
@@ -926,3 +1038,19 @@ def all_kpi_all_item():
     kpis = PAKPI.query.all()
     items = PAItem.query.all()
     return render_template('staff/HR/PA/all_kpi_all_item.html', kpis=kpis, items=items)
+
+
+@pa.route('/api/leave-used-quota/<int:staff_id>')
+@login_required
+def get_leave_used_quota(staff_id):
+    leaves = []
+    for used_quota in StaffLeaveUsedQuota.query.filter_by(id=staff_id).all():
+        leaves.append({
+            'id': used_quota.id,
+            'fiscal_year': used_quota.fiscal_year,
+            'used_days': used_quota.used_days,
+            'pending_days': used_quota.pending_days,
+            'quota_days': used_quota.quota_days,
+            'leave_type': used_quota.leave_type.type_
+        })
+    return jsonify(leaves)

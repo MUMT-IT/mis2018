@@ -3,6 +3,7 @@
 import pandas as pd
 from dateutil import parser
 from flask_login import login_required, current_user
+from linebot.exceptions import LineBotApiError
 from pandas import read_excel, isna, DataFrame
 from app.eduqa.models import EduQAInstructor
 from . import staffbp as staff
@@ -338,8 +339,11 @@ def request_for_leave(quota_id=None):
                             if approver.is_active:
                                 if approver.notified_by_line and approver.account.line_id:
                                     if not current_app.debug:
-                                        line_bot_api.push_message(to=approver.account.line_id,
+                                        try:
+                                            line_bot_api.push_message(to=approver.account.line_id,
                                                                   messages=TextSendMessage(text=req_msg))
+                                        except LineBotApiError:
+                                            flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
                                     else:
                                         print(req_msg, approver.account.id)
                                 mails.append(approver.account.email + "@mahidol.ac.th")
@@ -519,8 +523,11 @@ def request_for_leave_period(quota_id=None):
                             if approver.is_active:
                                 if approver.notified_by_line and approver.account.line_id:
                                     if not current_app.debug:
-                                        line_bot_api.push_message(to=approver.account.line_id,
+                                        try:
+                                            line_bot_api.push_message(to=approver.account.line_id,
                                                                   messages=TextSendMessage(text=req_msg))
+                                        except LineBotApiError:
+                                            flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
                                     else:
                                         print(req_msg, approver.account.id)
                                 mails.append(approver.account.email + "@mahidol.ac.th")
@@ -1104,7 +1111,10 @@ def leave_approve(req_id, approver_id):
                     url_for("staff.show_leave_approval", req_id=req_id, _external=True))
             if req.notify_to_line and req.staff.line_id:
                 if not current_app.debug:
-                    line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=approve_msg))
+                    try:
+                        line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=approve_msg))
+                    except LineBotApiError:
+                        flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
                 else:
                     print(approve_msg, req.staff.id)
             approve_title = u'แจ้งสถานะการอนุมัติ' + req.quota.leave_type.type_
@@ -1143,8 +1153,11 @@ def request_cancel_leave_request(req_id):
                                                                      token=token, _external=True))
             if approval.approver.notified_by_line and approval.approver.account.line_id:
                 if not current_app.debug:
-                    line_bot_api.push_message(to=approval.approver.account.line_id,
+                    try:
+                        line_bot_api.push_message(to=approval.approver.account.line_id,
                                               messages=TextSendMessage(text=req_to_cancel_msg))
+                    except LineBotApiError:
+                        flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
                 else:
                     print(req_to_cancel_msg, approval.approver.account.id)
 
@@ -1247,7 +1260,10 @@ def approver_cancel_leave_request(req_id, cancelled_account_id):
                                                                                           , _external=True)
     if req.notify_to_line and req.staff.line_id:
         if not current_app.debug:
-            line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=cancelled_msg))
+            try:
+                line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=cancelled_msg))
+            except LineBotApiError:
+                flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
         else:
             print(cancelled_msg, req.staff.id)
     cancelled_title = u'แจ้งยกเลิกการขอ' + req.quota.leave_type.type_ + u'โดยผู้บังคับบัญชา'
@@ -1326,7 +1342,10 @@ def cancel_leave_request(req_id, cancelled_account_id):
                                                                                           , _external=True)
     if req.notify_to_line and req.staff.line_id:
         if not current_app.debug:
-            line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=cancelled_msg))
+            try:
+                line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=cancelled_msg))
+            except LineBotApiError:
+                flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
         else:
             print(cancelled_msg, req.staff.id)
     cancelled_title = u'แจ้งยกเลิกการขอ' + req.quota.leave_type.type_
@@ -1599,8 +1618,11 @@ def request_work_from_home():
             if approver.is_active:
                 if approver.notified_by_line and approver.account.line_id:
                     if not current_app.debug:
-                        line_bot_api.push_message(to=approver.account.line_id,
+                        try:
+                            line_bot_api.push_message(to=approver.account.line_id,
                                                   messages=TextSendMessage(text=req_msg))
+                        except LineBotApiError:
+                            flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
                     else:
                         print(req_msg, approver.account.id)
                 mails.append(approver.account.email + "@mahidol.ac.th")
@@ -1721,7 +1743,10 @@ def wfh_approve(req_id, approver_id):
                         url_for("staff.show_wfh_approval", request_id=req_id, _external=True))
         if req.notify_to_line and req.staff.line_id:
             if not current_app.debug:
-                line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=approve_msg))
+                try:
+                    line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=approve_msg))
+                except LineBotApiError:
+                    flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
             else:
                 print(approve_msg, req.staff.id)
         approve_title = u'แจ้งสถานะการอนุมัติ WFH'
@@ -2109,8 +2134,11 @@ def request_for_clockin_clockout():
                     if not current_app.debug:
                         send_mail([wfh_approver.approver.email + "@mahidol.ac.th"], req_title, req_msg)
                         if wfh_approver.notified_by_line and wfh_approver.account.line_id:
-                            line_bot_api.push_message(to=wfh_approver.account.line_id,
+                            try:
+                                line_bot_api.push_message(to=wfh_approver.account.line_id,
                                                       messages=TextSendMessage(text=req_msg))
+                            except LineBotApiError:
+                                flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
                         else:
                             print(req_msg, wfh_approver.account.id)
                     else:
@@ -2174,8 +2202,11 @@ def approved_for_clockin_clockout(request_id):
                         approver_id=clock_request.approver_id, _external=True))
         if clock_request.staff.line_id:
             if not current_app.debug:
-                line_bot_api.push_message(to=clock_request.staff.line_id,
+                try:
+                    line_bot_api.push_message(to=clock_request.staff.line_id,
                                           messages=TextSendMessage(text=approve_msg))
+                except LineBotApiError:
+                    flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
             else:
                 print(approve_msg, clock_request.staff.id)
         approve_title = u'แจ้งสถานะรับรองการทำงาน'
@@ -2882,7 +2913,10 @@ def seminar_add_approval(attend_id):
         if not current_app.debug:
             send_mail([requester_email + "@mahidol.ac.th"], req_title, req_msg)
             if line_id:
-                line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+                try:
+                    line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+                except LineBotApiError:
+                    flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
         else:
             print(req_msg, requester_email, line_id)
         flash('update รายการอนุมัติเรียบร้อยแล้ว', 'success')
@@ -3065,7 +3099,10 @@ def seminar_create_record(seminar_id):
             if not current_app.debug:
                 send_mail([approver_email + "@mahidol.ac.th"], req_title, req_msg)
                 if is_notify_line and line_id:
-                    line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+                    try:
+                        line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+                    except LineBotApiError:
+                        flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
             else:
                 print(req_msg, line_id)
             flash('ส่งคำขอไปยังผู้บังคับบัญชาของท่านเรียบร้อยแล้ว ', 'success')
@@ -3156,7 +3193,10 @@ def seminar_request_for_proposal(seminar_attend_id):
                 if not current_app.debug:
                     send_mail([requester_email + "@mahidol.ac.th"], req_title, req_msg)
                     if line_id:
-                        line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+                        try:
+                            line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+                        except LineBotApiError:
+                            flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
                 else:
                     print(req_msg, requester_email, line_id)
                 flash(
@@ -3176,7 +3216,10 @@ def seminar_request_for_proposal(seminar_attend_id):
             if not current_app.debug:
                 send_mail([requester_email + "@mahidol.ac.th"], req_title, req_msg)
                 if line_id:
-                    line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+                    try:
+                        line_bot_api.push_message(to=line_id, messages=TextSendMessage(text=req_msg))
+                    except LineBotApiError:
+                        flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
             else:
                 print(req_msg, requester_email, line_id)
             flash('ระบบบันทึกการอนุมัติของท่านแล้ว', 'success')
@@ -3257,7 +3300,10 @@ def seminar_upload_proposal(seminar_attend_id, proposal_id):
         if not current_app.debug:
             send_mail([general_account.email + "@mahidol.ac.th"], req_title, req_msg)
             if general_account.line_id:
-                line_bot_api.push_message(to=general_account.line_id, messages=TextSendMessage(text=req_msg))
+                try:
+                    line_bot_api.push_message(to=general_account.line_id, messages=TextSendMessage(text=req_msg))
+                except LineBotApiError:
+                    flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
         else:
             print(req_msg, general_account.email)
         flash('ระบบบันทึกการอนุมัติของท่านแล้ว', 'success')
@@ -3483,6 +3529,7 @@ def staff_create_info():
             en_firstname=form.get('en_firstname'),
             en_lastname=form.get('en_lastname'),
             th_firstname=form.get('th_firstname'),
+            th_title=form.get('th_title'),
             th_lastname=form.get('th_lastname'),
             position=form.get('position'),
             # TODO: try removing localize
@@ -3953,7 +4000,10 @@ def add_leave_request_by_hr(staff_id):
                    end_datetime,
                    url_for("staff.record_each_request_leave_request", request_id=createleave.id, _external=True))
         if not current_app.debug:
-            line_bot_api.push_message(to=staff_id.line_id, messages=TextSendMessage(text=req_msg))
+            try:
+                line_bot_api.push_message(to=staff_id.line_id, messages=TextSendMessage(text=req_msg))
+            except LineBotApiError:
+                flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
         else:
             print(req_msg, staff_id.email)
         mails.append(staff_id.email + "@mahidol.ac.th")
@@ -4035,7 +4085,10 @@ def cancel_leave_request_by_hr(req_id):
                                                                                           , _external=True)
     if req.notify_to_line and req.staff.line_id:
         if not current_app.debug:
-            line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=cancelled_msg))
+            try:
+                line_bot_api.push_message(to=req.staff.line_id, messages=TextSendMessage(text=cancelled_msg))
+            except LineBotApiError:
+                flash('ไม่สามารถส่งแจ้งเตือนทางไลน์ได้ เนื่องจากระบบไลน์ขัดข้อง', 'warning')
         else:
             print(cancelled_msg, req.staff.id)
     cancelled_title = u'แจ้งยกเลิกการขอ' + req.quota.leave_type.type_ + u'โดยเจ้าหน้าที่หน่วย HR'
