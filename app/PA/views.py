@@ -522,15 +522,11 @@ def create_scoresheet_for_committee(pa_id):
                         )
                         db.session.add(create_scoresheet_item)
                         db.session.commit()
-                scoresheet_id = create_scoresheet.id
-            else:
-                scoresheet_id = scoresheet.id
             mails.append(c.staff.email + "@mahidol.ac.th")
         req_title = 'แจ้งคำขอเข้ารับการประเมินการปฏิบัติงาน(PA)'
         req_msg = '{} ขอรับการประเมิน PA กรุณาดำเนินการตาม Link ที่แนบมานี้ {}' \
                   '\n\n\nหน่วยพัฒนาบุคลากรและการเจ้าหน้าที่\nคณะเทคนิคการแพทย์'.format(pa.staff.personal_info.fullname,
-                                                                                       url_for("pa.all_performance",
-                                                                                               scoresheet_id=scoresheet_id,
+                                                                                       url_for("pa.index",
                                                                                                _external=True))
         if not current_app.debug:
             send_mail(mails, req_title, req_msg)
