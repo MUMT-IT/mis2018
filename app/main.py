@@ -20,6 +20,7 @@ from flask_admin import Admin, AdminIndexView
 from flask_admin.contrib.sqla import ModelView
 from flask_wtf.csrf import CSRFProtect
 from flask_qrcode import QRcode
+from psycopg2._range import DateTimeRange
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 from flask_mail import Mail
@@ -480,6 +481,13 @@ admin.add_view(ModelView(EduQACurriculum, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQACurriculumnRevision, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQAInstructorRole, db.session, category='EduQA'))
 admin.add_view(ModelView(EduQACourseSessionDetailRoleItem, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQACourseLearningOutcome, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQALearningActivity, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQALearningActivityAssessment, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQALearningActivityAssessmentPair, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAGradingScheme, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAGradingSchemeItem, db.session, category='EduQA'))
+admin.add_view(ModelView(EduQAGradingSchemeItemCriteria, db.session, category='EduQA'))
 
 from app.chemdb import chemdbbp as chemdb_blueprint
 from app.chemdb.models import *
@@ -1160,6 +1168,19 @@ def get_fiscal_date(date):
 
 
 from datetime import datetime
+
+
+@dbutils.command('migrate-room-datetime')
+def migrate_room_datetime():
+    print('Migrating...')
+    for event in RoomEvent.query:
+        if event.start > event.end:
+            print(f'{event.id}')
+        else:
+            event.datetime = DateTimeRange(lower=event.start.astimezone(bangkok),
+                                           upper=event.end.astimezone(bangkok), bounds='[]')
+            db.session.add(event)
+    db.session.commit()
 
 
 @dbutils.command('calculate-leave-quota')

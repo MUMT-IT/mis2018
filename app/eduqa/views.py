@@ -1,5 +1,6 @@
 # -*- coding:utf-8 -*-
 import pandas as pd
+import json
 
 import arrow
 from flask import render_template, request, flash, redirect, url_for, session, jsonify, make_response
@@ -352,6 +353,8 @@ def copy_course(course_id):
 @login_required
 def show_course_detail(course_id):
     course = EduQACourse.query.get(course_id)
+    grading_form = EduGradingSchemeForm()
+    grading_form.grading_scheme.data = course.grading_scheme
     admin = None
     instructor = None
     instructor_role = None
@@ -363,6 +366,7 @@ def show_course_detail(course_id):
             instructor_role = asc.role
     return render_template('eduqa/QA/course_detail.html', course=course,
                            instructor=instructor,
+                           grading_form=grading_form,
                            admin=admin,
                            instructor_role=instructor_role)
 
@@ -398,7 +402,7 @@ def assign_roles(course_id):
     form = EduCourseInstructorRoleForm()
     if form.validate_on_submit():
         for form_field in form.roles:
-            course_inst = EduQACourseInstructorAssociation.query\
+            course_inst = EduQACourseInstructorAssociation.query \
                 .filter_by(course_id=course_id).filter_by(instructor_id=int(form_field.instructor_id.data)).first()
             course_inst.role = form_field.role.data
             db.session.add(course_inst)
@@ -414,6 +418,7 @@ def assign_roles(course_id):
             instructor = None
             instructor_role = None
     return render_template('eduqa/QA/role_edit.html', course=course, instructor=instructor, form=form)
+
 
 @edu.route('/qa/courses/<int:course_id>/instructors/remove/<int:instructor_id>')
 @login_required
@@ -498,7 +503,8 @@ def edit_session(course_id, session_id):
         else:
             for field, error in form.errors.items():
                 flash('{}: {}'.format(field, error), 'danger')
-    return render_template('eduqa/QA/session_edit.html', form=form, course=course, session_id=session_id, localtz=localtz)
+    return render_template('eduqa/QA/session_edit.html', form=form, course=course, session_id=session_id,
+                           localtz=localtz)
 
 
 @edu.route('/qa/courses/<int:course_id>/sessions/<int:session_id>/duplicate', methods=['GET', 'POST'])
@@ -507,19 +513,19 @@ def duplicate_session(course_id, session_id):
     course = EduQACourse.query.get(course_id)
     a_session = EduQACourseSession.query.get(session_id)
     new_session = EduQACourseSession(
-            course_id=course_id,
-            start=a_session.start,
-            end=a_session.end,
-            type_=a_session.type_,
-            desc=a_session.desc,
-            instructors=a_session.instructors,
-            format=a_session.format,
-            )
+        course_id=course_id,
+        start=a_session.start,
+        end=a_session.end,
+        type_=a_session.type_,
+        desc=a_session.desc,
+        instructors=a_session.instructors,
+        format=a_session.format,
+    )
     for topic in a_session.topics:
         new_topic = EduQACourseSessionTopic(
-                topic=topic.topic,
-                method=topic.method,
-                )
+            topic=topic.topic,
+            method=topic.method,
+        )
         new_session.topics.append(new_topic)
         db.session.add(new_topic)
 
@@ -548,7 +554,7 @@ def delete_session(session_id):
 def add_session_detail(course_id, session_id):
     course = EduQACourse.query.get(course_id)
     a_session = EduQACourseSession.query.get(session_id)
-    session_detail = EduQACourseSessionDetail.query\
+    session_detail = EduQACourseSessionDetail.query \
         .filter_by(session_id=session_id, staff_id=current_user.id).first()
     EduCourseSessionDetailForm = CourseSessionDetailFormFactory(a_session.type_)
     factor = 1
@@ -703,6 +709,7 @@ def remove_session_room_event(course_id):
     resp = make_response(resp)
     return resp
 
+
 @edu.route('/api/qa/courses/<int:course_id>/sessions/<int:session_id>/roles', methods=['POST'])
 @login_required
 def add_session_role(course_id, session_id):
@@ -836,6 +843,225 @@ def delete_session_assignment(session_id):
     return redirect(url_for('eduqa.show_course_detail', course_id=course_id))
 
 
+@edu.route('/qa/courses/<int:course_id>/learning-outcomes-form-modal', methods=['GET', 'POST', 'DELETE', 'PUT'])
+@edu.route('/qa/courses/<int:course_id>/learning-outcomes-form-modal/<int:clo_id>',
+           methods=['GET', 'POST', 'DELETE', 'PUT'])
+@login_required
+def edit_clo(course_id, clo_id=None):
+    course = EduQACourse.query.get(course_id)
+    if clo_id:
+        clo = EduQACourseLearningOutcome.query.get(clo_id)
+        form = EduCourseLearningOutcomeForm(obj=clo)
+    else:
+        form = EduCourseLearningOutcomeForm()
+    if request.method == 'GET':
+        return render_template('eduqa/partials/clo_form_modal.html',
+                               form=form, course_id=course_id, clo_id=clo_id)
+    elif request.method == 'POST':
+        if form.validate_on_submit():
+            new_clo = EduQACourseLearningOutcome()
+            form.populate_obj(new_clo)
+            new_clo.course_id = course_id
+            db.session.add(new_clo)
+            db.session.commit()
+            template = f'''
+                <tr>
+                    <td>CLO{ new_clo.number }</td>
+                    <td>
+                        <p class="box">
+                            { new_clo.detail }
+                        </p>
+                        <table class="table" id="clo-table-{ new_clo.id }">
+                            <thead>
+                            <th>รูปแบบ</th>
+                            <th>การวัดผลลัพธ์</th>
+                            <th>น้ำหนัก</th>
+                            <th>
+                                <a class="button is-small is-rounded is-light is-info"
+                                   hx-swap="innerHTML"
+                                   hx-target="#learning-activity-form"
+                                   hx-get="{ url_for('eduqa.edit_learning_activity', clo_id=new_clo.id, course_id=course_id) }">
+                                <span class="icon">
+                                   <i class="fa-solid fa-plus"></i>
+                                </span>
+                                    <span>เพิ่ม</span>
+                                </a>
+                            </th>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </td>
+                    <td><span class="tag is-rounded is-success">{ new_clo.score_weight }</span></td>
+                    <td>
+                        <a hx-get="{ url_for('eduqa.edit_clo', course_id=course_id, clo_id=new_clo.id) }"
+                           hx-target="#clo-form" hx-swap="innerHTML">
+                           <span class="icon"><i class="fas fa-pencil-alt"></i></span>
+                        </a>
+                        <a hx-confirm="ต้องการลบ CLO นี้หรือไม่" hx-swap="outerHTML"
+                           hx-target="closest tr"
+                           hx-delete="{ url_for('eduqa.edit_clo', course_id=course_id, clo_id=new_clo.id) }">
+                            <span class="icon"><i class="far fa-trash-alt has-text-danger"></i></span>
+                        </a>
+                    </td>
+                </tr>
+            '''
+            resp = make_response(template)
+            resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(course.total_clo_percent)})
+            return resp
+    elif request.method == 'PUT':
+        form.populate_obj(clo)
+        db.session.add(clo)
+        db.session.commit()
+    elif request.method == 'DELETE':
+        db.session.delete(clo)
+        db.session.commit()
+        resp = make_response()
+        resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(course.total_clo_percent)})
+        return resp
+
+    template = ''.join(['''
+    <tr>
+        <td>CLO{}</td>
+        <td>{}</td>
+        <td>{}</td>
+        <td>
+            <a hx-delete="{}" hx-confirm="ต้องการลบ CLO นี้หรือไม่">
+                <span class="icon">
+                    <i class="far fa-trash-alt has-text-danger"></i>
+                </span>
+            </a>
+            <a hx-get="{}"
+                hx-target="#clo-table" hx-swap="innerHTML">
+                <span class="icon">
+                    <i class="fas fa-pencil-alt"></i>
+                </span>
+            </a>
+        </td>
+    </tr>
+    '''.format(c.number, c.detail, c.score_weight,
+               url_for('eduqa.edit_clo', course_id=course_id, clo_id=c.id),
+               url_for('eduqa.edit_clo', course_id=course.id, clo_id=c.id))
+                        for c in sorted(course.outcomes, key=lambda x: x.number)])
+    resp = make_response(template)
+    print(template)
+    if request.method == 'DELETE':
+        resp.headers['HX-Refresh'] = 'true'
+    else:
+        resp.headers['HX-Trigger-After-Swap'] = json.dumps({'closeModal': float(course.total_clo_percent)})
+    return resp
+
+
+@edu.route('/qa/clos/<int:clo_id>/learning-activities', methods=['GET', 'PUT', 'POST', 'DELETE'])
+@edu.route('/qa/clos/<int:clo_id>/learning-activities/<int:pair_id>', methods=['GET', 'PUT', 'POST', 'DELETE'])
+@login_required
+def edit_learning_activity(clo_id, pair_id=None):
+    clo = EduQACourseLearningOutcome.query.get(clo_id)
+    if request.method == 'GET':
+        if pair_id:
+            pair = EduQALearningActivityAssessmentPair.query.get(pair_id)
+            form = EduCourseLearningActivityForm()
+            form.learning_activity.data = pair.learning_activity
+            form.assessments.choices = [(c.id, str(c)) for c in pair.learning_activity.assessments]
+            form.assessments.data = pair.learning_activity_assessment_id
+            form.score_weight.data = pair.score_weight
+        else:
+            form = EduCourseLearningActivityForm()
+            form.assessments.choices = []
+        return render_template('eduqa/partials/learning_activity_form_modal.html',
+                               form=form,
+                               clo_id=clo_id,
+                               pair_id=pair_id)
+    elif request.method == 'POST':
+        form = EduCourseLearningActivityForm()
+        activity = form.learning_activity.data
+        assessment_id = form.assessments.data
+        if pair_id:
+            pair = EduQALearningActivityAssessmentPair.query.get(pair_id)
+            pair.learning_activity_assessment_id = assessment_id
+        else:
+            pair = EduQALearningActivityAssessmentPair(clo=clo,
+                                                       learning_activity=activity,
+                                                       learning_activity_assessment_id=assessment_id)
+        pair.score_weight = form.score_weight.data
+        db.session.add(pair)
+        db.session.commit()
+        template = f'''
+            <tr>
+                <td>{ pair.learning_activity }</td>
+                <td>
+                    { pair.learning_activity_assessment }
+                </td>
+                <td>
+                    { pair.score_weight or 0.0 }
+                </td>
+                <td>
+                    <a hx-target="#learning-activity-form"
+                       hx-swap="innerHTML"
+                       hx-get="{ url_for('eduqa.edit_learning_activity', clo_id=clo.id, course_id=clo.course_id, pair_id=pair.id) }">
+                       <span class="icon">
+                           <i class="fas fa-pencil-alt"></i>
+                       </span>
+                    </a>
+                    <a hx-delete="{ url_for('eduqa.delete_learning_activity_assessment_pair', pair_id=pair.id) }"
+                       hx-swap="outerHTML swap:1s"
+                       hx-confirm="Are you sure?"
+                       hx-target="closest tr">
+                       <span class="icon">
+                           <i class="far fa-trash-alt has-text-danger"></i>
+                       </span>
+                    </a>
+                </td>
+            </tr>
+        '''
+        resp = make_response(template)
+        resp.headers['HX-Trigger-After-Swap'] = 'closeModal'
+        return resp
+
+
+@edu.route('/qa/clos/<int:clo_id>/assessment-methods', methods=['POST'])
+@edu.route('/qa/clos/<int:clo_id>/activities/<int:activity_id>/assessment-methods', methods=['POST'])
+@login_required
+def get_assessment_methods(clo_id, activity_id=None):
+    form = EduCourseLearningActivityForm()
+    activity = form.learning_activity.data
+    if activity:
+        form.assessments.choices = [(c.id, str(c)) for c in activity.assessments]
+        if activity_id:
+            form.assessments.data = [c.learning_activity_assessment_id for c in
+                                     EduQALearningActivityAssessmentPair.query.filter_by(clo_id=clo_id,
+                                                                                         learning_activity=activity)]
+        return form.assessments()
+    else:
+        return ''
+
+
+@edu.route('/qa/courses/<int:course_id>/grading-schemes', methods=['POST'])
+@login_required
+def update_grading_scheme(course_id):
+    course = EduQACourse.query.get(course_id)
+    form = EduGradingSchemeForm()
+    resp = make_response()
+    if form.validate_on_submit():
+        form.populate_obj(course)
+        db.session.add(course)
+        db.session.commit()
+        resp.headers['HX-Trigger-After-Swap'] = json.dumps({"successAlert": "Grading scheme has been changed."})
+    else:
+        resp.headers['HX-Trigger-After-Swap'] = json.dumps({"dangerAlert": "Error happened."})
+    return resp
+
+
+
+
+@edu.route('/qa/learning-activity-assessment-method-pair/<int:pair_id>', methods=['DELETE'])
+@login_required
+def delete_learning_activity_assessment_pair(pair_id):
+    pair = EduQALearningActivityAssessmentPair.query.get(pair_id)
+    db.session.delete(pair)
+    db.session.commit()
+    return ''
+
+
 @edu.route('/qa/revisions/<int:revision_id>/summary/hours')
 def show_hours_summary_all(revision_id):
     revision = EduQACurriculumnRevision.query.get(revision_id)
@@ -854,10 +1080,10 @@ def show_hours_summary_all(revision_id):
             data.append(d)
     df = pd.DataFrame(data)
     sum_hours = df.pivot_table(index='instructor',
-                   columns='course',
-                   values='seconds',
-                   aggfunc='sum',
-                   margins=True).apply(lambda x: (x // 3600) / 40.0).fillna('')
+                               columns='course',
+                               values='seconds',
+                               aggfunc='sum',
+                               margins=True).apply(lambda x: (x // 3600) / 40.0).fillna('')
     return render_template('eduqa/QA/mtc/summary_hours_all_courses.html',
                            sum_hours=sum_hours,
                            revision_id=revision_id)
@@ -876,13 +1102,13 @@ def show_hours_summary_by_year(revision_id):
     year = request.args.get('year', type=int)
     revision = EduQACurriculumnRevision.query.get(revision_id)
     data = []
-    all_years = EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id))\
+    all_years = EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id)) \
         .with_entities(extract('year', EduQACourseSession.start)).distinct()
     all_years = sorted([int(y[0]) for y in all_years])
     if all_years:
         if not year:
             year = all_years[0]
-        for session in EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id))\
+        for session in EduQACourseSession.query.filter(EduQACourseSession.course.has(revision_id=revision_id)) \
                 .filter(extract('year', EduQACourseSession.start) == year):
             for instructor in session.instructors:
                 session_detail = session.details.filter_by(staff_id=instructor.account_id).first()

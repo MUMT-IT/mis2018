@@ -2,7 +2,7 @@
 {% include "PA/nav.html" %}
 
 {% block page_content %}
-    <section class="section">
+    <section class="section" id="app">
         <div class="container">
             {% include "messages.html" %}
              {% if for_self == 'false' %}
@@ -179,20 +179,21 @@
                     <div class="column has-text-centered">
                         <div class="buttons is-centered">
                             <a  onclick="return confirm('กรุณาบันทึกคะแนน(ปุ่มเขียว)ก่อนคลิก OK หากบันทึกเรียบร้อยแล้วคลิก OK เพื่อดำเนินการส่งคะแนนต่อไป')"
-                                    href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}")
+                                    href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}"
+                                id="confirmButton")
                                class="button is-info">
                                 <span class="icon">
                                     <i class="fa-solid fa-paper-plane"></i>
                                 </span>
-                                <span>confirm คะแนน**</span>
+                                <span>ยืนยันคะแนน</span>
                             </a>
                         </div>
                         <p class="notification is-danger is-light has-text-danger">
                             <span class="icon">
                                 <i class="fa-solid fa-circle-info"></i>
                             </span>
-                            <span>กด บันทึก ทุกครั้ง<br>ก่อนconfirmคะแนนครั้งสุดท้าย<br>
-                                **ไม่สามารถแก้ไขคะแนนได้หลังconfirmคะแนน
+                            <span>กด บันทึก ทุกครั้ง ก่อนยืนยันคะแนน<br>
+                                ท่านไม่สามารถแก้ไขคะแนนได้หลังจากยืนยันคะแนนแล้ว
                             </span>
                         </p>
                     </div>
@@ -229,4 +230,31 @@
             </form>
         </div>
     </section>
+{% endblock %}
+{% block scripts %}
+    {{ super() }}
+    <script>
+        let isEmpty = false
+        let checkInput=function(){
+            console.log(isEmpty)
+            isEmpty = false
+           $(':input[type=number]').each(function(){
+              if($(this).val() ===''){
+                 isEmpty = true
+                  return false
+              }
+           })
+            if(isEmpty){
+                $('#confirmButton').hide()
+            }
+            else{
+                $('#confirmButton').show()
+            }
+        }
+        $(document).ready(function (){
+            $(':input').change(checkInput)
+            checkInput()
+        }
+        )
+    </script>
 {% endblock %}
