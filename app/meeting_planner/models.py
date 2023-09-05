@@ -90,3 +90,31 @@ class MeetingAgendaNote(db.Model):
     staff_id = db.Column('staff_id', db.ForeignKey('staff_account.id'))
     staff = db.relationship(StaffAccount, backref=db.backref('meeting_agenda_notes',
                                                              lazy='dynamic'))
+
+
+class MeetingPoll(db.Model):
+    __tablename__ = 'meeting_polls'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    poll_name = db.Column('poll_name', db.String(), nullable=False, info={'label': 'ชื่อการโหวต'})
+    start_vote = db.Column('start_vote', db.DateTime(timezone=True), nullable=False, info={'label': 'วันที่เริ่มโหวต'})
+    close_vote = db.Column('close_vote', db.DateTime(timezone=True), nullable=False, info={'label': 'วันที่ปิดโหวต'})
+    user_id = db.Column('user_id', db.ForeignKey('staff_account.id'))
+    user = db.relationship(StaffAccount, backref=db.backref('meeting_votes', lazy='dynamic'))
+
+
+class MeetingPollItem(db.Model):
+    __tablename__ = 'meeting_poll_items'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    date_time = db.Column('date_time', db.DateTime(timezone=True), nullable=False, info={'label': 'เลือกวันที่โหวต'})
+    poll_id = db.Column('poll_id', db.ForeignKey('meeting_polls.id'))
+    poll = db.relationship(MeetingPoll, backref=db.backref('poll_items'))
+
+
+class MeetingItemAssociation(db.Model):
+    __tablename__ = 'meeting_item_assoc'
+    id = db.Column('id', db.Integer, autoincrement=True, primary_key=True)
+    user_id = db.Column('user_id', db.ForeignKey('staff_account.id'))
+    user = db.relationship(StaffAccount, backref=db.backref('meeting_users',
+                                                             lazy='dynamic'))
+    poll_item_id = db.Column('poll_item_id', db.ForeignKey('meeting_poll_items.id'))
+    poll_item = db.relationship(MeetingPollItem, backref=db.backref('meeting_item'))
