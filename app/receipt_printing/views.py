@@ -555,26 +555,36 @@ def download_daily_payment_report():
             u'IO': u"{}".format(receipt.item_internal_order_list if receipt and receipt.item_internal_order_list else '')
         })
     df = DataFrame(records)
-    df.to_excel('daily_payment_report.xlsx',
-                header=True,
-                columns=[u'เล่มที่',
-                         u'เลขที่',
-                         u'รายการ',
-                         u'จำนวนเงิน',
-                         u'ช่องทางการชำระเงิน',
-                         u'เลขที่บัตรเครดิต',
-                         u'เลขที่เช็ค',
-                         u'ธนาคาร',
-                         u'ผู้รับเงิน/ผู้บันทึก',
-                         u'ตำแหน่ง',
-                         u'วันที่',
-                         u'หมายเหตุ',
-                         u'GL',
-                         u'Cost Center',
-                         u'IO'
-                         ],
-                index=False,
-                encoding='utf-8')
+    for idx in range(0, len(df)):  # in case there's more than 1 row with '\n'
+        try:
+            if '\n' in df['รายการ'][idx]:  # step1 check for '\n'
+                newIdx = idx + 0.5
+                df.loc[newIdx] = df.loc[idx]  # step2 add new row
+
+                # step3 split value before/after '\n'
+                # fix values in 'รายการ'
+                strSplit = df['รายการ'][idx].split('\n')
+                df['รายการ'][idx] = strSplit[0]
+                df['รายการ'][newIdx] = strSplit[1]
+
+                # fix values in 'GL'
+                strSplit = df['GL'][idx].split('\n')
+                df['GL'][idx] = strSplit[0]
+                df['GL'][newIdx] = strSplit[1]
+
+                # fix values in 'Cost Center'
+                strSplit = df['Cost Center'][idx].split('\n')
+                df['Cost Center'][idx] = strSplit[0]
+                df['Cost Center'][newIdx] = strSplit[1]
+
+                # fix values in 'IO'
+                strSplit = df['IO'][idx].split('\n')
+                df['IO'][idx] = strSplit[0]
+                df['IO'][newIdx] = strSplit[1]
+        except:
+            continue  # to ignore NaN
+    df = df.sort_index().reset_index(drop=True)
+    df.to_excel('daily_payment_report.xlsx')
     return send_file(os.path.join(os.getcwd(),'daily_payment_report.xlsx'))
 
 
