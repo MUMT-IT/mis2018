@@ -229,6 +229,8 @@ class PAScoreSheet(db.Model):
     is_consolidated = db.Column('is_consolidated', db.Boolean(), default=False)
     is_final = db.Column('is_final', db.Boolean(), default=False)
     is_appproved = db.Column('is_appproved', db.Boolean(), default=False)
+    updated_at = db.Column('updated_at', db.DateTime(timezone=True))
+    confirm_at = db.Column('confirm_at', db.DateTime(timezone=True))
     strengths = db.Column('strengths', db.Text())
     weaknesses = db.Column('weaknesses', db.Text())
 
