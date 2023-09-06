@@ -53,7 +53,7 @@ def create_receipt():
     form = ReceiptDetailForm()
     form.payer.choices = [(None, 'Add or select payer')] + [(r.id, r.received_money_from)
                                 for r in ElectronicReceiptReceivedMoneyFrom.query.all()]
-    receipt_book = ComHealthReceiptID.query.filter_by(code='MTG').first()
+    receipt_num = ComHealthReceiptID.get_number('MTS', db)
     payer = None
     if request.method == 'POST':
         if form.payer.data:
@@ -73,11 +73,11 @@ def create_receipt():
         form.populate_obj(receipt_detail)  #insert data from Form to Model
         if payer:
             receipt_detail.received_money_from = payer
-        receipt_detail.number = receipt_book.next
-        receipt_book.count += 1
-        receipt_detail.book_number = receipt_book.book_number
+        receipt_detail.number = receipt_num.number
+        receipt_num.count += 1
         receipt_detail.received_money_from.address = form.address.data
         db.session.add(receipt_detail)
+        db.session.add(receipt_num)
         db.session.commit()
         flash(u'บันทึกการสร้างใบเสร็จรับเงินสำเร็จ.', 'success')
         return redirect(url_for('receipt_printing.view_receipt_by_list_type'))
