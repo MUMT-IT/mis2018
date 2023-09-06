@@ -59,7 +59,7 @@
                             <th>กรอกคะแนน<br>(0-10)</th>
                             </thead>
                             <tbody>
-                            {% for s in scoresheet.score_sheet_items %}
+                            {% for s in scoresheet.score_sheet_items|sort(attribute='item_id') %}
                                 <tr>
                                     <td style="width: 38%">
                                         <p><strong>{{ s.item }}</strong></p>
@@ -177,6 +177,7 @@
                 </div>
                 <div class="columns">
                     <div class="column has-text-centered">
+                        {% if scoresheet.updated_at %}
                         <div class="buttons is-centered">
                             <a  onclick="return confirm('กรุณาบันทึกคะแนน(ปุ่มเขียว)ก่อนคลิก OK หากบันทึกเรียบร้อยแล้วคลิก OK เพื่อดำเนินการส่งคะแนนต่อไป')"
                                     href="{{ url_for('pa.confirm_score', scoresheet_id=scoresheet.id, for_self=for_self, next_url=next_url) }}"
@@ -188,6 +189,7 @@
                                 <span>ยืนยันคะแนน</span>
                             </a>
                         </div>
+                        {% endif %}
                         <p class="notification is-danger is-light has-text-danger">
                             <span class="icon">
                                 <i class="fa-solid fa-circle-info"></i>
