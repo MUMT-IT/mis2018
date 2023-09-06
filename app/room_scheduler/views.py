@@ -137,7 +137,7 @@ def cancel(event_id=None):
     db.session.commit()
     start = localtz.localize(event.datetime.lower)
     end = localtz.localize(event.datetime.upper)
-    msg = f'{event.creator} ได้ยกเลิกการจอง {event.room.number} สำหรับ {event.title} เวลา {start.strftime("%d/%m/%Y %H:%M")} - {end.strftime("%d/%m/%Y %H:%M")}.'
+    msg = f'{event.creator.fullname} ได้ยกเลิกการจอง {event.room.number} สำหรับ {event.title} เวลา {start.strftime("%d/%m/%Y %H:%M")} - {end.strftime("%d/%m/%Y %H:%M")}.'
     if not current_app.debug:
         if event.room.coordinator and event.room.coordinator.line_id:
             line_bot_api.push_message(to=event.room.coordinator.line_id,
