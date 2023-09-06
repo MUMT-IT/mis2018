@@ -563,7 +563,7 @@ def assign_committee(pa_id):
 @pa.route('/head/all-approved-pa')
 @login_required
 def all_approved_pa():
-    pa_request = PARequest.query.filter_by(supervisor=current_user, for_='ขอรับการประเมิน'
+    pa_request = PARequest.query.filter_by(supervisor=current_user, for_='ขอรับการประเมิน', status='อนุมัติ'
                                            ).filter(PARequest.responded_at != None).all()
     return render_template('PA/head_all_approved_pa.html', pa_request=pa_request)
 
